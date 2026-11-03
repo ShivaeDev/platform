@@ -1,10 +1,10 @@
-import { expect } from "vitest";
 import { fence } from "#imports/fence.ts";
 import { anything, external, files, folders, packages } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gameFences } from "#test/gameFences.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const { cmsStaysOffDisk, coreNeedsNoAuth, gameKeepsOutOfCms, gameNeverReachesCms, gameSpeaksCards } = gameFences;
 
@@ -16,14 +16,17 @@ importStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importFences, { fences: [gameKeepsOutOfCms] });
 
-		expect(findings).toEqual([
-			{
-				file: "packages/game/src/play.ts",
-				line: 1,
-				message: 'Imports packages/cms/src/edit.ts across the fence "game-keeps-out-of-cms": The game ships to players; the CMS is for contributors.',
-				subject: "game-keeps-out-of-cms",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "packages/game/src/play.ts",
+					line: 1,
+					message:
+						'Imports packages/cms/src/edit.ts across the fence "game-keeps-out-of-cms": The game ships to players; the CMS is for contributors.',
+					subject: "game-keeps-out-of-cms",
+				},
+			]),
+		);
 	},
 );
 
@@ -33,10 +36,12 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(importFences, { fences: [gameNeverReachesCms] });
 
-		expect(yield* messages()).toEqual([
-			'Reaches packages/cms/src/edit.ts through packages/game/src/play.ts -> packages/cms/src/edit.ts across the fence "game-never-reaches-cms": Nothing the game loads may pull the CMS in.',
-			'Reaches packages/cms/src/edit.ts through packages/game/src/run.ts -> packages/simulation/src/step.ts -> packages/cms/src/edit.ts across the fence "game-never-reaches-cms": Nothing the game loads may pull the CMS in.',
-		]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				'Reaches packages/cms/src/edit.ts through packages/game/src/play.ts -> packages/cms/src/edit.ts across the fence "game-never-reaches-cms": Nothing the game loads may pull the CMS in.',
+				'Reaches packages/cms/src/edit.ts through packages/game/src/run.ts -> packages/simulation/src/step.ts -> packages/cms/src/edit.ts across the fence "game-never-reaches-cms": Nothing the game loads may pull the CMS in.',
+			]),
+		);
 	},
 );
 
@@ -46,20 +51,22 @@ importStory.it(
 	function* ({ check, findings }) {
 		yield* check(importFences, { fences: [gameSpeaksCards] });
 
-		expect(yield* findings()).toEqual([
-			expect.objectContaining({
-				file: "packages/game/src/words.ts",
-				line: 2,
-				message: expect.stringContaining('Imports "voyage" of packages/vocabulary/src across the fence "game-speaks-cards"'),
-			}),
-		]);
+		yield* assertThat(yield* findings(), (actual, expect) =>
+			actual.toEqual([
+				expect.objectContaining({
+					file: "packages/game/src/words.ts",
+					line: 2,
+					message: expect.stringContaining('Imports "voyage" of packages/vocabulary/src across the fence "game-speaks-cards"'),
+				}),
+			]),
+		);
 	},
 );
 
 importStory.it("imports/fences reports a builtin module that an import spells without the node: prefix", [GAME], function* ({ check, locations }) {
 	yield* check(importFences, { fences: [cmsStaysOffDisk] });
 
-	expect(yield* locations()).toEqual(["packages/cms/src/edit.ts:1"]);
+	yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/cms/src/edit.ts:1"]));
 });
 
 importStory.it(
@@ -68,13 +75,17 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(importFences, { fences: [coreNeedsNoAuth] });
 
-		expect((yield* messages()).map((message) => message.split(" across ")[0])).toEqual([
-			"Imports #auth (better-auth)",
-			"Imports auth-kit (better-auth)",
-			"Imports ../../../node_modules/@trpc/server/src/http.ts (@trpc/server)",
-			"Imports hast",
-			"Imports @demo/kit",
-		]);
+		yield* assertThat(
+			(yield* messages()).map((message) => message.split(" across ")[0]),
+			(actual) =>
+				actual.toEqual([
+					"Imports #auth (better-auth)",
+					"Imports auth-kit (better-auth)",
+					"Imports ../../../node_modules/@trpc/server/src/http.ts (@trpc/server)",
+					"Imports hast",
+					"Imports @demo/kit",
+				]),
+		);
 	},
 );
 
@@ -94,7 +105,7 @@ importStory.it(
 			],
 		});
 
-		expect(yield* locations()).toEqual(["packages/game/src/preview.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/game/src/preview.ts:1"]));
 	},
 );
 
@@ -114,7 +125,9 @@ importStory.it(
 			],
 		});
 
-		expect(yield* messages()).toEqual([expect.stringContaining("Imports packages/cms/generated/client.ts across the fence")]);
+		yield* assertThat(yield* messages(), (actual, expect) =>
+			actual.toEqual([expect.stringContaining("Imports packages/cms/generated/client.ts across the fence")]),
+		);
 	},
 );
 
@@ -133,14 +146,16 @@ importStory.it(
 
 		const findings = yield* check(importFences, { fences: [policy] });
 
-		expect(findings).toEqual([
-			{
-				file: "packages/game/src/play.ts",
-				line: 1,
-				message: 'Imports packages/cms/src/edit.ts across the fence "game": The editor is not shipped to players.',
-				subject: "game",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "packages/game/src/play.ts",
+					line: 1,
+					message: 'Imports packages/cms/src/edit.ts across the fence "game": The editor is not shipped to players.',
+					subject: "game",
+				},
+			]),
+		);
 	},
 );
 
@@ -157,5 +172,5 @@ importStory.it("imports/fences takes a folder as a vocabulary boundary", [GAME],
 
 	yield* check(importFences, { fences: [policy] });
 
-	expect(yield* locations()).toEqual(["packages/game/src/words.ts:2"]);
+	yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/game/src/words.ts:2"]));
 });

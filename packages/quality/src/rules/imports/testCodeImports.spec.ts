@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const REPAIR = "Move the shared code into a production module and import it from both production and tests.";
 
@@ -48,7 +48,9 @@ for (const [form, content, specifier, target] of FORMS) {
 		function* ({ check }) {
 			const findings = yield* check(noTestCode);
 
-			expect(findings).toEqual([{ file: "src/app.ts", line: 1, message: `Imports test code through "${specifier}". ${REPAIR}`, subject: specifier }]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([{ file: "src/app.ts", line: 1, message: `Imports test code through "${specifier}". ${REPAIR}`, subject: specifier }]),
+			);
 		},
 	);
 }
@@ -64,7 +66,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(noTestCode);
 
-		expect(yield* sites()).toEqual(["src/app.ts:1 ./test-support/fixture.json"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["src/app.ts:1 ./test-support/fixture.json"]));
 	},
 );
 
@@ -80,7 +82,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(noTestCode);
 
-		expect(yield* sites()).toEqual(["src/app.ts:1 #kit/fixture.ts", "src/app.ts:2 ./test-support/missing.ts"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["src/app.ts:1 #kit/fixture.ts", "src/app.ts:2 ./test-support/missing.ts"]));
 	},
 );
 
@@ -95,6 +97,6 @@ importStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(noTestCode)).toEqual([]);
+		yield* assertThat(yield* check(noTestCode), (actual) => actual.toEqual([]));
 	},
 );

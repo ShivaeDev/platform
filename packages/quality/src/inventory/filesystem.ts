@@ -1,5 +1,5 @@
-import { dirname } from "node:path";
-import { Data, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Data, Effect, FileSystem, Path } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 
 export class FilesystemFailure extends Data.TaggedError("FilesystemFailure")<{
@@ -41,6 +41,8 @@ export const writeText = Effect.fn("Inventory.writeText")(function* (
 	path: string,
 	text: string,
 ): Effect.fn.Return<void, FilesystemFailure, FileSystem.FileSystem> {
+	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const fs = yield* FileSystem.FileSystem;
 	const written = Effect.andThen(fs.makeDirectory(dirname(path), { recursive: true }), fs.writeFileString(path, text));
 	return yield* Effect.mapError(written, (error) => new FilesystemFailure({ message: `cannot write ${path}: ${error.message}`, path }));

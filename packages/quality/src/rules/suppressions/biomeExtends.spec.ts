@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { ACME, acmePackage, extending, weak } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const CONFIGS = { "a.json": weak("a"), "b.json": weak("b"), "configs/strict.json": weak("strict") };
 
@@ -41,7 +41,9 @@ for (const [how, specifier, manifest, file, weakened] of [
 		`suppressions/biome-overrides follows an extends entry through ${how} to ${file} and reports the rule that file turns off`,
 		[repositoryHas(extending(specifier), ...acmePackage(manifest, CONFIGS))],
 		function* ({ check }) {
-			expect(yield* check(biomeOverrides)).toEqual([expect.objectContaining({ subject: `lint/suspicious/${weakened}` })]);
+			yield* assertThat(yield* check(biomeOverrides), (actual, expect) =>
+				actual.toEqual([expect.objectContaining({ subject: `lint/suspicious/${weakened}` })]),
+			);
 		},
 	);
 }
@@ -99,7 +101,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(biomeOverrides)).toEqual([]);
+		yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -131,10 +133,12 @@ for (const [what, files, message] of [
 		function* ({ check, locations, messages }) {
 			yield* check(biomeOverrides);
 
-			yield* outcomes([
-				["locations", () => locations(), ["biome.json:3"]],
-				["messages", () => messages(), [expect.stringContaining(message)]],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["locations", () => locations(), ["biome.json:3"]],
+					["messages", () => messages(), [expect.stringContaining(message)]],
+				]),
+			);
 		},
 	);
 }

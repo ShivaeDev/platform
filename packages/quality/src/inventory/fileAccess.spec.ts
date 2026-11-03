@@ -1,12 +1,12 @@
-import { expect } from "vitest";
 import { inventoryStory, repositoryHas, repositoryHasFolder } from "#test/inventoryStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 inventoryStory.it("quality saves a baseline into folders that do not exist yet", [], function* ({ onDisk, saves }) {
-	expect(yield* onDisk("quality/nested/baseline.jsonl")).toBe("absent");
+	yield* assertThat(yield* onDisk("quality/nested/baseline.jsonl"), (actual) => actual.toBe("absent"));
 
 	yield* saves("quality/nested/baseline.jsonl", "entry\n");
 
-	expect(yield* onDisk("quality/nested/baseline.jsonl")).toBe("entry\n");
+	yield* assertThat(yield* onDisk("quality/nested/baseline.jsonl"), (actual) => actual.toBe("entry\n"));
 });
 
 inventoryStory.it(
@@ -15,12 +15,12 @@ inventoryStory.it(
 	function* ({ failure, saves }) {
 		yield* saves("quality/baseline.jsonl", "entry\n");
 
-		expect(yield* failure()).toMatch(/^cannot write quality\/baseline\.jsonl: /u);
+		yield* assertThat(yield* failure(), (actual) => actual.toMatch(/^cannot write quality\/baseline\.jsonl: /u));
 	},
 );
 
 inventoryStory.it("quality reads an optional file that does not exist as absent", [], function* ({ readsOptional }) {
-	expect(yield* readsOptional(".gitignore")).toBe("absent");
+	yield* assertThat(yield* readsOptional(".gitignore"), (actual) => actual.toBe("absent"));
 });
 
 inventoryStory.it(
@@ -29,14 +29,14 @@ inventoryStory.it(
 	function* ({ failure, readsOptional }) {
 		yield* readsOptional("occupied/package.json");
 
-		expect(yield* failure()).toMatch(/^cannot read occupied\/package\.json: /u);
+		yield* assertThat(yield* failure(), (actual) => actual.toMatch(/^cannot read occupied\/package\.json: /u));
 	},
 );
 
 inventoryStory.it("quality fails to read a required file that does not exist and says it is missing", [], function* ({ failure, readsRequired }) {
 	yield* readsRequired("pnpm-workspace.yaml");
 
-	expect(yield* failure()).toBe("required input is missing: pnpm-workspace.yaml");
+	yield* assertThat(yield* failure(), (actual) => actual.toBe("required input is missing: pnpm-workspace.yaml"));
 });
 
 inventoryStory.it(
@@ -45,6 +45,6 @@ inventoryStory.it(
 	function* ({ failure, readsRequired }) {
 		yield* readsRequired("package.json");
 
-		expect(yield* failure()).toMatch(/^cannot read package\.json: /u);
+		yield* assertThat(yield* failure(), (actual) => actual.toMatch(/^cannot read package\.json: /u));
 	},
 );

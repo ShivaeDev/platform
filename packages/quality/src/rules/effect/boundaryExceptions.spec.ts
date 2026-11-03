@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas as repositoryContains, repositoryStory } from "#test/repositoryStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const rule of ["effect/adapter-imports", "effect/boundary", "effect/service-parameters", "effect/failure-honesty"]) {
@@ -19,10 +19,12 @@ for (const rule of ["effect/adapter-imports", "effect/boundary", "effect/service
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes([
-				["exit", () => outcome(), "rejected"],
-				["report", () => stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "rejected"],
+					["report", () => stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -43,7 +45,7 @@ repositoryStory.it(
 	function* ({ runs, stdout }) {
 		yield* runs("lint");
 
-		expect(yield* stdout()).toContain("src/bridge.ts:1  Uses async arrow.");
+		yield* assertThat(yield* stdout(), (actual) => actual.toContain("src/bridge.ts:1  Uses async arrow."));
 	},
 	CLI_TIMEOUT,
 );
@@ -60,12 +62,14 @@ repositoryStory.it(
 	function* ({ runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["console", () => stdout(), expect.stringContaining("console.* is banned")],
-			["process.env", () => stdout(), expect.stringContaining("process.env is banned")],
-			["randomness", () => stdout(), expect.stringContaining("Ambient randomness is banned")],
-			["time", () => stdout(), expect.stringContaining("Ambient time is banned")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["console", () => stdout(), expect.stringContaining("console.* is banned")],
+				["process.env", () => stdout(), expect.stringContaining("process.env is banned")],
+				["randomness", () => stdout(), expect.stringContaining("Ambient randomness is banned")],
+				["time", () => stdout(), expect.stringContaining("Ambient time is banned")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	for (const module of ["inbox", "admin/inbox"]) {
@@ -19,7 +19,7 @@ for (const directory of ["", "packages/app/"]) {
 				function* ({ check, findings }) {
 					yield* check(namedAfterExport);
 
-					expect(yield* findings()).toEqual([]);
+					yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 				},
 			);
 		}
@@ -38,6 +38,6 @@ for (const [path, content, reason] of [
 	ruleStory.it(`files/named-after-export still reports ${path}: ${reason}`, [repositoryHas({ content, path })], function* ({ check, messages }) {
 		yield* check(namedAfterExport);
 
-		expect(yield* messages()).toEqual([expect.stringContaining(reason)]);
+		yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
 	});
 }

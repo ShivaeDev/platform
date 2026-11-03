@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const CONSTRUCTS = [
@@ -53,7 +53,7 @@ for (const { code, found, name } of CONSTRUCTS) {
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual(found.map(([line, construct]) => usesAt("src/bridge.ts", line, construct)));
+			yield* assertThat(findings, (actual) => actual.toEqual(found.map(([line, construct]) => usesAt("src/bridge.ts", line, construct))));
 		},
 		CLI_TIMEOUT,
 	);
@@ -63,7 +63,7 @@ ruleStory.it(
 	"effect/boundary checks a spec like any other source",
 	[repositoryHas({ content: BRIDGE, path: "src/bridge.spec.ts" })],
 	function* ({ check }) {
-		expect(yield* check(effectBoundary)).toEqual([usesAt("src/bridge.spec.ts", 1, "async function")]);
+		yield* assertThat(yield* check(effectBoundary), (actual) => actual.toEqual([usesAt("src/bridge.spec.ts", 1, "async function")]));
 	},
 	CLI_TIMEOUT,
 );
@@ -78,7 +78,7 @@ for (const path of [
 		`effect/boundary exempts ${path}`,
 		[repositoryHas({ content: BRIDGE, path })],
 		function* ({ check }) {
-			expect(yield* check(effectBoundary)).toEqual([]);
+			yield* assertThat(yield* check(effectBoundary), (actual) => actual.toEqual([]));
 		},
 		CLI_TIMEOUT,
 	);

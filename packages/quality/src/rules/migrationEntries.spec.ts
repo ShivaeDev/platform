@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { unusedCode } from "#rules/unusedCode.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const MIGRATION = 'import { Effect } from "effect"; export default Effect.void;';
 
@@ -21,6 +21,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(unusedCode);
 
-		expect(yield* locations()).toEqual(["src/server/abandoned.ts"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/server/abandoned.ts"]));
 	},
 );

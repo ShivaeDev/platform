@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { repositoryStory } from "#test/repositoryStory.ts";
 import { unusedToolConfiguration } from "#test/unusedToolConfiguration.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const code of [0, 1, 2]) {
 	repositoryStory.it(
@@ -9,10 +9,10 @@ for (const code of [0, 1, 2]) {
 		function* ({ runs, stderr }) {
 			const answer = yield* runs("lint");
 
-			expect(answer.outcome).toBe("invalid");
+			yield* assertThat(answer.outcome, (actual) => actual.toBe("invalid"));
 			const error = yield* stderr();
-			expect(error).toContain(`knip exited ${code} without a valid report:`);
-			expect(error).toContain("The test config stopped analysis.");
+			yield* assertThat(error, (actual) => actual.toContain(`knip exited ${code} without a valid report:`));
+			yield* assertThat(error, (actual) => actual.toContain("The test config stopped analysis."));
 		},
 	);
 }
@@ -23,8 +23,8 @@ repositoryStory.it(
 	function* ({ runs, stderr }) {
 		const answer = yield* runs("lint");
 
-		expect(answer.outcome).toBe("invalid");
-		expect(yield* stderr()).toContain("knip exited 0 without a valid report:\nnot a JSON report");
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("invalid"));
+		yield* assertThat(yield* stderr(), (actual) => actual.toContain("knip exited 0 without a valid report:\nnot a JSON report"));
 	},
 );
 
@@ -34,7 +34,7 @@ repositoryStory.it(
 	function* ({ runs, stderr }) {
 		const answer = yield* runs("lint");
 
-		expect(answer.outcome).toBe("invalid");
-		expect(yield* stderr()).toContain("knip exited 0 inconsistently with its report:");
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("invalid"));
+		yield* assertThat(yield* stderr(), (actual) => actual.toContain("knip exited 0 inconsistently with its report:"));
 	},
 );

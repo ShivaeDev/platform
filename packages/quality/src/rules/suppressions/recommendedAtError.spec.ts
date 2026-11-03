@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRecommends, EXTENDS_QUALITY, qualityPreset } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const PRESET = "node_modules/@shivaedev/quality/biome/preset.json";
 
@@ -18,7 +18,7 @@ ruleStory.it(
 	"suppressions/biome-recommended accepts a preset that sets every recommended rule to error, as a level or with options",
 	[repositoryHas(EXTENDS_QUALITY, ...qualityPreset(ALL_AT_ERROR))],
 	function* ({ check }) {
-		expect(yield* check(RECOMMENDED)).toEqual([]);
+		yield* assertThat(yield* check(RECOMMENDED), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -26,7 +26,7 @@ ruleStory.it(
 	"suppressions/biome-recommended accepts recommended rules whose group the preset sets to error",
 	[repositoryHas(EXTENDS_QUALITY, ...qualityPreset({ ...ALL_AT_ERROR, suspicious: "error" }))],
 	function* ({ check }) {
-		expect(yield* check(RECOMMENDED)).toEqual([]);
+		yield* assertThat(yield* check(RECOMMENDED), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -95,7 +95,7 @@ for (const [what, root] of [
 		`suppressions/biome-recommended leaves a preset that turns a recommended rule off alone when the repository ${what}`,
 		[repositoryHas(...root, ...qualityPreset({ suspicious: { noDebugger: "off" } }))],
 		function* ({ check }) {
-			expect(yield* check(RECOMMENDED)).toEqual([]);
+			yield* assertThat(yield* check(RECOMMENDED), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -141,13 +141,15 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(RECOMMENDED);
 
-		yield* outcomes([
-			["locations", () => locations(), ["node_modules/@shivaedev/quality/biome/declarations.json"]],
-			[
-				"messages",
-				() => messages(),
-				[expect.stringMatching(/^Cannot read the declarations shipped with "@shivaedev\/quality\/biome\/preset\.json": /u)],
-			],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["node_modules/@shivaedev/quality/biome/declarations.json"]],
+				[
+					"messages",
+					() => messages(),
+					[expect.stringMatching(/^Cannot read the declarations shipped with "@shivaedev\/quality\/biome\/preset\.json": /u)],
+				],
+			]),
+		);
 	},
 );

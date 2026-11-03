@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Effect } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { run } from "#git/command.ts";
 
@@ -11,6 +11,8 @@ export interface HookLocation {
 
 // Hooks live in the common git directory, which every worktree of the repository shares.
 export const hookLocation = Effect.fn("Hooks.hookLocation")(function* (cwd: string) {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const paths = yield* run(cwd, ["rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir"]);
 	const [toplevel, common] = paths.stdout.trim().split("\n");
 	if (paths.code !== 0 || toplevel === undefined || common === undefined) {

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { packageBuild, packageExtendsQualityConfig, packageHas } from "#test/packageBuild.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 
 packageBuild.it(
 	"the supported TypeScript 7 CLI emits a package declaration whose inferred type imports a relative module with its extension through a # alias, without diagnostics",
@@ -15,9 +15,11 @@ packageBuild.it(
 	function* ({ builds, declaration, diagnostics }) {
 		yield* builds();
 
-		yield* outcomes([
-			["diagnostics", () => diagnostics(), []],
-			["users/issued.d.ts", () => declaration("users/issued.d.ts"), expect.stringContaining('import("../token.ts").Token')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["diagnostics", () => diagnostics(), []],
+				["users/issued.d.ts", () => declaration("users/issued.d.ts"), expect.stringContaining('import("../token.ts").Token')],
+			]),
+		);
 	},
 );

@@ -1,5 +1,5 @@
-import { relative, resolve } from "node:path";
-import { Console, Effect, type FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, type FileSystem, Path } from "effect";
 import type { BaselineEntry } from "#baseline/format.ts";
 import { saveShards } from "#baseline/shards.ts";
 import { adopt, type Pruned, prune, type Scope } from "#baseline/update.ts";
@@ -26,6 +26,8 @@ export const writeBaseline = Effect.fn("Cli.writeBaseline")(function* (
 	files: readonly string[],
 	firstAdoption = false,
 ): Effect.fn.Return<void, SetupFailure, RuleServices> {
+	const { relative, resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const session = yield* openSession(cwd, config);
 	const existing = session.baseline.files.size === 0 ? undefined : session.baseline.entries;
 	if (firstAdoption && (rules.length === 0 || rules.some((rule) => registrable(session.config, rule)))) {

@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, guide, markdown, noModule } from "#test/docsRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const MODULES = [
 	...docsWorkspace,
@@ -116,12 +116,12 @@ for (const { document, line, message, name, subject } of BROKEN_REFERENCES) {
 	ruleStory.it(`docs/references reports ${name} at its line`, [repositoryHas(...MODULES, document)], function* ({ check }) {
 		const findings = yield* check(docsReferences);
 
-		expect(findings).toEqual([{ file: document.path, line, message, subject }]);
+		yield* assertThat(findings, (actual) => actual.toEqual([{ file: document.path, line, message, subject }]));
 	});
 }
 
 for (const { document, name } of RESOLVED_REFERENCES) {
 	ruleStory.it(`docs/references accepts ${name}`, [repositoryHas(...MODULES, document)], function* ({ check }) {
-		expect(yield* check(docsReferences)).toEqual([]);
+		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 	});
 }

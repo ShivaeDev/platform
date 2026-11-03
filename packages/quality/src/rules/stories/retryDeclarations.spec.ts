@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 for (const registration of [
@@ -28,10 +28,12 @@ for (const registration of [
 		function* ({ check, locations, messages }) {
 			yield* check(globalRetries);
 
-			yield* outcomes([
-				["registration", () => locations(), ["src/orders.spec.ts:2"]],
-				["repair", () => messages(), [expect.stringContaining("Remove the retry option: retries are global only and recorded by vitest-rerun")]],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["registration", () => locations(), ["src/orders.spec.ts:2"]],
+					["repair", () => messages(), [expect.stringContaining("Remove the retry option: retries are global only and recorded by vitest-rerun")]],
+				]),
+			);
 		},
 	);
 }
@@ -49,7 +51,7 @@ for (const registration of [
 		function* ({ check, locations }) {
 			yield* check(globalRetries);
 
-			expect(yield* locations()).toEqual(["src/orders.spec.ts:2"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.spec.ts:2"]));
 		},
 	);
 }
@@ -71,7 +73,7 @@ for (const [imports, registration] of [
 		function* ({ check, locations }) {
 			yield* check(globalRetries);
 
-			expect(yield* locations()).toEqual(["src/test-support/registrations.ts:2"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/test-support/registrations.ts:2"]));
 		},
 	);
 }
@@ -107,6 +109,6 @@ other.describe("orders", { retry: 1 }, () => {});`),
 	function* ({ check, findings }) {
 		yield* check(globalRetries);
 
-		expect(yield* findings()).toEqual([]);
+		yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 	},
 );

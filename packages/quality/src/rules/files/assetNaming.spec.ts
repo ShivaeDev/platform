@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 
@@ -37,7 +37,7 @@ for (const [file, path, options, reason] of misnamed) {
 	ruleStory.it(`files/other-names reports ${file}: ${reason}`, [repositoryHas({ content: "", path })], function* ({ check, messages }) {
 		yield* check(otherNames, options);
 
-		expect(yield* messages()).toEqual([expect.stringContaining(reason)]);
+		yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
 	});
 }
 
@@ -56,6 +56,6 @@ const named = [
 
 for (const [file, path, options] of named) {
 	ruleStory.it(`files/other-names accepts ${file}`, [repositoryHas({ content: "", path })], function* ({ check }) {
-		expect(yield* check(otherNames, options)).toEqual([]);
+		yield* assertThat(yield* check(otherNames, options), (actual) => actual.toEqual([]));
 	});
 }

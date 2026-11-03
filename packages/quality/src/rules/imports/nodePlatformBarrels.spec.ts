@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["src/server/host.ts", "src/client/host.ts", "src/host.ts"]) {
 	importStory.it(
@@ -9,15 +9,17 @@ for (const path of ["src/server/host.ts", "src/client/host.ts", "src/host.ts"]) 
 		function* ({ check }) {
 			const findings = yield* check(importsRuntime);
 
-			expect(findings).toEqual([
-				{
-					file: path,
-					line: 1,
-					message:
-						'The @effect/platform-node barrel loads optional integrations such as redis. Import module subpaths instead: `import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"`.',
-					subject: "@effect/platform-node",
-				},
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{
+						file: path,
+						line: 1,
+						message:
+							'The @effect/platform-node barrel loads optional integrations such as redis. Import module subpaths instead: `import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"`.',
+						subject: "@effect/platform-node",
+					},
+				]),
+			);
 		},
 	);
 }
@@ -35,7 +37,7 @@ for (const content of [
 		function* ({ check, messages }) {
 			yield* check(importsRuntime);
 
-			expect(yield* messages()).toEqual([expect.stringContaining("@effect/platform-node/NodeServices")]);
+			yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining("@effect/platform-node/NodeServices")]));
 		},
 	);
 }
@@ -54,6 +56,6 @@ importStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(importsRuntime)).toEqual([]);
+		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 	},
 );

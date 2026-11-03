@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, branch] of [
 	["comparison", 'if (error.status === HttpStatus.fromLiteral("NotFound")) recover();'],
@@ -19,7 +19,7 @@ for (const [shape, branch] of [
 		function* ({ check, locations }) {
 			yield* check(httpStatus, { edge: [{ glob: "src/http/**", reason: "The HTTP adapter translates transport statuses into domain errors." }] });
 
-			expect(yield* locations()).toEqual(["src/orders.ts:2"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.ts:2"]));
 		},
 	);
 }
@@ -38,6 +38,6 @@ ruleStory.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(httpStatus)).toEqual([]);
+		yield* assertThat(yield* check(httpStatus), (actual) => actual.toEqual([]));
 	},
 );

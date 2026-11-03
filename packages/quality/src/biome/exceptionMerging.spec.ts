@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { exceptionConfigStory, qualityInstalled, rootConfig } from "#test/exceptionConfigStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const REASON = "The external format requires it.";
 
@@ -34,8 +34,8 @@ for (const [label, includes, kept] of [
 		function* ({ generatedConfig, runsCommand }) {
 			yield* runsCommand(EXCLUDED_DIRECTORIES);
 
-			expect(yield* generatedConfig()).toEqual(
-				expect.objectContaining({ files: { includes: [...kept, "!**/generated", "!**/fixtures", ...OWN_FOLDERS] } }),
+			yield* assertThat(yield* generatedConfig(), (actual, expect) =>
+				actual.toEqual(expect.objectContaining({ files: { includes: [...kept, "!**/generated", "!**/fixtures", ...OWN_FOLDERS] } })),
 			);
 		},
 	);
@@ -52,10 +52,12 @@ for (const [label, config] of [
 		function* ({ files, outcome, runsCommand }) {
 			yield* runsCommand(UNTYPED_PARSER);
 
-			yield* outcomes([
-				["files", () => files(), ["biome.json"]],
-				["outcome", () => outcome(), expect.stringContaining("failed: Cannot merge exceptions into invalid biome.json")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["files", () => files(), ["biome.json"]],
+					["outcome", () => outcome(), expect.stringContaining("failed: Cannot merge exceptions into invalid biome.json")],
+				]),
+			);
 		},
 	);
 }
@@ -66,22 +68,24 @@ exceptionConfigStory.it(
 	function* ({ configPath, generatedConfig, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
-		yield* outcomes([
-			[
-				"config",
-				() => generatedConfig(),
-				expect.objectContaining({
-					extends: [expect.stringMatching(/^<root>\/\.quality-biome-/u)],
-					formatter: { lineWidth: 150 },
-					overrides: [
-						{ formatter: { lineWidth: 100 }, includes: ["src/other.ts"] },
-						{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
-					],
-					plugins: ["<root>/imports.grit"],
-				}),
-			],
-			["config path", () => configPath(), expect.stringMatching(/^<root>\/\.quality-biome-/u)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				[
+					"config",
+					() => generatedConfig(),
+					expect.objectContaining({
+						extends: [expect.stringMatching(/^<root>\/\.quality-biome-/u)],
+						formatter: { lineWidth: 150 },
+						overrides: [
+							{ formatter: { lineWidth: 100 }, includes: ["src/other.ts"] },
+							{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
+						],
+						plugins: ["<root>/imports.grit"],
+					}),
+				],
+				["config path", () => configPath(), expect.stringMatching(/^<root>\/\.quality-biome-/u)],
+			]),
+		);
 	},
 );
 
@@ -91,7 +95,7 @@ exceptionConfigStory.it(
 	function* ({ rootConfigDuringCommand, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
-		expect(yield* rootConfigDuringCommand()).toBe(REPOSITORY_TEXT);
+		yield* assertThat(yield* rootConfigDuringCommand(), (actual) => actual.toBe(REPOSITORY_TEXT));
 	},
 );
 
@@ -101,10 +105,12 @@ exceptionConfigStory.it(
 	function* ({ files, filesDuringCommand, outcome, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
-		yield* outcomes([
-			["files after the command", () => files(), ["biome.jsonc", "node_modules"]],
-			["files during the command", () => filesDuringCommand(), expect.arrayContaining([expect.stringMatching(/^\.quality-biome-/u)])],
-			["outcome", () => outcome(), "ran"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["files after the command", () => files(), ["biome.jsonc", "node_modules"]],
+				["files during the command", () => filesDuringCommand(), expect.arrayContaining([expect.stringMatching(/^\.quality-biome-/u)])],
+				["outcome", () => outcome(), "ran"],
+			]),
+		);
 	},
 );

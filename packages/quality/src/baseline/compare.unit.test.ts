@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "@effect/vitest";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { applyBaseline } from "#baseline/compare.ts";
 import { levels, violation } from "#test/violations.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const known = levels({ "local/todo": "error", "structure/max-lines": "error" });
 const todo = violation({ file: "src/a.ts", rule: "local/todo" });
@@ -9,49 +11,59 @@ function long(lines: number) {
 }
 
 describe("applyBaseline", () => {
-	it("covers a file that holds its baselined count", () => {
-		expect(applyBaseline([todo, todo], [{ count: 2, file: "src/a.ts", rule: "local/todo" }], known)).toEqual({
-			baselined: 2,
-			kept: [],
-			loose: [],
-			regressions: [],
-			stale: [],
-		});
+	it.effect("covers a file that holds its baselined count", function* () {
+		yield* assertThat(applyBaseline([todo, todo], [{ count: 2, file: "src/a.ts", rule: "local/todo" }], known), (actual) =>
+			actual.toEqual({
+				baselined: 2,
+				kept: [],
+				loose: [],
+				regressions: [],
+				stale: [],
+			}),
+		);
 	});
 
-	it("covers a file whose single finding counts exactly its baselined count", () => {
-		expect(applyBaseline([long(400)], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known)).toEqual({
-			baselined: 1,
-			kept: [],
-			loose: [],
-			regressions: [],
-			stale: [],
-		});
+	it.effect("covers a file whose single finding counts exactly its baselined count", function* () {
+		yield* assertThat(applyBaseline([long(400)], [{ count: 250, file: "src/big.ts", rule: "structure/max-lines" }], known), (actual) =>
+			actual.toEqual({
+				baselined: 1,
+				kept: [],
+				loose: [],
+				regressions: [],
+				stale: [],
+			}),
+		);
 	});
 
-	it("keeps every violation of a file that gained one and reports the regression", () => {
+	it.effect("keeps every violation of a file that gained one and reports the regression", function* () {
 		const entry = { count: 2, file: "src/a.ts", rule: "local/todo" };
 		const checked = applyBaseline([todo, todo, todo], [entry], known);
-		expect({ kept: checked.kept, regressions: checked.regressions }).toEqual({ kept: [todo, todo, todo], regressions: [{ count: 3, entry }] });
+		yield* assertThat({ kept: checked.kept, regressions: checked.regressions }, (actual) =>
+			actual.toEqual({ kept: [todo, todo, todo], regressions: [{ count: 3, entry }] }),
+		);
 	});
 
-	it("keeps the finding of a file that grew further over its limit than its baselined count and reports the regression", () => {
+	it.effect("keeps the finding of a file that grew further over its limit than its baselined count and reports the regression", function* () {
 		const entry = { count: 250, file: "src/big.ts", rule: "structure/max-lines" };
 		const checked = applyBaseline([long(420)], [entry], known);
-		expect({ kept: checked.kept, regressions: checked.regressions }).toEqual({ kept: [long(420)], regressions: [{ count: 270, entry }] });
+		yield* assertThat({ kept: checked.kept, regressions: checked.regressions }, (actual) =>
+			actual.toEqual({ kept: [long(420)], regressions: [{ count: 270, entry }] }),
+		);
 	});
 
-	it("keeps violations in files the baseline does not name", () => {
+	it.effect("keeps violations in files the baseline does not name", function* () {
 		const other = violation({ file: "src/b.ts", rule: "local/todo" });
-		expect(applyBaseline([other], [], known).kept).toEqual([other]);
+		yield* assertThat(applyBaseline([other], [], known).kept, (actual) => actual.toEqual([other]));
 	});
 
-	it("reports fixed debt as loose, not stale", () => {
+	it.effect("reports fixed debt as loose, not stale", function* () {
 		const checked = applyBaseline([], [{ count: 1, file: "src/gone.ts", rule: "local/todo" }], known);
-		expect({ loose: checked.loose.map((loose) => loose.problem), stale: checked.stale }).toEqual({ loose: ["has no violations left"], stale: [] });
+		yield* assertThat({ loose: checked.loose.map((loose) => loose.problem), stale: checked.stale }, (actual) =>
+			actual.toEqual({ loose: ["has no violations left"], stale: [] }),
+		);
 	});
 
-	it("covers a file that shrank and reports its entry as loose", () => {
+	it.effect("covers a file that shrank and reports its entry as loose", function* () {
 		const checked = applyBaseline(
 			[todo, long(380)],
 			[
@@ -60,19 +72,24 @@ describe("applyBaseline", () => {
 			],
 			known,
 		);
-		expect({ baselined: checked.baselined, kept: checked.kept, loose: checked.loose.map((loose) => loose.problem) }).toEqual({
-			baselined: 2,
-			kept: [],
-			loose: ["allows more than is left: 1 against 3 baselined", "allows more than is left: 230 against 250 baselined"],
-		});
+		yield* assertThat({ baselined: checked.baselined, kept: checked.kept, loose: checked.loose.map((loose) => loose.problem) }, (actual) =>
+			actual.toEqual({
+				baselined: 2,
+				kept: [],
+				loose: ["allows more than is left: 1 against 3 baselined", "allows more than is left: 230 against 250 baselined"],
+			}),
+		);
 	});
 
-	it("reports an entry for an unknown rule as stale", () => {
+	it.effect("reports an entry for an unknown rule as stale", function* () {
 		const checked = applyBaseline([], [{ count: 1, file: "src/a.ts", rule: "local/typo" }], known);
-		expect(checked.stale.map((stale) => stale.problem)).toEqual(["names no known rule"]);
+		yield* assertThat(
+			checked.stale.map((stale) => stale.problem),
+			(actual) => actual.toEqual(["names no known rule"]),
+		);
 	});
 
-	it("knows the rules a family reports under its own name and no rule that merely shares its prefix", () => {
+	it.effect("knows the rules a family reports under its own name and no rule that merely shares its prefix", function* () {
 		const family = levels({ tool: "error" }, { families: ["tool"] });
 		const checked = applyBaseline(
 			[violation({ file: "src/a.ts", rule: "tool/lint/eqeq" })],
@@ -83,10 +100,13 @@ describe("applyBaseline", () => {
 			],
 			family,
 		);
-		expect({
-			baselined: checked.baselined,
-			loose: checked.loose.map((loose) => loose.entry.rule),
-			stale: checked.stale.map((stale) => stale.entry.rule),
-		}).toEqual({ baselined: 1, loose: ["tool/format"], stale: ["toolkit/x"] });
+		yield* assertThat(
+			{
+				baselined: checked.baselined,
+				loose: checked.loose.map((loose) => loose.entry.rule),
+				stale: checked.stale.map((stale) => stale.entry.rule),
+			},
+			(actual) => actual.toEqual({ baselined: 1, loose: ["tool/format"], stale: ["toolkit/x"] }),
+		);
 	});
 });

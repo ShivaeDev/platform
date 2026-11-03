@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { decodeBaseline } from "#baseline/format.ts";
 import { convertLegacy, decodeLegacyBaseline, LEGACY_BASELINE } from "#baseline/legacy.ts";
 import { saveShards, shardPaths } from "#baseline/shards.ts";
@@ -16,6 +16,8 @@ export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
 	configPath: string | undefined,
 	from: string | undefined,
 ): Effect.fn.Return<void, SetupFailure, RuleServices> {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const config = yield* loadConfig(cwd, configPath);
 	const source = from ?? LEGACY_BASELINE;
 	const paths = yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));

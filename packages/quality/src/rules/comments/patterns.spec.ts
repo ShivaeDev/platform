@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import type { Rule } from "#rule.ts";
 import { noBanner } from "#rules/comments/noBanner.ts";
 import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
@@ -7,6 +6,7 @@ import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;
@@ -90,7 +90,9 @@ for (const { fires, quiet, rule } of cases) {
 			function* ({ check }) {
 				const findings = yield* check(rule);
 
-				expect(findings).toEqual([{ file: "src/a.ts", line: 2, message: expect.stringContaining(`"${match}"`) }]);
+				yield* assertThat(findings, (actual, expect) =>
+					actual.toEqual([{ file: "src/a.ts", line: 2, message: expect.stringContaining(`"${match}"`) }]),
+				);
 			},
 		);
 	}
@@ -100,7 +102,7 @@ for (const { fires, quiet, rule } of cases) {
 			`${rule.id} accepts ${JSON.stringify(comment)}`,
 			[repositoryHas({ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" })],
 			function* ({ check }) {
-				expect(yield* check(rule)).toEqual([]);
+				yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 			},
 		);
 	}

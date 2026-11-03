@@ -1,12 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "@effect/vitest";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { sameWord } from "#naming/words.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("sameWord", () => {
-	it("matches the plural folder name categories to the singular category", () => {
-		expect(sameWord("categories", "category")).toBe(true);
+	it.effect("matches the plural folder name categories to the singular category", function* () {
+		yield* assertThat(sameWord("categories", "category"), (actual) => actual.toBe(true));
 	});
 
-	it("does not match categories to a different word with the same start, catalog", () => {
-		expect(sameWord("categories", "catalog")).toBe(false);
+	it.effect("does not match categories to a different word with the same start, catalog", function* () {
+		yield* assertThat(sameWord("categories", "catalog"), (actual) => actual.toBe(false));
 	});
 });

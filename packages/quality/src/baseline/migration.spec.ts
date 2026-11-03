@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { earlierBaseline, qualityConfigured, repositoryHas } from "#test/debtRecorded.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const LEGACY_PATH = "quality/baseline.json";
@@ -12,10 +12,12 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("Run `quality baseline migrate --from quality/baseline.json`")],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("Run `quality baseline migrate --from quality/baseline.json`")],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -24,7 +26,7 @@ baselineStory.it(
 	"baseline migrate turns the earlier baseline's measures into counts over the current limit, drops the fixed entry and lets lint pass",
 	[earlierBaseline()],
 	function* ({ lint, recorded, runs, stdout }) {
-		expect(yield* recorded()).toBe("no baseline file");
+		yield* assertThat(yield* recorded(), (actual) => actual.toBe("no baseline file"));
 
 		yield* runs("baseline", "migrate");
 
@@ -71,10 +73,12 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("baseline", "migrate");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringMatching(/quality\/baseline\.json is invalid[\s\S]*structure\/max-lines\.src\/full\.ts\.count/u)],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringMatching(/quality\/baseline\.json is invalid[\s\S]*structure\/max-lines\.src\/full\.ts\.count/u)],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

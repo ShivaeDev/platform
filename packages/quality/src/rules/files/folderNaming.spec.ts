@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 
@@ -10,9 +10,11 @@ ruleStory.it(
 	function* ({ check, findings }) {
 		yield* check(folderNames);
 
-		expect(yield* findings()).toEqual([
-			{ file: "packages/kit", message: 'The folder of the package @demo/ui-kit is named "ui-kit", in kebab-case after the package name.' },
-		]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([
+				{ file: "packages/kit", message: 'The folder of the package @demo/ui-kit is named "ui-kit", in kebab-case after the package name.' },
+			]),
+		);
 	},
 );
 
@@ -22,13 +24,15 @@ ruleStory.it(
 	function* ({ check, findings }) {
 		yield* check(folderNames);
 
-		expect(yield* findings()).toEqual([
-			{
-				file: "src/Toolbar",
-				message:
-					'"Toolbar" is PascalCase but holds no Toolbar.ts or Toolbar.tsx. A PascalCase folder is a module named after its main file: add that file, or name the folder in kebab-case.',
-			},
-		]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([
+				{
+					file: "src/Toolbar",
+					message:
+						'"Toolbar" is PascalCase but holds no Toolbar.ts or Toolbar.tsx. A PascalCase folder is a module named after its main file: add that file, or name the folder in kebab-case.',
+				},
+			]),
+		);
 	},
 );
 
@@ -38,9 +42,9 @@ ruleStory.it(
 	function* ({ check, findings }) {
 		yield* check(folderNames, CONTENT);
 
-		expect(yield* findings()).toEqual([
-			{ file: "content/Forest-Path", message: '"Forest-Path" holds content, so it is named in snake_case, such as forest_path/.' },
-		]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([{ file: "content/Forest-Path", message: '"Forest-Path" holds content, so it is named in snake_case, such as forest_path/.' }]),
+		);
 	},
 );
 
@@ -50,13 +54,15 @@ ruleStory.it(
 	function* ({ check, findings }) {
 		yield* check(folderNames);
 
-		expect(yield* findings()).toEqual([
-			{
-				file: "src/testSupport",
-				message:
-					'"testSupport" groups files, so it is named in kebab-case, such as test-support/. A folder named after a file beside or inside it is a module and takes that file\'s name.',
-			},
-		]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([
+				{
+					file: "src/testSupport",
+					message:
+						'"testSupport" groups files, so it is named in kebab-case, such as test-support/. A folder named after a file beside or inside it is a module and takes that file\'s name.',
+				},
+			]),
+		);
 	},
 );
 
@@ -85,10 +91,10 @@ const named = [
 
 for (const [folders, files, options] of named) {
 	ruleStory.it(`files/folder-names accepts ${folders}`, [repositoryHas(...files)], function* ({ check }) {
-		expect(yield* check(folderNames, options)).toEqual([]);
+		yield* assertThat(yield* check(folderNames, options), (actual) => actual.toEqual([]));
 	});
 }
 
 ruleStory.it("files/folder-names refuses the unknown option folders and names it", [], function* ({ optionIssues }) {
-	expect(yield* optionIssues(folderNames, { folders: [] })).toEqual([expect.stringContaining("folders")]);
+	yield* assertThat(yield* optionIssues(folderNames, { folders: [] }), (actual, expect) => actual.toEqual([expect.stringContaining("folders")]));
 });

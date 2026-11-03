@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestIsDirectory, manifestStory, repositoryHas } from "#test/manifestStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const BROKEN = "packages/broken/package.json";
@@ -12,12 +12,14 @@ for (const content of ['{"name":', '{"dependencies":[]}', '{"bin":[]}']) {
 		function* ({ reportLines, outcome, runs, stderr, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes([
-				["error output", () => stderr(), ""],
-				["exit", () => outcome(), "rejected"],
-				["lines naming the manifest", () => reportLines(BROKEN), [expect.stringContaining("Invalid package manifest")]],
-				["rule", () => stdout(), expect.stringContaining("manifests/valid")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["error output", () => stderr(), ""],
+					["exit", () => outcome(), "rejected"],
+					["lines naming the manifest", () => reportLines(BROKEN), [expect.stringContaining("Invalid package manifest")]],
+					["rule", () => stdout(), expect.stringContaining("manifests/valid")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -29,12 +31,14 @@ manifestStory.it(
 	function* ({ outcome, runs, stderr, reportLines, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["error output", () => stderr(), ""],
-			["exit", () => outcome(), "rejected"],
-			["manifest finding", () => reportLines("cannot read"), [expect.stringContaining("package.json")]],
-			["rule", () => stdout(), expect.stringContaining("manifests/valid")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error output", () => stderr(), ""],
+				["exit", () => outcome(), "rejected"],
+				["manifest finding", () => reportLines("cannot read"), [expect.stringContaining("package.json")]],
+				["rule", () => stdout(), expect.stringContaining("manifests/valid")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -45,10 +49,12 @@ manifestStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("fix");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringMatching(/packages\/broken\/package\.json.*Invalid package manifest/u)],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringMatching(/packages\/broken\/package\.json.*Invalid package manifest/u)],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

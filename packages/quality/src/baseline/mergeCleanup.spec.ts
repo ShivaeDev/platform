@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { agedMergeInputs, mergeLeftovers } from "#test/mergeFiles.ts";
 import { ALPHA_SHARD, branchEdits, branchWrites, driverInstalled, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const oldInputs of [false, true]) {
@@ -20,12 +20,12 @@ for (const oldInputs of [false, true]) {
 		function* ({ merges, reads, recorded, rootFiles }) {
 			const before = yield* rootFiles();
 			const nested = yield* reads("packages/alpha/.merge_file_nested");
-			expect(before).toContain(".merge_file_stale");
-			expect(nested).toBeDefined();
+			yield* assertThat(before, (actual) => actual.toContain(".merge_file_stale"));
+			yield* assertThat(nested, (actual) => actual.toBeDefined());
 
 			const result = yield* merges("left");
 
-			expect(result).toBe("merged");
+			yield* assertThat(result, (actual) => actual.toBe("merged"));
 			yield* outcomes([
 				["merged shard", () => recorded(ALPHA_SHARD), ["packages/alpha/src/c.ts structure/max-lines 3"]],
 				["remaining root files", () => rootFiles(), before.filter((name) => name !== ".merge_file_stale")],
@@ -49,12 +49,12 @@ baselineStory.it(
 	],
 	function* ({ merges, rootFiles }) {
 		const before = yield* rootFiles();
-		expect(before).toContain(".merge_file_stale");
+		yield* assertThat(before, (actual) => actual.toContain(".merge_file_stale"));
 
 		const result = yield* merges("left");
 
-		expect(result).toBe("conflicted");
-		expect(yield* rootFiles()).toEqual(before.filter((name) => name !== ".merge_file_stale"));
+		yield* assertThat(result, (actual) => actual.toBe("conflicted"));
+		yield* assertThat(yield* rootFiles(), (actual) => actual.toEqual(before.filter((name) => name !== ".merge_file_stale")));
 	},
 	CLI_TIMEOUT,
 );

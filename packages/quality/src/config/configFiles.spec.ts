@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { builtInRules } from "#rules/builtIn.ts";
 import { configFile, configLinksToMissingFile, configLoading } from "#test/configLoading.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const DEFAULT_SETTINGS = {
 	baseline: "quality-baseline.jsonl",
@@ -35,7 +35,7 @@ configLoading.it(
 	function* ({ loads, settings }) {
 		yield* loads("tools/quality.config.ts");
 
-		expect(yield* settings()).toMatchObject({ file: "tools/quality.config.ts", root: "tools" });
+		yield* assertThat(yield* settings(), (actual) => actual.toMatchObject({ file: "tools/quality.config.ts", root: "tools" }));
 	},
 );
 
@@ -45,10 +45,12 @@ configLoading.it(
 	function* ({ loads, outcome, problem }) {
 		yield* loads();
 
-		yield* outcomes([
-			["load", () => outcome(), "refused"],
-			["problem", () => problem(), expect.stringMatching(/^cannot load quality\.config\.ts: /u)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["load", () => outcome(), "refused"],
+				["problem", () => problem(), expect.stringMatching(/^cannot load quality\.config\.ts: /u)],
+			]),
+		);
 	},
 );
 
@@ -58,7 +60,9 @@ configLoading.it(
 	function* ({ loads, problem }) {
 		yield* loads();
 
-		expect(yield* problem()).toBe("quality.config.ts has no default export. Export defineConfig({ ... }) as the default.");
+		yield* assertThat(yield* problem(), (actual) =>
+			actual.toBe("quality.config.ts has no default export. Export defineConfig({ ... }) as the default."),
+		);
 	},
 );
 
@@ -68,10 +72,12 @@ configLoading.it(
 	function* ({ loads, problemCause, serializedProblem }) {
 		yield* loads();
 
-		yield* outcomes([
-			["cause", () => problemCause(), "config crashed"],
-			["serialized failure", () => serializedProblem(), expect.not.stringContaining('"cause"')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["cause", () => problemCause(), "config crashed"],
+				["serialized failure", () => serializedProblem(), expect.not.stringContaining('"cause"')],
+			]),
+		);
 	},
 );
 
@@ -81,6 +87,8 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual([expect.stringMatching(/^sourcez: /u), expect.stringMatching(/^rules\.structure\/max-lines: /u)]);
+		yield* assertThat(yield* issues(), (actual, expect) =>
+			actual.toEqual([expect.stringMatching(/^sourcez: /u), expect.stringMatching(/^rules\.structure\/max-lines: /u)]),
+		);
 	},
 );

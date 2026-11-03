@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Console, Effect } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
@@ -11,6 +11,8 @@ const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
 
 const commitScripts = Effect.fnUntraced(function* (root: string) {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const file = join(root, "package.json");
 	const readText = yield* manifestReader(root);
 	const manifest = yield* Effect.tryPromise({

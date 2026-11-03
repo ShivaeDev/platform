@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { carries, effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 // A Reference whose value is a function, so a parameter of that function type must not count as carrying it.
 const CALLBACK_REFERENCE = [
@@ -41,7 +41,7 @@ for (const { name, type } of ORDINARY_PARAMETERS) {
 			repositoryHas(serviceModule("src/parameters.ts", ...CALLBACK_REFERENCE, `export const ordinary = (${name}: ${type}) => ${name};`)),
 		],
 		function* ({ check }) {
-			expect(yield* check(serviceParameters)).toEqual([]);
+			yield* assertThat(yield* check(serviceParameters), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -50,7 +50,7 @@ ruleStory.it(
 	"effect/service-parameters accepts a Schema beside services whose shapes are functions",
 	[effectResolves(), repositoryHas(serviceModule("src/collections.ts", ...CALLABLE_SERVICES, "export const schema = (codec: Schema.Top) => codec;"))],
 	function* ({ check }) {
-		expect(yield* check(serviceParameters)).toEqual([]);
+		yield* assertThat(yield* check(serviceParameters), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -61,7 +61,7 @@ for (const { code, name, parameter } of CALLABLE_PARAMETERS) {
 		function* ({ check, messages }) {
 			yield* check(serviceParameters);
 
-			expect(yield* messages()).toEqual([carries(parameter)]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([carries(parameter)]));
 		},
 	);
 }

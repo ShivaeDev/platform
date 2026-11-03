@@ -1,5 +1,5 @@
-import { resolve } from "node:path";
-import { Clock, Effect, FileSystem, Option } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Clock, Effect, FileSystem, Option, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
 
@@ -7,6 +7,8 @@ const STALE_AFTER_MS = 5 * 60_000;
 
 export const cleanupMergeFiles = Effect.fn("Baseline.cleanupMergeFiles")(
 	function* (cwd: string, inputs: readonly string[]) {
+		const { resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 		const fs = yield* FileSystem.FileSystem;
 		const root = (yield* gitOrFail(cwd, ["rev-parse", "--show-toplevel"])).trim();
 		const active = new Set(inputs.map((path) => resolve(cwd, path)));

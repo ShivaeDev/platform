@@ -1,7 +1,6 @@
-import { relative } from "node:path";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodePath from "@effect/platform-node/NodePath";
-import { Console, Effect } from "effect";
+import { Console, Effect, Path } from "effect";
 import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { looseStagedEntries } from "#baseline/looseStagedEntries.ts";
 import { evaluate, passes } from "#engine/evaluate.ts";
@@ -13,6 +12,8 @@ import type { RuleServices } from "#rule.ts";
 
 export const lint = Effect.fn("Cli.lint")(
 	function* (cwd: string, config: string | undefined, staged = false): Effect.fn.Return<void, SetupFailure | GateFailed, RuleServices> {
+		const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 		const session = yield* openSession(cwd, config);
 		const evaluated = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
 		const loose = staged ? yield* looseStagedEntries(session) : [];

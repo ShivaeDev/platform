@@ -74,8 +74,7 @@ export const exceptionConfigStory = storyKit({
 		function runs(declarations: readonly ExceptionDeclaration[]) {
 			story.tell("quality runs a Biome command under the declared exceptions");
 			return Effect.scoped(withExceptionConfig(engine.root, declarations, recording(engine))).pipe(
-				Effect.as("ran"),
-				Effect.catchCause((cause) => Effect.succeed(failureOf(cause))),
+				Effect.matchCause({ onFailure: failureOf, onSuccess: () => "ran" }),
 				Effect.flatMap((outcome) =>
 					Effect.sync(() => {
 						engine.outcome = outcome;

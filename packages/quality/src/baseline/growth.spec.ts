@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { added, branchedFromMain, debtRecorded, lengthened, staged } from "#test/debtRecorded.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const HINT = "For moved files, carry their existing debt with `quality baseline prune --against <base>`.";
@@ -41,11 +41,13 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs, stderr }) {
 		yield* runs("baseline", "write", "--rule", "structure/max-lines", "--file", "src/long.ts", "--file", "src/longer.ts");
 
-		yield* outcomes([
-			["exit", () => outcome(), "invalid"],
-			["reason", () => stderr(), expect.stringContaining("outside the current change set: src/long.ts")],
-			["recorded debt", () => recorded(), RECORDED],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "invalid"],
+				["reason", () => stderr(), expect.stringContaining("outside the current change set: src/long.ts")],
+				["recorded debt", () => recorded(), RECORDED],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -56,11 +58,13 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs, stderr }) {
 		yield* runs("baseline", "write", "--rule", "structure/max-lines");
 
-		yield* outcomes([
-			["exit", () => outcome(), "invalid"],
-			["reason", () => stderr(), expect.stringContaining("--file <path>")],
-			["recorded debt", () => recorded(), RECORDED],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "invalid"],
+				["reason", () => stderr(), expect.stringContaining("--file <path>")],
+				["recorded debt", () => recorded(), RECORDED],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { orders, ordersPackage, pureOrders, unitSpec } from "#test/unitFiles.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 
@@ -28,7 +28,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -37,7 +37,7 @@ for (const declaration of ['import type { Client } from "pg";', 'export type { S
 		`tests/story-specs ignores the type-only engine import in a unit test: ${declaration}`,
 		[repositoryHas(ordersPackage, unitSpec(declaration))],
 		function* ({ check }) {
-			expect(yield* check(storySpecs)).toEqual([]);
+			yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -61,13 +61,15 @@ for (const [specifier, label, engine] of [
 		function* ({ check }) {
 			const findings = yield* check(storySpecs);
 
-			expect(findings).toEqual([
-				{
-					file: UNIT,
-					line: 1,
-					message: `Is a unit test but reaches ${engine} (${label}) through ${UNIT} -> ${label}. A unit test reaches no engine, directly or through what it imports. ${KIT} remove that import from the .unit file.`,
-				},
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{
+						file: UNIT,
+						line: 1,
+						message: `Is a unit test but reaches ${engine} (${label}) through ${UNIT} -> ${label}. A unit test reaches no engine, directly or through what it imports. ${KIT} remove that import from the .unit file.`,
+					},
+				]),
+			);
 		},
 	);
 }
@@ -76,7 +78,7 @@ ruleStory.it(
 	"tests/story-specs leaves a unit test's import of a package that is no engine alone",
 	[repositoryHas(ordersPackage, unitSpec('import { pick } from "lodash";'))],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -93,13 +95,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([
-			{
-				file: UNIT,
-				line: 1,
-				message: `Is a unit test but reaches the file system (node:fs) through ${UNIT} -> src/checkout.ts -> src/orders.ts -> node:fs. A unit test reaches no engine, directly or through what it imports. ${KIT} split src/checkout.ts: move the pure code under test into its own module that reaches no engine, and test that module in the .unit file.`,
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: UNIT,
+					line: 1,
+					message: `Is a unit test but reaches the file system (node:fs) through ${UNIT} -> src/checkout.ts -> src/orders.ts -> node:fs. A unit test reaches no engine, directly or through what it imports. ${KIT} split src/checkout.ts: move the pure code under test into its own module that reaches no engine, and test that module in the .unit file.`,
+				},
+			]),
+		);
 	},
 );
 
@@ -119,13 +123,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([
-			{
-				file: UNIT,
-				line: 2,
-				message: `Is a unit test but reaches the file system (node:fs) through ${UNIT} -> src/test-support/amounts.ts -> node:fs. A unit test reaches no engine, directly or through what it imports. ${KIT} give the .unit file fixtures from a test-support module that reaches no engine instead of src/test-support/amounts.ts.`,
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: UNIT,
+					line: 2,
+					message: `Is a unit test but reaches the file system (node:fs) through ${UNIT} -> src/test-support/amounts.ts -> node:fs. A unit test reaches no engine, directly or through what it imports. ${KIT} give the .unit file fixtures from a test-support module that reaches no engine instead of src/test-support/amounts.ts.`,
+				},
+			]),
+		);
 	},
 );
 
@@ -140,6 +146,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual(["src/runner.unit.spec.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/runner.unit.spec.ts:1"]));
 	},
 );

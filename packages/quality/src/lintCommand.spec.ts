@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { trees } from "#test/trees.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -55,14 +55,16 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stderr, stdout }) {
 		yield* spawns("lint");
 
-		yield* outcomes([
-			["error output", () => stderr(), ""],
-			["exit", () => outcome(), "rejected"],
-			["heading", () => stdout(), expect.stringContaining("error structure/max-lines (2)\n")],
-			["long file", () => stdout(), expect.stringContaining("  src/long.ts  4 lines exceeds the 3-line limit.")],
-			["longer file", () => stdout(), expect.stringContaining("  src/longer.ts  6 lines exceeds the 3-line limit.")],
-			["summary", () => stdout(), expect.stringContaining("quality: failed with 2 errors.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error output", () => stderr(), ""],
+				["exit", () => outcome(), "rejected"],
+				["heading", () => stdout(), expect.stringContaining("error structure/max-lines (2)\n")],
+				["long file", () => stdout(), expect.stringContaining("  src/long.ts  4 lines exceeds the 3-line limit.")],
+				["longer file", () => stdout(), expect.stringContaining("  src/longer.ts  6 lines exceeds the 3-line limit.")],
+				["summary", () => stdout(), expect.stringContaining("quality: failed with 2 errors.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -73,12 +75,14 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["comment count", () => stdout(), expect.stringContaining("  src/a.ts:3  3 comments against a limit of 2.")],
-			["exit", () => outcome(), "rejected"],
-			["JSDoc", () => stdout(), expect.stringContaining("  src/a.ts:1  JSDoc block.")],
-			["TODO", () => stdout(), expect.stringContaining('  src/a.ts:2  Marks unfinished work: "TODO".')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["comment count", () => stdout(), expect.stringContaining("  src/a.ts:3  3 comments against a limit of 2.")],
+				["exit", () => outcome(), "rejected"],
+				["JSDoc", () => stdout(), expect.stringContaining("  src/a.ts:1  JSDoc block.")],
+				["TODO", () => stdout(), expect.stringContaining('  src/a.ts:2  Marks unfinished work: "TODO".')],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -90,11 +94,13 @@ for (const [setup, files, explanation] of UNRUNNABLE) {
 		function* ({ outcome, runs, stderr, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes([
-				["error", () => stderr(), expect.stringContaining(explanation)],
-				["exit", () => outcome(), "invalid"],
-				["report", () => stdout(), ""],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["error", () => stderr(), expect.stringContaining(explanation)],
+					["exit", () => outcome(), "invalid"],
+					["report", () => stdout(), ""],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -106,11 +112,13 @@ repositoryStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint", "--warnings", "all");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("Unknown option '--warnings'")],
-			["exit", () => outcome(), "invalid"],
-			["usage", () => stderr(), expect.stringContaining("Usage:\n  quality lint [--config <file>]")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("Unknown option '--warnings'")],
+				["exit", () => outcome(), "invalid"],
+				["usage", () => stderr(), expect.stringContaining("Usage:\n  quality lint [--config <file>]")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

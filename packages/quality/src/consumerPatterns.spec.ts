@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { consumerPatterns, outsideConsumerPatterns } from "#test/consumerPatterns.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -25,13 +25,15 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["runner", () => stdout(), expect.stringContaining("src/client/work.tsx:5  Uses effect.Effect.runSync outside an entry point")],
-			["redirect", () => stdout(), expect.stringContaining("Uses throwing helper call (goHome)")],
-			["not found", () => stdout(), expect.stringContaining("Uses throwing helper call (missing)")],
-			["forwarding", () => stdout(), expect.stringContaining("src/client/columns.ts:6  An exported alias, facade or forwarding function")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["runner", () => stdout(), expect.stringContaining("src/client/work.tsx:5  Uses effect.Effect.runSync outside an entry point")],
+				["redirect", () => stdout(), expect.stringContaining("Uses throwing helper call (goHome)")],
+				["not found", () => stdout(), expect.stringContaining("Uses throwing helper call (missing)")],
+				["forwarding", () => stdout(), expect.stringContaining("src/client/columns.ts:6  An exported alias, facade or forwarding function")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

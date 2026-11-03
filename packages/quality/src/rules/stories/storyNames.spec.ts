@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
@@ -6,6 +5,7 @@ import { noLimitImports } from "#rules/stories/noLimitImports.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const STORY = [
@@ -34,14 +34,14 @@ for (const { line, rule } of RULES) {
 			function* ({ check, locations }) {
 				yield* check(rule);
 
-				expect(yield* locations()).toEqual([`${path}:${line}`]);
+				yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${path}:${line}`]));
 			},
 		);
 	}
 
 	for (const path of ["src/test-support/orders.test.ts", "src/orders.unit.test.ts", "src/orders.typecheck.test.ts"]) {
 		ruleStory.it(`${rule.id} leaves ${path} alone, as it is no story`, [repositoryHas({ content: STORY, path })], function* ({ check }) {
-			expect(yield* check(rule)).toEqual([]);
+			yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 		});
 	}
 }
@@ -60,7 +60,7 @@ for (const { rule } of RULES) {
 			}),
 		],
 		function* ({ check }) {
-			expect(yield* check(rule)).toEqual([]);
+			yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -77,6 +77,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(waitOnEvents);
 
-		expect(yield* locations()).toEqual(["src/orders.test.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.test.ts:1"]));
 	},
 );

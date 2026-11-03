@@ -1,5 +1,5 @@
-import { dirname } from "node:path";
-import { Effect, type FileSystem, Schema } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, type FileSystem, Path, Schema } from "effect";
 import { readConfig } from "#adapters/readConfig.ts";
 import { validOrFail } from "#decoded.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
@@ -46,6 +46,8 @@ export const loadConfig = Effect.fn("Config.loadConfig")(function* (
 	cwd: string,
 	path: string | undefined,
 ): Effect.fn.Return<ResolvedConfig, SetupFailure, FileSystem.FileSystem> {
+	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const { file, loaded } = yield* readConfig(cwd, path);
 	const config = yield* validOrFail(file, yield* Effect.promise(() => decodeConfig(loaded)));
 	const rules = yield* validOrFail(file, yield* resolveRules(config));

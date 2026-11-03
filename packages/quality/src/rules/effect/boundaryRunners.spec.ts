@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const marker of [
@@ -15,7 +15,7 @@ for (const marker of [
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual([]);
+			yield* assertThat(findings, (actual) => actual.toEqual([]));
 		},
 		CLI_TIMEOUT,
 	);
@@ -31,7 +31,7 @@ for (const marker of [
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual([usesAt("src/work.ts", 3, "effect.Effect.runSync outside an entry point")]);
+			yield* assertThat(findings, (actual) => actual.toEqual([usesAt("src/work.ts", 3, "effect.Effect.runSync outside an entry point")]));
 		},
 		CLI_TIMEOUT,
 	);
@@ -48,7 +48,7 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(effectBoundary);
 
-		expect(findings).toEqual([usesAt("src/read.ts", 2, "Promise-typed parameter (load)")]);
+		yield* assertThat(findings, (actual) => actual.toEqual([usesAt("src/read.ts", 2, "Promise-typed parameter (load)")]));
 	},
 	CLI_TIMEOUT,
 );
@@ -59,6 +59,6 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(effectBoundary);
 
-		expect(findings).toEqual([usesAt("src/client/entry.tsx", 3, "throw statement")]);
+		yield* assertThat(findings, (actual) => actual.toEqual([usesAt("src/client/entry.tsx", 3, "throw statement")]));
 	},
 );

@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "@effect/vitest";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { parseCommand } from "#cli/args.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("parseCommand", () => {
-	it.each([
+	it.effect.each([
 		[[], { _tag: "Lint", config: undefined }],
 		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
 		[["fix"], { _tag: "Fix", config: undefined, rules: [] }],
@@ -23,11 +25,11 @@ describe("parseCommand", () => {
 		[["hooks", "pre-commit"], { _tag: "HooksPreCommit", config: undefined }],
 		[["--help"], { _tag: "Help" }],
 		[["help"], { _tag: "Help" }],
-	])("reads %j as its command", (args, command) => {
-		expect(parseCommand(args)).toEqual({ _tag: "Parsed", command });
+	] satisfies ReadonlyArray<readonly [unknown, unknown]>)("reads %j as its command", function* ([args, command]) {
+		yield* assertThat(parseCommand(args), (actual) => actual.toEqual({ _tag: "Parsed", command }));
 	});
 
-	it.each([
+	it.effect.each([
 		[["lint", "--bogus"], "Unknown option"],
 		[["lint", "--rule", "a/b"], "--rule applies only to baseline write"],
 		[["baseline", "prune", "--rule", "a/b"], "--rule applies only to baseline write"],
@@ -43,7 +45,7 @@ describe("parseCommand", () => {
 		[["hooks"], "hooks takes install, uninstall, status or pre-commit"],
 		[["hooks", "commit-msg"], "hooks takes install, uninstall, status or pre-commit"],
 		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
-	])("refuses %j with its usage problem", (args, problem) => {
-		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });
+	] satisfies ReadonlyArray<readonly [unknown, unknown]>)("refuses %j with its usage problem", function* ([args, problem]) {
+		yield* assertThat(parseCommand(args), (actual, expect) => actual.toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) }));
 	});
 });

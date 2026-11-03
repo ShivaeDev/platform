@@ -1,9 +1,9 @@
-import { expect } from "vitest";
 import { fence } from "#imports/fence.ts";
 import { external, folders, modules } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { emptyFolders, importStory, repositoryHas, workspaceInstalled } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const BROWSER_FENCE = fence("legacy-browser-stays-off-disk")
 	.because("The existing browser code needs no Node.")
@@ -27,12 +27,14 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsRuntime);
 
-		expect(yield* sites()).toEqual([
-			"src/client/app.ts:1 ../server/db.ts",
-			"src/client/app.ts:2 ../server/missing.ts",
-			"src/shared.ts:1 ./server/db.ts",
-			"src/shared.ts:2 ./client/app.ts",
-		]);
+		yield* assertThat(yield* sites(), (actual) =>
+			actual.toEqual([
+				"src/client/app.ts:1 ../server/db.ts",
+				"src/client/app.ts:2 ../server/missing.ts",
+				"src/shared.ts:1 ./server/db.ts",
+				"src/shared.ts:2 ./client/app.ts",
+			]),
+		);
 	},
 );
 
@@ -48,7 +50,7 @@ importStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(importsRuntime)).toEqual([]);
+		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -65,7 +67,7 @@ for (const specifier of ["node:fs", "fs/promises", "node:async_hooks"]) {
 		function* ({ check, locations }) {
 			yield* check(importsRuntime);
 
-			expect(yield* locations()).toEqual(["lib/load.ts:1", "src/client/app.ts:1", "src/load.ts:1"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["lib/load.ts:1", "src/client/app.ts:1", "src/load.ts:1"]));
 		},
 	);
 }
@@ -86,7 +88,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsRuntime);
 
-		expect(yield* sites()).toEqual(["modules/app/src/shared.ts:1 node:fs", "modules/app/src/shared.ts:2 window"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["modules/app/src/shared.ts:1 node:fs", "modules/app/src/shared.ts:2 window"]));
 	},
 );
 
@@ -105,7 +107,7 @@ importStory.it(
 	function* ({ checkOnly, sites }) {
 		yield* checkOnly(importsRuntime, "modules/app/");
 
-		expect(yield* sites()).toEqual(["modules/app/src/client/app.ts:1 #db"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["modules/app/src/client/app.ts:1 #db"]));
 	},
 );
 
@@ -113,12 +115,12 @@ importStory.it(
 	"imports/runtime starts checking a package once it gains a runtime folder",
 	[repositoryHas(LEGACY_BROWSER)],
 	function* ({ check, locations, writes }) {
-		expect(yield* check(importsRuntime)).toEqual([]);
+		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 
 		yield* writes({ content: "export const view = 1;", path: "src/client/view.ts" });
 
 		yield* check(importsRuntime);
-		expect(yield* locations()).toEqual(["src/browser/app.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/browser/app.ts:1"]));
 	},
 );
 
@@ -129,7 +131,7 @@ for (const [shape, setup] of [
 	importStory.it(`imports/fences keeps an explicit fence in a package ${shape}`, setup, function* ({ check, locations }) {
 		yield* check(importFences, { fences: [BROWSER_FENCE] });
 
-		expect(yield* locations()).toEqual(["src/browser/app.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/browser/app.ts:1"]));
 	});
 }
 
@@ -143,6 +145,6 @@ importStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(importsRuntime)).toEqual([]);
+		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 	},
 );

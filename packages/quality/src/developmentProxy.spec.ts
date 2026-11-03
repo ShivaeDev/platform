@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { development } from "#test/development.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["/health?probe=dev", "/api/auth/session", "/rpc"]) {
 	development.it(
@@ -8,7 +8,9 @@ for (const path of ["/health?probe=dev", "/api/auth/session", "/rpc"]) {
 		function* ({ hostReceived, requests, viteHost }) {
 			yield* requests(path);
 
-			expect(yield* hostReceived()).toEqual({ host: yield* viteHost(), path });
+			const received = yield* hostReceived();
+			const host = yield* viteHost();
+			yield* assertThat(received, (actual) => actual.toEqual({ host, path }));
 		},
 	);
 }

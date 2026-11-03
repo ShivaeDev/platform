@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { maxLines } from "#rules/maxLines.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { lines } from "#testing/adapters/tree.ts";
 
 ruleStory.it(
@@ -9,7 +9,9 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(maxLines);
 
-		expect(findings).toEqual([{ count: 18, file: "src/big.ts", message: "168 lines exceeds the 150-line limit.", threshold: 150 }]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([{ count: 18, file: "src/big.ts", message: "168 lines exceeds the 150-line limit.", threshold: 150 }]),
+		);
 	},
 );
 
@@ -26,7 +28,7 @@ for (const path of [
 		function* ({ check, messages }) {
 			yield* check(maxLines);
 
-			expect(yield* messages()).toEqual(["301 lines exceeds the 300-line limit."]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual(["301 lines exceeds the 300-line limit."]));
 		},
 	);
 }
@@ -38,7 +40,7 @@ for (const path of ["e2e/flow.ts", "test/support.ts"]) {
 		function* ({ check, messages }) {
 			yield* check(maxLines);
 
-			expect(yield* messages()).toEqual(["151 lines exceeds the 150-line limit."]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual(["151 lines exceeds the 150-line limit."]));
 		},
 	);
 }
@@ -53,7 +55,7 @@ for (const [file, path, count] of atLimit) {
 		`structure/max-lines accepts ${file}, each ending in a newline`,
 		[repositoryHas({ content: lines(count), path })],
 		function* ({ check }) {
-			expect(yield* check(maxLines)).toEqual([]);
+			yield* assertThat(yield* check(maxLines), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -64,7 +66,7 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(maxLines, { source: 2 });
 
-		expect(yield* messages()).toEqual(["3 lines exceeds the 2-line limit."]);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(["3 lines exceeds the 2-line limit."]));
 	},
 );
 
@@ -74,7 +76,9 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(maxLines, { source: 100, test: 120 });
 
-		expect(yield* messages()).toEqual(["121 lines exceeds the 120-line limit.", "101 lines exceeds the 100-line limit."]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual(["121 lines exceeds the 120-line limit.", "101 lines exceeds the 100-line limit."]),
+		);
 	},
 );
 
@@ -83,7 +87,7 @@ for (const path of ["src/contract.d.ts", "src/module.d.mts", "src/common.d.cts"]
 		`structure/max-lines leaves the declaration file ${path} alone`,
 		[repositoryHas({ content: lines(400), path })],
 		function* ({ check }) {
-			expect(yield* check(maxLines)).toEqual([]);
+			yield* assertThat(yield* check(maxLines), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -99,6 +103,6 @@ const refused = [
 
 for (const [options, given, named] of refused) {
 	ruleStory.it(`structure/max-lines refuses ${options} and names it`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues(maxLines, given)).toEqual([expect.stringContaining(named)]);
+		yield* assertThat(yield* optionIssues(maxLines, given), (actual, expect) => actual.toEqual([expect.stringContaining(named)]));
 	});
 }

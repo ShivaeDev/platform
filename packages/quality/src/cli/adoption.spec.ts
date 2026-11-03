@@ -1,21 +1,23 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adoption, baselinedFindings, jsxFixture, newRuleDebt } from "#test/adoption.ts";
 import { conciseView, conditionalView, fragmentView, manualViews, mixedView, retainedView } from "#test/conditionalFixes.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 adoption.it(
 	"recording a new rule's findings through the baseline script records them and makes the gate pass",
 	[newRuleDebt],
 	function* ({ gate, recordedDebt, recordsThroughBaselineScript }) {
-		expect(yield* gate()).toBe("rejected");
+		yield* assertThat(yield* gate(), (actual) => actual.toBe("rejected"));
 
 		yield* recordsThroughBaselineScript("comments/no-todo");
 
-		yield* outcomes([
-			["gate", () => gate(), "passed"],
-			["recorded debt", () => recordedDebt(), expect.stringContaining('"rule":"comments/no-todo","count":1')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["gate", () => gate(), "passed"],
+				["recorded debt", () => recordedDebt(), expect.stringContaining('"rule":"comments/no-todo","count":1')],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -33,11 +35,13 @@ for (const [name, source] of [
 
 			yield* fix("react/jsx-conditionals");
 
-			yield* outcomes([
-				["fix", () => outcome(), "passed"],
-				["rendered values and read order", () => rendered(), before],
-				["report", () => stdout(), expect.stringContaining("rewrote 1 file")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["fix", () => outcome(), "passed"],
+					["rendered values and read order", () => rendered(), before],
+					["report", () => stdout(), expect.stringContaining("rewrote 1 file")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -51,11 +55,13 @@ adoption.it(
 
 		yield* fix("react/jsx-conditionals");
 
-		yield* outcomes([
-			["fix", () => outcome(), "rejected"],
-			["remaining findings", () => stdout(), expect.stringContaining("Inside .map")],
-			["source", () => source(), before],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["fix", () => outcome(), "rejected"],
+				["remaining findings", () => stdout(), expect.stringContaining("Inside .map")],
+				["source", () => source(), before],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -75,11 +81,13 @@ for (const [rule, explanation] of [
 
 			yield* fix(rule);
 
-			yield* outcomes([
-				["error", () => stderr(), expect.stringContaining(`No safe mechanical fix for ${rule}. ${explanation}`)],
-				["fix", () => outcome(), "invalid"],
-				["source", () => source(), before],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["error", () => stderr(), expect.stringContaining(`No safe mechanical fix for ${rule}. ${explanation}`)],
+					["fix", () => outcome(), "invalid"],
+					["source", () => source(), before],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -91,12 +99,14 @@ adoption.it(
 	function* ({ fix, outcome, source, stdout }) {
 		yield* fix("react/jsx-conditionals");
 
-		yield* outcomes([
-			["fix", () => outcome(), "rejected"],
-			["mapped decision retained", () => source(), expect.stringContaining("items.map(item => item.visible ? <i /> : null)")],
-			["remaining finding", () => stdout(), expect.stringContaining("Inside .map")],
-			["safe decision moved before return", () => source(), expect.stringContaining("const qualityContent1 =")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["fix", () => outcome(), "rejected"],
+				["mapped decision retained", () => source(), expect.stringContaining("items.map(item => item.visible ? <i /> : null)")],
+				["remaining finding", () => stdout(), expect.stringContaining("Inside .map")],
+				["safe decision moved before return", () => source(), expect.stringContaining("const qualityContent1 =")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -105,14 +115,16 @@ adoption.it(
 	"the JSX fix rejects manual findings even when the baseline already covers them",
 	[jsxFixture(retainedView), baselinedFindings],
 	function* ({ fix, gate, outcome, stdout }) {
-		expect(yield* gate()).toBe("passed");
+		yield* assertThat(yield* gate(), (actual) => actual.toBe("passed"));
 
 		yield* fix("react/jsx-conditionals");
 
-		yield* outcomes([
-			["fix", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["fix", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -126,11 +138,13 @@ for (const [name, fixture] of manualViews) {
 
 			yield* fix("react/jsx-conditionals");
 
-			yield* outcomes([
-				["fix", () => outcome(), "rejected"],
-				["manual finding", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
-				["source", () => source(), before],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["fix", () => outcome(), "rejected"],
+					["manual finding", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
+					["source", () => source(), before],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

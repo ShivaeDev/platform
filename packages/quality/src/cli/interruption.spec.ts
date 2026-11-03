@@ -1,9 +1,9 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
 import { knipRunning } from "#test/knipRunning.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 qualityLifecycle.it(
@@ -33,12 +33,14 @@ qualityLifecycle.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "invalid"],
-			["internal error", () => stderr(), expect.stringContaining("quality: internal error")],
-			["rule and error", () => stderr(), expect.stringContaining("rule local/crash failed: policy crashed")],
-			["stack frame", () => stderr(), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "invalid"],
+				["internal error", () => stderr(), expect.stringContaining("quality: internal error")],
+				["rule and error", () => stderr(), expect.stringContaining("rule local/crash failed: policy crashed")],
+				["stack frame", () => stderr(), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -47,11 +49,11 @@ qualityLifecycle.it(
 	"interrupting a rule's Promise check aborts the signal the check received",
 	[promiseRunning],
 	function* ({ interrupts, promiseSignalAborted }) {
-		expect(yield* promiseSignalAborted()).toBe(false);
+		yield* assertThat(yield* promiseSignalAborted(), (actual) => actual.toBe(false));
 
 		yield* interrupts();
 
-		expect(yield* promiseSignalAborted()).toBe(true);
+		yield* assertThat(yield* promiseSignalAborted(), (actual) => actual.toBe(true));
 	},
 	CLI_TIMEOUT,
 );

@@ -1,5 +1,5 @@
-import { relative, sep } from "node:path";
-import { Effect, Schema } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, Path, Schema } from "effect";
 import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
@@ -65,6 +65,8 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	exceptions: readonly ExceptionDeclaration[] = [],
 	files: readonly string[] = ["."],
 ) {
+	const { relative, sep } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions), ignoredTrackedPaths(root)], {
 		concurrency: "unbounded",
 	});

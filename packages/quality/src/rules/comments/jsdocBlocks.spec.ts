@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { noJsdoc } from "#rules/comments/noJsdoc.ts";
 import { VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 ruleStory.it(
 	"comments/no-jsdoc reports every JSDoc block at its first line",
@@ -9,10 +9,12 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(noJsdoc);
 
-		expect(findings).toEqual([
-			{ file: "src/a.ts", line: 1, message: "JSDoc block." },
-			{ file: "src/a.ts", line: 3, message: "JSDoc block." },
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{ file: "src/a.ts", line: 1, message: "JSDoc block." },
+				{ file: "src/a.ts", line: 3, message: "JSDoc block." },
+			]),
+		);
 	},
 );
 
@@ -22,7 +24,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noJsdoc, { allow: [VITEST_ENVIRONMENT] });
 
-		expect(yield* locations()).toEqual(["src/a.ts:2"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.ts:2"]));
 	},
 );
 
@@ -32,7 +34,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noJsdoc);
 
-		expect(yield* locations()).toEqual(["src/a.ts:1", "src/a.ts:2"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.ts:1", "src/a.ts:2"]));
 	},
 );
 
@@ -42,7 +44,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noJsdoc, { allow: ["@license"] });
 
-		expect(yield* locations()).toEqual(["src/a.ts:2"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.ts:2"]));
 	},
 );
 
@@ -50,7 +52,7 @@ ruleStory.it(
 	"comments/no-jsdoc accepts a block of pragmas the config allows, one per line",
 	[repositoryHas({ content: `/**\n * ${VITEST_ENVIRONMENT} jsdom\n * ${VITEST_ENVIRONMENT}-options {}\n */\n`, path: "src/a.ts" })],
 	function* ({ check }) {
-		expect(yield* check(noJsdoc, { allow: [VITEST_ENVIRONMENT, `${VITEST_ENVIRONMENT}-options`] })).toEqual([]);
+		yield* assertThat(yield* check(noJsdoc, { allow: [VITEST_ENVIRONMENT, `${VITEST_ENVIRONMENT}-options`] }), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -62,10 +64,10 @@ const accepted = [
 
 for (const [comments, content] of accepted) {
 	ruleStory.it(`comments/no-jsdoc accepts ${comments}`, [repositoryHas({ content, path: "src/a.ts" })], function* ({ check }) {
-		expect(yield* check(noJsdoc)).toEqual([]);
+		yield* assertThat(yield* check(noJsdoc), (actual) => actual.toEqual([]));
 	});
 }
 
 ruleStory.it("comments/no-jsdoc refuses the misspelled option allows and names it", [], function* ({ optionIssues }) {
-	expect(yield* optionIssues(noJsdoc, { allows: [] })).toEqual([expect.stringContaining("allows")]);
+	yield* assertThat(yield* optionIssues(noJsdoc, { allows: [] }), (actual, expect) => actual.toEqual([expect.stringContaining("allows")]));
 });

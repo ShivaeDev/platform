@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { nativeCastTypes } from "#test/nativeCastTypes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, content, repair] of [
 	["annotated JSON.parse", 'const value: { id: string } = JSON.parse("{}");', "Schema.decodeUnknownEffect"],
@@ -29,7 +29,9 @@ for (const [shape, content, repair] of [
 		function* ({ check }) {
 			const findings = yield* check(noDoubleCast);
 
-			expect(findings).toEqual([{ file: "src/value.ts", line: shape === "identity overload" ? 2 : 1, message: expect.stringContaining(repair) }]);
+			yield* assertThat(findings, (actual, expect) =>
+				actual.toEqual([{ file: "src/value.ts", line: shape === "identity overload" ? 2 : 1, message: expect.stringContaining(repair) }]),
+			);
 		},
 	);
 }
@@ -47,7 +49,9 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(noDoubleCast);
 
-		expect(findings).toEqual([{ file: "src/value.ts", line: 1, message: expect.stringContaining("SqlSchema.findAll") }]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([{ file: "src/value.ts", line: 1, message: expect.stringContaining("SqlSchema.findAll") }]),
+		);
 	},
 );
 
@@ -90,7 +94,9 @@ for (const [shape, content] of [
 		function* ({ check }) {
 			const findings = yield* check(noDoubleCast);
 
-			expect(findings).toEqual([{ file: "src/value.ts", line: 1, message: expect.stringContaining("preserve the declared readonly type") }]);
+			yield* assertThat(findings, (actual, expect) =>
+				actual.toEqual([{ file: "src/value.ts", line: 1, message: expect.stringContaining("preserve the declared readonly type") }]),
+			);
 		},
 	);
 }
@@ -116,7 +122,7 @@ for (const [shape, content] of [
 	],
 ] as const) {
 	ruleStory.it(`suppressions/no-double-cast accepts ${shape}`, [repositoryHas({ content, path: "src/value.ts" })], function* ({ check }) {
-		expect(yield* check(noDoubleCast)).toEqual([]);
+		yield* assertThat(yield* check(noDoubleCast), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -131,7 +137,7 @@ for (const folder of ["adapters", "test-support"]) {
 			}),
 		],
 		function* ({ check }) {
-			expect(yield* check(noDoubleCast)).toEqual([]);
+			yield* assertThat(yield* check(noDoubleCast), (actual) => actual.toEqual([]));
 		},
 	);
 }

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noExpect } from "#rules/stories/noExpect.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const FAILING_STORIES = {
@@ -22,7 +22,7 @@ for (const run of [
 		`tests/no-expect-in-support lets a story fixture assert when a spec runs it by path with ${run}`,
 		[repositoryHas(...kitFiles, FAILING_STORIES, { content: run, path: "src/runner.spec.ts" })],
 		function* ({ check }) {
-			expect(yield* check(noExpect)).toEqual([]);
+			yield* assertThat(yield* check(noExpect), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -42,7 +42,7 @@ for (const registration of [
 		`tests/no-expect-in-support lets an unimported test-support module assert in the tests it registers with ${registration}`,
 		[repositoryHas({ content: registration, path: "src/test-support/runner.ts" })],
 		function* ({ check }) {
-			expect(yield* check(noExpect)).toEqual([]);
+			yield* assertThat(yield* check(noExpect), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -58,14 +58,16 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(noExpect);
 
-		expect(findings).toEqual([
-			{
-				file: "src/test-support/orders.ts",
-				line: 2,
-				message:
-					"Calls expect in test-support. Return the engine's observed state from the verb and put the expectation in the spec; throw if an action cannot run.",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "src/test-support/orders.ts",
+					line: 2,
+					message:
+						"Calls expect in test-support. Return the engine's observed state from the verb and put the expectation in the spec; throw if an action cannot run.",
+				},
+			]),
+		);
 	},
 );
 
@@ -80,7 +82,7 @@ for (const consumer of [
 		function* ({ check, locations }) {
 			yield* check(noExpect);
 
-			expect(yield* locations()).toEqual(["src/test-support/failingStories.ts:2"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/test-support/failingStories.ts:2"]));
 		},
 	);
 }
@@ -91,6 +93,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noExpect);
 
-		expect(yield* locations()).toEqual(["src/test-support/orders.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/test-support/orders.ts:1"]));
 	},
 );

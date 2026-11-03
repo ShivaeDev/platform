@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
@@ -27,10 +27,12 @@ for (const [imports, wait] of [
 		function* ({ check, locations, messages }) {
 			yield* check(waitOnEvents);
 
-			yield* outcomes([
-				["advice", () => messages(), [expect.stringContaining("Settle on the engine's own signal through a kit verb")]],
-				["locations", () => locations(), [`${SPEC}:3`]],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["advice", () => messages(), [expect.stringContaining("Settle on the engine's own signal through a kit verb")]],
+					["locations", () => locations(), [`${SPEC}:3`]],
+				]),
+			);
 		},
 	);
 }
@@ -52,7 +54,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(waitOnEvents);
 
-		expect(yield* locations()).toEqual(["packages/orders/src/orders.spec.ts:3"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/orders/src/orders.spec.ts:3"]));
 	},
 );
 
@@ -76,7 +78,7 @@ for (const packageName of ["sql", "changes", "service", "test-sql", "quality"]) 
 		function* ({ check, locations }) {
 			yield* check(waitOnEvents);
 
-			expect(yield* locations()).toEqual([`packages/${packageName}/src/wait.test.ts:3`]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual([`packages/${packageName}/src/wait.test.ts:3`]));
 		},
 	);
 }

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 // The package runs script/seed-data.ts through a script and src/tool-cli.ts, built to dist/tool-cli.js, as its bin.
 const appPackage = repositoryHas({
@@ -31,7 +31,7 @@ const named = [
 
 for (const [file, path, content] of named) {
 	ruleStory.it(`files/named-after-export accepts ${file}`, [appPackage, repositoryHas({ content, path })], function* ({ check }) {
-		expect(yield* check(namedAfterExport)).toEqual([]);
+		yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -82,7 +82,7 @@ for (const [file, path, content, reason] of misnamed) {
 		function* ({ check, messages }) {
 			yield* check(namedAfterExport);
 
-			expect(yield* messages()).toEqual([expect.stringContaining(reason)]);
+			yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
 		},
 	);
 }
@@ -93,13 +93,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(namedAfterExport);
 
-		expect(findings).toEqual([
-			{
-				file: "src/fetch.ts",
-				message:
-					"\"fetch\" does not name its export loadItem. The file name and the names of its folders spell the export, in any order, and the file's first letter follows the export's case: listItems in items/ is items/list.ts, ItemPanel is ItemPanel.tsx or item/Panel.tsx. Rename the file or the export.",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "src/fetch.ts",
+					message:
+						"\"fetch\" does not name its export loadItem. The file name and the names of its folders spell the export, in any order, and the file's first letter follows the export's case: listItems in items/ is items/list.ts, ItemPanel is ItemPanel.tsx or item/Panel.tsx. Rename the file or the export.",
+				},
+			]),
+		);
 	},
 );
 
@@ -114,7 +116,7 @@ const defaultExports = [
 
 for (const [exported, path, content] of defaultExports) {
 	ruleStory.it(`files/named-after-export accepts ${path} named after ${exported}`, [repositoryHas({ content, path })], function* ({ check }) {
-		expect(yield* check(namedAfterExport)).toEqual([]);
+		yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -124,7 +126,9 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(namedAfterExport);
 
-		expect(yield* messages()).toEqual([expect.stringContaining('"item-panel" does not name its export ItemPanel.')]);
+		yield* assertThat(yield* messages(), (actual, expect) =>
+			actual.toEqual([expect.stringContaining('"item-panel" does not name its export ItemPanel.')]),
+		);
 	},
 );
 
@@ -135,7 +139,7 @@ for (const path of [".railway/railway.ts", "apps/web/.railway/railway.ts"]) {
 		`files/named-after-export leaves Railway's authoring file ${path} to Railway`,
 		[repositoryHas({ content: RAILWAY, path })],
 		function* ({ check }) {
-			expect(yield* check(namedAfterExport)).toEqual([]);
+			yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -147,7 +151,7 @@ for (const path of [".railway/helpers.ts", "src/railway.ts", ".railway/nested/ra
 		function* ({ check, locations }) {
 			yield* check(namedAfterExport);
 
-			expect(yield* locations()).toContain(path);
+			yield* assertThat(yield* locations(), (actual) => actual.toContain(path));
 		},
 	);
 }

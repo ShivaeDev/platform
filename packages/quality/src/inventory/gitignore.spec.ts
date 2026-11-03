@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { gitTracks, inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GITIGNORES = [
 	{ content: ".worktree/\nbuild/\n*.scratch.ts\n", path: ".gitignore" },
@@ -19,21 +19,23 @@ inventoryStory.it(
 	[repositoryHas(...IGNORED_FILES, ...KEPT_FILES)],
 	function* ({ collects, sourcePaths, writes }) {
 		yield* collects({ extensions: [".ts"] });
-		expect(yield* sourcePaths()).toEqual([
-			"packages/w/build/drop.ts",
-			"packages/x/.worktree/scratch.ts",
-			"packages/x/src/mod.ts",
-			"packages/y/generated/drop.ts",
-			"packages/y/generated/keep.ts",
-			"packages/z/build/a.scratch.ts",
-			"packages/z/build/keep.ts",
-			"packages/z/build/sub/deep.ts",
-		]);
+		yield* assertThat(yield* sourcePaths(), (actual) =>
+			actual.toEqual([
+				"packages/w/build/drop.ts",
+				"packages/x/.worktree/scratch.ts",
+				"packages/x/src/mod.ts",
+				"packages/y/generated/drop.ts",
+				"packages/y/generated/keep.ts",
+				"packages/z/build/a.scratch.ts",
+				"packages/z/build/keep.ts",
+				"packages/z/build/sub/deep.ts",
+			]),
+		);
 
 		yield* writes(...GITIGNORES);
 		yield* collects({ extensions: [".ts"] });
 
-		expect(yield* sourcePaths()).toEqual(KEPT);
+		yield* assertThat(yield* sourcePaths(), (actual) => actual.toEqual(KEPT));
 	},
 );
 
@@ -43,7 +45,7 @@ inventoryStory.it(
 	function* ({ collects, sourcePaths }) {
 		yield* collects({ extensions: [".ts"], sources: ["packages/y", "packages/w"] });
 
-		expect(yield* sourcePaths()).toEqual(["packages/y/generated/keep.ts"]);
+		yield* assertThat(yield* sourcePaths(), (actual) => actual.toEqual(["packages/y/generated/keep.ts"]));
 	},
 );
 
@@ -58,7 +60,7 @@ inventoryStory.it(
 	function* ({ collects, sourcePaths }) {
 		yield* collects();
 
-		expect(yield* sourcePaths()).toEqual(["packages/x/src/mod.ts"]);
+		yield* assertThat(yield* sourcePaths(), (actual) => actual.toEqual(["packages/x/src/mod.ts"]));
 	},
 );
 
@@ -77,7 +79,7 @@ for (const source of [".", "src/generated", "src/generated/Nested"]) {
 		function* ({ collects, sourcePaths }) {
 			yield* collects({ sources: [source] });
 
-			expect(yield* sourcePaths()).toEqual(["src/generated/Nested/authored.ts"]);
+			yield* assertThat(yield* sourcePaths(), (actual) => actual.toEqual(["src/generated/Nested/authored.ts"]));
 		},
 	);
 }

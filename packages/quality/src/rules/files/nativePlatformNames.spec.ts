@@ -1,9 +1,9 @@
-import { expect } from "vitest";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { capacitorFiles } from "#test/capacitorFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const capacitorElsewhere = capacitorFiles.map((file) => ({
 	...file,
@@ -15,7 +15,7 @@ for (const rule of [folderNames, otherNames]) {
 		`${rule.id} accepts Capacitor 8's generated iOS and Android projects without options`,
 		[repositoryHas(...capacitorFiles)],
 		function* ({ check }) {
-			expect(yield* check(rule)).toEqual([]);
+			yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 		},
 	);
 
@@ -23,7 +23,7 @@ for (const rule of [folderNames, otherNames]) {
 		`${rule.id} recognises Capacitor's native projects outside the ios/ and android/ folders`,
 		[repositoryHas(...capacitorElsewhere)],
 		function* ({ check }) {
-			expect(yield* check(rule)).toEqual([]);
+			yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 		},
 	);
 
@@ -45,7 +45,7 @@ for (const rule of [folderNames, otherNames]) {
 			),
 		],
 		function* ({ check }) {
-			expect(yield* check(rule)).toEqual([]);
+			yield* assertThat(yield* check(rule), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -73,7 +73,7 @@ for (const [rule, authored, expected] of authoredBeside) {
 		function* ({ check, locations }) {
 			yield* check(rule);
 
-			expect(yield* locations()).toEqual(expected);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(expected));
 		},
 	);
 }
@@ -130,7 +130,7 @@ for (const [rule, named, expected] of outside) {
 		function* ({ check, locations }) {
 			yield* check(rule);
 
-			expect(yield* locations()).toEqual(expected);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(expected));
 		},
 	);
 }

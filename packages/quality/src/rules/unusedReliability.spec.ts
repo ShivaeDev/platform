@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { unusedCode } from "#rules/unusedCode.ts";
 import { repositoryHas as cliRepositoryHas, qualityInstalled, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { unusedWorktree } from "#test/unusedWorktree.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 repositoryStory.it(
 	"quality surfaces knip's exit code and broken tsconfig extends error without a schema error",
@@ -17,11 +17,11 @@ repositoryStory.it(
 	function* ({ runs, stderr }) {
 		const answer = yield* runs("lint");
 
-		expect(answer.outcome).toBe("invalid");
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("invalid"));
 		const error = yield* stderr();
-		expect(error).toContain("knip exited 1 without a valid report:");
-		expect(error).toContain("missing-base.json");
-		expect(error).not.toContain("SchemaError");
+		yield* assertThat(error, (actual) => actual.toContain("knip exited 1 without a valid report:"));
+		yield* assertThat(error, (actual) => actual.toContain("missing-base.json"));
+		yield* assertThat(error, (actual) => actual.not.toContain("SchemaError"));
 	},
 );
 
@@ -40,6 +40,6 @@ ruleStory.it(
 	function* ({ check, findings }) {
 		yield* check(unusedCode, undefined, ".worktrees/app");
 
-		expect(yield* findings()).toEqual([]);
+		yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 	},
 );

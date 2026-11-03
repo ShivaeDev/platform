@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, exceptionStory, repositoryHas, repositoryTracks } from "#test/exceptionStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -25,9 +25,9 @@ for (const [type, result] of [
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint");
 
-			expect(yield* outcome()).toBe(result);
+			yield* assertThat(yield* outcome(), (actual) => actual.toBe(result));
 			if (result === "rejected") {
-				expect(yield* stdout()).toContain(`${ANY} src/parse.ts matches no finding.`);
+				yield* assertThat(yield* stdout(), (actual) => actual.toContain(`${ANY} src/parse.ts matches no finding.`));
 			}
 		},
 		CLI_TIMEOUT,
@@ -54,10 +54,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["stale pair", () => stdout(), expect.stringContaining("biome/lint/style/noDoneCallback src/engine.test.ts matches no finding.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["stale pair", () => stdout(), expect.stringContaining("biome/lint/style/noDoneCallback src/engine.test.ts matches no finding.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

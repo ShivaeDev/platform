@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
@@ -24,10 +24,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(groupedOutcomes);
 
-		yield* outcomes([
-			["advice", () => messages(), [expect.stringContaining('yield* outcomes([["label", () => readout(), expected], …])')]],
-			["locations", () => locations(), [`${SPEC}:3`]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["advice", () => messages(), [expect.stringContaining('yield* outcomes([["label", () => readout(), expected], …])')]],
+				["locations", () => locations(), [`${SPEC}:3`]],
+			]),
+		);
 	},
 );
 
@@ -41,7 +43,7 @@ for (const [form, line] of [
 		function* ({ check, locations }) {
 			yield* check(groupedOutcomes);
 
-			expect(yield* locations()).toEqual([`${SPEC}:3`]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${SPEC}:3`]));
 		},
 	);
 }
@@ -51,14 +53,14 @@ ruleStory.it(
 	[repositoryHas({ content: RUN_OF_TWO, path: SPEC })],
 	function* ({ check, locations, writes }) {
 		yield* check(groupedOutcomes);
-		expect(yield* locations()).toEqual([`${SPEC}:3`]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${SPEC}:3`]));
 
 		yield* writes({
 			content: inStory("yield* cancel();", 'yield* outcomes([["order", () => order(), "cancelled"], ["refunds", () => refunds(), ["order 1"]]]);'),
 			path: SPEC,
 		});
 
-		expect(yield* check(groupedOutcomes)).toEqual([]);
+		yield* assertThat(yield* check(groupedOutcomes), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -71,7 +73,7 @@ ruleStory.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(groupedOutcomes)).toEqual([]);
+		yield* assertThat(yield* check(groupedOutcomes), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -89,6 +91,6 @@ ruleStory.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(groupedOutcomes)).toEqual([]);
+		yield* assertThat(yield* check(groupedOutcomes), (actual) => actual.toEqual([]));
 	},
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
 
 const NOT_SUBPATH_MAPS = [
@@ -37,7 +37,7 @@ ruleStory.it(
 	"manifests/exports-shape accepts the file-preserving wildcard beside the exact package.json asset",
 	[repositoryHas(exportsWorkspace, packageExports(FILE_PATH_EXPORTS))],
 	function* ({ check }) {
-		expect(yield* check(manifestsExportsShape)).toEqual([]);
+		yield* assertThat(yield* check(manifestsExportsShape), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -48,9 +48,9 @@ for (const [name, exports] of NOT_SUBPATH_MAPS) {
 		function* ({ check }) {
 			const findings = yield* check(manifestsExportsShape);
 
-			expect(findings).toEqual([
-				{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field must be a subpath map."), subject: "exports" },
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field must be a subpath map."), subject: "exports" }]),
+			);
 		},
 	);
 }
@@ -62,9 +62,11 @@ for (const [name, key, value] of UNPRESERVED_WILDCARDS) {
 		function* ({ check }) {
 			const findings = yield* check(manifestsExportsShape);
 
-			expect(findings).toEqual([
-				{ file: LIBRARY_MANIFEST, message: exportsShapeMessage(`Export "${key}" does not preserve the module's file path.`), subject: key },
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{ file: LIBRARY_MANIFEST, message: exportsShapeMessage(`Export "${key}" does not preserve the module's file path.`), subject: key },
+				]),
+			);
 		},
 	);
 }
@@ -76,9 +78,11 @@ for (const [name, key, value] of UNPRESERVED_ENTRIES) {
 		function* ({ check }) {
 			const findings = yield* check(manifestsExportsShape);
 
-			expect(findings).toEqual([
-				{ file: LIBRARY_MANIFEST, message: exportsShapeMessage(`Export "${key}" does not preserve the module's file path.`), subject: key },
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{ file: LIBRARY_MANIFEST, message: exportsShapeMessage(`Export "${key}" does not preserve the module's file path.`), subject: key },
+				]),
+			);
 		},
 	);
 }

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	for (const module of ["inbox", "admin/inbox"]) {
@@ -18,7 +18,7 @@ for (const directory of ["", "packages/app/"]) {
 				function* ({ check, findings }) {
 					yield* check(importsAliased);
 
-					expect(yield* findings()).toEqual([]);
+					yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 				},
 			);
 		}
@@ -39,7 +39,7 @@ for (const [from, specifier, target] of [
 		function* ({ check, sites }) {
 			yield* check(importsAliased);
 
-			expect(yield* sites()).toEqual([`${from}:1 ${specifier}`]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${from}:1 ${specifier}`]));
 		},
 	);
 }

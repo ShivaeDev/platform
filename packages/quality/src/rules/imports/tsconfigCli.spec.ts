@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
@@ -16,12 +16,14 @@ repositoryStory.it(
 	function* ({ runs, outcome, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["import finding", () => stdout(), expect.stringContaining("error imports/resolvable (1)")],
-			["compiler diagnostic", () => stdout(), expect.stringMatching(/tsconfig\.json:\d+\s+TS6046/u)],
-			["repair", () => stdout(), expect.stringContaining("Repair the tsconfig before trusting import findings.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["import finding", () => stdout(), expect.stringContaining("error imports/resolvable (1)")],
+				["compiler diagnostic", () => stdout(), expect.stringMatching(/tsconfig\.json:\d+\s+TS6046/u)],
+				["repair", () => stdout(), expect.stringContaining("Repair the tsconfig before trusting import findings.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

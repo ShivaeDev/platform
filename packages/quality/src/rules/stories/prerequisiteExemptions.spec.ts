@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { prerequisiteFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 const PLAIN = 'import { it } from "vitest"; it("plain", () => {});';
@@ -18,7 +18,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual(["src/orders.test.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.test.ts:1"]));
 	},
 );
 
@@ -26,7 +26,7 @@ ruleStory.it(
 	"tests/story-specs exempts test-story's own tests when it is the repository root",
 	[repositoryHas({ content: '{"name":"@shivaedev/test-story"}', path: "package.json" }, spec(PLAIN))],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -38,7 +38,7 @@ for (const [module, route] of [
 		`tests/story-specs exempts modules/${module}, which test-story reaches through ${route}`,
 		[repositoryHas(...prerequisiteFiles, spec(PLAIN, `modules/${module}/src/engine.test.ts`))],
 		function* ({ check }) {
-			expect(yield* check(storySpecs)).toEqual([]);
+			yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -55,7 +55,7 @@ for (const [module, relation] of [
 		function* ({ check, locations }) {
 			yield* check(storySpecs);
 
-			expect(yield* locations()).toEqual([`modules/${module}/src/engine.test.ts:1`]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual([`modules/${module}/src/engine.test.ts:1`]));
 		},
 	);
 }

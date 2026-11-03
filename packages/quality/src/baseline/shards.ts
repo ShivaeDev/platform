@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, FileSystem, Path } from "effect";
 import type { BaselineEntry } from "#baseline/format.ts";
 import { rewriteBaseline } from "#baseline/rewrite.ts";
 import type { ResolvedConfig } from "#config/load.ts";
@@ -19,6 +19,8 @@ export function shardOf(file: string, rootFile: string): string {
 }
 
 export const shardPaths = Effect.fn("Baseline.shardPaths")(function* (config: ResolvedConfig) {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const fs = yield* FileSystem.FileSystem;
 	const folder = join(config.root, "packages");
 	const names = yield* orWhenAbsent(folder, fs.readDirectory(folder), []);
@@ -33,6 +35,8 @@ export const shardPaths = Effect.fn("Baseline.shardPaths")(function* (config: Re
 
 export const saveShards = Effect.fn("Baseline.saveShards")(
 	function* (config: ResolvedConfig, before: ReadonlyMap<string, Shard>, entries: readonly BaselineEntry[]) {
+		const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 		const fs = yield* FileSystem.FileSystem;
 		const grouped = new Map<string, BaselineEntry[]>();
 		for (const entry of entries) {

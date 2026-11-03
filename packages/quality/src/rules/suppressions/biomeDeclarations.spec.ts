@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { biomeJson } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const REASON = "Vitest reads the fixture's first parameter and needs an object pattern.";
 
@@ -43,7 +43,7 @@ ruleStory.it(
 			declared: [{ includes: ["src/fixtures.ts", "src/vitest.ts"], reason: REASON, rule: "lint/correctness/noEmptyPattern" }],
 		});
 
-		expect(findings).toEqual([]);
+		yield* assertThat(findings, (actual) => actual.toEqual([]));
 	},
 );
 
@@ -53,17 +53,19 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides, { declared: [{ includes: ["src/vitest.ts"], reason: REASON, rule: "lint/correctness/noEmptyPattern" }] });
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:1", "biome.json"]],
-			[
-				"messages",
-				() => messages(),
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:1", "biome.json"]],
 				[
-					expect.stringContaining('Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts", "src/fixtures.ts" without a declaration.'),
-					'Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens. Remove the declaration.',
+					"messages",
+					() => messages(),
+					[
+						expect.stringContaining('Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts", "src/fixtures.ts" without a declaration.'),
+						'Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens. Remove the declaration.',
+					],
 				],
-			],
-		]);
+			]),
+		);
 	},
 );
 
@@ -91,7 +93,9 @@ for (const [what, declaration, field] of [
 	["an unknown field", { file: "src/a.ts", includes: ["src/a.ts"], reason: REASON, rule: "lint/style/noNonNullAssertion" }, "file"],
 ] as const) {
 	ruleStory.it(`suppressions/biome-overrides refuses a declaration with ${what} and names its ${field}`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues(biomeOverrides, { declared: [declaration] })).toEqual([expect.stringContaining(`declared.0.${field}`)]);
+		yield* assertThat(yield* optionIssues(biomeOverrides, { declared: [declaration] }), (actual, expect) =>
+			actual.toEqual([expect.stringContaining(`declared.0.${field}`)]),
+		);
 	});
 }
 
@@ -100,9 +104,9 @@ for (const [rule, includes] of NARROW_DECLARATIONS) {
 		`suppressions/biome-overrides refuses a declaration of ${rule} for ${JSON.stringify(includes)} as switching off a whole check`,
 		[],
 		function* ({ optionIssues }) {
-			expect(yield* optionIssues(biomeOverrides, { declared: [{ includes, reason: REASON, rule }] })).toEqual([
-				expect.stringContaining("Whole checks"),
-			]);
+			yield* assertThat(yield* optionIssues(biomeOverrides, { declared: [{ includes, reason: REASON, rule }] }), (actual, expect) =>
+				actual.toEqual([expect.stringContaining("Whole checks")]),
+			);
 		},
 	);
 }
@@ -115,9 +119,10 @@ for (const includes of [
 		`suppressions/biome-overrides accepts a reasoned files/includes declaration that excludes the named directories ${JSON.stringify(includes)}`,
 		[],
 		function* ({ optionIssues }) {
-			expect(
+			yield* assertThat(
 				yield* optionIssues(biomeOverrides, { declared: [{ includes, reason: "Generated code is not source.", rule: "files/includes" }] }),
-			).toEqual([]);
+				(actual) => actual.toEqual([]),
+			);
 		},
 	);
 }

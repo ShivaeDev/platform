@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GENERATOR_BODIES = {
 	content: [
@@ -54,12 +54,9 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/style/noDoneCallback")).toEqual([
-			"src/generators.test.ts:4",
-			"src/generators.test.ts:5",
-			"src/generators.test.ts:6",
-			"src/generators.test.ts:8",
-		]);
+		yield* assertThat(yield* reported("lint/style/noDoneCallback"), (actual) =>
+			actual.toEqual(["src/generators.test.ts:4", "src/generators.test.ts:5", "src/generators.test.ts:6", "src/generators.test.ts:8"]),
+		);
 	},
 );
 
@@ -69,12 +66,9 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual([
-			"src/tags.tsx:7",
-			"src/tags.tsx:8",
-			"src/tags.tsx:10",
-			"src/tags.tsx:13",
-		]);
+		yield* assertThat(yield* reported("lint/correctness/noComponentHookFactories"), (actual) =>
+			actual.toEqual(["src/tags.tsx:7", "src/tags.tsx:8", "src/tags.tsx:10", "src/tags.tsx:13"]),
+		);
 	},
 );
 
@@ -84,7 +78,7 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual(["src/fake-tags.tsx:2"]);
+		yield* assertThat(yield* reported("lint/correctness/noComponentHookFactories"), (actual) => actual.toEqual(["src/fake-tags.tsx:2"]));
 	},
 );
 
@@ -109,6 +103,6 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual([]);
+		yield* assertThat(yield* reported("lint/correctness/noComponentHookFactories"), (actual) => actual.toEqual([]));
 	},
 );

@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, pureOrders, unitSpec } from "#test/unitFiles.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 
@@ -34,7 +34,9 @@ for (const [imports, call, mock] of [
 		function* ({ check }) {
 			const findings = yield* check(storySpecs);
 
-			expect(findings).toEqual([{ file: UNIT, line: 2, message: `Is a unit test but mocks with ${mock}. ${REAL_VALUES} ${WITHOUT_STAND_INS}` }]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([{ file: UNIT, line: 2, message: `Is a unit test but mocks with ${mock}. ${REAL_VALUES} ${WITHOUT_STAND_INS}` }]),
+			);
 		},
 	);
 }
@@ -45,7 +47,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual([`${UNIT}:2`]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${UNIT}:2`]));
 	},
 );
 
@@ -66,9 +68,11 @@ for (const [imports, call, provider] of [
 		function* ({ check }) {
 			const findings = yield* check(storySpecs);
 
-			expect(findings).toEqual([
-				{ file: UNIT, line: 2, message: `Is a unit test but provides services with ${provider}. ${REQUIREMENT_FREE} ${WITHOUT_STAND_INS}` },
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{ file: UNIT, line: 2, message: `Is a unit test but provides services with ${provider}. ${REQUIREMENT_FREE} ${WITHOUT_STAND_INS}` },
+				]),
+			);
 		},
 	);
 }
@@ -96,7 +100,7 @@ for (const [lookalike, lines] of [
 			),
 		],
 		function* ({ check }) {
-			expect(yield* check(storySpecs)).toEqual([]);
+			yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -107,7 +111,7 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([{ file: UNIT, line: 1, message: `Is a unit test but uses the DOM. ${WITHOUT_DOM}` }]);
+		yield* assertThat(findings, (actual) => actual.toEqual([{ file: UNIT, line: 1, message: `Is a unit test but uses the DOM. ${WITHOUT_DOM}` }]));
 	},
 );
 
@@ -123,13 +127,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([
-			{
-				file: UNIT,
-				line: 1,
-				message: `Is a unit test but in src/test-support/prices.ts, which it imports through ${UNIT} -> src/test-support/prices.ts, mocks with vi.fn. ${REAL_VALUES} ${WITHOUT_STAND_INS}`,
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: UNIT,
+					line: 1,
+					message: `Is a unit test but in src/test-support/prices.ts, which it imports through ${UNIT} -> src/test-support/prices.ts, mocks with vi.fn. ${REAL_VALUES} ${WITHOUT_STAND_INS}`,
+				},
+			]),
+		);
 	},
 );
 
@@ -146,13 +152,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([
-			{
-				file: UNIT,
-				line: 1,
-				message: `Is a unit test but in src/test-support/screen.ts, which it imports through ${UNIT} -> src/test-support/view.ts -> src/test-support/screen.ts, uses the DOM. ${WITHOUT_DOM}`,
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: UNIT,
+					line: 1,
+					message: `Is a unit test but in src/test-support/screen.ts, which it imports through ${UNIT} -> src/test-support/view.ts -> src/test-support/screen.ts, uses the DOM. ${WITHOUT_DOM}`,
+				},
+			]),
+		);
 	},
 );
 
@@ -166,6 +174,6 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );

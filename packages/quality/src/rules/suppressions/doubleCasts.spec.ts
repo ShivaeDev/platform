@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [expression, bridge] of [
 	["value as unknown as Target", "unknown"],
@@ -37,7 +37,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noDoubleCast);
 
-		expect(yield* locations()).toEqual(["src/a.ts:2", "src/a.ts:3"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.ts:2", "src/a.ts:3"]));
 	},
 );
 
@@ -52,7 +52,7 @@ for (const expression of [
 		`suppressions/no-double-cast accepts ${expression}`,
 		[repositoryHas({ content: `declare const value: string;\nexport const a = ${expression};\n`, path: "src/a.ts" })],
 		function* ({ check }) {
-			expect(yield* check(noDoubleCast)).toEqual([]);
+			yield* assertThat(yield* check(noDoubleCast), (actual) => actual.toEqual([]));
 		},
 	);
 }

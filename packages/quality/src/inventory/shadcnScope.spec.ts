@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
 import { shadcnApplication } from "#test/shadcnApplication.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 inventoryStory.it(
 	"a nested app skips stock shadcn filenames only inside its configured UI folder, keeping helpers, tests and stock names elsewhere",
@@ -15,12 +15,14 @@ inventoryStory.it(
 	function* ({ collects, sourcePaths }) {
 		yield* collects({ sources: ["apps/web/src"] });
 
-		expect(yield* sourcePaths()).toEqual([
-			"apps/web/src/components/button.tsx",
-			"apps/web/src/components/ui/button.test.tsx",
-			"apps/web/src/components/ui/buttonHelpers.ts",
-			"apps/web/src/components/ui/handWritten.tsx",
-			"apps/web/src/main.ts",
-		]);
+		yield* assertThat(yield* sourcePaths(), (actual) =>
+			actual.toEqual([
+				"apps/web/src/components/button.tsx",
+				"apps/web/src/components/ui/button.test.tsx",
+				"apps/web/src/components/ui/buttonHelpers.ts",
+				"apps/web/src/components/ui/handWritten.tsx",
+				"apps/web/src/main.ts",
+			]),
+		);
 	},
 );

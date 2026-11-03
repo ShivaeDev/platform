@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const CART = { content: "export {};\n", path: "src/cart/cart.ts" };
 const BASKET = { content: "export {};\n", path: "src/cart/Basket.tsx" };
@@ -75,7 +75,7 @@ for (const [test, file, message] of misnamed) {
 	ruleStory.it(`tests/follow reports ${test} and names the valid shape`, [repositoryHas(CART, BASKET, file)], function* ({ check, findings }) {
 		yield* check(testsFollow);
 
-		expect(yield* findings()).toEqual([{ file: file.path, message }]);
+		yield* assertThat(yield* findings(), (actual) => actual.toEqual([{ file: file.path, message }]));
 	});
 }
 
@@ -94,7 +94,7 @@ const named = [
 
 for (const [test, file] of named) {
 	ruleStory.it(`tests/follow accepts ${test}`, [repositoryHas(CART, BASKET, file)], function* ({ check }) {
-		expect(yield* check(testsFollow)).toEqual([]);
+		yield* assertThat(yield* check(testsFollow), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -102,6 +102,8 @@ ruleStory.it(
 	"tests/follow leaves a spec in a declared suite alone, even one that uses the DOM",
 	[repositoryHas({ content: "window.location.reload();\n", path: "e2e/checkout.spec.ts" })],
 	function* ({ check }) {
-		expect(yield* check(testsFollow, { suites: [{ glob: "e2e/", reason: "This suite covers several modules." }] })).toEqual([]);
+		yield* assertThat(yield* check(testsFollow, { suites: [{ glob: "e2e/", reason: "This suite covers several modules." }] }), (actual) =>
+			actual.toEqual([]),
+		);
 	},
 );

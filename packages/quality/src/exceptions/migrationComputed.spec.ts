@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const FILE = "src/parse.ts";
@@ -69,11 +69,13 @@ for (const [computed, properties] of [
 
 			yield* runs("exceptions", "migrate");
 
-			yield* outcomes([
-				["error", () => stderr(), expect.stringContaining("computed property")],
-				["exit", () => outcome(), "invalid"],
-				["files", () => files(), before],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["error", () => stderr(), expect.stringContaining("computed property")],
+					["exit", () => outcome(), "invalid"],
+					["files", () => files(), before],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

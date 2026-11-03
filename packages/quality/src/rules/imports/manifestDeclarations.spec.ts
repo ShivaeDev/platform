@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SHIPPED = { content: 'import "plain-kit";', path: "modules/app/src/app.ts" };
 
@@ -39,7 +39,7 @@ for (const workspace of ["npm", "pnpm"] as const) {
 		function* ({ check, sites }) {
 			yield* check(importsManifest);
 
-			expect(yield* sites()).toEqual(["modules/app/src/app.ts:1 plain-kit", "modules/kit/src/app.ts:1 @acme/app"]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual(["modules/app/src/app.ts:1 plain-kit", "modules/kit/src/app.ts:1 @acme/app"]));
 		},
 	);
 }
@@ -50,9 +50,9 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(importsManifest);
 
-		expect(yield* messages()).toEqual([
-			expect.stringContaining("Add it to dependencies, peerDependencies or optionalDependencies, or remove the import."),
-		]);
+		yield* assertThat(yield* messages(), (actual, expect) =>
+			actual.toEqual([expect.stringContaining("Add it to dependencies, peerDependencies or optionalDependencies, or remove the import.")]),
+		);
 	},
 );
 
@@ -68,7 +68,7 @@ importStory.it(
 	function* ({ check, subjects }) {
 		yield* check(importsManifest);
 
-		expect(yield* subjects()).toEqual(["@types/shapes", "plain-kit"]);
+		yield* assertThat(yield* subjects(), (actual) => actual.toEqual(["@types/shapes", "plain-kit"]));
 	},
 );
 
@@ -77,7 +77,7 @@ for (const declaration of ["dependencies", "peerDependencies", "optionalDependen
 		`imports/manifest accepts a workspace import declared in ${declaration} from shipped code`,
 		[repositoryHolds(manifestTree({ declaration })), repositoryHas(SHIPPED)],
 		function* ({ check }) {
-			expect(yield* check(importsManifest)).toEqual([]);
+			yield* assertThat(yield* check(importsManifest), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -100,13 +100,15 @@ importStory.it(
 	function* ({ check, files }) {
 		yield* check(importsManifest);
 
-		expect(yield* files()).toEqual([
-			SHIPPED.path,
-			"modules/app/src/runtime.config.ts",
-			"modules/app/src/scripts/shipped.ts",
-			"modules/app/src/types.ts",
-			"src/main.ts",
-		]);
+		yield* assertThat(yield* files(), (actual) =>
+			actual.toEqual([
+				SHIPPED.path,
+				"modules/app/src/runtime.config.ts",
+				"modules/app/src/scripts/shipped.ts",
+				"modules/app/src/types.ts",
+				"src/main.ts",
+			]),
+		);
 	},
 );
 
@@ -116,7 +118,7 @@ importStory.it(
 	function* ({ check, files }) {
 		yield* check(importsManifest);
 
-		expect(yield* files()).toEqual(DEVELOPMENT_PATHS);
+		yield* assertThat(yield* files(), (actual) => actual.toEqual(DEVELOPMENT_PATHS));
 	},
 );
 
@@ -126,7 +128,7 @@ importStory.it(
 	function* ({ check, locations }) {
 		yield* check(importsManifest);
 
-		expect(yield* locations()).toEqual([1, 2, 3, 4, 5, 6, 7, 8].map((line) => `${SHIPPED.path}:${line}`));
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([1, 2, 3, 4, 5, 6, 7, 8].map((line) => `${SHIPPED.path}:${line}`)));
 	},
 );
 
@@ -142,7 +144,7 @@ importStory.it(
 	function* ({ check, locations }) {
 		yield* check(importsManifest);
 
-		expect(yield* locations()).toEqual(["modules/app/src/nested/app.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["modules/app/src/nested/app.ts:1"]));
 	},
 );
 
@@ -150,6 +152,6 @@ importStory.it(
 	"imports/manifest refuses a member manifest whose dependencies it cannot read",
 	[repositoryHolds(manifestTree()), repositoryHas(SHIPPED, { content: '{"name":"@acme/app","dependencies":[]}', path: "modules/app/package.json" })],
 	function* ({ refusal }) {
-		expect(yield* refusal(importsManifest)).toContain("Invalid package manifest");
+		yield* assertThat(yield* refusal(importsManifest), (actual) => actual.toContain("Invalid package manifest"));
 	},
 );

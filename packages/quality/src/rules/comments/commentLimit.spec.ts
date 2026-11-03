@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { maxPerFile } from "#rules/comments/maxPerFile.ts";
 import { VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const counted = [
 	["a block comment once, however many lines it spans", ["/*", " * one", " * block", " */"], "1 comment"],
@@ -22,7 +22,7 @@ for (const [counts, lines, count] of counted) {
 		function* ({ check, messages }) {
 			yield* check(maxPerFile, { max: 0 });
 
-			expect(yield* messages()).toEqual([`${count} against a limit of 0.`]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([`${count} against a limit of 0.`]));
 		},
 	);
 }
@@ -33,7 +33,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(maxPerFile, { allow: ["@license"], max: 0 });
 
-		expect(yield* locations()).toEqual(["src/a.ts:3"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.ts:3"]));
 	},
 );
 
@@ -61,7 +61,7 @@ for (const directive of directives) {
 		`comments/max-per-file does not count the directive ${directive}`,
 		[repositoryHas({ content: `${directive}\n`, path: "src/a.ts" })],
 		function* ({ check }) {
-			expect(yield* check(maxPerFile, { max: 0 })).toEqual([]);
+			yield* assertThat(yield* check(maxPerFile, { max: 0 }), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -72,7 +72,9 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(maxPerFile);
 
-		expect(findings).toEqual([{ count: 1, file: "src/a.ts", line: 5, message: "3 comments against a limit of 2.", threshold: 2 }]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([{ count: 1, file: "src/a.ts", line: 5, message: "3 comments against a limit of 2.", threshold: 2 }]),
+		);
 	},
 );
 
@@ -80,7 +82,7 @@ ruleStory.it(
 	"comments/max-per-file accepts two comments at the default limit of 2",
 	[repositoryHas({ content: "// one\n\n// two\n", path: "src/a.ts" })],
 	function* ({ check }) {
-		expect(yield* check(maxPerFile)).toEqual([]);
+		yield* assertThat(yield* check(maxPerFile), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -93,6 +95,6 @@ const refused = [
 
 for (const [options, given, named] of refused) {
 	ruleStory.it(`comments/max-per-file refuses ${options} and names it`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues(maxPerFile, given)).toEqual([expect.stringContaining(named)]);
+		yield* assertThat(yield* optionIssues(maxPerFile, given), (actual, expect) => actual.toEqual([expect.stringContaining(named)]));
 	});
 }

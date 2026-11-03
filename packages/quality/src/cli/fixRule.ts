@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { fixJsxConditionals } from "#adapters/fixJsxConditionals.ts";
 import { loadConfig } from "#config/load.ts";
 import { scan } from "#engine/session.ts";
@@ -16,6 +16,8 @@ export const fixRule = Effect.fn("Cli.fixRule")(function* (
 	configPath: string | undefined,
 	rules: readonly string[],
 ): Effect.fn.Return<void, SetupFailure | GateFailed, RuleServices> {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const config = yield* loadConfig(cwd, configPath);
 	for (const rule of rules) {
 		if (rule !== "react/jsx-conditionals") {

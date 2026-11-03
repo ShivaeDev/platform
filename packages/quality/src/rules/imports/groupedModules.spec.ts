@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { brokenModuleImports, groupedModules } from "#test/groupedModules.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	const workspace = repositoryHas(
@@ -15,7 +15,7 @@ for (const directory of ["", "packages/app/"]) {
 		function* ({ check }) {
 			const findings = yield* check(importsRuntime);
 
-			expect(findings).toEqual([]);
+			yield* assertThat(findings, (actual) => actual.toEqual([]));
 		},
 	);
 
@@ -25,20 +25,22 @@ for (const directory of ["", "packages/app/"]) {
 		function* ({ check, sites }) {
 			yield* check(importsRuntime);
 
-			expect(yield* sites()).toEqual([
-				`${directory}src/modules/admin/teams/broken.ts:1 ./client/view.ts`,
-				`${directory}src/modules/admin/teams/broken.ts:2 ./server/db.ts`,
-				`${directory}src/modules/admin/teams/client/broken.ts:1 ../server/db.ts`,
-				`${directory}src/modules/admin/teams/client/broken.ts:2 node:fs`,
-				`${directory}src/modules/admin/users/broken.ts:1 ./client/view.ts`,
-				`${directory}src/modules/admin/users/broken.ts:2 ./server/db.ts`,
-				`${directory}src/modules/admin/users/client/broken.ts:1 ../server/db.ts`,
-				`${directory}src/modules/admin/users/client/broken.ts:2 node:fs`,
-				`${directory}src/modules/users/broken.ts:1 ./client/view.ts`,
-				`${directory}src/modules/users/broken.ts:2 ./server/db.ts`,
-				`${directory}src/modules/users/client/broken.ts:1 ../server/db.ts`,
-				`${directory}src/modules/users/client/broken.ts:2 node:fs`,
-			]);
+			yield* assertThat(yield* sites(), (actual) =>
+				actual.toEqual([
+					`${directory}src/modules/admin/teams/broken.ts:1 ./client/view.ts`,
+					`${directory}src/modules/admin/teams/broken.ts:2 ./server/db.ts`,
+					`${directory}src/modules/admin/teams/client/broken.ts:1 ../server/db.ts`,
+					`${directory}src/modules/admin/teams/client/broken.ts:2 node:fs`,
+					`${directory}src/modules/admin/users/broken.ts:1 ./client/view.ts`,
+					`${directory}src/modules/admin/users/broken.ts:2 ./server/db.ts`,
+					`${directory}src/modules/admin/users/client/broken.ts:1 ../server/db.ts`,
+					`${directory}src/modules/admin/users/client/broken.ts:2 node:fs`,
+					`${directory}src/modules/users/broken.ts:1 ./client/view.ts`,
+					`${directory}src/modules/users/broken.ts:2 ./server/db.ts`,
+					`${directory}src/modules/users/client/broken.ts:1 ../server/db.ts`,
+					`${directory}src/modules/users/client/broken.ts:2 node:fs`,
+				]),
+			);
 		},
 	);
 }

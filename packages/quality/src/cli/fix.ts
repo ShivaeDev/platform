@@ -1,5 +1,5 @@
-import { relative } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { biomeReport } from "#biome/report.ts";
 import { changedRanges } from "#cli/changedRanges.ts";
 import { loadConfig } from "#config/load.ts";
@@ -19,6 +19,8 @@ function isBinary(bytes: Uint8Array): boolean {
 
 export function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, string>, SetupFailure, RuleServices> {
 	return Effect.gen(function* () {
+		const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 		const fs = yield* FileSystem.FileSystem;
 		const decoder = new TextDecoder();
 		const paths = yield* walk(root);
