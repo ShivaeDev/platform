@@ -11,6 +11,7 @@ import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
@@ -24,15 +25,16 @@ import { SessionsPage } from "#sessions/Page.ts";
 const Access = roleSet(role("admin", [ManageSessions]), role("user", []));
 
 export const sessionsHost = Effect.fnUntraced(function* () {
-	const { auth } = yield* betterAuthMount({
+	const options = {
 		"baseURL": "http://localhost",
 		database: yield* betterAuthDatabase(),
 		logger: { disabled: true },
 		secret: "admin-sessions-story-secret-at-least-32-characters",
-		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" } } },
-	}).pipe(Effect.provide(memoryStore));
+		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" as const } } },
+	};
+	yield* migrateBetterAuth(options);
+	const { auth } = yield* betterAuthMount(options).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
-	yield* Effect.promise(() => context.runMigrations());
 	// Sessions are preconditions; the stories exercise administration rather than sign-in.
 	function mint(name: string, activity = "2026-01-04T12:00:00Z") {
 		return Effect.promise(async () => {

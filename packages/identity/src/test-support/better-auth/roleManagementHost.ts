@@ -14,6 +14,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
@@ -31,22 +32,19 @@ export type RoleActor = Person | "visitor";
 
 export const roleManagementHost = Effect.fnUntraced(function* () {
 	const pool = yield* betterAuthDatabase();
-	const mounted = yield* betterAuthMount(
-		{
-			"baseURL": ORIGIN,
-			database: pool,
-			disabledPaths: ["/update-user"],
-			logger: { disabled: true },
-			plugins: [admin(), testUtils()],
-			secret: "role-management-story-secret-at-least-32-characters",
-			session: { cookieCache: { enabled: false } },
-		},
-		{ defaultRole: "user", roles: Access },
-	)
+	const options = {
+		"baseURL": ORIGIN,
+		database: pool,
+		disabledPaths: ["/update-user"],
+		logger: { disabled: true },
+		plugins: [admin(), testUtils()],
+		secret: "role-management-story-secret-at-least-32-characters",
+		session: { cookieCache: { enabled: false } },
+	};
+	yield* migrateBetterAuth(options, { defaultRole: "user" });
+	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
-	const context = yield* Effect.promise(() => mounted.auth.$context);
-	yield* Effect.promise(() => context.runMigrations());
 	// Minted sessions start the story after registration and sign-in.
 	const alice = yield* signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role: "admin" });
 	const bob = yield* signedInUser(mounted.auth, { email: "bob@roles.test", name: "bob", role: "user" });
