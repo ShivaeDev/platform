@@ -101,5 +101,10 @@ export const makeLiveServer = Effect.gen(function* () {
 			}),
 		);
 	}
-	return { resync, stream: (keys: readonly Key[]) => Stream.unwrap(Effect.map(open(keys), ({ stream }) => stream)), subscribe };
+	return {
+		flush: Effect.sync(() => dispatcher.flush()),
+		resync,
+		stream: (keys: readonly Key[]) => Stream.unwrap(Effect.map(open(keys), ({ stream }) => stream)),
+		subscribe,
+	};
 });

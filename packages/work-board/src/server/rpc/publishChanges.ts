@@ -27,6 +27,8 @@ export const publishChanges = Effect.gen(function* () {
 		sequence = change.sequence;
 		if (change._tag === "Watching") {
 			yield* channel.record([watcher.list]);
+			// Resync supersedes queued keys, so the watcher notification must be observable first.
+			yield* live.flush();
 		}
 		const current = yield* Effect.option(index);
 		const keys =

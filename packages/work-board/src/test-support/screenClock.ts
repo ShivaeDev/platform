@@ -1,33 +1,21 @@
-import { Clock, Duration, Effect, Layer, Queue } from "effect";
+import { Clock, Duration, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { TestClock } from "effect/testing";
 import { act } from "react";
 import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
+import { driveTimers } from "#test/driveTimers.ts";
 
 function controlledClock(now: number) {
 	return Effect.gen(function* () {
 		yield* TestClock.setTime(now);
 		const clock = yield* watchedClock;
-		const sleep = clock.sleep;
 		let reconnecting = false;
-		const timers = yield* Effect.acquireRelease(Queue.unbounded<Duration.Duration>(), Queue.shutdown);
-		yield* Effect.acquireRelease(
-			Effect.sync(() =>
-				Object.assign(clock, {
-					sleep: (duration: Duration.Duration) => Queue.offer(timers, duration).pipe(Effect.andThen(sleep(duration))),
-				}),
-			),
-			() => Effect.sync(() => Object.assign(clock, { sleep })),
-		);
-		yield* Effect.forever(
-			Effect.gen(function* () {
-				const duration = yield* Queue.take(timers);
+		yield* driveTimers((duration) =>
+			Effect.sync(() => {
 				const milliseconds = Duration.toMillis(duration);
-				if (milliseconds === 20 || (reconnecting && milliseconds < 60_000 && milliseconds !== 15_000)) {
-					yield* clock.adjust(duration);
-				}
+				return milliseconds === 20 || (reconnecting && milliseconds < 60_000 && milliseconds !== 15_000);
 			}),
-		).pipe(Effect.forkScoped);
+		);
 		const run = Effect.runPromiseWith(yield* Effect.context());
 		const runtime = Atom.context();
 		runtime.addGlobalLayer(Layer.succeed(Clock.Clock, clock));

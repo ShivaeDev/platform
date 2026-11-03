@@ -26,8 +26,12 @@ function notAnswering(route: string) {
 		&& document.querySelector("#breadcrumbs")?.textContent !== "";
 }
 
-export function livePageShown() {
-	return () => page()?.dataset.status !== undefined && document.querySelector("#live")?.textContent === "Live";
+export function livePageShown(expectedStatus?: string) {
+	return () =>
+		page()?.dataset.route !== undefined
+		&& page()?.dataset.status !== undefined
+		&& (expectedStatus === undefined || page()?.dataset.status === expectedStatus)
+		&& document.querySelector("#live")?.textContent === "Live";
 }
 
 export function shellSessionVerbs(engine: ScreenEngine, tell: (line: string) => void) {
@@ -39,7 +43,7 @@ export function shellSessionVerbs(engine: ScreenEngine, tell: (line: string) => 
 					engine.serverStopped = false;
 					return Promise.resolve();
 				});
-			}).pipe(Effect.andThen(engine.clock.drive(untilScreen(tell, livePageShown())))),
+			}).pipe(Effect.andThen(engine.clock.drive(untilScreen(tell, livePageShown("200"))))),
 		boardServerStops: () =>
 			Effect.promise(async () => {
 				tell("the Board server stops answering and the header says so");

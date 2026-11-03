@@ -20,6 +20,7 @@ export const LiveServer = defineService({
 			return Effect.succeed(read === undefined ? server.subscribe(subscription) : server.subscribe(subscription, read));
 		}
 		return {
+			flush: () => server.flush,
 			resync: () => server.resync,
 			stream: (keys: readonly Key[]) => Effect.succeed(server.stream(keys)),
 			subscribe: genericMethod(subscribe),
