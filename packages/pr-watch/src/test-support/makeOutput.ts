@@ -1,7 +1,12 @@
 import { Cause, Effect, type Exit } from "effect";
 import { WatchError } from "#model.ts";
+import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { healthOf } from "./readouts.ts";
+
+export class ConsumerFailure extends Error {
+	override name = "ConsumerFailure";
+}
 
 function describeExit(exit: Exit.Exit<unknown, unknown>) {
 	if (exit._tag === "Success") {
@@ -16,25 +21,30 @@ function describeExit(exit: Exit.Exit<unknown, unknown>) {
 	});
 }
 
-export function makeOutput(lines: string[], changed: () => void) {
-	const state: { blockNext: boolean; callback: string; failStop: boolean; outcome: string[] } = {
+export function makeOutput(lines: WatchEvent[], changed: () => void) {
+	const state: { blockNext: boolean; callback: string; failStop: boolean; refuseNext: boolean; outcome: string[] } = {
 		blockNext: false,
 		callback: "idle",
 		failStop: false,
 		outcome: [],
+		refuseNext: false,
 	};
 	const interrupted = Effect.sync(() => {
 		state.callback = "interrupted";
 		changed();
 	});
 	return {
-		emit: (line: string) =>
+		emit: (line: WatchEvent) =>
 			Effect.gen(function* () {
 				if (state.blockNext) {
 					state.blockNext = false;
 					state.callback = "pending";
 					changed();
 					yield* Effect.never.pipe(Effect.onInterrupt(() => interrupted));
+				}
+				if (state.refuseNext) {
+					state.refuseNext = false;
+					return yield* Effect.fail(new ConsumerFailure("Consumer refused the event"));
 				}
 				if (state.failStop && healthOf([line], "stopped").length > 0) {
 					return yield* Effect.fail(new WatchError({ message: "Output stream failed", reason: "output" }));

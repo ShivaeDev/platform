@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { Context, Deferred, Effect, Fiber, Layer, Schema } from "effect";
 import { State } from "#model.ts";
+import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 import type { Engine } from "./engine.ts";
@@ -9,7 +10,7 @@ import { clockTime, described, request, snapshotPhrase, transitionLines } from "
 import { GRAPHQL, REPOSITORY } from "./server.ts";
 
 export function emitTo(engine: Engine) {
-	return (line: string) =>
+	return (line: WatchEvent) =>
 		Effect.sync(() => {
 			engine.lines.push(line);
 		});
@@ -82,7 +83,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 					.filter(({ body, path }) => path.endsWith(GRAPHQL) && body?.query?.includes("query QueueEntry") === true)
 					.map(({ body, path }) => `${path} for ${body?.variables?.owner}/${body?.variables?.name} PR ${body?.variables?.number}`),
 			),
-		dequeueReasons: () => Effect.sync(() => transitionLines(engine.lines).flatMap(({ event, reason }) => (event === "dequeued" ? [reason] : []))),
+		dequeueReasons: () => Effect.sync(() => transitionLines(engine.lines).flatMap((value) => (value.event === "dequeued" ? [value.reason] : []))),
 		diagnostics: () => Effect.sync(() => [...engine.diagnostics]),
 		failureKind: () => Effect.sync(() => (engine.observation.failure instanceof Error ? engine.observation.failure.name : "none")),
 		fileOperationFails: (operation: FileOperation) =>

@@ -2,18 +2,21 @@ import { join } from "node:path";
 import { Deferred, Effect, Layer } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Options } from "@shivaedev/pr-watch/model.ts";
+import type { WatchEvent } from "@shivaedev/pr-watch/outputEvent.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
 import { requestFailure } from "@shivaedev/pr-watch/requestFailure.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";
 import type { WatchState } from "#host/watchState.ts";
 import type { WatchStreamOptions } from "#host/watchStream.ts";
 
+type WatchFailure = Effect.Error<ReturnType<typeof watch<never, never, never, never>>>;
+
 export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(function* (
 	options: WatchStreamOptions,
 	emit: (event: { readonly kind: string; readonly [key: string]: unknown }) => Effect.Effect<void>,
 ) {
 	const scope = yield* Effect.scope;
-	const failed = yield* Deferred.make<never, Effect.Error<ReturnType<typeof watch>> | Layer.Error<ReturnType<typeof watchPrLayer>>>();
+	const failed = yield* Deferred.make<never, WatchFailure | Layer.Error<ReturnType<typeof watchPrLayer>>>();
 	const repositories = new Map<string, Map<number, string>>();
 	const start = Effect.fnUntraced(function* (repository: string, work: Map<number, string>) {
 		const transient = new Set<string>();
@@ -28,13 +31,14 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 			repository,
 			stateFile: join(options.board, ".pr-watch", `${repository.replace("/", "-")}.json`),
 		};
-		function write(line: string) {
-			const { event, number: prNumber, ...fields } = JSON.parse(line);
+		function write(value: WatchEvent) {
+			const { event, ...fields } = value;
+			const prNumber = "number" in value ? value.number : undefined;
 			return emit({
 				...fields,
 				kind: `pr-${event}`,
 				repository,
-				...(event === "error" ? { retryable: transient.has(fields.message) } : {}),
+				...(event === "error" ? { retryable: transient.has(value.message) } : {}),
 				...(prNumber === undefined ? {} : { number: prNumber, pr: `https://github.com/${repository}/pull/${prNumber}`, workId: work.get(prNumber) }),
 			});
 		}

@@ -1,15 +1,15 @@
 import { Effect } from "effect";
-import type { makeOutput } from "#health.ts";
-import type { Options, WatchError } from "#model.ts";
+import type { Emit } from "#health.ts";
+import type { Options } from "#model.ts";
 import { pollRetries } from "#pollRetries.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 
-export const polling = Effect.fn("PrWatch.polling")(function* (
+export const polling = Effect.fn("PrWatch.polling")(function* <E, R, TDiagnosticError, TDiagnosticRequirements>(
 	options: Options,
 	once: boolean,
-	output: Effect.Success<ReturnType<typeof makeOutput>>,
-	report: { error: (failure: unknown) => Effect.Effect<void, WatchError>; reset: () => void },
+	output: { readonly emit: Emit<E, R>; readonly waitForPoll: (interval: number, delay: number, message?: string) => Effect.Effect<void, E, R> },
+	report: { error: (failure: unknown) => Effect.Effect<void, TDiagnosticError, TDiagnosticRequirements>; reset: () => void },
 ) {
 	const watcher = yield* Watcher;
 	let state = yield* watcher.load(options);
