@@ -18,16 +18,16 @@ readPolicyHost.it(
 	},
 );
 
-for (const boundary of ["account.get", "profile.get"] as const) {
+for (const boundary of ["account.get", "profile.get", "optional.get"] as const) {
 	readPolicyHost.it(
-		`through ${boundary}, alice reads her document after its policy checks alice's session`,
+		`through ${boundary}, alice reads her document after its policy checks alice's session exactly once`,
 		[],
 		function* ({ policyChecks, read, sessionLookups }) {
 			const answer = yield* read(boundary, "alice", "alice");
 
 			yield* outcomes([
 				["answer", () => Effect.succeed(answer), "Alice's document"],
-				["policy checks", () => policyChecks(), ["document alice for alice", "document alice for alice"]],
+				["policy checks", () => policyChecks(), ["document alice for alice"]],
 				["session lookups", () => sessionLookups(), ["alice"]],
 			]);
 		},
@@ -47,21 +47,45 @@ for (const boundary of ["account.get", "profile.get"] as const) {
 	);
 }
 
-readPolicyHost.it("a public read without a session reaches its policy with no viewer", [], function* ({ policyChecks, publicRead }) {
+for (const boundary of ["account.get", "profile.get"] as const) {
+	readPolicyHost.it(`through ${boundary}, an anonymous viewer is refused before the read policy runs`, [], function* ({ policyChecks, read }) {
+		const answer = yield* read(boundary, undefined, "alice");
+
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "failed with unauthorized"],
+			["policy checks", () => policyChecks(), []],
+		]);
+	});
+}
+
+readPolicyHost.it("a public read without a session checks its policy exactly once with no viewer", [], function* ({ policyChecks, publicRead }) {
 	const answer = yield* publicRead();
 
 	yield* outcomes([
 		["answer", () => Effect.succeed(answer), "Public documents"],
-		["policy checks", () => policyChecks(), ["the document list for no viewer", "the document list for no viewer"]],
+		["policy checks", () => policyChecks(), ["the document list for no viewer"]],
 	]);
 });
 
-readPolicyHost.it("a public read with alice's session reaches its policy with alice as viewer", [], function* ({ policyChecks, publicRead }) {
-	const answer = yield* publicRead("alice");
+readPolicyHost.it(
+	"a public read with alice's session checks its policy exactly once with alice as viewer",
+	[],
+	function* ({ policyChecks, publicRead }) {
+		const answer = yield* publicRead("alice");
+
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "Public documents"],
+			["policy checks", () => policyChecks(), ["the document list for alice"]],
+		]);
+	},
+);
+
+readPolicyHost.it("an anonymous optional-auth read is denied after one policy check with no viewer", [], function* ({ policyChecks, read }) {
+	const answer = yield* read("optional.get", undefined, "alice");
 
 	yield* outcomes([
-		["answer", () => Effect.succeed(answer), "Public documents"],
-		["policy checks", () => policyChecks(), ["the document list for alice", "the document list for alice"]],
+		["answer", () => Effect.succeed(answer), "failed with query read denied"],
+		["policy checks", () => policyChecks(), ["document alice for no viewer"]],
 	]);
 });
 

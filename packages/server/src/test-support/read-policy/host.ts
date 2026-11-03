@@ -81,8 +81,8 @@ export const readPolicyHost = storyKit({
 					Context.getUnsafe(services, Reactivity.Reactivity).invalidate(invalidationKeys([documents.item("alice"), documents.item("bob")])),
 				);
 			},
-			read: (boundary: "account.get" | "profile.get", viewer: string, owner: string) => {
-				story.tell(`${viewer} reads ${owner}'s document through ${boundary}`);
+			read: (boundary: "account.get" | "profile.get" | "optional.get", viewer: string | undefined, owner: string) => {
+				story.tell(`${viewerWords(viewer)} reads ${owner}'s document through ${boundary}`);
 				return answered(Effect.flatMap(client(viewer), (rpc) => rpc(boundary, { owner })));
 			},
 			revokeRead: (viewer: string) => {
