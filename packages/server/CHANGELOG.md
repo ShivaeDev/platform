@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.20.0 - 2026-11-03
+
+### Added
+
+- Compose command publication through the changes publication port, preserving post-commit retries, deduplication and recovery across required, optional and custom authentication.
+- Read a child host's active work, completed finalizers and shutdown duration through the process kit, including after a reported shutdown. Instrument child Effects with `hostProcessReadouts`.
+- Launch a host with a proxied `databaseUrl` and cut its idle PostgreSQL connections with `disconnectIdlePostgres` to exercise recovery.
+- Modules carry their queue declarations and worker Layers. `workerHost` runs workers with the same composed services and ports used by `appHost` after database preparation.
+- Provide `sendHostReady` in the server's host-process testing adapter to report the current process ID and listening URL over IPC.
+
+### Changed
+
+- Database setup shares local-postgres's Docker settings reader.
+
+### Fixed
+
+- Apply the host's `maxBodySize` and `MAX_BODY_SIZE` limit to WebSocket RPC messages, including binary and fragmented messages. Oversized messages close the connection with WebSocket code 1009, surfaced as Effect's typed `SocketError` with a `SocketCloseError` reason.
+- Hash the server's default PostgreSQL changes channel through Effect Crypto while retaining its channel name and explicit channel override.
+- Hosted live queries receive writes to newly discovered relations and stop refreshing for relations they no longer read, for both invalidation hints and pushed results.
+- Redact preflight log messages, failure causes and annotations before host startup. Preserve typed preflight failures and ordinary startup logs. Direct hosts also apply schema-sensitive fields and configured sensitive keys; deferred hosts use the default redaction policy before their application is constructed.
+- Hosts using the pg-boss schema component wait for missing deferral artifacts to be installed before starting the application, and check mode names those artifacts.
+- Masked failures retain scalar, array and object wire shapes so native RPC clients decode the declared failure without a schema error.
+- The application host uses the contract's attached guard and retains its HTTP refusal of WebSocket-only subscriptions.
+- Query reruns retain their native RPC handler service requirements and declared failures through read authorization and live subscriptions.
+- Authenticated hosts subscribe to plain repository keys and publish unscoped command dependencies.
+- The application host installs the contract guard, avoiding duplicate policy evaluations after session resolution for required and optional authentication.
+- Build hosted changes handlers through the contract Layer and validate pushed results as decoded values, including transformed schemas such as bigint.
+
+### Breaking
+
+- App-host rerun-and-compare subscriptions emit `Unchanged` updates for equal results. Upgrade raw `$changes` consumers to handle this update and deploy compatible clients and servers together.
+- Direct users of `appDatabase` must provide `Crypto.Crypto` for the default changes channel, for example with `Layer.provide(NodeCrypto.layer)` from `@effect/platform-node/NodeCrypto`. `appHost` and `workerHost` already supply it.
+- `redactingRpcSerialization` now takes the validated policy returned by `yield* schemaSensitiveKeys(group, extraKeys)` as its second argument. Replace the separate key predicate and masking callbacks with that policy.
+- Modules now require a `name`, and `appModules` returns an Effect. Add a name to each module and use `yield* appModules(...)` inside an Effect before passing its result to either host. Duplicate queue names fail composition with `DuplicateModuleQueue`, identifying the queue and both owners.
+- in `boundedRpcRequest.ts`, replace `boundedRpcRequest(request)` with `yield* boundedRpcRequest()` inside an Effect. Provide the native request through `HttpServerRequest.HttpServerRequest`; the returned request keeps its cached text and array-buffer reads.
+- Move Node bridges under adapters. Replace imports from `@shivaedev/server/runtime/makePlatform.ts`, `@shivaedev/server/node-http/subscriptionSignal.ts` and `@shivaedev/server/nodeHttpServer.ts` with `@shivaedev/server/adapters/makePlatformRuntime.ts`, `@shivaedev/server/adapters/subscriptionSignal.ts` and `@shivaedev/server/adapters/nodeHttpServer.ts` respectively. Runtime types remain in `@shivaedev/server/runtime/types.ts`.
+- `rerunQuery` exposes the queried group's handler services and read-policy services in its Effect requirements. Provide the application handler layer and the read-policy services before running a rerun.
+- Replace the `HostedReadPolicy` type from `@shivaedev/server/hostRpc.ts` with `ReadPolicyGuard` from `@shivaedev/contract/ReadPolicyGuard.ts`. Custom hosts install `readPolicyGuardLayer()` and serve the group returned by `yield* guardReads(group)`, which places the guard inside identity middleware. Pass `{ websocket: true }` to the Layer constructor for WebSocket hosts; its default refuses `$changes` over HTTP.
+
 ## 0.19.0 - 2026-11-02
 
 ### Added

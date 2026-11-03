@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.0 - 2026-11-03
+
+### Added
+
+- PR watch snapshots and events retain the observed head SHA so Fleet can distinguish actions on successive heads.
+- Export discriminated `TransitionEvent`, `HealthEvent` and `WatchEvent` Schemas from `outputEvent.ts`, with `encodeJsonLine` for newline-terminated JSON output. Callback failures and service requirements remain visible in the engine's Effect types.
+
+### Fixed
+
+- Report an existing watched PR conflict before auto-merge or queue entry.
+- Stop pagination before sending another request when a page reports exhausted quota, preserving the typed cooldown and leaving incomplete snapshots unsaved.
+
+### Breaking
+
+- Custom implementations of the GitHub snapshot service must include the observed head SHA in each returned snapshot's `head` field.
+- `events`, `Watcher.poll`, `watch`, `program`, `watchCommand`, `Emit`, `health` and `makeOutput` now pass typed event values instead of JSON strings. Consumers should accept `WatchEvent` values, remove JSON parsing, and use `encodeJsonLine` at output boundaries. `health` takes a discriminated fields object containing `event` instead of a kind and arbitrary fields.
+
 ## 0.7.1 - 2026-11-02
 
 ### Changed

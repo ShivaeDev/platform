@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.31.0 - 2026-11-03
+
+### Added
+
+- Expose `readJobFailure` to read direct or wrapped pg-boss failures as sanitized `JobFailure | null` values, failing with `PgBossPayloadError` for invalid stored output.
+- `linkedWorkerSpans(sender, spans)` in jobs testing returns recorded pg-boss worker spans linked to the sender's trace and span IDs, including retry attempts.
+- Add `unschedule`, `deleteQueue` and `refreshQueueStats` to the jobs service so applications can administer queues through their owned client. Missing queues and schedule registrations fail with `PgBossNotFoundError`; engine failures retain the operation in `PgBossError`.
+- Queues and schedules accept display labels, and queues declare subject columns whose fields come from the decoded payload schema.
+- `jobModule` derives a module's queue declarations and worker Layer from its registrations.
+
+### Fixed
+
+- Share the failure readout across job details, failed listings and dead-letter source failures, preserving native timeout messages and tags while redacting secrets and removing diagnostic fields.
+- Keep testing expiry failures in the Effect error channel as `PgBossTestingError`, with the original failure and queue retained.
+- The pg-boss schema readiness check reports missing deferral tables, cleanup indexes, functions and triggers even when the pg-boss version is current. Its pending detail names the missing artifacts.
+- Release the jobs engine client when acquisition is interrupted, including pending shared-client acquisitions. Keep the client alive until its final owning Scope closes.
+- Log a tagged shutdown error when cleanup after a failed startup also fails, while preserving the startup error for callers.
+- Preserve job module queue payload schemas and their Effect service requirements when composing queue inventories.
+
+### Breaking
+
+- Public declarations use jobs-owned types, including adapter and testing signatures. Replace pg-boss `WorkOptions`, `SendOptions`, `ScheduleOptions`, `ConstructorOptions`, `StopOptions`, `FindJobsOptions` and `JobWithMetadata` annotations with `WorkerOptions` from `@shivaedev/jobs/server/workerOptions.ts`, `EnqueueOptions` and `ScheduleOptions` from `@shivaedev/jobs/server/enqueueOptions.ts`, `ClientOptions` and `StopOptions` from `@shivaedev/jobs/server/clientOptions.ts`, `JobReadOptions` from `@shivaedev/jobs/server/client.ts`, and `Job` from `@shivaedev/jobs/server/job.ts`. `JobState` is declared in `@shivaedev/jobs/server/job.ts`; job reads explicitly allow null `startedOn` and `output` values, which callers must handle before dereferencing. Database adapters use `ClientDatabase` from `@shivaedev/jobs/server/ClientDatabase.ts`; decode their unknown row values before use.
+- Move `QueueOptions` and `QueuePolicy` imports from `@shivaedev/jobs/server/definition.ts` to `@shivaedev/jobs/server/queueOptions.ts`. The previous module no longer exports those names. Move `batchHandler` imports from `@shivaedev/jobs/server/internal/batchHandler.ts` to its engine adapter at `@shivaedev/jobs/server/adapters/batchHandler.ts`.
+- `defaultClientFactory` returns the jobs-owned `EngineClient` contract from `@shivaedev/jobs/server/engineClient.ts`. Code needing additional engine methods must own a pg-boss client in its custom factory. Constructor OpenTelemetry options support `enabled` and `propagateContext`; configure custom OpenTelemetry providers on the client inside that factory.
+- Import `defaultClientFactory` from `@shivaedev/jobs/server/adapters/defaultClientFactory.ts` instead of `@shivaedev/jobs/server/defaultClientFactory.ts`. Its signature and the public jobs types are unchanged.
+
 ## 0.30.0 - 2026-11-02
 
 ### Fixed

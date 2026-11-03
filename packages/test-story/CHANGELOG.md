@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.35.0 - 2026-11-03
+
+### Added
+
+- `server/captureOutcome.ts` provides `captureOutcome` for Effects and `renderOutcome` for Exits, with package-owned renderers for success, expected failure, defect and interruption.
+- OTLP receiver errors include `service` from the export resource's `service.name`, or `undefined` when absent.
+- Screen drivers narrate and perform focus, blur, key presses with modifiers, and pointer/mouse hover through the renderer's act adapter. The selection readout returns a native select's chosen value and its option values and labels. All verbs use the existing target lookup and fail for missing controls.
+- Screen drivers accept a ScreenSignal projection of ClientActivity in `activity` and a completion signal in `transport`, waiting for these and application `pending` work to finish together.
+- `mountApp({ create, render })` acquires each story's application, React root and atom registry in Scope without resetting modules.
+- Stage `after` hooks can return a native Effect Context to provide services to later stages and the story body, including application startup and scoped teardown.
+
+### Fixed
+
+- `exportsSecret` also detects URL-encoded and form-encoded secrets in received exports.
+- Screen verbs refuse targets detached from the document, including retained scopes after a React rerender, and name the detached target in the failure.
+- Preserve the story failure report when writing a large engine snapshot fails, and include the filesystem error in the snapshot section.
+- Quote rerun command paths and test names for the shell while preserving literal test-name matching.
+
+### Breaking
+
+- Screen drivers accept the generic `ScreenSignal` from `server/screenSignal.ts` instead of contract activity directly. Replace `pending: clientActivity(client)` with `pending: activityScreenSignal(clientActivity(client))`; boolean pending streams and callbacks are unchanged. Screen signal states contain `pending: boolean` and a monotonic `hints: number`.
+- Move the React rendering and warning helpers to `@shivaedev/test-story/client/adapters/react.ts`. Replace imports from `@shivaedev/test-story/client/react.ts` with this path.
+- Move the DOM environment, member screens and cookie setup into server adapters. Replace `@shivaedev/test-story/server/domEnvironment.config.ts`, `@shivaedev/test-story/server/memberScreens.ts` and `@shivaedev/test-story/server/seedCookies.ts` with the corresponding `@shivaedev/test-story/server/adapters/` paths, including Vitest environment configuration. Story actions and expectations stay the same.
+- Remove `eventually` from `@shivaedev/test-story/client/react.ts`. Move story waits into kit verbs that await engine completion signals. For React results, supply the application's pending stream to `screenDriver`, await `settle()`, then assert on its readouts.
+
 ## 0.34.0 - 2026-11-02
 
 ### Added

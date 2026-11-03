@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.35.0 - 2026-11-03
+
+### Added
+
+- Session boundaries mount every API declared with contract's `composeBindings`, including APIs nested inside feature modules, and apply the session's live coalescing window to each binding.
+- Accept and forward form's `requiredMessages`, `checks`, `debounce` and `arrayKeys` in editor, create and submission configurations, preserving encoded field types and runtime service requirements.
+
+### Fixed
+
+- Keep a failed route's query in its registry until its own retry refreshes it or the route leaves, so refreshing another query cannot recover the failed route.
+- Mounted session queries refresh after worker writes, and a denied recheck reaches the query as `QueryReadDenied`.
+
+### Breaking
+
+- The `internal/liveBindings.ts` module is removed. Consumers that imported it must import `liveBindings` from `@shivaedev/contract/composeBindings.ts` instead.
+- `useEditor` and `useCreate` require explicit draft storage alongside time. Acquire `persistence` with form's `draftPersistence` Effect from `@shivaedev/form/adapters/draftPersistence.ts`, provide `browserDraftStorage` from `@shivaedev/form/adapters/browserDraftStorage.ts`, and pass `persistedDraft: { key, ...persistence }`.
+- Import `authCall` and `AuthActionResult` from `@shivaedev/identity/client/adapters/authCall.ts` instead of `@shivaedev/react/client/authAction.ts`. Import `AuthFailure` from `@shivaedev/identity/client/AuthFailure.ts` and the `AuthFailureCode` schema and type from `@shivaedev/identity/client/AuthFailureCode.ts`.
+- React's `authAction` now accepts an input-to-Effect function: replace `authAction(runPromise)` with `authAction(authCall(runPromise))` using identity's bridge. React's `authQuery` also accepts an input-to-Effect function: wrap the Promise reader with `authQuery` from `@shivaedev/identity/client/adapters/authQuery.ts` before passing it to React's atom family.
+- React's `authSession` now accepts a session Effect: wrap the Promise reader with `authSession` from `@shivaedev/identity/client/adapters/authSession.ts` before passing it to React's session atom. Import `SessionWithPermissions` from that identity adapter instead of React's session module. `AuthSession<A, E>` now exposes exactly `E`; include `AuthUnavailable` in `E` when explicitly annotating an identity-backed session.
+- Import the `PermissionSession` schema and type from `@shivaedev/identity/PermissionSession.ts` instead of `@shivaedev/react/permissions.ts`. Import `can` from `@shivaedev/react/can.ts` instead of `@shivaedev/react/permissions.ts`. The removed exports have no compatibility aliases.
+
 ## 0.34.0 - 2026-11-02
 
 ### Breaking

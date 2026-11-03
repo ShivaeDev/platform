@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.0 - 2026-11-03
+
+### Changed
+
+- Ordinary and table tests use the same Vitest context path and share generator and Effect body normalization.
+
+### Fixed
+
+- Apply custom answer formatters to defects as well as typed failures, preserving error details such as SQLSTATE when describing failed cleanup.
+
+### Breaking
+
+- Move the answer-formatting helpers from `@shivaedev/test/answers.ts` to `@shivaedev/test-story/server/answers.ts`. Consumers must depend on `@shivaedev/test-story` and change their imports to the new module; the old module is removed.
+- Import `makeEffectIt` from `@shivaedev/test/adapters/makeEffectIt.ts` and `it` from `@shivaedev/test/adapters/it.ts`. Their former module paths are removed. The internal `runEffectTest` bridge also moves from `internal/` to `adapters/`; `buildTestLayer` is now private to the fixture adapter. Replace external calls to it with native `Layer.buildWithScope`.
+- Import `AnyTestLayer` from `@shivaedev/test/types.ts`; its former `anyTestLayer.ts` module is removed.
+
 ## 0.13.0 - 2026-11-02
 
 ### Added

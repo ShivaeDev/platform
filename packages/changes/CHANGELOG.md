@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 - 2026-11-03
+
+### Added
+
+- `commandPublication.ts` exports the `CommandPublication` port, its `CommandPublisher` interface and typed `CommandPublicationError`. The default publishes local Reactivity invalidations.
+- Add `collectionInvalidationKeys` to refresh every list, item and bucket reader of a collection, with optional session scoping. Bucket read dependencies now include the collection wildcard.
+
+### Breaking
+
+- `@shivaedev/changes/keys.ts` no longer accepts a context argument in `readKeys`, `invalidationKeys` or `collectionInvalidationKeys`. Remove account prefixes and context arguments from server registrations and publications; use plain model record and bucket keys. For custom client cache coordination, import `KeyContext`, `clientReadKeys` and `clientInvalidationKeys` from `@shivaedev/contract/clientKeys.ts` instead. `bind` and `makeClient` handle this automatically.
+
 ## 0.8.0 - 2026-11-02
 
 ### Added

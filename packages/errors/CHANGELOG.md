@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 - 2026-11-03
+
+### Added
+
+- Sensitive RPC failure schemas accept a constant encoded `redactionMask` annotation when a generic mask cannot decode. Policy definition returns a typed `InvalidRedactionMask` naming the field when its mask is incompatible.
+
+### Fixed
+
+- Declared failures alongside interruptions retain their classification and interruption. Native RPC exit schemas supply the complete failure schema, including stream rejections.
+
+### Breaking
+
+- Constrained sensitive failure schemas whose generic masks cannot decode must supply a non-secret encoded `redactionMask`; invalid definitions fail before the host listens.
+
 ## 0.5.0 - 2026-11-02
 
 ### Added

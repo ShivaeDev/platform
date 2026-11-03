@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.20.0 - 2026-11-03
+
+### Added
+
+- Browser client adapters expose Better Auth calls, queries and session reads as Effects, with typed failures and session permission decoding.
+- Reject an undeclared `defaultRole` when mounting Better Auth with a role set. Startup fails with a typed `UndeclaredDefaultRole` error that names the role instead of assigning it to new users.
+- `changeEmail` from `client/adapters/changeEmail.ts` wraps a Better Auth client with an Effect call that requires the current password and returns typed auth failures.
+- Add the `UserDirectory` port for paged users, role reads and guarded assignments, and account names. Provide `betterAuthUserDirectory` with the application's role set, SQL Layer and Better Auth options to honour custom models and field mappings.
+- Export `userKeys` and `roleKeys` from `@shivaedev/identity/users.ts`. Role assignments publish the affected user and role keys after commit.
+- `passwordUser` accepts `passwordHash` to store a precomputed credential while sign-in still verifies the supplied password.
+- Add the `betterAuthMount` provider-only preset to close email/password, magic-link and Better Auth admin HTTP endpoints, omit provider tokens from account writes and disable cookie caching. Apps can explicitly reopen individual preset endpoints with `enabledPaths`.
+- Declare identity's refusal wire codes once and map policy denial to `SIGN_IN_REFUSED` and policy or account-role-seed failure to `AUTH_UNAVAILABLE` in `authCall`.
+- Accept application code literals as `authCall`'s second argument, preserving database-hook and email-delivery codes in its closed failure union. `AuthFailure.withCodes` supplies a native schema for the extended union.
+
+### Changed
+
+- Publish declared command changes and recover failed publication through `CommandPublication`, preserving the committed command result and its bounded publication retries.
+- `signedInUser`, `signInAgain` and `passwordUser` work with the mounted host's own auth without installing a testing plugin or creating another auth instance. Minted sessions run the mounted session hooks and account role seed.
+
+### Fixed
+
+- Describe authentication email recipients with their public `id`, `email` and `name` fields without exposing Better Auth's `User` type.
+- Resolve OAuth grant subjects whose temporary ban has expired by Effect Clock. Active bans and bans without an expiry continue to refuse access.
+- Mount Better Auth routes under the configured `basePath`, including session permissions and native session replacement.
+- Return application email-delivery refusals from mounted HTTP requests even when Better Auth catches the delivery error internally.
+
+### Breaking
+
+- Remove `@shivaedev/identity/server/commandChanges.ts` and its `commandChanges(effect, rpc, payload)` export. Session, permission and tracing middleware no longer publish command changes. Remove command wrappers from custom authentication middleware and supply only the validated viewer and session. Applications using `appHost` get command publication automatically. Custom hosts compose `guardCommands(group)` and `commandGuardLayer(publishCommand)` from `@shivaedev/contract/CommandGuard.ts` with `publishCommand` from `@shivaedev/server/publishCommand.ts`; provide the changes publication port for the chosen transport.
+- Consumers observing role assignments through the former `admin.users` change collection must read `userKeys.list` or `userKeys.item(userId)` from identity. Role readers can use `roleKeys.item(userId)`. Pass these typed keys through `readKeys` when subscribing directly to Reactivity.
+- `signedInUser` and `signInAgain` require the native auth cookie, secret and base URL context instead of only the testing plugin's helpers. Pass the host's `mounted.auth` directly; remove the separate testing auth instance and its `testUtils()` plugin.
+- Auth email messages carry `url` and every `token` as Effect `Redacted<string>`. Apps must use `Redacted.value(message.url)` and `Redacted.value(message.token)` when rendering email content or submitting tokens, and pass the wrapped values directly to redacted queue fields.
+- Replace `OauthGrants.resolveSubject(userId, clientId)` with `resolveGrant(grantId, userId, clientId)`, which returns an optional `{ user, scopes }` containing current grant scopes. Custom service implementations must look up the exact grant and verify its user and client. For custom stores, assign each stored grant an immutable unique ID, preserve it when scopes change, and allocate a fresh ID after revocation. Keep existing Better Auth consent rows and their IDs; no database migration is required. Never reuse a deleted grant ID when importing stored grants. Token issuers must include the consent ID as `grant_id`; `betterAuthOauthProvider` and `mcpProvider` do this automatically.
+- `userProfiles` takes a `UserProfileStorage` port instead of a Better Auth instance. Replace `userProfiles(mounted.auth, ids)` with `userProfiles(mounted.profiles, ids)`, or supply an Effect-based `findByIds` implementation. Its import path and profile result shape stay the same.
+- `betterAuthMount` now waits for the auth context and its schema check during scoped acquisition, failing with `AuthUnavailable` and logging the redacted provider cause when either fails. Apply auth migrations before building the mount Layer, handle this typed startup failure, and remove application readiness wrappers.
+- Auth email limits now use PostgreSQL exclusively and share one per-account, per-kind window across mounts and restarts. Apps configuring `betterAuthMount` with `emails` must provide their PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount and include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in their numbered migration loader before starting the app. Remove imports of the deleted `server/better-auth/emailWindow.ts` helper. Request rate limits still use the app's supplied store.
+- `sessionKeyContext` and the `@shivaedev/identity/server/sessionKeys.ts` module are removed. Import `resolveChanges` from `@shivaedev/identity/server/resolveChanges.ts` instead. `resolveChanges` now returns the authorized subscription directly, instead of `{ subscription, context }`; pass that result to `subscribe`. Keep request-local identity for read policy and data filtering. Session-scoped queries declare ordinary reads without additional session keys, and shared keys may trigger policy checks for several accounts.
+- Identity's session and permission middleware now supply `CurrentViewer` and validate sessions without authorizing reads. Custom hosts using these layers must install `ReadPolicyGuard` as above. Custom authentication middleware on the application host must provide `CurrentViewer` from the resolved session instead of calling `authorizeReads`; the host performs authorization. Stock `appHost` users need no configuration changes.
+- Exhaustive `AuthFailureCode` mappings must add `SIGN_IN_REFUSED` and `AUTH_UNAVAILABLE`. Handle declared application codes in the extended union returned by calls that pass application code literals.
+
 ## 0.19.0 - 2026-11-02
 
 ### Added

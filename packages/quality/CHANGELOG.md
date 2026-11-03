@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.57.0 - 2026-11-03
+
+### Added
+
+- Reports module mocks and replacement spies of owned code outside `adapters/`, and resolvable Layer replacements of concrete owned services.
+- Enforce package-prefixed literal service and RPC middleware ids in `packages/*` with `effect/service-ids`. Prefix findings with `@shivaedev/<package>/` and update references to the id.
+- Run `.heavy.test` and `.heavy.spec` files by default in a separate, single-worker Vitest group after ordinary tests finish. Use the `heavy` project to select these toolchain tests alone.
+- Require change collection and bucket names to use their owner's declarations in Reactivity invalidations and mutations, SQL announcements and change-key encoders. The `boundaries/imported-change-keys` rule reports literal array keys, record keys and typed key collection or field names, while accepting imported declarations and literal record IDs and bucket values.
+- `appTestConfig` accepts `connectionBudget`, `connectionsPerWorker` and `maxWorkers` alongside coverage options, so applications can set test concurrency through the shared helper.
+- Add `makeRuleStory` under `testing/ruleStory.ts` to seed scoped fixture repositories, check custom rules, run the gate and read findings and reports through Quality's real engine. Use its `qualityInstalled` trait for fixtures that need the installed package.
+- Publish the lower-level fixture and command helpers under `testing/adapters/` for existing test kits.
+- `tests/queue-readouts` reports jobs-testing `jobs` and `snapshot` storage readouts in application tests and test-support. The jobs package may test its own readouts.
+- Report value imports of outside runtime dependencies, peers, optional dependencies and Node builtins outside `adapters/` with `effect/adapter-imports`. Keep type imports, Effect and `@shivaedev` framework packages, workspace modules, `test-support/` kits and React in `client/` folders available. Move integrations into adapters and expose Effect values, or use `import type` when only a type is needed.
+- Report tagged error classes that reuse a tag exported by `@shivaedev/errors`, with guidance to import the shared class.
+- `manifests/exports-shape` validates declared `#*.ts` and `#test/*` imports against the source and test-support roots. Use `./src/*.ts` directly or the matching source, types and default conditions for `#*.ts`, and `./src/test-support/*` for `#test/*`. Other aliases remain allowed.
+
+### Changed
+
+- Quality recognizes the adapter module paths when checking test declarations and reports the current `it` import in body-normalization diagnostics.
+
+### Fixed
+
+- Explain eager row construction and lazy, ordered readout callbacks in the grouped-outcomes manual-repair diagnostic, including why grouped assertions change failure order.
+- Allow pure unit tests to import `BlockList` and `isIP` from `node:net` for in-memory address normalization. Socket and server operations still require stories.
+
+### Breaking
+
+- Enables `tests/adapter-only-fakes` for every repository. Run owned modules and services for real, fake outside systems at `adapters/`, and delete tests that require internal replacements.
+- Import analysis composes as Effect through the compiler adapter service. Consumers of `importGraph`, `departures`, `browserGlobals`, `checkFences` and `entryPointFindings` must compose or yield their Effects; `importGraph`, `departures`, `checkFences` and `entryPointFindings` no longer return Promises, and `browserGlobals` no longer returns findings synchronously. Compiler-adapter failures use `ImportAnalysisFailure` in the error channel. Consumers importing `Project`, `projectsFor` or resolution functions must use `adapters/imports/projects.ts` or `adapters/imports/resolve.ts`; the `Endpoint` type moves to `imports/Endpoint.ts`.
+- Biome config loading moves from `rules/suppressions/biome/configs.ts` and `rules/suppressions/biome/resolvePackage.ts` to `adapters/biome/configs.ts` and `adapters/biome/resolvePackage.ts`. Import these helpers from their adapter paths. Import `syntaxOf` from `adapters/biome/syntaxOf.ts`; pure syntax helpers remain in `biome/syntax.ts`.
+- `rootConfig` and `PRESET` move from `rules/biome.ts` to `adapters/biome/rootConfig.ts`. Import `withExceptionConfig` from `adapters/biome/withExceptionConfig.ts` and `parseConfig` / `relocateConfig` from `adapters/biome/relocateConfig.ts`. Pure exception configuration remains in `biome/exceptionConfig.ts`.
+- `withoutEntryPointImports`, `missingBiomeFiles`, `packageLayout`, `packageImports` and `stylesheetImporters` now return Effects. Compose them with `yield*` instead of awaiting them. Pass `{ readText }` to `withoutEntryPointImports` instead of the reader callback. `biomeRecommendedFrom` now takes a callback returning an Effect; wrap Promise-based providers with `Effect.promise`.
+- Quality enables `tests/queue-readouts` for every repository. Replace queue counts and job-state assertions with the application's visible results; retain jobs-testing controls and waits to drive workers.
+
 ## 0.56.0 - 2026-11-02
 
 ### Breaking

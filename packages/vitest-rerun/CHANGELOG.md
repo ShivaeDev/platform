@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2026-11-03
+
+### Added
+
+- Record every attempt's duration in milliseconds in each `flaky-tests.json` entry, including the final passing attempt.
+
+### Fixed
+
+- Honor `--passWithNoTests` when a run finds no test files, so generated apps support the config smoke check before builds.
+- Reject incomplete `--reruns` and `--output-dir` options with exit code 2 and a diagnostic naming the option before Vitest starts.
+
 ## 0.4.0 - 2026-11-02
 
 ### Fixed
