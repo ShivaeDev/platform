@@ -1,5 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect } from "effect";
+import { Effect, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authPost, credentials } from "./authHttp.ts";
@@ -11,10 +11,11 @@ export interface DeploymentEngine {
 	address: string | undefined;
 	readonly clockStart: number;
 	readonly processes: Map<string, DeployedProcess>;
+	processScope: Scope.Closeable | undefined;
 }
 
 export function deploymentEngine(clockStart: number): DeploymentEngine {
-	return { address: undefined, clockStart, processes: new Map() };
+	return { address: undefined, clockStart, processes: new Map(), processScope: undefined };
 }
 
 export function releaseEnv(release: string): Record<string, string> {
@@ -43,8 +44,11 @@ export function deploymentControls(engine: DeploymentEngine) {
 		},
 		start: Effect.fn("DeploymentStory.start")(function* (name: string, kind: "worker" | "web" | "migrate", env: Record<string, string>, port = 0) {
 			const database = yield* PostgresTestDatabase;
+			// Release story-held locks before stopping processes that must drain their blocked work.
+			engine.processScope ??= yield* Scope.fork(yield* Effect.scope);
 			const child = yield* deployChild(kind, database.url, port, { "STORY_CLOCK_START": String(engine.clockStart), ...env }).pipe(
 				Effect.provide(NodeServices.layer),
+				Scope.provide(engine.processScope),
 			);
 			engine.processes.set(name, child);
 			return child;

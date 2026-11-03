@@ -57,7 +57,7 @@ deployment.it(
 			["worker's migration lines", () => logLines("current worker", /migrations/v), WAITING],
 		]);
 	},
-	60_000,
+	30_000,
 );
 
 deployment.it(
