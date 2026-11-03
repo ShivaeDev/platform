@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { effectBoundary } from "#rules/effect/boundary.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const marker of [
 	'import * as NodeRuntime from "@effect/platform-node/NodeRuntime"; NodeRuntime.runMain(work);',

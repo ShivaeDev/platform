@@ -7,10 +7,10 @@ import { recommendedRules } from "#biome/recommendedRules.ts";
 import { services } from "#cli/runMain.ts";
 import type { Findings } from "#rule.ts";
 import { biome } from "#rules/biome.ts";
-import { scanned } from "./imports.ts";
+import { scanned } from "#testing/adapters/imports.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
+import { locationOf } from "#testing/ruleStory.ts";
 import { pluginOf } from "./namingFindings.ts";
-import { locationOf } from "./ruleStory.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "./tree.ts";
 
 interface BiomeEngine {
 	findings: Findings | undefined;

@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import type { Findings, Rule } from "#rule.ts";
+import { locationOf } from "#testing/ruleStory.ts";
 import { inputsOf } from "./inputs.ts";
-import { locationOf } from "./ruleStory.ts";
 
 interface ListedEngine {
 	findings: Findings | undefined;

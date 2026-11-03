@@ -1,0 +1,29 @@
+import { quality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { formatTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
+import { defaultTree, removeSeededTrees } from "@shivaedev/quality/testing/adapters/tree.ts";
+
+const rule = new URL("./draftRule.ts", import.meta.url).href;
+const root = defaultTree(
+  {
+    path: "quality.config.ts",
+    content: `import { draftRule } from ${JSON.stringify(rule)};\nexport default { local: [draftRule], rules: { "local/no-draft": { options: { word: "draft" } } }, sources: ["src"] };\n`,
+  },
+  { path: "src/title.ts", content: 'export function title(): string {\n\treturn "draft";\n}\n' },
+);
+
+try {
+  formatTree(root);
+  const rejected = quality(root, "lint");
+  if (rejected.status !== 1 || !rejected.stdout.includes("Replace draft before merging.")) {
+    throw new Error(`The packed CLI did not report the custom rule: ${rejected.stdout}${rejected.stderr}`);
+  }
+
+  writes(root, "src/title.ts", 'export function title(): string {\n\treturn "ready";\n}\n');
+  const passed = quality(root, "lint");
+  if (passed.status !== 0) {
+    throw new Error(`The packed CLI did not accept the repaired source: ${passed.stdout}${passed.stderr}`);
+  }
+} finally {
+  removeSeededTrees();
+}

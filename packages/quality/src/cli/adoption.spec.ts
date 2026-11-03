@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adoption, baselinedFindings, jsxFixture, newRuleDebt } from "#test/adoption.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { conciseView, conditionalView, fragmentView, manualViews, mixedView, retainedView } from "#test/conditionalFixes.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 adoption.it(
 	"recording a new rule's findings through the baseline script records them and makes the gate pass",

@@ -8,7 +8,7 @@ export interface SeedFile {
 	readonly path: string;
 }
 
-export const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+export const packageRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 const seeded: string[] = [];
 

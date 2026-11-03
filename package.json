@@ -5,7 +5,6 @@
 	"type": "module",
 	"imports": {
 		"#*": "./script/*",
-		"#quality-fixtures/*": "./packages/quality/src/test-support/*",
 		"#release-config": "./.changeset/changesets.config.ts"
 	},
 	"scripts": {

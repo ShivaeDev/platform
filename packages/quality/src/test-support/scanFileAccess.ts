@@ -7,7 +7,7 @@ import { services } from "#cli/runMain.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { scan } from "#engine/session.ts";
 import type { Violation } from "#engine/violation.ts";
-import { seedTree } from "./tree.ts";
+import { seedTree } from "#testing/adapters/tree.ts";
 
 interface ScanState {
 	readonly config: ResolvedConfig;

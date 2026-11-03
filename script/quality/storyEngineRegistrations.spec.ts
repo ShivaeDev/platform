@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { storyEngine } from "@shivaedev/quality/rules/stories/engine.ts";
+import { factoryFiles, kitFiles, spec } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { factoryFiles, kitFiles, spec } from "#quality-fixtures/storySpecFiles.ts";
 
 for (const registration of [
 	'orders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });',
@@ -17,8 +17,8 @@ for (const registration of [
 	ruleKit.it(
 		`the origin tracer recognizes a story that ignores its kit: ${registration}`,
 		[repositoryHas(...kitFiles, spec(`import { app as orders } from "#test/index.ts";\n${registration}`))],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
 		},
 	);
 }
@@ -35,8 +35,8 @@ for (const factory of [
 				spec('import { orders } from "#test/factoryOrders.ts";\norders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });'),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
 		},
 	);
 }
@@ -44,8 +44,8 @@ for (const factory of [
 ruleKit.it(
 	"a plain registrar is left to story-specs",
 	[repositoryHas(spec('const orders = { it() {} };\norders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });'))],
-	function* ({ checks }) {
-		expect(yield* checks(storyEngine)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(storyEngine)).toEqual([]);
 	},
 );
 
@@ -60,8 +60,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storyEngine)).toEqual([
+	function* ({ check }) {
+		expect(yield* check(storyEngine)).toEqual([
 			expect.objectContaining({ file: "src/arithmetic.test.ts", line: 2, message: expect.stringContaining("arithmetic.unit.test.ts") }),
 			expect.objectContaining({ file: "src/arithmetic.test.ts", line: 3 }),
 		]);

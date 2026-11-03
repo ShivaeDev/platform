@@ -1,0 +1,12 @@
+import { createVitest } from "vitest/node";
+
+const vitest = await createVitest("test", { config: false, include: ["harness.spec.ts"], testTimeout: 60_000, watch: false });
+try {
+  const { testModules } = await vitest.start();
+  const tests = testModules.flatMap((module) => [...module.children.allTests()]);
+  if (testModules.some((module) => module.errors().length > 0) || tests.length !== 2 || tests.some((test) => test.result().state !== "passed")) {
+    throw new Error("The packed Quality harness failed its custom-rule story.");
+  }
+} finally {
+  await vitest.close();
+}

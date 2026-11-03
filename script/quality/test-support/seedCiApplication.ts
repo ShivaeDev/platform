@@ -1,8 +1,8 @@
 import { mkdirSync, realpathSync, symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { writes } from "#quality-fixtures/hookRepository.ts";
-import { linkPackage } from "#quality-fixtures/tree.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { linkPackage } from "@shivaedev/quality/testing/adapters/tree.ts";
 
 const load = createRequire(import.meta.url);
 

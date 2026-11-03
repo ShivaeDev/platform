@@ -1,12 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { fenceExceptions, importFenceRepository } from "#test/importFenceRepository.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { runtimeFolders } from "#test/runtimeFolders.ts";
-import { config } from "#test/tree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const REASON = "The play screen previews CMS drafts until the preview service lands.";
 

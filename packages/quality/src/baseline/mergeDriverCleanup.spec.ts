@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { ALPHA_SHARD, branchEdits, branchWrites, driverInstalled, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const conflict of [false, true]) {
 	baselineStory.it(

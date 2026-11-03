@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { manifestTree } from "#test/manifestTree.ts";
 import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { config } from "#test/tree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const UNDECLARED = 'Imports workspace package "plain-kit" without declaring it in modules/app/package.json';
 

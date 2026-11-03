@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { CLI_EXIT } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { appCi, failingBuild, failingTest, passingTest } from "#quality/test-support/appCi.ts";
-import { CLI_EXIT } from "#quality-fixtures/cli.ts";
 
 appCi.it("checks peers then runs the application's lint, types, build and tests", [], function* ({ run, completed }) {
 	const result = yield* run();

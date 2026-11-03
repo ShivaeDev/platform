@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { kitFiles, spec } from "#test/storySpecFiles.ts";
+import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 

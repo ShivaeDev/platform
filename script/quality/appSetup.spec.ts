@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { CLI_EXIT } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { appSetup, enclosedApp, unversionedApp, worktreeApp } from "#quality/test-support/appSetup.ts";
-import { CLI_EXIT } from "#quality-fixtures/cli.ts";
 
 appSetup.it("installs the active commit gate for an application", [], function* ({ setup, commit, hook }) {
 	expect((yield* setup()).status).toBe(CLI_EXIT.passed);

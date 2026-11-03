@@ -16,8 +16,8 @@ ruleKit.it(
 			unitSpec('import { expect, it } from "vitest";\nimport { total } from "./orders.ts";\nit("adds", () => { expect(total([1, 2])).toBe(3); });'),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storySpecs)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(storySpecs)).toEqual([]);
 	},
 );
 
@@ -32,16 +32,16 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storySpecs)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(storySpecs)).toEqual([]);
 	},
 );
 
 ruleKit.it(
 	"a plain test outside a .unit file still fails and names both honest forms",
 	[repositoryHas(ordersPackage, pureOrders, { content: 'import { it } from "vitest";\nit("adds", () => {});', path: "src/orders.test.ts" })],
-	function* ({ checks }) {
-		const [finding, ...rest] = yield* checks(storySpecs);
+	function* ({ check }) {
+		const [finding, ...rest] = yield* check(storySpecs);
 		expect(rest).toEqual([]);
 		expect(finding?.file).toBe("src/orders.test.ts");
 		expect(finding?.message).toContain(KIT);
@@ -67,8 +67,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings.map((finding) => [finding.line, finding.message.slice(0, finding.message.indexOf(". "))])).toEqual([
 			[1, "Is a unit test but reaches a database (pg) through src/orders.unit.test.ts -> pg"],
 			[2, "Is a unit test but reaches the network (effect/http) through src/orders.unit.test.ts -> effect/http"],
@@ -85,8 +85,8 @@ ruleKit.it(
 ruleKit.it(
 	"a unit test that reaches node:fs through the module under test is told to split that module",
 	[repositoryHas(ordersPackage, orders, unitSpec('import { total } from "./orders.ts";\nit("adds", () => { expect(total([1])).toBe(1); });'))],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings.map((finding) => finding.message)).toEqual([
 			expect.stringContaining("reaches the file system (node:fs) through src/orders.unit.test.ts -> src/orders.ts -> node:fs."),
 		]);
@@ -108,8 +108,8 @@ ruleKit.it(
 			unitSpec('import { amounts } from "./test-support/amounts.ts";\nimport { total } from "./orders.ts";\nit("adds", () => { total(amounts); });'),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings.map((finding) => finding.message)).toEqual([
 			expect.stringContaining("through src/orders.unit.test.ts -> src/test-support/amounts.ts -> node:fs."),
 		]);
@@ -135,8 +135,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings).toEqual(
 			[
 				[3, "Layer.succeed"],
@@ -168,8 +168,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings).toEqual(
 			[
 				[2, "vi.mock"],
@@ -205,8 +205,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(storySpecs);
+	function* ({ check }) {
+		const findings = yield* check(storySpecs);
 		expect(findings.map((finding) => [finding.line, finding.message.slice(0, finding.message.indexOf(". "))])).toEqual([
 			[
 				3,
@@ -236,15 +236,15 @@ ruleKit.it(
 			{ content: 'it("adds", () => {});', path: "src/tests/orders.unit.test.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(testsFollow)).toEqual([
+	function* ({ check }) {
+		expect(yield* check(testsFollow)).toEqual([
 			{
 				file: "src/orders.unit.dom.test.ts",
 				message: expect.stringContaining("is both a unit and a DOM test, but a unit test runs without the DOM."),
 			},
 			{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("orders.unit.test.ts sits beside orders.ts") },
 		]);
-		expect(yield* checks(testsColocated)).toEqual([
+		expect(yield* check(testsColocated)).toEqual([
 			{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("as orders.unit.test.ts beside orders.ts") },
 		]);
 	},

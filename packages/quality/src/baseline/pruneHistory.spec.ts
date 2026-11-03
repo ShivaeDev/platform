@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { branchedFromMain, debtRecorded, moveCommitted } from "#test/debtRecorded.ts";
 import { shallowClone, unrelatedHistory } from "#test/remoteBranches.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"baseline prune --against a ref that names no commit is invalid and names the ref",

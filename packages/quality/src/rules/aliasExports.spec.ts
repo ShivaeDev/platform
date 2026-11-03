@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { biome } from "#rules/biome.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { importForms, localAliasFacade, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
-import { DEFAULT_FILES, packageRoot } from "#test/tree.ts";
+import { DEFAULT_FILES, packageRoot } from "#testing/adapters/tree.ts";
 import { noBarrel } from "./noBarrel.ts";
 
 const PRESET = [

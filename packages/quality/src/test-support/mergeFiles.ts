@@ -1,8 +1,8 @@
 import { readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Clock } from "effect";
+import { git } from "#testing/adapters/git.ts";
 import { baselineStory } from "./baselineStory.ts";
-import { git } from "./git.ts";
 import { ALPHA_SHARD } from "./packageWorkspace.ts";
 import { readOrUndefined, writeAll } from "./recordedDebt.ts";
 

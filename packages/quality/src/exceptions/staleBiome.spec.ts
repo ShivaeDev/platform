@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
-import { config } from "#test/tree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const UNTYPED = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/parse.ts" };
 const TYPED = { ...UNTYPED, content: UNTYPED.content.replace("any", "unknown") };

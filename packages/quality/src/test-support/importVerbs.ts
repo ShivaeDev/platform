@@ -5,8 +5,8 @@ import { configureRegistered } from "#adapters/rule.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import type { Finding, Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
-import { scanned } from "./imports.ts";
-import type { SeedFile } from "./tree.ts";
+import { scanned } from "#testing/adapters/imports.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export interface ImportEngine {
 	findings: Findings | undefined;

@@ -5,8 +5,8 @@ import { Console, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { settle, snapshotOf } from "#cli/fix.ts";
 import { services } from "#cli/runMain.ts";
-import { capturing, type Output } from "./cli.ts";
-import type { SeedFile } from "./tree.ts";
+import { capturing, type Output } from "#testing/adapters/cli.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 type Pass = () => number;
 

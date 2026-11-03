@@ -34,6 +34,40 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 Interrupting a run stops pending manifest reads and its Biome and knip processes and removes their scoped temporary configs before it ends. Expected filesystem failures in rules become findings that name the affected file. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
 
+### Testing a custom rule
+
+Create a kit with `makeRuleStory` from the published testing module, and declare it at module level in your local test-support facade. Use it with `@shivaedev/test-story` and Vitest. `repositoryHas` seeds files in a scoped temporary repository, and `check` runs a rule against Quality's real inventory. The optional third argument selects a directory within the fixture; the default is the fixture root. `findings`, `locations` and `messages` read the last check's results. Specs state the expectations.
+
+```ts
+import { expect } from "vitest";
+import { defineRule } from "@shivaedev/quality/rule.ts";
+import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
+
+const ruleStory = makeRuleStory();
+const { repositoryHas } = ruleStory;
+
+const noDraft = defineRule({
+	id: "local/no-draft",
+	description: "Replace draft text before merging.",
+	check: ({ sources }) =>
+		sources.flatMap((source) => (source.text.includes('"draft"') ? [{ file: source.path, message: "Replace draft before merging." }] : [])),
+});
+
+ruleStory.it(
+	"draft text asks the author for a replacement",
+	[repositoryHas({ path: "src/title.ts", content: 'export const title = "draft";\n' })],
+	function* ({ check, messages }) {
+		yield* check(noDraft);
+
+		expect(yield* messages()).toEqual(["Replace draft before merging."]);
+	},
+);
+```
+
+Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, and `gateReport()` reads its output. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/quality/testing/adapters/cli.ts` to spawn a fresh command after changing a config.
+
+For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. These helpers use the same engine as the rule story kit.
+
 ### Effect boundaries and services
 
 `effect/boundary` checks every TypeScript or JavaScript source in Quality's inventory, including shipped code, tooling and specs. It reports async functions, methods and arrows, await (including `for await`), `new Promise(...)`, `.then(...)`, try statements and throw statements. Model the work with Effect, fail with a tagged error, and use `Effect.die` for defects. Effect's resource and finalizer primitives model cleanup.

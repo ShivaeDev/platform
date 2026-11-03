@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { baselineStory } from "#test/baselineStory.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"lint honours the debt in a package's shard and rejects a package file that grows past it",

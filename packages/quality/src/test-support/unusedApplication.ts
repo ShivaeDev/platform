@@ -1,5 +1,5 @@
-import { repositoryHas, repositoryLinks } from "./ruleStory.ts";
-import { packageRoot, type SeedFile } from "./tree.ts";
+import { repositoryHas, repositoryLinks } from "#test/ruleStory.ts";
+import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
 
 function installed(name: string, fields: object = {}): SeedFile[] {
 	return [

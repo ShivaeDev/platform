@@ -5,7 +5,7 @@ import process from "node:process";
 import { ConfigProvider, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { TestOutput } from "#adapters/TestOutput.ts";
-import { packageRoot, seedTree } from "./tree.ts";
+import { packageRoot, seedTree } from "#testing/adapters/tree.ts";
 
 interface OutputEngine {
 	ci: string;

@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
-import { exportsWorkspace, LIBRARY_MANIFEST, packageImports } from "#test/packageExports.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { exportsWorkspace, LIBRARY_MANIFEST, packageImports } from "#testing/adapters/packageExports.ts";
 
 const ROOT_TARGETS = { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" };
 

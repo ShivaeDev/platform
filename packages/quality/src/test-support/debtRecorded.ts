@@ -1,11 +1,11 @@
 import { renameSync } from "node:fs";
 import { join } from "node:path";
+import { trees } from "#test/trees.ts";
+import { branchOff, commitAll, git } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { baselineStory, setupRun } from "./baselineStory.ts";
-import { trees } from "./cli.ts";
-import { branchOff, commitAll, git } from "./git.ts";
-import { formatTree } from "./qualityTree.ts";
 import { sourceOf, writeAll } from "./recordedDebt.ts";
-import { linkPackage, type SeedFile } from "./tree.ts";
 
 const INSTALLED: readonly SeedFile[] = [
 	{ content: "node_modules/\n", path: ".gitignore" },

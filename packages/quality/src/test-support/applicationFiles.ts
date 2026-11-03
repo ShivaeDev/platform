@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export function manifest(path: string, fields: object): SeedFile {
 	return { content: `${JSON.stringify(fields, null, "\t")}\n`, path };

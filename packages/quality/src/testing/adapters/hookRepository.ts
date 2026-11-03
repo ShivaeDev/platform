@@ -2,10 +2,11 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
-import type { Run } from "./cli.ts";
+import { shellWords } from "#hooks/command.ts";
+import { qualityArgs, type Run } from "./cli.ts";
 import { commitAll, git, ISOLATED_ENV } from "./git.ts";
 import { formatTree } from "./qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, packageRoot, type SeedFile, seedTree } from "./tree.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile, seedTree } from "./tree.ts";
 
 export interface HookRepository {
 	readonly folder: string;
@@ -41,7 +42,7 @@ export function checksLog(root: string): string {
 
 const CLEAN: SeedFile = { content: "export function full(): number {\n\treturn 1;\n}\n", path: "src/full.ts" };
 
-const BIN = `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`;
+const BIN = `#!/bin/sh\nexec node ${shellWords(qualityArgs([]))} "$@"\n`;
 
 const CONFIG: SeedFile = {
 	content: 'export default { rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
@@ -62,7 +63,7 @@ function withBin(root: string): void {
 	chmodSync(join(root, "node_modules/.bin/quality"), 0o755);
 }
 
-// A committed repository whose installed quality is this package's source, behind the bin a package manager links.
+// Use the installed bin boundary so hooks run the executable a package manager would link.
 export function hookRepository({
 	configless = false,
 	files = configless ? DEFAULT_FILES : [CLEAN],

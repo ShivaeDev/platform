@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { linkPackage, type SeedFile } from "./tree.ts";
+import { linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 
 interface BuildEngine {
 	built: { readonly declarations: Map<string, string>; readonly diagnostics: readonly string[] } | undefined;

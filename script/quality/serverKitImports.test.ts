@@ -22,8 +22,8 @@ ruleKit.it(
 			{ content: 'import { fixture } from "./barrel.ts";', path: "packages/server/src/test-support/indirect.ts" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(serverKitImports);
+	function* ({ check }) {
+		const findings = yield* check(serverKitImports);
 
 		expect(findings.map(({ file }) => file).sort()).toEqual([
 			"packages/server/src/test-support/barrel.ts",
@@ -49,7 +49,7 @@ ruleKit.it(
 			},
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(serverKitImports)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(serverKitImports)).toEqual([]);
 	},
 );

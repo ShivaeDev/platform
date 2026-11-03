@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const docsWorkspace: readonly SeedFile[] = [
 	{ content: JSON.stringify({ name: "tools", private: true, repository: "github:acme/tools" }), path: "package.json" },

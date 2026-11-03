@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const MESSY = {
 	content: 'import { join } from "node:path";\nimport { readFile } from "node:fs/promises";\n\nexport const total   =  [join, readFile].length\n',

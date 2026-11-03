@@ -1,0 +1,61 @@
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { draftRule } from "./draftRule.js";
+import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
+
+const ruleStory = makeRuleStory();
+const { qualityInstalled, repositoryHas } = ruleStory;
+
+const RULE_URL = new URL("./draftRule.ts", import.meta.url).href;
+
+ruleStory.it(
+	"a custom rule's findings reject the gate until the author repairs the source",
+	[
+		qualityInstalled(),
+		repositoryHas(
+			{ content: "node_modules/\n", path: ".gitignore" },
+			{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
+			{
+				content: `import { draftRule } from ${JSON.stringify(RULE_URL)};\n\nexport default {\n\tlocal: [draftRule],\n\trules: { "local/no-draft": { options: { word: "draft" } } },\n\tsources: ["src"],\n};\n`,
+				path: "quality.config.ts",
+			},
+			{ content: 'export function title(): string {\n\treturn "draft";\n}\n', path: "src/title.ts" },
+		),
+	],
+	function* ({ check, findings, gate, gateOutcome, gateReport, writes }) {
+		yield* check(draftRule, { word: "draft" }, "src");
+
+		expect(yield* findings()).toEqual([{ file: "title.ts", line: 2, message: "Replace draft before merging." }]);
+
+		yield* gate();
+
+		yield* outcomes([
+			["gate outcome", () => gateOutcome(), "rejected"],
+			["gate report", () => gateReport(), expect.stringContaining("Replace draft before merging.")],
+		]);
+
+		yield* writes({ content: 'export function title(): string {\n\treturn "ready";\n}\n', path: "src/title.ts" });
+		yield* gate();
+
+		expect(yield* gateOutcome()).toBe("passed");
+	},
+);
+
+ruleStory.it(
+	"the gate exposes invalid custom-rule options",
+	[
+		qualityInstalled(),
+		repositoryHas({
+			content: `import { draftRule } from ${JSON.stringify(RULE_URL)};\nexport default { local: [draftRule], rules: { "local/no-draft": { options: { word: 1 } } }, sources: ["src"] };\n`,
+			path: "quality.config.ts",
+		}),
+	],
+	function* ({ gate, gateOutcome, gateReport }) {
+		yield* gate();
+
+		yield* outcomes([
+			["gate outcome", () => gateOutcome(), "invalid"],
+			["option issue", () => gateReport(), expect.stringContaining("rules.local/no-draft.options: word:")],
+		]);
+	},
+);

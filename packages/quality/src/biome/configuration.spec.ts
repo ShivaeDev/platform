@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { malformedBiomeVcs, qualityLifecycle } from "#test/qualityLifecycle.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const [setting, value] of [
 	["VCS section that is not an object", false],

@@ -7,8 +7,8 @@ import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
+import { linkPackage, type SeedFile, seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { linkPackage, type SeedFile, seedTree } from "#quality-fixtures/tree.ts";
 
 interface Repository {
 	defaultExports: readonly string[];

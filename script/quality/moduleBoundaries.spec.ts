@@ -11,8 +11,8 @@ ruleKit.it(
 			path: "src/orders.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(httpStatus);
+	function* ({ check }) {
+		const findings = yield* check(httpStatus);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4]);
 		expect(findings[0]?.message).toContain("Handle the typed domain error");
 	},
@@ -26,9 +26,9 @@ ruleKit.it(
 			{ content: 'if (error._tag === "OrderMissing") recover(); if (processResult.status !== 0) fail();', path: "src/orders.ts" },
 		),
 	],
-	function* ({ checks }) {
+	function* ({ check }) {
 		expect(
-			yield* checks(httpStatus, { edge: [{ glob: "src/http/**", reason: "This HTTP adapter translates transport statuses into domain errors." }] }),
+			yield* check(httpStatus, { edge: [{ glob: "src/http/**", reason: "This HTTP adapter translates transport statuses into domain errors." }] }),
 		).toEqual([]);
 	},
 );

@@ -1,9 +1,9 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { commits, hookRepository, hookText, withWorktree } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { commits, hookRepository, hookText, withWorktree } from "#quality-fixtures/hookRepository.ts";
 
 export const appSetup = storyKit({
 	clock: "live",

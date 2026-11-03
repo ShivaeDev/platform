@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export function groupedModules(directory: string): readonly SeedFile[] {
 	function file(path: string, content: string): SeedFile {

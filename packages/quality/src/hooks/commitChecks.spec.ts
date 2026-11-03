@@ -1,8 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
-import { logs } from "#test/hookRepository.ts";
 import {
 	hookInstalled,
 	linkedWorktree,
@@ -13,6 +11,8 @@ import {
 	projectIn,
 	withoutConfig,
 } from "#test/linkedWorktree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { logs } from "#testing/adapters/hookRepository.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";

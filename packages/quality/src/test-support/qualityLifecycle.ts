@@ -6,10 +6,10 @@ import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
-import { capturing, type Output, qualityArgs } from "./cli.ts";
+import { capturing, type Output, qualityArgs } from "#testing/adapters/cli.ts";
+import { ISOLATED_ENV } from "#testing/adapters/git.ts";
+import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { ISOLATED_ENV } from "./git.ts";
-import { config, defaultTree, removeSeededTrees } from "./tree.ts";
 
 export interface RunningTool {
 	readonly child: ChildProcessSpawner.ChildProcessHandle;

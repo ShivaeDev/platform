@@ -1,11 +1,11 @@
 import { chmodSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Effect, Schema } from "effect";
+import { runQuality } from "#testing/adapters/cli.ts";
+import { withBareWorktree, withQualityAt, withScripts, withWorktree, writes } from "#testing/adapters/hookRepository.ts";
+import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
 import { checkoutStory } from "./checkoutStory.ts";
 import { builtRepository } from "./checkoutVerbs.ts";
-import { runQuality } from "./cli.ts";
-import { withBareWorktree, withQualityAt, withScripts, withWorktree, writes } from "./hookRepository.ts";
-import { packageRoot, type SeedFile } from "./tree.ts";
 
 function pathsOf(files: readonly SeedFile[]): string {
 	return files.map((file) => file.path).join(", ");

@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import type { SetupFailure } from "#failure.ts";
-import { linkPackage } from "./tree.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 
 interface ConfigEngine {
 	loaded: ResolvedConfig | undefined;

@@ -3,8 +3,8 @@ import { namedValues } from "@shivaedev/quality/rules/stories/namedValues.ts";
 import { noExpect } from "@shivaedev/quality/rules/stories/noExpect.ts";
 import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
 import { specHelpers } from "@shivaedev/quality/rules/stories/specHelpers.ts";
+import { inStory } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { inStory } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"a spec author moves top-level functions and function values into the kit",
@@ -17,8 +17,8 @@ ruleKit.it(
 			path: "src/orders.spec.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(specHelpers);
+	function* ({ check }) {
+		const findings = yield* check(specHelpers);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5]);
 		expect(findings[0]?.message).toContain("story kit's verbs");
 	},
@@ -36,8 +36,8 @@ ruleKit.it(
 			{ content: "export const basket = () => ({});", path: "src/test-support/orders.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(specHelpers)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(specHelpers)).toEqual([]);
 	},
 );
 
@@ -50,8 +50,8 @@ ruleKit.it(
 			path: "src/test-support/orders.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(noExpect);
+	function* ({ check }) {
+		const findings = yield* check(noExpect);
 		expect(findings.map((finding) => finding.line)).toEqual([2, 3, 4, 5]);
 		expect(findings[0]?.message).toContain("put the expectation in the spec");
 	},
@@ -68,8 +68,8 @@ ruleKit.it(
 			{ content: ["expect(engine.orders).toEqual([placed]);", inStory("")].join("\n"), path: "src/orders.spec.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(noExpect)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(noExpect)).toEqual([]);
 	},
 );
 
@@ -84,8 +84,8 @@ ruleKit.it(
 			path: "src/orders.spec.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(namedValues);
+	function* ({ check }) {
+		const findings = yield* check(namedValues);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 		expect(findings[0]?.message).toContain("Assert the observed items");
 	},
@@ -115,8 +115,8 @@ ruleKit.it(
 			path: "src/orders.spec.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(namedValues);
+	function* ({ check }) {
+		const findings = yield* check(namedValues);
 		expect(findings.map((finding) => finding.line)).toEqual([2, 4, 7, 9, 10]);
 		expect(findings[0]?.message).toContain("Assert the observed items");
 	},
@@ -137,8 +137,8 @@ ruleKit.it(
 			{ content: "const sum = 2; expect(value).toBe(sum);", path: "src/value.test.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(namedValues)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(namedValues)).toEqual([]);
 	},
 );
 
@@ -153,8 +153,8 @@ ruleKit.it(
 			path: "src/orders.spec.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(noLimitImports);
+	function* ({ check }) {
+		const findings = yield* check(noLimitImports);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 3, 3]);
 		expect(findings[0]?.message).toContain("observed behavior");
 	},
@@ -171,7 +171,7 @@ ruleKit.it(
 			{ content: 'import { MAX_ITEMS } from "./limits.ts";', path: "src/orders.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(noLimitImports)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(noLimitImports)).toEqual([]);
 	},
 );

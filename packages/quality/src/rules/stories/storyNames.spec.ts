@@ -6,7 +6,7 @@ import { noLimitImports } from "#rules/stories/noLimitImports.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { inStory, kitFiles } from "#test/storySpecFiles.ts";
+import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const STORY = [
 	'import { Effect } from "effect"; import { MAX_ORDERS } from "./limits.ts"; function place() {}',

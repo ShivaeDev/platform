@@ -1,8 +1,9 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT, trees } from "#test/cli.ts";
 import { findingsBaselined } from "#test/findingsBaselined.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { trees } from "#test/trees.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const LONG_FIXED = { content: "String(0);\n", path: "src/long.ts" };
 const LONGER_SHRUNK = { content: "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\n", path: "src/longer.ts" };
