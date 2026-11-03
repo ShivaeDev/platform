@@ -52,6 +52,12 @@ Both rules refuse config exceptions and inline suppressions. Record existing deb
 
 When an upgrade expands these checks, inspect the new findings, repair the small ones and record retained debt with `quality baseline write --first-adoption --rule effect/boundary` (or `--rule effect/service-parameters`). This explicit first-adoption mode requires named rules that refuse config exceptions and may record unchanged files. Review each raised count and explain its reason in the pull request. Ordinary writes still require changed `--file` selections. Run `quality baseline tighten` after repairs to lower the touched files' counts.
 
+### Package service ids
+
+`effect/service-ids` checks literal ids passed to `Context.Service`, `Context.Reference`, `defineService` and RPC middleware `Service` or `Tag` constructors in `packages/<name>/`. Each id must start with `@shivaedev/<name>/`, including the trailing slash. For example, a service in `packages/store/` uses `@shivaedev/store/Store`. Prefix a reported id with its owning package and update any references to that id.
+
+Import and local aliases, string literals and templates without substitutions are checked, including in adapters and tests. Computed ids and files outside `packages/` are left alone. This rule refuses config exceptions and inline suppressions.
+
 ### Outside library imports
 
 `effect/adapter-imports` reports value imports of non-Effect dependencies, peers and optional dependencies, and Node builtins, at the import site. It includes side-effect imports, value re-exports, literal dynamic imports and `require` calls. Each package is checked against its own manifest; dev-only tools and workspace modules are accepted. Type-only imports and re-exports are accepted, including inline `type` specifiers when every binding is a type.

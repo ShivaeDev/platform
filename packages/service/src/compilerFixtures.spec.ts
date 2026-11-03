@@ -10,21 +10,29 @@ compilerStory.it(
 
 		yield* outcomes([
 			["compiler errors", () => errors(), []],
-			["generic's Layer", () => emitted.layer("fixture/Generic"), 'Layer.Layer<"fixture/Generic", never, Declared>'],
+			[
+				"generic's Layer",
+				() => emitted.layer("@shivaedev/service/fixture/Generic"),
+				'Layer.Layer<"@shivaedev/service/fixture/Generic", never, Declared>',
+			],
 			[
 				"generic's preserve",
-				() => emitted.method("fixture/Generic", "preserve"),
+				() => emitted.method("@shivaedev/service/fixture/Generic", "preserve"),
 				"<TSuccess, TFailure, TRequirements>(effect: Effect.Effect<TSuccess, TFailure, TRequirements>) => Effect.Effect<{ readonly value: TSuccess; }, TFailure | GenericFailure, TRequirements>",
 			],
-			["ordinary's Layer", () => emitted.layer("fixture/Ordinary"), 'Layer.Layer<"fixture/Ordinary", InitializationFailure, Declared | Residual>'],
+			[
+				"ordinary's Layer",
+				() => emitted.layer("@shivaedev/service/fixture/Ordinary"),
+				'Layer.Layer<"@shivaedev/service/fixture/Ordinary", InitializationFailure, Declared | Residual>',
+			],
 			[
 				"ordinary's read",
-				() => emitted.method("fixture/Ordinary", "read"),
+				() => emitted.method("@shivaedev/service/fixture/Ordinary", "read"),
 				"(...arguments_: number[]) => Effect.Effect<number, MethodFailure, never>",
 			],
 			[
 				"ordinary's subscribe",
-				() => emitted.method("fixture/Ordinary", "subscribe"),
+				() => emitted.method("@shivaedev/service/fixture/Ordinary", "subscribe"),
 				"() => Effect.Effect<PubSub.Subscription<number>, never, Scope.Scope>",
 			],
 			["private names in the declaration", () => emitted.mentions("PrivateState", "initialize", "methods"), []],

@@ -10,7 +10,9 @@ import { makeRepository } from "@shivaedev/sql/repository.ts";
 
 class Note extends Model.Class<Note>("SessionRepositoryNote")({ id: Schema.Number, owner: bucket(Schema.String), title: Schema.String }) {}
 const notes = collection("session_notes", Schema.Number, { owner: Schema.String });
-export class ReadAccess extends Context.Service<ReadAccess, { readonly allowed: Set<string> }>()("test/SessionRepositoryReadAccess") {}
+export class ReadAccess extends Context.Service<ReadAccess, { readonly allowed: Set<string> }>()(
+	"@shivaedev/react/test/SessionRepositoryReadAccess",
+) {}
 
 function get<const TName extends string>(name: TName, live?: "rerun-and-compare") {
 	return query(name, {

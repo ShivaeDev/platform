@@ -2,12 +2,12 @@ import { Context, Effect } from "effect";
 import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
-class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}
+class Secret extends Context.Service<Secret, object>()("@shivaedev/service/invalid/Secret") {}
 
 const preserve = Effect.fn("InvalidRequirementFree.preserve")(<TValue>(value: TValue) => Effect.succeed(value));
 
 defineService({
-	id: "invalid/RequirementFreeOrdinaryRequirement",
+	id: "@shivaedev/service/invalid/RequirementFreeOrdinaryRequirement",
 	initialize: Effect.void,
 	methods: () => ({
 		preserve: genericMethod(preserve),

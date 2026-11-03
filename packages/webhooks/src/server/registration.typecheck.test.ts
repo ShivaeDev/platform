@@ -7,7 +7,7 @@ import type { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
 import { issueQueue, Jobs } from "#test/fixture.ts";
 import { SenderCheckFailed, SenderPreferences } from "#test/senderCheck.ts";
 
-class OtherService extends Context.Service<OtherService, number>()("@test/OtherService") {}
+class OtherService extends Context.Service<OtherService, number>()("@shivaedev/webhooks/test/OtherService") {}
 class OtherFailure extends Data.TaggedError("OtherFailure") {}
 
 const Payload = Schema.Struct({ number: Schema.Number });

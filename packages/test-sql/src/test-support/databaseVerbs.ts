@@ -22,7 +22,7 @@ export function writeItem(value: string) {
 }
 
 const Items = defineService({
-	id: "@test/Items",
+	id: "@shivaedev/test-sql/test/Items",
 	initialize: Effect.void,
 	methods: () => ({ rename: (value: string) => Effect.asVoid(writeItem(value)) }),
 	requires: [SqlClient.SqlClient],

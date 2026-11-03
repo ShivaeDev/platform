@@ -13,7 +13,7 @@ import type { MissingReadPolicies, MissingReadPolicy, QueryReadDenied } from "#r
 import { validateReadPolicies } from "#validateReadPolicies.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
-class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
+class Database extends Context.Service<Database, boolean>()("@shivaedev/contract/test/PolicyDatabase") {}
 const policy: QueryReadPolicy<void, ServiceUnavailable, Database> = () =>
 	Effect.flatMap(Database, (available) =>
 		available ? Effect.succeed(true) : Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),

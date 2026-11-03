@@ -3,9 +3,9 @@ import { Context, Effect, Layer, Option, type Tracer } from "effect";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { clockReading } from "./clockReading.ts";
 
-export class Greeting extends Context.Service<Greeting, string>()("@test/Greeting") {}
+export class Greeting extends Context.Service<Greeting, string>()("@shivaedev/test/test/Greeting") {}
 
-class AcquisitionClock extends Context.Service<AcquisitionClock, string>()("@test/AcquisitionClock") {}
+class AcquisitionClock extends Context.Service<AcquisitionClock, string>()("@shivaedev/test/test/AcquisitionClock") {}
 
 const WRAPPER = "the greeting wrapper";
 

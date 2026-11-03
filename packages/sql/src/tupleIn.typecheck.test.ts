@@ -6,7 +6,7 @@ import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError } from "#repositoryCollection.ts";
 import { tupleIn } from "#tupleIn.ts";
 
-class Encoding extends Context.Service<Encoding, string>()("TupleEncoding") {}
+class Encoding extends Context.Service<Encoding, string>()("@shivaedev/sql/TupleEncoding") {}
 const RunId = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transform((value: string) => value),

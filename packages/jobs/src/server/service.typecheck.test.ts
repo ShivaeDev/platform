@@ -5,7 +5,7 @@ import { defineQueue, type JobContext } from "#server/definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
 import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#server/service.ts";
 
-class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
+class HandlerDependency extends Context.Service<HandlerDependency, number>()("@shivaedev/jobs/test/HandlerDependency") {}
 
 expectTypeOf<JobContext["remainingBudget"]>().toEqualTypeOf<Effect.Effect<Duration.Duration>>();
 

@@ -16,8 +16,8 @@ export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 }) {}
 export const InvoiceLineDraft = Schema.Struct({ name: InvoiceLine.fields.name, quantity: InvoiceLine.fields.quantity });
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
-class Principal extends Context.Service<Principal, { readonly user: string }>()("invoice/Principal") {}
-class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("invoice/Guard", { error: Unauthorized }) {}
+class Principal extends Context.Service<Principal, { readonly user: string }>()("@shivaedev/react/invoice/Principal") {}
+class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("@shivaedev/react/invoice/Guard", { error: Unauthorized }) {}
 
 const invoiceLines = collection("invoiceLines", InvoiceLine.fields.id);
 const GetInvoiceLine = query("get", {

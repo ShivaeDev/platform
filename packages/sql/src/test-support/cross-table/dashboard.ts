@@ -22,7 +22,7 @@ const Since = Schema.Struct({ since: PullRequest.fields.updated_at });
 
 export function dashboardService(tables: { pullRequests: string; reports: string }) {
 	return defineService({
-		id: "dashboard/Service",
+		id: "@shivaedev/sql/dashboard/Service",
 		initialize: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const listReports = SqlSchema.findAll({

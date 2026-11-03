@@ -8,7 +8,7 @@ export class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
 	note: Schema.NullOr(Schema.String),
 }) {}
 
-export class LabelPrefix extends Context.Service<LabelPrefix, string>()("test/LabelPrefix") {}
+export class LabelPrefix extends Context.Service<LabelPrefix, string>()("@shivaedev/sql/test/LabelPrefix") {}
 
 const Prefixed = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {

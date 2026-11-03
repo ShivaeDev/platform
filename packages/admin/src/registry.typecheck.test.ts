@@ -14,8 +14,8 @@ import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Failed, Jobs, JobsContract, Registry, Users } from "#test/pages.ts";
 
-class JobStore extends Context.Service<JobStore, { readonly failed: readonly string[] }>()("test/JobStore") {}
-class Configuration extends Context.Service<Configuration, string>()("test/Configuration") {}
+class JobStore extends Context.Service<JobStore, { readonly failed: readonly string[] }>()("@shivaedev/admin/test/JobStore") {}
+class Configuration extends Context.Service<Configuration, string>()("@shivaedev/admin/test/Configuration") {}
 class SetupFailed extends Schema.TaggedError<SetupFailed>()("SetupFailed", {}) {}
 
 const jobs = Jobs.contract.application.toLayer(
@@ -83,7 +83,7 @@ mergeAdminRegistrations(adminRegistry(Jobs), usersModule);
 // @ts-expect-error A module cannot bypass handler registration with an empty Layer.
 mergeAdminRegistrations({ ...adminRegistry(Jobs), handlers: Layer.empty });
 
-class PolicyStore extends Context.Service<PolicyStore, boolean>()("test/PolicyStore") {}
+class PolicyStore extends Context.Service<PolicyStore, boolean>()("@shivaedev/admin/test/PolicyStore") {}
 const PolicyPage = adminPage({
 	contract: contract("admin.policy", { queries: [query("read", { readPolicy: () => PolicyStore, reads: () => [] })] }),
 	id: "policy",

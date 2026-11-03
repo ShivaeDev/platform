@@ -5,7 +5,7 @@ import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 import type { UpsertRow } from "#upsertResult.ts";
 
-class Prefix extends Context.Service<Prefix, string>()("ingest/Prefix") {}
+class Prefix extends Context.Service<Prefix, string>()("@shivaedev/sql/ingest/Prefix") {}
 const Source = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),

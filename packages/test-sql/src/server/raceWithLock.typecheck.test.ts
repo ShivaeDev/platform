@@ -8,7 +8,7 @@ import type { NeverSettled } from "#server/observeUntil.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
 
 const Dependency = defineService({
-	id: "RaceDependency",
+	id: "@shivaedev/test-sql/RaceDependency",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

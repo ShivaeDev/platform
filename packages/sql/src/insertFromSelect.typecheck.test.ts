@@ -3,8 +3,8 @@ import { Model } from "effect/schema";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 
-class FilterPrefix extends Context.Service<FilterPrefix, string>()("select/FilterPrefix") {}
-class DecodePrefix extends Context.Service<DecodePrefix, string>()("select/DecodePrefix") {}
+class FilterPrefix extends Context.Service<FilterPrefix, string>()("@shivaedev/sql/select/FilterPrefix") {}
+class DecodePrefix extends Context.Service<DecodePrefix, string>()("@shivaedev/sql/select/DecodePrefix") {}
 const FilteredName = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transform((value: string) => value),

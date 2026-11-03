@@ -5,7 +5,7 @@ import { defineQueue } from "#server/definition.ts";
 import type { PgBossPayloadError, PgBossTestingError } from "#server/error.ts";
 import { makePgBossTesting } from "#server/testing.ts";
 
-class DecodeDependency extends Context.Service<DecodeDependency, number>()("@test/DecodeDependency") {}
+class DecodeDependency extends Context.Service<DecodeDependency, number>()("@shivaedev/jobs/test/DecodeDependency") {}
 
 const queue = defineQueue({
 	name: "decoded-readout",

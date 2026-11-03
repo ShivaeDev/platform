@@ -33,9 +33,12 @@ const save = command("save", {
 function scoped<const TName extends string>(name: TName) {
 	return contract(name, { commands: [save], keyScope: "session", queries: [get, list] });
 }
-export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticated, { provides: Identity }>()("test/SessionKeysAuth", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
-}) {}
+export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticated, { provides: Identity }>()(
+	"@shivaedev/server/test/SessionKeysAuth",
+	{
+		error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	},
+) {}
 export const Apis = {
 	account: scoped("account").middleware(Authenticated),
 	admin: scoped("admin").middleware(ToolsPermission),

@@ -10,7 +10,7 @@ import { querySubscription } from "#querySubscription.ts";
 import { answered } from "./answers.ts";
 
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
-class Counter extends Context.Service<Counter, { value: bigint; unavailable: boolean }>()("test/CustomChangesCounter") {}
+class Counter extends Context.Service<Counter, { value: bigint; unavailable: boolean }>()("@shivaedev/contract/test/CustomChangesCounter") {}
 const Api = contract("counter", {
 	commands: [command("set", { invalidates: () => [], payload: { value: Schema.BigIntFromString } })],
 	queries: [

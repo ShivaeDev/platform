@@ -7,7 +7,7 @@ import { migrationSteps } from "#server/migrationSteps.ts";
 import { migrations } from "#test/migrationSteps.ts";
 
 const Dependency = defineService({
-	id: "MigrationStepsDependency",
+	id: "@shivaedev/test-sql/MigrationStepsDependency",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

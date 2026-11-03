@@ -13,8 +13,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
-class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}
-class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("test/ObservedChanges") {}
+class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/test/ChangesGreeting") {}
+class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("@shivaedev/server/test/ObservedChanges") {}
 const Api = contract("idle", {
 	queries: [
 		query("greet", {

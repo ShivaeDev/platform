@@ -12,8 +12,8 @@ import { registerAdmin } from "#server/registerAdmin.ts";
 import { jobsPage } from "./page.ts";
 import { jobsPageWithRetry } from "./retryPage.ts";
 
-class DecodePayload extends Context.Service<DecodePayload, string>()("test/DecodePayload") {}
-class EncodePayload extends Context.Service<EncodePayload, string>()("test/EncodePayload") {}
+class DecodePayload extends Context.Service<DecodePayload, string>()("@shivaedev/admin/test/DecodePayload") {}
+class EncodePayload extends Context.Service<EncodePayload, string>()("@shivaedev/admin/test/EncodePayload") {}
 const Payload = Schema.Struct({
 	id: Schema.String.pipe(
 		Schema.decodeTo(Schema.String, {

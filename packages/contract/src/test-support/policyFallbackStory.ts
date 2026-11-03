@@ -10,7 +10,9 @@ import { authorizeReads, CurrentViewer, signedIn } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "./answers.ts";
 
-class Guard extends RpcMiddleware.Service<Guard>()("test/NativePolicyGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/NativePolicyGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 type Viewer = "alice" | "signed out";
 function headers(viewer: Viewer) {
 	return viewer === "signed out" ? {} : { viewer };

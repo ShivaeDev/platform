@@ -8,7 +8,7 @@ import type { BatchedDeleteUnavailable } from "#batchedDelete.ts";
 import { deleteGroupsBatched } from "#deleteGroupsBatched.ts";
 import { makeRepository } from "#repository.ts";
 
-class RetentionPrefix extends Context.Service<RetentionPrefix, string>()("RetentionPrefix") {}
+class RetentionPrefix extends Context.Service<RetentionPrefix, string>()("@shivaedev/sql/RetentionPrefix") {}
 const Label = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transform((value: string) => value),

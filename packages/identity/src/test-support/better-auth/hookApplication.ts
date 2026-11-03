@@ -8,7 +8,7 @@ class AdmissionRefused extends Data.TaggedError("AdmissionRefused")<{
 }> {}
 
 export class Admission extends Context.Service<Admission, { readonly check: (userId: string) => Effect.Effect<void, AdmissionRefused> }>()(
-	"identity/test/Admission",
+	"@shivaedev/identity/test/Admission",
 ) {}
 
 export const hookApplication = Effect.gen(function* () {

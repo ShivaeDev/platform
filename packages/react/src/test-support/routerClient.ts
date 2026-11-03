@@ -16,7 +16,9 @@ const Get = query("get", {
 	rejections: { Forbidden, NoteMissing, NotFound, Unauthorized },
 	success: Schema.Struct({ id: Schema.String, title: Schema.String }),
 });
-class Guard extends RpcMiddleware.Service<Guard>()("test/RouterReadGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/react/test/RouterReadGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 const Notes = contract("routerNotes", { queries: [Get] }).middleware(Guard);
 export type NoteFailure = Forbidden | NoteMissing | NotFound | Unauthorized;
 

@@ -5,7 +5,7 @@ import { jobModule } from "#server/jobModule.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
 import { makePgBoss } from "#server/service.ts";
 
-class Port extends Context.Service<Port, string>()("test/module/Port") {}
+class Port extends Context.Service<Port, string>()("@shivaedev/jobs/test/module/Port") {}
 const Queue = defineQueue({ name: "module", schema: Schema.Struct({ value: Schema.NumberFromString }) });
 const Jobs = makePgBoss("test/ModuleJobs");
 const module = jobModule(Jobs.layer, { jobs: [Queue.handle(() => Port.pipe(Effect.asVoid))] });

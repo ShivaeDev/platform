@@ -25,7 +25,7 @@ throwing.it("creation throws", []);
 failing.it("creation fails", []);
 dying.it("creation dies", []);
 
-class Inventory extends Context.Service<Inventory, string>()("lifecycleFailure/Inventory") {}
+class Inventory extends Context.Service<Inventory, string>()("@shivaedev/test-story/lifecycleFailure/Inventory") {}
 
 const closing = storyKit({
 	*create() {

@@ -11,10 +11,12 @@ import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
 export class Row extends Schema.Class<Row>("ViewerRow")({ id: Schema.Number, owner: Schema.String, title: Schema.String }) {}
-class Rows extends Context.Service<Rows, Ref.Ref<ReadonlyMap<number, Row>>>()("test/Rows") {}
-class PolicyChecks extends Context.Service<PolicyChecks, SubscriptionRef.SubscriptionRef<number>>()("test/PolicyChecks") {}
+class Rows extends Context.Service<Rows, Ref.Ref<ReadonlyMap<number, Row>>>()("@shivaedev/contract/test/Rows") {}
+class PolicyChecks extends Context.Service<PolicyChecks, SubscriptionRef.SubscriptionRef<number>>()("@shivaedev/contract/test/PolicyChecks") {}
 export class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
-class Guard extends RpcMiddleware.Service<Guard>()("test/ViewerGuard", { error: Schema.Union([Denied, MissingReadPolicy, QueryReadDenied]) }) {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/ViewerGuard", {
+	error: Schema.Union([Denied, MissingReadPolicy, QueryReadDenied]),
+}) {}
 const Get = query("get", {
 	payload: { id: Schema.Number },
 	readPolicy: ({ id }, viewer) =>

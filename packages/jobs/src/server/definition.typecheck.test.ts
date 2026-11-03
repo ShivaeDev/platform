@@ -47,9 +47,9 @@ defineQueue({ name: "typo", queue: { policy: "singelton" }, schema: PullRequestJ
 // @ts-expect-error The key must return a string.
 defineQueue({ key: () => 42, name: "numeric-key", queue: { policy: "singleton" }, schema: PullRequestJob });
 
-class Handler extends Context.Service<Handler, number>()("@test/RegistrationHandler") {}
-class Decoder extends Context.Service<Decoder, number>()("@test/RegistrationDecoder") {}
-class Scheduler extends Context.Service<Scheduler, number>()("@test/RegistrationScheduler") {}
+class Handler extends Context.Service<Handler, number>()("@shivaedev/jobs/test/RegistrationHandler") {}
+class Decoder extends Context.Service<Decoder, number>()("@shivaedev/jobs/test/RegistrationDecoder") {}
+class Scheduler extends Context.Service<Scheduler, number>()("@shivaedev/jobs/test/RegistrationScheduler") {}
 
 const ServiceQueue = defineQueue({
 	name: "registration",

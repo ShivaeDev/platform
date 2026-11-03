@@ -13,7 +13,7 @@ import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
 import { withTestTransaction } from "./withTestTransaction.ts";
 
 const Missing = defineService({
-	id: "@types/Missing",
+	id: "@shivaedev/test-sql/types/Missing",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

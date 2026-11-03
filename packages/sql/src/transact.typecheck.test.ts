@@ -7,7 +7,7 @@ import { type InvalidationKeys, invalidateOnCommit, transact } from "#transact.t
 
 class Rejected extends Data.TaggedError("Rejected") {}
 class Unavailable extends Data.TaggedError("Unavailable") {}
-class Orders extends Context.Service<Orders, number>()("test/Orders") {}
+class Orders extends Context.Service<Orders, number>()("@shivaedev/sql/test/Orders") {}
 declare const keys: InvalidationKeys;
 declare const body: Effect.Effect<string, Rejected | SqlError, Orders>;
 

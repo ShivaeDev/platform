@@ -3,7 +3,7 @@ import { expectTypeOf } from "vitest";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { eventually } from "#eventually.ts";
 
-class Token extends Context.Service<Token, string>()("@types/Token") {}
+class Token extends Context.Service<Token, string>()("@shivaedev/test/types/Token") {}
 
 const { effectApp } = makeEffectIt({
 	around: (effect) => effect,

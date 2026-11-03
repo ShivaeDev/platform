@@ -16,7 +16,9 @@ interface NameChecks {
 	readonly checked: string[];
 	held: boolean;
 }
-class NameCheck extends Context.Service<NameCheck, { readonly check: (name: string) => Effect.Effect<string | undefined> }>()("test/NameCheck") {}
+class NameCheck extends Context.Service<NameCheck, { readonly check: (name: string) => Effect.Effect<string | undefined> }>()(
+	"@shivaedev/form/test/NameCheck",
+) {}
 
 function callFor({ calls }: NameChecks, name: string): Call {
 	const known = calls.get(name);

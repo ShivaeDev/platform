@@ -2,7 +2,7 @@ import { Context, Data, Effect, Scope } from "effect";
 import { expectTypeOf } from "vitest";
 import { it } from "#adapters/it.ts";
 
-class Missing extends Context.Service<Missing, string>()("@types/Missing") {}
+class Missing extends Context.Service<Missing, string>()("@shivaedev/test/types/Missing") {}
 
 class Refused extends Data.TaggedError("Refused")<{ readonly reason: string }> {}
 

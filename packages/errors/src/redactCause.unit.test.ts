@@ -3,7 +3,7 @@ import { Cause, Context } from "effect";
 import { expect, it } from "vitest";
 import { redactCause, redactDefect, redactDiagnosticCause } from "#redactCause.ts";
 
-class Request extends Context.Service<Request, { readonly password: string }>()("errors/test/Request") {}
+class Request extends Context.Service<Request, { readonly password: string }>()("@shivaedev/errors/test/Request") {}
 
 function leakingError() {
 	return Object.assign(new Error("connect with password=hunter2-plaintext failed"), {

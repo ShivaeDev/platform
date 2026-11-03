@@ -3,9 +3,9 @@ import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
-class Declared extends Context.Service<Declared, { readonly value: string }>()("fixture/Declared") {}
+class Declared extends Context.Service<Declared, { readonly value: string }>()("@shivaedev/service/fixture/Declared") {}
 
-class Residual extends Context.Service<Residual, { readonly value: number }>()("fixture/Residual") {}
+class Residual extends Context.Service<Residual, { readonly value: number }>()("@shivaedev/service/fixture/Residual") {}
 
 export class InitializationFailure extends Data.TaggedError("InitializationFailure")<{ readonly detail: string }> {}
 
@@ -37,7 +37,7 @@ const initialize = Effect.fn("Ordinary.initialize")(function* (): Requirements<P
 })();
 
 export const Ordinary = defineService({
-	id: "fixture/Ordinary",
+	id: "@shivaedev/service/fixture/Ordinary",
 	initialize,
 	methods: (_state) => ({
 		read: Effect.fn("Ordinary.read")(function* (...values: number[]): Requirements<number, MethodFailure> {
@@ -61,7 +61,7 @@ const preserve = Effect.fn("Generic.preserve")(
 );
 
 export const Generic = defineService({
-	id: "fixture/Generic",
+	id: "@shivaedev/service/fixture/Generic",
 	initialize: Effect.asVoid(Declared),
 	methods: () => ({ preserve: genericMethod(preserve) }),
 	requires: [Declared],

@@ -7,7 +7,7 @@ export class ClientOffline extends Schema.TaggedError<ClientOffline>()("ClientOf
 export class AccessDenied extends Schema.TaggedError<AccessDenied>()("AccessDenied", {}) {}
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", {}) {}
 export class ListUnavailable extends Schema.TaggedError<ListUnavailable>()("ListUnavailable", {}) {}
-export class Guard extends RpcMiddleware.Service<Guard, { clientError: ClientOffline }>()("test/QueryFailureGuard", {
+export class Guard extends RpcMiddleware.Service<Guard, { clientError: ClientOffline }>()("@shivaedev/contract/test/QueryFailureGuard", {
 	error: AccessDenied,
 }) {}
 
