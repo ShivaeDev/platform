@@ -31,7 +31,7 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 				if (inserted.length === 0) {
 					return HttpServerResponse.text("already queued", { status: HttpStatus.fromLiteral("OK") });
 				}
-				const requests = definition === undefined ? [] : yield* definition.decode(body);
+				const requests = definition === undefined ? [] : yield* definition.decode(body, { event, id, source: name });
 				const ids = (yield* enqueueWebhookJobs(requests)).flatMap(Option.toArray);
 				yield* sql`update webhook_receipts set job_ids = array[${sql.csv(ids.map((jobId) => sql`${jobId}`))}]::text[], outcome = ${requests.length === 0 ? "ignored" : "queued"} where source = ${name} and delivery_id = ${id}`;
 				return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
