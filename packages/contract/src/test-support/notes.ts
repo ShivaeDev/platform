@@ -9,8 +9,8 @@ export class Note extends Schema.Class<Note>("Note")({ body: Schema.String, id: 
 export const Draft = Schema.Struct({ body: Schema.String, title: Schema.String });
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.Number }) {}
 export class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
-export class Session extends Context.Service<Session, { readonly user: string }>()("test/Session") {}
-export class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("test/Guard", { error: Denied }) {}
+export class Session extends Context.Service<Session, { readonly user: string }>()("@shivaedev/contract/test/Session") {}
+export class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("@shivaedev/contract/test/Guard", { error: Denied }) {}
 
 export const notes = collection("notes", Note.fields.id);
 

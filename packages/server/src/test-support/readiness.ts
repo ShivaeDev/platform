@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { Ping } from "#test/app-host/ping.ts";
 
-class Greeting extends Context.Service<Greeting, string>()("readiness/Greeting") {}
+class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/readiness/Greeting") {}
 
 async function availablePort() {
 	const server = createServer();

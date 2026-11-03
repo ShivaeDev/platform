@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import { defineService } from "#defineService.ts";
 
 const Fakeable = defineService({
-	id: "invalid/Fakeable",
+	id: "@shivaedev/service/invalid/Fakeable",
 	initialize: Effect.void,
 	methods: () => ({
 		first: () => Effect.succeed("first"),

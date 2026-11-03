@@ -4,7 +4,7 @@ import { type Body, effectOf } from "./body.ts";
 import { database, type Engine, labels } from "./engine.ts";
 import { type Change, Current } from "./fakeDatabase.ts";
 
-export const Note = Context.Reference<string>("ChangesStory/Note", { defaultValue: () => "no note" });
+export const Note = Context.Reference<string>("@shivaedev/changes/ChangesStory/Note", { defaultValue: () => "no note" });
 
 export interface DriverTransaction {
 	readonly commit: () => Effect.Effect<void>;

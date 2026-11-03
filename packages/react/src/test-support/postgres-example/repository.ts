@@ -13,7 +13,7 @@ function repository(tableName: string) {
 	return makeRepository(OrderRow, { idColumn: "id", spanPrefix: "Orders", tableName });
 }
 export class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<ReturnType<typeof repository>>>()(
-	"postgres-example/Repository",
+	"@shivaedev/react/postgres-example/Repository",
 ) {}
 
 export function orderMigrations(table: string) {

@@ -6,7 +6,7 @@ export class SenderCheckFailed extends Data.TaggedError("SenderCheckFailed") {}
 export class SenderPreferences extends Context.Service<
 	SenderPreferences,
 	{ readonly allows: (sender: string, at: number) => Effect.Effect<boolean, SenderCheckFailed> }
->()("@test/SenderPreferences") {}
+>()("@shivaedev/webhooks/test/SenderPreferences") {}
 
 export const senderPreferences = Layer.effect(
 	SenderPreferences,

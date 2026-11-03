@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { defineService } from "#defineService.ts";
 
 const PrivateState = defineService({
-	id: "invalid/PrivateState",
+	id: "@shivaedev/service/invalid/PrivateState",
 	initialize: Effect.succeed({ secret: "secret" }),
 	methods: (state) => ({
 		value: () => Effect.succeed(state.secret),

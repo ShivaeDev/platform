@@ -17,7 +17,9 @@ function publicOrder(row: OrderRow) {
 	return new Order({ id: row.id, name: row.name, quantity: row.quantity });
 }
 export const makeOrdersRepository = makeRepository(OrderRow, { idColumn: "id", spanPrefix: "Orders", tableName: "orders" });
-export class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<typeof makeOrdersRepository>>()("order/Repository") {}
+export class OrdersRepository extends Context.Service<OrdersRepository, Effect.Success<typeof makeOrdersRepository>>()(
+	"@shivaedev/react/order/Repository",
+) {}
 
 function unavailable() {
 	return new StorageUnavailable();
@@ -33,7 +35,7 @@ function owned(userId: string, id: number) {
 }
 
 export const OrderService = defineService({
-	id: "order/Service",
+	id: "@shivaedev/react/order/Service",
 	initialize: Effect.void,
 	methods: () => ({
 		get: (userId: string, id: number) =>

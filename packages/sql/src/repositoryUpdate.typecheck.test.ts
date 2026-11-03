@@ -4,7 +4,7 @@ import { expectTypeOf, it } from "vitest";
 import { jsonb } from "#jsonb.ts";
 import { makeRepository } from "#repository.ts";
 
-class Prefix extends Context.Service<Prefix, string>()("partial/Prefix") {}
+class Prefix extends Context.Service<Prefix, string>()("@shivaedev/sql/partial/Prefix") {}
 const Name = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((value) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),

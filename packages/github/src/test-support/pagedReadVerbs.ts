@@ -4,7 +4,7 @@ import { type GitHub, list, listBounded, listPages } from "#GitHub.ts";
 import type { ListOptions } from "#pagedLists.ts";
 import { answered } from "./outcome.ts";
 
-class TitlePrefix extends Context.Service<TitlePrefix, string>()("github/test/TitlePrefix") {}
+class TitlePrefix extends Context.Service<TitlePrefix, string>()("@shivaedev/github/test/TitlePrefix") {}
 const Item = Schema.Struct({ title: Schema.String }).pipe(
 	Schema.decodeTo(Schema.Struct({ title: Schema.String }), {
 		decode: SchemaGetter.transformEffect((item: { readonly title: string }) =>

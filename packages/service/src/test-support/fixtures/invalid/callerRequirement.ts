@@ -1,8 +1,8 @@
 import { Context } from "effect";
 import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
-class Declared extends Context.Service<Declared, object>()("invalid/Declared") {}
-class Secret extends Context.Service<Secret, object>()("invalid/Secret") {}
+class Declared extends Context.Service<Declared, object>()("@shivaedev/service/invalid/Declared") {}
+class Secret extends Context.Service<Secret, object>()("@shivaedev/service/invalid/Secret") {}
 
 type InvalidCallerRequirement = ServiceRequirements<readonly [typeof Declared], void, never, Secret>;
 

@@ -8,9 +8,9 @@ import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import { workerHost } from "#workerHost.ts";
 
-class Port extends Context.Service<Port, string>()("test/modules/Port") {}
-class Service extends Context.Service<Service, string>()("test/modules/Service") {}
-class Input extends Context.Service<Input, string>()("test/modules/Input") {}
+class Port extends Context.Service<Port, string>()("@shivaedev/server/test/modules/Port") {}
+class Service extends Context.Service<Service, string>()("@shivaedev/server/test/modules/Service") {}
+class Input extends Context.Service<Input, string>()("@shivaedev/server/test/modules/Input") {}
 class BuildFailure extends Schema.TaggedError<BuildFailure>()("ModuleBuildFailure", {}) {}
 const group = RpcGroup.make(Rpc.make("read", { success: Schema.String }));
 const module = {

@@ -2,7 +2,7 @@ import { expectTypeOf, it } from "@effect/vitest";
 import { Context, Data, Effect } from "effect";
 import { captureOutcome } from "#server/captureOutcome.ts";
 
-class Reader extends Context.Service<Reader, number>()("capture/Reader") {}
+class Reader extends Context.Service<Reader, number>()("@shivaedev/test-story/capture/Reader") {}
 class Denied extends Data.TaggedError("Denied")<{ readonly reason: string }> {}
 
 it("infers every renderer result and keeps service requirements without an expected error", () => {

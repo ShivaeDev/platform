@@ -8,9 +8,9 @@ export interface FakeDatabase {
 	readonly write: (row: string) => Effect.Effect<void>;
 }
 
-export class Current extends Context.Service<Current, FakeDatabase>()("test/Current") {}
+export class Current extends Context.Service<Current, FakeDatabase>()("@shivaedev/changes/test/Current") {}
 
-const Staging = Context.Reference<ReadonlyMap<FakeDatabase, string[]>>("test/Staging", { defaultValue: () => new Map() });
+const Staging = Context.Reference<ReadonlyMap<FakeDatabase, string[]>>("@shivaedev/changes/test/Staging", { defaultValue: () => new Map() });
 
 const ended = new WeakSet<string[]>();
 

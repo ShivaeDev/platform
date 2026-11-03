@@ -6,7 +6,7 @@ import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError } from "#repositoryCollection.ts";
 
-class FilterEncoding extends Context.Service<FilterEncoding, string>()("FilterEncoding") {}
+class FilterEncoding extends Context.Service<FilterEncoding, string>()("@shivaedev/sql/FilterEncoding") {}
 const Kind = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transform((value: string) => value),

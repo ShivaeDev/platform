@@ -6,9 +6,9 @@ import { expectTypeOf, it } from "vitest";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 
-class Queue extends Context.Service<Queue, { readonly size: number }>()("host-inference/Queue") {}
+class Queue extends Context.Service<Queue, { readonly size: number }>()("@shivaedev/server/host-inference/Queue") {}
 class QueueError extends Data.TaggedError("QueueError") {}
-class QueueEvents extends Context.Service<QueueEvents, (error: Error) => void>()("host-inference/QueueEvents") {}
+class QueueEvents extends Context.Service<QueueEvents, (error: Error) => void>()("@shivaedev/server/host-inference/QueueEvents") {}
 
 declare function queueLayer<TErrorRequirements = never>(options: {
 	readonly onError?: (error: Error) => Effect.Effect<unknown, never, TErrorRequirements>;

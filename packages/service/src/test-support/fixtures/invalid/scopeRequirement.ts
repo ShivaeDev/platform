@@ -6,7 +6,7 @@ const requirements = [Scope.Scope] as const;
 type Requirements<TSuccess> = ServiceRequirements<typeof requirements, TSuccess>;
 
 defineService({
-	id: "invalid/ScopeRequirement",
+	id: "@shivaedev/service/invalid/ScopeRequirement",
 	initialize: Effect.void,
 	methods: () => ({
 		scoped: Effect.fn("InvalidScope.scoped")(function* (): Requirements<void> {

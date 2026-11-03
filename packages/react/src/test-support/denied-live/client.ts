@@ -14,8 +14,10 @@ import { authorizeReads, CurrentViewer } from "@shivaedev/contract/readPolicy.ts
 import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 
 const notes = collection("denied-live-notes", Schema.String);
-class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("test/DeniedLiveAccess") {}
-class Guard extends RpcMiddleware.Service<Guard>()("test/DeniedLiveGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("@shivaedev/react/test/DeniedLiveAccess") {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/react/test/DeniedLiveGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 const Notes = contract("deniedLive", {
 	queries: [
 		query("get", {

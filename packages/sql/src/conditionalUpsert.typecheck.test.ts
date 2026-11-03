@@ -6,7 +6,7 @@ import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError } from "#repositoryCollection.ts";
 import { PullRequest, pull, syncOptions } from "#test/pullRequests.ts";
 
-class Prefix extends Context.Service<Prefix, string>()("conditional/Prefix") {}
+class Prefix extends Context.Service<Prefix, string>()("@shivaedev/sql/conditional/Prefix") {}
 const Title = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transform((value: string) => value),

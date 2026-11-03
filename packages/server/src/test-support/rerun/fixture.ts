@@ -21,8 +21,8 @@ export interface RerunState {
 	policyUnavailable: boolean;
 	queryUnavailable: boolean;
 }
-export class Store extends Context.Service<Store, RerunState>()("test/RerunStore") {}
-class Incoming extends RpcMiddleware.Service<Incoming>()("test/RerunIncoming") {}
+export class Store extends Context.Service<Store, RerunState>()("@shivaedev/server/test/RerunStore") {}
+class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/server/test/RerunIncoming") {}
 export const notes = collection("rerun-notes", Schema.String, { owner: Schema.String });
 function reads(_payload: unknown, viewer: Option.Option<Viewer>) {
 	return Option.isSome(viewer) ? [notes.bucket.owner(viewer.value.id)] : [];

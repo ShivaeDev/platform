@@ -16,7 +16,7 @@ export const initialValues = {
 };
 export const query = Atom.make(AsyncResult.success(initialValues));
 export class TitleCheck extends Context.Service<TitleCheck, { readonly check: (value: string) => Effect.Effect<string | undefined> }>()(
-	"test/TitleCheck",
+	"@shivaedev/react/test/TitleCheck",
 ) {}
 export type Kind = "editor" | "create";
 export type Answers = typeof Answers.Type;

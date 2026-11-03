@@ -20,7 +20,7 @@ function unavailable() {
 	return new Unavailable();
 }
 export const OrderService = defineService({
-	id: "postgres-example/Service",
+	id: "@shivaedev/react/postgres-example/Service",
 	initialize: Effect.void,
 	methods: () => ({
 		get: (userId: string, id: number) =>

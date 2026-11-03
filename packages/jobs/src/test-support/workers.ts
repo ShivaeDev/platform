@@ -5,7 +5,7 @@ import { makePgBoss, type PgBossService } from "#server/service.ts";
 
 export const Jobs = makePgBoss("@test/Jobs");
 
-export class ApplicationLog extends Context.Service<ApplicationLog, (line: string) => void>()("@test/ApplicationLog") {}
+export class ApplicationLog extends Context.Service<ApplicationLog, (line: string) => void>()("@shivaedev/jobs/test/ApplicationLog") {}
 
 export class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly message: string }> {}
 

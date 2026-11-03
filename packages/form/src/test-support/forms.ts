@@ -43,7 +43,7 @@ export const prototypeNamed = formStories(() => Schema.Struct({ toString: Schema
 });
 
 class SlugTaken extends Data.TaggedError("SlugTaken")<{ readonly slug: string }> {}
-class Slugs extends Context.Service<Slugs, { readonly claim: (slug: string) => Effect.Effect<string, SlugTaken> }>()("test/Slugs") {}
+class Slugs extends Context.Service<Slugs, { readonly claim: (slug: string) => Effect.Effect<string, SlugTaken> }>()("@shivaedev/form/test/Slugs") {}
 export const HELD_SLUG = "root";
 export const slugs = formStories(() => Schema.Struct({ slug: Schema.String, title: Schema.String }), {
 	...none,

@@ -5,7 +5,7 @@ import { note, releasedOnClose } from "./lifecycleLog.ts";
 
 class BodyFailure extends Data.TaggedError("BodyFailure")<{ readonly message: string }> {}
 
-class Worker extends Context.Service<Worker, { readonly failure: BodyFailure }>()("@test/Worker") {}
+class Worker extends Context.Service<Worker, { readonly failure: BodyFailure }>()("@shivaedev/test/test/Worker") {}
 
 const { effectApp } = makeEffectIt({
 	layer: Layer.effect(

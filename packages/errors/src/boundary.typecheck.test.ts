@@ -5,7 +5,7 @@ import { rpcBoundary } from "#boundary.ts";
 import { rpcBoundaryHandlers } from "#rpcBoundaryHandlers.ts";
 import { InternalServerError } from "#taxonomy.ts";
 
-class Storage extends Context.Service<Storage, string>()("test/Storage") {}
+class Storage extends Context.Service<Storage, string>()("@shivaedev/errors/test/Storage") {}
 const Read = Rpc.make("Read", { error: InternalServerError, payload: { id: Schema.Number }, success: Schema.String });
 const Follow = Rpc.make("Follow", { error: InternalServerError, stream: true, success: Schema.String });
 const Api = RpcGroup.make(Read, Follow);

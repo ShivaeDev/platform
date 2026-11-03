@@ -12,7 +12,7 @@ export function recording() {
 	return { spans, tracer };
 }
 
-export class Recording extends Context.Service<Recording, ReturnType<typeof recording>>()("tracingApp/Recording") {}
+export class Recording extends Context.Service<Recording, ReturnType<typeof recording>>()("@shivaedev/test-story/tracingApp/Recording") {}
 
 export function tracedAsTheStory<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return Effect.flatMap(Effect.service(Recording), ({ spans, tracer }) => {

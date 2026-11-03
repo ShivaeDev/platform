@@ -9,12 +9,12 @@ import { querySubscription } from "#querySubscription.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
-class Database extends Context.Service<Database, boolean>()("test/ChangesDatabase") {}
-class Reader extends Context.Service<Reader, bigint>()("test/ChangesReader") {}
-class Startup extends Context.Service<Startup, string>()("test/ChangesStartup") {}
+class Database extends Context.Service<Database, boolean>()("@shivaedev/contract/test/ChangesDatabase") {}
+class Reader extends Context.Service<Reader, bigint>()("@shivaedev/contract/test/ChangesReader") {}
+class Startup extends Context.Service<Startup, string>()("@shivaedev/contract/test/ChangesStartup") {}
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 class Other extends Schema.TaggedError<Other>()("Other", {}) {}
-class Guard extends RpcMiddleware.Service<Guard, { provides: Reader }>()("test/ChangesGuard") {}
+class Guard extends RpcMiddleware.Service<Guard, { provides: Reader }>()("@shivaedev/contract/test/ChangesGuard") {}
 const Api = contract("custom", {
 	queries: [
 		query("read", {

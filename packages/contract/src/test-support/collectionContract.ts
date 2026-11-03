@@ -16,8 +16,8 @@ export class Workspace extends Model.Class<Workspace>("CollectionWorkspace")({
 	title: Schema.String,
 }) {}
 
-export class Permissions extends Context.Service<Permissions, Map<string, SessionUserValue>>()("test/CollectionPermissions") {}
-export class Guard extends RpcMiddleware.Service<Guard>()("test/CollectionGuard", {
+export class Permissions extends Context.Service<Permissions, Map<string, SessionUserValue>>()("@shivaedev/contract/test/CollectionPermissions") {}
+export class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/CollectionGuard", {
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
 }) {}
 

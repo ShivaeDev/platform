@@ -2,8 +2,8 @@ import { Context, Data, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
 import { type StoryKit, storyKit, type Trait } from "#server/storyKit.ts";
 
-class Count extends Context.Service<Count, number>()("effectHooks/Count") {}
-class Missing extends Context.Service<Missing, number>()("effectHooks/Missing") {}
+class Count extends Context.Service<Count, number>()("@shivaedev/test-story/effectHooks/Count") {}
+class Missing extends Context.Service<Missing, number>()("@shivaedev/test-story/effectHooks/Missing") {}
 class Stuck extends Data.TaggedError("Stuck") {}
 
 interface Engine {
@@ -104,8 +104,8 @@ it("infers the engine and verbs with no available trait stage when the stage lis
 	collection.trait("configured", "the collection starts empty", (items) => items.clear());
 });
 
-class Selected extends Context.Service<Selected, string>()("stageServices/Selected") {}
-class App extends Context.Service<App, string>()("stageServices/App") {}
+class Selected extends Context.Service<Selected, string>()("@shivaedev/test-story/stageServices/Selected") {}
+class App extends Context.Service<App, string>()("@shivaedev/test-story/stageServices/App") {}
 
 const stageKit = storyKit({
 	after: {

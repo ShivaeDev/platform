@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { formStories } from "./formStories.ts";
 
-class Names extends Context.Service<Names, { readonly normalize: (name: string) => Effect.Effect<string> }>()("form/test/Names") {}
+class Names extends Context.Service<Names, { readonly normalize: (name: string) => Effect.Effect<string> }>()("@shivaedev/form/test/Names") {}
 
 export const runtimeValidation = formStories(
 	() =>

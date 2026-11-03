@@ -2,7 +2,7 @@ import { Context, Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
 import { type StoryKit, storyKit } from "#server/storyKit.ts";
 
-class Missing extends Context.Service<Missing, string>()("scope/Missing") {}
+class Missing extends Context.Service<Missing, string>()("@shivaedev/test-story/scope/Missing") {}
 
 const scoped = storyKit({
 	after: {
