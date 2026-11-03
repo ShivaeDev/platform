@@ -34,6 +34,7 @@ export function workspaceBoard(files: Readonly<Record<string, string>>, options?
 				Layer.provide([
 					Layer.succeed(WorkspaceConfig, {
 						changes: index.changes,
+						fleetPort,
 						home,
 						index: index.read,
 						pullRequests: Effect.succeed(options?.pullRequests),

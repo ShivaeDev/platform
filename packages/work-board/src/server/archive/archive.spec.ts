@@ -4,6 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { unreadableDirectory } from "#test/incompleteInventory.ts";
+import { fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
 
 const ALL_ACTIVE = ["tasks/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
 const OLD_ARCHIVED = ["archive/board/dropped.md", "archive/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
@@ -64,7 +65,7 @@ boardStory.it("archiving aged briefs leaves goal progress unchanged", [archiveFi
 
 boardStory.it(
 	"an open brief still shows its archived dependency without diagnostics",
-	[archiveFixture(false)],
+	[archiveFixture(false), fleetAcceptsEveryBrief],
 	function* ({ ageBriefs, dependencyOn }) {
 		expect(yield* dependencyOn("open", "old")).toEqual(OLD_DEPENDENCY);
 
@@ -83,7 +84,7 @@ boardStory.it("an archived brief is found by its identity at its archive path", 
 
 boardStory.it(
 	"a new brief reusing an archived identity leaves the identity ambiguous and the archived brief unchanged",
-	[archiveFixture()],
+	[archiveFixture(), fleetAcceptsEveryBrief],
 	function* ({ edited, foundAt, idDiagnostics, itemLink, sourcesAt }) {
 		expect(yield* foundAt("old")).toBe("archive/board/old.md");
 

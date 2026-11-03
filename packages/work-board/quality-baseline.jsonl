@@ -242,7 +242,6 @@
 {"path":"packages/work-board/src/server/diagnostics/codexRateLimits.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/diagnostics/fleetHealth.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/diagnostics/fleetHealth.ts","rule":"effect/boundary","count":21}
-{"path":"packages/work-board/src/server/document/briefDiagnostic.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-board/src/server/document/read.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/document/requests.ts","rule":"effect/boundary","count":6}
 {"path":"packages/work-board/src/server/document/targets.ts","rule":"effect/adapter-imports","count":1}
@@ -320,7 +319,7 @@
 {"path":"packages/work-board/src/server/search/linkCollector.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/search/snapshot.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/views/fleetItems.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/views/fleetItems.ts","rule":"effect/failure-honesty","count":3}
+{"path":"packages/work-board/src/server/views/fleetItems.ts","rule":"effect/failure-honesty","count":2}
 {"path":"packages/work-board/src/test-support/DiagnosticsPoller.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/test-support/ReadingReadyHarness.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/vitest.config.ts","rule":"effect/adapter-imports","count":1}
