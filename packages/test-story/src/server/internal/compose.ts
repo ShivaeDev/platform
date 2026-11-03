@@ -1,6 +1,7 @@
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { AnyTestLayer } from "@shivaedev/test/types.ts";
+import { engineSummary } from "#server/adapters/engineSummary.ts";
 import { type KitList, kitDefinition } from "#server/internal/compositionTypes.ts";
 import { hooked } from "#server/internal/hooked.ts";
 import { runUntil } from "#server/internal/runUntil.ts";
@@ -25,7 +26,7 @@ export function compose(name: string, kits: KitList): LooseDefinition {
 		},
 		inspect: (engine) =>
 			Effect.forEach(definitions, (definition) =>
-				hooked(() => (definition.inspect === undefined ? engine : definition.inspect(engine))).pipe(
+				hooked(() => (definition.inspect === undefined ? engineSummary(engine) : definition.inspect(engine))).pipe(
 					Effect.map((value) => [definition.name, value] as const),
 				),
 			).pipe(Effect.map(Object.fromEntries)),

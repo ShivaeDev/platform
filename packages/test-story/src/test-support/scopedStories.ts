@@ -57,3 +57,9 @@ for (const ending of ["fails", "dies"] as const) {
 		return yield* Effect.fail("the story failed");
 	});
 }
+
+scoped.it("fails after a restart", [], function* ({ story }) {
+	const second = yield* story.restart([]);
+	second.edit(42);
+	expect(second.count()).toBe(0);
+});
