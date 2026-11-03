@@ -106,6 +106,10 @@ export const defectiveHook = effectHooks.trait("configured", "the application's 
 	engine.application.state.defective = true;
 });
 
+export const refusingAfterHook = effectHooks.trait("configured", "the application's session after-hook fails to send a notice", (engine) => {
+	engine.application.state.afterRefuses = true;
+});
+
 export const waitingHook = effectHooks.trait("accounts", "the application's session hook waits", (engine) => {
 	engine.application.probe.waiting = true;
 });

@@ -7,6 +7,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { signInAgain } from "#server/better-auth/testing.ts";
 import { recorder } from "#test/rpc/harness.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "./hardeningHost.ts";
 import { Admission, type HookApplication, userCreationHooks } from "./hookApplication.ts";
@@ -86,6 +87,8 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 		directReset: (token: string) => mounted.auth.api.resetPassword({ asResponse: true, body: { newPassword: "replacement-password", token } }),
 		directSignIn: (person: string) => mounted.auth.api.signInEmail({ asResponse: true, body: credentials(person) }),
 		logs: () => recorded.logs.filter(({ message }) => Array.isArray(message) && message.includes("Application session admitted")),
+		lookupSession: (cookie: string) => mounted.auth.api.getSession({ headers: new Headers({ cookie }) }),
+		mintSession: (userId: string) => signInAgain(fixtures, userId),
 		request: (path: string, body: object, signal?: AbortSignal, member = "alice") =>
 			app.handler(
 				new Request(`${ORIGIN}/api/auth/${path}`, {
@@ -109,6 +112,7 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 				const user = await test.saveUser(test.createUser({ email: `${person}@hooks.test`, name: person }));
 				await internalAdapter.createAccount({ accountId: user.id, password: PASSWORD_HASH, providerId: "credential", userId: user.id });
 				application.users.set(user.id, person);
+				return user.id;
 			}),
 		session: (cookie: string) =>
 			app.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers: { cookie } })).then((response) => response.json()),

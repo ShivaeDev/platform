@@ -7,11 +7,31 @@ import {
 	effectHooks,
 	nativeRefusal,
 	passwordAccounts,
+	refusingAfterHook,
 	refusingPolicy,
 	unchangedUserHook,
 	userHooks,
 	waitingHook,
 } from "#test/better-auth/effectHooks.ts";
+
+effectHooks.it(
+	"a failing session after-hook refuses alice's sign-in while leaving her session stored",
+	[passwordAccounts, refusingAfterHook],
+	function* ({ signIn, storedSessions }) {
+		expect(yield* storedSessions()).toEqual([]);
+
+		const response = yield* signIn("alice");
+
+		yield* outcomes([
+			[
+				"sign-in refusal",
+				() => Effect.succeed(response),
+				{ code: "SESSION_NOTICE_FAILED", message: "The session notice could not be sent", status: 403 },
+			],
+			["stored sessions", () => storedSessions(), ["alice@hooks.test"]],
+		]);
+	},
+);
 
 effectHooks.it(
 	"the application's Effect refuses bob's sign-in with its code and creates no session",
