@@ -1,5 +1,5 @@
 import { Context, Data, Effect, Layer } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export interface Bakery {
 	bowls: number;

@@ -1,8 +1,8 @@
 import { Effect, Redacted } from "effect";
 import type { FindJobsOptions, PgBoss } from "pg-boss";
-import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
-import { PgBossTestingError } from "#error.ts";
-import { decodeStoredData } from "#internal/storedRows.ts";
+import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
+import { PgBossTestingError } from "#server/error.ts";
+import { decodeStoredData } from "#server/internal/storedRows.ts";
 
 export function testingOperation<A>(operation: string, run: () => Promise<A>, queue?: string) {
 	return Effect.tryPromise({

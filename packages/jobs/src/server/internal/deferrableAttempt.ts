@@ -1,10 +1,10 @@
 import { Clock, DateTime, Effect, Schema } from "effect";
 import type { Job } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
-import { RetryAt } from "#definition.ts";
-import { toPgBossError } from "#error.ts";
-import { deferralObservers, deferredAttempt } from "#internal/deferral.ts";
-import { settleDeferral } from "#internal/settleDeferral.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { RetryAt } from "#server/definition.ts";
+import { toPgBossError } from "#server/error.ts";
+import { deferralObservers, deferredAttempt } from "#server/internal/deferral.ts";
+import { settleDeferral } from "#server/internal/settleDeferral.ts";
 
 const recordDeferral = Effect.fnUntraced(function* (at: string, reason: string) {
 	const span = yield* Effect.currentSpan.pipe(Effect.orDie);

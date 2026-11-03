@@ -1,7 +1,7 @@
 import { Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase } from "#database.ts";
-import { observeUntil } from "#observeUntil.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
+import { observeUntil } from "#server/observeUntil.ts";
 import type { CleanupEngine } from "./cleanup.ts";
 import { attempt } from "./outcome.ts";
 

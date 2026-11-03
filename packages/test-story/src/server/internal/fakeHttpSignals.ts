@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
-import type { FakeHttpRequestRecord } from "#fakeHttpService.ts";
-import { recordedSignals } from "#internal/recordedSignals.ts";
+import type { FakeHttpRequestRecord } from "#server/fakeHttpService.ts";
+import { recordedSignals } from "#server/internal/recordedSignals.ts";
 
 export function fakeHttpSignals() {
 	const received = recordedSignals<FakeHttpRequestRecord>();

@@ -1,5 +1,5 @@
-import { STATELY_DEFERRAL_POLICY } from "#internal/deferral.ts";
-import { quotedSchema } from "#internal/storedRows.ts";
+import { STATELY_DEFERRAL_POLICY } from "#server/internal/deferral.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
 
 export function deferralStorePlan(schema: string): string {
 	const quoted = quotedSchema(schema);

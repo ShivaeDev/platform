@@ -1,12 +1,12 @@
 import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
-import type { PgBossClient } from "#client.ts";
-import type { JobPayloadSchema } from "#definition.ts";
-import { type PgBossError, PgBossPayloadError, toPgBossError } from "#error.ts";
-import { type DeadLetteredJob, deadLetterQueueName, type JobPage, type JobPageOptions } from "#health.ts";
-import { decodeStoredData, quotedSchema } from "#internal/storedRows.ts";
 import { JobFailure } from "#JobFailure.ts";
-import type { PgBossService } from "#service.ts";
+import type { PgBossClient } from "#server/client.ts";
+import type { JobPayloadSchema } from "#server/definition.ts";
+import { type PgBossError, PgBossPayloadError, toPgBossError } from "#server/error.ts";
+import { type DeadLetteredJob, deadLetterQueueName, type JobPage, type JobPageOptions } from "#server/health.ts";
+import { decodeStoredData, quotedSchema } from "#server/internal/storedRows.ts";
+import type { PgBossService } from "#server/service.ts";
 
 const Cursor = Schema.StringFromBase64Url.pipe(
 	Schema.decodeTo(

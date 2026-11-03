@@ -4,8 +4,8 @@ import * as RpcClient from "effect/rpc/RpcClient";
 import type * as RpcMessage from "effect/rpc/RpcMessage";
 import * as Schema from "effect/Schema";
 import { LiveHint } from "@shivaedev/contract/live.ts";
-import type { BrowserRead, BrowserReadsOptions } from "#browserReads.ts";
-import { browserSubscriptions } from "#internal/browserSubscriptions.ts";
+import type { BrowserRead, BrowserReadsOptions } from "#server/browserReads.ts";
+import { browserSubscriptions } from "#server/internal/browserSubscriptions.ts";
 
 export const browserReadObserver = Effect.fnUntraced(function* (contracts: BrowserReadsOptions["contracts"]) {
 	const queries = new Set(contracts.flatMap(({ declaration }) => declaration.queries.map(({ name }) => `${declaration.name}.${name}`)));

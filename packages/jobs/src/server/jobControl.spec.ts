@@ -1,8 +1,8 @@
 import type { Effect } from "effect";
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
-import type { PgBossService } from "#service.ts";
+import { defineQueue } from "#server/definition.ts";
+import type { PgBossService } from "#server/service.ts";
 import { clientFrom, running, runtime, storedJob } from "#test/runtime/kit.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";

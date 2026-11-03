@@ -1,8 +1,8 @@
 import { type Duration, Effect, Exit, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
-import { type FakeHttpRequest, fakeHttpService } from "#fakeHttpService.ts";
-import { storyKit } from "#storyKit.ts";
+import { type FakeHttpRequest, fakeHttpService } from "#server/fakeHttpService.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { httpClient } from "./httpClient.ts";
 
 async function* replyChunks(pieces: readonly (string | Uint8Array)[], gates: readonly { promise: Promise<void> }[]) {

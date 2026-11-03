@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { running, runtime } from "#test/runtime/kit.ts";
 
 const Emails = defineQueue({ name: "emails", schema: Schema.Struct({ id: Schema.NumberFromString.check(Schema.isFinite()) }) });

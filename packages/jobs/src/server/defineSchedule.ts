@@ -1,5 +1,5 @@
-import type { DefineScheduleOptions, ScheduleDefinition } from "#definition.ts";
-import { maxDeferrals, nativeQueueOptions } from "#internal/definitionOptions.ts";
+import type { DefineScheduleOptions, ScheduleDefinition } from "#server/definition.ts";
+import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOptions.ts";
 
 export function defineSchedule<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
 	const definition: ScheduleDefinition<TName> = {

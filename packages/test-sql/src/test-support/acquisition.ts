@@ -1,9 +1,9 @@
 import { Cause, Clock, Effect, Exit, Fiber, Option, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { makePostgresTestLayer } from "#postgres.ts";
-import { raceWithLock } from "#raceWithLock.ts";
-import { withTestTransaction } from "#withTestTransaction.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
+import { raceWithLock } from "#server/raceWithLock.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 import { outcomeOf } from "./outcome.ts";
 import { configured, setup } from "./postgres.ts";
 

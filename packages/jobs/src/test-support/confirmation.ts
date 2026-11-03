@@ -1,5 +1,5 @@
 import { Redacted, Schema } from "effect";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { enqueued, running } from "#test/postgres/traits.ts";
 import { workerBy } from "#test/workers.ts";
 

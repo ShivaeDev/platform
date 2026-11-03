@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { SignalNotReceived } from "#until.ts";
+import { SignalNotReceived } from "#server/until.ts";
 
 export const nextClientHint = Effect.fnUntraced(function* (activity: ClientActivity) {
 	const before = (yield* activity.current).liveHints;

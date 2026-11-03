@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { storyKit } from "#storyKit.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 function* brokenChunks(thrown: unknown) {
 	yield "started";

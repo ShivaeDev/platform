@@ -1,10 +1,10 @@
 import { Effect, Exit, Option, Scope, Stream } from "effect";
 import { act } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { domPage } from "#domPage.ts";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { domPage } from "#server/domPage.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 import { ErrorPage } from "./ErrorPage.tsx";
 

@@ -1,10 +1,10 @@
 import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
-import type { QueueDefinition } from "#definition.ts";
-import { expireAttempt } from "#internal/expireAttempt.ts";
+import type { QueueDefinition } from "#server/definition.ts";
+import { expireAttempt } from "#server/internal/expireAttempt.ts";
+import type { PgBossTesting } from "#server/testing.ts";
 import type { Registration } from "#test/workers.ts";
-import type { PgBossTesting } from "#testing.ts";
 import { serverTlsAbsent } from "./connections.ts";
 import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "./controller.ts";
 import { database } from "./database.ts";

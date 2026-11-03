@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
 const STALLED_REPLY = { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") };

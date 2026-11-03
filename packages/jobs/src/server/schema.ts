@@ -2,8 +2,8 @@ import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
-import { installSchema } from "#adapters/installSchema.ts";
-import { type PgBossError, toPgBossError } from "#error.ts";
+import { installSchema } from "#server/adapters/installSchema.ts";
+import { type PgBossError, toPgBossError } from "#server/error.ts";
 
 const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
 const InstalledVersion = Schema.Array(Schema.Struct({ version: Schema.Number }));

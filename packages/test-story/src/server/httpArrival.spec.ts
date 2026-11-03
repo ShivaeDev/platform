@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { attempt } from "#test/attempt.ts";
 import { httpArrivalApp } from "#test/httpArrivalApp.ts";
 

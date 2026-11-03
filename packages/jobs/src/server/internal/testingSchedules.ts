@@ -1,6 +1,6 @@
 import type { PgBoss } from "pg-boss";
-import type { ScheduleDefinition } from "#definition.ts";
-import { testingOperation } from "#internal/testingReadout.ts";
+import type { ScheduleDefinition } from "#server/definition.ts";
+import { testingOperation } from "#server/internal/testingReadout.ts";
 
 export function testingSchedules(client: () => PgBoss, changed: () => void) {
 	return {

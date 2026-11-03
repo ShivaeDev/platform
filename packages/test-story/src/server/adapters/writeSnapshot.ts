@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import process from "node:process";
-import type { FailedTest } from "#internal/failureReport.ts";
-import { describeValue, toJson } from "#internal/render.ts";
-import { wrap } from "#internal/wrap.ts";
+import type { FailedTest } from "#server/internal/failureReport.ts";
+import { describeValue, toJson } from "#server/internal/render.ts";
+import { wrap } from "#server/internal/wrap.ts";
 
 function slug(text: string): string {
 	return text

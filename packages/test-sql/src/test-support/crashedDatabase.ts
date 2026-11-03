@@ -1,8 +1,8 @@
 import process from "node:process";
 import { Config, Context, Effect, Layer, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { PostgresTestDatabase } from "#database.ts";
-import { makePostgresTestLayer } from "#postgres.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
 
 await Effect.runPromise(
 	Effect.scoped(

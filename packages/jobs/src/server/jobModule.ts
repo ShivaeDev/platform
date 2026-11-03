@@ -1,5 +1,5 @@
-import type { JobRegistration, QueueDefinition, QueueWorker, ScheduledWorker } from "#definition.ts";
-import type { PgBossDefinition, PgBossLayerOptions } from "#service.ts";
+import type { JobRegistration, QueueDefinition, QueueWorker, ScheduledWorker } from "#server/definition.ts";
+import type { PgBossDefinition, PgBossLayerOptions } from "#server/service.ts";
 
 export function jobModule<TIdentifier extends string, const TJobs extends readonly JobRegistration[], R = never>(
 	layer: PgBossDefinition<TIdentifier>["layer"],

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 
 const app = storyKit({ clock: "live", create: () => ({}), name: "contained DOM", stages: ["host"], verbs: () => ({}) });

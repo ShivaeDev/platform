@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { FakeHttpFault, FakeHttpReply } from "#fakeHttpService.ts";
+import type { FakeHttpFault, FakeHttpReply } from "#server/fakeHttpService.ts";
 
 export function fakeHttpConnection(response: ServerResponse) {
 	const closed = new Promise<undefined>((resolve) => response.once("close", () => resolve(undefined)));

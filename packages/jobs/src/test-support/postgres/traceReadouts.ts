@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { linkedWorkerSpans } from "#testing.ts";
+import { linkedWorkerSpans } from "#server/testing.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { labelOf } from "./engine.ts";
 import { idOf } from "./verbs.ts";

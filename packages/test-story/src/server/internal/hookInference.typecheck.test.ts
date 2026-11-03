@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { type StoryKit, storyKit, type Trait } from "#storyKit.ts";
+import { type StoryKit, storyKit, type Trait } from "#server/storyKit.ts";
 
 class Count extends Context.Service<Count, number>()("effectHooks/Count") {}
 class Missing extends Context.Service<Missing, number>()("effectHooks/Missing") {}

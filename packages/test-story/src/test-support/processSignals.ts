@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 import { type Duration, Effect, Exit, Scope } from "effect";
-import { lineSignals } from "#lineSignals.ts";
-import { storyKit } from "#storyKit.ts";
+import { lineSignals } from "#server/lineSignals.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 
 const childProgram = `

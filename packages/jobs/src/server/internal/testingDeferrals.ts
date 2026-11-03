@@ -1,8 +1,8 @@
 import { DateTime } from "effect";
 import type { PgBoss } from "pg-boss";
-import type { QueueDefinition } from "#definition.ts";
-import { deferralOf } from "#internal/deferral.ts";
-import { testingOperation } from "#internal/testingReadout.ts";
+import type { QueueDefinition } from "#server/definition.ts";
+import { deferralOf } from "#server/internal/deferral.ts";
+import { testingOperation } from "#server/internal/testingReadout.ts";
 
 export function testingDeferrals(client: () => PgBoss) {
 	return {

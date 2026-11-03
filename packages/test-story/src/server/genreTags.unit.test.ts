@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { genreTags } from "#genreTags.ts";
+import { genreTags } from "#server/genreTags.ts";
 
 it("names the genre tag after the kit, with its words joined so a filter can name it", () => {
 	expect(genreTags(" Game  Store ", "mill")).toEqual([

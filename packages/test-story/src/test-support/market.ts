@@ -1,4 +1,4 @@
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { bakery } from "./bakery.ts";
 import { mill } from "./mill.ts";
 import { orders } from "./orders.ts";

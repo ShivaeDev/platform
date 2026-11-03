@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { sharedLists, signedInMembers } from "#test/sharedListScreen.ts";
 
 sharedLists.it("shows grace the item ada adds once grace refreshes", [signedInMembers("ada", "grace")], function* ({ addsItem, refreshes, list }) {

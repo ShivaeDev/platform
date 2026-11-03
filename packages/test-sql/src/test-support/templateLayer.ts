@@ -1,6 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
-import { makePostgresTestLayer } from "#postgres.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
 import { setup } from "./postgres.ts";
 
 const fixture = setup();

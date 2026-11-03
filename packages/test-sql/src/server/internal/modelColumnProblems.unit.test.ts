@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { expect, it } from "vitest";
-import { modelColumnProblems } from "#internal/modelColumnProblems.ts";
+import { modelColumnProblems } from "#server/internal/modelColumnProblems.ts";
 
 class Row extends Model.Class<Row>("Row")({ id: Model.GeneratedByDb(Schema.Number), title: Schema.String }) {}
 

@@ -2,19 +2,19 @@ import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
-import { clientErrorLogger } from "#adapters/clientErrorLogger.ts";
-import { clientErrorReporter } from "#adapters/clientErrorReporter.ts";
-import type { PgBossClientFactory } from "#client.ts";
-import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
-import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
-import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
-import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
-import { makeService } from "#internal/makeService.ts";
-import { registrationName } from "#internal/register.ts";
-import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
-import { validateQueueNames } from "#internal/validateQueueNames.ts";
-import { PgBoss } from "#PgBoss.ts";
+import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
+import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
+import type { PgBossClientFactory } from "#server/client.ts";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
+import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
+import { acquireClient, releaseClient } from "#server/internal/lifecycle.ts";
+import { makeService } from "#server/internal/makeService.ts";
+import { registrationName } from "#server/internal/register.ts";
+import { registerReleasedJobs } from "#server/internal/registerReleasedJobs.ts";
+import { validateQueueNames } from "#server/internal/validateQueueNames.ts";
+import { PgBoss } from "#server/PgBoss.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;

@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import type { WorkOptions } from "pg-boss";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { storedTogether } from "#test/postgres/traits.ts";
 import { worker } from "#test/workers.ts";

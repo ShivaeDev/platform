@@ -7,13 +7,13 @@ import type {
 	FakeHttpRequest,
 	FakeHttpScope,
 	FakeHttpScriptOptions,
-} from "#fakeHttpService.ts";
-import { fakeHttpGates } from "#internal/fakeHttpGates.ts";
-import { fakeHttpScripts } from "#internal/fakeHttpScripts.ts";
-import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
-import { fakeHttpConnection, fakeHttpSend } from "#internal/fakeHttpSend.ts";
-import { describeValue } from "#internal/render.ts";
-import { explained } from "#internal/wrap.ts";
+} from "#server/fakeHttpService.ts";
+import { fakeHttpGates } from "#server/internal/fakeHttpGates.ts";
+import { fakeHttpScripts } from "#server/internal/fakeHttpScripts.ts";
+import { fakeHttpSelection } from "#server/internal/fakeHttpSelection.ts";
+import { fakeHttpConnection, fakeHttpSend } from "#server/internal/fakeHttpSend.ts";
+import { describeValue } from "#server/internal/render.ts";
+import { explained } from "#server/internal/wrap.ts";
 
 export function fakeHttpControls(tell: (line: string) => void, now: () => number) {
 	let failure: Error | undefined;

@@ -1,5 +1,5 @@
 import { Effect, Random } from "effect";
-import { processIsAbsent, processOwner } from "#adapters/processOwner.ts";
+import { processIsAbsent, processOwner } from "#server/adapters/processOwner.ts";
 
 export const databaseId = Effect.map(Effect.replicateEffect(Random.nextIntBetween(0, 0xff_ff_ff_ff), 4), (parts) =>
 	parts.map((part) => part.toString(16).padStart(8, "0")).join(""),

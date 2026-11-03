@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { attempt } from "#test/attempt.ts";
 import { OUTCOME_STORIES } from "#test/failureReport.ts";
 import { outcomeTable } from "#test/outcomeTable.ts";

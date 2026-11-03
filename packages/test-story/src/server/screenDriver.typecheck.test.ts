@@ -1,8 +1,8 @@
 import type { Effect, Stream } from "effect";
 import { expectTypeOf, it } from "vitest";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { type MissingScreenPending, type ScreenDriver, type ScreenDriverOptions, screenDriver } from "#screenDriver.ts";
-import type { SignalNotReceived } from "#until.ts";
+import { type MissingScreenPending, type ScreenDriver, type ScreenDriverOptions, screenDriver } from "#server/screenDriver.ts";
+import type { SignalNotReceived } from "#server/until.ts";
 
 const options: ScreenDriverOptions = {
 	root: () => document.body,

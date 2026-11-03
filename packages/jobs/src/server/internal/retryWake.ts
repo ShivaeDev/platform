@@ -1,8 +1,8 @@
 import { Clock, Effect } from "effect";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
-import { batchClockOffset } from "#adapters/batchClockOffset.ts";
-import type { PgBossClient } from "#client.ts";
-import { toPgBossError } from "#error.ts";
+import { batchClockOffset } from "#server/adapters/batchClockOffset.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { toPgBossError } from "#server/error.ts";
 
 export function retryWake(client: PgBossClient, schema: string, name: string, id: string, registration: Promise<string>): Effect.Effect<void> {
 	return Effect.gen(function* () {

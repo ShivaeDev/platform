@@ -1,5 +1,5 @@
 import { type Cause, type Effect, Exit, Predicate, Result } from "effect";
-import { captureOutcome, renderOutcome } from "#captureOutcome.ts";
+import { captureOutcome, renderOutcome } from "#server/captureOutcome.ts";
 
 export function words(name: string): string {
 	return name

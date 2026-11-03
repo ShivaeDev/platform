@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { attempt } from "#test/attempt.ts";
 import { httpFaultApp, notReadyForFault } from "#test/httpFaultApp.ts";
 

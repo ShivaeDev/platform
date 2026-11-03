@@ -4,12 +4,12 @@ import * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
 import * as Tracer from "effect/Tracer";
 import type { AnyTestLayer, EffectClock } from "@shivaedev/test/types.ts";
-import { refusal } from "#internal/errors.ts";
-import { type AnyEffect, type EffectHook, type Hook, hooked } from "#internal/hooked.ts";
-import { type Narration, tellGiven } from "#internal/narration.ts";
-import type { LooseRunHooks } from "#internal/runUntil.ts";
-import type { Parts } from "#internal/traits.ts";
-import type { RunUntilOptions } from "#storyKit.ts";
+import { refusal } from "#server/internal/errors.ts";
+import { type AnyEffect, type EffectHook, type Hook, hooked } from "#server/internal/hooked.ts";
+import { type Narration, tellGiven } from "#server/internal/narration.ts";
+import type { LooseRunHooks } from "#server/internal/runUntil.ts";
+import type { Parts } from "#server/internal/traits.ts";
+import type { RunUntilOptions } from "#server/storyKit.ts";
 
 export type LooseTrait = Parts<string, (engine: unknown) => Effect.Effect<void, unknown, unknown>>;
 

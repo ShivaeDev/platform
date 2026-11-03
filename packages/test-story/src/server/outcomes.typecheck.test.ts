@@ -1,7 +1,7 @@
 import { Context, Data, Effect } from "effect";
 import { expect, expectTypeOf, it } from "vitest";
-import { atMost } from "#adapters/outcomeMatchers.ts";
-import { outcomes } from "#outcomes.ts";
+import { atMost } from "#server/adapters/outcomeMatchers.ts";
+import { outcomes } from "#server/outcomes.ts";
 
 class Sessions extends Context.Service<Sessions, number>()("@types/Sessions") {}
 class Requests extends Context.Service<Requests, string>()("@types/Requests") {}

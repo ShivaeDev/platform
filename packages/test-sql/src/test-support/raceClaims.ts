@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { SqlClient } from "effect/sql";
-import { observeUntil } from "#observeUntil.ts";
+import { observeUntil } from "#server/observeUntil.ts";
 
 export type Lock = "row" | "table" | "advisory";
 

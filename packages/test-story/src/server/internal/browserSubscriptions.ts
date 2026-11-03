@@ -2,7 +2,7 @@ import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import type { RpcMessage } from "effect/rpc";
-import type { BrowserSubscription } from "#browserReads.ts";
+import type { BrowserSubscription } from "#server/browserReads.ts";
 
 export const browserSubscriptions = Effect.sync(() => {
 	const openings: BrowserSubscription[] = [];

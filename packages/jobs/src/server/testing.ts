@@ -1,19 +1,19 @@
 import { type DateTime, Duration, Effect, Redacted, type Tracer } from "effect";
 import type { PgBoss } from "pg-boss";
-import { testingDueNow } from "#adapters/testingDueNow.ts";
-import type { PgBossClientFactory } from "#client.ts";
-import { defaultClientFactory } from "#defaultClientFactory.ts";
-import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
-import { PgBossTestingError } from "#error.ts";
-import { type TestingFetches, testingFetches } from "#internal/adapters/testingFetches.ts";
-import { testingClient } from "#internal/testingClient.ts";
-import { testingDeferrals } from "#internal/testingDeferrals.ts";
-import { type TestingWork, testingIdle } from "#internal/testingIdle.ts";
-import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
-import { testingSchedules } from "#internal/testingSchedules.ts";
-import { testingSignal } from "#internal/testingSignal.ts";
-import { testingSnapshot } from "#internal/testingSnapshot.ts";
-import { testingWaits } from "#internal/testingWaits.ts";
+import { testingDueNow } from "#server/adapters/testingDueNow.ts";
+import type { PgBossClientFactory } from "#server/client.ts";
+import { defaultClientFactory } from "#server/defaultClientFactory.ts";
+import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
+import { PgBossTestingError } from "#server/error.ts";
+import { type TestingFetches, testingFetches } from "#server/internal/adapters/testingFetches.ts";
+import { testingClient } from "#server/internal/testingClient.ts";
+import { testingDeferrals } from "#server/internal/testingDeferrals.ts";
+import { type TestingWork, testingIdle } from "#server/internal/testingIdle.ts";
+import { testingOperation, testingReadout } from "#server/internal/testingReadout.ts";
+import { testingSchedules } from "#server/internal/testingSchedules.ts";
+import { testingSignal } from "#server/internal/testingSignal.ts";
+import { testingSnapshot } from "#server/internal/testingSnapshot.ts";
+import { testingWaits } from "#server/internal/testingWaits.ts";
 
 export type SnapshotQueue = Pick<QueueDefinition<string, JobPayloadSchema>, "name" | "schema">;
 

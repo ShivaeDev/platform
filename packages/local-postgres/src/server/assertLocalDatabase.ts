@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { LocalPostgresError } from "#LocalPostgresError.ts";
+import { LocalPostgresError } from "#server/LocalPostgresError.ts";
 
 export const assertLocalDatabase = Effect.fn("LocalPostgres.assertLocalDatabase")(function* (value: string, names: readonly string[]) {
 	const message = `Use a local database on 127.0.0.1:55432 named ${names.join(" or ")}.`;

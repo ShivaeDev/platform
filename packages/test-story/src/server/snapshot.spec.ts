@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { inspectThatThrows, nativeBakeryState, snapshotPrinter } from "#test/snapshotDiagnostics.ts";
 
 const LONG_ORDER = "rye".repeat(50);

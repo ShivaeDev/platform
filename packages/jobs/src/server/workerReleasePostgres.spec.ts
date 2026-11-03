@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { handedOver, releaseHeld } from "#test/postgres/releaseTraits.ts";
 import { enqueued, running, waiting } from "#test/postgres/traits.ts";

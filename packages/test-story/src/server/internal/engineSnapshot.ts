@@ -1,8 +1,8 @@
-import { writeSnapshot } from "#adapters/writeSnapshot.ts";
-import type { FailedTest } from "#internal/failureReport.ts";
-import type { Subject } from "#internal/narration.ts";
-import { describeValue, toJson } from "#internal/render.ts";
-import { WIDTH, wrap, wrapJson } from "#internal/wrap.ts";
+import { writeSnapshot } from "#server/adapters/writeSnapshot.ts";
+import type { FailedTest } from "#server/internal/failureReport.ts";
+import type { Subject } from "#server/internal/narration.ts";
+import { describeValue, toJson } from "#server/internal/render.ts";
+import { WIDTH, wrap, wrapJson } from "#server/internal/wrap.ts";
 
 const INLINE_CHARACTERS = 2000;
 

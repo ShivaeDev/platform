@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { type HttpVisitorOptions, httpVisitor, type VisitorRequest } from "#httpVisitor.ts";
-import { storyKit } from "#storyKit.ts";
+import { type HttpVisitorOptions, httpVisitor, type VisitorRequest } from "#server/httpVisitor.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { visitorHost } from "./visitorHost.ts";
 
 const HostReadout = Schema.Struct({

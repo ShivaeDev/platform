@@ -2,7 +2,7 @@ import { Duration } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { jobContext } from "#definition.ts";
+import { jobContext } from "#server/definition.ts";
 import { job } from "#test/fakeClient.ts";
 
 it.effect("recomputes a typed remaining budget from the runtime deadline, clamped to zero", function* () {

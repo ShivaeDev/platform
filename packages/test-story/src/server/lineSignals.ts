@@ -1,8 +1,8 @@
 import { createInterface } from "node:readline";
 import type { Readable } from "node:stream";
 import * as Effect from "effect/Effect";
-import { recordedSignals } from "#internal/recordedSignals.ts";
-import { type UntilOptions, until } from "#until.ts";
+import { recordedSignals } from "#server/internal/recordedSignals.ts";
+import { type UntilOptions, until } from "#server/until.ts";
 
 export const lineSignals = Effect.fnUntraced(function* (output: Readable) {
 	const signals = recordedSignals<string, Error>();

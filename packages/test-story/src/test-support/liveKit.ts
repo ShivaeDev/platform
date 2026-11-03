@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 function readsClock(hook: string) {
 	return Clock.currentTimeMillis.pipe(Effect.map((millis) => `${hook} on ${millis === 0 ? "the test clock at zero" : "the live clock"}`));

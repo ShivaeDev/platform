@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { fakeHttpApp, hasCredential, publicHttpApp } from "#test/fakeHttpApp.ts";
 
 const MEMBER = hasCredential("Bearer story-key");

@@ -1,9 +1,9 @@
 import { Context, Effect, type Layer, Schema } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { defineQueue } from "#definition.ts";
-import { jobModule } from "#jobModule.ts";
-import type { PgBoss } from "#PgBoss.ts";
-import { makePgBoss } from "#service.ts";
+import { defineQueue } from "#server/definition.ts";
+import { jobModule } from "#server/jobModule.ts";
+import type { PgBoss } from "#server/PgBoss.ts";
+import { makePgBoss } from "#server/service.ts";
 
 class Port extends Context.Service<Port, string>()("test/module/Port") {}
 const Queue = defineQueue({ name: "module", schema: Schema.Struct({ value: Schema.NumberFromString }) });

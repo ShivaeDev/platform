@@ -1,6 +1,6 @@
 import { Clock, DateTime, Deferred, Duration, Effect, Fiber } from "effect";
 import type { FindJobsOptions, JobWithMetadata } from "pg-boss";
-import type { QueueDefinition } from "#definition.ts";
+import type { QueueDefinition } from "#server/definition.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { labelOf, runningIn } from "./engine.ts";

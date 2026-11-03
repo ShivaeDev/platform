@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { describeValue } from "#internal/render.ts";
+import { describeValue } from "#server/internal/render.ts";
 
 export interface UntilOptions {
 	readonly name: string;

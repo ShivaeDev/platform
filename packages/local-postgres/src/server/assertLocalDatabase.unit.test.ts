@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect, it } from "vitest";
-import { assertLocalDatabase } from "#assertLocalDatabase.ts";
+import { assertLocalDatabase } from "#server/assertLocalDatabase.ts";
 
 const SERVER = "postgresql://postgres:postgres@127.0.0.1:55432";
 

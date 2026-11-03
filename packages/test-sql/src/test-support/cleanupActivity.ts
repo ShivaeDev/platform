@@ -1,7 +1,7 @@
 import { Clock, Context, Deferred, Effect, Exit, Fiber, Redacted, Scope, type Tracer } from "effect";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
-import { PostgresTestDatabase } from "#database.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
 import { type CleanupEngine, cleanup } from "./cleanup.ts";
 import { cleanupRole, dropOnStoryEnd } from "./cleanupVerbs.ts";
 import { outcomeOf } from "./outcome.ts";

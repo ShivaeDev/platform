@@ -1,9 +1,9 @@
 import { Effect, Option, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { raceWithLock } from "#raceWithLock.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
-import { withTestTransaction } from "#withTestTransaction.ts";
+import { raceWithLock } from "#server/raceWithLock.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { failureOf } from "./outcome.ts";
 import { anotherSessionWaits, claim, type Lock, takeLock } from "./raceClaims.ts";

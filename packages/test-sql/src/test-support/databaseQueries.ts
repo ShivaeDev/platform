@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase } from "#database.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { inPlace } from "./inPlace.ts";
 

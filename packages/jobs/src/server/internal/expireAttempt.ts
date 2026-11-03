@@ -1,5 +1,5 @@
 import type { Job, PgBoss } from "pg-boss";
-import { quotedSchema } from "#internal/storedRows.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
 
 export async function expireAttempt(client: PgBoss, schema: string, job: Job<unknown>, cause: "expiry" | "heartbeat" = "expiry"): Promise<void> {
 	if ((await client.schemaVersion()) !== 46) {

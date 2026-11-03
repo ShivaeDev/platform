@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { PostgresTestTemplate } from "#database.ts";
-import { storyDatabase } from "#storyDatabase.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
+import type { PostgresTestTemplate } from "#server/database.ts";
+import { storyDatabase } from "#server/storyDatabase.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { configured } from "./postgres.ts";
 import { tableNames } from "./tableNames.ts";
 import { preparation, templateLayer } from "./templateLayer.ts";

@@ -1,9 +1,9 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
 import type { JobWithMetadata } from "pg-boss";
 import { expectTypeOf } from "vitest";
-import { defineQueue } from "#definition.ts";
-import type { PgBossPayloadError, PgBossTestingError } from "#error.ts";
-import { makePgBossTesting } from "#testing.ts";
+import { defineQueue } from "#server/definition.ts";
+import type { PgBossPayloadError, PgBossTestingError } from "#server/error.ts";
+import { makePgBossTesting } from "#server/testing.ts";
 
 class DecodeDependency extends Context.Service<DecodeDependency, number>()("@test/DecodeDependency") {}
 

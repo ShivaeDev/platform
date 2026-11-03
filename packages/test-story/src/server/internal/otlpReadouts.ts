@@ -1,6 +1,6 @@
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import type { OtlpExport, OtlpSpan } from "#otlpReceiver.ts";
+import type { OtlpExport, OtlpSpan } from "#server/otlpReceiver.ts";
 
 const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown));
 

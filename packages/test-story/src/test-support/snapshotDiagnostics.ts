@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import { engineSnapshot } from "#internal/engineSnapshot.ts";
-import { storyKit } from "#storyKit.ts";
+import { engineSnapshot } from "#server/internal/engineSnapshot.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 interface Printer {
 	lines: readonly string[];

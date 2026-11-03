@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { readPage } from "#test/readPage.ts";
 
 readPage.it("the page's answered subscription settles the wait", [], function* ({ waitForSubscriptions, readout }) {

@@ -1,6 +1,6 @@
 import { Effect, Option, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { runCommand } from "#runCommand.ts";
+import { runCommand } from "#server/runCommand.ts";
 
 export const containerReady = Effect.fn("Container.containerReady")(function* (name: string) {
 	const since = yield* runCommand("docker", ["inspect", "--format", "{{.State.StartedAt}}", name]);

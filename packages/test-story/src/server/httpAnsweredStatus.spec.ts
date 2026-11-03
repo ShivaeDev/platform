@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
 const ENDED = { drop: "connection reset", reset: "HTTP 200, then connection reset" };

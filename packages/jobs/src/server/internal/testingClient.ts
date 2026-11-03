@@ -1,11 +1,11 @@
 import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
-import { testingExpirations } from "#adapters/testingExpirations.ts";
-import type { PgBossClient } from "#client.ts";
-import { deferralObservers } from "#internal/deferral.ts";
-import { expireAttempt } from "#internal/expireAttempt.ts";
-import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
-import type { TestingBatch, TestingWork } from "#internal/testingIdle.ts";
-import { testingRegistration } from "#internal/testingRegistrations.ts";
+import { testingExpirations } from "#server/adapters/testingExpirations.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { deferralObservers } from "#server/internal/deferral.ts";
+import { expireAttempt } from "#server/internal/expireAttempt.ts";
+import { observeTestingSettlements } from "#server/internal/observeTestingSettlements.ts";
+import type { TestingBatch, TestingWork } from "#server/internal/testingIdle.ts";
+import { testingRegistration } from "#server/internal/testingRegistrations.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;

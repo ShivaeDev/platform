@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { scopedHttpApp } from "#test/scopedHttpApp.ts";
 
 const SCOPED_PULL = { params: { number: "7", owner: "a/b", repo: "platform" } };

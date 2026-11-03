@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
-import type { FakeHttpFault, FakeHttpRequest, FakeHttpScript, FakeHttpScriptOptions } from "#fakeHttpService.ts";
-import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
+import type { FakeHttpFault, FakeHttpRequest, FakeHttpScript, FakeHttpScriptOptions } from "#server/fakeHttpService.ts";
+import { fakeHttpSelection } from "#server/internal/fakeHttpSelection.ts";
 
 export function fakeHttpScripts(tell: (line: string) => void) {
 	const scripts = new Set<{
