@@ -1,5 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
 import { type Rpc, type RpcGroup, RpcMiddleware } from "effect/rpc";
+import { prependMiddleware } from "#internal/prependMiddleware.ts";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { WebSocketRequired } from "#WebSocketRequired.ts";
@@ -16,13 +17,6 @@ export function readPolicyGuardLayer(options: { readonly websocket?: boolean } =
 	);
 }
 
-export const guardReads = Effect.fnUntraced(function* <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
-	return yield* Effect.sync(() => {
-		const guarded = group.middleware(ReadPolicyGuard);
-		// Native middleware runs in reverse order; identity must supply the viewer before this guard runs.
-		for (const rpc of guarded.requests.values()) {
-			Object.assign(rpc, { middlewares: new Set([ReadPolicyGuard, ...rpc.middlewares]) });
-		}
-		return guarded;
-	});
-});
+export function guardReads<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
+	return prependMiddleware(group.middleware(ReadPolicyGuard), ReadPolicyGuard.key);
+}

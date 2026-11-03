@@ -1,5 +1,5 @@
 {"path":"packages/contract/package.json","rule":"code/unused","count":1}
-{"path":"packages/contract/src/ReadPolicyGuard.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native RPC middleware order keeps read policy inside identity middleware; removing mutation requires rebuilding the group without changing authorization order (likelihood 3 x severity 6 = 18)."}
+{"path":"packages/contract/src/internal/prependMiddleware.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native RPC middleware order keeps read policy inside identity middleware; removing mutation requires rebuilding the group without changing authorization order (likelihood 3 x severity 6 = 18)."}
 {"path":"packages/contract/src/adapters/bindingOwner.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/automaticLive.ts","rule":"effect/boundary","count":2}
 {"path":"packages/contract/src/automaticLive.ts","rule":"effect/service-parameters","count":2}

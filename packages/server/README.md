@@ -25,6 +25,8 @@ The process migrates the database, serves `Api` at `/rpc` and the built client f
 
 The host composes pieces that live in their own packages. Request identity, sessions, Origin policy, permissions and Better Auth come from [`@shivaedev/identity`](https://github.com/ShivaeDev/platform/tree/main/packages/identity#readme); shared failures and redaction from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme); outside HTTP calls from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme). This package hosts them: `appHost` serves the RPC group with the application's session policy, database and migrations.
 
+The RPC host composes contract's `CommandGuard` with `publishCommand` and the `CommandPublication` port from `@shivaedev/changes/commandPublication.ts`. Session middleware supplies the viewer. Successful commands publish declared changes after their handlers finish committing, deduplicating changes already announced by the handler. Publication retries do not repeat the write; exhausted retries request a live resync while preserving the committed result. Failed commands publish no declared changes.
+
 The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, and `node-http/` combines subscription cancellation sources. Choose the modules that match the application rather than adopting every integration.
 
 ### Prepare local development

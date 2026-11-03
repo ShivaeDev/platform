@@ -74,3 +74,27 @@ commandChanges.it(
 		]);
 	},
 );
+
+commandChanges.it(
+	"a rolled-back command publishes nothing and leaves no saved note",
+	[],
+	function* ({ reject, read, publishedChanges, publicationSaw }) {
+		const refusal = yield* reject();
+
+		expect(refusal).toBe("Note rejected");
+		yield* outcomes([
+			["saved notes", () => read(), []],
+			["published changes", () => publishedChanges(), []],
+			["publication attempts", () => publicationSaw(), []],
+		]);
+	},
+);
+
+commandChanges.it("changes already announced by the handler publish once", [], function* ({ saveAnnounced, publishedChanges, nextHint }) {
+	yield* saveAnnounced();
+
+	yield* outcomes([
+		["published changes", () => publishedChanges(), [["command_notes:1", "command_notes"]]],
+		["remote hint", () => nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
+	]);
+});

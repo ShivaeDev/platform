@@ -1,12 +1,10 @@
-import { Cause, Context, Effect, ErrorReporter, Exit, Layer, Option, Predicate, Random } from "effect";
+import { Cause, Effect, ErrorReporter, Exit, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
-import { KeyScope } from "@shivaedev/contract/serverMetadata.ts";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { redactCause, redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { RequestId } from "#identity.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated, RequestTracing } from "#middleware.ts";
-import { commandChanges } from "#server/commandChanges.ts";
+import { RequestTracing } from "#middleware.ts";
 export interface RequestTracingOptions {
 	readonly header?: string;
 	readonly sensitive?: SensitiveKey;
@@ -61,11 +59,8 @@ export function requestTracingLayer(options: RequestTracingOptions = {}): Layer.
 		Effect.gen(function* () {
 			const requestId = yield* requestIdOf(headers, options.header ?? "x-request-id");
 			yield* Effect.annotateCurrentSpan({ "request.id": requestId, "rpc.method": rpc._tag });
-			const hasSession = [Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated].some((middleware) =>
-				rpc.middlewares.has(middleware),
-			);
-			const invocation = hasSession || Option.isSome(Context.getOption(rpc.annotations, KeyScope)) ? effect : commandChanges(effect, rpc, payload);
-			return yield* invocation.pipe(
+
+			return yield* effect.pipe(
 				Effect.catchCauseIf(Cause.hasDies, (cause) => Effect.failCause(redactCause(cause, options.sensitive))),
 				Effect.onExit((exit) => (Exit.isFailure(exit) ? logFailure(exit.cause, payload, options.sensitive) : Effect.void)),
 				Effect.provideService(RequestId, requestId),
