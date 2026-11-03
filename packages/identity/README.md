@@ -120,17 +120,16 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Buckets belong to the host-provided `Store` from `@shivaedev/rate-limit/Store.ts`. Better Auth chooses the rules and client-IP keys; the mount prefixes keys with `identity:auth:` and always uses that Store, overriding Better Auth's `storage` and `customStorage` options. Memory budgets are shared by mounts using the same store and reset when a new host builds a fresh memory store. PostgreSQL budgets are shared across hosts using the same database; include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migrations and provide `postgresStore` from `@shivaedev/rate-limit/adapters/postgresStore.ts`. Both stores start each window at the first admitted request; refused attempts leave the window unchanged. A refusal returns HTTP 429 with the remaining time rounded up to whole seconds in `X-Retry-After`; a store failure returns HTTP 503.
 
-The mount also requires the current account password on `/change-email`. Send it as `password` beside `newEmail` in the JSON body. Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow.
+The mount also requires the current account password on `/change-email`. Use `changeEmail` from `@shivaedev/identity/client/adapters/changeEmail.ts` with the application's Better Auth client. The browser-safe adapter returns an input-to-Effect function whose `ChangeEmailInput` requires `newEmail` and `password` and accepts an optional `callbackURL`. It maps refusals through `authCall` to typed auth failures, including `INVALID_PASSWORD`.
 
 ```ts
-await fetch("/api/auth/change-email", {
-	method: "POST",
-	headers: { "content-type": "application/json" },
-	body: JSON.stringify({ newEmail, password: currentPassword }),
-});
+import { changeEmail } from "@shivaedev/identity/client/adapters/changeEmail.ts";
+
+const submitEmailChange = changeEmail(authClient);
+yield* submitEmailChange({ newEmail, password: currentPassword });
 ```
 
-Better Auth's typed `changeEmail` method does not declare the extra `password` field; send this request through HTTP. To use a different account-verification policy, explicitly pass `{ hardening: { requirePasswordForEmailChange: false } }` as the second argument to `betterAuthMount`. Passwordless applications must make this choice before enabling email changes.
+Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow. To use a different account-verification policy, explicitly pass `{ hardening: { requirePasswordForEmailChange: false } }` as the second argument to `betterAuthMount`. Passwordless applications must make this choice before enabling email changes.
 
 Password resets revoke existing sessions by default. Set `emailAndPassword.revokeSessionsOnPasswordReset: false` in the Better Auth options to retain them explicitly. These defaults sit alongside the mount's rate limiting; application plugins and the provider's email-change settings remain in effect.
 
