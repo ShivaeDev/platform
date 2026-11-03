@@ -9,7 +9,7 @@ const Payload = Schema.Struct({});
 const Initial = defineQueue({ name: "options", queue: { expireInSeconds: 10, retryDelayMax: 10, retryLimit: 1 }, schema: Payload });
 const Changed = defineQueue({ name: "options", queue: { expireInSeconds: 45, notify: true, retryDelayMax: 30, retryLimit: 5 }, schema: Payload });
 const Repartitioned = defineQueue({
-	key: () => "entity",
+	key: [],
 	name: "options",
 	queue: { expireInSeconds: 60, partition: true, policy: "singleton" },
 	schema: Payload,

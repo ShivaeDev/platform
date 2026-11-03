@@ -20,7 +20,7 @@ database.it(
 
 		yield* outcomes([
 			["attempts", () => attempts(Gated), ["refresh 42", "reconcile 99"]],
-			["reconcile 42", () => job("reconcile 42"), expect.objectContaining({ singletonKey: "pr:42", state: "created" })],
+			["reconcile 42", () => job("reconcile 42"), expect.objectContaining({ singletonKey: '[["pullRequestId","number","42"]]', state: "created" })],
 		]);
 	},
 );
@@ -55,7 +55,7 @@ for (const { retryDelay, situation, state, tries } of earlier) {
 	];
 
 	database.it(`the next job for an entity runs while an earlier job for it ${situation}`, given, function* ({ attempts, enqueue, job, untilJob }) {
-		expect(yield* job("refresh 42")).toMatchObject({ singletonKey: "pr:42", state });
+		expect(yield* job("refresh 42")).toMatchObject({ singletonKey: '[["pullRequestId","number","42"]]', state });
 
 		yield* enqueue("app", Retried, reconcile(42), { as: "reconcile 42" });
 		yield* untilJob("reconcile 42", "completed");

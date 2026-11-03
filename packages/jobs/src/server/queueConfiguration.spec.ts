@@ -33,7 +33,7 @@ runtime.it(
 	},
 );
 
-const Immutable = defineQueue({ key: () => "entity", name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
+const Immutable = defineQueue({ key: [], name: "immutable", queue: { partition: true, policy: "singleton" }, schema: Schema.Struct({}) });
 
 runtime.it(
 	"a queue whose stored partition and policy differ fails registration, and the runtime neither updates nor works it",

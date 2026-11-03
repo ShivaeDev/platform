@@ -32,7 +32,8 @@ export interface QueueDefinition<TName extends string = string, TPayload extends
 	readonly handle: <E, R>(
 		handler: (payload: Schema.Schema.Type<TPayload>, job: JobContext) => Effect.Effect<unknown, E, R>,
 	) => QueueWorker<TPayload, R>;
-	readonly key?: ((payload: Schema.Schema.Type<TPayload>) => string) | undefined;
+	readonly id?: readonly string[] | undefined;
+	readonly key?: readonly string[] | undefined;
 	readonly maxDeferrals: number;
 	readonly name: TName;
 	readonly queueOptions: Omit<QueueOptions, "maxDeferrals">;
@@ -76,32 +77,37 @@ export type RegistrationRequirements<TRegistrations extends readonly JobRegistra
 			: never
 	: never;
 
+export type PayloadParts<TPayload extends JobPayloadSchema> = readonly {
+	[TField in Extract<keyof TPayload["Type"], string>]: TPayload["Type"][TField] extends string | number | boolean | null ? TField : never;
+}[Extract<keyof TPayload["Type"], string>][];
+
 export type DefineQueueOptions<TName extends string, TPayload extends JobPayloadSchema> = {
+	readonly id?: PayloadParts<NoInfer<TPayload>>;
 	readonly label?: string;
 	readonly name: TName;
 	readonly schema: TPayload;
 	readonly subject?: readonly SubjectColumn<NoInfer<TPayload>>[];
 	readonly worker?: WorkerOptions;
 } & (
-	| { readonly key: (payload: Schema.Schema.Type<TPayload>) => string; readonly queue: QueueOptions & { readonly policy: "singleton" } }
+	| { readonly key: PayloadParts<NoInfer<TPayload>>; readonly queue: QueueOptions & { readonly policy: "singleton" } }
 	| { readonly key?: never; readonly queue?: QueueOptions & { readonly policy?: Exclude<QueuePolicy, "singleton"> } }
 );
 
-export function defineQueue<const TName extends string, const TPayload extends JobPayloadSchema>(
-	options: DefineQueueOptions<TName, TPayload> & { readonly key: (payload: Schema.Schema.Type<TPayload>) => string },
-): QueueDefinition<TName, TPayload> & { readonly key: (payload: Schema.Schema.Type<TPayload>) => string };
-export function defineQueue<const TName extends string, const TPayload extends JobPayloadSchema>(
-	options: DefineQueueOptions<TName, TPayload> & { readonly key?: never },
-): QueueDefinition<TName, TPayload> & { readonly key?: never };
-export function defineQueue<const TName extends string, const TPayload extends JobPayloadSchema>(
-	options: DefineQueueOptions<TName, TPayload>,
-): QueueDefinition<TName, TPayload>;
+export function defineQueue<
+	const TName extends string,
+	const TPayload extends JobPayloadSchema,
+	const TId extends readonly string[] | undefined = undefined,
+	const TKey extends readonly string[] | undefined = undefined,
+>(
+	options: DefineQueueOptions<TName, TPayload> & { readonly id?: TId; readonly key?: TKey },
+): QueueDefinition<TName, TPayload> & { readonly id?: TId; readonly key?: TKey };
 export function defineQueue<const TName extends string, const TPayload extends JobPayloadSchema>(
 	options: DefineQueueOptions<TName, TPayload>,
 ): QueueDefinition<TName, TPayload> {
 	const definition: QueueDefinition<TName, TPayload> = {
 		_tag: "QueueDefinition",
-		...(options.key === undefined ? {} : { key: options.key }),
+		id: options.id === undefined ? undefined : Object.freeze([...options.id]),
+		...(options.key === undefined ? {} : { key: Object.freeze([...options.key]) }),
 		...(options.label === undefined ? {} : { label: options.label }),
 		...(options.subject === undefined ? {} : { subject: Object.freeze(options.subject.map((column) => Object.freeze({ ...column }))) }),
 		handle: (handler) =>

@@ -7,7 +7,7 @@ import { enqueued, running } from "#test/postgres/traits.ts";
 import { worker } from "#test/workers.ts";
 
 const Notes = defineQueue({
-	key: ({ id }) => id,
+	key: ["id"],
 	name: "debounced-notes",
 	queue: { policy: "singleton" },
 	schema: Schema.Struct({ id: Schema.String }),
