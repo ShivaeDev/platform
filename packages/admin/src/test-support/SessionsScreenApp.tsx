@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import { useState } from "react";
-import { SessionsView } from "#client/SessionsView.ts";
+import { SessionsView } from "#client/adapters/SessionsView.ts";
 import type { sessionsHost } from "./sessionsHost.ts";
 
 export function SessionsScreenApp({ engine }: { readonly engine: Effect.Success<ReturnType<typeof sessionsHost>> }) {
