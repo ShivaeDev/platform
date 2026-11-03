@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.33.0 - 2026-11-03
+
+### Added
+
+- Testing controllers accept a native Effect TestClock and expose `timePasses` to advance PostgreSQL job time, wake due RetryAt jobs and wait for their settlement.
+
+### Fixed
+
+- Advance the testing controller's revision when a job's deferral commits, before the next job in its batch runs, without waiting for PostgreSQL notifications.
+
 ## 0.32.0 - 2026-11-03
 
 ### Added

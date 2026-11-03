@@ -48,12 +48,12 @@ for (const source of ["migrations", "services"] as const) {
 	postgresHost.it(
 		`health answers 503 when PostgreSQL from ${source} stops answering`,
 		[databaseHealth(source)],
-		function* ({ databaseStopsAnswering, health }) {
+		function* ({ databaseStopsAnswering, health, healthAfterProbeDeadline }) {
 			expect(yield* health()).toEqual(healthy);
 
 			yield* databaseStopsAnswering();
 
-			expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
+			expect(yield* healthAfterProbeDeadline()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		},
 	);
 }

@@ -57,7 +57,7 @@ const create = Effect.gen(function* () {
 	return { client, finished, mixed, registry, rpc, state, updates };
 });
 export const rerunStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	inspect: ({ state }) => ({ calls: state.calls, denied: [...state.denied], notes: [...state.notes.values()] }),
 	name: "rerun-and-compare over WebSocket",

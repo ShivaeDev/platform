@@ -1,8 +1,9 @@
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
+import { Clock, Config, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import { TestClock } from "effect/testing";
 import { appHost } from "#appHost.ts";
 import { acknowledgeHostSignal, reportHostReady } from "#testing/hostProcessChild.ts";
 import { hostProcessReadouts } from "#testing/hostProcessReadouts.ts";
@@ -13,6 +14,7 @@ NodeRuntime.runMain(
 		if (process.argv[2] === "exit-before-ready") {
 			return;
 		}
+		const clock = yield* Clock.Clock;
 		let greeting = "hello";
 		const readouts = yield* hostProcessReadouts;
 		const hostScope = yield* Scope.make();
@@ -21,7 +23,7 @@ NodeRuntime.runMain(
 		yield* Scope.addFinalizer(shutdownScope, readouts.finalizer("HTTP host", Scope.close(hostScope, Exit.void)));
 		yield* Scope.addFinalizer(
 			shutdownScope,
-			readouts.finalizer("background workers", Scope.close(workerScope, Exit.void).pipe(Effect.andThen(Effect.sleep("60 millis")))),
+			readouts.finalizer("background workers", Scope.close(workerScope, Exit.void).pipe(Effect.andThen(TestClock.adjust("60 millis")))),
 		);
 		const refresh = yield* Deferred.make<void>();
 		const refreshing = yield* readouts
@@ -46,18 +48,26 @@ NodeRuntime.runMain(
 		);
 		function handle() {
 			greeting = "goodbye";
-			Effect.runFork(acknowledgeHostSignal("SIGUSR2"));
+			Effect.runFork(acknowledgeHostSignal("SIGUSR2").pipe(Effect.provideService(Clock.Clock, clock)));
 		}
 		function finishRefresh() {
 			Effect.runFork(
-				Deferred.succeed(refresh, undefined).pipe(Effect.andThen(Fiber.join(refreshing)), Effect.andThen(acknowledgeHostSignal("SIGUSR1"))),
+				Deferred.succeed(refresh, undefined).pipe(
+					Effect.andThen(Fiber.join(refreshing)),
+					Effect.andThen(acknowledgeHostSignal("SIGUSR1")),
+					Effect.provideService(Clock.Clock, clock),
+				),
 			);
 		}
 		function shutdown() {
 			Effect.runFork(
 				readouts
 					.shutdown(Scope.close(shutdownScope, Exit.void))
-					.pipe(Effect.andThen(acknowledgeHostSignal("SIGHUP")), Effect.andThen(Deferred.succeed(stopped, undefined))),
+					.pipe(
+						Effect.andThen(acknowledgeHostSignal("SIGHUP")),
+						Effect.andThen(Deferred.succeed(stopped, undefined)),
+						Effect.provideService(Clock.Clock, clock),
+					),
 			);
 		}
 		yield* Effect.acquireRelease(
@@ -66,5 +76,5 @@ NodeRuntime.runMain(
 		);
 		yield* reportHostReady.pipe(Effect.provideContext(context));
 		yield* Deferred.await(stopped);
-	}).pipe(Effect.scoped),
+	}).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
 );

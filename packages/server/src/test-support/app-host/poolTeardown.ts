@@ -9,7 +9,7 @@ import { appDatabase } from "#appDatabase.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const gate = yield* disconnectProxy(Redacted.value(database.url), { holdDisconnects: true });

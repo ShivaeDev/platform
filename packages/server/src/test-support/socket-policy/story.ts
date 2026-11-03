@@ -8,7 +8,7 @@ import { openHost } from "./openHost.ts";
 
 export const socketPolicyStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const host = yield* openHost;
 		return { ...host, admin: yield* host.client("admin"), alice: yield* host.client("alice"), feeds: new Map<string, Feed>() };

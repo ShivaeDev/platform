@@ -1,7 +1,7 @@
-import { Effect, Stream } from "effect";
+import { DateTime, Effect, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
-import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
@@ -30,10 +30,7 @@ const create = Effect.fnUntraced(function* () {
 	const provider = yield* createProvider();
 	const alice = yield* signedInUser(provider.auth, { email: "alice@example.test", name: "alice" });
 	const bob = yield* signedInUser(provider.auth, { email: "bob@example.test", name: "bob" });
-	const second = yield* Effect.promise(async () => {
-		const { test } = await provider.auth.$context;
-		return test.login({ userId: alice.user.id });
-	});
+	const second = yield* signInAgain(provider.auth, alice.user.id);
 	function account(session: typeof alice) {
 		return { cookie: session.cookies.map(({ name, value }) => `${name}=${value}`).join("; "), userId: session.user.id };
 	}
@@ -51,7 +48,7 @@ const create = Effect.fnUntraced(function* () {
 
 export const sessionKeys = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z"),
 	create,
 	inspect: (state) => ({ accounts: [state.alice.userId, state.bob.userId], published: state.writer.published }),
 	layer: postgres,

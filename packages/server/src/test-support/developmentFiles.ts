@@ -15,7 +15,7 @@ server.httpServer.once("listening", () => console.log("APP_READY=vite:" + proces
 	...Object.fromEntries(
 		["server", "worker"].map((kind) => [
 			`${kind}.mjs`,
-			`import { label } from "#runtime"; console.log("APP_READY=${kind}:" + process.pid + ":" + label); setInterval(() => {}, 1000);`,
+			`import { label } from "#runtime"; console.log("APP_READY=${kind}:" + process.pid + ":" + label); process.stdin.resume();`,
 		]),
 	),
 };

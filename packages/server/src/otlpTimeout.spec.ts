@@ -71,9 +71,10 @@ for (const { env, timeout } of [
 host.it(
 	"spans export on the configured batch schedule",
 	[collector({ env: { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "100", "OTEL_BSP_SCHEDULE_DELAY": "40" } }), timedExports],
-	function* ({ exportArrives, exportedSpanNames, traceRequest }) {
+	function* ({ exportArrives, exportIntervalPasses, exportedSpanNames, traceRequest }) {
 		yield* traceRequest("scheduled-export");
 
+		yield* exportIntervalPasses(40);
 		yield* exportArrives("scheduled-export");
 
 		expect(yield* exportedSpanNames()).toContain("scheduled-export");

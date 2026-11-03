@@ -4,6 +4,6 @@ export const mappedTables = {
 	user: {
 		additionalFields: { role: { fieldName: "accessRole", type: "string" } },
 		fields: { createdAt: "registeredAt", email: "contactEmail", name: "displayName", updatedAt: "modifiedAt" },
-		modelName: "authUser",
+		modelName: "users",
 	},
 } satisfies AuthTableOptions;

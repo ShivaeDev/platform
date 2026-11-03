@@ -14,7 +14,7 @@ const { url: database } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({ migrations, url: Redacted.make(database ?? "postgresql://disabled") });
 export const liveCost = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		yield* PostgresTestDatabase;
 		const host = yield* openHost;

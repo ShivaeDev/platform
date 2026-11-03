@@ -63,7 +63,7 @@ const greeting = Effect.gen(function* () {
 
 The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the method. An initialization failure fails the Layer build with that typed error and runs finalizers registered before the failure. A method failure reaches the caller as that method's typed error, and the same service instance can handle the next call. A method defect remains a defect.
 
-`initialize` and ordinary methods may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
+`initialize` and ordinary methods may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. For an ordinary method, the diagnostic names the method and its missing service types, such as `MethodHasUndeclaredServiceRequirements<"write", Reactivity>`. When a method is missing several services, the diagnostic includes their union; declared services and caller scope are excluded. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
 
 Native `Context.Reference` keys can appear in `requires`. Their defaults make them requirement-free in Effect, so they add no Layer dependency, including when the reference's value is a scope.
 

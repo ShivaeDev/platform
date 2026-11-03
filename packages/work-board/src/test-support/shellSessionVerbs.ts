@@ -27,6 +27,7 @@ function notAnswering(route: string) {
 }
 
 export function livePageShown(expectedStatus?: string) {
+	// The failed page's status survives its re-read; the route is republished once its replacement renders.
 	return () =>
 		page()?.dataset.route !== undefined
 		&& page()?.dataset.status !== undefined
@@ -38,7 +39,7 @@ export function shellSessionVerbs(engine: ScreenEngine, tell: (line: string) => 
 	return {
 		boardServerAnswers: () =>
 			Effect.promise(async () => {
-				tell("the Board server answers again and the page opens");
+				tell("the Board server answers again");
 				await act(() => {
 					engine.serverStopped = false;
 					return Promise.resolve();

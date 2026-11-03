@@ -386,6 +386,8 @@ The signal aborts on an additional signal, socket close, incomplete request clos
 
 In the child entry point, build the app host Layer, then run `reportHostReady` from `@shivaedev/server/testing/hostProcessChild.ts` with that Layer's context. It reads `HttpServer`, reports the listening URL and process ID over IPC, and fails if there is no parent IPC channel. The child must install its signal handlers before reporting readiness. After a handler finishes its work, run `acknowledgeHostSignal(signal)` from the same module. `signal(signal)` in the parent sends the OS signal and waits for that signal's IPC acknowledgement. Deliver signals sequentially, using signals the child handles; signals that kill or suspend a process cannot be acknowledged.
 
+For a restart story, pass the current host's `stop()` Effect as the replacement's `beforeStart` option. In the replacement child, run `awaitHostStart` from `@shivaedev/server/testing/hostProcessChild.ts` before building the app host Layer. This handshake lets the replacement finish loading its modules while the current host still serves requests. The parent runs `beforeStart` after the child reports preparation, then releases the child with `SIGUSR2` and waits for normal readiness. Reserve that signal until `awaitHostStart` completes.
+
 Wrap the kit in the application's story vocabulary:
 
 ```ts
@@ -395,7 +397,7 @@ import { hostProcess } from "@shivaedev/server/testing/hostProcess.ts";
 
 const host = storyKit({
 	name: "application host",
-	clock: "live",
+	clock: "test",
 	stages: [],
 	create: () => hostProcess({ module: new URL("./host.ts", import.meta.url) }),
 	verbs: (process) => ({

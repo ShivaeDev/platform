@@ -1,5 +1,6 @@
-import { DateTime, Effect } from "effect";
+import { Effect } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { mcpBearerToken } from "@shivaedev/test-kits/mcp/adapters/bearerToken.ts";
 import { connects } from "./client.ts";
 import { type Engine, person } from "./host.ts";
 import { mcp } from "./mcp.ts";
@@ -29,10 +30,9 @@ export const REFUSED_TOKENS = [
 ] as const;
 export type TokenKind = "for this endpoint" | (typeof REFUSED_TOKENS)[number];
 
-const TOKENS: Record<TokenKind, (engine: Engine, name: string, client: string) => Effect.Effect<string>> = {
+const TOKENS: Record<(typeof REFUSED_TOKENS)[number], (engine: Engine, name: string, client: string) => Effect.Effect<string>> = {
 	"for another resource, https://other.test/mcp": (engine, name, client) =>
 		sign(engine, { ...claims(engine, name, client), aud: "https://other.test/mcp" }),
-	"for this endpoint": (engine, name, client) => sign(engine, claims(engine, name, client)),
 	"issued by https://other.test/api/auth": (engine, name, client) =>
 		sign(engine, { ...claims(engine, name, client), iss: "https://other.test/api/auth" }),
 	"that has expired": (engine, name, client) => sign(engine, { ...claims(engine, name, client), exp: 1 }),
@@ -55,20 +55,16 @@ export function signedIn(name: string, role: "admin" | "user") {
 
 export function holdsToken(name: string, kind: TokenKind = "for this endpoint", client = name) {
 	return mcp.trait("tokens", `${name}'s ${client} client holds an access token ${kind}`, function* (engine) {
-		// Minted grants keep authentication preconditions independent of the browser OAuth flow.
 		const { adapter } = yield* Effect.promise(() => engine.auth.$context);
 		const clientId = `${client}-client`;
-		const now = DateTime.toDateUtc(yield* DateTime.now);
 		yield* Effect.promise(() => adapter.create({ data: { clientId, redirectUris: ["http://localhost:8123/callback"] }, model: "oauthClient" }));
-		const consent = yield* Effect.promise(() =>
-			adapter.create<{ id: string }>({
-				data: { clientId, createdAt: now, scopes: ["mcp"], updatedAt: now, userId: person(engine, name).id },
-				model: "oauthConsent",
-			}),
-		);
-		engine.grantIds.set(client, consent.id);
+		const issued = yield* mcpBearerToken(engine.auth, { clientId, resource: engine.resource, userId: person(engine, name).id });
+		engine.grantIds.set(client, issued.grantId);
 		engine.clientIds.set(client, clientId);
-		engine.tokens.set(client, yield* TOKENS[kind](engine, name, client));
+		engine.tokens.set(client, issued.token);
+		if (kind !== "for this endpoint") {
+			engine.tokens.set(client, yield* TOKENS[kind](engine, name, client));
+		}
 	});
 }
 

@@ -1,7 +1,12 @@
 import { Effect } from "effect";
 import { HttpServer } from "effect/http";
-import { sendHostMessage, sendHostReady } from "#testing/adapters/hostProcess.ts";
+import { sendHostMessage, sendHostReady, waitForHostStart } from "#testing/adapters/hostProcess.ts";
 import { HostProcessError } from "#testing/HostProcessError.ts";
+
+export const awaitHostStart = Effect.tryPromise({
+	catch: (cause) => new HostProcessError({ cause, operation: "launch" }),
+	try: waitForHostStart,
+});
 
 export const reportHostReady = HttpServer.HttpServer.pipe(
 	Effect.flatMap((server) =>

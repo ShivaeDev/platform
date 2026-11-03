@@ -15,7 +15,7 @@
 
 - `@shivaedev/work-board`: Run the socket drain period and Codex provider deadline on the native Effect clock so cancellation and timeout share the application's lifecycle and controlled time.
 
-- `@shivaedev/work-board`: Deliver watcher-state notifications before their following resync so live clients consistently observe both signals.
+- `@shivaedev/work-board`: Flush pending watcher-state notifications before publishing the following resync.
 
 ### Breaking
 

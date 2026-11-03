@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.3 - 2026-11-03
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.33.0 to 0.33.1.
+- Update `@shivaedev/server` from 0.20.2 to 0.21.0.
+- Update `@shivaedev/sql` from 0.35.0 to 0.36.0.
+- Update `@shivaedev/work-board` from 0.44.1 to 0.44.2.
+
 ## 0.32.2 - 2026-11-03
 
 ### Changed

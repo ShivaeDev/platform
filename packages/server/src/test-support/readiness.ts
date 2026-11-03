@@ -28,7 +28,7 @@ interface State {
 }
 
 export const readiness = storyKit({
-	clock: "live",
+	clock: "test",
 	*create(): Effect.fn.Return<State> {
 		return {
 			held: yield* Deferred.make<void>(),
