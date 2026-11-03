@@ -1,9 +1,9 @@
-import { type AnyRoute, createRoute, createRouter, type RouterHistory, useRouter, useRouterState } from "@tanstack/react-router";
+import { type AnyRoute, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { ReactElement, ReactNode } from "react";
-import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
+import type { ReactElement } from "react";
+import { PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
+import { Shell } from "#client/adapters/Shell.tsx";
 import type { AppSession, AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";
@@ -38,11 +38,11 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 	const routes = client.modules.flatMap((module) => module.routes({ getParentRoute: () => root }));
 	const home = createRoute({ component: (): ReactElement => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
-		context: { adminPages, auth, navigate: (to) => void router.navigate({ href: to }), registry, session },
+		context: { adminPages, auth, modules: client.modules, navigate: (to) => void router.navigate({ href: to }), registry, session },
 		defaultErrorComponent: PermissionBoundaryError,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
-		InnerWrap: RouteShell,
+		InnerWrap: Shell,
 		parseSearch,
 		stringifySearch,
 		...(history === undefined ? {} : { history }),
@@ -55,21 +55,6 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 	});
 	return router;
 });
-
-function RouteShell({ children }: { readonly children: ReactNode }): ReactElement {
-	const pending = useRouterState({ select: (state) => state.isLoading });
-	const loading = pending && <p role="status">Loading…</p>;
-	const router = useRouter();
-	return (
-		<PermissionBoundary
-			fallback={<Forbidden backLabel="Back to home" className="space-y-4 p-8 [&_a]:underline [&_h1]:text-3xl [&_h1]:font-semibold" to="/" />}
-			session={router.options.context?.session()}
-		>
-			{loading}
-			{children}
-		</PermissionBoundary>
-	);
-}
 
 declare module "@tanstack/react-router" {
 	interface Register {
