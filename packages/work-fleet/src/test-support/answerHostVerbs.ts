@@ -73,7 +73,10 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			tell(`dispatch ${workId}`);
 			return dispatchAndWait(engine.running.client, workId, engine.running.context);
 		},
-		follow: (workIds: readonly string[]) => engine.running.client("daemon.follow", { workIds }),
+		follow: (workIds: readonly string[]) => {
+			tell(`follow ${workIds.join(", ")}`);
+			return engine.running.client("daemon.follow", { workIds });
+		},
 		get: (workId = "one") => engine.running.client("fleet.get", { workId }),
 		holdAdmission: () =>
 			Effect.gen(function* () {
@@ -82,7 +85,10 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 				yield* Effect.addFinalizer(() => admission.release);
 				return admission;
 			}),
-		reconcile: (workId = "one") => engine.running.client("fleet.reconcile", { workId }),
+		reconcile: (workId = "one") => {
+			tell(`reconcile ${workId}`);
+			return engine.running.client("fleet.reconcile", { workId });
+		},
 		request,
 		resolve: (decisionId: string, responseId: string, workId = "one") => engine.running.client("fleet.resolve", { decisionId, responseId, workId }),
 		responseIndexBuilds: () => engine.spans.count("WorkBoard.searchSnapshot"),
@@ -91,12 +97,17 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			tell("start the daemon");
 			return engine.start();
 		},
-		status: () => daemonRequest(engine.running.port, (client) => client("daemon.status", {}), "status", 500),
+		status: () => {
+			tell("read daemon status");
+			return daemonRequest(engine.running.port, (client) => client("daemon.status", {}), "status", 500);
+		},
 		stop: () => {
 			tell("stop the daemon");
 			return engine.stop();
 		},
-		waitForRecord: (workId: string, ready: (record: FleetRecord) => boolean) =>
-			waitForRecord(engine.running.client, workId, ready, engine.running.context),
+		waitForRecord: (workId: string, ready: (record: FleetRecord) => boolean) => {
+			tell(`wait for ${workId}'s committed work`);
+			return waitForRecord(engine.running.client, workId, ready, engine.running.context);
+		},
 	};
 }
