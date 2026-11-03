@@ -3,7 +3,9 @@ import { createServer } from "node:http";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { GithubApi } from "#host/githubApi.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
+import { githubCiHold } from "#host/githubCiHold.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
@@ -49,6 +51,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		response.setHeader("ETag", etag);
 		if (body !== undefined && request.headers["if-none-match"] === etag) {
 			conditionalHits.push(path);
+			response.removeHeader("Link");
 			response.writeHead(HttpStatus.fromLiteral("NotModified")).end();
 			return;
 		}
@@ -71,6 +74,8 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		conditionalHits,
 		deliveryQuery: githubDelivery(readPullRequest(github.get)),
 		mutations,
+		observeCiPaths: (result: Parameters<typeof githubCiHold>[0], approvedHead?: string) =>
+			githubCiHold(result, approvedHead).pipe(Effect.provideService(GithubApi, api)),
 		publication: githubPublication(
 			{ ...host, worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" } },
 			github,
