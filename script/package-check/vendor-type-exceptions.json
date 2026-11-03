@@ -1,0 +1,175 @@
+[
+	{
+		"dependency": "better-auth",
+		"files": ["dist/server/better-auth/databaseHooks.d.ts", "dist/server/better-auth/PasswordReset.d.ts"],
+		"name": "better-auth-native-hooks",
+		"package": "@shivaedev/identity",
+		"reason": "These provider-specific Effect callbacks preserve Better Auth's hook parameters and results, including the caller's native provider options."
+	},
+	{
+		"dependency": "better-auth",
+		"files": ["dist/server/better-auth/testDatabase.d.ts", "dist/server/better-auth/testing.d.ts"],
+		"name": "better-auth-native-test-context",
+		"package": "@shivaedev/identity",
+		"reason": "Provider integration tests supply a real Better Auth instance, its test plugin context and its native migration options."
+	},
+	{
+		"dependency": "typescript",
+		"files": [
+			"dist/biome/nativeEffectCall.d.ts",
+			"dist/biome/syntax.d.ts",
+			"dist/imports/adminBindings.d.ts",
+			"dist/imports/ambient.d.ts",
+			"dist/imports/extract.d.ts",
+			"dist/imports/specifiers.d.ts",
+			"dist/naming/ownExports.d.ts",
+			"dist/rules/effect/boundaryCalls.d.ts",
+			"dist/rules/effect/boundaryReference.d.ts",
+			"dist/rules/effect/failureFindings.d.ts",
+			"dist/rules/effect/failureOperations.d.ts",
+			"dist/rules/effect/layerConstructor.d.ts",
+			"dist/rules/effect/ownsParameters.d.ts",
+			"dist/rules/effect/program.d.ts",
+			"dist/rules/effect/promiseParameter.d.ts",
+			"dist/rules/effect/publicFunctions.d.ts",
+			"dist/rules/effect/serviceCatalog.d.ts",
+			"dist/rules/effect/serviceFindings.d.ts",
+			"dist/rules/effect/serviceOrigin.d.ts",
+			"dist/rules/effect/serviceTypes.d.ts",
+			"dist/rules/effect/successRecovery.d.ts",
+			"dist/rules/importOrigins.d.ts",
+			"dist/rules/parse.d.ts",
+			"dist/rules/react/jsxChildDecision.d.ts",
+			"dist/rules/secondNames.d.ts",
+			"dist/rules/stories/collectionOrigins.d.ts",
+			"dist/rules/stories/fakeImplementation.d.ts",
+			"dist/rules/stories/fakeReplacements.d.ts",
+			"dist/rules/stories/fixtureWrites.d.ts",
+			"dist/rules/stories/importBindings.d.ts",
+			"dist/rules/stories/importOrigin.d.ts",
+			"dist/rules/stories/origins.d.ts",
+			"dist/rules/stories/program.d.ts",
+			"dist/rules/stories/registersTests.d.ts",
+			"dist/rules/stories/retryOption.d.ts",
+			"dist/rules/stories/returnValues.d.ts",
+			"dist/rules/stories/syntax.d.ts",
+			"dist/rules/stories/unitSyntax.d.ts",
+			"dist/rules/stories/usesInputs.d.ts",
+			"dist/rules/suppressions/hiddenCast.d.ts",
+			"dist/rules/suppressions/readonlyWrite.d.ts"
+		],
+		"name": "native-typescript-rule-analysis",
+		"package": "@shivaedev/quality",
+		"reason": "Quality rule helpers consume native TypeScript nodes, symbols and checkers so custom analysis composes with the compiler without a second AST model."
+	},
+	{
+		"dependency": "vitest",
+		"files": ["dist/domEnvironment.config.d.ts"],
+		"name": "native-vitest-dom-environment",
+		"package": "@shivaedev/quality",
+		"reason": "The DOM environment preset is a native Vitest configuration that consumers compose with their runner configuration."
+	},
+	{
+		"dependency": "react",
+		"files": [
+			"dist/client/QueryView.d.ts",
+			"dist/client/sessionBoundary.d.ts",
+			"dist/internal/NoticeContext.d.ts",
+			"dist/internal/PermissionContext.d.ts",
+			"dist/internal/RecheckContext.d.ts",
+			"dist/internal/SignOutRegistryContext.d.ts",
+			"dist/notices.d.ts"
+		],
+		"name": "native-react-components-and-contexts",
+		"package": "@shivaedev/react",
+		"reason": "React components, providers and contexts retain native ReactNode and Context types so applications use the renderer directly."
+	},
+	{
+		"dependency": "vitest",
+		"files": [
+			"dist/internal/mergeAttempt.d.ts",
+			"dist/internal/refuseDeclaredRetries.d.ts",
+			"dist/internal/snapshot.d.ts",
+			"dist/internal/SnapshotFiles.d.ts"
+		],
+		"name": "native-vitest-rerun-state",
+		"package": "@shivaedev/vitest-rerun",
+		"reason": "The Vitest plugin merges runner attempts and snapshots through native Vitest test modules, state and snapshot environments."
+	},
+	{
+		"dependency": "react",
+		"files": [
+			"dist/client/document/Details.d.ts",
+			"dist/client/document/layoutElements.d.ts",
+			"dist/client/document/Mermaid.d.ts",
+			"dist/client/document/useCompactHeader.d.ts",
+			"dist/client/document/useSections.d.ts",
+			"dist/client/document/View.d.ts",
+			"dist/client/react/BoardShell.d.ts",
+			"dist/client/react/ClosedDraftCard.d.ts",
+			"dist/client/react/FleetItemsContext.d.ts",
+			"dist/client/react/FormContext.d.ts",
+			"dist/client/react/GoalChart.d.ts",
+			"dist/client/react/lazyChunks.d.ts",
+			"dist/client/react/LibraryContext.d.ts",
+			"dist/client/react/MainLocationContext.d.ts",
+			"dist/client/react/ReadingReadyContext.d.ts",
+			"dist/client/react/SearchPalette.d.ts",
+			"dist/client/react/SessionContext.d.ts",
+			"dist/client/react/ThemeContext.d.ts",
+			"dist/client/react/useCopy.d.ts",
+			"dist/client/react/useDocumentOutline.d.ts",
+			"dist/client/react/useDocumentPage.d.ts",
+			"dist/client/react/useFormFocus.d.ts",
+			"dist/client/react/useSavedViews.d.ts",
+			"dist/client/react/useTodayAnswer.d.ts",
+			"dist/client/react/useVirtualRows.d.ts",
+			"dist/client/react/WorkTable.d.ts"
+		],
+		"name": "native-board-react-rendering",
+		"package": "@shivaedev/work-board",
+		"reason": "The browser entry renders React components and shares native React contexts and refs with its document and table components."
+	},
+	{
+		"dependency": "@tanstack/react-router",
+		"files": ["dist/client/react/boardRouter.d.ts", "dist/client/react/navigationLocation.d.ts"],
+		"name": "native-board-router",
+		"package": "@shivaedev/work-board",
+		"reason": "Board navigation composes a native TanStack router, route tree and history location used by the React application."
+	},
+	{
+		"dependency": "lucide-react",
+		"files": ["dist/client/react/statusPresentation.d.ts"],
+		"name": "native-board-status-icons",
+		"package": "@shivaedev/work-board",
+		"reason": "Status presentation returns Lucide React icon components for the React renderer; replacing their native props would hide the icon contract."
+	},
+	{
+		"dependency": "mdast-util-directive",
+		"files": ["dist/render/visual.d.ts", "dist/server/responses/templateNodes.d.ts"],
+		"name": "native-board-markdown-directives",
+		"package": "@shivaedev/work-board",
+		"reason": "Markdown template and visual transforms consume native mdast directive nodes so they compose with the Markdown parser tree."
+	},
+	{
+		"dependency": "vite",
+		"files": ["dist/appTestConfig.d.ts"],
+		"name": "native-vitest-app-config",
+		"package": "@shivaedev/quality",
+		"reason": "The Vitest application configuration builder preserves the native Vite configuration accepted by Vitest, including Vite plugin types."
+	},
+	{
+		"dependency": "@tanstack/router-core",
+		"files": ["dist/client/react/boardRouter.d.ts"],
+		"name": "native-board-route-tree",
+		"package": "@shivaedev/work-board",
+		"reason": "The native TanStack React router returns its route tree through router-core types, preserving typed navigation for the browser entry."
+	},
+	{
+		"dependency": "react",
+		"files": ["dist/server/mountApp.d.ts"],
+		"name": "native-browser-story-rendering",
+		"package": "@shivaedev/test-story",
+		"reason": "Browser stories mount application React trees, so the public render callback accepts native ReactNode values."
+	}
+]
