@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { task } from "#test/fleetHost.ts";
 import { host } from "#test/hostStory.ts";
@@ -78,7 +79,19 @@ for (const boundary of [
 					expect(after.decision?.code).toBe("approval-required");
 				}
 				expect(after.attempts[0]?.status).toBe("submitting");
-				expect(yield* daemon.renewCloudWork(after)).not.toBe("accepted");
+				const beforeRenewal = yield* daemon.cloudOwnership();
+				const renewal = yield* daemon.renewCloudWork(after);
+
+				yield* outcomes([
+					[
+						"renewal",
+						() => Effect.succeed(renewal),
+						boundary === "revoked-approval"
+							? "forbidden: Current Board revision needs maintainer approval"
+							: "forbidden: Reconcile and confirm terminal execution before renewing preparation",
+					],
+					["execution ownership", () => daemon.cloudOwnership(), beforeRenewal],
+				]);
 			}
 			if (recoverable) {
 				expect(after.attempts[0]?.receipt).toEqual({ sessionId: "synthetic-session", turnId: "synthetic-turn" });

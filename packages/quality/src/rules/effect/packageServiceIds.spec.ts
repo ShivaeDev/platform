@@ -2,6 +2,12 @@ import { expect } from "@effect/vitest";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { serviceIds } from "./serviceIds.ts";
 
+const workspace = repositoryHas(
+	{ content: '{"workspaces":["packages/*"]}', path: "package.json" },
+	{ content: '{"name":"@shivaedev/store"}', path: "packages/store/package.json" },
+	{ content: '{"name":"@shivaedev/service"}', path: "packages/service/package.json" },
+);
+
 for (const [name, code, id = "Store"] of [
 	["a curried Context.Service", 'Context.Service<Store>()("Store")'],
 	["a direct Context.Service", 'Context.Service<Store>("Store")'],
@@ -14,6 +20,7 @@ for (const [name, code, id = "Store"] of [
 	ruleStory.it(
 		`effect/service-ids reports ${name} with the package prefix and repair`,
 		[
+			workspace,
 			repositoryHas({
 				content: [
 					'import { Context } from "effect";',
@@ -41,6 +48,7 @@ for (const [name, code, id = "Store"] of [
 ruleStory.it(
 	"effect/service-ids accepts package-prefixed ids in every supported form",
 	[
+		workspace,
 		repositoryHas({
 			content: [
 				'import { Context } from "effect";',
@@ -66,6 +74,7 @@ ruleStory.it(
 ruleStory.it(
 	"effect/service-ids follows import and local aliases in adapters and test-support, including template and quoted ids",
 	[
+		workspace,
 		repositoryHas(
 			{
 				content: 'import * as C from "effect/Context"; const { Service: tag } = C; tag<Store>()(`@shivaedev/other/Store`);',
@@ -95,6 +104,7 @@ ruleStory.it(
 ruleStory.it(
 	"effect/service-ids leaves computed ids, unrelated constructors and files outside packages alone",
 	[
+		workspace,
 		repositoryHas(
 			{
 				content: [
@@ -119,6 +129,7 @@ ruleStory.it(
 ruleStory.it(
 	"effect/service-ids checks defineService through the service package's own alias",
 	[
+		workspace,
 		repositoryHas({
 			content: 'import { defineService } from "#defineService.ts"; defineService({ id: "Local" });',
 			path: "packages/service/src/local.ts",

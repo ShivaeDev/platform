@@ -105,7 +105,7 @@ engine.it(
 			Effect.gen(function* () {
 				const restarted = yield* Fleet;
 				const denied = yield* refusal(restarted.resolve("one", decision.id, answer));
-				expect(denied).not.toBe("accepted");
+				expect(denied).toBe("conflict: Board context changed");
 				const stopped = yield* restarted.reconcile("one");
 				expect(stopped.value.step).toBe("waiting");
 				expect(stopped.value.decision?.reason).toBe("Board context changed");

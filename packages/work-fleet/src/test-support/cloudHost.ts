@@ -35,6 +35,9 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 			provider: hostProvider(engine.fixture.host),
 		});
 	}
+	function records() {
+		return Effect.flatMap(Fleet, (fleet) => fleet.list()).pipe(Effect.provide(runtime()));
+	}
 	return {
 		awaitProcessRecord: (client: Effect.Success<ReturnType<typeof daemonClient>>, workId: string, ready: (record: FleetRecord) => boolean) => {
 			let last: FleetRecord | undefined;
@@ -53,9 +56,21 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 				Effect.mapError((cause) => new Error(`Process work did not settle: ${JSON.stringify(last)}`, { cause })),
 			);
 		},
+		cloudOwnership: () =>
+			records().pipe(
+				Effect.map((stored) =>
+					stored.map(({ value }) => ({
+						attempts: value.attempts,
+						decision: value.decision?.id,
+						responses: value.responses,
+						step: value.step,
+						workId: value.workId,
+					})),
+				),
+			),
 		cloudReconcile: (workId: string, noChange = false) =>
 			Effect.flatMap(Fleet, (fleet) => fleet.reconcile(workId)).pipe(Effect.provide(runtime(noChange))),
-		cloudRecords: () => Effect.flatMap(Fleet, (fleet) => fleet.list()).pipe(Effect.provide(runtime())),
+		cloudRecords: records,
 		processClient: (url: string | undefined) => {
 			if (url === undefined) {
 				throw new Error("Wait for the process listener before connecting");

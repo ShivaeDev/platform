@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.0 - 2026-11-03
+
+### Breaking
+
+- Move `watchHints`, `heard`, `layerMemoryProtocol` and `HintViewer` from `@shivaedev/contract/testing.ts` to `@shivaedev/test-kits/contract/testing.ts`. Add test-kits as a development dependency.
+
 ## 0.32.0 - 2026-11-03
 
 ### Added

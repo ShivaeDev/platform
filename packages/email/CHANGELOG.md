@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-11-03
+
+### Breaking
+
+- Move `inbox`, `emailLink` and `ReceivedEmail` from `@shivaedev/email/server/testing/adapters/inbox.ts` to `@shivaedev/test-kits/email/adapters/inbox.ts`. Add test-kits as a development dependency. Email no longer has a test-story peer dependency.
+
 ## 0.2.0 - 2026-11-03
 
 ### Breaking

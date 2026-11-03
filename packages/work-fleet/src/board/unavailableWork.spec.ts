@@ -34,7 +34,7 @@ boardReadStory.it(
 	[hasBoardItems(2)],
 	function* ({ approvalOf, duringOnePass, makeReadable, makeUnreadable, refusalOf }) {
 		yield* makeUnreadable("1.md");
-		expect(yield* duringOnePass(refusalOf("item.1"))).not.toBe("accepted");
+		expect(yield* duringOnePass(refusalOf("item.1"))).toBe("Board failure: Board sources are unavailable: 1.md");
 
 		yield* makeReadable();
 

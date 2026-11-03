@@ -18,6 +18,6 @@ export function reportAttachmentVerbs(fixture: Effect.Success<ReturnType<typeof 
 					).pipe(Layer.provide(fixture.board)),
 				),
 			),
-		responseFiles: () => readdirSync(join(fixture.root, "responses")),
+		responseFiles: () => (readdirSync(fixture.root).includes("responses") ? readdirSync(join(fixture.root, "responses")) : []),
 	};
 }

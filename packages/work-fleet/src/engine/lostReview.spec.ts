@@ -1,4 +1,6 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { reviewAcknowledgementIsLost } from "#test/engineReviewFaultTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { refusal } from "#test/refusal.ts";
@@ -32,7 +34,8 @@ for (const exhausted of [false, true]) {
 					yield* restart();
 					yield* schedule();
 				}
-				const queued = (yield* fleet.get("one")).value;
+				const queuedRecord = yield* fleet.get("one");
+				const queued = queuedRecord.value;
 				expect(providerReadCount()).toBe(failure * 5);
 				expect(queued.step).toBe("reviewing");
 				expect(queued.decision).toBeUndefined();
@@ -40,9 +43,16 @@ for (const exhausted of [false, true]) {
 				expect(queued.attempts.at(-1)?.readRetry).toBeUndefined();
 				expect(queued.launchRetry).toMatchObject({ rejections: failure, retryAt: currentTime() + 30_000 * 2 ** (failure - 1) });
 				expect(publishedDecisions()).toHaveLength(0);
-				expect(
-					yield* refusal(acknowledgeProviderTurn(queued.attempts.at(-1)?.operationId ?? "missing", { sessionId: "late", turnId: "late" })),
-				).not.toBe("accepted");
+				const late = yield* refusal(acknowledgeProviderTurn(queued.attempts.at(-1)?.operationId ?? "missing", { sessionId: "late", turnId: "late" }));
+
+				yield* outcomes([
+					[
+						"late acknowledgement",
+						() => Effect.succeed(late),
+						"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
+					],
+					["execution record", () => fleet.get("one"), queuedRecord],
+				]);
 				advanceTime(30_000 * 2 ** (failure - 1));
 				yield* restart();
 				yield* schedule();

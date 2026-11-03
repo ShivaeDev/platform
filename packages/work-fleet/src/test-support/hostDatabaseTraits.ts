@@ -29,3 +29,9 @@ export const legacyRecords = host.trait("configuration", "Fleet has populated le
 export const diagnosticClock = host.trait("configuration", "diagnostic requests observe a controlled wall clock", (engine) => {
 	engine.diagnosticNow = 10 * 24 * 60 * 60 * 1000;
 });
+
+export const missingRecordsTable = host.trait("observation", "the running daemon loses its records table", (engine) =>
+	Effect.flatMap(SqlClient.SqlClient, (sql) => sql`drop table ${sql(`${engine.fixture.host.namespace}_records`)} cascade`).pipe(
+		Effect.provide(hostDatabase(engine.fixture.host, "fleet-story-control", 1)),
+	),
+);

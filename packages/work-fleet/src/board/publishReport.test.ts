@@ -111,25 +111,29 @@ for (const revision of ["authored brief", "saved whole-file"] as const) {
 	);
 
 	boardReadStory.it(
-		`a report against the ${revision} revision of a changed brief is refused`,
+		`a report against the ${revision} revision of a changed brief is refused without publishing`,
 		[hasBoardItems(1)],
-		function* ({ read, report, writeSource }) {
+		function* ({ read, report, responseFiles, writeSource }) {
 			const work = yield* read("item.0");
 			const original = { ...work, revision: revision === "saved whole-file" ? revisionOf(work.context) : work.revision };
 
 			yield* writeSource("0.md", `${original.context}\nChanged scope.\n`);
 
-			expect(yield* refusal(report(original, observation("Stale report.", "stale")))).not.toBe("accepted");
+			expect(yield* refusal(report(original, observation("Stale report.", "stale")))).toBe(
+				"Board failure: Report needs nonempty completed output and the exact current Board context.",
+			);
+			expect(responseFiles()).toEqual([]);
 		},
 	);
 }
 
-boardReadStory.it("a report for a brief whose identity was forged is refused", [hasBoardItems(1)], function* ({ read, report }) {
+boardReadStory.it("a forged brief is refused without publishing a report", [hasBoardItems(1)], function* ({ read, report, responseFiles }) {
 	const work = yield* read("item.0");
 
 	const forged = yield* refusal(
 		report({ ...work, context: work.context.replace("id: item.0", "id: other") }, observation("Forged report.", "forged")),
 	);
 
-	expect(forged).not.toBe("accepted");
+	expect(forged).toBe("Board failure: Report needs nonempty completed output and the exact current Board context.");
+	expect(responseFiles()).toEqual([]);
 });

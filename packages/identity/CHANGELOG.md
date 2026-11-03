@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 - 2026-11-03
+
+### Breaking
+
+- Move `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/identity/server/better-auth/testing.ts` to `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. Move `testUserEmail` and `signedSessionToken` from `@shivaedev/identity/server/better-auth/adapters/testingCredentials.ts` to `@shivaedev/test-kits/identity/adapters/testingCredentials.ts`. Add test-kits as a development dependency.
+
 ## 0.20.0 - 2026-11-03
 
 ### Added
