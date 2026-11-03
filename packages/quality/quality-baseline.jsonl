@@ -10,7 +10,7 @@
 {"path":"packages/quality/src/baseline/legacy.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/mergeCleanup.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/migration.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/baseline/packageDebt.spec.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/quality/src/baseline/packageDebt.heavy.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/parallelMerges.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/prune.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/rewrite.unit.test.ts","rule":"effect/adapter-imports","count":1}

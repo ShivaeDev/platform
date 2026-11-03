@@ -57,11 +57,16 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 						...(coverage === true ? {} : coverage),
 					},
 				}),
-		project: ["unit", "pure", "dom"],
+		project: ["unit", "pure", "dom", "heavy"],
 		projects: [
 			{
 				extends: true,
-				test: { environment: "node", exclude: excluding(named("dom"), named("slow"), named("unit")), include: [named()], name: "unit" },
+				test: {
+					environment: "node",
+					exclude: excluding(named("dom"), named("slow"), named("unit"), named("heavy")),
+					include: [named()],
+					name: "unit",
+				},
 			},
 			{
 				extends: true,
@@ -80,6 +85,17 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 					exclude: excluding(named("slow")),
 					include: [named("dom")],
 					name: "dom",
+				},
+			},
+			{
+				extends: true,
+				test: {
+					environment: "node",
+					exclude: excluding(),
+					include: [named("heavy")],
+					maxWorkers: 1,
+					name: "heavy",
+					sequence: { groupOrder: 1 },
 				},
 			},
 			{ extends: true, test: { environment: "node", exclude: excluding(), include: [named("slow")], name: "slow" } },

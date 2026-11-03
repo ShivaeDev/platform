@@ -42,7 +42,7 @@ export default async function workspace() {
 				reportOnFailure: true,
 				reportsDirectory: `${root}.ci/coverage`,
 			},
-			project: ["*:unit", "*:pure", "*:dom"],
+			project: ["*:unit", "*:pure", "*:dom", "*:heavy"],
 			projects,
 			sequence: { sequencer: TestSequencer },
 		},
