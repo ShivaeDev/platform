@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Schema } from "effect";
+import { Config, Context, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
@@ -9,7 +9,7 @@ import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
 
 const endpointUrl = Schema.URL.check(Schema.makeFilter((url) => url.protocol === "http:" || url.protocol === "https:"));
 
-export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
+export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.effectContext(
 	Effect.gen(function* () {
 		const tracesEndpoint = yield* Config.schema(endpointUrl, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").pipe(Config.withDefault(undefined));
 		const endpoint =
@@ -22,7 +22,7 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 				Config.withDefault(undefined),
 			));
 		if (endpoint === undefined) {
-			return Layer.empty;
+			return Context.empty();
 		}
 		const configuredProtocol = yield* Config.String("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL").pipe(
 			Config.orElse(() => Config.String("OTEL_EXPORTER_OTLP_PROTOCOL")),
@@ -60,9 +60,11 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 			Layer.provide(otlpHttpClient(requestTimeout)),
 		);
 		const sensitive = yield* RedactionPolicy;
-		return redactingDiagnostics(sensitive).pipe(
-			Layer.provideMerge(traceDiagnostics),
-			Layer.provideMerge(redactingTracer(sensitive).pipe(Layer.provideMerge(tracer))),
+		return yield* Layer.build(
+			redactingDiagnostics(sensitive).pipe(
+				Layer.provideMerge(traceDiagnostics),
+				Layer.provideMerge(redactingTracer(sensitive).pipe(Layer.provideMerge(tracer))),
+			),
 		);
 	}),
 );
