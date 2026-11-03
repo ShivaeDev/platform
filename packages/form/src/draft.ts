@@ -1,12 +1,13 @@
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRef from "effect/reactivity/AtomRef";
-import { accepted, changed, type Draft, type Entries, localBaseline, merged, untouched } from "./draftValues.ts";
+import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, untouched } from "./draftValues.ts";
 import type { Persistence, StoredValues } from "./persistence.ts";
 
 export function draft<TValues extends Entries>(initial: TValues, persistence?: Persistence<TValues>) {
 	const none: Entries = {};
 	const state = AtomRef.make<Draft<TValues>>({ baseline: initial, current: initial, settled: none });
-	let observed = initial;
+	const local = new Set<string>();
+	let previous = initial;
 	let receiving = false;
 	let refreshing = false;
 	function withoutWriting(run: () => void) {
@@ -26,24 +27,38 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 					held.baseline,
 				)
 			: held.baseline;
-		withoutWriting(() => state.update((value) => ({ ...value, current: merged({ ...value, baseline: observed, settled: none }, incoming) })));
-		observed = incoming;
-		return !changed({ baseline: incoming, current: state.value.current, settled: none });
+		withoutWriting(() => state.update((value) => ({ ...value, current: mergeObserved(value.current, incoming, local) })));
+		return local.size === 0;
 	}
 	const mounted = Atom.readable((get) => {
 		if (persistence) {
 			get.addFinalizer(persistence.observe(restore));
 		}
 	});
+	function releaseCleanFields() {
+		for (const name of local) {
+			if (untouched(state.value, name)) {
+				local.delete(name);
+			}
+		}
+	}
 	function store(value: Draft<TValues>, sameInput = refreshing) {
 		const edited = Object.keys({ ...value.baseline, ...value.current }).filter((name) => !untouched(value, name));
 		persistence?.write({ ...value.baseline, ...value.settled }, value.current, edited, sameInput);
 	}
 	if (persistence) {
 		state.subscribe((value) => {
+			const before = previous;
+			previous = value.current;
 			if (receiving) {
 				return;
 			}
+			if (!refreshing) {
+				for (const name of changedFields(before, value.current)) {
+					local.add(name);
+				}
+			}
+			releaseCleanFields();
 			if (changed(value)) {
 				store(value);
 			} else {
@@ -59,7 +74,6 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 		}),
 		mounted,
 		receive: (incoming: TValues): void => {
-			observed = merged({ ...state.value, current: observed }, incoming);
 			refreshing = true;
 			state.update((held) => ({
 				baseline: incoming,
@@ -67,7 +81,7 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 				settled: none,
 			}));
 			refreshing = false;
-			observed = localBaseline(state.value, observed);
+			releaseCleanFields();
 		},
 		revert: (): void => {
 			state.update((held) => ({
@@ -82,7 +96,7 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 			return {
 				accept: (incoming?: TValues): void => {
 					withoutWriting(() => state.update((held) => accepted(held, baseline, submitted, incoming)));
-					observed = localBaseline(state.value, observed);
+					releaseCleanFields();
 					if (changed(state.value)) {
 						store(state.value, true);
 					} else {

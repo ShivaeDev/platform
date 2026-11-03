@@ -111,3 +111,15 @@ sharedDrafts.it("an editor follows observed input after its own submission succe
 
 	expect(yield* shown("first")).toEqual({ name: "Next answer", quantity: "300" });
 });
+
+sharedDrafts.it("an observed draft matching local text keeps that text protected from later changes", [], function* ({ open, shown, type }) {
+	yield* open("first");
+	yield* open("second");
+	yield* type("second", "name", "Local answer");
+	yield* type("first", "quantity", "350");
+	expect(yield* shown("second")).toEqual({ name: "Local answer", quantity: "350" });
+
+	yield* type("first", "name", "Other answer");
+
+	expect(yield* shown("second")).toEqual({ name: "Local answer", quantity: "350" });
+});

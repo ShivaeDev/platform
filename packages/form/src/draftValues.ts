@@ -36,16 +36,20 @@ function matching(current: Entries, submitted: Entries): Entries {
 	);
 }
 
-export function localBaseline<TValues>(held: Draft<TValues>, previous: TValues): TValues;
-export function localBaseline(held: Draft<Entries>, previous: Entries): unknown {
+export function mergeObserved<TValues>(current: TValues, incoming: TValues, local: ReadonlySet<string>): TValues;
+export function mergeObserved(current: Entries, incoming: Entries, local: ReadonlySet<string>): unknown {
 	const result: Record<string, unknown> = {};
-	for (const name of Object.keys({ ...held.current, ...previous })) {
-		const source = untouched(held, name) ? held.current : previous;
+	for (const name of Object.keys({ ...current, ...incoming })) {
+		const source = local.has(name) ? current : incoming;
 		if (Object.hasOwn(source, name)) {
 			result[name] = source[name];
 		}
 	}
 	return result;
+}
+
+export function changedFields(previous: Entries, current: Entries): readonly string[] {
+	return Object.keys({ ...previous, ...current }).filter((name) => !Equal.equals(previous[name], current[name]));
 }
 
 export function accepted<TValues extends Entries>(held: Draft<TValues>, baseline: TValues, submitted: TValues, incoming?: TValues): Draft<TValues> {
