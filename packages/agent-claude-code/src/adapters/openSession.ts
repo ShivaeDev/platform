@@ -1,17 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
-import type { EffortLevel, SDKUserMessage, SessionStore } from "@anthropic-ai/claude-agent-sdk";
-import { type Cause, Effect, Queue, Stream } from "effect";
+import type { EffortLevel, SessionStore } from "@anthropic-ai/claude-agent-sdk";
+import { type Cause, Effect, Queue, type Scope, Stream } from "effect";
 import { BackendUnavailable } from "@shivaedev/agent/failures.ts";
 import type { Input, StartRequest } from "@shivaedev/agent/run.ts";
+import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
 import { consumeSession } from "#adapters/consumeSession.ts";
 import { InputQueue } from "#adapters/InputQueue.ts";
 import { repairSession } from "#adapters/repairSession.ts";
-import type { Delivery } from "#adapters/sessionLanes.ts";
+import { type Delivery, openSessionLanes } from "#adapters/sessionLanes.ts";
 import { sessionOptions } from "#adapters/sessionOptions.ts";
 import { makeToolServer } from "#adapters/toolServer.ts";
-import { ClaudeProvider } from "#ClaudeProvider.ts";
 import type { ClaudeOptions } from "#options.ts";
+import type { SessionConnection } from "#SessionConnection.ts";
 
 function unavailable(error: unknown) {
 	return new BackendUnavailable({ backend: "claude-code", message: String(error) });
@@ -22,7 +23,7 @@ export const openSession = Effect.fn("ClaudeCode.openSession")(function* (
 	config: ClaudeOptions,
 	effort: EffortLevel | undefined,
 	resume: string | undefined,
-) {
+): Effect.fn.Return<SessionConnection, BackendUnavailable, ClaudeProvider | Scope.Scope> {
 	const peer = yield* ClaudeProvider;
 	const deliveries = yield* Queue.unbounded<Delivery, BackendUnavailable | Cause.Done>();
 	const tools = config.tools ?? [];
@@ -78,9 +79,9 @@ export const openSession = Effect.fn("ClaudeCode.openSession")(function* (
 						live.close();
 						Queue.endUnsafe(deliveries);
 					},
-					deliveries: Stream.fromQueue(deliveries),
-					interrupt: Effect.tryPromise({ catch: unavailable, try: () => live.interrupt() }),
-					queue: (value: Input, priority?: SDKUserMessage["priority"]) => {
+					events: Stream.fromQueue(deliveries).pipe(Stream.map(openSessionLanes().deliver), Stream.flattenIterable),
+					interrupt: Effect.tryPromise({ catch: unavailable, try: () => live.interrupt() }).pipe(Effect.asVoid),
+					queue: (value: Input, priority?: "now") => {
 						const uuid = randomUUID();
 						if (value.id !== undefined) {
 							inputIds.set(uuid, value.id);

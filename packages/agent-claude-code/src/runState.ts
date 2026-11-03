@@ -2,19 +2,14 @@ import { Deferred, Effect, Exit, PubSub, Ref, Stream, type Take } from "effect";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
 import { type ReadFailure, UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { ExecutionState, Receipt } from "@shivaedev/agent/run.ts";
-import type { openSession } from "#adapters/openSession.ts";
-import { openSessionLanes } from "#adapters/sessionLanes.ts";
-export const makeRunState = Effect.fn("ClaudeCode.makeRunState")(function* (
-	operationId: string,
-	session: Effect.Success<ReturnType<typeof openSession>>,
-) {
+import type { SessionConnection } from "#SessionConnection.ts";
+export const makeRunState = Effect.fn("ClaudeCode.makeRunState")(function* (operationId: string, session: SessionConnection) {
 	const acknowledged = yield* Deferred.make<Receipt, UnknownAcceptance>();
 	const history = yield* Ref.make<readonly RunEvent[]>([]);
 	const state = yield* Ref.make<typeof ExecutionState.Type>("accepted");
 	const terminalSeen = yield* Ref.make(false);
 	const failure = yield* Ref.make<ReadFailure | undefined>(undefined);
 	const hub = yield* PubSub.unbounded<Take.Take<RunEvent, ReadFailure>>({ replay: Number.POSITIVE_INFINITY });
-	const lanes = openSessionLanes();
 	function publish(event: RunEvent) {
 		return Ref.update(history, (events) => [...events, event]).pipe(Effect.andThen(PubSub.publish(hub, [event])));
 	}
@@ -40,8 +35,8 @@ export const makeRunState = Effect.fn("ClaudeCode.makeRunState")(function* (
 			yield* publish(event);
 		});
 	}
-	const consume = session.deliveries.pipe(
-		Stream.runForEach((delivery) => Effect.forEach(lanes.deliver(delivery), observe, { discard: true })),
+	const consume = session.events.pipe(
+		Stream.runForEach(observe),
 		Effect.matchEffect({
 			onFailure: (error) =>
 				Ref.set(failure, error).pipe(
