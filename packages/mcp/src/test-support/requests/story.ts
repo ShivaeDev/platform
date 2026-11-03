@@ -29,7 +29,6 @@ type Engine = Effect.Success<ReturnType<typeof start>>;
 type Person = "alice" | "bob";
 
 export const requestsStory = storyKit({
-	clock: "live",
 	create: start,
 	name: "MCP request isolation over HTTP",
 	stages: [],
