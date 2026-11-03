@@ -347,11 +347,27 @@ import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "@shivae
 
 `clientReadKeys(keys, context)` registers client dependencies; `clientInvalidationKeys(keys, context)` announces client cache changes. The context has type `KeyContext`. Never publish contextual client keys on the server.
 
+### Compose feature bindings
+
+Use `composeBindings(client, bindings)` when a connection contains several feature modules. The returned object keeps the client's fields and types and carries an explicit list of bound APIs. `liveBindings(connection)` reads this list; it also accepts a binding directly or an object with bound APIs as its own properties.
+
+```ts
+import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
+
+const modules = [notesModule, tasksModule] as const;
+const connection = composeBindings(
+	{ modules },
+	modules.map((module) => module.api),
+);
+```
+
+`notesModule` and `tasksModule` are application modules whose `api` values come from `bind` or `makeClient`. Return `connection` from React's `SessionBoundary` connection callback to mount both bindings while keeping the modules nested.
+
 ### 4. Live invalidation and resume
 
 The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries. Bindings on the same client runtime share this pause state.
 
-Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary mounts the bindings declared with `composeBindings`, or finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
 Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
 

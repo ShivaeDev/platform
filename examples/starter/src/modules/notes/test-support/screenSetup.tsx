@@ -14,6 +14,7 @@ import type { AuthActions } from "#client/auth.ts";
 import type { Credentials } from "#client/Credentials.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
@@ -43,11 +44,12 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 			tell: () => undefined,
 		}).settle();
 	}
-	const router = yield* appRouter(
-		connectModules([notesRegistration(engine.client)]),
-		screenAuth(),
-		createMemoryHistory({ initialEntries: [route] }),
-		() => (signedIn ? { user: { id: "alice" } } : undefined),
+	const connection = yield* notesRegistration(engine.client).pipe(
+		Effect.map((module) => connectModules([module])),
+		Effect.provideService(AtomRegistry.AtomRegistry, view.registry),
+	);
+	const router = yield* appRouter(connection, screenAuth(), createMemoryHistory({ initialEntries: [route] }), () =>
+		signedIn ? { user: { id: "alice" } } : undefined,
 	).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
@@ -106,7 +108,7 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	const view = yield* acquireScreen(engine);
 	const history = createMemoryHistory({ initialEntries: [route] });
 	yield* Effect.promise(() =>
-		view.render(<App auth={fixture.auth} connect={() => connectModules([notesRegistration(engine.client)])} history={history} />),
+		view.render(<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={history} />),
 	);
 	yield* screenDriver({
 		act,
@@ -161,7 +163,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 		await view.render(
 			<SessionApp
 				auth={auth}
-				connect={(session) => connectModules([notesRegistration(connection(session))])}
+				connect={(session) => clientModules(session, [notesRegistration(connection(session))])}
 				history={history}
 				recheck={recheck}
 				session={{ user: { id } }}

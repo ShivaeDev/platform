@@ -1,4 +1,6 @@
 import { createRoute, redirect } from "@tanstack/react-router";
+import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
@@ -9,7 +11,13 @@ import { type FoundationClient, makeFoundationClient } from "./foundation.ts";
 import { AdminSessions } from "./Sessions.tsx";
 import { AdminShell } from "./Shell.tsx";
 
-export function foundationRegistration(client: FoundationClient = makeFoundationClient(new URL("/rpc", window.location.href).href)) {
+export function foundationRegistration(client?: FoundationClient) {
+	return Effect.map(AtomRegistry.AtomRegistry, (registry) =>
+		foundationModule(client ?? makeFoundationClient(new URL("/rpc", window.location.href).href, { registry })),
+	);
+}
+
+function foundationModule(client: FoundationClient) {
 	return {
 		admin: foundation.admin,
 		api: client.users,

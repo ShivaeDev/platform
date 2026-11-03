@@ -2,7 +2,7 @@ import { Cause, type Duration, Effect, Option, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
-import { liveBindings } from "#internal/liveBindings.ts";
+import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import { registerLiveWindow } from "#internal/registerLiveWindow.ts";
 import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
 

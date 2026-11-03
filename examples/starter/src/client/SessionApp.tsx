@@ -1,9 +1,9 @@
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
-import { useState } from "react";
-import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
+import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
+import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
 import type { AppSession, AuthActions } from "./auth.ts";
-import type { AppConnection } from "./Module.ts";
+import type { ClientConnection } from "./Module.ts";
 import { clientModules } from "./modules.ts";
 
 interface Session {
@@ -30,13 +30,13 @@ export function SessionApp({
 	readonly userId: string | undefined;
 	readonly recheck: () => void;
 	readonly auth: AuthActions;
-	readonly connect?: ((session: Session) => AppConnection) | undefined;
+	readonly connect?: ClientConnection | undefined;
 	readonly history?: RouterHistory | undefined;
 }) {
 	const location = history?.location ?? window.location;
 	const redirectTo = location.pathname === "/sign-in" ? (new URLSearchParams(location.search).get("returnTo") ?? "/") : undefined;
 	return (
-		<SessionBoundary
+		<SessionConnectionBoundary
 			connect={connection}
 			identify={identify}
 			navigate={history === undefined ? undefined : (href) => history.replace(href)}
@@ -46,7 +46,7 @@ export function SessionApp({
 			signedOut={<SignedOutApp auth={auth} connection={connection} history={history} recheck={recheck} />}
 		>
 			{(client) => <RoutedApp auth={auth} client={client} history={history} recheck={recheck} session={session} />}
-		</SessionBoundary>
+		</SessionConnectionBoundary>
 	);
 }
 
@@ -54,8 +54,8 @@ function SignedOutApp({
 	connection,
 	...routing
 }: Omit<Routing, "client" | "session"> & {
-	readonly connection: (session: Session) => AppConnection;
+	readonly connection: ClientConnection;
 }) {
-	const [client] = useState(() => connection({ id: "anonymous" }));
+	const client = useAnonymousConnection(connection);
 	return <RoutedApp {...routing} client={client} />;
 }
