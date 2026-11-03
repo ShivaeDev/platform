@@ -2,6 +2,8 @@ import { Cause, Effect, Exit, Scope } from "effect";
 import { createElement } from "react";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
+import { storyClock } from "#test/storyTime.ts";
 import { mountSession } from "./mountSession.ts";
 import { createScreen, type ScreenEngine, trackScreen } from "./screenEngine.ts";
 
@@ -33,7 +35,8 @@ export const screenScopeStory = storyKit({
 			engine.screen = yield* Effect.gen(createScreen).pipe(Effect.provideService(Scope.Scope, engine.scope));
 		},
 	},
-	clock: "live",
+	around: driveWatchTimers,
+	clock: storyClock,
 	*create() {
 		const scope = yield* Effect.acquireRelease(Scope.make(), (current) => Scope.close(current, Exit.void));
 		const engine: ScreenScope = { browserFetch: globalThis.fetch, containers: [], scope };

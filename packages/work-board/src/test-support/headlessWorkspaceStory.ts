@@ -4,6 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { Workspace } from "#server/workspace.ts";
 import { workspaceLayer } from "#server/workspaceLayer.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { type Folder, folder } from "./board.ts";
 
 interface Engine {
@@ -46,7 +47,8 @@ export const headlessWorkspaceStory = storyKit({
 			engine.output = yield* PubSub.subscribe(engine.changes.events);
 		},
 	},
-	clock: "live",
+	around: driveWatchTimers,
+	clock: "test",
 	*create() {
 		const notes = yield* Effect.acquireRelease(
 			Effect.sync(() => folder({})),

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Cause, Clock, Deferred, Effect, Exit, Fiber, Order } from "effect";
 import { folder, type RunningBoard, rawGet, rawPost, startBoard } from "./board.ts";
 import { boardCommand } from "./boardCommand.ts";
+import { driveDrainPeriod } from "./driveWatchTimers.ts";
 import { answered, answeredPromise } from "./liveOutcomes.ts";
 import { type BoardPlace, octal, sameOverBoth, serverAnswerOf, socketCall, socketFileOf, socketState } from "./liveSockets.ts";
 import { liveState, present } from "./liveState.ts";
@@ -69,10 +70,10 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 			return Effect.map(command().exit(), () => label(command().output()));
 		},
 		commandSignalled: Effect.fn("Story.commandSignalled")(function* (signal: NodeJS.Signals) {
-			const before = yield* Clock.currentTimeMillis;
+			const before = performance.now();
 			command().signal(signal);
 			yield* command().exit();
-			state.commandStop = (yield* Clock.currentTimeMillis) - before;
+			state.commandStop = performance.now() - before;
 		}),
 		commandStarts: Effect.fn("Story.commandStarts")(function* (args: readonly string[] = []) {
 			state.command = yield* boardCommand(engine, args, tell);
@@ -231,7 +232,7 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 		stopTimed: Effect.fn("Story.stopTimed")(function* () {
 			tell("the board shuts down");
 			state.stopStarted = yield* Clock.currentTimeMillis;
-			yield* served(engine).board.stop();
+			yield* driveDrainPeriod(served(engine).board.stop());
 		}),
 		unfinishedRequestEnd: () => {
 			tell("the reader sees how the unfinished request ended");

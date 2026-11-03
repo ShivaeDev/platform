@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -8,6 +7,7 @@ import { unreadableHome } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles } from "#test/screenWorkspaceTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 expectNoReactWarnings();
 
@@ -15,7 +15,7 @@ const STORAGE = "Where should the project documents live?";
 const KEEP_LOCAL = "Keep local files · Recommended Read and write Markdown in the project folder.";
 const INBOX = routedScreen({ "home.md": "# Release plans\n", "question.md": inboxQuestion }, "/", { home: "home.md", writable: true });
 const UNREADABLE = "Some files couldn't be read, so what needs you is unknown.";
-const NOW = Effect.runSync(Clock.currentTimeMillis);
+const NOW = STORY_NOW;
 
 screenStory.it(
 	"choosing an option on Today moves the question to Answered as waiting on its agent, leaving Needs you empty without offering Getting started",

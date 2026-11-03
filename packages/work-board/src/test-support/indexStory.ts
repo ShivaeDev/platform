@@ -94,7 +94,7 @@ export const indexStory = storyKit({
 			index.reads.length = 0;
 		},
 	},
-	clock: "live",
+	clock: "test",
 	*create() {
 		const notes = yield* Effect.acquireRelease(
 			Effect.sync(() => folder({})),

@@ -5,6 +5,7 @@ import { Deferred, Effect, Fiber, FileSystem, Order, PubSub, Stream } from "effe
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Change, type Changes, watchChanges } from "#server/files/changes.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { type Folder, folder } from "./board.ts";
 import { readinessEvents } from "./readinessEvents.ts";
 
@@ -69,7 +70,8 @@ export const fileWatcherStory = storyKit({
 			yield* engine.index;
 		},
 	},
-	clock: "live",
+	around: driveWatchTimers,
+	clock: "test",
 	*create() {
 		const notes = yield* Effect.acquireRelease(
 			Effect.sync(() => folder({})),

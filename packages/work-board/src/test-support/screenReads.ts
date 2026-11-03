@@ -33,6 +33,7 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 		},
 		beforeRequest: (files: readonly string[]) => requestAvailability(engine, files),
 		runtime: engine.clock.runtime,
+		serverClock: engine.serverClock,
 		...(engine.fleet ? { fleet: engine.fleet } : {}),
 	};
 	if (!engine.heldRead) {

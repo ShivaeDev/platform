@@ -229,12 +229,10 @@
 {"path":"packages/work-board/src/server/archive/documents.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/archive/run.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/boundary","count":2}
-{"path":"packages/work-board/src/server/boardSocket.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/server/boardSocket.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/cli.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/cli.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board/src/server/diagnostics/codexProtocol.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/server/diagnostics/codexRateLimits.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/server/diagnostics/codexRateLimits.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/document/read.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/document/requests.ts","rule":"effect/boundary","count":6}

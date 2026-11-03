@@ -16,7 +16,7 @@ interface PublicationEngine {
 }
 
 export const publicationStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const notes = folder({});
 		yield* Effect.addFinalizer(() => Effect.sync(notes.remove));

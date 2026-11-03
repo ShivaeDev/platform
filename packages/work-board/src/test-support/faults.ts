@@ -1,4 +1,4 @@
-import { Deferred, Effect, PlatformError, Stream } from "effect";
+import { type Clock, Deferred, Effect, PlatformError, Stream } from "effect";
 import type { FileSystemWrapper } from "./board.ts";
 import { readinessEvents } from "./readinessEvents.ts";
 
@@ -11,7 +11,7 @@ export interface FaultyWatch {
 
 const injected = PlatformError.systemError({ _tag: "Unknown", description: "Injected watcher failure", method: "watch", module: "FileSystem" });
 
-export function faultyWatch(): FaultyWatch {
+export function faultyWatch(clock: Clock.Clock): FaultyWatch {
 	let broken = false;
 	const attempts: number[] = [];
 	let failure = Deferred.makeUnsafe<void>();
@@ -20,7 +20,7 @@ export function faultyWatch(): FaultyWatch {
 		watch: (path, options) =>
 			Stream.suspend(() => {
 				if (broken || options?.recursive) {
-					attempts.push(performance.now());
+					attempts.push(clock.currentTimeMillisUnsafe());
 				}
 				if (broken) {
 					return Stream.fail(injected);

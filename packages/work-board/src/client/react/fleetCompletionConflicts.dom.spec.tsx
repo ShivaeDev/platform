@@ -1,8 +1,8 @@
-import { Clock, Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nowWork } from "#test/nowWork.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
@@ -11,7 +11,7 @@ const DAY = 86_400_000;
 for (const status of ["dropped", "deferred", "done", "ready", "draft"] as const) {
 	const data = nowWork(4);
 	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, status } }));
-	const at = Effect.runSync(Clock.currentTimeMillis);
+	const at = STORY_NOW;
 	const fleetItem = { document: null, stageEnteredAt: null, updatedAt: null };
 	screenStory.it(
 		`Now's Done lane holds only work Fleet completed in the last 7 days, whatever the file says (${status})`,

@@ -84,10 +84,16 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 				)
 				.pipe(Scope.provide(scope));
 			yield* Effect.addFinalizer(() =>
-				Effect.sync(() => {
-					const deadline = setTimeout(() => node.closeAllConnections(), 5000);
-					node.once("close", () => clearTimeout(deadline));
-				}),
+				Effect.raceFirst(
+					Effect.sleep("5 seconds").pipe(Effect.andThen(Effect.sync(() => node.closeAllConnections()))),
+					Effect.callback<void>((resume) => {
+						function closed() {
+							resume(Effect.void);
+						}
+						node.once("close", closed);
+						return Effect.sync(() => node.off("close", closed));
+					}),
+				).pipe(Effect.forkDetach, Effect.asVoid),
 			).pipe(Scope.provide(scope));
 			// Unpublish while this listener still answers probes, before Node closes its private bind path.
 			yield* Effect.acquireRelease(fs.rename(pending, path), () => fs.remove(path, { force: true }).pipe(Effect.orDie)).pipe(Scope.provide(scope));

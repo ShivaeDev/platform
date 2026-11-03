@@ -11,7 +11,6 @@ import { type held, type OpenPage, openPage } from "#test/browser.ts";
 import { startProject } from "#test/servingEngine.ts";
 
 export interface BoardEngine {
-	activeDiagnosticsPolls?: () => number;
 	beforeScripts?: Parameters<typeof openPage>[2];
 	cliEntry?: string;
 	connectionBoundary?: { readonly disconnect: () => void; readonly hold: () => void; readonly resume: () => void };
@@ -25,7 +24,6 @@ export interface BoardEngine {
 	notes: Folder;
 	outside?: Folder;
 	path: string;
-	pollDiagnostics?: () => void;
 	readAt?: number;
 	reads?: WorkspaceReads;
 	repositoryLookup?: Deferred.Deferred<void>;

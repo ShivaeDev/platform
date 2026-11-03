@@ -19,7 +19,9 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 	class Client extends AtomRpc.Service<Reader>()("@shivaedev/work-board/RenderTest", {
 		group: workRpcs,
 		makeEffect: screenTransport(options),
-		protocol: workspaceBoard(files, options).pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue()))),
+		protocol: workspaceBoard(files, options).pipe(
+			Layer.provide(options?.serverClock ? Layer.succeed(Clock.Clock, options.serverClock) : Layer.empty),
+		),
 		runtime,
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };

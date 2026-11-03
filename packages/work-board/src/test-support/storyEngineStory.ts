@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { Effect, Exit, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
+import { storyClock } from "#test/storyTime.ts";
 import { inboxQuestion } from "./inboxFixture.ts";
 import { type BoardEngine, connected, createBoard, inspectBoard, openReader, serveProject } from "./storyEngine.ts";
 
@@ -17,7 +19,8 @@ function inner(engine: InnerStory) {
 }
 
 export const storyEngineStory = storyKit({
-	clock: "live",
+	around: driveWatchTimers,
+	clock: storyClock,
 	create: (): InnerStory => ({}),
 	name: "board lifecycle",
 	stages: ["story"],

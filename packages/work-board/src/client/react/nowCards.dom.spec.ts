@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -6,12 +5,13 @@ import { fleetWorkspace, fleetWorkspaceItems } from "#test/fleetWorkspaceFixture
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 expectNoReactWarnings();
 
 const now = [
 	screenFiles(fleetWorkspace, { home: "home.md" }),
-	screenFleet(fleetWorkspaceItems(Effect.runSync(Clock.currentTimeMillis))),
+	screenFleet(fleetWorkspaceItems(STORY_NOW)),
 	screenRoute("/_board/work"),
 	openScreen(),
 ];

@@ -5,6 +5,7 @@ import { Effect, FileSystem, Order, PubSub, Queue, Stream, SubscriptionRef } fro
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { board } from "#server/integration/board.ts";
 import { IndexProgress } from "#server/search/IndexProgress.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { type Folder, folder } from "./board.ts";
 import { type IndexAccesses, watchedIndexFilesystem } from "./watchedIndexFilesystem.ts";
 
@@ -42,7 +43,8 @@ export const watchedIndexStory = storyKit({
 			engine.startup = yield* engine.index.read;
 		},
 	},
-	clock: "live",
+	around: driveWatchTimers,
+	clock: "test",
 	*create() {
 		const notes = yield* Effect.acquireRelease(
 			Effect.sync(() => folder({})),

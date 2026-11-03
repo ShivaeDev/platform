@@ -5,6 +5,7 @@ import { archiveVerbs } from "#test/archiveVerbs.ts";
 import type { FileSystemWrapper } from "#test/board.ts";
 import { held } from "#test/browser.ts";
 import { distinctVerbs } from "#test/distinctVerbs.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { fileVerbs } from "#test/fileVerbs.ts";
 import { inventoryVerbs } from "#test/inventoryVerbs.ts";
 import { liveBoardVerbs } from "#test/liveBoardVerbs.ts";
@@ -30,6 +31,7 @@ import { socketVerbs } from "#test/socketVerbs.ts";
 import { standingQuestionVerbs } from "#test/standingQuestionVerbs.ts";
 import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "#test/storyEngine.ts";
 import { handoffInput, resultHtml, reviewReport, savedInboxAnswer } from "#test/storyResponses.ts";
+import { storyClock } from "#test/storyTime.ts";
 import { workspaceAccess } from "#test/workspaceAccess.ts";
 import { workspaceBoardVerbs } from "#test/workspaceBoardVerbs.ts";
 import { workspaceItemVerbs } from "#test/workspaceItemVerbs.ts";
@@ -37,7 +39,8 @@ import { workspacePageVerbs } from "#test/workspacePageVerbs.ts";
 
 export const boardStory = storyKit({
 	after: { project: serveProject },
-	clock: "live",
+	around: driveWatchTimers,
+	clock: storyClock,
 	create: createBoard,
 	inspect: inspectBoard,
 	name: "board",

@@ -17,7 +17,6 @@ export function codexRateLimits(
 				return;
 			}
 			settled = true;
-			clearTimeout(timer);
 			lines.close();
 			child.kill();
 			resume(result);
@@ -28,7 +27,6 @@ export function codexRateLimits(
 		function send(value: unknown) {
 			child.stdin.write(`${JSON.stringify(value)}\n`);
 		}
-		const timer = setTimeout(() => fail("Codex rate limits timed out"), timeoutMs);
 		child.on("error", (error) =>
 			fail(`Codex app-server could not start: ${error.message}`, "code" in error && error.code === "ENOENT" ? "not-configured" : "error"),
 		);
@@ -54,9 +52,13 @@ export function codexRateLimits(
 		});
 		return Effect.sync(() => {
 			settled = true;
-			clearTimeout(timer);
 			lines.close();
 			child.kill();
 		});
-	});
+	}).pipe(
+		Effect.timeoutOrElse({
+			duration: timeoutMs,
+			orElse: () => Effect.fail(new SourceFailure({ kind: "error", message: "Codex rate limits timed out" })),
+		}),
+	);
 }

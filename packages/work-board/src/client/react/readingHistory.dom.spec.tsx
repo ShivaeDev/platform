@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -8,6 +7,7 @@ import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 import { noteLinks, readStamp } from "#test/shellExpectations.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 expectNoReactWarnings();
 
@@ -18,7 +18,7 @@ const files = {
 	"notes/old.md": "---\nkind: question\nscope: task\nurgency: whenever\n---\n# Old\n",
 	"notes/plan.md": "# Plan\n",
 };
-const today = new Date(Effect.runSync(Clock.currentTimeMillis)).setHours(0, 0, 0, 0);
+const today = new Date(STORY_NOW).setHours(0, 0, 0, 0);
 const yesterday = today - 12 * HOUR;
 const lastWeek = today - 3 * 24 * HOUR + 12 * HOUR;
 const lastWeekDay = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "long", weekday: "long" }).format(lastWeek);

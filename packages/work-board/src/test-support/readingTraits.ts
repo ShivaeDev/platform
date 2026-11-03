@@ -3,7 +3,8 @@ import { utimesSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Fiber } from "effect";
+import { TestClock } from "effect/testing";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import type { CodexLimits, Sources } from "#diagnostics/source.ts";
 import { fleetHealth } from "#server/adapters/fleetHealth.ts";
@@ -20,41 +21,12 @@ export function readingTime(milliseconds: number) {
 	});
 }
 
-export function controlledDiagnosticsPolling() {
-	return boardStory.trait("project", "the reader controls the diagnostics polling timer", (engine) => {
-		engine.beforeScripts = (window) => {
-			window.Date.prototype.toLocaleTimeString = () => "14:20";
-			const interval = window.setInterval.bind(window);
-			const clear = window.clearInterval.bind(window);
-			const active = new Set<ReturnType<typeof interval>>();
-			engine.activeDiagnosticsPolls = () => active.size;
-			window.clearInterval = (id) => {
-				active.delete(id);
-				clear(id);
-			};
-			window.setInterval = (callback, delay, ...args) => {
-				const id = interval(callback, delay, ...args);
-				if (delay === 15_000 && typeof callback === "function") {
-					engine.pollDiagnostics = () => callback();
-					active.add(id);
-				}
-				return id;
-			};
-		};
-	});
-}
-
 export function codexProvider(mode: string, timeoutMs = 2000) {
-	return diagnosticsSources(
-		syntheticSources({
-			codex: codexLimits(
-				codexRateLimits(
-					() => spawn(process.execPath, [fileURLToPath(new URL("./codexAppServer.ts", import.meta.url)), mode], { stdio: "pipe" }),
-					timeoutMs,
-				),
-			),
-		}),
+	const read = codexRateLimits(
+		() => spawn(process.execPath, [fileURLToPath(new URL("./codexAppServer.ts", import.meta.url)), mode], { stdio: "pipe" }),
+		timeoutMs,
 	);
+	return diagnosticsSources(syntheticSources({ codex: codexLimits(mode === "timeout" ? driveProviderDeadline(read, timeoutMs) : read) }));
 }
 
 export function healthBoundary(kind: Parameters<typeof healthReadingFolder>[0]) {
@@ -100,3 +72,9 @@ export function codexOnlySnapshot(observedAt: number, value: CodexLimits) {
 	const missing = { cause: "Missing", observedAt, state: "not-configured" as const };
 	return daemonSnapshot(() => ({ codex: { observedAt, state: "ready", value }, fleet: missing, github: missing }));
 }
+
+const driveProviderDeadline = Effect.fn("Story.driveProviderDeadline")(function* (read: ReturnType<typeof codexRateLimits>, timeoutMs: number) {
+	const waiting = yield* Effect.forkChild(read);
+	yield* TestClock.adjust(timeoutMs);
+	return yield* Fiber.join(waiting);
+});

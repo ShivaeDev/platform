@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { Effect, PlatformError } from "effect";
+import { Clock, Effect, PlatformError } from "effect";
 import { boardStory } from "./boardStory.ts";
 import { bundleBoard } from "./bundleBoard.ts";
 import { directoryNotifications } from "./directoryNotifications.ts";
@@ -82,8 +82,8 @@ export const fileReadsCounted = boardStory.trait("project", "the workspace count
 	}));
 });
 
-export const watchCanFail = boardStory.trait("project", "the board's file watch can be made to fail and recover", (engine) => {
-	const watch = faultyWatch();
+export const watchCanFail = boardStory.trait("project", "the board's file watch can be made to fail and recover", function* (engine) {
+	const watch = faultyWatch(yield* Clock.Clock);
 	servingObservations(engine).watch = watch;
 	wrapFilesystem(engine, watch.wrap);
 });

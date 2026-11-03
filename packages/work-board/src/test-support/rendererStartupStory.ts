@@ -2,6 +2,7 @@ import "#test/adapters/renderFaults.ts";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { refuseRenderers } from "#test/adapters/renderFaults.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { type RunningBoard, rawGet, startBoard } from "./board.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
 import { type BoardEngine, createBoard } from "./storyEngine.ts";
@@ -12,7 +13,8 @@ interface StartupEngine extends BoardEngine {
 }
 
 export const rendererStartupStory = storyKit({
-	clock: "live",
+	around: driveWatchTimers,
+	clock: "test",
 	*create() {
 		const engine = yield* createBoard();
 		engine.notes.write("index.md", "# Reading\n\n```ts\nconst answer = 42\n```");

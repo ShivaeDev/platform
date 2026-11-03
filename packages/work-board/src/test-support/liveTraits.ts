@@ -1,6 +1,6 @@
 import { chmodSync } from "node:fs";
 import { relative } from "node:path";
-import { Deferred, Effect, PlatformError, Stream, Tracer } from "effect";
+import { Clock, Deferred, Effect, PlatformError, Stream, Tracer } from "effect";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import { boardStory, deferredServing } from "./boardStory.ts";
 import { codexResponse, githubObservations, health } from "./diagnostics.ts";
@@ -46,7 +46,8 @@ export const indexClientSubscribed = boardStory.trait(
 
 const injected = PlatformError.systemError({ _tag: "Unknown", description: "Injected watcher failure", method: "watch", module: "FileSystem" });
 
-export const watcherCanFail = boardStory.trait("project", "the project's file watcher can be made to fail", (engine) => {
+export const watcherCanFail = boardStory.trait("project", "the project's file watcher can be made to fail", function* (engine) {
+	const clock = yield* Clock.Clock;
 	let failure = Deferred.makeUnsafe<void>();
 	const watcher: FailingWatcher = {
 		attempts: [],
@@ -63,7 +64,7 @@ export const watcherCanFail = boardStory.trait("project", "the project's file wa
 		watch: (path, options) =>
 			Stream.suspend(() => {
 				if (watcher.broken || options?.recursive) {
-					watcher.attempts.push(performance.now());
+					watcher.attempts.push(clock.currentTimeMillisUnsafe());
 					watcher.restarts.bump();
 				}
 				if (watcher.broken) {

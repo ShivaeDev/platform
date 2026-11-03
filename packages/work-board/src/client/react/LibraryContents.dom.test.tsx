@@ -1,9 +1,9 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 expectNoReactWarnings();
 
@@ -14,7 +14,7 @@ screenStory.it(
 	[
 		routedScreen({ "home.md": "# Home", "note.md": "# Note" }, "/_board/library?view=recently-changed", {
 			home: "home.md",
-			modified: new Map([["note.md", Effect.runSync(Clock.currentTimeMillis) - TWO_HOURS]]),
+			modified: new Map([["note.md", STORY_NOW - TWO_HOURS]]),
 		}),
 	],
 	function* ({ libraryRow }) {

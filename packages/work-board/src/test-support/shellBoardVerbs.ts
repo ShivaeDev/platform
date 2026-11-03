@@ -13,27 +13,23 @@ function shows(page: OpenPage, route: string) {
 }
 
 function changes(page: OpenPage, signal: string, done: () => boolean) {
-	return new Promise<void>((resolve, reject) => {
+	return Effect.callback<void>((resume) => {
 		if (done()) {
-			resolve();
+			resume(Effect.void);
 			return;
 		}
 		const observer = new page.window.MutationObserver(() => {
 			if (done()) {
 				finish();
-				resolve();
+				resume(Effect.void);
 			}
 		});
-		const limit = setTimeout(() => {
-			finish();
-			reject(new Error(`The bundle page never reached: ${signal}`));
-		}, PAGE_LIMIT_MS);
 		function finish() {
 			observer.disconnect();
-			clearTimeout(limit);
 		}
 		observer.observe(page.document, { attributes: true, characterData: true, childList: true, subtree: true });
-	});
+		return Effect.sync(finish);
+	}).pipe(Effect.timeoutOrElse({ duration: PAGE_LIMIT_MS, orElse: () => Effect.die(new Error(`The bundle page never reached: ${signal}`)) }));
 }
 
 // The Board restores open details and the selection in an animation frame after the route renders, and that frame leaves no mark in the page.
@@ -43,12 +39,12 @@ function frames(page: OpenPage, count: number): Promise<void> {
 
 export function shellBoardVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function moving(line: string, route: string, move: (page: OpenPage) => void) {
-		return Effect.promise(async () => {
+		return Effect.gen(function* () {
 			tell(line);
 			const { page } = connected(engine);
 			move(page);
-			await changes(page, `${route} rendered`, () => shows(page, route));
-			await frames(page, 2);
+			yield* changes(page, `${route} rendered`, () => shows(page, route));
+			yield* Effect.promise(() => frames(page, 2));
 		});
 	}
 	return {
@@ -59,10 +55,10 @@ export function shellBoardVerbs(engine: BoardEngine, tell: (line: string) => voi
 				return { address: page.window.location.pathname, heading: heading(page), visit: page.document.body.dataset.visit ?? "reloaded" };
 			}),
 		bundlePageReady: () =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell("the page finishes loading and enables pinning");
 				const { page } = connected(engine);
-				await changes(
+				yield* changes(
 					page,
 					"an enabled pin button",
 					() => page.pageRequests.answered > 0 && page.document.getElementById("favorite-toggle")?.hasAttribute("disabled") === false,

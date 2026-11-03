@@ -29,7 +29,7 @@ function outcome<A>(engine: RenderEngine, result: Effect.Effect<A, unknown>) {
 	);
 }
 export const renderFailureStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine: RenderEngine = { ...(yield* createBoard()), scope: yield* Scope.fork(yield* Scope.Scope) };
 		engine.notes.write("note.md", "```ts\nconst answer = 42\n```");

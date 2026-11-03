@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -8,6 +7,7 @@ import { deniedClipboard, fleetHealth, stoppedFleet } from "#test/screenEnvironm
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 expectNoReactWarnings();
 
@@ -104,7 +104,7 @@ screenStory.it(
 	"System's Fleet card follows Fleet health when Fleet's waiting counts disagree with Needs you",
 	[
 		screenFiles({ "home.md": "# Workspace notes\n" }, { home: "home.md" }),
-		fleetHealth({ ...health, observedAt: Effect.runSync(Clock.currentTimeMillis), waiting: { automation: 1, maintainer: 2, orchestrator: 3 } }),
+		fleetHealth({ ...health, observedAt: STORY_NOW, waiting: { automation: 1, maintainer: 2, orchestrator: 3 } }),
 		screenRoute("/_board/system"),
 		openScreen(),
 	],

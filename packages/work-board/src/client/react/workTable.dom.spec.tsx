@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -9,6 +8,7 @@ import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 import { workTableScreen } from "#test/workTableScreen.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
@@ -148,21 +148,17 @@ screenStory.it(
 	},
 );
 
-screenStory.it(
-	"Now lays out its lanes in workflow order",
-	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
-	function* ({ nowLanes }) {
-		expect(yield* nowLanes()).toEqual([
-			"Queued: 1",
-			"Working: 1",
-			"Reviewing: 1",
-			"Waiting on you: 0",
-			"Waiting on orchestrator: 0",
-			"Waiting on automation: 0",
-			"Done in the last 7 days: 1",
-		]);
-	},
-);
+screenStory.it("Now lays out its lanes in workflow order", [nowScreen(6, WorkNow, nowFleet(3, STORY_NOW))], function* ({ nowLanes }) {
+	expect(yield* nowLanes()).toEqual([
+		"Queued: 1",
+		"Working: 1",
+		"Reviewing: 1",
+		"Waiting on you: 0",
+		"Waiting on orchestrator: 0",
+		"Waiting on automation: 0",
+		"Done in the last 7 days: 1",
+	]);
+});
 
 screenStory.it(
 	"Now announces unavailable Fleet data in one alert above the lanes",
@@ -174,7 +170,7 @@ screenStory.it(
 
 screenStory.it(
 	"A phone shows one Now lane at a time and switches lanes from the lane tabs",
-	[screenMedia(["(max-width: 767px)"]), nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
+	[screenMedia(["(max-width: 767px)"]), nowScreen(6, WorkNow, nowFleet(3, STORY_NOW))],
 	function* ({ chooseLaneTab, phoneLane }) {
 		expect(yield* phoneLane()).toEqual({ cards: ["task-0"], lanes: ["Queued"], tabs: "Lanes" });
 
@@ -212,7 +208,7 @@ screenStory.it(
 			{ ...fleetWorkspace, "tasks/later.md": "---\nid: task.later\nkind: task\nstatus: draft\n---\n# Plan the later work\n" },
 			{ home: "home.md" },
 		),
-		screenFleet(fleetWorkspaceItems(Effect.runSync(Clock.currentTimeMillis))),
+		screenFleet(fleetWorkspaceItems(STORY_NOW)),
 		screenRoute("/_board/work"),
 		openScreen(),
 	],

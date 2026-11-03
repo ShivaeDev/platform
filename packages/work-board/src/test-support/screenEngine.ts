@@ -1,4 +1,4 @@
-import { Deferred, Effect, PubSub } from "effect";
+import { Clock, Deferred, Effect, PubSub } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
@@ -55,6 +55,7 @@ export interface ScreenEngine {
 	routed?: Awaited<ReturnType<typeof chrome>>;
 	router?: Awaited<ReturnType<typeof renderRouter>>["router"];
 	scrollPosition?: number;
+	readonly serverClock: Clock.Clock;
 	serverStopped?: boolean;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
 	sessionDisconnect?: () => void;
@@ -81,7 +82,17 @@ export function* createScreen() {
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const transportEvents = yield* Effect.acquireRelease(PubSub.unbounded<void>(), PubSub.shutdown);
 	const clock = yield* screenClock;
-	const engine: ScreenEngine = { chunks, cleanups: [], clock, files: {}, pageRequests: [], path: "/", transportEvents, workspaceRequests: 0 };
+	const engine: ScreenEngine = {
+		chunks,
+		cleanups: [],
+		clock,
+		files: {},
+		pageRequests: [],
+		path: "/",
+		serverClock: yield* Clock.Clock,
+		transportEvents,
+		workspaceRequests: 0,
+	};
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
 			for (const close of engine.cleanups.reverse()) {

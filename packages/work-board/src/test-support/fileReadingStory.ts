@@ -9,6 +9,7 @@ import { HomeMissing, homeIn } from "#server/files/home.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { watchDirectories } from "#server/files/watchDirectories.ts";
 import { isWatchSentinel, READINESS_WITHIN } from "#server/files/watchSentinel.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
 import { type Folder, folder } from "./board.ts";
 import { unlinkBeforeStat } from "./fileRaces.ts";
 
@@ -32,7 +33,8 @@ function running(engine: FileReader) {
 }
 
 export const fileReadingStory = storyKit({
-	clock: "live",
+	around: driveWatchTimers,
+	clock: "test",
 	*create() {
 		const notes = yield* Effect.acquireRelease(
 			Effect.sync(() => folder({})),

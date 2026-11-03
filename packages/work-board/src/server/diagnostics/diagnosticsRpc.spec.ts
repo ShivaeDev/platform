@@ -1,9 +1,9 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { diagnosticsSnapshot, health } from "#test/diagnostics.ts";
 import { daemonSnapshot } from "#test/readingTraits.ts";
+import { STORY_NOW } from "#test/storyTime.ts";
 
 boardStory.it(
 	"System shows the daemon's Fleet health over HTTP RPC and ignores a conflicting health file in the project",
@@ -24,7 +24,7 @@ boardStory.it("System shows Codex and GitHub usage from the daemon over HTTP RPC
 	expect(yield* systemText()).toEqual(expect.stringMatching(/24% used.*4321 of 5000/u));
 });
 
-const twoMinutesAgo = Effect.runSync(Clock.currentTimeMillis) - 120_000;
+const twoMinutesAgo = STORY_NOW - 120_000;
 
 boardStory.it(
 	"a daemon snapshot two minutes old shows Fleet as stale with the time it was observed",

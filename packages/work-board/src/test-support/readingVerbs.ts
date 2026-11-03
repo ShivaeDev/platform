@@ -8,23 +8,9 @@ import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function readingVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	return {
-		activeDiagnosticsPolls: () => {
-			tell("the reader observes the active diagnostics polling timers");
-			if (!engine.activeDiagnosticsPolls) {
-				throw new Error("Diagnostics polling was not instrumented");
-			}
-			return engine.activeDiagnosticsPolls();
-		},
 		getPage: (path: string, host?: string) => {
 			tell(`a local reader requests ${path}`);
 			return rawGet(served(engine).board, path, host);
-		},
-		pollDiagnostics: () => {
-			tell("the diagnostics polling timer fires");
-			if (!engine.pollDiagnostics) {
-				throw new Error("The diagnostics polling timer has not started");
-			}
-			engine.pollDiagnostics();
 		},
 		readBoard: (file: string) =>
 			Effect.promise(() => {

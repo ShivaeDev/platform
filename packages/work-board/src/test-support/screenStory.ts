@@ -2,6 +2,8 @@ import { act } from "react";
 import type { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
+import { driveWatchTimers } from "#test/driveWatchTimers.ts";
+import { storyClock } from "#test/storyTime.ts";
 import { answerActions } from "./answerActions.ts";
 import { answersScreenVerbs } from "./answersScreenVerbs.ts";
 import { appearanceActions } from "./appearanceActions.ts";
@@ -37,7 +39,8 @@ import { timeActions } from "./timeActions.tsx";
 import { workspaceScreenVerbs } from "./workspaceScreenVerbs.ts";
 
 export const screenStory = storyKit({
-	clock: "live",
+	around: driveWatchTimers,
+	clock: storyClock,
 	create: createScreen,
 	inspect: (engine) =>
 		engine.view?.container.isConnected || engine.container?.isConnected ? screenView(engine) : (engine.lastView ?? screenView(engine)),
