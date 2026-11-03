@@ -1,4 +1,4 @@
-import { type Duration, Effect, Redacted } from "effect";
+import { Clock, type Duration, Effect, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Migrator, SqlClient } from "effect/sql";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -57,7 +57,7 @@ export const postgresLive = storyKit({
 			Effect.sync(() => AtomRegistry.make()),
 			(value) => Effect.sync(() => value.dispose()),
 		);
-		return makeLiveEngine(server, registry);
+		return makeLiveEngine(server, registry, { clock: yield* Clock.Clock });
 	},
 	inspect: liveSnapshot,
 	layer,

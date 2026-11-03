@@ -6,6 +6,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
 import type { AtomServices } from "#AtomServices.ts";
 import { acceptLoaderQuery } from "#adapters/queryHandoff.ts";
+import { useActionResult } from "#client/adapters/useActionResult.ts";
 import { useLiveWindow } from "#client/adapters/useLiveWindow.ts";
 import { usePermissionFailure } from "#internal/adapters/usePermissionFailure.ts";
 import { useQueryNotice } from "#internal/adapters/useQueryNotice.ts";
@@ -95,7 +96,7 @@ export function useAction<TInput, A, E, R, TRuntimeError>(
 	options: ActionOptions<TInput, A, E, R> = {},
 ): ActionState<TInput, A, E | TRuntimeError> {
 	const atom = useActionSource(source, run, options);
-	const result = useAtomValue(atom);
+	const result = useActionResult(atom);
 	useRecheckOnUnauthorized(result, run === undefined);
 	return { ...state(result), dispatch: useAtomSet(atom) };
 }

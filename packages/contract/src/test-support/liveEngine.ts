@@ -4,9 +4,10 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Hydration from "effect/reactivity/Hydration";
 import type * as Reactivity from "effect/reactivity/Reactivity";
+import { TestClock } from "effect/testing";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint, LiveStatus } from "#live.ts";
-import { type HandledHints, liveClient } from "#test/live/client.ts";
+import { type HandledHints, type LiveClientSettings, liveClient } from "#test/live/client.ts";
 import type { liveServer, ReadHold, ServedRead } from "#test/live/server.ts";
 import { failure, times } from "./answers.ts";
 import { Note } from "./notes.ts";
@@ -28,6 +29,7 @@ export interface LiveSubscription {
 export interface LiveEngine {
 	client: ReturnType<typeof liveClient>;
 	connected: boolean;
+	readonly controlledTime: boolean;
 	readonly mounted: Map<LiveView, () => void>;
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly server: LiveServer;
@@ -35,8 +37,17 @@ export interface LiveEngine {
 	readonly watched: LiveView[];
 }
 
-export function makeLiveEngine(server: LiveServer, registry: AtomRegistry.AtomRegistry): LiveEngine {
-	return { client: liveClient(server.url), connected: false, mounted: new Map(), registry, server, subscription: undefined, watched: [] };
+export function makeLiveEngine(server: LiveServer, registry: AtomRegistry.AtomRegistry, settings: LiveClientSettings = {}): LiveEngine {
+	return {
+		client: liveClient(server.url, {}, settings),
+		connected: false,
+		controlledTime: settings.clock !== undefined && "adjust" in settings.clock,
+		mounted: new Map(),
+		registry,
+		server,
+		subscription: undefined,
+		watched: [],
+	};
 }
 
 export function viewAtom(engine: LiveEngine, view: LiveView): Atom.Atom<AsyncResult.AsyncResult<Note | readonly Note[], unknown>> {
@@ -120,7 +131,14 @@ const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view:
 });
 
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
-	return Effect.forEach(views, (view) => readAfterLastHint(engine, view), { discard: true });
+	return Effect.andThen(
+		closeWindow(engine),
+		Effect.forEach(views, (view) => Effect.andThen(readAfterLastHint(engine, view), shownOf(engine, view)), { discard: true }),
+	);
+}
+
+function closeWindow(engine: LiveEngine) {
+	return engine.controlledTime ? TestClock.adjust(engine.registry.get(engine.client.coalesceWindow)) : Effect.void;
 }
 
 export const watch = Effect.fnUntraced(function* (engine: LiveEngine, views: readonly LiveView[]) {
@@ -150,6 +168,7 @@ export const holdReReadOfNoteOne = Effect.fnUntraced(function* (engine: LiveEngi
 		engine,
 		Effect.promise(() => engine.server.edit(1, "In flight")),
 	);
+	yield* closeWindow(engine);
 	yield* until(SubscriptionRef.changes(engine.server.held), (count) => count > 0, { name: "held request" });
 });
 

@@ -9,7 +9,7 @@ import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts"
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#server/testing.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
-import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
+import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
@@ -19,6 +19,7 @@ export type StartOptions = PgBossOptions & {
 	readonly finalizesInParallel?: true;
 	readonly handsBatchesOver?: "by priority";
 	readonly pausesCompletionAt?: string;
+	readonly changeNotificationsWaitFor?: string;
 	readonly reportsErrors?: true;
 	readonly jobLookupsFailWith?: string;
 	readonly startsUnderLogAnnotations?: Readonly<Record<string, string>>;
@@ -78,6 +79,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		finalizesInParallel,
 		handsBatchesOver,
 		pausesCompletionAt,
+		changeNotificationsWaitFor,
 		reportsErrors,
 		jobLookupsFailWith,
 		startsUnderLogAnnotations,
@@ -96,6 +98,9 @@ export const startRuntime = Effect.fnUntraced(function* (
 		clientFactory: (construct) => {
 			const created = observeStops(engine, observeWakes(engine, name, factory(construct)));
 			client = handsBatchesOver === undefined ? created : sortBatches(created);
+			if (changeNotificationsWaitFor !== undefined) {
+				pauseChangeNotifications(engine, client, changeNotificationsWaitFor);
+			}
 			if (pausesCompletionAt !== undefined) {
 				pauseCompletion(engine, client, pausesCompletionAt);
 			}

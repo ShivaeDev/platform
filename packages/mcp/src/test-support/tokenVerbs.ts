@@ -1,4 +1,5 @@
 import { Effect, Option } from "effect";
+import { changeTokenClaim } from "./changeTokenClaim.ts";
 import { type Engine, named } from "./host.ts";
 
 export function tokenVerbs(engine: Engine, tell: (line: string) => void) {
@@ -12,6 +13,11 @@ export function tokenVerbs(engine: Engine, tell: (line: string) => void) {
 				Effect.catchTag("InvalidTokenClaim", (error) => Effect.succeed({ claim: error.claim, refusal: "invalid token claim" })),
 				Effect.provide(engine.jwks.logger),
 			),
+		removesTokenClaim: (name: string, claim: string) =>
+			Effect.suspend(() => {
+				tell(`${name}'s token is re-signed without ${claim}`);
+				return changeTokenClaim(engine, name, claim, undefined);
+			}),
 		tokenClaimLogs: () =>
 			Effect.sync(() =>
 				engine.jwks.logs.filter(([message]) => typeof message === "string" && message.startsWith("MCP access token has a missing or invalid ")),

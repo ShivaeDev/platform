@@ -1,4 +1,4 @@
-import { type Duration, Effect, Layer, Stream, SubscriptionRef } from "effect";
+import { Clock, type Duration, Effect, Layer, Stream, SubscriptionRef } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -11,6 +11,7 @@ import { notes } from "#test/notes.ts";
 import { LiveNotes } from "./notesContract.ts";
 
 export interface LiveClientSettings {
+	readonly clock?: Clock.Clock;
 	readonly coalesceWindow?: Duration.Input;
 	readonly includeResume?: boolean;
 	readonly resyncKeys?: readonly Key[];
@@ -20,9 +21,14 @@ export type HandledHints = Readonly<Record<LiveHint["_tag"], number> & { readonl
 
 export function liveClient(url: string, options: ResumeOptions = {}, settings: LiveClientSettings = {}) {
 	const { coalesceWindow, includeResume = true, resyncKeys = [notes.item(1), notes.item(2), notes.list] } = settings;
+	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
+	if (settings.clock !== undefined) {
+		runtime.addGlobalLayer(Layer.succeed(Clock.Clock, settings.clock));
+	}
 	class Client extends AtomRpc.Service<Client>()("example/LiveDocuments", {
 		group: LiveNotes,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
+		runtime,
 	}) {}
 	const api = bind(LiveNotes, Client, { live: false });
 	const resume = Atom.make(0);

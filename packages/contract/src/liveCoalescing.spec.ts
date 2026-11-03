@@ -17,6 +17,7 @@ postgresLive.it(
 			["the list's reads", () => timesRead("the list"), "read 3 times"],
 		]);
 	},
+	{ clock: "test" },
 );
 
 postgresLive.it(
@@ -37,6 +38,29 @@ postgresLive.it(
 			["note 1's reads", () => timesRead("note 1"), "read 4 times"],
 		]);
 	},
+	{ clock: "test" },
+);
+
+postgresLive.it(
+	"a held re-read with an expired window consumes later committed edits in its single follow-up read, even before their window closes",
+	[watching("note 1", "the list"), connected(), heldReReadOfNoteOne()],
+	function* ({ edit, editRepeatedly, releaseHeldReads, shown, timesRead, windowCloses }) {
+		yield* edit(1, "Queued");
+		yield* windowCloses("the list");
+		yield* editRepeatedly(1, "Newest", 10);
+
+		yield* releaseHeldReads();
+
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Newest 10"],
+			["note 1's reads", () => timesRead("note 1"), "read 4 times"],
+		]);
+
+		yield* windowCloses("the list");
+
+		yield* outcomes([["note 1's reads after the later window", () => timesRead("note 1"), "read 4 times"]]);
+	},
+	{ clock: "test" },
 );
 
 postgresLive.it(
@@ -82,6 +106,7 @@ postgresLive.it(
 			["note 1's reads", () => timesRead("note 1"), "read 3 times"],
 		]);
 	},
+	{ clock: "test" },
 );
 
 postgresLive.it(

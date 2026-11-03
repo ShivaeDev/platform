@@ -2,9 +2,11 @@ import { Effect, Redacted, Schema } from "effect";
 import { forkHost, type HostProcessOptions, hostResponse, receiveHostMessage, stopHost } from "#testing/adapters/hostProcess.ts";
 import { collectHostReadouts } from "#testing/adapters/hostProcessReadouts.ts";
 import { HostProcessError } from "./HostProcessError.ts";
-import { HostReady, HostSignal } from "./hostProcessProtocol.ts";
+import { HostPrepared, HostReady, HostSignal } from "./hostProcessProtocol.ts";
 
-export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* (options: HostProcessOptions) {
+export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* <E = never, R = never>(
+	options: HostProcessOptions & { readonly beforeStart?: Effect.Effect<void, E, R> },
+) {
 	const databaseUrl = options.databaseUrl;
 	const database =
 		databaseUrl === undefined
@@ -17,9 +19,16 @@ export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* (optio
 		(acquired) => Effect.promise(() => stopHost(acquired)),
 	);
 	const read = collectHostReadouts(child);
+	if (options.beforeStart !== undefined) {
+		yield* Effect.tryPromise({
+			catch: (cause) => new HostProcessError({ cause, operation: "launch" }),
+			try: (signal) => receiveHostMessage(child, HostPrepared, signal),
+		});
+		yield* options.beforeStart;
+	}
 	const { pid, url } = yield* Effect.tryPromise({
 		catch: (cause) => new HostProcessError({ cause, operation: "launch" }),
-		try: (signal) => receiveHostMessage(child, HostReady, signal),
+		try: (signal) => receiveHostMessage(child, HostReady, signal, options.beforeStart === undefined ? undefined : () => child.kill("SIGUSR2")),
 	});
 	function response(path: string) {
 		return Effect.tryPromise({
