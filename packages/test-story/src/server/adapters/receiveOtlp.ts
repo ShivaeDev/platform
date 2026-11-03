@@ -1,4 +1,5 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import * as Effect from "effect/Effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { OtlpExport, OtlpReceiverOptions, OtlpSpan } from "#server/otlpReceiver.ts";
 
@@ -42,4 +43,8 @@ export async function receiveOtlp(
 	} catch {
 		response.writeHead(HttpStatus.fromLiteral("BadRequest")).end();
 	}
+}
+
+export function otlpServer(requests: OtlpExport[], record: (span: OtlpSpan) => void, options: OtlpReceiverOptions) {
+	return Effect.sync(() => createServer((request, response) => receiveOtlp(request, response, requests, record, options)));
 }

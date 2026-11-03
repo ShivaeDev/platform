@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import process from "node:process";
-import { locate } from "#server/internal/callSite.ts";
-import { engineSnapshot } from "#server/internal/engineSnapshot.ts";
+import { locate } from "#server/adapters/callSite.ts";
+import { engineSnapshot } from "#server/adapters/engineSnapshot.ts";
 import type { Narration, Subject } from "#server/internal/narration.ts";
 import { describeValue } from "#server/internal/render.ts";
 import { explained, WIDTH, wrap } from "#server/internal/wrap.ts";

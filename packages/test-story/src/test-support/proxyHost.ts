@@ -1,8 +1,8 @@
 import { createServer, type RequestListener } from "node:http";
 import { Effect, Exit, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { loopbackServer } from "#server/adapters/loopback.ts";
 import { type ForwardingProxyOptions, forwardingProxy } from "#server/forwardingProxy.ts";
-import { loopbackServer } from "#server/internal/loopback.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 interface Answer {

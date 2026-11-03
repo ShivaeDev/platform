@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { loopbackServer } from "#server/internal/loopback.ts";
+import { loopbackServer } from "#server/adapters/loopback.ts";
 
 export function visitorHost() {
 	return loopbackServer(

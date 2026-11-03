@@ -5,6 +5,7 @@ import * as Layer from "effect/Layer";
 import * as TestCrypto from "effect/testing/TestCrypto";
 import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
+import { declareGenre } from "#server/adapters/declareGenre.ts";
 import { freshDocument, inDom } from "#server/internal/domDocument.ts";
 import { type Genre, genreOf } from "#server/internal/genre.ts";
 import { type AnyEffect, hooked } from "#server/internal/hooked.ts";
@@ -25,34 +26,14 @@ export interface LooseIt extends LooseTest {
 	readonly skipIf: (condition: unknown) => LooseTest;
 }
 
-function withTags(options: number | EffectTestOptions | undefined, tags: readonly string[]): EffectTestOptions {
-	if (typeof options === "number") {
-		return { tags: [...tags], timeout: options };
-	}
-	const own = options?.tags ?? [];
-	return { ...options, tags: [...tags, ...(typeof own === "string" ? [own] : own)] };
-}
-
 function storyOf(definition: LooseDefinition, given: readonly LooseTrait[], body: LooseBody | undefined) {
 	return function* story(_harness: unknown, context: TestContext) {
 		return yield* start(definition, given, context, (told) => hooked(() => body?.(told, context)));
 	};
 }
 
-// Vitest refuses a tag its config does not declare, so a genre the config leaves out names the test without tagging it.
 function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTest<unknown, unknown>): LooseTest {
-	return (name, given, body, options) => {
-		const title = `${genre.title}: ${name}`;
-		const story = storyOf(definition, given, body);
-		try {
-			declare(title, story, withTags(options, [genre.tag.name]));
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes(`"${genre.tag.name}"`))) {
-				throw error;
-			}
-			declare(title, story, withTags(options, []));
-		}
-	};
+	return (name, given, body, options) => declareGenre(declare, `${genre.title}: ${name}`, storyOf(definition, given, body), options, genre.tag.name);
 }
 
 export function storyIt(definition: LooseDefinition): LooseIt {

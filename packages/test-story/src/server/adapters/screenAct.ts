@@ -18,3 +18,13 @@ export function screenAct<E>(act: NonNullable<ScreenDriverOptions["act"]>, actio
 		return Effect.promise(() => completed);
 	});
 }
+
+export const directScreenAct: NonNullable<ScreenDriverOptions["act"]> = (action) => action();
+
+export function screenPerform(act: NonNullable<ScreenDriverOptions["act"]>, tell: (line: string) => void) {
+	return (line: string, action: () => void) =>
+		Effect.promise(async () => {
+			tell(line);
+			await act(async () => action());
+		});
+}

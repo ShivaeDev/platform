@@ -63,3 +63,9 @@ export async function fakeHttpStrike(response: ServerResponse, fault: Exclude<Fa
 	}
 	response.destroy();
 }
+
+export async function fakeHttpPause(response: ServerResponse, pending: () => Promise<void> | undefined) {
+	const connection = fakeHttpConnection(response);
+	await connection.pause(pending());
+	return !(response.destroyed || response.writableEnded || response.headersSent);
+}

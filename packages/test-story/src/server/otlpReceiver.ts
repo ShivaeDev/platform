@@ -1,8 +1,8 @@
-import { createServer, type IncomingHttpHeaders } from "node:http";
+import type { IncomingHttpHeaders } from "node:http";
 import * as Effect from "effect/Effect";
 import type { OtlpTracer } from "effect/observability";
-import { receiveOtlp } from "#server/adapters/receiveOtlp.ts";
-import { loopbackServer } from "#server/internal/loopback.ts";
+import { loopbackServer } from "#server/adapters/loopback.ts";
+import { otlpServer } from "#server/adapters/receiveOtlp.ts";
 import type { otlpReadout } from "#server/internal/otlpReadout.ts";
 import { recordedSignals } from "#server/internal/recordedSignals.ts";
 import { type UntilOptions, until } from "#server/until.ts";
@@ -24,7 +24,7 @@ export interface OtlpReceiverOptions {
 export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOptions = {}) {
 	const requests: OtlpExport[] = [];
 	const signals = recordedSignals<OtlpSpan>();
-	const server = createServer((request, response) => receiveOtlp(request, response, requests, signals.push, options));
+	const server = yield* otlpServer(requests, signals.push, options);
 	const url = yield* loopbackServer(server);
 	const { otlpTracing } = yield* Effect.promise(() => import("#server/internal/otlpTracing.ts"));
 	const { errors, exportsSecret, queries } = yield* Effect.promise(() => import("#server/internal/otlpReadouts.ts"));

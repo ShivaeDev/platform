@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema";
-import { otlpProtobuf } from "#server/internal/otlpProtobuf.ts";
+import { otlpProtobuf } from "#server/adapters/otlpProtobuf.ts";
 import { Attribute } from "#server/internal/otlpValue.ts";
 
 const Attributes = Schema.optionalKey(Schema.Array(Attribute));

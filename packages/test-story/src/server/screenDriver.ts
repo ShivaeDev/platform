@@ -2,7 +2,7 @@ import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import type * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { screenAct } from "#server/adapters/screenAct.ts";
+import { directScreenAct, screenAct, screenPerform } from "#server/adapters/screenAct.ts";
 import { screenElements } from "#server/adapters/screenElements.ts";
 import { nextScreenHint } from "#server/internal/nextScreenHint.ts";
 import { screenInteractions } from "#server/internal/screenInteractions.ts";
@@ -83,25 +83,11 @@ function makeDriver(options: ScreenDriverOptions, dialogs: boolean, dialogOwner?
 }
 
 function makeScreenActions(options: ScreenDriverOptions, dialogs: boolean) {
-	const {
-		root,
-		pending,
-		activity,
-		transport,
-		tell,
-		act = (action: () => Promise<void>) => action(),
-		timeoutMs = 3000,
-		loadingTimeoutMs = 10_000,
-	} = options;
+	const { root, pending, activity, transport, tell, act = directScreenAct, timeoutMs = 3000, loadingTimeoutMs = 10_000 } = options;
 	const currentRoot = typeof root === "function" ? root : () => root;
 	const elements = screenElements(currentRoot, dialogs);
 	const waits = screenWaits({ ...options, act, loadingTimeoutMs, pending, root: currentRoot, timeoutMs }, elements, dialogs);
-	function perform(line: string, action: () => void) {
-		return Effect.promise(async () => {
-			tell(line);
-			await act(async () => action());
-		});
-	}
+	const perform = screenPerform(act, tell);
 
 	return {
 		...screenReadouts(currentRoot, tell, dialogs),

@@ -13,11 +13,13 @@ export function fakeHttpGates(tell: (line: string) => void, kind: "hold" | "stal
 			}
 		},
 		get: (route: string, request: FakeHttpRequest) => [...gates.values()].find((gate) => gate.matches(route, request)),
-		make: (route: string, scope?: FakeHttpScope, once = false): FakeHttpHold => {
+		make: Effect.fnUntraced(function* (route: string, scope?: FakeHttpScope, once = false) {
 			const selection = fakeHttpSelection(route, scope);
 			const label = selection.label;
 			if (gates.has(label)) {
-				throw new Error(`Fake HTTP route "${route}" already has a ${kind}.\nhelp: Release its current ${kind} before scripting another.`);
+				return yield* Effect.die(
+					new Error(`Fake HTTP route "${route}" already has a ${kind}.\nhelp: Release its current ${kind} before scripting another.`),
+				);
 			}
 			const waiting = Deferred.makeUnsafe<void>();
 			const released = Promise.withResolvers<void>();
@@ -41,7 +43,7 @@ export function fakeHttpGates(tell: (line: string) => void, kind: "hold" | "stal
 			};
 			gates.set(label, gate);
 			tell(kind === "hold" ? `fake HTTP ${label} held` : `fake HTTP ${label} body will stall`);
-			return { release: Effect.sync(gate.release), waiting: Deferred.await(waiting) };
-		},
+			return { release: Effect.sync(gate.release), waiting: Deferred.await(waiting) } satisfies FakeHttpHold;
+		}),
 	};
 }
