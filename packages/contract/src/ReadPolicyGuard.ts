@@ -1,22 +1,31 @@
-import { Effect, Layer, Schema } from "effect";
-import { type Rpc, type RpcGroup, RpcMiddleware } from "effect/rpc";
-import { prependMiddleware } from "#internal/prependMiddleware.ts";
+import { Context, Effect, Layer, Schema, type Types } from "effect";
+import { type Rpc, RpcMiddleware } from "effect/rpc";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { WebSocketRequired } from "#WebSocketRequired.ts";
 
-export class ReadPolicyGuard extends RpcMiddleware.Service<ReadPolicyGuard>()("@shivaedev/contract/ReadPolicyGuard", {
-	error: Schema.Union([MissingReadPolicy, QueryReadDenied, WebSocketRequired]),
-}) {}
+function readPolicyGuard<A, E, R>(
+	effect: Effect.Effect<A, E, R>,
+	request: { readonly rpc: Rpc.Any; readonly payload: unknown },
+): Effect.Effect<A, E | MissingReadPolicy | QueryReadDenied | WebSocketRequired | Types.unhandled, R> {
+	return Effect.flatMap(CurrentViewer, (viewer) => authorizeReads(effect, request, viewer));
+}
 
-export function readPolicyGuardLayer(options: { readonly websocket?: boolean } = {}): Layer.Layer<ReadPolicyGuard> {
+const middleware = RpcMiddleware.Service<never>()("@shivaedev/contract/ReadPolicyGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied, WebSocketRequired]),
+});
+
+export const ReadPolicyGuard = Object.assign(Context.Reference("@shivaedev/contract/ReadPolicyGuard", { defaultValue: () => readPolicyGuard }), {
+	[RpcMiddleware.TypeId]: middleware[RpcMiddleware.TypeId],
+	"~ClientError": middleware["~ClientError"],
+	error: middleware.error,
+	requiredForClient: middleware.requiredForClient,
+});
+
+export function readPolicyGuardLayer(options: { readonly websocket?: boolean } = {}) {
 	return Layer.succeed(ReadPolicyGuard, (effect, request) =>
 		!options.websocket && request.rpc._tag.endsWith(".$changes")
 			? Effect.fail(new WebSocketRequired({ message: `${request.rpc._tag} needs the WebSocket protocol` }))
-			: Effect.flatMap(CurrentViewer, (viewer) => authorizeReads(effect, request, viewer)),
+			: readPolicyGuard(effect, request),
 	);
-}
-
-export function guardReads<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
-	return prependMiddleware(group.middleware(ReadPolicyGuard), ReadPolicyGuard.key);
 }

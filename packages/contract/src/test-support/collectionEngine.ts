@@ -13,7 +13,7 @@ import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "./collectionContract.ts";
 
 const migrations = {
@@ -69,8 +69,8 @@ export const collectionEngine = Effect.gen(function* () {
 	function protocol(viewer: string) {
 		return Layer.merge(
 			handlers,
-			Layer.succeed(Guard, (effect, request) =>
-				authorizeReads(effect, request, Option.some({ id: viewer })).pipe(Effect.provideService(Permissions, permissions)),
+			Layer.succeed(Guard, (effect) =>
+				Effect.provideService(effect, CurrentViewer, Option.some({ id: viewer })).pipe(Effect.provideService(Permissions, permissions)),
 			),
 		);
 	}

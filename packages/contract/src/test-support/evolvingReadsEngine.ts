@@ -12,7 +12,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { LiveServer } from "#LiveServer.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
-import { authorizeReads } from "#readPolicy.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { Guard, TimelineData, Unavailable } from "./derivedReadsContract.ts";
 import { derivedReadsData } from "./derivedReadsData.ts";
 import { EvolvingTimelines } from "./evolvingReadsContract.ts";
@@ -72,7 +72,7 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 			group: EvolvingTimelines,
 			handlers: Layer.merge(
 				handlers,
-				Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, Option.some({ id: "alice" }))),
+				Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, Option.some({ id: "alice" }))),
 			),
 			policy: "loopback",
 			services: Layer.merge(data, LiveServer.layer.pipe(Layer.provideMerge(Layer.succeed(Reactivity.Reactivity, tracked)))),

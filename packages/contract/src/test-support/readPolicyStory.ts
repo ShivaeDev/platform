@@ -14,7 +14,7 @@ import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads } from "#readPolicy.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "#test/answers.ts";
 import { watchHints } from "#testing.ts";
@@ -51,7 +51,7 @@ export const readPolicyStory = storyKit({
 				Stream.unwrap(Effect.map(querySubscription(rpc, queries, viewer), (subscription) => live.subscribe(subscription))),
 			"reads.read": () => Effect.succeed("Alice's note"),
 		}).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)));
-		const protocol = handlers.pipe(Layer.provideMerge(Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, viewer))));
+		const protocol = handlers.pipe(Layer.provideMerge(Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer))));
 		class Client extends AtomRpc.Service<Client>()("test/ReadPolicyClient", {
 			group: Reads,
 			makeEffect: RpcTest.makeClient(Reads, { flatten: true }),

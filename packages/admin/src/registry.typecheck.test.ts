@@ -4,6 +4,7 @@ import { expectTypeOf } from "vitest";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import type { WebSocketRequired } from "@shivaedev/contract/WebSocketRequired.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -63,7 +64,9 @@ Jobs.contract.application.toLayer({
 });
 
 type ProfileRpc = Extract<RpcGroup.Rpcs<typeof Users.contract>, { readonly _tag: "admin.users.profile" }>;
-expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<AuthUnavailable | Forbidden | Unauthorized | MissingReadPolicy | QueryReadDenied>();
+expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<
+	AuthUnavailable | Forbidden | Unauthorized | MissingReadPolicy | QueryReadDenied | WebSocketRequired
+>();
 
 const jobsModule = registerAdmin(adminRegistry(Jobs), { jobs });
 const usersModule = registerAdmin(adminRegistry(Users), { users });

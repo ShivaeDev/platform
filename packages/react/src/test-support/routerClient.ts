@@ -1,11 +1,9 @@
-import { Deferred, Effect, Layer, Option, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcMiddleware, RpcTest } from "effect/rpc";
+import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
-import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { Forbidden, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.String }) {}
@@ -16,8 +14,7 @@ const Get = query("get", {
 	rejections: { Forbidden, NoteMissing, NotFound, Unauthorized },
 	success: Schema.Struct({ id: Schema.String, title: Schema.String }),
 });
-class Guard extends RpcMiddleware.Service<Guard>()("test/RouterReadGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
-const Notes = contract("routerNotes", { queries: [Get] }).middleware(Guard);
+const Notes = contract("routerNotes", { queries: [Get] });
 export type NoteFailure = Forbidden | NoteMissing | NotFound | Unauthorized;
 
 export function routerClient() {
@@ -65,10 +62,7 @@ export function routerClient() {
 	class Client extends AtomRpc.Service<Client>()("test/RouterNotes", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: Layer.merge(
-			handlers,
-			Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, Option.none())),
-		),
+		protocol: handlers,
 	}) {}
 	return {
 		api: bind(Notes, Client, { live: false }),

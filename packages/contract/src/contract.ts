@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
-import { declarationError } from "#internal/declarationError.ts";
+import { declarationError, type Unique } from "#internal/declarationError.ts";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
+import { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
 
@@ -21,7 +22,7 @@ export type OperationRpc<TContract extends string, TOperation> = TOperation exte
 				TOperation["payload"],
 				TOperation["success"],
 				OperationError<TOperation>,
-				never,
+				TOperation extends QueryShape ? typeof ReadPolicyGuard : never,
 				QueryServices<TOperation>
 			>
 	: never;
@@ -44,7 +45,9 @@ export interface Contract<
 	TName extends string,
 	TQueries extends readonly QueryShape[],
 	TCommands extends readonly CommandShape[],
-	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]> | ReturnType<typeof changesRpc<TName, TQueries>>,
+	TRpcs extends Rpc.Any =
+		| OperationRpc<TName, TQueries[number] | TCommands[number]>
+		| Rpc.AddMiddleware<ReturnType<typeof changesRpc<TName, TQueries>>, typeof ReadPolicyGuard>,
 	TStreams extends readonly StreamShape[] = readonly [],
 	TScope extends "session" | undefined = undefined,
 > extends RpcGroup.RpcGroup<TRpcs> {
@@ -54,17 +57,6 @@ export interface Contract<
 		middleware: TM,
 	) => Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TM>, TStreams, TScope>;
 }
-
-type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
-	infer THead extends OperationShape,
-	...infer TTail extends readonly OperationShape[],
-]
-	? (THead["name"] extends TSeen ? THead["name"] : never) | Duplicated<TTail, TSeen | THead["name"]>
-	: never;
-
-type Unique<TOperations extends readonly OperationShape[]> = [Duplicated<TOperations>] extends [never]
-	? unknown
-	: `Operation names must be unique; duplicated: ${Duplicated<TOperations>}`;
 
 function assertValid(name: string, operations: readonly (QueryShape | CommandShape | StreamShape)[]) {
 	const error = declarationError(name, operations);
@@ -112,7 +104,8 @@ export function contract<
 	TName,
 	TQueries,
 	TCommands,
-	OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]> | ReturnType<typeof changesRpc<TName, TQueries>>,
+	| OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]>
+	| Rpc.AddMiddleware<ReturnType<typeof changesRpc<TName, TQueries>>, typeof ReadPolicyGuard>,
 	TStreams,
 	TScope
 >;
@@ -127,16 +120,17 @@ export function contract(
 ): DeclaredGroup {
 	const { queries = [], commands = [], streams = [], keyScope } = operations;
 	assertValid(name, [...queries, ...commands, ...streams]);
-	const rpcs = [...queries, ...commands, ...streams].map((operation) =>
-		Rpc.make(`${name}.${operation.name}`, {
+	const rpcs = [...queries, ...commands, ...streams].map((operation) => {
+		const rpc = Rpc.make(`${name}.${operation.name}`, {
 			error: operation.kind === "query" ? Schema.Union([operation.error, QueryReadDenied]) : operation.error,
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,
-		}).annotateMerge(operationAnnotations(operation, keyScope)),
-	);
+		}).annotateMerge(operationAnnotations(operation, keyScope));
+		return operation.kind === "query" ? rpc.middleware(ReadPolicyGuard) : rpc;
+	});
 	const application = RpcGroup.make(...rpcs);
-	const changes = changesRpc(name, queries);
+	const changes = changesRpc(name, queries).middleware(ReadPolicyGuard);
 	return withDeclaration(application.add(keyScope === undefined ? changes : changes.annotate(KeyScope, keyScope)), application, {
 		commands,
 		keyScope,

@@ -7,7 +7,7 @@ import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#queryKeys.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads } from "#readPolicy.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { layerMemoryProtocol } from "#testing.ts";
 import { Guard, TimelineData, Timelines } from "./derivedReadsContract.ts";
 import { derivedReadsData } from "./derivedReadsData.ts";
@@ -40,7 +40,7 @@ export const derivedReadsEngine = Effect.gen(function* () {
 		})
 		.pipe(Layer.provide(data));
 	const protocol = layerMemoryProtocol(Timelines).pipe(
-		Layer.provide([handlers, changes, Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, viewer))]),
+		Layer.provide([handlers, changes, Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer))]),
 	);
 	const transport = yield* Layer.build(protocol);
 	const registry = yield* Effect.acquireRelease(
