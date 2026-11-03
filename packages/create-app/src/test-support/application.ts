@@ -15,6 +15,7 @@ import { createAppIn } from "./generate.ts";
 import { generatedReadouts } from "./generatedReadouts.ts";
 import { moduleChecks } from "./moduleChecks.ts";
 import { railwayReadouts } from "./railwayReadouts.ts";
+import { resourceActions } from "./resourceActions.ts";
 import { runAdminStories } from "./runAdminStories.ts";
 import { templateReadouts } from "./templateReadouts.ts";
 
@@ -50,6 +51,7 @@ export const application = storyKit({
 		return {
 			...appReadouts(target),
 			...railwayReadouts(target),
+			...resourceActions(engine, story),
 			...moduleChecks(target, engine.source.starter, story),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),
