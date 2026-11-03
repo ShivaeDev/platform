@@ -148,9 +148,17 @@ The Railway database declares 2 CPUs and 1 GiB memory in `.railway/railway.ts` s
 
 With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for a local screenshot and smoke check. It installs Chromium on the first run and reuses the cached browser after that; `pnpm install` never downloads browsers. Screenshots stay in the git-ignored `.browser-check/` folder. For an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your shell, then choose the page and visible text to check. See [browser-check](https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme) for options.
 
-With those credentials set for a disposable account, run `pnpm browser-check:live-notes` to check two tabs sharing one session. It creates a note through the first tab, requires the second tab to receive its socket hint and display the note without navigation, then signs out in the first tab and requires the second tab's live socket and private notes to disappear. Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The note remains in the disposable account. Run with `--url http://127.0.0.1:3000` against `pnpm build && pnpm start` to check the production socket path too. This local check covers awake Chromium tabs, not tab sleep or other browsers.
+With those credentials set for a disposable account, run `pnpm browser-check:live-notes` to check two tabs sharing one session. It creates a note through the first tab, requires the second tab to receive its socket hint and display the note without navigation, then signs out in the first tab and requires the second tab's live socket and private notes to disappear. Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The note remains in the disposable account. This local check covers awake Chromium tabs, not tab sleep or other browsers.
 
-End-to-end browser tests do not belong in an app's CI because they cost CI minutes on private repositories. Stories prove behavior; browser check is for looking at the app locally. It is opt-in and stays out of CI and `pnpm ready`/`ci`.
+To exercise the live check on a disposable PostgreSQL database, set `TEST_DATABASE_URL` to a database whose role can create databases and run:
+
+```sh
+pnpm test tooling/notes/browser-check/twoTabNotes.slow.spec.ts --project slow
+```
+
+The story starts the app host and Vite proxy on ephemeral ports, with an existing test account, and runs the same live check. It skips locally without `TEST_DATABASE_URL`; in CI missing configuration fails. A skipped run supplies no evidence. It covers awake Chromium tabs through the development proxy; production assets, tab sleep and other browsers are outside this check.
+
+The slow project is opt-in and excluded from the app's normal tests and `pnpm ready`/`ci`. Platform's framework CI runs it in the browser-tool job; generated apps do not need a browser suite in CI.
 
 ### Clock jumps and sessions
 
