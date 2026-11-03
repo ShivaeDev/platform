@@ -112,9 +112,12 @@ function pacedGithub(clock: Clock.Clock, reset: number) {
 	};
 	return GithubApi.of({
 		get: () => Effect.die("Unexpected GitHub request"),
+		list: () => Effect.die("Unexpected GitHub request"),
 		observations: () => Effect.succeed([]),
 		pace: (interval) => Effect.sync(() => pace(observation, interval, clock.currentTimeMillisUnsafe())),
 		pages: () => Effect.die("Unexpected GitHub request"),
+		post: () => Effect.die("Unexpected GitHub mutation"),
+		read: () => Effect.die("Unexpected GitHub request"),
 		text: () => Effect.die("Unexpected GitHub log request"),
 		write: () => Effect.die("Unexpected GitHub mutation"),
 	});

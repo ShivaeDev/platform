@@ -41,25 +41,22 @@ export const GithubApi = defineService({
 				}
 			}
 		});
-		function request<A, E, R>(endpoint: string, read: Effect.Effect<A, E, R>) {
+		function request<A, E, R>(endpoint: string, operation: Effect.Effect<A, E, R>) {
 			return Effect.gen(function* () {
 				const resource = yield* state.github.resource(endpoint);
 				const pause = paused(resource, yield* Clock.currentTimeMillis);
 				if (pause !== undefined) {
 					return yield* githubPaused(pause.by, pause.until);
 				}
-				return yield* read.pipe(
+				return yield* operation.pipe(
 					Effect.onExit(() => observe),
 					Effect.mapError((error) => {
-						if (error instanceof ServiceUnavailable) {
-							return error;
-						}
 						if (error instanceof GitHubRateLimited) {
 							const until = DateTime.toEpochMillis(error.retryAt);
 							state.blocks.set(error.resource, until);
 							return githubPaused("rate-limit", until);
 						}
-						return new ServiceUnavailable({ message: "GitHub evidence could not be read; check authentication and repository access" });
+						return error;
 					}),
 				);
 			});
@@ -80,15 +77,32 @@ export const GithubApi = defineService({
 				});
 		}
 
-		return {
-			get: (endpoint: string) =>
-				request(
+		function read(endpoint: string) {
+			return request(endpoint, state.github.read(endpoint).pipe(Effect.flatMap((page) => page.decode(Schema.Unknown))));
+		}
+		function list(endpoint: string) {
+			return Effect.gen(function* () {
+				const pages = yield* state.github.list(endpoint, pagePolicy());
+				return yield* request(
 					endpoint,
-					state.github.read(endpoint).pipe(
-						Effect.flatMap((page) => page.decode(Schema.Unknown)),
-						Effect.map(JSON.stringify),
+					pages.pipe(
+						Stream.mapEffect((page) => page.decode(Schema.Unknown)),
+						Stream.runCollect,
 					),
-				),
+				);
+			});
+		}
+		function post(endpoint: string, body: unknown) {
+			return request(endpoint, state.github.write("POST", endpoint, body).pipe(Effect.flatMap((page) => page.decode(Schema.Unknown))));
+		}
+		function fleetFailure(error: unknown) {
+			return error instanceof ServiceUnavailable
+				? error
+				: new ServiceUnavailable({ message: "GitHub evidence could not be read; check authentication and repository access" });
+		}
+		return {
+			get: (endpoint: string) => read(endpoint).pipe(Effect.map(JSON.stringify), Effect.mapError(fleetFailure)),
+			list,
 			observations: () =>
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
@@ -102,21 +116,12 @@ export const GithubApi = defineService({
 					const core = state.observations.get("core");
 					return pace(core === undefined ? undefined : limited(core, now), intervalMs, now);
 				}),
-			pages: (endpoint: string) =>
-				Effect.gen(function* () {
-					const pages = yield* state.github.list(endpoint, pagePolicy());
-					const bodies = yield* request(
-						endpoint,
-						pages.pipe(
-							Stream.mapEffect((page) => page.decode(Schema.Unknown)),
-							Stream.runCollect,
-						),
-					);
-					return JSON.stringify(bodies);
-				}),
-			text: (endpoint: string) => request(endpoint, state.github.text(endpoint, "application/vnd.github+json", 16 * 1024 * 1024)),
-			write: (body: unknown) =>
-				request("graphql", state.github.write("POST", "graphql", body).pipe(Effect.flatMap((page) => page.decode(Schema.Unknown)))),
+			pages: (endpoint: string) => list(endpoint).pipe(Effect.map(JSON.stringify), Effect.mapError(fleetFailure)),
+			post,
+			read,
+			text: (endpoint: string) =>
+				request(endpoint, state.github.text(endpoint, "application/vnd.github+json", 16 * 1024 * 1024)).pipe(Effect.mapError(fleetFailure)),
+			write: (body: unknown) => post("graphql", body).pipe(Effect.mapError(fleetFailure)),
 		};
 	},
 	requires: [GitHub],

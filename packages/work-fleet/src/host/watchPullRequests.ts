@@ -6,6 +6,7 @@ import type { Options } from "@shivaedev/pr-watch/model.ts";
 import type { WatchEvent } from "@shivaedev/pr-watch/outputEvent.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
 import { requestFailure } from "@shivaedev/pr-watch/requestFailure.ts";
+import { githubApiLayer } from "#host/githubApi.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";
 import type { WatchState } from "#host/watchState.ts";
 import type { WatchStreamOptions } from "#host/watchStream.ts";
@@ -17,7 +18,8 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 	emit: (event: { readonly kind: string; readonly [key: string]: unknown }) => Effect.Effect<void>,
 ) {
 	const scope = yield* Effect.scope;
-	const failed = yield* Deferred.make<never, WatchFailure | Layer.Error<ReturnType<typeof watchPrLayer>>>();
+	const github = Layer.effectContext(yield* Effect.cached(Layer.buildWithScope(githubApiLayer, scope)));
+	const failed = yield* Deferred.make<never, WatchFailure | Layer.Error<ReturnType<typeof watchPrLayer>> | Layer.Error<typeof githubApiLayer>>();
 	const repositories = new Map<string, Map<number, string>>();
 	const start = Effect.fnUntraced(function* (repository: string, work: Map<number, string>) {
 		const transient = new Set<string>();
@@ -61,7 +63,7 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 			}
 		}
 		yield* watch(settings, { heartbeat: 0, once: false }, write, () => Effect.void).pipe(
-			Effect.provide(Layer.fresh(watchPrLayer(report, { failure: recordFailure }))),
+			Effect.provide(Layer.fresh(watchPrLayer(report, { failure: recordFailure }).pipe(Layer.provide(github)))),
 			Effect.tapError((error) =>
 				error instanceof ServiceUnavailable ? emit({ kind: "pr-error", message: error.message, repository }) : Effect.void,
 			),
