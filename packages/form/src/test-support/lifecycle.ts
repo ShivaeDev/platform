@@ -1,6 +1,7 @@
 import { Effect, Schema, Scope } from "effect";
 import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { PROFILE_KEY } from "#test/ProfileKey.ts";
 import { formStories } from "./formStories.ts";
 
 export const names = formStories(() => Schema.Struct({ name: Schema.Trim }), {
@@ -22,7 +23,7 @@ export const nativeNames = formStories(() => Schema.Struct({ name: Schema.String
 			Effect.gen(function* () {
 				yield* Scope.Scope;
 				yield* AtomRegistry;
-				yield* Reactivity.invalidate(["profile"]);
+				yield* Reactivity.invalidate([PROFILE_KEY]);
 				return values;
 			}),
 	}),

@@ -88,7 +88,7 @@ export const poolLifetime = storyKit({
 			nextHint: () => (state.feed === undefined ? Effect.die("Subscribe first") : state.feed.next),
 			noteIsWritten: (id: number) =>
 				SqlClient.SqlClient.use((sql) => sql`insert into notes values (${id})`).pipe(
-					Effect.andThen(invalidateOnCommit([`notes:${id}`])),
+					Effect.andThen(invalidateOnCommit([notes.item(id)])),
 					transact({ onSqlError: (error) => error }),
 					Effect.provideContext(services(state)),
 				),
