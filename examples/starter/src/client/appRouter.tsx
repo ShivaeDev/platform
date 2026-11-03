@@ -73,6 +73,8 @@ function RouteShell({ children }: { readonly children: ReactNode }): ReactElemen
 
 declare module "@tanstack/react-router" {
 	interface Register {
-		router: Effect.Success<ReturnType<typeof appRouter<ReturnType<ReturnType<typeof clientModules>["modules"][number]["routes"]>[number]>>>;
+		router: Effect.Success<
+			ReturnType<typeof appRouter<ReturnType<Effect.Success<ReturnType<typeof clientModules>>["modules"][number]["routes"]>[number]>>
+		>;
 	}
 }

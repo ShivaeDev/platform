@@ -1,4 +1,7 @@
 import type { AnyRoute } from "@tanstack/react-router";
+import type { Effect } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { type BindingComposition, composeBindings, liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import type { AdminNavigation } from "./AdminNavigation.ts";
 import type { rootRoute } from "./rootRoute.ts";
 
@@ -13,10 +16,20 @@ export interface ClientModule<TRoute extends AnyRoute = AnyRoute> {
 	readonly routes: (context: RouteContext) => readonly TRoute[];
 }
 
-export interface AppConnection<TModules extends readonly ClientModule[] = readonly ClientModule[]> {
+export type ClientRegistration = Effect.Effect<ClientModule, never, AtomRegistry.AtomRegistry>;
+
+export interface AppConnection<TModules extends readonly ClientModule[] = readonly ClientModule[]> extends BindingComposition {
 	readonly modules: TModules;
 }
 
+export type ClientConnection = (
+	session: { readonly id: string },
+	registry: AtomRegistry.AtomRegistry,
+) => Effect.Effect<AppConnection, never, AtomRegistry.AtomRegistry>;
+
 export function connectModules<const TModules extends readonly ClientModule[]>(modules: TModules): AppConnection<TModules> {
-	return { ...Object.fromEntries(modules.flatMap((module) => module.bindings ?? [module.api]).map((api, index) => [index, api])), modules };
+	return composeBindings(
+		{ modules },
+		modules.flatMap((module) => (module.bindings ?? [module.api]).flatMap(liveBindings)),
+	);
 }

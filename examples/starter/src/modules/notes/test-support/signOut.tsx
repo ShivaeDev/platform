@@ -7,7 +7,7 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthActions } from "#client/auth.ts";
-import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
@@ -41,7 +41,7 @@ export const signOut = storyKit({
 			return view.render(
 				<SessionApp
 					auth={auth}
-					connect={() => connectModules([notesRegistration(client)])}
+					connect={(session) => clientModules(session, [notesRegistration(client)])}
 					history={history}
 					recheck={() => undefined}
 					session={signedIn ? { user: { id: "alice", permissions: [] } } : null}

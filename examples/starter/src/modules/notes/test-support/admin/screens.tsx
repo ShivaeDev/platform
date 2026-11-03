@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
-import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { adminRegistration } from "#modules/notes/client/admin/registration.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
@@ -94,7 +94,7 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 		const auth = screenAuth();
 		function connect({ id }: { readonly id: string }) {
 			const client = id === "alice" ? engine.client : other;
-			return connectModules([foundationRegistration(client), adminRegistration(client)]);
+			return clientModules({ id }, [foundationRegistration(client), Effect.succeed(adminRegistration(client))]);
 		}
 		function recheck() {
 			return undefined;

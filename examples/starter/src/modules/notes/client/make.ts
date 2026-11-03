@@ -1,10 +1,10 @@
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { Activity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import type { Activity } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { Notes } from "#modules/notes/notes.ts";
 
-export function makeNotesClient(url: string, options: Omit<ClientOptions, "url"> = {}) {
-	const client = makeClient(Notes, { url, ...options });
-	return { api: client.api, runtime: client.runtime, [Activity]: clientActivity(client) };
+export function makeNotesClient(url: string, options: Omit<ClientOptions, "url"> & { readonly registry?: AtomRegistry.AtomRegistry } = {}) {
+	return makeClient(Notes, { url, ...options });
 }
-export type NotesClient = ReturnType<typeof makeNotesClient>;
+export type NotesClient = Pick<ReturnType<typeof makeNotesClient>, "api" | "runtime" | typeof Activity>;

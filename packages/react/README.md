@@ -105,6 +105,24 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 `Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
+#### Connections with several modules
+
+Declare all the connection's bound APIs with contract's `composeBindings`. The session boundary mounts each declared binding and applies its `liveCoalesceWindow` to all of them. The client can keep its application modules nested:
+
+```ts
+import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
+
+function connect(session: Session, registry: AtomRegistry.AtomRegistry) {
+	const modules = [notesModule(registry), tasksModule(registry)];
+	return composeBindings(
+		{ modules },
+		modules.map((module) => module.api),
+	);
+}
+```
+
+`Session`, `notesModule` and `tasksModule` belong to the application; each module binds its contract with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
+
 #### Resume from a native shell
 
 For a native shell, pass its resume source when binding the API returned by `connect`:

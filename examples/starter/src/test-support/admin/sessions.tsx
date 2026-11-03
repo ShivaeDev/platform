@@ -11,7 +11,7 @@ import { App } from "#client/App.tsx";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import { makeAuth } from "#client/auth.ts";
-import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
@@ -102,7 +102,9 @@ export const adminSessionsOpen = adminSessions.trait(
 			root: view.container,
 			tell: () => undefined,
 		});
-		yield* Effect.promise(() => view.render(<App auth={auth} connect={() => connectModules([foundationRegistration(client)])} history={history} />));
+		yield* Effect.promise(() =>
+			view.render(<App auth={auth} connect={(session) => clientModules(session, [foundationRegistration(client)])} history={history} />),
+		);
 		yield* engine.driver.settle();
 	},
 );
