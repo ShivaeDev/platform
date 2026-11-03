@@ -3,7 +3,7 @@ import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { listeningUrl } from "#adapters/listeningUrl.ts";
 import { CONSTRAINED_AGENT, TOOL_SERVER_NAME } from "#adapters/toolNames.ts";
-import { opencodeFailure } from "#failure.ts";
+import { unavailable } from "#failure.ts";
 
 const LOOPBACK = "127.0.0.1";
 interface ServeOptions {
@@ -90,4 +90,4 @@ export const serveOpencode = Effect.fnUntraced(function* (options: ServeOptions)
 		}),
 	);
 	return address;
-}, Effect.mapError(opencodeFailure));
+}, Effect.mapError(unavailable));
