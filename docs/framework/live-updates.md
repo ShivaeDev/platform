@@ -27,7 +27,25 @@ const makeNotesRepository = makeRepository(StoredNote, {
 
 Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. Commands over these repositories use `invalidates: () => []`; do not repeat record or bucket keys there or call an invalidation helper at write sites. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
 
-Use `transact` for an enclosing transaction. Its pre-commit hook sends PostgreSQL NOTIFY on the writing connection, so rollback discards the notification with the write, as the [commit and rollback stories](../../packages/sql/src/automaticChanges.spec.ts) prove. A bare native transaction has no observed commit boundary. Raw SQL writes must declare their affected keys explicitly; joins and views still need explicit query `reads`. See [commit-bound changes](./changes.md) for raw-write coverage and transaction composition.
+Use `transact` from `@shivaedev/sql/transact.ts` for an enclosing transaction, in request handlers and workers alike. A repository write opens `transact` when called alone and joins an enclosing one. Its pre-commit hook sends PostgreSQL NOTIFY on the writing connection, so rollback discards the notification with the write, as the [commit and rollback stories](../../packages/sql/src/automaticChanges.spec.ts) prove. A bare native transaction has no observed commit boundary. Joins and views still need explicit query `reads`.
+
+### Raw SQL writers
+
+Only raw-SQL writers declare write keys manually. Use `changes` from `@shivaedev/sql/changes.ts` to name the affected records and buckets once, then call its `record()` method inside the same `transact` as the SQL write. For a title change scoped to a known owner, using the `notes` collection declared below:
+
+```ts
+import { changes } from "@shivaedev/sql/changes.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
+
+const renamed = changes({ notes: [notes.item(id), notes.bucket.userId(userId)] });
+
+yield* Effect.gen(function* () {
+	yield* sql`update notes set title = ${title} where id = ${id} and user_id = ${userId}`;
+	yield* renamed.record();
+}).pipe(transact({ onSqlError: (error) => error }));
+```
+
+A raw SQL move must include both the old and new bucket keys. Repository writes derive these automatically from the stored rows. See [commit-bound changes](./changes.md) for raw-write coverage and transaction composition.
 
 ## Declare authorized query reads
 
@@ -134,12 +152,6 @@ A loopback measurement against real PostgreSQL, with 12 signed-in viewers, one s
 
 The write uses the repository's model-derived bucket keys and no command invalidations. Counts exclude initial connection/subscription reads and the command's own authorization and write SQL, and include the complete subscriber fan-out. These counts measure the host and identity composition, not browser rendering, provider-specific session SQL, deployment latency or a host restart. The [PostgreSQL load story](../../packages/server/src/liveCost.spec.ts) measures this budget. Run it with `PLATFORM_SQL_TEST_DATABASE_URL` set: `pnpm --filter @shivaedev/server test src/liveCost.spec.ts`. It asserts delivery and the shared-session budget at both query counts. There is no measured CPU, latency, provider SQL or rerun-and-compare fan-out budget here.
 
-## Derived command keys and publication gaps
-
-For derived keys that repository writes cannot name, command `invalidates(payload, result, viewer)` keys publish after the handler returns. The handler keeps its own transaction and SQL error mapping. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than `invalidates`; repository writes already announce their record and bucket keys, so commands need not repeat them.
-
-Declared-key publication retries twice with 50 ms and 100 ms backoffs. It retries only publication, preserving the committed handler result. If all three attempts fail, a database-backed host sends Resync to its local live streams and attempts a broadcast Resync on the PostgreSQL change channel. All listening hosts reconcile their streams on that broadcast. If PostgreSQL cannot be reached or rejects the broadcast, local streams still receive Resync and the failure is logged, but a healthy remote listener can remain stale until a later reconnect, listener recovery or other reconciliation. There is no durable replay of a notification that never reached PostgreSQL. The [publication stories](../../packages/server/src/commandPublication.spec.ts) prove retry, local reconciliation and broadcast delivery, including a refused broadcast.
-
 ## Recovery, restarts and environment limits
 
 NOTIFY is not a durable log: there is no replay cursor, event journal, offline mutation or deployment delivery guarantee. The [listener recovery stories](../../packages/sql/src/postgresListenerRecovery.spec.ts) prove Resync on loss, failed reconnects and recovery. Reconciliation reads authoritative data; it does not replay missed writes. The [PostgreSQL composition](./composed-example.md) proves after-commit delivery between separate HTTP servers and a worker, with DOM-rendered editors. It does not prove a production deployment, SSR or mobile.
@@ -180,7 +192,7 @@ const release = registry.mount(subscription.connection);
 | `Resync`                                 | Invalidate the caller's explicit `resyncKeys`.                                                                                                  |
 | First hint on a fresh/reconnected stream | Invalidate the full explicit scope, even if that hint is targeted.                                                                              |
 
-For this explicit-key example, supply the application's `documentReadPolicy` and `documentListReadPolicy`. Declare reads per entity and command keys for changes the custom source must announce:
+For this explicit-key example, supply the application's `documentReadPolicy` and `documentListReadPolicy`. Declare reads per entity; writers keep the model repository and `transact` path described above:
 
 ```ts
 const Get = query("get", {
@@ -197,7 +209,7 @@ const List = query("list", {
 const Edit = command("edit", {
 	payload: { id: Schema.String, body: Schema.String },
 	success: Document,
-	invalidates: ({ id }) => [documents.item(id)],
+	invalidates: () => [],
 });
 ```
 
