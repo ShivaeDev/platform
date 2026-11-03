@@ -47,12 +47,12 @@ export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => 
 			}
 			return startRuntime(engine, name, jobs, { connectionString: Redacted.make(url.toString()) });
 		},
-		terminateIdleConnections: (name: string) => {
-			tell(`an administrator terminates ${name}'s idle PostgreSQL connections`);
+		terminateIdleConnection: (name: string) => {
+			tell(`an administrator terminates ${name}'s idle PostgreSQL pool connection`);
 			return Effect.gen(function* () {
-				terminated.add(yield* backendOf(engine, name));
-				yield* engine.sql`select pg_terminate_backend(pid) from pg_stat_activity
-					where datname = current_database() and application_name = ${name} and state = 'idle'`;
+				const pid = yield* backendOf(engine, name);
+				terminated.add(pid);
+				yield* engine.sql`select pg_terminate_backend(${pid})`;
 			});
 		},
 		untilBackendDisconnects: (pid: number) => {
