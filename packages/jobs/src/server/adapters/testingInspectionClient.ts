@@ -53,8 +53,7 @@ export function testingInspectionClient(
 		return result;
 	}
 	const stopObserved: EngineClient["stop"] = async (options) => {
-		await Effect.runPromise(Scope.close(scope, Exit.void));
-		await stop(options);
+		await Promise.all([Effect.runPromise(Scope.close(scope, Exit.void)), stop(options)]);
 	};
 	return new Proxy(source, {
 		get(target, property) {
