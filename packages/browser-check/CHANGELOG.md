@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 - 2026-11-03
+
+### Added
+
+- Exports the generic `Browser`, `BrowserPage`, `BrowserSocket` and `BrowserCheckError` modules and the Playwright Layer at `adapters/playwright.ts` for application-owned Effect scenarios.
+
+### Breaking
+
+- Removes `browser-check --live-notes`. Run `pnpm browser-check:live-notes` in the starter or an app generated from the new template, with `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` set. Copy the starter's notes scenario into existing apps that need the same check; the shared CLI now handles only generic page, text and screenshot checks.
+- Programmatic browser consumers now provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts` instead of `Browser.layer`. Replace `session.visit`, `session.checkText` and `session.screenshot` with operations on `yield* session.newPage`. Replace `session.checkLiveNotes` and `CheckOptions.liveNotes` with the starter-owned `liveNotes` scenario. The adapter’s `playwright` export is now a Layer: use it directly instead of `Layer.effect(Browser, playwright)`. The former `adapters/liveNotes.ts` scenario and `adapters/rpcFrames.ts` predicates (`rpcHint` and `rpcListRequest`) live in the starter’s `tooling/notes/browser-check` folder.
+
 ## 0.2.3 - 2026-11-02
 
 ### Fixed

@@ -13,6 +13,7 @@ import type { mountSession } from "#test/mountSession.ts";
 import type { CurrentFleet } from "#test/pullRequestsFixture.ts";
 import type { BoardTestApi, renderBoard } from "#test/react.tsx";
 import type { renderRouter } from "#test/renderRouter.tsx";
+import { screenClock } from "#test/screenClock.ts";
 import type { DiagramDrawing } from "#test/screenDiagrams.ts";
 import type { SessionTransport } from "#test/sessionTransport.ts";
 
@@ -22,6 +23,7 @@ export interface ScreenEngine {
 	chunkResponse?: { started: boolean; held: boolean; pending: boolean; release: () => Promise<void>; fail: () => void };
 	chunks: ReturnType<typeof createLazyChunks>;
 	readonly cleanups: Array<() => Promise<void>>;
+	readonly clock: Effect.Success<typeof screenClock>;
 	container?: HTMLElement | undefined;
 	documentFailed?: boolean;
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
@@ -78,7 +80,8 @@ export function* createScreen() {
 	yield* Effect.promise(() => Promise.all(Object.values(chunks).map((chunk) => chunk.load())));
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
 	const transportEvents = yield* Effect.acquireRelease(PubSub.unbounded<void>(), PubSub.shutdown);
-	const engine: ScreenEngine = { chunks, cleanups: [], files: {}, pageRequests: [], path: "/", transportEvents, workspaceRequests: 0 };
+	const clock = yield* screenClock;
+	const engine: ScreenEngine = { chunks, cleanups: [], clock, files: {}, pageRequests: [], path: "/", transportEvents, workspaceRequests: 0 };
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
 			for (const close of engine.cleanups.reverse()) {
@@ -88,7 +91,6 @@ export function* createScreen() {
 			window.dispatchEvent(new Event("pagehide"));
 			vi.restoreAllMocks();
 			vi.unstubAllGlobals();
-			vi.useRealTimers();
 			for (const attribute of [...document.documentElement.attributes]) {
 				document.documentElement.removeAttribute(attribute.name);
 			}

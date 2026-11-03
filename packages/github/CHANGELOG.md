@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0 - 2026-11-03
+
+### Added
+
+- Add `details(summary, text)` to render raw text with escaped HTML and Markdown in both the summary and body.
+- Add `renderSections` to share one UTF-8 byte budget across row lists, reserving headers and an `and N more` paragraph for each truncated section.
+- Export `parseRepositoryAddress` from `repositoryAddress.ts`, returning an Effect `Result` with the address form, repository identity, a pull-request number when present, or a typed `GitHubAddressInvalid` failure.
+
+### Fixed
+
+- Preserve each pagination pacing callback's failure type through raw, decoded, bounded and repository lists.
+- Keep cached pagination links when GitHub omits them from a 304 response, so repeated reads return every page.
+
+### Breaking
+
+- `renderRows` now returns `Result<string, MarkdownBudgetTooSmall>` instead of a string or a thrown `RangeError`. Match the native Effect `Result` with `Result.match`, or convert it with `Effect.fromResult`. Budget failures carry the requested `byteLimit`; import `MarkdownBudgetTooSmall` from `@shivaedev/github/errors.ts`.
+- Initialize the low-level request cache with `yield* requests(rates)` instead of `requests(client, token, rates, refresh)`. Provide `HttpClient`, `GitHubToken` and, when needed, `TokenRefresh` through the Effect environment. The `GitHub` service API is unchanged.
+
 ## 0.10.0 - 2026-11-02
 
 ### Added

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.19.0 - 2026-11-03
+
+### Added
+
+- The Jobs view accepts queue declarations to show labels and payload subject columns. Subject values use the existing masked inspection payload, including on dead-letter copies grouped under their source queue. String-only queue lists remain supported.
+
+### Fixed
+
+- Read job failures through jobs' sanitized readout so details and listings expose the same failure messages.
+
+### Breaking
+
+- Move admin's default React views and their supporting modules from `@shivaedev/admin/client/` to `@shivaedev/admin/client/adapters/`. Change the import prefix for `UsersView.ts`, `UsersTable.ts`, `SessionsView.ts`, `SessionConfirmation.ts`, `SessionListView.ts`, `SessionPagination.ts`, `JobsView.ts`, `JobsMetrics.ts`, `JobsQueryPanel.ts`, `JobsQueueView.ts`, `JobButton.ts`, `JobDetail.ts`, `JobList.ts`, `JobPagination.ts`, `JobTable.ts` and `jobsTypes.ts`; exported names stay the same. The old paths have no aliases. Point Tailwind sources at `@shivaedev/admin/src/client/adapters`.
+- Make `react`, `@effect/atom-react` and `@shivaedev/react` optional peers of admin. Applications using the default views must install all three explicitly; registry, contract and guard consumers need only the required `effect` peer.
+- Admin no longer exports `AppUser`, `UserListInput` or `UserList` from `@shivaedev/admin/users/roles.ts`. Import `DirectoryUser` (in place of `AppUser`), `UserListInput` and `UserList` directly from `@shivaedev/identity/users.ts`. The page-specific `UsersList` response remains in `@shivaedev/admin/users/page.ts`.
+- Import `ChangeRoleInput` from `@shivaedev/admin/users/ChangeRoleInput.ts` instead of the removed `@shivaedev/admin/users/roles.ts` module.
+- Admin's `usersHandlers` now takes only the users page. Replace `usersHandlers(page, access, authOptions)` with `usersHandlers(page)` and provide identity's `UserDirectory` service, such as `betterAuthUserDirectory(access, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts`, to the handlers.
+- Admin's `listUsers` and `changeUserRole` in `@shivaedev/admin/server/users.ts` now take only their input. Replace `listUsers(access, input, authOptions)` and `changeUserRole(access, input, authOptions)` with `listUsers(input)` and `changeUserRole(input)`, and provide the same `UserDirectory` layer. Permissions remain enforced through `SessionUser`.
+- Users queries now read identity's user keys. Migrate custom Users subscriptions from the `admin.users` change collection to `userKeys.list` from `@shivaedev/identity/users.ts`.
+- The built-in Jobs page compiles against jobs-owned `JobState` and `ListedJob` contracts. Replace explicit pg-boss metadata annotations with types from `@shivaedev/jobs/server/job.ts` and `@shivaedev/jobs/server/health.ts` when adapting job reads to admin operations.
+
 ## 0.18.1 - 2026-11-02
 
 ### Changed

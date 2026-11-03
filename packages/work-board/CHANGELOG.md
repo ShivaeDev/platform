@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.43.0 - 2026-11-03
+
+### Added
+
+- Publish immutable report text or bytes with `publishOnce`, or replace a file against its expected source with `replaceIfUnchanged`, using the `Publication` service and its Node layer. Interrupted staging cleans up before the Effect finishes.
+- Expose original frontmatter values on `ParsedMetadata.values` for application-owned fields.
+- Provide `workspaceLayer` to use Board's scoped `Workspace`, watched documents and archived snapshots without an HTTP server. `Workspace.metadata`, `writeMetadata` and `closeDecision` read and write metadata while preserving unknown fields and Markdown bodies. Writes require explicit opt-in and refuse changed source bytes.
+- Board startup propagates the host's typed invalid-mask definition error.
+
+### Changed
+
+- Production and embedded Board servers start without constructing a server renderer.
+- Markdown and code rendering return rendered content or a typed `RenderFailed` through the scoped `Highlighter` service.
+- Headless index reads keep the workspace's owning context when a request supplies its own clock. Source read failures remain in the read channel rather than preventing workspace startup.
+- Work Board validates answer and handoff previews through the form, showing errors instead of previewing invalid input.
+
+### Fixed
+
+- Allow client TypeScript module imports through the package's file-preserving export wildcard.
+- Install the dependencies used by the exported client modules with Work Board.
+- Show an unavailable diagnostic on a brief and mark Fleet items unavailable when their brief checks fail; successful checks still accept or refuse briefs.
+- Share GitHub repository address parsing and normalize `.git` suffixes in repository shorthand when linking pull requests.
+
+### Breaking
+
+- Prefix Effect service ids with `@shivaedev/work-board/`. Replace any manually constructed `WorkBoard/<name>` tags with the exported service or `@shivaedev/work-board/<name>`; imports and exported names stay the same.
+- Replace imports of `server/responses/publicationDirectory.ts` and `server/responses/publishIn.ts` with the Effects in `server/publication.ts`, providing `Publication.layer`. Native directory handles now belong to Board's adapters.
+- Import the native Fleet health reader from `server/adapters/fleetHealth.ts` instead of `server/diagnostics/fleetHealth.ts`.
+- Replace `Highlighter.codeBlocks()` plugin access with `Highlighter.markdown(source, options)` for rendered HTML, including highlighted code blocks. Failures now stay in the Effect error channel; provide `Highlighter.layer` within a scope.
+- The `render/code.ts` module moves under adapters. Consumers that assembled rendering plugins should use `server/render/Highlighter.ts` instead.
+- Pure metadata modules move from `server/metadata/` to `metadata/`. Import `metadataParse` and `metadataLocations` from `metadata/adapters/parse.ts` and `metadata/adapters/locations.ts` instead of their former server paths.
+- YAML parsing and migration helpers now live under adapters. Import `metadataParse` and `metadataLocations` from `server/metadata/adapters/parse.ts` and `server/metadata/adapters/locations.ts`; import `sourceHeader`, `sourceEdits`, `replacementEdit` and `decisionClosed` from their same-named modules under `server/migration/adapters/`. The `board.metadataParse` integration API is unchanged.
+- Consumers explicitly enumerating `boardLayer` startup errors must include `InvalidRedactionMask` from `@shivaedev/errors/wireMask.ts`.
+- Response-wait read callbacks now include contract guard failures in their error type. Add `MissingReadPolicy` and `WebSocketRequired` when handling `waitForResponse` failures.
+
 ## 0.42.1 - 2026-11-02
 
 ### Fixed

@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.32.0 - 2026-11-03
+
+### Added
+
+- Hold pull requests whose base diff changes `.github/` for the orchestrator, remove queued PRs from automatic merging, and release a hold for one exact head with `work-fleet release-ci <id> <head>`.
+- `GithubApi.read`, `list` and `post` expose decoded JSON with typed request failures through Fleet's shared GitHub budget.
+- Configure Cloud worker setup instructions with `worker.setupCommand`, defaulting to `./script/update`.
+- Accept shared GitHub repository remote forms for report publication checks, including `ssh://git@github.com/` and `git+https://` remotes.
+
+### Changed
+
+- Fleet publishes report documents, attachments, retained payloads and completion bookkeeping through Board’s publication port. Recovery retains the first completed report, and completion preserves source edits.
+- Read Board's headless workspace index and archived records, and write completion metadata and decision closure through its guarded write API. Fresh Fleet reads advance the shared index. Source availability failures name Board's indexed unavailable paths.
+- Consume pr-watch's typed events directly while preserving its combined watch output.
+
+### Fixed
+
+- Keep ordinary dispatch deferrals, merged PRs, completed work, brief daemon outages, recovering GitHub errors, requeued Board context changes, unsubstantiated release holds and queue-related auto-merge changes quiet in Fleet's default watch.
+- A stuck check that picks up a finished repair does not hide a later reviewer stall on the same head.
+- Report failed brief validation as unavailable through diagnostics instead of treating it as acceptance.
+- Keep accepted answers pending when request cleanup fails, allowing normal completion recovery without reporting a permanent answer refusal.
+- Read changed paths from a pinned base/head comparison when GitHub's PR file count and paginated listing disagree after base merges. Refuse an untrustworthy comparison once with the observed counts instead of exhausting transient-read retries.
+- Restore conflict questions persisted in the review step so orchestrators can answer or release them. Conflict repairs retain their exemption from open-PR back pressure.
+- Read all changed paths of large pull requests when GitHub's file listing and count disagree or the listing reaches its limit, using a local diff of the observed base and head commits. Failed reads still stop adoption.
+- PR event watchers share one Fleet GitHub client and stop requests, including pagination, when its resource budget falls below the reserve.
+- Show stalled-release escalation in unfiltered daemon status with the same owner and reason as item status and follower snapshots.
+- Use the configured repository remote and base branch in Cloud worker startup and report revision instructions.
+- Include the question and PR result protocol in local worker launches and repair turns without duplicating it on retries.
+- Share GitHub address parsing across publication, watching, checks and merging. Ignore unsupported hosts and invalid PR numbers when watching, refuse them before GitHub observation or automatic merging, and keep local Git remotes distinct from GitHub shorthand.
+- Continue reviewing ordinary pull requests whose complete changed-path listings are revalidated by GitHub.
+
+### Breaking
+
+- Work Fleet's continuous watch, including `watch --follow`, prints actionable events once per work item, head and reason. Consumers of the former follow summaries should read named event fields or use `--json`; use `--all` for routine progress and health diagnostics, or `--events` for an explicit selection.
+- Prefix Effect service ids with `@shivaedev/work-fleet/`. Replace any manually constructed `Fleet/<name>` tags with the exported service or `@shivaedev/work-fleet/<name>`. The SQL journal implementation uses `@shivaedev/work-fleet/FleetSessionJournal` to stay distinct from the `SessionJournal` port; use the exported `fleetSessionJournal` layer to provide that port. Imports and exported names stay the same.
+- Remove `board/reportFiles.ts`, `board/reportPayloadFile.ts`, `board/writeCompletion.ts` and `reportFileDirectory.ts`. Consumers publishing files use `Publication`, `publishOnce` and `replaceIfUnchanged` from `@shivaedev/work-board/server/publication.ts`, providing `Publication.layer`. Consumers retaining completed report output use `board/reportPayload.ts`.
+- `reportPayload`, `writePublished`, `writeHealth`, `writeStatus` and `upgradeDecisionClosure` now read `FileSystem` from the Effect environment. Provide the Node services layer when calling them directly; Fleet’s host layers supply it.
+- Remove standalone Board readers, `readPass.BoardSnapshot`, snapshot mutation helpers and completion patch helpers. Integrations should use Board's `Workspace` and `workspaceLayer`; Fleet's `markdownBoard` gateway keeps its scheduling and decision operations. Pass native Board snapshot Effects to `decisionReading` and `recordDecisionResponse`.
+- `compareChangedFiles` now takes `(host, pr, listed)` instead of `(read, repository, pr, listed)`. Callers must supply the Fleet host with its checkout directory and configured Git remote for the local comparison.
+- `watchPrLayer` now requires Fleet's `GithubApi`. Provide a shared `githubApiLayer` or an existing `GithubApi` when composing watcher layers.
+- Custom `GithubApi` implementations must supply the decoded-JSON `read`, `list` and `post` methods.
+- Import `FleetConfiguration` from `@shivaedev/work-fleet/FleetConfiguration.ts` instead of `@shivaedev/work-fleet/policy.ts`; configuration now lives in its own module.
+
 ## 0.31.0 - 2026-11-02
 
 ### Added

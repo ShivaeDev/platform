@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-11-03
+
+### Added
+
+- Expose `postgresTestDatabase` with an `expireWindows` fixture for isolated PostgreSQL stories exercising expired budgets.
+
 ## 0.2.1 - 2026-11-02
 
 ### Changed

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2026-11-03
+
+### Added
+
+- Export `checkStatus` from `checkStatus.ts` to check an existing response with the same typed failures as `filterStatus`.
+- Export `isRemoteStatusError` from `errors.ts` to recognize the shared HTTP status failures.
+
+### Breaking
+
+- in `server/boundedBody.ts`, call `readBoundedBody()` instead of `readBoundedBody(request)`. The reader requires the native `HttpServerRequest.HttpServerRequest` in the Effect environment. Native router handlers already provide it; other callers must use `Effect.provideService(HttpServerRequest.HttpServerRequest, request)`.
+
 ## 0.4.0 - 2026-11-02
 
 ### Fixed

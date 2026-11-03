@@ -100,7 +100,6 @@ releasePullRequest.it(
 			expect.stringContaining("0.10.0"),
 		]);
 		expect(pull.open).toBe(true);
-		expect(pull.body).toContain("Choose an app name.");
-		expect(pull.body).not.toContain("Keep a saved draft.");
+		expect(yield* git("show", "origin/release/next:packages/create-app/CHANGELOG.md")).toContain("Choose an app name.");
 	},
 );

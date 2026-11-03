@@ -1,12 +1,9 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { screenAct } from "./screenAct.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
-
-// Base UI's Popover opens on hover only after its own hover delay, which a story under fake timers has to pass.
-const POPOVER_HOVER_DELAY_MS = 1000;
 
 function shownTime() {
 	const time = document.querySelector("time");
@@ -48,6 +45,7 @@ export function timeScreenVerbs(engine: ScreenEngine, tell: (line: string) => vo
 		return Effect.gen(function* () {
 			tell(line);
 			yield* Effect.promise(() => act(action));
+			yield* screenDriver({ act: screenAct, pending: () => false, root: () => document.body, tell }).find("[data-slot=popover-content]");
 			yield* screenSettles(engine, tell);
 		});
 	}
@@ -63,7 +61,6 @@ export function timeScreenVerbs(engine: ScreenEngine, tell: (line: string) => vo
 				async () => {
 					if (how === "hover") {
 						await Effect.runPromise(screenDriver({ root: () => document.body, tell }).hover("button:has(time)"));
-						await vi.advanceTimersByTimeAsync(POPOVER_HOVER_DELAY_MS);
 					} else {
 						await OPENINGS[how](trigger());
 					}

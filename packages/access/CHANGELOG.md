@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-11-03
+
+### Breaking
+
+- Import `AssignRoles` and `LastRoleAssigner` from `@shivaedev/identity/roles.ts` instead of `@shivaedev/access/roles.ts`, adding `@shivaedev/identity` as a direct dependency when needed. The access module is removed without a compatibility alias; access retains pure grant evaluation.
+
 ## 0.3.6 - 2026-11-02
 
 ### Changed

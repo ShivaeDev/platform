@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.38.0 - 2026-11-03
+
+### Added
+
+- Generated apps let client modules declare optional menu entries, overlays and footer content beside their routes. The shared shell renders each slot in module registration order; modules without slots keep their existing output.
+- Add `create-app resource <name>` to scaffold an authenticated resource's contract, service, repository, numbered PostgreSQL migration, client and story kit in a generated app, with one server module registration. Existing destination files are named and preserved; admin pages and jobs remain optional.
+
+### Changed
+
+- Generated applications provide identity's user directory for admin user lists, pagination and role changes.
+- Generated apps use identity's Better Auth client adapters and pass their Effects to React's atom helpers.
+- Generated apps compose server admin handlers and the Jobs inventory from the server feature list; browser registrations retain only page declarations, queue schemas and client bindings.
+- Generated Railway configurations compose the deploy package for web migrations, proxy settings and worker draining. The generated README lists all required shared variables, including production email settings.
+- Generated apps run lint, typecheck and tests through the shared heavy lock, and rerun failed tests in a fresh process by default. Test reports stay out of Git and generated templates.
+- Generated apps assert job results through application responses and clone a database template prepared by the production initializer. Deployment and backfill stories select an empty database with a trait.
+
+### Fixed
+
+- Generated apps receive the current story-testing guidance and exercise email delivery failures through the real mailer and a refusing Resend HTTP endpoint.
+- Generate starter apps with the new admin view imports and Tailwind source paths.
+- Generated apps compose module bindings through contract and pass the rendering registry into every client registration, including the signed-out router.
+- Supply the Crypto layer in generated applications' standalone migration entry point.
+- Generated apps adapt the default module factory to the session connection callback. The callback's registry argument no longer replaces the factory's optional registrations list, so signed-in and anonymous screens render without the `Not a valid effect: ~effect/reactivity/AtomRegistry` failure. Existing apps can apply the template update or change the default connection in `SessionApp` to `(session) => clientModules(session)`.
+- The local notes scenario allows the host’s normal 30-second session revalidation period and checks the current sign-in screen after sign-out.
+- Generated minimal apps remove the notes module from the shared host and worker list without retaining a separate worker registry. Updating an older minimal app removes its unmodified worker registry when workers move into application modules.
+- Generated notes test hosts supply the authenticated viewer alongside identity and session data so native contract reads use the fixture's session.
+- Generate the foundation migration loader with Effect's Path service so new apps pass adapter import checks and their initial Quality hook.
+- Generated starters pass the redacted auth email URL directly to their email queue, preserving redaction until the mailer renders it.
+- Generated apps rely on identity's scoped auth mount for startup readiness, including admin creation and session fixtures, without an application-owned readiness adapter.
+- Generate apps with the jobs factory imported from its adapter path so they compile with the scoped jobs engine.
+- Generated apps include the rate-limit store migration so authentication emails use the shared PostgreSQL window.
+- Generated apps serve public assets and authorized admin documents with the server's shared cache and security headers.
+- Generated starter Users screen stories exercise the app's real PostgreSQL role management and permission enforcement instead of a replacement backend.
+- Generate application stories with the test-story adapter imports so new applications pass their initial quality gate.
+- Resolve application aliases through package imports so generated apps do not redirect a dependency’s private imports into application files.
+
+### Breaking
+
+- Generated app client registrations and custom connection callbacks return construction Effects. Wrap existing synchronous registration values in `Effect.succeed`, or read `AtomRegistry.AtomRegistry` in the Effect for session-scoped bindings. Return `clientModules(session, registrationEffects)` from custom connections; `SessionApp` provides the rendering registry.
+- Generates the notes browser scenario in full apps under `tooling/notes/browser-check` (minimal apps omit it) and exposes it as `browser-check:live-notes`. After applying a template update, replace `pnpm browser-check --live-notes` with `pnpm browser-check:live-notes`; `--url` and the existing credential variables still apply.
+- Generated apps import role declarations from identity. Update customized starter role declarations to import `AssignRoles` from `@shivaedev/identity/roles.ts` instead of `@shivaedev/access/roles.ts`.
+
 ## 0.37.0 - 2026-11-02
 
 ### Added

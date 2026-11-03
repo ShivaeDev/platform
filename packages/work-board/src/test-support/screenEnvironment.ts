@@ -5,12 +5,6 @@ import type { FleetHealth } from "#diagnostics/health.ts";
 import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { screenStory } from "./screenStory.ts";
 
-export function intervalClock() {
-	return screenStory.trait("workspace", "polling intervals follow the story clock", () => {
-		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-	});
-}
-
 export function blockedStorage() {
 	return screenStory.trait("workspace", "browser storage is blocked", function* () {
 		function blocked(): never {

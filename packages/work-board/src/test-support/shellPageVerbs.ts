@@ -1,6 +1,5 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
-import { onTestFinished, vi } from "vitest";
 import { PENDING_FEEDBACK_MS } from "#client/react/navigationTarget.ts";
 import { documentQuery, navigationQuery, routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
@@ -33,13 +32,8 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 					throw new Error("The story needs a router and a paused document read");
 				}
 				Object.assign(engine.heldRead, { gate: Deferred.makeUnsafe<void>(), started: false, startedSignal: Deferred.makeUnsafe<void>() });
-				vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-				onTestFinished(() => {
-					vi.useRealTimers();
-				});
-				await act(async () => {
+				act(() => {
 					engine.pendingNavigation = engine.router?.navigate({ to });
-					await vi.advanceTimersByTimeAsync(0);
 				});
 				await Effect.runPromise(Deferred.await(engine.heldRead.startedSignal));
 			}),
@@ -136,13 +130,14 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 		pendingFeedbackDelayAlmostPasses: () =>
 			Effect.gen(function* () {
 				tell(`${PENDING_FEEDBACK_MS - 1} ms of the pending-feedback delay pass`);
-				yield* Effect.promise(() => act(() => vi.advanceTimersByTimeAsync(PENDING_FEEDBACK_MS - 1)));
+				yield* engine.clock.timer(PENDING_FEEDBACK_MS);
+				yield* engine.clock.advance(PENDING_FEEDBACK_MS - 1);
 			}),
 		pendingFeedbackDelayPasses: () =>
 			Effect.gen(function* () {
 				tell(`the ${PENDING_FEEDBACK_MS} ms pending-feedback delay passes`);
-				yield* Effect.promise(() => act(() => vi.advanceTimersByTimeAsync(PENDING_FEEDBACK_MS)));
-				vi.useRealTimers();
+				yield* engine.clock.timer(PENDING_FEEDBACK_MS);
+				yield* engine.clock.advance(PENDING_FEEDBACK_MS);
 				yield* screenSettles(engine, tell);
 			}),
 		refreshBoardPage: (url: string) =>

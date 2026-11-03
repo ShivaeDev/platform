@@ -78,7 +78,7 @@ export function boardScreen(...args: Parameters<typeof renderBoard>) {
 						screenClient(engine, api);
 						return screenContent(engine, args[1](api, registry));
 					},
-					args[2],
+					screenOptions(engine, args[2]),
 				),
 			),
 			(line) => engine.tell?.(line),

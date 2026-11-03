@@ -23,7 +23,7 @@ releasePullRequest.it(
 		expect(received.open).toBe(true);
 		expect(received.title).toContain("0.9.1");
 		expect(received.body).toContain("| @shivaedev/platform | 0.15.0 | 0.15.1 | patch |");
-		expect(received.body).toContain("- Keep a saved draft.");
+		expect(received.body).not.toContain("- Keep a saved draft.");
 		expect(received.body).toContain("Allow GitHub Actions to create pull requests");
 		expect(received.body).toContain("press **Approve and run**, then merge when full CI is green");
 		expect(received.requests.filter((request) => request.endpoint === "graphql")).toMatchObject([
@@ -51,8 +51,8 @@ releasePullRequest.it(
 			{ body: { base: "main", head: "release/next" } },
 		]);
 		expect(received.title).toContain("0.10.0");
-		expect(received.body).toContain("- Keep a saved draft.");
-		expect(received.body).toContain("- Choose an app name.");
+		expect(received.body).toContain("| @shivaedev/platform | 0.15.0 | 0.15.1 | patch |");
+		expect(received.body).toContain("| @shivaedev/create-app | 0.9.0 | 0.10.0 | minor |");
 	},
 );
 

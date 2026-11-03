@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-11-03
+
+### Breaking
+
+- Queue definitions returned by `defineEmailQueue` expose jobs-owned queue and worker options. Import `QueueOptions` from `@shivaedev/jobs/server/queueOptions.ts` and `WorkerOptions` from `@shivaedev/jobs/server/workerOptions.ts` for explicit annotations.
+
 ## 0.1.2 - 2026-11-02
 
 ### Changed

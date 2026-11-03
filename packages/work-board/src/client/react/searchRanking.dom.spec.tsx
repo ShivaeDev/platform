@@ -3,7 +3,7 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { crossGroupRankingFixture, identityRankingFixture, searchRankingFixture } from "#test/searchRankingFixture.ts";
-import { searchOpened } from "#test/shellTraits.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -13,7 +13,7 @@ const STATUS_LABELS: Readonly<Record<string, string>> = { deferred: "Deferred", 
 	const { files, modified } = searchRankingFixture();
 	screenStory.it(
 		"searching watch lists every task titled with it before the tasks that only mention it",
-		[searchOpened(files, { home: undefined, modified })],
+		[searchScreen(files, { home: undefined, modified })],
 		function* ({ resultTitles, searchFor }) {
 			yield* searchFor("watch");
 
@@ -38,7 +38,7 @@ for (const titleStatus of ["ready", "done", "deferred"]) {
 			const { files, modified } = identityRankingFixture(titleStatus, passageStatus);
 			screenStory.it(
 				`searching ${query} lists the ${titleStatus} task named Inbox triage above the newer ${passageStatus} task that only mentions it`,
-				[searchOpened(files, { home: undefined, modified })],
+				[searchScreen(files, { home: undefined, modified })],
 				function* ({ results, searchFor }) {
 					yield* searchFor(query);
 
@@ -54,7 +54,7 @@ for (const titleStatus of ["ready", "done", "deferred"]) {
 
 screenStory.it(
 	"a plain document whose title starts with the query comes first, ahead of work that mentions it",
-	[searchOpened(crossGroupRankingFixture())],
+	[searchScreen(crossGroupRankingFixture())],
 	function* ({ resultGroups, searchFor }) {
 		yield* searchFor("Work Board on client-rendered React");
 
@@ -67,7 +67,7 @@ screenStory.it(
 
 screenStory.it(
 	"a document titled with the query puts Documents ahead of Work that only mentions it",
-	[searchOpened(crossGroupRankingFixture())],
+	[searchScreen(crossGroupRankingFixture())],
 	function* ({ resultGroups, searchFor }) {
 		yield* searchFor("budget");
 
@@ -80,7 +80,7 @@ screenStory.it(
 
 screenStory.it(
 	"a goal named exactly comes ahead of a document whose title only starts with that name",
-	[searchOpened({ ...paletteFixture(), "notes/calmer.md": "# A calmer workspace review\n\nNotes from the review.\n" })],
+	[searchScreen({ ...paletteFixture(), "notes/calmer.md": "# A calmer workspace review\n\nNotes from the review.\n" })],
 	function* ({ resultTitles, searchFor }) {
 		yield* searchFor("A calmer workspace");
 
@@ -88,7 +88,7 @@ screenStory.it(
 	},
 );
 
-screenStory.it("a goal in the results is labelled Goal", [searchOpened(paletteFixture())], function* ({ searchFor, searchResult }) {
+screenStory.it("a goal in the results is labelled Goal", [searchScreen(paletteFixture())], function* ({ searchFor, searchResult }) {
 	yield* searchFor("finished");
 
 	expect(yield* searchResult("Finished workspace")).toMatchObject({ kind: "Goal" });

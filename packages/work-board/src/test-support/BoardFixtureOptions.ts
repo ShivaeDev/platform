@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { FleetHealth } from "#diagnostics/health.ts";
@@ -15,6 +16,7 @@ export interface BoardFixtureOptions {
 	readonly home?: string | undefined;
 	readonly modified?: ReadonlyMap<string, number>;
 	readonly pullRequests?: string;
+	readonly runtime?: Atom.RuntimeFactory;
 	readonly unreadable?: readonly string[];
 	readonly workspace?: Folder;
 	readonly writable?: boolean;
