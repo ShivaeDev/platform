@@ -1,19 +1,16 @@
-import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Effect } from "effect";
+import { Config, Effect, FileSystem, Path, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { checkPlatform } from "./check.ts";
+import { PublishedPackages } from "./publishedPackages.ts";
 
 export const publishPackages = Effect.fn("Release.publishPackages")(function* (root: string, base: string) {
-	const plan = yield* checkPlatform(root, base);
-	if (plan.releases.length === 0) {
-		return;
-	}
+	yield* checkPlatform(root, base);
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const status = yield* spawner.exitCode(
-		ChildProcess.make("pnpm", ["--recursive", ...plan.releases.flatMap(({ name }) => ["--filter", name]), "publish", "--no-git-checks"], {
+		ChildProcess.make("pnpm", ["--recursive", "publish", "--no-git-checks", "--report-summary"], {
 			cwd: root,
 			stderr: "inherit",
 			stdout: "inherit",
@@ -22,12 +19,17 @@ export const publishPackages = Effect.fn("Release.publishPackages")(function* (r
 	if (status !== 0) {
 		return yield* new ChangesetError({ message: `Publishing the release failed with exit ${status}.` });
 	}
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const summary = yield* fs.readFileString(path.join(root, "pnpm-publish-summary.json"));
+	return (yield* Schema.decodeUnknownEffect(Schema.fromJsonString(PublishedPackages))(summary)).publishedPackages;
 });
 
 if (import.meta.main) {
 	NodeRuntime.runMain(
 		Effect.gen(function* () {
-			yield* publishPackages(process.cwd(), yield* Config.String("CHANGELOG_BASE_REF"));
+			const path = yield* Path.Path;
+			yield* publishPackages(path.resolve("."), yield* Config.String("CHANGELOG_BASE_REF"));
 		}).pipe(Effect.provide(NodeServices.layer)),
 	);
 }

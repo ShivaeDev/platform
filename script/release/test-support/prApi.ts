@@ -5,7 +5,7 @@ import type { ReleaseCiRun } from "#release/holdReason.ts";
 interface PrState {
 	body: string;
 	created: number;
-	mergedPulls: unknown[];
+	mergedPulls: (Readonly<Record<string, unknown>> & { readonly "merge_commit_sha": string })[];
 	open: boolean;
 	queued: boolean;
 	requests: { endpoint: string; method: string; body: Readonly<Record<string, unknown>> | undefined }[];
@@ -66,7 +66,8 @@ export function releasePrApi(branchHead: () => string) {
 			return { id: 1 };
 		}
 		if (method === "GET" && endpoint.includes("/commits/")) {
-			return state.mergedPulls;
+			const commit = endpoint.split("/commits/")[1]?.split("/")[0];
+			return state.mergedPulls.filter((pull) => pull.merge_commit_sha === commit);
 		}
 		if (method === "GET") {
 			return {
