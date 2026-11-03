@@ -8,6 +8,11 @@ import { warnSnapshotProblems } from "#board/warnSnapshotProblems.ts";
 import { BoardFailure, type BoardWork } from "#policy.ts";
 
 type Read = Effect.Effect<BoardSnapshot, BoardFailure>;
+
+function incompleteObservation(root: string, error: { readonly message: string }) {
+	return new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be read: ${root} (${error.message})` });
+}
+
 interface Pass {
 	active: boolean;
 	readonly fresh: boolean;
@@ -50,7 +55,7 @@ export const readSnapshot = Effect.fn("FleetBoard.readSnapshot")(function* (
 	const watched = yield* Effect.serviceOption(BoardIndex);
 	const refresh =
 		(pass?.active !== true || pass.fresh) && watched._tag === "Some"
-			? watched.value.index.reconcile.pipe(Effect.mapError((error) => new BoardFailure({ message: error.message })))
+			? watched.value.index.reconcile.pipe(Effect.mapError((error) => incompleteObservation(realRoot, error)))
 			: Effect.void;
 	const shared = Effect.andThen(refresh, read).pipe(
 		Effect.tap((snapshot) => warnSnapshotProblems(realRoot, snapshot)),
