@@ -14,13 +14,6 @@
 		"reason": "Provider integration tests supply a real Better Auth instance, its test plugin context and its native migration options."
 	},
 	{
-		"dependency": "better-auth",
-		"files": ["dist/server/better-auth/userProfiles.d.ts"],
-		"name": "better-auth-profile-adapter",
-		"package": "@shivaedev/identity",
-		"reason": "The provider profile reader accepts Better Auth's native adapter findMany contract; the returned UserProfile data is owned by identity."
-	},
-	{
 		"dependency": "typescript",
 		"files": [
 			"dist/biome/nativeEffectCall.d.ts",
