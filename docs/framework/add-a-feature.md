@@ -1,6 +1,18 @@
 # Add a resource to the starter
 
-Start with a running app from the [quickstart](./quickstart.md). Add a bookmarks resource with a generated numeric `id`, a nonempty `title` and an account owner. Follow the notes module below in order, replacing its names with bookmarks. Links point to the starter files copied into your generated app; keep using that app's pinned dependencies.
+Start with a running app from the [quickstart](./quickstart.md). Add a bookmarks resource with a generated numeric `id`, a nonempty `title` and an account owner. Generate the starting module, then use the notes module below to extend it with application-specific behavior. Links point to the starter files copied into your generated app; keep using that app's pinned dependencies.
+
+
+```sh
+pnpm dlx @shivaedev/create-app resource bookmarks
+pnpm format
+pnpm migrate
+pnpm test src/modules/bookmarks/server/lifecycle.spec.ts
+```
+
+Run this from your generated app directory. The command writes the contract, service, repository, next numbered migration, client and application story kit, and adds the server registration once to `src/server/modules.ts`. It accepts both full and minimal apps, names existing destination files instead of overwriting them, and requires the starter's `const modules = [...] as const;` module list. The resource starts with an `Item` model containing an id and a trimmed nonempty title. Its list and create operations require a session and keep each account's data private. Admin pages, jobs and UI routes are optional additions. The generated PostgreSQL stories run through the real application host.
+
+The numbered sections explain the same framework pieces and the UI and integration code you can add. Keep already-applied migrations unchanged when extending a generated module.
 
 A feature is a module under `src/modules`. Put the bookmarks module in `src/modules/bookmarks`: the shared declaration in `bookmarks.ts`, persistence and services in `server/`, React components in `client/` and its story kits in `test-support/`. Keep SQL, session lookup and services out of the browser import graph. Register the server feature once in `src/server/modules.ts`; the host, worker and admin handlers use that list. Register browser routes and bindings separately in `src/client/modules.ts`. Browser-only queue schemas belong in `src/admin/foundation.ts` when the Jobs view needs to decode their payloads. This walkthrough adds a query and a create command; the notes module's background word-count job is an optional extension described in [Add a job](./quickstart.md#add-a-job).
 

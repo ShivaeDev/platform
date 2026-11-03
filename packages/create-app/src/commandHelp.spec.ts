@@ -5,7 +5,7 @@ import { application } from "#test/application.ts";
 const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 application.it(
-	"create-app --help describes the command, the optional folder, the --minimal flag and the update subcommand without a packed template",
+	"create-app --help describes the command, the optional folder, the --minimal flag and the update and resource subcommands without a packed template",
 	[],
 	function* ({ help }) {
 		expect(yield* help()).toEqual(
@@ -15,6 +15,7 @@ application.it(
 				"folder string (optional)",
 				"--minimal Create the starter without the notes example module.",
 				"update",
+				"resource Add an authenticated resource and register it in this app's server module list.",
 			]),
 		);
 	},
