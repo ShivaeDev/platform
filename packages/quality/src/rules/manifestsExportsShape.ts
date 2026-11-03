@@ -65,6 +65,31 @@ function findingsIn(file: string, exports: unknown): readonly Finding[] {
 	];
 }
 
+function importFindings(file: string, imports: Readonly<Record<string, unknown>> = {}): readonly Finding[] {
+	return Object.entries(imports).flatMap(([key, value]) => {
+		if (key === "#*.ts" && value !== "./src/*.ts" && !standardPattern(PATTERN, value)) {
+			return [
+				{
+					file,
+					message:
+						'Import "#*.ts" must preserve the path from the source root. Map it to "./src/*.ts", or to source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js". Include subfolders in import specifiers, for example "#server/module.ts".',
+					subject: key,
+				},
+			];
+		}
+		if (key === "#test/*" && value !== "./src/test-support/*") {
+			return [
+				{
+					file,
+					message: 'Import "#test/*" must map to "./src/test-support/*". Keep test helpers under the source root’s test-support folder.',
+					subject: key,
+				},
+			];
+		}
+		return [];
+	});
+}
+
 export const manifestsExportsShape = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
@@ -78,14 +103,14 @@ export const manifestsExportsShape = defineRule({
 						if (file === "package.json" && manifest === undefined) {
 							return [];
 						}
-						return findingsIn(file, isMap(manifest) ? manifest.exports : undefined);
+						return [...findingsIn(file, manifest?.exports), ...importFindings(file, manifest?.imports)];
 					}),
 				{ concurrency: "unbounded" },
 			);
 			return findings.flat();
 		}),
 	description:
-		"Workspace packages export every module through one file-preserving wildcard, with optional root and exact non-code assets; null entries are rejected, and a package without modules exports only exact assets.",
+		"Packages export modules through one file-preserving wildcard without null blocks; declared #*.ts and #test/* imports preserve the source and test-support roots.",
 	id: "manifests/exports-shape",
 	registrable: false,
 });

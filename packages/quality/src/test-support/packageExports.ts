@@ -21,7 +21,15 @@ function sourceFirst(_key: string, value: unknown): unknown {
 }
 
 export function packageExports(exports: unknown, path = LIBRARY_MANIFEST): SeedFile {
-	return { content: sortPackageJson(`${JSON.stringify({ exports, name: "@acme/library" }, sourceFirst, "\t")}\n`), path };
+	return packageManifest({ exports }, path);
+}
+
+export function packageImports(imports: Readonly<Record<string, unknown>>, path = LIBRARY_MANIFEST): SeedFile {
+	return packageManifest({ imports }, path);
+}
+
+function packageManifest(fields: Readonly<Record<string, unknown>>, path: string): SeedFile {
+	return { content: sortPackageJson(`${JSON.stringify({ ...fields, name: "@acme/library" }, sourceFirst, "\t")}\n`), path };
 }
 
 export function exportsShapeMessage(reason: string): string {
