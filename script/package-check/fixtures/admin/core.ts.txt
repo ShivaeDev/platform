@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { Effect, Layer, Option, Ref, Schema } from "effect";
+import { HttpRouter, HttpServerResponse } from "effect/http";
+import { RpcTest } from "effect/rpc";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { adminPermissionGuard } from "@shivaedev/admin/client/adapters/adminPermissionGuard.ts";
+import { adminPage } from "@shivaedev/admin/page.ts";
+import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+
+const require = createRequire(import.meta.url);
+for (const context of [require, createRequire(require.resolve("@shivaedev/admin/registry.ts"))]) {
+  for (const peer of ["react", "@effect/atom-react", "@shivaedev/react"]) {
+    assert.throws(() => context.resolve(peer), { code: "MODULE_NOT_FOUND" });
+  }
+}
+const page = adminPage({
+  contract: contract("admin.packed", {
+    queries: [query("viewer", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
+  }),
+  id: "packed",
+  permission: JobsPermission,
+  route: { path: "/admin/packed", title: "Packed" },
+});
+const registry = adminRegistry(page);
+const registration = registerAdmin(registry, {
+  packed: page.contract.application.toLayer({ "admin.packed.viewer": () => Effect.map(SessionUser, (user) => user.email) }),
+});
+adminPermissionGuard(registry.pages, ({ matches }) => {
+  assert.equal(matches.at(-1)?.staticData.permission, ReadJobs);
+})({ location: { href: "/admin/packed", pathname: "/admin/packed" }, matches: [] });
+
+await Effect.runPromise(Effect.gen(function* () {
+  const currentRole = yield* Ref.make("viewer");
+  const sessions = Layer.succeed(SessionPolicy, {
+    origin: () => true,
+    provider: { get: () => Effect.map(Ref.get(currentRole), (role) => Option.some({
+      user: { id: "alice", email: "alice@app.test", name: "Alice", role },
+    })) },
+    roles: roleSet(role("viewer", []), role("operator", [ReadJobs])),
+  });
+  const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(Layer.provide(sessions))));
+  const app = HttpRouter.toWebHandler(adminDocuments(registry, () => Effect.succeed(HttpServerResponse.html("<main>Jobs</main>"))).pipe(
+    HttpRouter.provideRequest(sessions),
+  ), { disableLogger: true });
+  yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
+  const refused = yield* client["admin.packed.viewer"]().pipe(Effect.flip);
+  assert.equal(refused._tag, "Forbidden");
+  const denied = yield* Effect.promise(() => app.handler(new Request("https://app.test/admin/packed")));
+  assert.equal(denied.status, 403);
+
+  yield* Ref.set(currentRole, "operator");
+
+  assert.equal(yield* client["admin.packed.viewer"](), "alice@app.test");
+  const document = yield* Effect.promise(() => app.handler(new Request("https://app.test/admin/packed")));
+  assert.equal(document.status, 200);
+}).pipe(Effect.scoped));
