@@ -1,20 +1,21 @@
 import { type ChildProcess, type ForkOptions, fork } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Option, Schema } from "effect";
+import { Option, type Redacted, Schema } from "effect";
 
 export interface HostProcessOptions {
 	readonly args?: readonly string[];
 	readonly cwd?: string;
+	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly env?: NodeJS.ProcessEnv;
 	readonly execArgv?: readonly string[];
 	readonly module: string | URL;
 }
 
-export function forkHost(options: HostProcessOptions) {
+export function forkHost(options: HostProcessOptions, databaseUrl?: string) {
 	const settings: ForkOptions = {
 		cwd: options.cwd,
-		env: options.env,
+		env: databaseUrl === undefined ? options.env : { ...options.env, "DATABASE_URL": databaseUrl },
 		execArgv: [...(options.execArgv ?? [])],
 		stdio: ["ignore", "ignore", "inherit", "ipc"],
 	};

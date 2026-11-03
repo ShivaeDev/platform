@@ -82,6 +82,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/admin": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
@@ -96,6 +97,9 @@
 			"optional": true
 		},
 		"@shivaedev/admin": {
+			"optional": true
+		},
+		"@shivaedev/test-sql": {
 			"optional": true
 		},
 		"better-auth": {
