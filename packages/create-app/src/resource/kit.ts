@@ -15,7 +15,6 @@ type Client = Effect.Success<ReturnType<typeof make${pascal}Client>["client"]>;
 
 export const app = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const host = yield* startHost();
 		return { accounts: new Map<string, Client>(), host };
