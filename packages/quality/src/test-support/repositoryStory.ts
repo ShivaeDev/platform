@@ -28,7 +28,6 @@ function pathsOf(files: readonly SeedFile[]): string {
 }
 
 export const repositoryStory = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync((): RepositoryEngine => ({ answer: undefined, root: mkdtempSync(join(tmpdir(), "quality-repository-")) })),

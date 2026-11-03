@@ -40,9 +40,9 @@ export function cliVerbs(engine: CliEngine, tell: (line: string) => void) {
 	return {
 		outcome: () => Effect.sync(() => answered(engine).outcome),
 		runs: (...args: readonly string[]) =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell(`the author runs quality ${args.join(" ")}`);
-				return recorded(engine, await runQuality(engine.root, ...args));
+				return recorded(engine, yield* runQuality(engine.root, ...args));
 			}),
 		spawns: (...args: readonly string[]) =>
 			Effect.sync(() => {

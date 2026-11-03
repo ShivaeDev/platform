@@ -27,7 +27,6 @@ function repository(): string {
 }
 
 export const manifestStory = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync((): ManifestEngine => ({ answer: undefined, fileReads: [], manifests: [], root: repository() })),

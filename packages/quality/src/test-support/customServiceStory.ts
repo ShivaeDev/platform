@@ -10,7 +10,6 @@ import { LineAllowance } from "./customServiceRule.ts";
 const RULE_URL = new URL("./customServiceRule.ts", import.meta.url).href;
 
 export const customServiceStory = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync(() => ({

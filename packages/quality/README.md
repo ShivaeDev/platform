@@ -66,7 +66,7 @@ ruleStory.it(
 
 Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, and `gateReport()` reads its output. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/quality/testing/adapters/cli.ts` to spawn a fresh command after changing a config.
 
-For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. These helpers use the same engine as the rule story kit.
+For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. Yield `runQuality(root, "lint")` as an Effect in the kit so it uses the story's controlled clock. These helpers use the same engine as the rule story kit.
 
 ### Effect boundaries and services
 

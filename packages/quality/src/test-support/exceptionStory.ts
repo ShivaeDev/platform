@@ -57,7 +57,6 @@ function exportedConfig(root: string, file: string): unknown {
 }
 
 export const exceptionStory = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync((): ExceptionEngine => {

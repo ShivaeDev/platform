@@ -9,19 +9,21 @@ import { ISOLATED_ENV } from "#testing/adapters/git.ts";
 import { defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 export const qualitySignal = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const root = defaultTree({
-			content: `import { defineRule } from "@shivaedev/quality/rule.ts";
+			content: `import { MessageChannel } from "node:worker_threads";
+import { defineRule } from "@shivaedev/quality/rule.ts";
 export default {
 local: [defineRule({
 	id: "local/wait",
 	description: "Waits for interruption.",
 	check: ({ signal }) => new Promise(resolve => {
-		const keepAlive = setInterval(() => {}, 1000);
+		const { port1, port2 } = new MessageChannel();
+		port1.on("message", () => {});
 		signal.addEventListener("abort", () => {
-			clearInterval(keepAlive);
+			port1.close();
+			port2.close();
 			console.log("local rule aborted");
 			resolve([]);
 		}, { once: true });

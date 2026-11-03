@@ -42,7 +42,7 @@ export const baselineWorkspace = storyKit({
 	verbs: (root, story) => ({
 		checkpoint: (message: string) => Effect.sync(() => commitAll(root, message)),
 		cli: (...args: readonly string[]) =>
-			Effect.promise(() => {
+			Effect.suspend(() => {
 				story.tell(`quality ${args.join(" ")}`);
 				return runQuality(root, ...args);
 			}),
@@ -54,7 +54,7 @@ export const baselineWorkspace = storyKit({
 });
 
 export const recorded = baselineWorkspace.trait("recorded", "existing debt is recorded by Quality", function* (root) {
-	const result = yield* Effect.promise(() => runQuality(root, "baseline", "write"));
+	const result = yield* runQuality(root, "baseline", "write");
 	if (result.status !== 0) {
 		throw new Error(result.stderr || result.stdout);
 	}

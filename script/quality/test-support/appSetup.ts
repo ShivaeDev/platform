@@ -25,7 +25,7 @@ export const appSetup = storyKit({
 		hook: () => hookText(engine.repository),
 		setup: () => {
 			story.tell("set up the application's quality hook");
-			return Effect.promise(() => runQuality(engine.cwd, "setup"));
+			return runQuality(engine.cwd, "setup");
 		},
 	}),
 });

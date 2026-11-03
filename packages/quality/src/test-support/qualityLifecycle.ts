@@ -57,7 +57,6 @@ export function startQuality(engine: Lifecycle, spawner: Context.Service.Shape<t
 }
 
 export const qualityLifecycle = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const engine: Lifecycle = {

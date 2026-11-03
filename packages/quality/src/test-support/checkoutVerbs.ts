@@ -100,9 +100,9 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 		readsIn: (worktree: string, path: string) => Effect.sync(() => textIn(folderOf(engine, worktree), path)),
 		reported: () => Effect.sync(() => linesOf(engine.answer?.stdout ?? "").filter((line) => line.startsWith("quality: "))),
 		runsIn: (worktree: string, ...args: readonly string[]) =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell(`the author runs quality ${args.join(" ")} in the worktree ${worktree}`);
-				engine.answer = answerOf(await runQuality(folderOf(engine, worktree), ...args));
+				engine.answer = answerOf(yield* runQuality(folderOf(engine, worktree), ...args));
 				return engine.answer;
 			}),
 		runsOwnQuality: (...args: readonly string[]) =>

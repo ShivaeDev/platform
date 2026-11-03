@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format } from "node:util";
-import { Config, Console, Effect, Option } from "effect";
+import { Config, ConfigProvider, Console, Effect, Option } from "effect";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
 import { ISOLATED_ENV } from "#testing/adapters/git.ts";
@@ -84,17 +85,25 @@ export function capturing(output: Output): Console.Console {
 }
 
 // Runs the executable's program in this process, which imports each config path once: after a command rewrites the config, spawn `quality`.
-export async function runQuality(root: string, ...args: readonly string[]): Promise<Run> {
-	const output: Output = { stderr: "", stdout: "" };
-	const captured = capturing(output);
-	const command = program(args, { cwd: realpathSync(root), launch: { options: OPTIONS, script: CLI } });
-	const restore = await isolateGit();
-	try {
-		const exit = await Effect.runPromiseExit(explained(command).pipe(Effect.provideService(Console.Console, captured), Effect.provide(services)));
-		return { status: exitCode(exit), ...output };
-	} finally {
-		restore();
-	}
+export function runQuality(root: string, ...args: readonly string[]): Effect.Effect<Run> {
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const output: Output = { stderr: "", stdout: "" };
+			const command = program(args, { cwd: realpathSync(root), launch: { options: OPTIONS, script: CLI } });
+			const environment = ConfigProvider.orElse(
+				ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": join(root, "heavy.lock") } }),
+				yield* ConfigProvider.ConfigProvider,
+			);
+			yield* Effect.acquireRelease(Effect.promise(isolateGit), (restore) => Effect.sync(restore));
+			const exit = yield* explained(command).pipe(
+				Effect.provideService(ConfigProvider.ConfigProvider, environment),
+				Effect.provideService(Console.Console, capturing(output)),
+				Effect.provide(services),
+				Effect.exit,
+			);
+			return { status: exitCode(exit), ...output };
+		}),
+	);
 }
 
 export function quality(root: string, ...args: readonly string[]): Run {

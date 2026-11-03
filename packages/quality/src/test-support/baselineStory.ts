@@ -22,7 +22,6 @@ function created(): BaselineEngine {
 }
 
 export const baselineStory = storyKit({
-	clock: "live",
 	create: () => Effect.acquireRelease(Effect.sync(created), (engine) => Effect.sync(() => rmSync(engine.folder, { force: true, recursive: true }))),
 	inspect: ({ answer, root }) => ({ answer, debt: recordedDebt(root, ROOT_SHARD) }),
 	name: "Quality baseline",
@@ -38,9 +37,9 @@ export const baselineStory = storyKit({
 					writeAll(engine.root, [{ content: sourceOf(lines), path }]);
 				}),
 			lint: () =>
-				Effect.promise(async () => {
+				Effect.gen(function* () {
 					story.tell("quality lint checks the repository");
-					return answerOf(await runQuality(engine.root, "lint")).outcome;
+					return answerOf(yield* runQuality(engine.root, "lint")).outcome;
 				}),
 			localConfig: () => Effect.sync(() => git(engine.root, "config", "--local", "--list").trimEnd().split("\n")),
 			merges: (branch: string) =>
@@ -67,11 +66,9 @@ export const baselineStory = storyKit({
 });
 
 // Setup commands must succeed; a trait that cannot build its precondition fails the story with the command's output.
-export function setupRun(engine: BaselineEngine, ...args: readonly string[]) {
-	return Effect.promise(async () => {
-		const answer = answerOf(await runQuality(engine.root, ...args));
-		if (answer.outcome !== "passed") {
-			throw new Error(`quality ${args.join(" ")} ${answer.outcome}: ${answer.stdout}${answer.stderr}`);
-		}
-	});
-}
+export const setupRun = Effect.fn("BaselineStory.setupRun")(function* (engine: BaselineEngine, ...args: readonly string[]) {
+	const answer = answerOf(yield* runQuality(engine.root, ...args));
+	if (answer.outcome !== "passed") {
+		throw new Error(`quality ${args.join(" ")} ${answer.outcome}: ${answer.stdout}${answer.stderr}`);
+	}
+});
