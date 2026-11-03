@@ -1,9 +1,8 @@
 import { Clock, Effect, Fiber, FiberSet, FileSystem, Path, Schema, Semaphore } from "effect";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
-import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { type BadRequest, Conflict, Forbidden, type NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { AnswerInput, DraftInput, RecordedResponse } from "#browser/responses/schema.ts";
-import type { ResponseRejection } from "#rpc/rejections.ts";
+import type { PublicationUncertain } from "#rpc/rejections.ts";
 import { refreshWritten } from "#server/files/changes.ts";
 import { awaitResponse } from "#server/responses/await.ts";
 import { responseHistory } from "#server/responses/history.ts";
@@ -28,7 +27,10 @@ export const Responses = defineService({
 	id: "@shivaedev/work-board/Responses",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
-		const saves = yield* FiberSet.make<RecordedResponse, ResponseRejection>();
+		const saves = yield* FiberSet.make<
+			RecordedResponse,
+			BadRequest | Conflict | Forbidden | NotFound | PreconditionFailed | ServiceUnavailable | PublicationUncertain
+		>();
 		yield* Effect.addFinalizer(() => FiberSet.awaitEmpty(saves));
 		return {
 			fs: yield* FileSystem.FileSystem,
@@ -39,12 +41,9 @@ export const Responses = defineService({
 		};
 	}),
 	methods: ({ options, fs, lock, saves, workspace }) => {
-		const snapshot = workspace.index().pipe(
-			rpcBoundary(ServiceUnavailable, {
-				message: "The workspace could not be indexed.",
-				unexpected: (message) => new ServiceUnavailable({ message }),
-			}),
-		);
+		const snapshot = workspace
+			.index()
+			.pipe(Effect.mapError((cause) => Object.assign(new ServiceUnavailable({ message: "The workspace could not be indexed." }), { cause })));
 		const enabled = options.writable
 			? Effect.void
 			: Effect.fail(new Forbidden({ message: "Start with --responses to explicitly enable local question/response writes." }));

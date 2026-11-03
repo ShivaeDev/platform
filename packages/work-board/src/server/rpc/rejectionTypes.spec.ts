@@ -19,7 +19,7 @@ boardStory.it(
 
 boardStory.it(
 	"a storage defect reaches the client as a bare internal server error while the server span keeps the original defect",
-	[note, crashableTracedBoard],
+	[note, crashableTracedBoard()],
 	function* ({ documentRejection, serverSpanCause, storageCrashes }) {
 		expect(yield* documentRejection("note.md")).toBe("answered");
 

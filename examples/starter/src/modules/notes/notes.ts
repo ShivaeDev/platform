@@ -21,7 +21,7 @@ const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.versi
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
 export class NoteReadAccess extends Context.Service<
 	NoteReadAccess,
-	(id: number, userId: string) => Effect.Effect<boolean, InternalServerError | NotFound | ServiceUnavailable>
+	(id: number, userId: string) => Effect.Effect<boolean, NotFound | ServiceUnavailable>
 >()("app/NoteReadAccess") {}
 export const Get = query("get", {
 	payload: NoteId,

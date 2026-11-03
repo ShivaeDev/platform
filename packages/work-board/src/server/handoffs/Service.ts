@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { Clock, Effect, FileSystem, Path, Semaphore } from "effect";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { Handoff, HandoffInput } from "#browser/handoffs/schema.ts";
@@ -19,12 +18,9 @@ export const HandoffsService = defineService({
 		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* workspace.settings(), workspace };
 	}),
 	methods: ({ options, fs, lock, workspace }) => {
-		const snapshot = workspace.index().pipe(
-			rpcBoundary(ServiceUnavailable, {
-				message: "The workspace could not be indexed.",
-				unexpected: (message) => new ServiceUnavailable({ message }),
-			}),
-		);
+		const snapshot = workspace
+			.index()
+			.pipe(Effect.mapError((cause) => Object.assign(new ServiceUnavailable({ message: "The workspace could not be indexed." }), { cause })));
 		const locate = handoffSource(options.root, options.realRoot, snapshot, fs);
 		const read = Effect.fn("WorkBoard.read")(function* (item: string) {
 			const data = yield* snapshot;
@@ -52,12 +48,9 @@ export const HandoffsService = defineService({
 			if (!path) {
 				return yield* Effect.fail(new NotFound({ message: "The prepared handoff moved or disappeared." }));
 			}
-			const raw = yield* fs.readFileString(path).pipe(
-				rpcBoundary(ServiceUnavailable, {
-					message: "The handoff could not be reconciled.",
-					unexpected: (message) => new ServiceUnavailable({ message }),
-				}),
-			);
+			const raw = yield* fs
+				.readFileString(path)
+				.pipe(Effect.mapError((cause) => Object.assign(new ServiceUnavailable({ message: "The handoff could not be reconciled." }), { cause })));
 			yield* publish(options.root, options.realRoot, record.id, raw, "handoffs");
 			return record;
 		});
