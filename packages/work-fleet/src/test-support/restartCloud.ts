@@ -77,7 +77,7 @@ export function configureRestartCloud(engine: HostStoryEngine, boundary: Restart
 	});
 }
 
-export function restartCloudVerbs(engine: HostStoryEngine) {
+export function restartCloudVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	function state() {
 		const value = states.get(engine);
 		if (value === undefined) {
@@ -87,7 +87,10 @@ export function restartCloudVerbs(engine: HostStoryEngine) {
 	}
 	return {
 		acknowledgeRestartTurn: () => state().acknowledge(),
-		awaitAcceptedTurn: () => state().accepted,
+		awaitAcceptedTurn: () => {
+			tell("wait for the provider to accept the interrupted turn");
+			return state().accepted;
+		},
 		finishRestartTurn: () => state().finish(),
 		restartMutations: () => state().mutations,
 	};
