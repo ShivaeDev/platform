@@ -1,8 +1,8 @@
 import { Deferred, Effect, Exit } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { withChangeCoverage } from "@shivaedev/test-kits/sql/testing.ts";
 import { migratePostgres } from "#migrations.ts";
-import { withChangeCoverage } from "#testing.ts";
 import { type InvalidationKeys, invalidateOnCommit, transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
 import type { ChangeFeedEngine, FeedTables } from "./changeFeedEngine.ts";

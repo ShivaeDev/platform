@@ -2,7 +2,7 @@ import { Effect, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import type { RepositoryCollection } from "@shivaedev/sql/repositoryCollection.ts";
-import { expectPublished } from "@shivaedev/sql/testing.ts";
+import { expectPublished } from "@shivaedev/test-kits/sql/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";

@@ -1,7 +1,7 @@
 import type { AuthContext } from "better-auth";
 import type { testUtils } from "better-auth/plugins";
 import { Clock, Effect } from "effect";
-import { signedSessionToken, testUserEmail } from "#server/better-auth/adapters/testingCredentials.ts";
+import { signedSessionToken, testUserEmail } from "./testingCredentials.ts";
 
 type TestContext = ReturnType<ReturnType<typeof testUtils>["init"]>["context"];
 type UserFields = NonNullable<Parameters<TestContext["test"]["createUser"]>[0]>;

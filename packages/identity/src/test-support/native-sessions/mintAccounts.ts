@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { passwordUser, signedInUser, signInAgain } from "#server/better-auth/testing.ts";
+import { passwordUser, signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { PASSWORD_HASH } from "#test/passwordCredential.ts";
 import type { Host } from "./host.ts";
 import type { Account } from "./requests.ts";

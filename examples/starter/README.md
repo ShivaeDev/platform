@@ -156,7 +156,7 @@ End-to-end browser tests do not belong in an app's CI because they cost CI minut
 
 The app story kit starts TestClock at the present so Better Auth’s own endpoints, which use wall time, accept minted sessions. Pass `{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") }` as a story’s last argument to choose a different start.
 
-Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit. The verb uses `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a session for the same account on the caller’s Clock and replaces alice’s request credentials. Call `notesOf("alice")` again after renewal to use her fresh credentials.
+Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit. The verb uses `signInAgain(auth, userId)` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts` to mint a session for the same account on the caller’s Clock and replaces alice’s request credentials. Call `notesOf("alice")` again after renewal to use her fresh credentials.
 
 ## Errors and traces
 

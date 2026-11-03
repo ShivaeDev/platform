@@ -56,7 +56,7 @@ The email worker sends its job id as Resend's idempotency key on every attempt. 
 
 ### Read email in stories
 
-Install `@shivaedev/test-story` as a development dependency. In a scoped story setup, acquire `inbox()` from `@shivaedev/email/server/testing/adapters/inbox.ts` and provide its `mailerLayer` to the real worker. It uses the Resend SDK against a loopback fake HTTP endpoint.
+Install `@shivaedev/test-kits` as a development dependency. In a scoped story setup, acquire `inbox()` from `@shivaedev/test-kits/email/adapters/inbox.ts` and provide its `mailerLayer` to the real worker. It uses the Resend SDK against a loopback fake HTTP endpoint.
 
 `nextEmail` waits for the next accepted message, including its `idempotencyKey`; `emails()` reads accepted messages so far. `emailLink(email)` reads the first HTTP link in the message's text. A story can follow that link through the application's HTTP or React boundary. The inbox's `endpoint` exposes the native fake HTTP controls for scripting provider failures.
 

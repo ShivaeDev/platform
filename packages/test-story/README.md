@@ -640,7 +640,7 @@ app.it(
 
 Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
 
-Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a fresh session on the caller’s Clock for the same user. Replace the visitor’s headers, or pass its returned cookies to `seedCookies` for a browser. The starter’s app kit exposes `signsInAgain(name)` for this step. Its TestClock starts at the present by default so Better Auth’s wall-clock endpoints accept minted sessions; an explicit story `clock` still takes precedence.
+Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(auth, userId)` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts` to mint a fresh session on the caller’s Clock for the same user. Replace the visitor’s headers, or pass its returned cookies to `seedCookies` for a browser. The starter’s app kit exposes `signsInAgain(name)` for this step. Its TestClock starts at the present by default so Better Auth’s wall-clock endpoints accept minted sessions; an explicit story `clock` still takes precedence.
 
 A live-clock kit still runs on real time when a story omits the override.
 
@@ -869,7 +869,7 @@ const cookieApp = storyKit({
 `seedCookies(cookies)` from `@shivaedev/test-story/server/adapters/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
 
 ```ts
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 
 const { cookies } = yield* signedInUser(testAuth, {

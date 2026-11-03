@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Option, Order } from "effect";
 import { type BucketKey, type ItemKey, invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
-import { expectPublished, UnannouncedWrites, withChangeCoverage } from "#testing.ts";
+import { expectPublished, UnannouncedWrites, withChangeCoverage } from "@shivaedev/test-kits/sql/testing.ts";
 import { ChangeObserver, invalidateOnCommit, transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
 import { type ChangeKeysEngine, keyWords, tableWords } from "./changeKeysEngine.ts";

@@ -2,8 +2,8 @@ import { betterAuth } from "better-auth";
 import { type Cause, Context, Effect, Exit, Layer, Logger, References, Scope, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 
 export const ORIGIN = "http://localhost:3000";
 

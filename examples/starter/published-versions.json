@@ -24,6 +24,7 @@
 	"@shivaedev/skills": "0.6.3",
 	"@shivaedev/sql": "0.33.0",
 	"@shivaedev/test": "0.13.0",
+	"@shivaedev/test-kits": "0.0.0",
 	"@shivaedev/test-sql": "0.16.2",
 	"@shivaedev/test-story": "0.34.0",
 	"@shivaedev/types": "0.3.0",

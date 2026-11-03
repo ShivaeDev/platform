@@ -1,6 +1,6 @@
 import { Effect, Logger, Predicate, Result } from "effect";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { errorWords } from "@shivaedev/test-story/server/answers.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { userProfiles } from "#server/better-auth/userProfiles.ts";
 import type { AdminHost } from "./adminHost.ts";
 

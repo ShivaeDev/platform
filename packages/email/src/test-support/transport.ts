@@ -1,9 +1,9 @@
 import { Effect, Fiber, Layer } from "effect";
 import type { RetryAt } from "@shivaedev/jobs/server/definition.ts";
+import { inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Mailer } from "#server/Mailer.ts";
 import type { MailerError } from "#server/MailerError.ts";
-import { inbox } from "#server/testing/adapters/inbox.ts";
 
 export const transport = storyKit({
 	clock: "live",

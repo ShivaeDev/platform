@@ -53,6 +53,7 @@
 		"@shivaedev/heavy-lock": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/skills": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@shivaedev/vitest-rerun": "workspace:*",
 		"@tailwindcss/vite": "catalog:",

@@ -1,8 +1,8 @@
 import { Effect, Queue, Redacted, Schema } from "effect";
+import { Email } from "@shivaedev/email/Email.ts";
+import { resendMailerLayer } from "@shivaedev/email/server/adapters/resendMailerLayer.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
-import { Email } from "#Email.ts";
-import { resendMailerLayer } from "#server/adapters/resendMailerLayer.ts";
 
 export interface ReceivedEmail extends Email {
 	readonly idempotencyKey: string | undefined;

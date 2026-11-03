@@ -1,4 +1,4 @@
-import { passwordUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { mcp } from "./mcp.ts";
 
 export const passwordMember = mcp.trait("people", "alice has a password account", function* (engine) {

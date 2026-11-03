@@ -5,13 +5,13 @@ import { HttpRouter } from "effect/http";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 
 const Access = roleSet(role("member", []), role("admin", [AssignRoles]));
 const Session = Schema.Struct({ user: Schema.Struct({ role: Schema.String }) });

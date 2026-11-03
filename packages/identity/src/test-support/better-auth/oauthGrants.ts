@@ -4,13 +4,13 @@ import { admin, jwt, testUtils } from "better-auth/plugins";
 import { DateTime, Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthOauthGrants } from "#server/better-auth/adapters/oauthGrants.ts";
 import { betterAuthOauthProvider } from "#server/better-auth/adapters/oauthProvider.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { OauthGrants } from "#server/oauthGrants.ts";
 import { grantBanVerbs } from "./grantBanVerbs.ts";
 

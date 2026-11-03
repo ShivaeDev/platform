@@ -1,6 +1,6 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Effect } from "effect";
-import { signedInUser, signInAgain } from "#server/better-auth/testing.ts";
+import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 
 export const mintSessions = Effect.fnUntraced(function* (options: BetterAuthOptions, person: string, accountId: string, devices: readonly string[]) {
 	const auth = betterAuth(options);

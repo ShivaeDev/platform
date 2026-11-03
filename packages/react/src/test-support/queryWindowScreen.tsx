@@ -8,7 +8,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
-import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";

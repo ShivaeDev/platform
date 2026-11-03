@@ -747,7 +747,7 @@ Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase
 
 ```ts
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 
 const mounted = yield* betterAuthMount(options, {
 	defaultRole: "member",
@@ -768,7 +768,7 @@ The Effect returns Better Auth's login result: the user, session, signed request
 
 `passwordUser(auth, { email, passwordHash, ...fields })` saves a user and a credential account with a precomputed hash, without hashing or minting a session. Generate the hash once with the application's configured password hasher and keep it as a test fixture alongside its matching password. Then sign in through `/api/auth/sign-in/email` with that password: Better Auth still runs real password verification. A wrong password is refused. Identity's native-session stories use this precondition. The auth instance needs no testing plugin. The existing `passwordUser(auth, { email, password, ...fields })` form hashes with the configured hasher; choose either `passwordHash` or `password`, never both.
 
-Call `yield* signInAgain(auth, userId)` from `server/better-auth/testing.ts` to mint a fresh session for an existing user after a long story clock jump. It returns the same login shape as `signedInUser` and sets expiry from the caller’s Effect Clock and the configured session lifetime. Replace the visitor’s request headers or seed the returned browser cookies.
+Call `yield* signInAgain(auth, userId)` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts` to mint a fresh session for an existing user after a long story clock jump. It returns the same login shape as `signedInUser` and sets expiry from the caller’s Effect Clock and the configured session lifetime. Replace the visitor’s request headers or seed the returned browser cookies.
 
 Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
 
@@ -776,7 +776,7 @@ Use `storedProviderAccounts(auth, userId)` to observe credential storage through
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
-import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { signedInUser, storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
 	const { cookies } = yield* signedInUser(auth, {
@@ -868,7 +868,6 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                                        |
 | `server/better-auth/userReference.ts`        | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                                                   |
 | `server/better-auth/testDatabase.ts`         | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                                                 |
-| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `passwordUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only users, minted sessions and credential storage observations.                                                                                                                  |
 
 ### Install, setup and limits
 

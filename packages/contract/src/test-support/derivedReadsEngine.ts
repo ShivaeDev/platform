@@ -3,12 +3,12 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#queryKeys.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { layerMemoryProtocol } from "#testing.ts";
 import { Guard, TimelineData, Timelines } from "./derivedReadsContract.ts";
 import { derivedReadsData } from "./derivedReadsData.ts";
 

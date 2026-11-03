@@ -1,11 +1,11 @@
 import { Clock, Effect, Layer, Logger, Option, Redacted } from "effect";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { logMailerLayer } from "#server/Mailer.ts";
-import { emailLink, inbox } from "#server/testing/adapters/inbox.ts";
 import { configured, Emails, postgres } from "./fixture.ts";
 
 export const email = storyKit({

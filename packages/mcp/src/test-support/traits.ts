@@ -1,5 +1,5 @@
 import { DateTime, Effect } from "effect";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { connects } from "./client.ts";
 import { type Engine, person } from "./host.ts";
 import { mcp } from "./mcp.ts";

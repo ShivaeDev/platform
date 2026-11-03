@@ -1,8 +1,8 @@
 import { Effect } from "effect";
+import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { passwordUser } from "#server/better-auth/testing.ts";
 import { NATIVE_ORIGIN, PASSWORD, type RouteState, routeHost } from "./routeHost.ts";
 import { routeVerbs } from "./routeVerbs.ts";
 
