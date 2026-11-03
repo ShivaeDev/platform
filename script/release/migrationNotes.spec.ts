@@ -36,10 +36,12 @@ for (const { description, trait, expected, starterNotes } of [
 		trait: patchPlan,
 	},
 ]) {
-	releasePullRequest.it(`the release PR leads with ${description}`, [trait], function* ({ run, readGitHub }) {
+	releasePullRequest.it(`the release PR leaves ${description} to the changelogs`, [trait], function* ({ run, readGitHub }) {
 		yield* run();
 
-		expect((yield* readGitHub()).body.split("\n\n### Why?")[0]).toBe(expected);
+		const { body } = yield* readGitHub();
+		expect(body.startsWith("### Why?")).toBe(true);
+		expect(body).not.toContain(expected);
 	});
 
 	releasePullRequest.it(
