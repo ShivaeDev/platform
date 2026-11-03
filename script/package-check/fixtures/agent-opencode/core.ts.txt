@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { once } from "node:events";
+import { createRequire } from "node:module";
+import { readdir } from "node:fs/promises";
+import { Effect } from "effect";
+import { requireFeatures } from "@shivaedev/agent/agent.ts";
+import { opencode } from "@shivaedev/agent-opencode/opencode.ts";
+
+const require = createRequire(import.meta.url);
+const packageRequire = createRequire(require.resolve("@shivaedev/agent-opencode/opencode.ts"));
+const installed = await readdir(new URL("./node_modules/.pnpm/", import.meta.url));
+for (const sdk of ["@anthropic-ai/claude-agent-sdk", "@anthropic-ai/sdk", "@openai/codex-sdk", "@mariozechner/pi-coding-agent", "@modelcontextprotocol/sdk", "openai", "@mariozechner/pi-ai"]) {
+	assert.throws(() => packageRequire.resolve(sdk), { code: "MODULE_NOT_FOUND" });
+	assert.equal(installed.some((entry) => entry.startsWith(`${sdk.replaceAll("/", "+")}@`)), false, `${sdk} is installed`);
+}
+const received: string[] = [];
+const server = createServer(async (request, response) => {
+	if (request.url === "/global/event") {
+		response.writeHead(200, { "content-type": "text/event-stream" });
+		response.write(": ready\n\n");
+		return;
+	}
+	received.push(`${request.method} ${request.url}`);
+	for await (const _ of request) {}
+	response.setHeader("content-type", "application/json");
+	if (request.url?.startsWith("/session?")) response.end(JSON.stringify({ directory: "/project", id: "packed" }));
+	else { response.statusCode = 204; response.end(); }
+});
+server.listen(0, "127.0.0.1");
+await once(server, "listening");
+const address = server.address();
+assert(address && typeof address !== "string");
+try {
+	await Effect.runPromise(Effect.gen(function* () {
+		const agent = yield* requireFeatures([]);
+		const receipt = yield* agent.start({ cwd: "/project", operationId: "packed", input: { parts: [{ text: "hello", type: "text" }] } });
+		assert.equal(receipt.reference.value, "packed");
+	}).pipe(Effect.provide(opencode({ cwd: "/project", url: `http://127.0.0.1:${address.port}` })), Effect.scoped));
+	assert.deepEqual(received, ["POST /session?directory=%2Fproject", "POST /session/packed/prompt_async?directory=%2Fproject"]);
+} finally {
+	server.closeAllConnections();
+	await new Promise<void>((resolve) => server.close(() => resolve()));
+}
