@@ -1,8 +1,8 @@
 import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import type { PgBossClient } from "#server/client.ts";
-import { defaultClientFactory } from "#server/defaultClientFactory.ts";
 import { PgBossError } from "#server/error.ts";
 import { registrationName } from "#server/internal/register.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";

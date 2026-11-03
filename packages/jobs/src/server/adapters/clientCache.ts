@@ -1,10 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ConstructorOptions } from "pg-boss";
-import type { PgBossClient } from "#server/client.ts";
 import { PgBossClientOptionsError } from "#server/error.ts";
+import type { StartingClient } from "./lifecycle.ts";
 
 interface CachedClient {
-	readonly client: Promise<PgBossClient>;
+	readonly client: StartingClient;
 	readonly constructorOptions: ConstructorOptions;
 	references: number;
 }
@@ -23,13 +23,13 @@ function isCachedClient(value: unknown): value is CachedClient {
 	return (
 		typeof value === "object"
 		&& value !== null
-		&& Reflect.get(value, "client") instanceof Promise
+		&& typeof Reflect.get(value, "client") === "object"
 		&& typeof Reflect.get(value, "constructorOptions") === "object"
 		&& typeof Reflect.get(value, "references") === "number"
 	);
 }
 
-export async function acquireCachedClient(key: string | symbol, constructorOptions: ConstructorOptions, start: () => Promise<PgBossClient>) {
+export function acquireCachedClient(key: string | symbol, constructorOptions: ConstructorOptions, start: () => StartingClient) {
 	const existing = entryFor(key);
 	if (existing !== undefined) {
 		const options = [...new Set([...Object.keys(existing.constructorOptions), ...Object.keys(constructorOptions)])]
@@ -39,27 +39,15 @@ export async function acquireCachedClient(key: string | symbol, constructorOptio
 			throw new PgBossClientOptionsError({ key, options });
 		}
 		existing.references += 1;
-		try {
-			return { client: await existing.client, reused: true };
-		} catch (error) {
-			existing.references -= 1;
-			throw error;
-		}
+		return { ...existing.client, reused: true };
 	}
 	const settings = { ...constructorOptions };
 	const entry: CachedClient = { client: start(), constructorOptions: settings, references: 1 };
 	clients.set(key, entry);
-	try {
-		return { client: await entry.client, reused: false };
-	} catch (error) {
-		if (clients.get(key) === entry) {
-			clients.delete(key);
-		}
-		throw error;
-	}
+	return { ...entry.client, reused: false };
 }
 
-export function releaseCachedClient(key: string | symbol): Promise<PgBossClient> | undefined {
+export function releaseCachedClient(key: string | symbol): StartingClient | undefined {
 	const entry = entryFor(key);
 	if (entry === undefined) {
 		return;

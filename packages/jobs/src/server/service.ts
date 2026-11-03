@@ -4,12 +4,13 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
 import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
+import { clientEngine } from "#server/adapters/lifecycle.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
 import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
-import { acquireClient, releaseClient } from "#server/internal/lifecycle.ts";
+import { ClientEngine } from "#server/internal/lifecycle.ts";
 import { makeService } from "#server/internal/makeService.ts";
 import { registrationName } from "#server/internal/register.ts";
 import { registerReleasedJobs } from "#server/internal/registerReleasedJobs.ts";
@@ -60,20 +61,19 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 		PgBoss,
 		Effect.gen(function* () {
 			const report = yield* clientErrorLogger();
-			const acquired = yield* Effect.acquireRelease(
-				acquireClient(
-					{
-						clientCacheKey,
-						clientFactory,
-						constructor: constructorOptions,
-					},
-					report,
-				),
-				(client) => releaseClient(client, stop),
+			const engine = yield* ClientEngine;
+			const acquired = yield* engine.acquire(
+				{
+					clientCacheKey,
+					clientFactory,
+					constructor: constructorOptions,
+				},
+				report,
+				stop,
 			);
 			return { ...acquired, schema: settings.schema, stop };
 		}),
-	);
+	).pipe(Layer.provide(Layer.succeed(ClientEngine, clientEngine)));
 }
 
 export interface PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> {

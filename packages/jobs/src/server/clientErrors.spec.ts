@@ -67,8 +67,8 @@ const endings = [
 	{ given: [clientStartFails("connection refused"), failedToStart("app")], how: "failed to start", logs: [terminationLogged] },
 	{
 		given: [clientStartFails("connection refused"), clientStopFails("connection lost"), failedToStart("app")],
-		how: "failed to start and its cleanup failed",
-		logs: [terminationLogged],
+		how: "failed to start and logged its failed cleanup",
+		logs: [stopFailureLogged, terminationLogged],
 	},
 ];
 
