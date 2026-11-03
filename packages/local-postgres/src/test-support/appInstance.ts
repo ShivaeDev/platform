@@ -5,7 +5,7 @@ import { appInstanceReadouts } from "#test/appInstanceReadouts.ts";
 import { appInstanceVerbs } from "#test/appInstanceVerbs.ts";
 
 export const appInstance = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => createAppInstance,
 	inspect: (engine) => ({ dataDirectory: engine.dataDirectory, instance: engine.instance, outcome: engine.outcome }),
 	layer: appServices,
