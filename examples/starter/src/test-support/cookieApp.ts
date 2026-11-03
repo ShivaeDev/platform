@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";

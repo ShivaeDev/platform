@@ -1,6 +1,6 @@
 import { Cause, Effect, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { causeWords } from "@shivaedev/test/answers.ts";
+import { causeWords } from "@shivaedev/test-story/server/answers.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 import { browserErrorReadouts } from "./browserErrorReadouts.ts";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
@@ -32,7 +32,7 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		...adminVerbs(state, story.tell),
 		...browserErrorReadouts(state),
 		connectionSecurity: () => connectionSecurity(state),
-		serverOffersTls,
+		serverOffersTls: () => serverOffersTls(state),
 		...requests(state, story.tell),
 		receiveMaskedFailure: (interrupt: boolean) => {
 			story.tell("the native RPC client requests a declared failure with sensitive fields");

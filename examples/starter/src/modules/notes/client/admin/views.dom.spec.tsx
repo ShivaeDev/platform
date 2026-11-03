@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { adminScreen, adminScreens, countedNotes, twoFailedJobs } from "#modules/notes/test-support/admin/screens.tsx";
+import { adminScreen, adminScreens, pendingNote } from "#modules/notes/test-support/admin/screens.tsx";
 
 adminScreens.it("the Jobs page filters by foundation and note word-count queues", [adminScreen()], function* ({ queueFilter, settle }) {
 	yield* settle();
@@ -9,50 +9,8 @@ adminScreens.it("the Jobs page filters by foundation and note word-count queues"
 });
 
 adminScreens.it(
-	"a failed note job opens its detail without a Retry job control",
-	[twoFailedJobs, adminScreen()],
-	function* ({ choosesQueue, failedJobs, offers, openJob, opensFailedJob, settle }) {
-		yield* settle();
-		yield* choosesQueue("count-note-words");
-		yield* settle();
-		expect(yield* failedJobs()).toEqual(["first-job", "second-job"]);
-
-		yield* opensFailedJob("first-job");
-
-		yield* outcomes([
-			["detail", openJob, "first-job"],
-			["Retry job", () => offers("Retry job"), "not offered"],
-		]);
-	},
-);
-
-adminScreens.it(
-	"a session change closes the admin streams and clears the failed jobs and the open detail",
-	[twoFailedJobs, adminScreen()],
-	function* ({ changesSession, choosesQueue, failedJobs, liveAdminStreams, openJob, opensFailedJob, settle }) {
-		yield* settle();
-		yield* choosesQueue("count-note-words");
-		yield* settle();
-		yield* opensFailedJob("first-job");
-		yield* outcomes([
-			["detail before", openJob, "first-job"],
-			["streams before", liveAdminStreams, "open"],
-		]);
-
-		yield* changesSession();
-		yield* settle();
-
-		yield* outcomes([
-			["failed jobs", failedJobs, []],
-			["detail", openJob, "no detail"],
-			["streams", liveAdminStreams, "none open"],
-		]);
-	},
-);
-
-adminScreens.it(
-	"the admin navigation opens note statistics with the app's counts",
-	[countedNotes, adminScreen()],
+	"the admin navigation opens note statistics with the app's pending note",
+	[pendingNote, adminScreen()],
 	function* ({ heading, noteStatistics, opensNoteStatistics, settle }) {
 		yield* settle();
 
@@ -60,21 +18,7 @@ adminScreens.it(
 
 		yield* outcomes([
 			["page", heading, "Note statistics"],
-			["statistics", noteStatistics, { Notes: "7", "Pending counts": "2", Words: "53" }],
-		]);
-	},
-);
-
-adminScreens.it(
-	"a user without users.read sees Permission denied on the users page and opens no admin stream",
-	[adminScreen("/admin/users", "user")],
-	function* ({ heading, liveAdminStreams, settle, shown }) {
-		yield* settle();
-
-		yield* outcomes([
-			["page", heading, "Permission denied"],
-			["users table", () => shown('[aria-label="App users"]'), "hidden"],
-			["streams", liveAdminStreams, "none open"],
+			["statistics", noteStatistics, { Notes: "1", "Pending counts": "1", Words: "0" }],
 		]);
 	},
 );

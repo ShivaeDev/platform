@@ -10,6 +10,7 @@
 		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin/run.ts",
 		"baseline": "quality baseline",
 		"browser-check": "browser-check",
+		"browser-check:live-notes": "node --conditions=source --env-file-if-exists=.env.local tooling/notes/browser-check/run.ts",
 		"build": "vite build",
 		"check:published": "env -u NODE_OPTIONS node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"ci": "quality ci",
@@ -34,6 +35,7 @@
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
+		"@shivaedev/deploy": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@tanstack/react-router": "catalog:",
 		"@tanstack/react-table": "catalog:",
@@ -65,7 +67,7 @@
 		"vite": "catalog:",
 		"vitest": "catalog:"
 	},
-	"packageManager": "pnpm@12.15.0",
+	"packageManager": "pnpm@12.16.0",
 	"engines": {
 		"node": ">=24"
 	},

@@ -2,8 +2,7 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import { Effect } from "effect";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import { routeOutbound } from "#routeOutbound.ts";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { noteLifetime } from "./lifetimeLog.ts";
 
 const hostFetch = fetch;
@@ -103,85 +102,3 @@ export const outboundKit = storyKit({
 });
 
 export const thirdPartyAvailable = outboundKit.trait("built", "a third party is available", () => notesRouting("trait"));
-
-const SLOTS = ["undici.globalDispatcher.1", "undici.globalDispatcher.2"];
-
-interface Slot {
-	readonly descriptor: PropertyDescriptor | undefined;
-	readonly key: symbol;
-	readonly origins: string[];
-}
-
-function dispatchThrough(slot: Slot, origin: string) {
-	const current: unknown = Reflect.get(globalThis, slot.key);
-	if (typeof current !== "object" || current === null || !("dispatch" in current) || typeof current.dispatch !== "function") {
-		throw new Error("outbound dispatcher is missing");
-	}
-	current.dispatch({ origin }, {});
-}
-
-function recordingSlots() {
-	return Effect.acquireRelease(
-		Effect.promise(async () => {
-			await hostFetch("data:,");
-			return SLOTS.map((name, index): Slot => {
-				const key = Symbol.for(name);
-				const origins: string[] = [];
-				const slot = { descriptor: Object.getOwnPropertyDescriptor(globalThis, key), key, origins };
-				Object.defineProperty(globalThis, key, {
-					...(slot.descriptor ?? { configurable: true, writable: true }),
-					value: {
-						dispatch(options: { readonly origin: string }) {
-							slot.origins.push(`slot ${index + 1} sent ${options.origin}`);
-							return true;
-						},
-					},
-				});
-				return slot;
-			});
-		}),
-		(slots) =>
-			Effect.sync(() => {
-				for (const slot of slots) {
-					if (slot.descriptor === undefined) {
-						Reflect.deleteProperty(globalThis, slot.key);
-					} else {
-						Object.defineProperty(globalThis, slot.key, slot.descriptor);
-					}
-				}
-			}),
-	);
-}
-
-export const dispatchers = storyKit({
-	*create() {
-		return { slots: yield* recordingSlots() };
-	},
-	name: "dispatchers",
-	stages: [],
-	verbs: ({ slots }, story) => {
-		function sends(origin: string) {
-			for (const slot of slots) {
-				dispatchThrough(slot, origin);
-			}
-		}
-		return {
-			lastSent: () => Effect.sync(() => slots.map((slot) => slot.origins.at(-1))),
-			routesGitHubWhileScoped: (ending: "fails" | "succeeds") => {
-				story.tell(`a scope routes github.com, sends to github.com and example.com, and ${ending}`);
-				return Effect.scoped(
-					Effect.gen(function* () {
-						yield* routeOutbound({ "github.com": "http://127.0.0.1:4321" }, { passthrough: true });
-						sends("https://github.com");
-						sends("https://example.com");
-						if (ending === "fails") {
-							yield* Effect.fail("the routing scope fails");
-						}
-					}),
-				).pipe(Effect.ignore);
-			},
-			sends: (origin: string) => Effect.sync(() => sends(origin)),
-			sent: () => Effect.sync(() => slots.flatMap((slot) => slot.origins)),
-		};
-	},
-});

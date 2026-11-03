@@ -12,6 +12,7 @@ import { betterAuthOauthGrants } from "#server/better-auth/adapters/oauthGrants.
 import { betterAuthOauthProvider } from "#server/better-auth/adapters/oauthProvider.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { OauthGrants } from "#server/oauthGrants.ts";
+import { grantBanVerbs } from "./grantBanVerbs.ts";
 
 type Person = "alice" | "bob";
 
@@ -26,7 +27,7 @@ function failure<A>(effect: Effect.Effect<A, AuthUnavailable>) {
 
 export const oauthGrants = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const database = yield* betterAuthDatabase();
 		const options = {
@@ -67,6 +68,7 @@ export const oauthGrants = storyKit({
 		}
 		const service = Effect.provideContext(OauthGrants, engine.context);
 		return {
+			...grantBanVerbs(engine.auth, id, story.tell),
 			deny: (name: Person) =>
 				Effect.sync(() => {
 					story.tell(`admission denies ${name}`);

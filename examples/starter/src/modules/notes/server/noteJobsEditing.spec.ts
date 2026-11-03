@@ -53,16 +53,17 @@ app.it(
 );
 
 app.it(
-	"the word-count job for a note alice deleted completes",
+	"after alice deletes a queued note, the worker counts her remaining note",
 	[signedIn("alice")],
-	function* ({ notesOf, wordCountJobs, workerCountsQueuedNotes }) {
+	function* ({ notesOf, workerCountsQueuedNotes }) {
 		const note = yield* notesOf("alice").create("Deleted before counting");
 		yield* notesOf("alice").delete(note);
-		expect(yield* wordCountJobs()).toEqual([{ noteId: note.id, state: "created" }]);
+		const remaining = yield* notesOf("alice").create("Count these words");
+		expect(yield* notesOf("alice").list()).toEqual([remaining]);
 
 		yield* workerCountsQueuedNotes();
 
-		expect(yield* wordCountJobs()).toEqual([{ noteId: note.id, state: "completed" }]);
+		expect(yield* notesOf("alice").list()).toEqual([{ ...remaining, version: 1, wordCount: 3 }]);
 	},
 	15_000,
 );

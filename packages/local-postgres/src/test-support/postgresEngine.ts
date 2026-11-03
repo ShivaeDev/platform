@@ -1,6 +1,6 @@
 import { Effect, PlatformError } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
-import { LOCAL_SERVER, localPostgres, type ReadinessOptions } from "#localPostgres.ts";
+import { LOCAL_SERVER, localPostgres, type ReadinessOptions } from "#server/localPostgres.ts";
 import { dockerScript } from "#test/dockerScript.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 

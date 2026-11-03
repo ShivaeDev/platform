@@ -132,7 +132,7 @@ isolatedEngine.it("an unreadable earlier waiter cannot block the area holder's c
 
 	expect(continued.value.step).toBe("working");
 	expect(continued.value.attempts[0]).toMatchObject({
-		prompt: "Use the existing implementation",
+		prompt: expect.stringContaining("Use the existing implementation"),
 		receipt: { sessionId: first.value.attempts[0]?.receipt?.sessionId },
 		role: "repair",
 	});

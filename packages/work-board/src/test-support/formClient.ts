@@ -9,7 +9,7 @@ import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
 export function formClient() {
-	class Client extends AtomRpc.Service<Reader>()("WorkBoard/FormTest", {
+	class Client extends AtomRpc.Service<Reader>()("@shivaedev/work-board/FormTest", {
 		group: workRpcs,
 		protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/_board/rpc" }).pipe(
 			Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),

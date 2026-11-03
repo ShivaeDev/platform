@@ -1,8 +1,8 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Deferred, Effect, Exit, Fiber, Layer, PubSub, Scope, Stream } from "effect";
 import { RpcClient } from "effect/rpc";
-import { browserReads } from "#browserReads.ts";
-import { storyKit } from "#storyKit.ts";
+import { browserReads } from "#server/browserReads.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { ReadPage, readPageHost } from "#test/readPageHost.ts";
 
 export const subscriptionClients = storyKit({

@@ -64,7 +64,7 @@ host.it(
 		const resumed = yield* daemon
 			.waitForRecord("one", (record) => record.attempts.length > 1 && record.step === "working")
 			.pipe(Effect.timeout("5 seconds"));
-		expect(resumed.attempts.at(-1)?.prompt).toBe("Use PostgreSQL.");
+		expect(resumed.attempts.at(-1)?.prompt).toContain("Use PostgreSQL.");
 		expect(resumed.responses).toMatchObject([{ action: "continue", responseId: "answer.storage" }]);
 	},
 );

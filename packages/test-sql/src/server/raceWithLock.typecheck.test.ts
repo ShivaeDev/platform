@@ -4,11 +4,11 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import type { NeverSettled } from "#observeUntil.ts";
-import { raceWithLock } from "#raceWithLock.ts";
+import type { NeverSettled } from "#server/observeUntil.ts";
+import { raceWithLock } from "#server/raceWithLock.ts";
 
 const Dependency = defineService({
-	id: "RaceDependency",
+	id: "@shivaedev/test-sql/RaceDependency",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

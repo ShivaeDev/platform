@@ -1,9 +1,9 @@
 import { expect } from "vitest";
-import { notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
+import { emptyDatabase, notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
 	"eight concurrent sessions leave at most ten app connections after creating and counting notes",
-	[releaseMigrated("current"), webRunning({ "AUTH_RATE_LIMIT_ENABLED": "false" }), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("current"), webRunning({ "AUTH_RATE_LIMIT_ENABLED": "false" }), signedUp("alice")],
 	function* ({ openConnections, sessionsCreateNotesAtOnce, workerStarts }) {
 		yield* workerStarts("current");
 

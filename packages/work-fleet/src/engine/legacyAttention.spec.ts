@@ -93,7 +93,7 @@ for (const migrate of [false, true]) {
 			const continued = (yield* restarted.reconcile("one")).value;
 			expect(continued.step).toBe("working");
 			expect(continued.responses).toMatchObject([{ boardAcknowledged: true, decisionId: original.id, responseId: answer.id }]);
-			expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
+			expect(continued.attempts.at(-1)?.prompt).toContain(answer.body);
 			expect(continued.supersededDecisions).toBeUndefined();
 			expect(
 				providerCalls()

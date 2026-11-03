@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import {
 	clientStartFails,
 	clientStopFails,
@@ -67,8 +67,8 @@ const endings = [
 	{ given: [clientStartFails("connection refused"), failedToStart("app")], how: "failed to start", logs: [terminationLogged] },
 	{
 		given: [clientStartFails("connection refused"), clientStopFails("connection lost"), failedToStart("app")],
-		how: "failed to start and its cleanup failed",
-		logs: [terminationLogged],
+		how: "failed to start and logged its failed cleanup",
+		logs: [stopFailureLogged, terminationLogged],
 	},
 ];
 

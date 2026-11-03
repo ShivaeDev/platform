@@ -5,13 +5,13 @@ import * as Layer from "effect/Layer";
 import * as TestCrypto from "effect/testing/TestCrypto";
 import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
-import { freshDocument, inDom } from "#internal/domDocument.ts";
-import { type Genre, genreOf } from "#internal/genre.ts";
-import { type AnyEffect, hooked } from "#internal/hooked.ts";
-import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
-import { start } from "#internal/start.ts";
-import { withWatchedClock } from "#internal/withWatchedClock.ts";
-import { routeOutbound } from "#routeOutbound.ts";
+import { freshDocument, inDom } from "#server/internal/domDocument.ts";
+import { type Genre, genreOf } from "#server/internal/genre.ts";
+import { type AnyEffect, hooked } from "#server/internal/hooked.ts";
+import type { LooseDefinition, LooseTrait } from "#server/internal/seed.ts";
+import { start } from "#server/internal/start.ts";
+import { withWatchedClock } from "#server/internal/withWatchedClock.ts";
+import { routeOutbound } from "#server/routeOutbound.ts";
 
 type LooseBody = (told: object, context: TestContext) => Generator<AnyEffect, unknown, never> | undefined;
 

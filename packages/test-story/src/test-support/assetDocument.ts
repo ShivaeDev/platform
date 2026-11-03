@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { Window } from "happy-dom";
 import { vi } from "vitest";
-import { domNavigate } from "#domNavigate.ts";
-import { routeOutbound } from "#routeOutbound.ts";
-import { storyKit } from "#storyKit.ts";
+import { domNavigate } from "#server/domNavigate.ts";
+import { routeOutbound } from "#server/routeOutbound.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 
 declare const window: Window;

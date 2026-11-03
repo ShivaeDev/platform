@@ -1,6 +1,6 @@
 import { Clock, Duration, Effect, Schema } from "effect";
 import type { Job, policies, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
-import { maxDeferrals, nativeQueueOptions } from "#internal/definitionOptions.ts";
+import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOptions.ts";
 
 export class RetryAt extends Schema.TaggedError<RetryAt>()("RetryAt", {
 	at: Schema.DateTimeUtc,

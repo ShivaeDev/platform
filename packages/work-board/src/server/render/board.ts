@@ -1,8 +1,5 @@
 import type { RootContent } from "mdast";
-import remarkDirective from "remark-directive";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 
 export interface Section {
 	readonly heading: string;
@@ -65,7 +62,7 @@ function joined(blocks: readonly string[]): string {
 
 export function boardOf(source: string): Board {
 	const draft: Draft = { definitions: [], footer: undefined, intro: [], sections: [], title: "" };
-	const root = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(source);
+	const root = parseMarkdown(source, { directives: true, gfm: true });
 	const nodes = root.type === "root" ? root.children : [];
 	const lastHeading = nodes.findLastIndex((node) => node.type === "heading");
 	nodes.forEach((node, index) => {

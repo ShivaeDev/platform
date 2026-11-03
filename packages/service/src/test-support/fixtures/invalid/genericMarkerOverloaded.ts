@@ -9,7 +9,7 @@ function overloaded(value: string | number) {
 }
 
 defineService({
-	id: "invalid/GenericMarkerOverloaded",
+	id: "@shivaedev/service/invalid/GenericMarkerOverloaded",
 	initialize: Effect.void,
 	methods: () => ({ overloaded: genericMethod(overloaded) }),
 	requires: [],

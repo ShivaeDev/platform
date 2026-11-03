@@ -1,4 +1,4 @@
-import { Deferred, type Duration, Effect, Fiber } from "effect";
+import { Deferred, type Duration, Effect, Fiber, Redacted } from "effect";
 import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
 import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
@@ -41,7 +41,7 @@ function request(engine: Engine, kind: AuthEmail["_tag"], person = "alice", repl
 			if (approval?._tag !== "ApproveEmailChange") {
 				throw new Error("Alice has no email change to approve");
 			}
-			return auth.api.verifyEmail({ asResponse: true, query: { token: approval.token } });
+			return auth.api.verifyEmail({ asResponse: true, query: { token: Redacted.value(approval.token) } });
 		}
 		case "AccountAlreadyExists":
 			return auth.api.signUpEmail({ asResponse: true, body: { email, name: person, password: "unused-signup-password" } });
@@ -83,6 +83,8 @@ export const emails = storyKit({
 				Effect.sync(() => {
 					host(engine).delivery.available = available;
 				}),
+			deliveryLogs: () => Effect.sync(() => JSON.stringify(host(engine).recorded.logs)),
+			deliveryTraces: () => Effect.sync(() => JSON.stringify(host(engine).recorded.spans.map((span) => [...span.attributes]))),
 			expireWindows: () => {
 				story.tell("the stored email reservations expire");
 				return postgresTestDatabase.pipe(Effect.flatMap((database) => database.expireWindows));

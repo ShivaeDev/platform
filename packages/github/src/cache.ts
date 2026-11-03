@@ -1,5 +1,6 @@
 import type { Schema } from "effect";
 import type { HttpClientResponse } from "effect/http";
+import { mergeResponseHeaders } from "#adapters/mergeResponseHeaders.ts";
 
 export interface CachedResponse {
 	readonly bytes: Uint8Array;
@@ -9,7 +10,7 @@ export interface CachedResponse {
 }
 
 export function revalidatedResponse(cached: CachedResponse, response: HttpClientResponse.HttpClientResponse): CachedResponse {
-	return { ...cached, etag: response.headers.etag ?? cached.etag, response };
+	return { ...cached, etag: response.headers.etag ?? cached.etag, response: mergeResponseHeaders(cached.response, response) };
 }
 
 export function responseCache() {

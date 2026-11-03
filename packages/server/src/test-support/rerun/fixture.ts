@@ -11,16 +11,18 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 
 export class Note extends Schema.Class<Note>("RerunNote")({ id: Schema.BigIntFromString, owner: Schema.String, title: Schema.String }) {}
-class PolicyUnavailable extends Schema.TaggedError<PolicyUnavailable>()("PolicyUnavailable", {}) {}
+export class PolicyUnavailable extends Schema.TaggedError<PolicyUnavailable>()("PolicyUnavailable", {}) {}
+export class QueryUnavailable extends Schema.TaggedError<QueryUnavailable>()("QueryUnavailable", {}) {}
 export interface RerunState {
 	barrier: number;
 	readonly calls: string[];
 	readonly denied: Set<string>;
 	readonly notes: Map<bigint, Note>;
 	policyUnavailable: boolean;
+	queryUnavailable: boolean;
 }
-class Store extends Context.Service<Store, RerunState>()("test/RerunStore") {}
-class Incoming extends RpcMiddleware.Service<Incoming>()("test/RerunIncoming") {}
+export class Store extends Context.Service<Store, RerunState>()("@shivaedev/server/test/RerunStore") {}
+class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/server/test/RerunIncoming") {}
 export const notes = collection("rerun-notes", Schema.String, { owner: Schema.String });
 function reads(_payload: unknown, viewer: Option.Option<Viewer>) {
 	return Option.isSome(viewer) ? [notes.bucket.owner(viewer.value.id)] : [];
@@ -30,7 +32,13 @@ function readPolicy(_payload: unknown, viewer: Option.Option<Viewer>) {
 		state.policyUnavailable ? Effect.fail(new PolicyUnavailable()) : Effect.succeed(Option.isSome(viewer) && !state.denied.has(viewer.value.id)),
 	);
 }
-const definition = { payload: { title: Schema.String }, readPolicy, reads, rejections: { PolicyUnavailable }, success: Schema.Array(Note) };
+const definition = {
+	payload: { title: Schema.String },
+	readPolicy,
+	reads,
+	rejections: { PolicyUnavailable, QueryUnavailable },
+	success: Schema.Array(Note),
+};
 const Compare = query("compare", { ...definition, live: "rerun-and-compare" });
 const Hinted = query("hinted", definition);
 const Barrier = query("barrier", { live: "rerun-and-compare", readPolicy, reads, rejections: { PolicyUnavailable }, success: Schema.Number });
@@ -42,6 +50,9 @@ export const Api = contract("rerun", { commands: [Rename], queries: [Compare, Hi
 const list = Effect.fnUntraced(function* ({ title }: { title: string }) {
 	const state = yield* Store;
 	const viewer = yield* CurrentViewer;
+	if (state.queryUnavailable) {
+		return yield* new QueryUnavailable();
+	}
 	return [...state.notes.values()].filter((note) => Option.isSome(viewer) && note.owner === viewer.value.id && note.title.includes(title));
 });
 

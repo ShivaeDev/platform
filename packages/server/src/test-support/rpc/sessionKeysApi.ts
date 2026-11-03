@@ -33,9 +33,12 @@ const save = command("save", {
 function scoped<const TName extends string>(name: TName) {
 	return contract(name, { commands: [save], keyScope: "session", queries: [get, list] });
 }
-export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticated, { provides: Identity }>()("test/SessionKeysAuth", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
-}) {}
+export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticated, { provides: Identity }>()(
+	"@shivaedev/server/test/SessionKeysAuth",
+	{
+		error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	},
+) {}
 export const Apis = {
 	account: scoped("account").middleware(Authenticated),
 	admin: scoped("admin").middleware(ToolsPermission),
@@ -61,7 +64,7 @@ const write = Effect.fnUntraced(function* ({ id, value, announce, reject }: type
 		yield* sql`insert into preferences (owner, id, value) values (${identity.id}, ${id}, ${value})
 			on conflict (owner, id) do update set value = excluded.value`;
 		if (announce) {
-			yield* invalidateOnCommit(invalidationKeys([Preferences.item(id)], { scope: identity.id }));
+			yield* invalidateOnCommit(invalidationKeys([Preferences.item(id)]));
 		}
 		if (reject) {
 			return yield* new Conflict({ message: "Write rejected" });

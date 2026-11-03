@@ -1,0 +1,122 @@
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as Scope from "effect/Scope";
+import type { ReactNode } from "react";
+import type { RootOptions } from "react-dom/client";
+import { beforeEach, expect, vi } from "vitest";
+
+type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
+
+export interface ReactWarningsReadout {
+	readonly caughtErrors: readonly unknown[];
+	readonly consoleErrors: readonly (readonly unknown[])[];
+}
+
+export interface ReactWarnings {
+	readonly expectCaughtError: (matches: (error: unknown) => boolean) => CaughtErrorHandler;
+	readonly onCaughtError: CaughtErrorHandler;
+	readonly read: () => ReactWarningsReadout;
+}
+
+const acquireReactWarnings = Effect.acquireRelease(
+	Effect.sync(() => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		let consoleErrors: readonly (readonly unknown[])[] | undefined;
+		const caughtErrors: unknown[] = [];
+		const expectations: { caught: boolean }[] = [];
+		const capture: ReactWarnings = {
+			expectCaughtError: (matches) => {
+				const expectation = { caught: false };
+				expectations.push(expectation);
+				return (error) => {
+					if (matches(error)) {
+						expectation.caught = true;
+					} else {
+						caughtErrors.push(error);
+					}
+				};
+			},
+			onCaughtError: (error) => {
+				caughtErrors.push(error);
+			},
+			read: () => ({ caughtErrors: [...caughtErrors], consoleErrors: consoleErrors ?? errors.mock.calls.map((args) => [...args]) }),
+		};
+		return {
+			capture,
+			expectations,
+			restore: () => {
+				consoleErrors = capture.read().consoleErrors;
+				errors.mockRestore();
+			},
+		};
+	}),
+	({ restore }) => Effect.sync(restore),
+);
+
+export const captureReactWarnings = Effect.map(acquireReactWarnings, ({ capture }) => capture);
+
+export function expectNoReactWarnings() {
+	let current: Effect.Success<typeof acquireReactWarnings>;
+	beforeEach(({ onTestFinished }) => {
+		const scope = Effect.runSync(Scope.make());
+		current = Effect.runSync(Effect.provideService(acquireReactWarnings, Scope.Scope, scope));
+		const { capture, expectations } = current;
+		onTestFinished(() => {
+			Effect.runSync(Scope.close(scope, Exit.void));
+			const { consoleErrors, caughtErrors } = capture.read();
+			expect(consoleErrors).toEqual([]);
+			expect(caughtErrors, "Unexpected caught React errors").toEqual([]);
+			expect(
+				expectations.every(({ caught }) => caught),
+				"Expected caught React error did not occur",
+			).toBe(true);
+		});
+	});
+	return {
+		expectCaughtError(matches: (error: unknown) => boolean): NonNullable<RootOptions["onCaughtError"]> {
+			return current.capture.expectCaughtError(matches);
+		},
+	};
+}
+export interface Rendered {
+	readonly container: HTMLDivElement;
+	readonly registry: AtomRegistry.AtomRegistry;
+	readonly render: (node: ReactNode) => Promise<void>;
+	readonly unmount: () => Promise<void>;
+}
+export async function render(node: ReactNode, options?: RootOptions): Promise<Rendered> {
+	const [{ RegistryContext }, registryModule, { createRoot }, { act, createElement }] = await Promise.all([
+		import("@effect/atom-react"),
+		import("effect/reactivity/AtomRegistry"),
+		import("react-dom/client"),
+		import("react"),
+	]);
+	const registry = registryModule.make();
+	const container = document.createElement("div");
+	document.body.append(container);
+	const root = createRoot(container, options);
+	let mounted = true;
+	async function unmount() {
+		if (!mounted) {
+			return;
+		}
+		mounted = false;
+		try {
+			await act(async () => root.unmount());
+		} finally {
+			registry.dispose();
+			container.remove();
+		}
+	}
+	async function update(next: ReactNode) {
+		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, next)));
+	}
+	try {
+		await update(node);
+	} catch (error) {
+		await unmount();
+		throw error;
+	}
+	return { container, registry, render: update, unmount };
+}

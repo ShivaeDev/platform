@@ -4,7 +4,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository, type OptimisticConcurrencyError } from "#repository.ts";
 
-class Prefix extends Context.Service<Prefix, string>()("versioned/Prefix") {}
+class Prefix extends Context.Service<Prefix, string>()("@shivaedev/sql/versioned/Prefix") {}
 const Name = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Prefix, (prefix) => value.slice(prefix.length))),

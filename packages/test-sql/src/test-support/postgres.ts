@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { postgresTestUrl } from "#adapters/postgresTestUrl.ts";
-import { makePostgresTestLayer } from "#postgres.ts";
+import { postgresTestUrl } from "#server/adapters/postgresTestUrl.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
 
@@ -41,3 +41,5 @@ export const values = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql<{ value: string }>`select value from items order by id`;
 });
+
+export const ITEMS_KEY = "items";

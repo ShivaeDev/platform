@@ -2,7 +2,7 @@ import { CatchBoundary } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
-import { captureReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { captureReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { BrokenScreen } from "./BrokenScreen.tsx";
 

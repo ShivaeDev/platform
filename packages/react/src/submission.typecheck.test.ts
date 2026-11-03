@@ -8,8 +8,8 @@ import type { EditorConfig } from "#client/editor.ts";
 import { useEditor } from "#client/editor.ts";
 import { type SubmissionConfig, submission } from "#submission.ts";
 
-class Check extends Context.Service<Check, { readonly message: string }>()("test/Check") {}
-class Decode extends Context.Service<Decode, { readonly prefix: string }>()("test/Decode") {}
+class Check extends Context.Service<Check, { readonly message: string }>()("@shivaedev/react/test/Check") {}
+class Decode extends Context.Service<Decode, { readonly prefix: string }>()("@shivaedev/react/test/Decode") {}
 const Draft = Schema.Struct({
 	answers: Schema.Array(Schema.Struct({ count: Schema.NumberFromString, id: Schema.String })),
 	count: Schema.Number,

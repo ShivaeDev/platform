@@ -2,11 +2,11 @@ import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Exit, Layer, Option, Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
-import { countWords } from "@shivaedev/test/answers.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Admin, foundation } from "#admin/modules.ts";
+import { foundation } from "#admin/foundation.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
@@ -16,6 +16,7 @@ import { type RunningHost, startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
+import { adminGroup } from "./group.ts";
 
 const { UsersPage } = foundation;
 
@@ -54,7 +55,7 @@ export const adminHost = storyKit({
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("AdminStory.adminOf")(function* (name: string) {
 			return yield* makeClient(UsersPage.contract, {
-				group: Admin.group,
+				group: adminGroup,
 				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
 				url: `${engine.url}/rpc`,
 				webSocketConstructor: layerWebSocketConstructorWS,

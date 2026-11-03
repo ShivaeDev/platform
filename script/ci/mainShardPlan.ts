@@ -18,25 +18,28 @@ const MINIMUM_TEST_SHARDS = 4;
 
 export const mainShardPlan = Effect.fn("CI.mainShardPlan")(function* (repository: string, download: (args: string[]) => string) {
 	const fallback = { artifactId: "", count: 8, runId: "" };
-	const selected = { consumers: { ...fallback }, tests: { ...fallback } };
+	const selected = { consumers: { ...fallback }, tests: { ...fallback, count: 25 } };
 	const temporary = yield* Effect.acquireRelease(
 		Effect.try(() => mkdtempSync(join(tmpdir(), "platform-shard-plan-"))),
 		(directory) => Effect.sync(() => rmSync(directory, { force: true, recursive: true })),
 	);
 	yield* Effect.gen(function* () {
 		const { workflowRuns: runs } = yield* read(
-			`/repos/${repository}/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=10`,
+			`/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=10`,
 			Runs,
 		);
 		for (const kind of ["tests", "consumers"] as const) {
 			const artifact = kind === "tests" ? "test-balancing" : "consumer-balancing";
 			const file = kind === "tests" ? "test-durations.json" : "consumer-durations.json";
-			selected[kind] = (yield* findSnapshot(repository, runs, artifact, file, temporary, download)) ?? fallback;
+			selected[kind] = (yield* findSnapshot(repository, runs, artifact, file, temporary, download)) ?? selected[kind];
 		}
 	}).pipe(
 		Effect.timeout("15 seconds"),
 		Effect.catchCause((cause) =>
-			Effect.logWarning("Cannot read main timing snapshots; using eight shards for unavailable plans", Cause.pretty(cause)),
+			Effect.logWarning(
+				"Cannot read merge-queue timing snapshots; using 25 test shards and eight consumer shards for unavailable plans",
+				Cause.pretty(cause),
+			),
 		),
 	);
 	return { consumers: selected.consumers, tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) } };
@@ -51,16 +54,13 @@ const findSnapshot = Effect.fn("CI.findSnapshot")(function* (
 	download: (args: string[]) => string,
 ) {
 	for (const run of runs) {
-		if (run.event !== "push" || run.headBranch !== "main" || run.conclusion !== "success") {
+		if (run.event !== "merge_group" || !run.headBranch.startsWith("gh-readonly-queue/main/") || run.conclusion !== "success") {
 			continue;
 		}
 		const snapshot = yield* readSnapshot(repository, run, artifact, file, temporary, download).pipe(
 			Effect.catchCause((cause) =>
 				Effect.as(
-					Effect.logWarning(
-						`Cannot read ${artifact} snapshot from run ${run.id}; trying older snapshots before the eight-shard fallback`,
-						Cause.pretty(cause),
-					),
+					Effect.logWarning(`Cannot read ${artifact} snapshot from run ${run.id}; trying older snapshots before the fallback`, Cause.pretty(cause)),
 					undefined,
 				),
 			),

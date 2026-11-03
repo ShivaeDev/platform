@@ -7,7 +7,7 @@ import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts"
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { migrationUpgrade } from "@shivaedev/test-sql/server/migrationUpgrade.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import userForeignKey from "#modules/notes/server/migrations/0003_user_foreign_key.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
@@ -16,15 +16,14 @@ import { migrations } from "#server/migrations.ts";
 import { postgres } from "#test-support/postgres.ts";
 
 export const migration = storyKit({
-	around: withIsolatedDatabase,
+	after: { database: (engine) => engine.database.acquire },
 	clock: "live",
 	*create() {
-		const pool = yield* betterAuthDatabase();
-		return { pool, userId: "" };
+		return { database: yield* storyDatabase(), userId: "" };
 	},
 	layer: postgres,
 	name: "notes schema",
-	stages: ["schema"],
+	stages: ["database", "schema"],
 	verbs: (engine, story) => ({
 		addNotes: Effect.fn("NotesStory.addNotes")(function* () {
 			story.tell("the notes migration runs on the foundation schema");
@@ -41,7 +40,7 @@ export const migration = storyKit({
 		aliceIsDeleted: () =>
 			Effect.gen(function* () {
 				story.tell("alice's account is deleted");
-				const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
+				const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: yield* betterAuthDatabase(), plugins: [testUtils()] }));
 				yield* Effect.promise(async () => (await auth.$context).internalAdapter.deleteUser(engine.userId));
 			}),
 		storedNoteTitles: Effect.fn("NotesStory.storedNoteTitles")(function* () {
@@ -58,10 +57,14 @@ export const existingNotes = migration.trait(
 	function* (engine) {
 		const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
 		yield* steps.migrateTo("0002_notes");
-		const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
+		const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: yield* betterAuthDatabase(), plugins: [testUtils()] }));
 		const { user } = yield* signedInUser(auth, { email: "alice@migration.test", name: "Alice" });
 		engine.userId = user.id;
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`insert into notes (owner_id, title) values (${user.id}, 'Alice note'), (null, 'Legacy note')`;
 	},
 );
+
+export const emptyDatabase = migration.trait("database", "the story starts before migrations, from an empty database", (engine) => {
+	engine.database.select("empty");
+});

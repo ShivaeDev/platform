@@ -1,10 +1,10 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { JobsView } from "#client/JobsView.ts";
+import { JobsView } from "#client/adapters/JobsView.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { idOf, nameOf } from "./jobsNames.ts";
 import { pages } from "./jobsPages.ts";

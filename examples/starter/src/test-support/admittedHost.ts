@@ -12,12 +12,10 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { secret } from "./host.ts";
 
 const Api = RpcGroup.make(
@@ -29,8 +27,6 @@ const Api = RpcGroup.make(
 const handlers = Api.toLayer({ Accounts: () => Effect.flatMap(SessionUserWithProviderAccounts, (user) => user.providerAccounts) });
 
 export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (env: Record<string, string>) {
-	const database = yield* PostgresTestDatabase;
-	yield* Effect.scoped(migrateDatabase(database.url));
 	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{

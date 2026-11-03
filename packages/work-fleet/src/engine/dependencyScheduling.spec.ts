@@ -25,7 +25,11 @@ engine.it(
 			yield* schedule();
 		}
 
-		expect(yield* launchedPrompts()).toEqual(["Implement one", "Implement two", "Implement dependent"]);
+		expect(yield* launchedPrompts()).toEqual([
+			expect.stringContaining("Implement one"),
+			expect.stringContaining("Implement two"),
+			expect.stringContaining("Implement dependent"),
+		]);
 	},
 );
 

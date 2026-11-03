@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Config, Context, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
+import { Clock, Config, Context, Crypto, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
+import * as Hex from "effect/encoding/Hex";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator } from "effect/sql";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
@@ -46,7 +46,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			const hints = yield* LiveServer;
 			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const name = yield* Config.String("APP_NAME").pipe(Config.withDefault(new URL(Redacted.value(url)).pathname));
-			const channel = changes?.channel ?? `changes_${createHash("sha256").update(name).digest("hex").slice(0, 32)}`;
+			const channel = changes?.channel ?? (yield* defaultChangesChannel(name));
 			const listenUrl = options.config?.listenDatabaseUrl ?? Option.getOrUndefined(yield* Config.Redacted("LISTEN_DATABASE_URL").pipe(Config.option));
 			const listenerClient =
 				listenUrl === undefined
@@ -73,6 +73,12 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	const prepared = Layer.effectDiscard(prepareMigrations(migrations)).pipe(Layer.provideMerge(connected));
 	return worker.pipe(Layer.provideMerge(prepared));
 }
+
+const defaultChangesChannel = Effect.fnUntraced(function* (name: string) {
+	const crypto = yield* Crypto.Crypto;
+	const digest = yield* crypto.digest("SHA-256", new TextEncoder().encode(name)).pipe(Effect.orDie);
+	return `changes_${Hex.encode(digest).slice(0, 32)}`;
+});
 
 function prepareMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
 	switch (migrations.mode) {

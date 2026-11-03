@@ -1,9 +1,10 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import { authQuery as readAuthQuery } from "@shivaedev/identity/client/adapters/authQuery.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authQuery } from "#client/authQuery.ts";
-import { type AuthError, AuthRead } from "./AuthRead.tsx";
+import { type AuthError, AuthRead, type AuthReadQuery } from "./AuthRead.tsx";
 import { screenKit } from "./screenKit.ts";
 
 interface Response {
@@ -17,7 +18,7 @@ interface Request {
 	readonly signal: AbortSignal;
 }
 interface State {
-	readonly query: ReturnType<typeof authQuery<string, string | null, AuthError>>;
+	readonly query: (input: string) => AuthReadQuery;
 	readonly requests: Request[];
 	view?: Rendered;
 }
@@ -42,7 +43,7 @@ export const authReads = storyKit(
 		(): State => {
 			const requests: Request[] = [];
 			const query = authQuery(
-				(input: string, signal) => new Promise<Response>((resolve, reject) => requests.push({ input, reject, resolve, signal })),
+				readAuthQuery((input: string, signal) => new Promise<Response>((resolve, reject) => requests.push({ input, reject, resolve, signal }))),
 			);
 			return { query, requests };
 		},

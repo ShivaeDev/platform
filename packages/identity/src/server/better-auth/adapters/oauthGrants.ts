@@ -1,5 +1,5 @@
 import type { AuthContext } from "better-auth";
-import { Effect, Layer, Option, Schema } from "effect";
+import { Clock, Effect, Layer, Option, Schema } from "effect";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { OauthGrant, OauthGrants } from "#server/oauthGrants.ts";
 
@@ -52,12 +52,17 @@ export function betterAuthOauthGrants(options: {
 			return yield* Schema.decodeUnknownEffect(Schema.Array(OauthGrant))(consents).pipe(Effect.mapError(unavailable));
 		}),
 		resolveSubject: Effect.fn("OauthGrants.resolveSubject")(function* (userId: string, clientId: string) {
+			const now = yield* Clock.currentTimeMillis;
 			const subject = yield* Effect.tryPromise({
 				catch: unavailable,
 				try: async () => {
 					const { adapter, internalAdapter } = await auth.$context;
 					const user = await internalAdapter.findUserById(userId);
-					if (user === null || Reflect.get(user, "banned") === true) {
+					if (user === null) {
+						return null;
+					}
+					const banExpires: unknown = Reflect.get(user, "banExpires");
+					if (Reflect.get(user, "banned") === true && !(banExpires instanceof Date && banExpires.getTime() < now)) {
 						return null;
 					}
 					const consent = await adapter.findOne({

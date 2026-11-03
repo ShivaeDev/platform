@@ -4,6 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -13,6 +14,7 @@ import type { AuthActions } from "#client/auth.ts";
 import type { Credentials } from "#client/Credentials.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
@@ -42,11 +44,12 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 			tell: () => undefined,
 		}).settle();
 	}
-	const router = yield* appRouter(
-		connectModules([notesRegistration(engine.client)]),
-		screenAuth(),
-		createMemoryHistory({ initialEntries: [route] }),
-		() => (signedIn ? { user: { id: "alice" } } : undefined),
+	const connection = yield* notesRegistration(engine.client).pipe(
+		Effect.map((module) => connectModules([module])),
+		Effect.provideService(AtomRegistry.AtomRegistry, view.registry),
+	);
+	const router = yield* appRouter(connection, screenAuth(), createMemoryHistory({ initialEntries: [route] }), () =>
+		signedIn ? { user: { id: "alice" } } : undefined,
 	).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
@@ -59,25 +62,27 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 	engine.login.outcome = rejection;
 	const auth: AuthActions = {
 		resetPassword: screenAuth().resetPassword,
-		signOut: authAction<void, unknown, never>(() => Promise.resolve({ data: {}, error: null })),
-		submit: authAction(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
-			engine.login.calls.push({ credentials, mode });
-			if (engine.login.unavailable) {
-				return Promise.reject(new Error("offline"));
-			}
-			if (engine.login.outcome === undefined) {
-				return Promise.resolve({ data: {}, error: null });
-			}
-			return Promise.resolve({
-				data: null,
-				error: {
-					code: mode === "sign-up" ? "USER_ALREADY_EXISTS" : "INVALID_EMAIL_OR_PASSWORD",
-					message: engine.login.outcome,
-					status: HttpStatus.fromLiteral("Unauthorized"),
-					statusText: "Unauthorized",
-				},
-			});
-		}),
+		signOut: authAction(authCall<void, unknown, never>(() => Promise.resolve({ data: {}, error: null }))),
+		submit: authAction(
+			authCall(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
+				engine.login.calls.push({ credentials, mode });
+				if (engine.login.unavailable) {
+					return Promise.reject(new Error("offline"));
+				}
+				if (engine.login.outcome === undefined) {
+					return Promise.resolve({ data: {}, error: null });
+				}
+				return Promise.resolve({
+					data: null,
+					error: {
+						code: mode === "sign-up" ? "USER_ALREADY_EXISTS" : "INVALID_EMAIL_OR_PASSWORD",
+						message: engine.login.outcome,
+						status: HttpStatus.fromLiteral("Unauthorized"),
+						statusText: "Unauthorized",
+					},
+				});
+			}),
+		),
 	};
 	const view = yield* acquireScreen(engine);
 	engine.pending = () => view.registry.get(auth.submit).waiting;
@@ -103,7 +108,7 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	const view = yield* acquireScreen(engine);
 	const history = createMemoryHistory({ initialEntries: [route] });
 	yield* Effect.promise(() =>
-		view.render(<App auth={fixture.auth} connect={() => connectModules([notesRegistration(engine.client)])} history={history} />),
+		view.render(<App auth={fixture.auth} connect={(session) => clientModules(session, [notesRegistration(engine.client)])} history={history} />),
 	);
 	yield* screenDriver({
 		act,
@@ -118,13 +123,15 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	const signOut =
 		signOutFailure === undefined
 			? undefined
-			: authAction(() => {
-					engine.signOutCalls.push(undefined);
-					return Promise.resolve({
-						data: null,
-						error: { message: signOutFailure, status: HttpStatus.fromLiteral("BadRequest"), statusText: "Bad Request" },
-					});
-				});
+			: authAction(
+					authCall(() => {
+						engine.signOutCalls.push(undefined);
+						return Promise.resolve({
+							data: null,
+							error: { message: signOutFailure, status: HttpStatus.fromLiteral("BadRequest"), statusText: "Bad Request" },
+						});
+					}),
+				);
 	engine.pending = () => signOut !== undefined && view.registry.get(signOut).waiting;
 	engine.client.api.list.query();
 	view.registry.mount(engine.client.api[LiveConnection].connection);
@@ -156,7 +163,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 		await view.render(
 			<SessionApp
 				auth={auth}
-				connect={(session) => connectModules([notesRegistration(connection(session))])}
+				connect={(session) => clientModules(session, [notesRegistration(connection(session))])}
 				history={history}
 				recheck={recheck}
 				session={{ user: { id } }}

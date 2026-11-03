@@ -1,9 +1,9 @@
 import { Effect, FileSystem, Path } from "effect";
 import { listMarkdown, within } from "#server/files/list.ts";
+import { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 import { decisionAnswers } from "#server/migration/decisionAnswers.ts";
 import { replacements } from "#server/migration/replacements.ts";
 import { migrateSource } from "#server/migration/source.ts";
-import { sourceHeader } from "#server/migration/sourceHeader.ts";
 import { validateFiles } from "#server/migration/validateFiles.ts";
 import { waitingQuestions } from "#server/migration/waitingQuestions.ts";
 
@@ -27,7 +27,7 @@ export const migrate = Effect.fn("WorkBoard.migrate")(function* (root: string) {
 	const blocking = waitingQuestions(files);
 	const { links, unresolved } = replacements(files);
 	const changes = files.map(({ file, source }) => {
-		const data = sourceHeader(source)?.doc.toJS();
+		const data = sourceHeader(source)?.data;
 		const replaces = (links.get(data?.id) ?? []).filter(
 			(id) => !data.relationships?.some((link: { kind: string; target: string }) => link.kind === "replaces" && link.target === id),
 		);

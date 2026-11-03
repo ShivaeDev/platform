@@ -366,6 +366,39 @@ const rows = yield* paymentsBySequence([]);
 
 `rows` is empty even when the table contains payments. The helper takes its column explicitly and leaves native `SqlSchema` visible. Use native SQL with composed schemas for joins; this helper adds no query layer or typed join.
 
+### Keyset pages over native SQL
+
+`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema:
+
+```ts
+import { Effect, Schema } from "effect";
+import { SqlClient } from "effect/sql";
+import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
+
+const Cursor = Schema.Struct({ at: Schema.String, id: Schema.Number });
+const PageRow = Schema.Struct({ id: Schema.Number, cursorAt: Schema.String, updatedAt: Schema.Date });
+
+const listNotes = Effect.fnUntraced(function* (owner: string, after?: typeof Cursor.Type) {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* keysetPage({
+		limit: 20,
+		after,
+		orderBy: [{ column: sql`n.updated_at`, direction: "desc", value: (cursor: typeof Cursor.Type) => cursor.at }],
+		tieBreaker: { column: sql`n.id`, direction: "desc", value: (cursor) => cursor.id },
+		cursorFor: (row: typeof PageRow.Type) => ({ at: row.cursorAt, id: row.id }),
+		read: ({ seek, orderBy, limit }) =>
+			sql`select n.id, n.updated_at as "updatedAt", to_json(n.updated_at) #>> '{}' as "cursorAt"
+				from notes n where n.owner = ${owner} and ${seek} order by ${orderBy} limit ${limit}`.pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(PageRow))),
+			),
+	});
+});
+```
+
+All ordering expressions must be non-null. The required `tieBreaker` must be unique across the query's rows, normally a primary key; the caller owns that database constraint. It is appended to `orderBy`, which can be empty when the unique key alone orders the list. Each column can be a name or a native fragment, and each direction can be `asc` or `desc`, including mixed directions. `read` must apply the supplied seek predicate, ordering and lookahead limit. Page sizes must be positive safe integers smaller than `Number.MAX_SAFE_INTEGER`; invalid sizes fail with `SchemaError` before `read` runs.
+
+Keep timestamp continuation values separate from decoded dates: the example projects the PostgreSQL `timestamptz` value as exact text with `to_json`, retaining microseconds while the display field uses `Schema.Date`. Order and compare the original timestamp column, and return the text unchanged through `cursorFor`. Cursor values accept strings, numbers, bigints and booleans, excluding `Date` and null. Cursor encoding and request validation stay with the caller. Reuse the same predicates and ordering on subsequent requests. This is a page read, with no snapshot or live infinite-list behavior.
+
 ### Composite keys and idempotent writes
 
 A generated app can ingest the same reading more than once. Declare the table's primary key with an `idColumn` tuple and its unique conflict key with `conflictColumns`:
@@ -476,7 +509,7 @@ Each batch call starts `transact`, so a later chunk failure rolls back earlier c
 
 On PostgreSQL, `deleteBatched({ where, batchSize, maxRows, pause })` removes matching rows in independently committed transactions and returns the number removed. `where` uses the same encoded filters as `findMany`, including comparisons. Each batch deletes at most `batchSize` rows; the last batch shrinks to respect `maxRows`. `batchSize` is a positive safe integer and `maxRows` is a nonnegative safe integer. A zero cap or no matching rows returns zero without announcing changes.
 
-Each nonempty batch publishes one table-level change hint after commit, so queries watching the table refresh once per batch. It does not enumerate record or bucket keys. Use table subscriptions for data subject to retention purges. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
+Each nonempty batch publishes one collection-wide change hint after commit, so table, item and bucket subscribers refresh after each batch. The hint has a constant size and does not enumerate deleted records or bucket values. Viewers keep their existing query permissions; a refresh does not require access to the whole table. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
 
 `pause` is an Effect duration between full batches while the cap permits more work. The method holds a PostgreSQL session advisory lock for the run; another purge of that table skips and returns zero, even when called through another repository instance. The lock is released on completion, failure or interruption. The run reserves one connection for the lock and uses another for batch transactions: allow at least two pool connections, plus capacity for other work. Use a direct PostgreSQL connection or session pooling, since transaction pooling cannot preserve session locks. Rows locked by other transactions are skipped and can be removed by a later run. Purges have no ordering guarantee.
 
@@ -513,6 +546,41 @@ export const PurgeAudit = defineSchedule({
 ```
 
 Here the application's `AuditEntry` model has a `createdAt` field decoded as `Date`. Register `PurgeAudit` in the jobs Layer's `jobs` list and provide the database and change-feed Layers to the worker.
+
+#### Whole groups across tables
+
+Use `deleteGroupsBatched` from `@shivaedev/sql/deleteGroupsBatched.ts` when a parent and its children must fit together. Keep `repository.deleteBatched` for single-table purges with constant-size collection hints. The grouped helper takes the same `batchSize`, `maxRows` and `pause`, plus a parent `tableName`, `select(limit)` and `delete(value)` callbacks. It shares the parent table's purge lock with single-table runs and requires PostgreSQL, at least two pool connections and a call outside transactions.
+
+`select` runs inside each batch transaction and returns an ordered array of `{ value, rowCount }`. Return at most `limit` candidates, with a positive safe-integer count including every parent and child row that `delete` will remove. Lock candidate parents with native SQL, and have concurrent group writers take the same parent lock before changing children, so counts remain accurate through deletion. Count rows in a separate statement after acquiring the parent locks, as below, to include changes committed before lock acquisition. The helper selects the longest prefix that fits the smaller of the batch budget and the remaining total budget; it never splits a group or skips past an oversized first group. If no group fits, the run returns the count already removed. A partially filled batch can be followed by another batch after `pause`.
+
+```ts
+import { Effect } from "effect";
+import { deleteGroupsBatched } from "@shivaedev/sql/deleteGroupsBatched.ts";
+import { inValues } from "@shivaedev/sql/inValues.ts";
+
+const removed = yield* deleteGroupsBatched({
+  tableName: "runs",
+  batchSize: 1_000,
+  maxRows: 50_000,
+  pause: "100 millis",
+  select: (limit) => Effect.gen(function* () {
+    const locked = yield* sql<{ id: number }>`
+      select id from runs where finished_at < ${cutoff}
+      order by id limit ${limit} for update skip locked`;
+    const selected = yield* inValues(sql`r.id`, locked.map(({ id }) => id));
+    return yield* sql<{ value: number; rowCount: number }>`
+      select r.id as value,
+        (1 + (select count(*) from run_steps s where s.run_id = r.id))::int as "rowCount"
+      from runs r where ${selected} order by r.id`;
+  }),
+  delete: (runId) => Effect.gen(function* () {
+    yield* steps.delete({ runId });
+    yield* runs.delete(runId);
+  }),
+});
+```
+
+Here `sql` is the native client and `steps` and `runs` are repositories. The callbacks own eligibility, group membership, locking and accurate row counts; the helper owns budget selection and the independent commit boundary. Use repository deletes for each table, including children, so deleted items and declared owner buckets refresh after each committed batch. Unaffected owner readers receive no deleted identities. Raw SQL deletes instead need explicit `invalidateOnCommit` keys. A failure anywhere in a batch discards all of that batch's deletes and announcements, including earlier groups in the same batch; previous committed batches and refreshes remain. Callback failures and required services remain in the returned Effect, alongside SQL, schema and purge-availability errors.
 
 ### Optimistic concurrency
 
@@ -575,6 +643,25 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 ```
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+
+Arrays also accept typed keys from `collection`: a list key refreshes list subscribers, an item key refreshes that item and its list, and a bucket key refreshes that bucket. Subscribers register these keys through `readKeys` from `@shivaedev/changes/keys.ts`. Typed keys may share an array with raw Reactivity keys; raw keys keep their native identity.
+
+For a raw SQL writer, declare affected records and buckets once with `changes` from `@shivaedev/sql/changes.ts`, grouped by their SQL table name. The returned declaration's `record()` action uses the same transaction boundary as repository writes:
+
+```ts
+import { changes } from "@shivaedev/sql/changes.ts";
+
+const moved = changes({
+  notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)],
+});
+
+yield* Effect.gen(function* () {
+  yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
+  yield* moved.record();
+}).pipe(transact({ onSqlError: (error) => error }));
+```
+
+Use `moved.record({ publication: "local" })` to refresh local readers after commit without cross-process publication. `invalidateOnCommit(keys, { publication: "local" })` accepts the same typed option. The default is `"shared"`. Local and shared keys can coexist in one transaction; a key recorded both ways publishes once. Rollback discards both kinds. The option applies to that recording, so other writers in the transaction can still publish shared keys.
 
 Mark bucket fields on the model with `bucket` from `@shivaedev/changes/buckets.ts`:
 
@@ -702,6 +789,8 @@ const delivery = postgresChanges({
 
 `pg` is the application's `@effect/sql-pg` client; the binding accepts its native SQL and `listen` methods without creating another pool. Optional `listenerClient` supplies a different native client for LISTEN; the application client still owns write notifications and heartbeat publication. Both clients must reach the same database. LISTEN requires a direct or session-mode connection. With one shared client, reserve one session connection for LISTEN and another for writes and heartbeats; use a pool client with at least two connections. With separate clients, the listener needs one connection of its own. Compose `delivery` into the Layer that provides feature services using `transact`, alongside the existing SQL and Reactivity services. The [reference server](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/test-support/postgres-example/server.ts) shows the complete composition. The binding sends `select pg_notify(...)` through the writing transaction's `SqlClient`, so a rollback wakes no process. Its transaction sink leaves delivery to the listener, including in the writing process. Unframed `invalidateOnCommit` calls retain local invalidation; cross-process writes must use `transact`.
 
+The Layer also provides `CommandPublication` from `@shivaedev/changes/commandPublication.ts`. Call `publish(keys)` after a command's write commits to announce its declared keys through the bound client. An enclosing `transact` delays these keys until its outer commit and discards them on rollback. Publication failures use the typed `CommandPublicationError`; `recover` resynchronizes local streams and broadcasts Resync through PostgreSQL. Recovery failures use the same typed error, so the command boundary can log a delivery gap while preserving the committed result.
+
 `PostgresChangesOptions` takes `channel`, `client`, `resync`, optional `listenerClient` and `connectionSetting` (a diagnostic label, default `"client"`), and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for LISTEN and then a heartbeat received through it, each within `heartbeatTimeout`. A deadline without a heartbeat fails startup with `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`, whose `connectionSetting` and message identify the connection to fix. Native SQL failures still fail startup with `SqlError`. Established listeners reconnect after a loss. Loss warnings and reconnect debug logs omit database causes. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Listener cleanup runs in a parallel sub-scope bounded by `heartbeatTimeout`, so stalled listener cleanup cannot delay native connection release, a fresh subscription or scope shutdown. The heartbeat detects a listener that stops delivering without failing. `resync` is an infallible `Effect.Effect<number>` returning the number of open live streams it marked for reconciliation. `makeLiveServer.resync` provides this count and stops counting a stream when its scope closes. Direct bindings with another stream owner must return that owner's count. Provide the Layer for the process lifetime so scope release closes the listener.
 
 NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only string or finite-number invalidation keys, with no row values. PostgreSQL requires each payload to be smaller than 8,000 bytes in the default configuration. The binding splits JSON arrays by their UTF-8 byte length; one key that cannot fit, or a nonserializable key type, fails with `SqlError` before commit and rolls back the write. Heartbeats use a separate control payload on the same channel. Applications choose a channel shared only by their cooperating processes. LISTEN requires a session connection; PgBouncer transaction pooling needs another delivery adapter. Missed notifications are reconciled by querying again on resync, with no replay guarantee.
@@ -711,6 +800,7 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
 - `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
+- `@shivaedev/sql/keysetPage.ts`: `keysetPage(options)`, `KeysetOrder`, `KeysetPageQuery`, `KeysetPage` — Native seek and order fragments with a required unique tie-breaker, validated page size and one-row lookahead; predicates, result schemas and cursor formats stay with the caller.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
@@ -720,7 +810,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.
 - `@shivaedev/sql/mapSqlError.ts`: `mapSqlError({ constraints, fallback })` — Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`.
 - `@shivaedev/sql/transact.ts`: `transact(effect, options)` or `effect.pipe(transact(options))` — Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`.
-- `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys)` — Records keys for its client, or invalidates immediately outside a transaction.
+- `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys, options?)` — Records keys for its client, or invalidates immediately outside a transaction.
 - `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
 - `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
 - `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
@@ -730,6 +820,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names.
+- `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
 ### Install and database setup
@@ -792,17 +883,19 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writes must declare their affected keys through `covers` and record them through the same after-commit path; a table key alone covers nothing. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
+The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writers can pass the declaration returned by `changes` directly to `withChangeCoverage` and record it through `record()`; a table key alone covers nothing. Local recordings satisfy coverage too. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
 
 ```ts
-const changed = [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)];
+const changed = changes({
+  notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)],
+});
 
 yield* withChangeCoverage(
   Effect.gen(function* () {
     yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
-    yield* invalidateOnCommit(invalidationKeys(changed));
+    yield* changed.record();
   }),
-  { covers: { notes: changed } },
+  changed,
 );
 ```
 

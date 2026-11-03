@@ -1,22 +1,22 @@
-import { Config, Effect, Redacted } from "effect";
+import { Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { appHost } from "#appHost.ts";
-import { dropConnectionLedger, serverOffersTls } from "./connectionSecurity.ts";
+import { serverOffersTls } from "./connectionSecurity.ts";
 import { Ping, pingHandlers } from "./ping.ts";
-import { host } from "./story.ts";
+import { databaseOf } from "./state.ts";
+import { postgresHost } from "./story.ts";
 
 export function databaseConnection(mode: "require" | undefined) {
-	return host.trait("configured", `the database connection uses sslmode=${mode ?? "unset"}`, function* (state) {
-		const url = new URL(yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
+	return postgresHost.trait("configured", `the database connection uses sslmode=${mode ?? "unset"}`, function* (state) {
+		const url = new URL(Redacted.value(databaseOf(state).url));
 		url.searchParams.delete("sslmode");
 		if (mode !== undefined) {
 			url.searchParams.set("sslmode", mode);
 		}
-		const name = `host_tls_${crypto.randomUUID().replaceAll("-", "")}`;
+		const name = "host_tls";
 		state.applicationName = name;
-		state.expectBootFailure = mode === "require" && !(yield* serverOffersTls());
+		state.expectBootFailure = mode === "require" && !(yield* serverOffersTls(state));
 		const table = `${name}_migrations`;
-		state.cleanup.push(() => Effect.runPromise(dropConnectionLedger(table)));
 		function build() {
 			return appHost({
 				config: { applicationName: name, databaseUrl: Redacted.make(url.toString()), host: "127.0.0.1", port: 0 },

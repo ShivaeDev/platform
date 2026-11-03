@@ -1,10 +1,10 @@
 import process from "node:process";
 import { type Context, Deferred, Effect, Exit, Fiber, Layer, Queue, type Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseId } from "#internal/databaseOwner.ts";
-import { makePostgresTestLayer, type PostgresTestOptions } from "#postgres.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
-import { withTestTransaction } from "#withTestTransaction.ts";
+import { databaseId } from "#server/internal/databaseOwner.ts";
+import { makePostgresTestLayer, type PostgresTestOptions } from "#server/postgres.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 import { type Block, type Command, currentDatabase, endedBefore, type Services, serve } from "./databaseBlocks.ts";
 import { outcomeOf } from "./outcome.ts";
 import { setup } from "./postgres.ts";

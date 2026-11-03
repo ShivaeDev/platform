@@ -79,6 +79,11 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 				tell(`reconcile ${input.workId} through native RPC`);
 				return yield* (yield* rpcClient())("fleet.reconcile", input);
 			}).pipe(Effect.scoped),
+		rpcReleaseCi: (workId: string, head: string) =>
+			Effect.gen(function* () {
+				tell(`release CI changes in ${workId} at ${head} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.release-ci", { head, workId });
+			}).pipe(Effect.scoped),
 		rpcResolve: (input: { decisionId: string; responseId: string; workId: string }) =>
 			Effect.gen(function* () {
 				tell(`resolve ${input.workId} through native RPC`);

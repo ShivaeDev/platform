@@ -7,8 +7,10 @@ import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import type { AppModule } from "#AppModule.ts";
 
-export class Publisher extends Context.Service<Publisher, (title: string) => Effect.Effect<string>>()("test/modules/Publisher") {}
-export class Titles extends Context.Service<Titles, { readonly publish: (title: string) => Effect.Effect<string> }>()("test/modules/Titles") {}
+export class Publisher extends Context.Service<Publisher, (title: string) => Effect.Effect<string>>()("@shivaedev/server/test/modules/Publisher") {}
+export class Titles extends Context.Service<Titles, { readonly publish: (title: string) => Effect.Effect<string> }>()(
+	"@shivaedev/server/test/modules/Titles",
+) {}
 
 export const Published = defineQueue({
 	name: "notes.publish",

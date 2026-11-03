@@ -54,4 +54,4 @@ export function recordingReporter() {
 	return { reporter, reports };
 }
 
-export class RequestDetails extends Context.Service<RequestDetails, { readonly password: string }>()("errors/test/RequestDetails") {}
+export class RequestDetails extends Context.Service<RequestDetails, { readonly password: string }>()("@shivaedev/errors/test/RequestDetails") {}

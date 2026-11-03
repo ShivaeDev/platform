@@ -60,9 +60,15 @@ adoption.it(
 	CLI_TIMEOUT,
 );
 
-for (const rule of ["tests/grouped-outcomes", "imports/aliased"]) {
+for (const [rule, explanation] of [
+	[
+		"tests/grouped-outcomes",
+		"Consecutive assertions stop on the first failure; outcomes constructs rows eagerly, then lazily invokes each readout callback in row order before the grouped assertion. Rewrite these stories by hand to review that change in evaluation and failure order.",
+	],
+	["imports/aliased", "Repair its findings by hand."],
+] as const) {
 	adoption.it(
-		`fixing ${rule} is refused as invalid because it has no safe mechanical fix, and the source stays unchanged`,
+		`fixing ${rule} is refused as invalid with an explanation of why manual repair is needed, and the source stays unchanged`,
 		[jsxFixture(retainedView)],
 		function* ({ fix, originalSource, outcome, source, stderr }) {
 			const before = yield* originalSource();
@@ -70,7 +76,7 @@ for (const rule of ["tests/grouped-outcomes", "imports/aliased"]) {
 			yield* fix(rule);
 
 			yield* outcomes([
-				["error", () => stderr(), expect.stringContaining(`No safe mechanical fix for ${rule}`)],
+				["error", () => stderr(), expect.stringContaining(`No safe mechanical fix for ${rule}. ${explanation}`)],
 				["fix", () => outcome(), "invalid"],
 				["source", () => source(), before],
 			]);

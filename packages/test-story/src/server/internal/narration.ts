@@ -1,9 +1,9 @@
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
-import { type FailureContext, reportOnFailure } from "#adapters/storyFailure.ts";
-import { callSite } from "#internal/callSite.ts";
-import { creationReport, failureReport } from "#internal/failureReport.ts";
-import { hooked } from "#internal/hooked.ts";
+import { type FailureContext, reportOnFailure } from "#server/adapters/storyFailure.ts";
+import { callSite } from "#server/internal/callSite.ts";
+import { creationReport, failureReport } from "#server/internal/failureReport.ts";
+import { hooked } from "#server/internal/hooked.ts";
 
 export interface Refusal {
 	readonly cause: unknown;

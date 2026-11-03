@@ -1,17 +1,21 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { deferred } from "#test/app-host/deferred.ts";
-import { host, startupFails } from "#test/app-host/story.ts";
+import { postgresHost, startupFails } from "#test/app-host/story.ts";
 
 for (const mode of ["migrate", "check"] as const) {
-	host.it(`migration mode ${mode} finishes before the deferred application is constructed`, [deferred(mode)], function* ({ ping, serviceLifecycle }) {
-		yield* outcomes([
-			["construction steps", () => serviceLifecycle(), ["migrated", "constructing", "constructed"]],
-			["native RPC", () => ping(), "pong"],
-		]);
-	});
+	postgresHost.it(
+		`migration mode ${mode} finishes before the deferred application is constructed`,
+		[deferred(mode)],
+		function* ({ ping, serviceLifecycle }) {
+			yield* outcomes([
+				["construction steps", () => serviceLifecycle(), ["migrated", "constructing", "constructed"]],
+				["native RPC", () => ping(), "pong"],
+			]);
+		},
+	);
 
-	host.it(
+	postgresHost.it(
 		`closing a host in migration mode ${mode} releases the deferred application's scope`,
 		[deferred(mode)],
 		function* ({ close, serviceLifecycle }) {
@@ -23,7 +27,7 @@ for (const mode of ["migrate", "check"] as const) {
 		},
 	);
 
-	host.it(
+	postgresHost.it(
 		`a failed migration in mode ${mode} fails startup before the deferred application is constructed`,
 		[deferred(mode, true), startupFails],
 		function* ({ serviceLifecycle, startup }) {

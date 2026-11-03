@@ -37,7 +37,7 @@ sessionStory.it(
 );
 
 sessionStory.it(
-	"an announced change to alice's preferences re-reads hers and leaves bob's unread",
+	"an announced change to the shared preference key re-reads each session through its own handler",
 	[watching("alice", "preferences"), watching("bob", "preferences")],
 	function* ({ announce, changeQuietly, shown, timesRead, untilReRead }) {
 		changeQuietly("alice", "Hinted");
@@ -45,10 +45,12 @@ sessionStory.it(
 
 		yield* announce("alice");
 		yield* untilReRead("alice", "preferences");
+		yield* untilReRead("bob", "preferences");
 
 		yield* outcomes([
 			["alice's preferences", () => shown("alice", "preferences"), "Hinted"],
-			["bob's preferences", () => timesRead("bob", "preferences"), "read once"],
+			["bob's value", () => shown("bob", "preferences"), "Bob"],
+			["bob's reads", () => timesRead("bob", "preferences"), "read twice"],
 		]);
 	},
 );

@@ -1,17 +1,16 @@
 import { Effect, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
-import { readKeys } from "@shivaedev/changes/keys.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
-import { answered } from "@shivaedev/test/answers.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Feed, followHints } from "./followHints.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
 import { postChanges } from "./postChanges.ts";
 import { createProvider, ORIGIN } from "./provider.ts";
-import { type Boundary, Preferences } from "./sessionKeysApi.ts";
+import type { Boundary } from "./sessionKeysApi.ts";
 import { upgrade } from "./upgrade.ts";
 
 type Caller = "alice" | "bob" | "second";
@@ -20,19 +19,6 @@ const THEME_AND_LIST = [
 	{ payload: { id: "theme" }, query: "get" as const },
 	{ payload: {}, query: "list" as const },
 ];
-
-function publishedWords(keys: readonly unknown[], accountName: (scope: string) => string) {
-	const scopes = new Set<string>();
-	const own = keys.map((key) => {
-		const match = /^\["session","(?<scope>[^"]+)"\]:(?<key>.+)$/u.exec(String(key));
-		if (match?.groups === undefined) {
-			return `unscoped ${String(key)}`;
-		}
-		scopes.add(accountName(match.groups.scope ?? ""));
-		return match.groups.key;
-	});
-	return `${own.join(" and ")} for ${[...scopes].join(" and ")}`;
-}
 
 function socketWords(url: string) {
 	return (address: string) => (address === url.replace(/^http/u, "ws") ? "the host's RPC socket" : address);
@@ -99,13 +85,6 @@ export const sessionKeys = storyKit({
 				return [...subscription.hints];
 			});
 		}
-		function accountName(scope: string) {
-			const accounts = new Map([
-				[state.alice.userId, "alice"],
-				[state.bob.userId, "bob"],
-			]);
-			return accounts.get(scope) ?? "an unknown account";
-		}
 		return {
 			aliceSignsOut: () =>
 				Effect.gen(function* () {
@@ -127,19 +106,6 @@ export const sessionKeys = storyKit({
 					),
 				);
 			},
-			forgedSubscription: () =>
-				Effect.gen(function* () {
-					story.tell("alice subscribes with bob's owner, scope and physical keys in the payload");
-					const client = yield* state.reader.wireClient(state.alice.cookie);
-					const subscription = yield* followHints(
-						client("account.$changes", {
-							keys: readKeys([Preferences.item("theme")], { scope: state.bob.userId }),
-							queries: [{ payload: { id: "theme", owner: state.bob.userId, scope: state.bob.userId }, query: "get" }],
-							scope: state.bob.userId,
-						}),
-					);
-					state.feeds.set("forged", subscription);
-				}),
 			hintsUntil,
 			hintsUntilOwnBarrier: (caller: Caller, boundary: Boundary = "account") =>
 				Effect.gen(function* () {
@@ -151,7 +117,7 @@ export const sessionKeys = storyKit({
 				story.tell("alice requests the reserved changes stream over POST");
 				return answered(postChanges(state.writer.url, state.alice.cookie), (error) => (error instanceof Error ? error.message : String(error)));
 			},
-			published: () => Effect.sync(() => state.writer.published.map((keys) => publishedWords(keys, accountName))),
+			published: () => Effect.sync(() => state.writer.published.map((keys) => keys.join(" and "))),
 			read: (caller: Caller, boundary: Boundary = "account") =>
 				answered(Effect.flatMap(state.clients[caller], (client) => client(`${boundary}.get`, { id: "theme" }))),
 			readWithBobsCookie: () => {
@@ -163,13 +129,6 @@ export const sessionKeys = storyKit({
 			save: (caller: Caller, value: string, options: { announce?: boolean; boundary?: Boundary; id?: string; reject?: boolean } = {}) => {
 				story.tell(`${names[caller]} saves ${value} as ${options.id ?? "theme"} through ${options.boundary ?? "account"}`);
 				return save(caller, value, options);
-			},
-			savesAtOnce: (saves: readonly (readonly [Caller, string])[], boundary: Boundary = "account") => {
-				story.tell(`${saves.map(([caller, value]) => `${names[caller]} saves ${value}`).join(" while ")} through ${boundary}`);
-				return Effect.all(
-					saves.map(([caller, value]) => save(caller, value, { boundary })),
-					{ concurrency: "unbounded" },
-				);
 			},
 			socketsOpened: () =>
 				Effect.sync(() => ({

@@ -1,4 +1,4 @@
-import type { PgBossClient } from "#client.ts";
+import type { PgBossClient } from "#server/client.ts";
 
 export const testingRegistration = Symbol("jobs testing registration");
 

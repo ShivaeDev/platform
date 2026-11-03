@@ -4,7 +4,7 @@ import * as Logger from "effect/Logger";
 import { OtlpExporter, OtlpTracer } from "effect/observability";
 import * as Stream from "effect/Stream";
 import * as Tracer from "effect/Tracer";
-import type { OtlpSpan, OtlpTracerOptions } from "#otlpReceiver.ts";
+import type { OtlpSpan, OtlpTracerOptions } from "#server/otlpReceiver.ts";
 
 function recordEnds(tracer: Tracer.Tracer, ended: Set<string>) {
 	return Tracer.make({

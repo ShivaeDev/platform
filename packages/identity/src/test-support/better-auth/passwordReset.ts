@@ -2,10 +2,19 @@ import { Effect, Schema } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { CURRENT_PASSWORD } from "./hardeningHost.ts";
 import { hookApplication } from "./hookApplication.ts";
 import { hookHost } from "./hookHost.ts";
 
 const ErrorBody = Schema.Struct({ code: Schema.String, message: Schema.String });
+const passwords = { current: CURRENT_PASSWORD, replacement: "replacement-password" };
+
+function responseAnswer(response: Response) {
+	return Effect.promise(async () => {
+		const body: unknown = await response.json();
+		return response.ok ? { status: response.status } : { ...Schema.decodeUnknownSync(ErrorBody)(body), status: response.status };
+	});
+}
 
 export const passwordResets = storyKit({
 	around: withIsolatedDatabase,
@@ -13,13 +22,13 @@ export const passwordResets = storyKit({
 	*create() {
 		const application = yield* hookApplication;
 		const host = yield* hookHost(application);
-		return { application, host };
+		return { application, host, sessions: { browser: "", phone: "" }, userId: "" };
 	},
 	layer: postgres,
 	name: "application password reset Effects",
 	runIf: databaseUrl !== undefined,
 	stages: ["account", "email"],
-	verbs: ({ application, host }, story) => ({
+	verbs: ({ application, host, sessions }, story) => ({
 		cancelReset: (person: string) => {
 			story.tell(`${person} cancels the reset while the application Effect waits`);
 			return application.probe.cancel(
@@ -28,19 +37,26 @@ export const passwordResets = storyKit({
 				),
 			);
 		},
+		existingSession: (device: keyof typeof sessions) => {
+			story.tell(`bob checks his existing ${device} session`);
+			return Effect.promise(async () => (await host.lookupSession(sessions[device]))?.user.name ?? "signed out");
+		},
 		hookInterrupted: () => application.probe.waitForInterruption.pipe(Effect.as("interrupted")),
 		recordedResetHooks: () => Effect.sync(() => [...host.resetHooks]),
 		resetPassword: (person: string, member = person, direct = false) => {
 			story.tell(`${person} resets their password ${direct ? "through auth.api" : `with ${member}'s request service`}`);
-			return Effect.promise(async () => {
+			return Effect.promise(() => {
 				const token = host.resetToken(person);
-				const response = direct
-					? await host.directReset(token)
-					: await host.request("reset-password", { newPassword: "replacement-password", token }, undefined, member);
-				const body: unknown = await response.json();
-				return response.ok ? { status: response.status } : { ...Schema.decodeUnknownSync(ErrorBody)(body), status: response.status };
-			});
+				return direct ? host.directReset(token) : host.request("reset-password", { newPassword: "replacement-password", token }, undefined, member);
+			}).pipe(Effect.flatMap(responseAnswer));
 		},
+		signIn: (person: string, password: keyof typeof passwords) => {
+			story.tell(`${person} signs in with the ${password} password`);
+			return Effect.promise(() =>
+				host.request("sign-in/email", { email: `${person}@hooks.test`, password: passwords[password] }, undefined, person),
+			).pipe(Effect.flatMap(responseAnswer));
+		},
+		storedSessions: () => host.storedSessions,
 	}),
 });
 
@@ -49,7 +65,16 @@ export const bobResetEmail = passwordResets.trait("email", "bob has received a p
 	yield* Effect.promise(() => response.text());
 });
 
-export const bobAccount = passwordResets.trait("account", "bob already has a password account", ({ host }) => host.seed("bob"));
+export const bobAccount = passwordResets.trait("account", "bob already has a password account", function* (engine) {
+	engine.userId = yield* engine.host.seed("bob");
+});
+
+export const bobSessions = passwordResets.trait("account", "bob has minted browser and phone sessions", function* ({ host, sessions, userId }) {
+	for (const device of ["browser", "phone"] as const) {
+		const login = yield* host.mintSession(userId);
+		sessions[device] = login.headers.get("cookie") ?? "";
+	}
+});
 
 export const waitingReset = passwordResets.trait("email", "the application's reset Effect waits", ({ application }) => {
 	application.probe.waiting = true;

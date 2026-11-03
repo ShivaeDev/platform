@@ -49,7 +49,7 @@ export const sessionEngine = Effect.gen(function* () {
 					const subscription: OpenSubscription = { person, queries };
 					yield* SubscriptionRef.update(subscriptions, (all) => [...all, subscription]);
 					return server
-						.stream(keys, { scope: person })
+						.stream(keys)
 						.pipe(Stream.ensuring(SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== subscription))));
 				}),
 			),
@@ -109,7 +109,7 @@ export const sessionEngine = Effect.gen(function* () {
 	const clients = { alice: yield* open("alice"), bob: yield* open("bob") };
 	const kept: { effect?: Effect.Effect<void, unknown> } = {};
 	return {
-		announce: (person: Person) => reactivity.invalidate(invalidationKeys([preferences.item(0)], { scope: person })),
+		announce: () => reactivity.invalidate(invalidationKeys([preferences.item(0)])),
 		clients,
 		kept,
 		marked: new Map<string, Mark>(),

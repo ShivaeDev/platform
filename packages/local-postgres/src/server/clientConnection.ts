@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { LocalPostgresError } from "#LocalPostgresError.ts";
-import type { CommandOptions } from "#runCommand.ts";
+import { LocalPostgresError } from "#server/LocalPostgresError.ts";
+import type { CommandOptions } from "#server/runCommand.ts";
 
 export const clientConnection = Effect.fn("LocalPostgres.clientConnection")(function* (value: URL, options: CommandOptions = {}) {
 	const url = new URL(value);

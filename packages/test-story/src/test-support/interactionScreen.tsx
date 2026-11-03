@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { InteractionPage } from "./InteractionPage.tsx";
 
 expectNoReactWarnings();
@@ -22,16 +22,27 @@ export const interactionScreen = storyKit({
 	stages: [],
 	verbs: ({ view }, story) => {
 		const lines: string[] = [];
+		const driver = screenDriver({
+			act,
+			root: view.container,
+			tell: (line) => {
+				lines.push(line);
+				story.tell(line);
+			},
+		});
+		const previousRoot = view.container.querySelector("main");
+		if (!previousRoot) {
+			throw new Error("The interaction screen has no main region.");
+		}
+		const previous = screenDriver({ act, root: previousRoot, tell: story.tell });
 		return {
-			...screenDriver({
-				act,
-				root: view.container,
-				tell: (line) => {
-					lines.push(line);
-					story.tell(line);
-				},
-			}),
+			...driver,
+			detachesScreen: () => {
+				story.tell("React replaces the screen while a verb still holds its previous scope");
+				return Effect.promise(() => view.render(<p>Screen closed</p>));
+			},
 			narration: () => [...lines],
+			previousScreen: previous,
 		};
 	},
 });

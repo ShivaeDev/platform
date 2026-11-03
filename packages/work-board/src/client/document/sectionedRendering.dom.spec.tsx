@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { documentData } from "#test/documentRendering.ts";
 import { REFERENCED_DOCUMENT, SECTIONED_DOCUMENT, SECTIONED_TITLE, WHOLE_DOCUMENT } from "#test/longReportFixture.ts";

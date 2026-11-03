@@ -1,24 +1,19 @@
-import { Cause, Effect, Exit } from "effect";
-import { expect, it } from "vitest";
-import { hooked } from "#internal/hooked.ts";
+import { expect } from "vitest";
+import { hookRunner } from "#test/hookRunner.ts";
 
-it("defers an Effect-returning hook until the story runs it", () => {
-	let calls = 0;
-	const effect = hooked(() => {
-		calls += 1;
-		return Effect.succeed(42);
-	});
-	expect(calls).toBe(0);
-	expect(Effect.runSync(effect)).toBe(42);
-	expect(calls).toBe(1);
+hookRunner.it("defers an Effect-returning hook until the story runs it", [], function* ({ calls, runs }) {
+	expect(calls()).toBe(0);
+
+	const value = yield* runs();
+
+	expect(value).toBe(42);
+	expect(calls()).toBe(1);
 });
 
-it("keeps a returned Effect's typed failure in the error channel", () => {
-	const error = { reason: "engine refused" };
-	expect(Effect.runSyncExit(hooked(() => Effect.fail(error)))).toEqual(Exit.fail(error));
+hookRunner.it("keeps a returned Effect's typed failure in the error channel", [], function* ({ runsRefusingHook }) {
+	expect(yield* runsRefusingHook()).toBe("failed with engine refused");
 });
 
-it("keeps a returned Effect's interruption", () => {
-	const exit = Effect.runSyncExit(hooked(() => Effect.interrupt));
-	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
+hookRunner.it("keeps a returned Effect's interruption", [], function* ({ runsInterruptedHook }) {
+	expect(yield* runsInterruptedHook()).toBe("interrupted");
 });

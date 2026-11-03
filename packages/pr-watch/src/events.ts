@@ -1,4 +1,5 @@
 import type { Snapshot } from "#model.ts";
+import type { TransitionEvent } from "#outputEvent.ts";
 
 export const eventKinds = ["merged", "closed", "conflict", "queued", "dequeued", "auto-merge-off", "checks-failed", "stuck"] as const;
 export type EventKind = (typeof eventKinds)[number];
@@ -17,8 +18,8 @@ function openEvents(before: Snapshot, after: Snapshot): readonly EventKind[] {
 	];
 	return transitions.flatMap(([changed, event]) => (changed ? [event] : []));
 }
-export function events(before: Snapshot | undefined, after: Snapshot, selected?: readonly EventKind[]): readonly string[] {
-	if (before === undefined && !stuck(after)) {
+export function events(before: Snapshot | undefined, after: Snapshot, selected?: readonly EventKind[]): readonly TransitionEvent[] {
+	if (before === undefined && !stuck(after) && !after.dirty) {
 		return [];
 	}
 	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false };
@@ -30,17 +31,20 @@ export function events(before: Snapshot | undefined, after: Snapshot, selected?:
 		found.push("closed");
 	}
 	if (after.state === "open" && !after.merged) {
-		found.push(...openEvents(baseline, after));
+		const openBaseline = before?.head === after.head ? baseline : { ...baseline, dirty: false, failed: false };
+		found.push(...openEvents(openBaseline, after));
 	}
 	return found
 		.filter((event) => selected === undefined || selected.includes(event))
-		.map((event) =>
-			JSON.stringify({
+		.map((event): TransitionEvent => {
+			const fields = {
 				branch: after.branch,
-				event,
+				...(after.head === undefined ? {} : { head: after.head }),
 				number: after.number,
 				title: after.title,
-				...(event === "dequeued" ? { reason: after.dequeueReason ?? "Queue entry removed; GitHub supplied no reason" } : {}),
-			}),
-		);
+			};
+			return event === "dequeued"
+				? { ...fields, event, reason: after.dequeueReason ?? "Queue entry removed; GitHub supplied no reason" }
+				: { ...fields, event };
+		});
 }

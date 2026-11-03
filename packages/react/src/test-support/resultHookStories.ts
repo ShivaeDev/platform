@@ -1,7 +1,7 @@
 import { Deferred, Effect, Exit } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resultEngine } from "./resultEngine.ts";
 import { QueryValue, ResultView } from "./resultViews.tsx";

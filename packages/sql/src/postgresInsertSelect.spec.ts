@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { queries, sourceRows } from "#test/queries.ts";
+import { queries, queryTables, sourceRows } from "#test/queries.ts";
 
 queries.it(
 	"insertFromSelect copies the two highest flaky sources through the column mapping and returns them decoded with their generated fields",
-	[sourceRows()],
+	[queryTables("copies", "sources"), sourceRows()],
 	function* ({ copySelected, lastResult, storedCopyAmounts }) {
 		yield* copySelected({
 			limit: 2,
@@ -29,7 +29,7 @@ queries.it(
 
 queries.it(
 	"insertFromSelectOrIgnore skips a copied key that already exists, keeps that copy unchanged and returns only the new copies",
-	[sourceRows()],
+	[queryTables("copies", "sources"), sourceRows()],
 	function* ({ copies, copySelectedOrIgnore, lastResult, saveCopy }) {
 		yield* saveCopy({ amount: 99, copiedKey: 2, name: "existing" });
 
@@ -60,7 +60,7 @@ const modes = [
 ] as const;
 
 for (const { name, verb } of modes) {
-	queries.it(`${name} of a select matching no sources copies nothing`, [sourceRows()], function* (verbs) {
+	queries.it(`${name} of a select matching no sources copies nothing`, [queryTables("copies", "sources"), sourceRows()], function* (verbs) {
 		const copy = verbs[verb];
 
 		yield* copy({ where: { status: "missing" } });
@@ -74,7 +74,7 @@ for (const { name, verb } of modes) {
 
 queries.it(
 	"insertFromSelect inside a rejected transaction leaves no copies behind",
-	[sourceRows()],
+	[queryTables("copies", "sources"), sourceRows()],
 	function* ({ copies, copySelected, copySelectedOrIgnore, inTransaction, rejects, transactionEndings }) {
 		yield* inTransaction(function* () {
 			yield* copySelected({ where: { sourceKey: 1 } });

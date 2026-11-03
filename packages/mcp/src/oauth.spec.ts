@@ -9,7 +9,7 @@ mcp.it(
 	function* ({ call, connects }) {
 		yield* connects("alice", "bearer");
 
-		expect(yield* call("alice", "whoami")).toBe("answered alice");
+		expect(yield* call("alice", "whoami")).toEqual({ answered: "alice" });
 	},
 );
 
@@ -34,7 +34,29 @@ mcp.it(
 		yield* exchangesCode("alice");
 		yield* connects("alice");
 
-		expect(yield* call("alice", "whoami")).toBe("answered alice");
+		expect(yield* call("alice", "whoami")).toEqual({ answered: "alice" });
+	},
+);
+
+mcp.it(
+	"interleaved OAuth flows keep alice's desktop and bob's laptop tokens attached to their own callers",
+	[signedIn("alice", "user"), signedIn("bob", "user")],
+	function* ({ authorizes, call, connects, consents, exchangesCode, registersClient }) {
+		yield* registersClient("desktop");
+		yield* authorizes("alice", "desktop");
+		yield* registersClient("laptop");
+		yield* authorizes("bob", "laptop");
+		yield* consents("alice", "desktop");
+		yield* consents("bob", "laptop");
+		yield* exchangesCode("laptop");
+		yield* exchangesCode("desktop");
+		yield* connects("desktop");
+		yield* connects("laptop");
+
+		yield* outcomes([
+			["alice's desktop", () => call("desktop", "whoami"), { answered: "alice" }],
+			["bob's laptop", () => call("laptop", "whoami"), { answered: "bob" }],
+		]);
 	},
 );
 

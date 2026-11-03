@@ -24,6 +24,7 @@ import { AuthRouteHandler, mountRoutes } from "#server/better-auth/mountRoutes.t
 import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
+import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import { authRouteHandler } from "./routeHandler.ts";
 
@@ -45,6 +46,9 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	options: TOptions,
 	mount: BetterAuthMountOptions<E, R> = {},
 ) {
+	if (mount.roles !== undefined) {
+		yield* mount.roles.resolve(mount.defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: mount.defaultRole })));
+	}
 	const secret = options.secret ?? Redacted.value(yield* Config.Redacted("BETTER_AUTH_SECRET"));
 	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
@@ -66,6 +70,8 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const base = { ...configured, databaseHooks: seeded.databaseHooks };
 	const preset = mount.preset === "provider-only" ? providerOnlyOptions(base, mount.enabledPaths) : base;
 	const rateLimit = options.rateLimit;
+	const prefix = `/${(options.basePath || "/api/auth").replace(/^\/|\/+$/gu, "")}` as const;
+	const basePath = prefix === "/" ? "" : prefix;
 	const customStorage = yield* rateLimitStorage;
 	const auth = betterAuth({
 		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
@@ -97,7 +103,9 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const authRoutes = mountRoutes.pipe(
 		Layer.provide(
 			Layer.succeed(AuthRouteHandler, {
+				basePath,
 				handle: authRouteHandler(auth, {
+					basePath,
 					bearerSessions: mount.bearerSessions,
 					clientIpHeader,
 					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,

@@ -66,11 +66,13 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 				: [];
 		});
 		// One request covers the whole view: a request per brief kept views with many Fleet items waiting past client timeouts.
-		const refusals =
-			briefs.length === 0
-				? []
-				: yield* readDaemon(fleetPort, (client) => client("daemon.briefProblems", { briefs })).pipe(Effect.catch(() => Effect.succeed([])));
-		const refused = new Set(refusals.map((refusal) => refusal.workId));
+		const checked = yield* (
+			briefs.length === 0 ? Effect.succeed([]) : readDaemon(fleetPort, (client) => client("daemon.briefProblems", { briefs }))
+		).pipe(Effect.result);
+		if (checked._tag === "Failure") {
+			return yield* fleetItemsUnavailable({ reason: "Fleet brief validation is unavailable; these briefs have not been checked." });
+		}
+		const refused = new Set(checked.success.map((refusal) => refusal.workId));
 		const ready = snapshot.unavailable.length === 0 ? mergeWaits(snapshot) : new Set<string>();
 		return {
 			...(snapshot.unavailable.length === 0 ? {} : { unavailable: snapshot.unavailable }),

@@ -98,6 +98,19 @@ When interruption arrives while commit is in flight, the boundary waits for the 
 
 Concurrent records from Effects that inherit the same frame join that frame and publish together. Keep all write-related work within the transaction's lifetime.
 
+### Publish a command's changes
+
+`CommandPublication` from `@shivaedev/changes/commandPublication.ts` is the public port for announcing a command's declared keys after its write commits. Its `publish(keys)` operation defaults to local Reactivity invalidation. The PostgreSQL `postgresChanges` Layer supplies a binding that buffers publication within an enclosing `transact` transaction, publishes only after commit and discards keys on rollback.
+
+```ts
+import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
+
+const publication = yield* CommandPublication;
+yield* publication.publish(["notes:1"]);
+```
+
+Both `publish` and `recover` have `CommandPublicationError` in their typed failure channel; its `cause` preserves the Effect cause. A failed announcement does not undo a committed write. The command boundary handles publication failure separately from the write and can run `publication.recover`. The PostgreSQL binding resynchronizes local streams and broadcasts Resync to other hosts; identity's command wrapper keeps the committed result even when publication or recovery fails.
+
 ### Record keys and buckets
 
 `keys.ts` owns the shared dependency format for contract queries, committed writes and subscriptions. An item key identifies a record by id. A bucket identifies every row with a declared field value; a collection list key covers the whole collection.
@@ -111,7 +124,7 @@ const keys = [notes.item(1), notes.bucket.userId("alice"), notes.bucket.listId(4
 const invalidations = invalidationKeys(keys);
 ```
 
-Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes when the writer names it; SQL repositories derive those names from model fields marked with `bucket`. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. The channel can buffer these keys until commit just like any other change vocabulary.
+Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes when the writer names it; SQL repositories derive those names from model fields marked with `bucket`. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. Use `collectionInvalidationKeys(name)` to refresh all list, item and bucket readers of a collection when a bulk operation cannot name individual rows. Item and bucket dependencies include a collection wildcard for these refreshes; ordinary item and bucket invalidations remain precise. Server keys are shared across sessions; each subscriber’s read policy controls delivery. The channel can buffer these keys until commit just like any other change vocabulary.
 
 For composite SQL identities, use `compositeId(values)` with stored key values in the repository's `idColumn` order, then pass the resulting string to `collection(name, Schema.String).item(id)`. It encodes the values as a JSON array, with bigint components represented as decimal strings. Repository writes use the same encoder, so the subscriber and writer identify the same record. `recordKey(collection, id)` builds a raw record dependency for native Reactivity; typed item keys use it too.
 
@@ -187,15 +200,15 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module                          | Names                                                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                 |
-| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                          |
-| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                   |
-| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                  |
-| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                |
-| `@shivaedev/changes/keys.ts`    | `collection`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |
-| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                                                |
+| Module                          | Names                                                                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
+| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
+| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                                   |
+| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                                  |
+| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                                |
+| `@shivaedev/changes/keys.ts`    | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
+| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                                                                |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 

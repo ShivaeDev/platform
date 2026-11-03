@@ -1,5 +1,5 @@
 import { DateTime, Effect } from "effect";
-import type { QueueDefinition } from "#definition.ts";
+import type { QueueDefinition } from "#server/definition.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { idOf, testingOf } from "./verbs.ts";
 

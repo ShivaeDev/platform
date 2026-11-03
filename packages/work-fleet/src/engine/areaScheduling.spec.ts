@@ -37,7 +37,7 @@ isolatedEngine.it(
 		yield* dispatchTogether("one", "two");
 
 		yield* outcomes([
-			["launched prompts", () => launchedPrompts(), ["Implement one"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one")]],
 			["two", () => workState("two"), { blocker: "waiting for area fleet/host held by one", step: "queued" }],
 		]);
 		finishWorkers();
@@ -121,14 +121,18 @@ isolatedEngine.it(
 		yield* schedule();
 		yield* outcomes([
 			["stages", () => workStages(["two", "dependent"]), { dependent: "queued", two: "working" }],
-			["attempts on two", () => get("two"), { value: { attempts: [{ prompt: "Implement two", role: "worker" }] } }],
+			["attempts on two", () => get("two"), { value: { attempts: [{ prompt: expect.stringContaining("Implement two"), role: "worker" }] } }],
 		]);
 		finishWorkers();
 		yield* fleet.reconcile("two");
 		yield* schedule();
 		yield* outcomes([
 			["dependent", () => workStages(["dependent"]), { dependent: "working" }],
-			["launched prompts", () => launchedPrompts(), ["Implement one", "Implement two", "Implement dependent"]],
+			[
+				"launched prompts",
+				() => launchedPrompts(),
+				[expect.stringContaining("Implement one"), expect.stringContaining("Implement two"), expect.stringContaining("Implement dependent")],
+			],
 		]);
 	},
 );

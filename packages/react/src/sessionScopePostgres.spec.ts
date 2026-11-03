@@ -15,14 +15,18 @@ processes.it(
 	},
 );
 
-processes.it("Alice's private commit never reaches Bob", [privateSaveCommitted()], function* ({ bobSaves, privateDeliveries, privateRead }) {
-	yield* bobSaves("Bob's title");
+processes.it(
+	"shared preference hints leave Bob reading only his own data",
+	[privateSaveCommitted()],
+	function* ({ bobSaves, privateDeliveries, privateRead }) {
+		yield* bobSaves("Bob's title");
 
-	yield* outcomes([
-		["Bob reads", () => privateRead("bob"), "Unset"],
-		["Bob's deliveries", () => privateDeliveries("bob"), ["changed: Unset / Unset"]],
-	]);
-});
+		yield* outcomes([
+			["Bob reads", () => privateRead("bob"), "Unset"],
+			["Bob's deliveries", () => privateDeliveries("bob"), ["changed: Unset / Unset", "changed: Unset / Unset"]],
+		]);
+	},
+);
 
 processes.it(
 	"a rolled-back private write sends no hint to either host",

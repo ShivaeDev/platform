@@ -1,4 +1,22 @@
 {
+	"admin": [
+		{
+			"entries": [
+				"./registry.ts",
+				"./page.ts",
+				"./permissions.ts",
+				"./jobs/page.ts",
+				"./users/page.ts",
+				"./sessions/Page.ts",
+				"./client/adapters/adminPermissionGuard.ts",
+				"./server/adminDocuments.ts",
+				"./server/registerAdmin.ts"
+			],
+			"fixtures": ["core.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["core.ts"]
+		}
+	],
 	"errors": [
 		{
 			"entries": ["./boundary.ts", "./taxonomy.ts"],
@@ -33,7 +51,7 @@
 			"run": ["local-guard.ts"]
 		}
 	],
-	"mcp": [{ "entries": ["./routes.ts"], "fixtures": [], "omitOptionalPeers": true, "run": [] }],
+	"mcp": [{ "entries": ["./routes.ts"], "fixtures": ["core.ts.txt"], "omitOptionalPeers": true, "run": ["core.ts"] }],
 	"platform": [
 		{
 			"entries": [],
@@ -90,7 +108,7 @@
 	],
 	"server": [
 		{
-			"entries": ["./node-http/subscriptionSignal.ts", "./runtime/makePlatform.ts", "./runtime/types.ts"],
+			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./runtime/types.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]

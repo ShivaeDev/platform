@@ -1,4 +1,5 @@
 import process from "node:process";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
@@ -20,5 +21,5 @@ NodeRuntime.runMain(
 				},
 			}),
 		);
-	}).pipe(Effect.scoped),
+	}).pipe(Effect.scoped, Effect.provide(NodeCrypto.layer)),
 );

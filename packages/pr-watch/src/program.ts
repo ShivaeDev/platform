@@ -1,13 +1,16 @@
 import { Effect, Exit, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { optionsFor } from "#arguments.ts";
-import { type Emit, health, makeOutput } from "#health.ts";
+import { type Diagnostic, type Emit, health, makeOutput } from "#health.ts";
 import type { Options } from "#model.ts";
 import packageInfo from "#package.json" with { type: "json" };
 import { polling } from "#polling.ts";
 import { requestFailure } from "#requestFailure.ts";
 
-export function watchCommand(emit: Emit, diagnostic: Emit) {
+export function watchCommand<E, R, TDiagnosticError, TDiagnosticRequirements>(
+	emit: Emit<E, R>,
+	diagnostic: Diagnostic<TDiagnosticError, TDiagnosticRequirements>,
+) {
 	return Command.make(
 		"pr-watch",
 		{
@@ -29,8 +32,8 @@ export function watchCommand(emit: Emit, diagnostic: Emit) {
 					stateFile: Option.getOrUndefined(input.stateFile),
 				}).pipe(
 					Effect.tapError((error) =>
-						health(emit, "error", { errorTag: error instanceof Error ? error.name : "UnknownFailure", message: error.message }).pipe(
-							Effect.andThen(health(emit, "stopped", { reason: "failed" })),
+						health(emit, { errorTag: error instanceof Error ? error.name : "UnknownFailure", event: "error", message: error.message }).pipe(
+							Effect.andThen(health(emit, { event: "stopped", reason: "failed" })),
 						),
 					),
 				);
@@ -39,15 +42,19 @@ export function watchCommand(emit: Emit, diagnostic: Emit) {
 	);
 }
 
-export const program = Effect.fn("PrWatch.program")(function* (args: readonly string[], emit: Emit, diagnostic: Emit) {
+export const program = Effect.fn("PrWatch.program")(function* <E, R, TDiagnosticError, TDiagnosticRequirements>(
+	args: readonly string[],
+	emit: Emit<E, R>,
+	diagnostic: Diagnostic<TDiagnosticError, TDiagnosticRequirements>,
+) {
 	yield* Command.runWith(watchCommand(emit, diagnostic), { version: packageInfo.version })(args);
 });
 
-export const watch = Effect.fn("PrWatch.watch")(function* (
+export const watch = Effect.fn("PrWatch.watch")(function* <E, R, TDiagnosticError, TDiagnosticRequirements>(
 	options: Options,
 	settings: { readonly heartbeat: number; readonly once: boolean },
-	emit: Emit,
-	diagnostic: Emit,
+	emit: Emit<E, R>,
+	diagnostic: Diagnostic<TDiagnosticError, TDiagnosticRequirements>,
 ) {
 	const reported = new Set<unknown>();
 	const run = Effect.gen(function* () {
@@ -57,7 +64,7 @@ export const watch = Effect.fn("PrWatch.watch")(function* (
 			if (reported.has(failure)) {
 				return Effect.void;
 			}
-			return health(output.emit, "error", { errorTag: failure instanceof Error ? failure.name : "UnknownFailure", message }).pipe(
+			return health(output.emit, { errorTag: failure instanceof Error ? failure.name : "UnknownFailure", event: "error", message }).pipe(
 				Effect.tap(
 					Effect.sync(() => {
 						reported.add(failure);
@@ -73,19 +80,19 @@ export const watch = Effect.fn("PrWatch.watch")(function* (
 			Effect.gen(function* () {
 				const error = requestFailure(failure);
 				if (!reported.has(failure)) {
-					yield* health(emit, "error", { errorTag: failure instanceof Error ? failure.name : "UnknownFailure", message: error.message });
+					yield* health(emit, { errorTag: failure instanceof Error ? failure.name : "UnknownFailure", event: "error", message: error.message });
 				}
 				if (error.retryAt !== undefined) {
-					yield* health(emit, "cooldown", { message: error.message, nextPollAt: new Date(error.retryAt).toISOString() });
+					yield* health(emit, { event: "cooldown", message: error.message, nextPollAt: new Date(error.retryAt).toISOString() });
 				}
 			}),
 		),
 		Effect.onExit((exit) => {
-			let reason = "completed";
+			let reason: "completed" | "interrupted" | "failed" = "completed";
 			if (exit._tag === "Failure") {
 				reason = Exit.hasInterrupts(exit) ? "interrupted" : "failed";
 			}
-			return health(emit, "stopped", { reason });
+			return health(emit, { event: "stopped", reason });
 		}),
 	);
 });

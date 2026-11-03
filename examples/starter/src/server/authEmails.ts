@@ -1,4 +1,4 @@
-import { Config, Effect, Redacted } from "effect";
+import { Config, Effect } from "effect";
 import type { BetterAuthEmails } from "@shivaedev/identity/server/better-auth/emails.ts";
 import { AuthEmailQueue } from "./AuthEmailQueue.ts";
 
@@ -12,7 +12,7 @@ export const authEmails = Effect.fnUntraced(function* () {
 				.enqueue(AuthEmailQueue.queue, {
 					kind: message._tag,
 					to: message._tag === "ConfirmNewAddress" ? message.newEmail : message.user.email,
-					url: Redacted.make(message.url),
+					url: message.url,
 				})
 				.pipe(
 					Effect.asVoid,

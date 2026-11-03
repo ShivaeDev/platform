@@ -8,7 +8,7 @@ import { assertModelColumns, type ModelColumnMismatch } from "./assertModelColum
 import { migrationUpgrade, type PostgresColumn } from "./migrationUpgrade.ts";
 
 const Dependency = defineService({
-	id: "MigrationLoaderDependency",
+	id: "@shivaedev/test-sql/MigrationLoaderDependency",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

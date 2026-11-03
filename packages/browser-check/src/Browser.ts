@@ -1,13 +1,10 @@
-import { Context, type Effect, Layer, type Scope } from "effect";
-import { playwright } from "#adapters/playwright.ts";
+import { Context, type Effect, type Scope } from "effect";
 import type { BrowserCheckError } from "#BrowserCheckError.ts";
+import type { BrowserPage } from "#BrowserPage.ts";
 
 export interface BrowserSession {
-	readonly checkLiveNotes: (url: string, folder: string) => Effect.Effect<void, BrowserCheckError>;
-	readonly checkText: (text: string) => Effect.Effect<void, BrowserCheckError>;
-	readonly screenshot: (path: string) => Effect.Effect<void, BrowserCheckError>;
+	readonly newPage: Effect.Effect<BrowserPage, BrowserCheckError>;
 	readonly signIn: (url: string, email: string, password: string) => Effect.Effect<void, BrowserCheckError>;
-	readonly visit: (url: string) => Effect.Effect<void, BrowserCheckError>;
 }
 
 export class Browser extends Context.Service<
@@ -15,6 +12,4 @@ export class Browser extends Context.Service<
 	{
 		readonly open: Effect.Effect<BrowserSession, BrowserCheckError, Scope.Scope>;
 	}
->()("@shivaedev/browser-check/Browser") {
-	static readonly layer = Layer.effect(Browser, playwright);
-}
+>()("@shivaedev/browser-check/Browser") {}

@@ -1,10 +1,10 @@
 import { Clock, Context, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { storyKit } from "#storyKit.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { recordLifetime } from "./lifetimeLog.ts";
 
-export class StockLabel extends Context.Service<StockLabel, string>()("composition/StockLabel") {}
+export class StockLabel extends Context.Service<StockLabel, string>()("@shivaedev/test-story/composition/StockLabel") {}
 
 export const stock = storyKit({
 	after: { stocked: () => recordLifetime("stock after") },

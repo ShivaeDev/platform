@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 
 export interface DocumentedExample {
 	readonly document: string;
@@ -23,7 +22,7 @@ export function documentation(document: string) {
 }
 
 export const documentedExamples = documents.flatMap((document) => {
-	const tree = unified().use(remarkParse).parse(documentation(document));
+	const tree = parseMarkdown(documentation(document));
 	const examples: DocumentedExample[] = [];
 	visit(tree, "code", (node) => {
 		if (node.lang === "markdown" || node.lang === "yaml" || node.lang === "text") {

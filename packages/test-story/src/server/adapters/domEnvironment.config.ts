@@ -1,0 +1,60 @@
+import { createRequire } from "node:module";
+import { GlobalWindow } from "happy-dom";
+import WindowBrowserContext from "happy-dom/lib/window/WindowBrowserContext.js";
+import { type Environment, populateGlobal } from "vitest/runtime";
+
+const domEnvironment: Environment = {
+	name: "test-story-dom",
+	async setup(global: typeof globalThis, { happyDOM = {} }) {
+		// Vitest loads environments outside the project's source resolution conditions.
+		const load = createRequire(import.meta.url);
+		const { documentTransport }: typeof import("#server/adapters/documentTransport.ts") = load("#server/adapters/documentTransport.ts");
+		const { installOutbound }: typeof import("#server/adapters/installOutbound.ts") = load("#server/adapters/installOutbound.ts");
+		const { installDomTimers }: typeof import("#server/internal/installDomTimers.ts") = load("#server/internal/installDomTimers.ts");
+		const native = Object.fromEntries(
+			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),
+		);
+		const restoreOutbound = await installOutbound({}, true);
+		const win = new GlobalWindow({
+			...happyDOM,
+			console: global.console,
+			settings: { ...happyDOM.settings, disableErrorCapturing: true, handleDisabledFileLoadingAsSuccess: true },
+			url: happyDOM.url ?? "http://localhost:3000",
+		});
+		win.happyDOM.settings.fetch.interceptor = documentTransport(global.fetch);
+		const { keys, originals } = populateGlobal(global, win, { bindFunctions: true });
+		const restoreTimers = installDomTimers(global);
+		for (const [name, value] of Object.entries(native)) {
+			Object.defineProperty(global, name, { configurable: true, value, writable: true });
+		}
+		Object.defineProperty(global, "window", { configurable: true, value: win, writable: true });
+		Object.defineProperty(win.document, "defaultView", { configurable: true, get: () => win });
+		function freshDocument() {
+			new WindowBrowserContext(win).getBrowserContext()?.cookieContainer.clearCookies();
+			win.localStorage.clear();
+			win.sessionStorage.clear();
+		}
+		Object.defineProperty(global, Symbol.for("test-story.dom"), { configurable: true, value: freshDocument });
+		return {
+			async teardown(target) {
+				try {
+					await win.happyDOM.abort();
+					win.close();
+				} finally {
+					restoreTimers();
+					for (const key of keys) {
+						Reflect.deleteProperty(target, key);
+					}
+					for (const [key, descriptor] of originals) {
+						Object.defineProperty(target, key, descriptor);
+					}
+					Reflect.deleteProperty(target, Symbol.for("test-story.dom"));
+					restoreOutbound();
+				}
+			},
+		};
+	},
+	viteEnvironment: "client",
+};
+
+export default domEnvironment;

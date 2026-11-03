@@ -1,12 +1,12 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
-import { genreTags } from "#genreTags.ts";
+import { genreTags } from "#server/genreTags.ts";
 
 const test = testProjects();
 for (const project of test.projects ?? []) {
 	if (typeof project === "object" && "test" in project && project.test?.name === "dom") {
-		project.test.environment = fileURLToPath(new URL("./src/server/domEnvironment.config.ts", import.meta.url));
+		project.test.environment = fileURLToPath(new URL("./src/server/adapters/domEnvironment.config.ts", import.meta.url));
 	}
 }
 

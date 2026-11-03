@@ -19,7 +19,7 @@ it("excludes worktree spec copies from every project", [withWorktrees], function
 });
 
 it(
-	"runs Node tests, unit tests and DOM specs with a separate Node host, without selecting slow or type tests",
+	"runs Node tests, unit tests, DOM specs and heavy specs with a separate Node host, without selecting slow or type tests",
 	[],
 	function* ({ run, testResults, hasCoverage }) {
 		const result = yield* run();
@@ -31,11 +31,18 @@ it(
 			"src/double.unit.test.ts passed",
 			"src/flow.spec.ts passed",
 			"src/host.dom.spec.tsx passed",
+			"src/toolchain.heavy.spec.ts passed",
 			"src/unit.test.ts passed",
 		]);
 		expect(hasCoverage()).toBe(false);
 	},
 );
+
+it("selects heavy files alone on request", [], function* ({ run, testResults }) {
+	const result = yield* run("--project", "heavy");
+	expect(result.status, result.output).toBe(0);
+	expect(testResults()).toEqual(["src/toolchain.heavy.spec.ts passed"]);
+});
 
 it("runs slow tests alone when requested", [], function* ({ run, testResults }) {
 	const result = yield* run("--project", "slow");
@@ -51,6 +58,7 @@ it("runs Node-only repositories without installing the DOM plugin", [nodeOnly], 
 		"src/double.unit.spec.ts passed",
 		"src/double.unit.test.ts passed",
 		"src/flow.spec.ts passed",
+		"src/toolchain.heavy.spec.ts passed",
 		"src/unit.test.ts passed",
 	]);
 });

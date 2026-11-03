@@ -11,10 +11,12 @@ import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
 export class Row extends Schema.Class<Row>("ViewerRow")({ id: Schema.Number, owner: Schema.String, title: Schema.String }) {}
-class Rows extends Context.Service<Rows, Ref.Ref<ReadonlyMap<number, Row>>>()("test/Rows") {}
-class PolicyChecks extends Context.Service<PolicyChecks, SubscriptionRef.SubscriptionRef<number>>()("test/PolicyChecks") {}
+class Rows extends Context.Service<Rows, Ref.Ref<ReadonlyMap<number, Row>>>()("@shivaedev/contract/test/Rows") {}
+class PolicyChecks extends Context.Service<PolicyChecks, SubscriptionRef.SubscriptionRef<number>>()("@shivaedev/contract/test/PolicyChecks") {}
 export class Denied extends Schema.TaggedError<Denied>()("Denied", {}) {}
-class Guard extends RpcMiddleware.Service<Guard>()("test/ViewerGuard", { error: Schema.Union([Denied, MissingReadPolicy, QueryReadDenied]) }) {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/ViewerGuard", {
+	error: Schema.Union([Denied, MissingReadPolicy, QueryReadDenied]),
+}) {}
 const Get = query("get", {
 	payload: { id: Schema.Number },
 	readPolicy: ({ id }, viewer) =>
@@ -68,7 +70,7 @@ export const viewerEngine = Effect.gen(function* () {
 				Effect.gen(function* () {
 					const viewer = yield* CurrentViewer;
 					const subscription = yield* querySubscription(rpc, queries, viewer);
-					return live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
+					return live.subscribe(subscription);
 				}),
 			),
 		"notes.get": ({ id }) => Ref.get(stored).pipe(Effect.map((rows) => rows.get(id) ?? new Row({ id, owner: "", title: "Missing" }))),
@@ -88,7 +90,7 @@ export const viewerEngine = Effect.gen(function* () {
 					throw new Error(`Missing note ${id}`);
 				}
 				yield* Ref.update(stored, (rows) => new Map([...rows, [id, new Row({ ...row, title })]]));
-				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)], { scope: row.owner }));
+				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)]));
 			}),
 	});
 	const services = Layer.merge(Layer.succeed(Rows, stored), Layer.succeed(PolicyChecks, checks));

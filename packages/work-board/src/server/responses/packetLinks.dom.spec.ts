@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";

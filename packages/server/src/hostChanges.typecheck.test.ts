@@ -6,7 +6,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { appHost } from "#appHost.ts";
 
-class Required extends Context.Service<Required, string>()("changes-test/Required") {}
+class Required extends Context.Service<Required, string>()("@shivaedev/server/changes-test/Required") {}
 const Api = contract("changes", { queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })] });
 const options = {
 	group: Api,

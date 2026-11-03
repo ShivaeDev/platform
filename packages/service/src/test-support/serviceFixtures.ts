@@ -2,9 +2,9 @@ import { Context, Data, Deferred, Effect, Stream } from "effect";
 import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
-export class Greeting extends Context.Service<Greeting, string>()("story/Greeting") {}
+export class Greeting extends Context.Service<Greeting, string>()("@shivaedev/service/story/Greeting") {}
 export class CallerFailure extends Data.TaggedError("CallerFailure")<{ readonly number: number }> {}
-export class CallerNumber extends Context.Service<CallerNumber, number>()("story/CallerNumber") {}
+export class CallerNumber extends Context.Service<CallerNumber, number>()("@shivaedev/service/story/CallerNumber") {}
 
 class InitializationFailure extends Data.TaggedError("InitializationFailure")<{ readonly message: string }> {}
 class MethodFailure extends Data.TaggedError("MethodFailure")<{ readonly message: string }> {}
@@ -33,7 +33,7 @@ function release(engine: Recorder, resource: string) {
 
 export function counterService(engine: Recorder) {
 	return defineService({
-		id: "story/Counter",
+		id: "@shivaedev/service/story/Counter",
 		initialize: Effect.gen(function* () {
 			engine.initializerRuns += 1;
 			yield* Effect.acquireRelease(Effect.void, () => release(engine, INITIALIZER_RESOURCE));
@@ -78,7 +78,7 @@ function wrap<TSuccess, TFailure, TRequirements>(
 
 export function wrapperService() {
 	return defineService({
-		id: "story/Wrapper",
+		id: "@shivaedev/service/story/Wrapper",
 		initialize: Effect.service(Greeting),
 		methods: (greeting) => ({
 			wrap: genericMethod(<A, E, R>(effect: Effect.Effect<A, E, R>) => wrap(effect).pipe(Effect.map(({ value }) => ({ greeting, value })))),

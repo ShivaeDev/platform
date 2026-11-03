@@ -1,8 +1,8 @@
 import { Context, Effect, Layer } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { noteLifetime } from "./lifetimeLog.ts";
 
-class InitialCount extends Context.Service<InitialCount, number>()("effectHooks/InitialCount") {}
+class InitialCount extends Context.Service<InitialCount, number>()("@shivaedev/test-story/effectHooks/InitialCount") {}
 
 export const INITIAL_COUNT = 2;
 export const INCREMENT = 1;

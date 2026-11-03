@@ -4,7 +4,7 @@ import { Effect, Exit, Layer, Option, Redacted, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type ObserveOptions, observeUntil } from "#observeUntil.ts";
+import { type ObserveOptions, observeUntil } from "#server/observeUntil.ts";
 import { adminUrl, configured } from "./postgres.ts";
 
 type Name = "alice" | "bob";

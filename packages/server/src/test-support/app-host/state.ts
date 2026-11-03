@@ -1,6 +1,7 @@
 import type { Agent } from "node:http";
 import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
+import type { PostgresTestDatabaseService } from "@shivaedev/test-sql/server/database.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { AssetOptions } from "#AssetOptions.ts";
 import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
@@ -24,6 +25,7 @@ export interface HostState {
 	cleanup: (() => void | Promise<void>)[];
 	clientAbort?: ClientAbortState;
 	config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number; sensitiveKeys?: readonly string[] };
+	database?: PostgresTestDatabaseService;
 	env: Record<string, string>;
 	expectBootFailure: boolean;
 	lifecycle: string[];
@@ -113,4 +115,11 @@ export function recordLog(state: HostState, entry: HostState["logs"][number]) {
 			waiter();
 		}
 	});
+}
+
+export function databaseOf(state: HostState) {
+	if (state.database === undefined) {
+		throw new Error("Use the PostgreSQL host kit for database stories");
+	}
+	return state.database;
 }

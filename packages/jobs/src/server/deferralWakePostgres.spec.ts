@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { runningWithClockOffset } from "#test/postgres/runningWithClockOffset.ts";
 import { storedTogether } from "#test/postgres/traits.ts";

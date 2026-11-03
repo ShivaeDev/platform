@@ -1,11 +1,11 @@
 import { createServer, type IncomingHttpHeaders } from "node:http";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
-import { fakeHttpControls } from "#internal/fakeHttpControls.ts";
-import { fakeHttpReceive } from "#internal/fakeHttpReceive.ts";
-import { fakeHttpSignals } from "#internal/fakeHttpSignals.ts";
-import { loopbackServer } from "#internal/loopback.ts";
-import { type UntilOptions, until } from "#until.ts";
+import { fakeHttpControls } from "#server/internal/fakeHttpControls.ts";
+import { fakeHttpReceive } from "#server/internal/fakeHttpReceive.ts";
+import { fakeHttpSignals } from "#server/internal/fakeHttpSignals.ts";
+import { loopbackServer } from "#server/internal/loopback.ts";
+import { type UntilOptions, until } from "#server/until.ts";
 
 export interface FakeHttpRequest {
 	readonly body: Buffer;

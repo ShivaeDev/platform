@@ -4,7 +4,7 @@ import { nativeStackDiagnostics, publicStackDiagnostics } from "#test/app-host/n
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const kept = { publicReasonNote: "public reason detail" };
+const kept = { "@shivaedev/server/publicReasonNote": "public reason detail" };
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(

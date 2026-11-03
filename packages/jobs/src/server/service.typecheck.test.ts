@@ -1,11 +1,11 @@
 import { Context, type Duration, Effect, Layer, Option, Redacted, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
-import { defineSchedule } from "#defineSchedule.ts";
-import { defineQueue, type JobContext } from "#definition.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
-import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#service.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
+import { defineQueue, type JobContext } from "#server/definition.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#server/service.ts";
 
-class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
+class HandlerDependency extends Context.Service<HandlerDependency, number>()("@shivaedev/jobs/test/HandlerDependency") {}
 
 expectTypeOf<JobContext["remainingBudget"]>().toEqualTypeOf<Effect.Effect<Duration.Duration>>();
 
@@ -120,7 +120,7 @@ Effect.runPromise(followUpBoot.pipe(Effect.provideService(HandlerDependency, 1))
 const crossJobsLayer = Jobs.layer({
 	jobs: [Queue.handle(() => Effect.asVoid(EmailJobs))],
 });
-expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/EmailJobs" | import("#PgBoss.ts").PgBoss>();
+expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/EmailJobs" | import("#server/PgBoss.ts").PgBoss>();
 
 defineQueue({ name: "batch", schema: Schema.Struct({}), worker: { batchSize: 5, localConcurrency: 3, pollingIntervalSeconds: 1 } });
 // @ts-expect-error pg-boss concurrency remains numeric.

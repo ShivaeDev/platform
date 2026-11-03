@@ -1,5 +1,5 @@
 import { Effect, Predicate } from "effect";
-import { errorWords } from "@shivaedev/test/answers.ts";
+import { errorWords } from "@shivaedev/test-story/server/answers.ts";
 
 const REFUSALS: Readonly<Record<string, string>> = {
 	Forbidden: "permission denied",

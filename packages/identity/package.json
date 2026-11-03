@@ -65,7 +65,6 @@
 		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

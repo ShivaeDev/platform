@@ -45,6 +45,11 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		lastError: () => Effect.sync(() => healthOf(engine.lines, "error").at(-1)?.message ?? "none"),
 		outputCallback: () => Effect.sync(() => engine.output.state.callback),
 		programOutcome: () => Effect.sync(() => [...engine.output.state.outcome]),
+		refuseNextOutput: () =>
+			Effect.sync(() => {
+				tell("the application refuses the next event with its own failure");
+				engine.output.state.refuseNext = true;
+			}),
 		refuseStopOutput: () =>
 			Effect.sync(() => {
 				tell("the output consumer refuses the stopped event with an output failure");

@@ -110,7 +110,26 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. The application SQL Layer owns shutdown.
+
+The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
+
+```ts
+import { SqlClient } from "effect/sql";
+import { transact } from "@shivaedev/sql/transact.ts";
+
+const register = (body: { email: string; name: string; password: string }) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const database = yield* betterAuthDatabase();
+		const { auth } = yield* betterAuthMount({ database, emailAndPassword: { enabled: true } });
+		const created = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body }));
+		yield* sql`insert into registrations (email) values (${created.user.email})`;
+		return created.user;
+	}).pipe(transact({ onSqlError: (error) => error }), Effect.scoped);
+```
+
+With `SqlClient`, `Reactivity` and `Store` provided, the auth and application rows commit or roll back together. The mount's `before` and `after` hook SQL shares that outer boundary too.
 
 Provide `memoryStore` once around the host Layer with `Layer.provide(memoryStore)`, so auth mounts and other rate-limited operations share it. For a standalone authentication Effect, use `authentication.pipe(Effect.provide(memoryStore))`.
 
@@ -120,17 +139,16 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Buckets belong to the host-provided `Store` from `@shivaedev/rate-limit/Store.ts`. Better Auth chooses the rules and client-IP keys; the mount prefixes keys with `identity:auth:` and always uses that Store, overriding Better Auth's `storage` and `customStorage` options. Memory budgets are shared by mounts using the same store and reset when a new host builds a fresh memory store. PostgreSQL budgets are shared across hosts using the same database; include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migrations and provide `postgresStore` from `@shivaedev/rate-limit/adapters/postgresStore.ts`. Both stores start each window at the first admitted request; refused attempts leave the window unchanged. A refusal returns HTTP 429 with the remaining time rounded up to whole seconds in `X-Retry-After`; a store failure returns HTTP 503.
 
-The mount also requires the current account password on `/change-email`. Send it as `password` beside `newEmail` in the JSON body. Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow.
+The mount also requires the current account password on `/change-email`. Use `changeEmail` from `@shivaedev/identity/client/adapters/changeEmail.ts` with the application's Better Auth client. The browser-safe adapter returns an input-to-Effect function whose `ChangeEmailInput` requires `newEmail` and `password` and accepts an optional `callbackURL`. It maps refusals through `authCall` to typed auth failures, including `INVALID_PASSWORD`.
 
 ```ts
-await fetch("/api/auth/change-email", {
-	method: "POST",
-	headers: { "content-type": "application/json" },
-	body: JSON.stringify({ newEmail, password: currentPassword }),
-});
+import { changeEmail } from "@shivaedev/identity/client/adapters/changeEmail.ts";
+
+const submitEmailChange = changeEmail(authClient);
+yield* submitEmailChange({ newEmail, password: currentPassword });
 ```
 
-Better Auth's typed `changeEmail` method does not declare the extra `password` field; send this request through HTTP. To use a different account-verification policy, explicitly pass `{ hardening: { requirePasswordForEmailChange: false } }` as the second argument to `betterAuthMount`. Passwordless applications must make this choice before enabling email changes.
+Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow. To use a different account-verification policy, explicitly pass `{ hardening: { requirePasswordForEmailChange: false } }` as the second argument to `betterAuthMount`. Passwordless applications must make this choice before enabling email changes.
 
 Password resets revoke existing sessions by default. Set `emailAndPassword.revokeSessionsOnPasswordReset: false` in the Better Auth options to retain them explicitly. These defaults sit alongside the mount's rate limiting; application plugins and the provider's email-change settings remain in effect.
 
@@ -172,6 +190,8 @@ const authentication = (options: BetterAuthOptions) =>
 Provide the hook's services when building the mount. Mounted HTTP requests run hooks with the request's services, spans, log annotations and cancellation signal; request services override the mount's services. A direct call through `auth.api` uses the mount's services and the endpoint request's signal when present.
 
 Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is required" }`, or an application tagged error with those fields, to refuse the operation with HTTP 403 and that code and message. Defects remain defects in the mounted request, even when Better Auth catches the callback rejection. Hooks follow Better Auth's lifecycle: use `before` to refuse a write; `after` runs after the write and does not undo it.
+
+Effect hook SQL uses the hook runtime's Effect context; it does not inherit Better Auth's internal write transaction. In a startup mount, a `before` hook's application SQL can commit even when that hook refuses the operation and Better Auth rolls back its auth rows. Use the transaction-local adapter and mount composition above when those writes must roll back together. Completing an `after` hook does not mean the outer application transaction has committed.
 
 Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
 
@@ -480,7 +500,46 @@ const sessions = Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: tru
 
 For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
-React's `authSession` reads the session's grants as typed values while preserving the provider's session and user data. Applications using it need no session permission decoder.
+### Better Auth client adapters
+
+The browser-safe client adapters turn Better Auth Promises into Effects without React or server imports. The application supplies its Better Auth client and owns UI text and session policy.
+
+```ts
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authQuery } from "@shivaedev/identity/client/adapters/authQuery.ts";
+import { authSession } from "@shivaedev/identity/client/adapters/authSession.ts";
+
+const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const readProviderSession = authQuery((disableCookieCache: boolean, signal) =>
+	authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
+);
+const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
+```
+
+The example uses the application's Better Auth client. `authCall` returns an input-to-Effect function. Its `AuthActionResult<A, E>` response shape is exported from the same module. Failures use `AuthFailure` from `@shivaedev/identity/client/AuthFailure.ts` and the closed `AuthFailureCode` schema and union from `@shivaedev/identity/client/AuthFailureCode.ts`: supported Better Auth core codes, `SIGN_IN_REFUSED` for identity's sign-in policy denial, `AUTH_UNAVAILABLE` for a failed policy check or account role seed, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. Identity's server and client read the wire codes from `authRefusals` in `@shivaedev/identity/authRefusal.ts`. The original error stays in `cause`. Applications can supply exhaustive UI text with `Record<AuthFailureCode, string>`.
+
+Declare application refusal codes in a shared browser-safe schema and pass its literals as `authCall`'s second argument:
+
+```ts
+import { Effect, Schema } from "effect";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+
+const ApplicationCode = Schema.Literals(["MEMBERS_ONLY", "MAIL_UNAVAILABLE"]);
+const signIn = authCall(
+	(credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }),
+	ApplicationCode.literals,
+);
+type SignInFailure = Effect.Error<ReturnType<typeof signIn>>;
+type Messages = Record<SignInFailure["code"], string>;
+```
+
+The failure's `_tag` remains `AuthFailure`; its `code` union includes the declared application codes, so `Messages` requires text for each one as well as the standard codes. Database-hook and email-delivery Effects return their application code and message through `BetterAuthHookError`. The mounted HTTP route preserves these refusals even when Better Auth catches an email-delivery error internally. Undeclared codes remain `UNKNOWN`. `AuthFailure.withCodes(ApplicationCode.literals)` supplies the corresponding native error schema when the application needs to decode a failure.
+
+`authQuery` returns an input-to-Effect function that preserves returned provider errors and maps rejected Promises to `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts`. Both call adapters pass Effect's abort signal to the supplied client function.
+
+`authSession` returns a session Effect with the same read failures. It decodes `user.permissions` through `PermissionSession` from `@shivaedev/identity/PermissionSession.ts` while preserving the provider's session and user data. Its `SessionWithPermissions<A>` type is exported from the adapter. Missing grants stay optional, malformed grants fail with `AuthUnavailable`, and a successful `null` means signed out. The reader must return a nullable session with a `user` object; use `authQuery` for other payloads.
+
+React's `authAction`, `authQuery` and `authSession` consume these Effects to create atoms. See [React's Better Auth usage](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#better-auth-actions).
 
 ### Frozen auth migrations
 
@@ -510,6 +569,8 @@ yield* fs.writeFileString("src/server/migrations/0002_auth_roles.ts", source, { 
 Review and commit `0002_auth_roles`, then apply it with the other numbered migrations. If the app uses Quality, register each reviewed generated file in `boundaries/auth-sql`'s `options.owners` in its `quality.config.ts`; the generated file owns auth DDL, while application queries continue to use identity. For identity-managed roles, pass `{ defaultRole: "member" }` as the second argument instead of configuring the field yourself; its generated SQL also freezes the default, null backfill and NOT NULL constraint.
 
 A numbered migration calling `getMigrations(authOptions)` live is **not frozen**, even if it copies the options into that file: the installed Better Auth version still decides the DDL. `migrateBetterAuth` is also live; use it for disposable test setup, not shipped migrations. It executes compiled DDL on the native SQL connection. Generated modules use a PostgreSQL `DO` block to execute the compiled statements together on that connection.
+
+If an application-authored numbered migration calls `auth.api`, create its adapter inside the migration Effect, and its mount there too when using Effect hooks. It then uses the migrator's transaction connection: auth reads and writes can follow auth-table DDL without waiting for another connection, including with a one-connection pool. Reusing a startup adapter instead can wait on the migration's table locks or exhaust the pool.
 
 After applying all numbered migrations in an isolated story database, check them against the current options:
 
@@ -580,11 +641,11 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. `List` and `Item` remain the dependency shapes; the account scope is an additional dimension derived from request-local `Identity.id`. Handlers continue to read their owner from `Identity`, and payloads need no owner field just to key reads or invalidations. Other sessions of that account receive its changes; other accounts receive no invalidation hint for those writes.
+For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Identity`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
-The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }`, resolves the declared query dependencies during that subscription invocation, and passes the authenticated scope to the change stream. It does not accept physical subscription keys or a caller-selected scope. Missing request-local `Identity` on a session-scoped subscription is a configuration defect, with no unscoped fallback.
+The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 
-`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after the handler returns and omit keys the handler's transactions already published. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than command `invalidates`. A rejected transaction publishes no keys.
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run command invalidation inside the authenticated invocation. Successful commands publish plain keys after the handler returns and omit keys the handler's transactions already published. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than command `invalidates`. A rejected transaction publishes no keys.
 
 Declared-key publication retries twice, after 50 ms and 100 ms, without rerunning the handler. Exhausted retries preserve the committed result. On a database-backed host, they mark local live streams for Resync and attempt a broadcast Resync on the PostgreSQL change channel. If that broadcast also fails, the server logs that other hosts may remain stale. There is no durable replay: a remote host whose listener remains healthy cannot discover a notification that never reached PostgreSQL. Reconnect or listener recovery reconciles its streams.
 
@@ -592,38 +653,40 @@ Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$c
 
 ```ts
 import { Effect, Stream } from "effect";
-import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
+import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 
 const changesRpc = Api.requests.get("preferences.$changes")!;
 const handlers = Api.toLayer({
 	"preferences.$changes": ({ queries }) =>
-		Stream.unwrap(Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) => changes.subscribe(subscription, context))),
+		Stream.unwrap(Effect.map(resolveChanges(changesRpc, queries), (subscription) => changes.subscribe(subscription))),
 	"preferences.get": getPreference,
 	"preferences.save": savePreference,
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
+Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
-Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
+Custom authentication middleware validates the transport session and supplies `Identity` and `CurrentViewer`:
 
 ```ts
 import { Effect, Layer, Option } from "effect";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 
-const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
+const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc }) =>
 	Effect.gen(function* () {
 		const session = yield* requireTransportSession(headers, rpc);
-		return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
+		return yield* effect.pipe(
+			Effect.provideService(CurrentViewer, Option.some({ id: session.user.id })),
 			Effect.provideService(Identity, { id: session.user.id }),
 		);
 	}),
 );
 ```
 
-`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `commandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+`MyAuthentication` declares `provides: Identity` and its authentication errors. It supplies the validated session viewer through `CurrentViewer`; the application host installs contract’s `ReadPolicyGuard` to evaluate query policies once per request. Custom hosts serve `yield* guardReads(group)` and provide `readPolicyGuardLayer()`, both from `@shivaedev/contract/ReadPolicyGuard.ts`. Session middleware supplies identity and session validity; the contract guard owns read-policy evaluation. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation.
+
+The application host installs `CommandGuard` from `@shivaedev/contract/CommandGuard.ts` inside authentication middleware and supplies `commandGuardLayer(publishCommand)`, with `publishCommand` from `@shivaedev/server/publishCommand.ts`. Custom hosts serve `yield* guardCommands(group)` with that layer to publish declared command changes. Identity and tracing middleware do not publish changes. If a raw SQL transaction explicitly announces dependencies, use `invalidationKeys(keys)` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
 
 ### Session freshness in streams
 
@@ -713,7 +776,7 @@ Use `storedProviderAccounts(auth, userId)` to observe credential storage through
 ```ts
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
@@ -763,7 +826,7 @@ const mounted = yield* betterAuthMount(options, {
 });
 ```
 
-`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
+`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. The `url` and every `token` are `Redacted<string>` so delivered messages keep their links and tokens hidden in logs and traces. Read them with `Redacted.value(message.url)` or `Redacted.value(message.token)` only when rendering the email or submitting the token. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
 
 The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
 
@@ -794,8 +857,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/adapters/proxyRanges.ts`             | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                                             |
 | `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                                 |
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                             |
-| `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                                                                |
-| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                                                                        |
+| `server/resolveChanges.ts`                   | `resolveChanges`: authorized change subscriptions for custom change handlers.                                                                                                                                                                                                    |
 | `server/better-auth/adapters/mount.ts`       | `betterAuthMount(options, { preset?, enabledPaths?, emails?, onPasswordReset?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
 | `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                                                                |
 | `server/better-auth/emails.ts`               | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                                                             |

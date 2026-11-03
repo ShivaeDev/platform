@@ -63,8 +63,10 @@ export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void
 		bobSaves: (title: string) =>
 			Effect.promise(async () => {
 				tell(`Bob saves his own title ${title}`);
+				const client = privateClientOf(engine, "bob");
+				const before = client.delivered.items.length;
 				await save("bob", title);
-				await deliveredSinceMark(engine, "bob");
+				await client.delivered.when((items) => items.length > before);
 			}),
 		privateDeliveries: (name: PrivateClient) =>
 			Effect.sync(() => since(engine, name).map(({ hint, list, title }) => `${hintWord(hint).split(" ")[0]}: ${title} / ${list.join(", ")}`)),
@@ -73,7 +75,7 @@ export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void
 			Effect.promise(async () => {
 				tell(`Alice saves ${title}`);
 				await save("writer", title);
-				await deliveredSinceMark(engine, "writer", "reader");
+				await deliveredSinceMark(engine, "writer", "reader", "bob");
 			}),
 		privateSaves: () => Effect.sync(() => [...engine.answers]),
 		rejectedPrivateSave: (title: string) =>
@@ -91,7 +93,7 @@ export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void
 					throw new Error("No private save is pending");
 				}
 				engine.answers.push(answerWord(await pending));
-				await deliveredSinceMark(engine, "writer", "reader");
+				await deliveredSinceMark(engine, "writer", "reader", "bob");
 			}),
 	};
 }

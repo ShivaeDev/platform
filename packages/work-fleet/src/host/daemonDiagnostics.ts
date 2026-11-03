@@ -21,7 +21,7 @@ function briefRefusals(engine: typeof Fleet.Service, briefs: readonly Brief[]) {
 		Effect.forEach(briefs, (brief) =>
 			engine.briefProblem(brief.workId, brief.sourcePath).pipe(
 				Effect.map((message) => (message === undefined ? [] : [{ ...brief, message }])),
-				Effect.catch(() => Effect.succeed([])),
+				Effect.mapError(() => new ServiceUnavailable({ message: "Fleet brief validation is unavailable" })),
 			),
 		),
 	).pipe(Effect.map((refusals) => refusals.flat()));

@@ -3,11 +3,11 @@ import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { migrationSteps } from "#migrationSteps.ts";
+import { migrationSteps } from "#server/migrationSteps.ts";
 import { migrations } from "#test/migrationSteps.ts";
 
 const Dependency = defineService({
-	id: "MigrationStepsDependency",
+	id: "@shivaedev/test-sql/MigrationStepsDependency",
 	initialize: Effect.void,
 	methods: () => ({}),
 	requires: [],

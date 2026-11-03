@@ -1,6 +1,6 @@
 import { type ClientRequest, request as httpRequest, type IncomingHttpHeaders } from "node:http";
 import { Effect } from "effect";
-import type { SignalNotReceived } from "#until.ts";
+import type { SignalNotReceived } from "#server/until.ts";
 
 export interface Send {
 	readonly body?: string;

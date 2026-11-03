@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { PostgresSettingError } from "#localConnections.ts";
-import { PostgresVersionMismatch } from "#PostgresVersionMismatch.ts";
+import { PostgresSettingError } from "#server/localConnections.ts";
+import { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
 
 function messageOf(error: unknown) {
 	return (error instanceof Error ? error.message : String(error)).trim();

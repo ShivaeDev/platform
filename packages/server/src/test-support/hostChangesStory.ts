@@ -4,21 +4,40 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
-class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}
-class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("test/ObservedChanges") {}
+class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/test/ChangesGreeting") {}
+class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("@shivaedev/server/test/ObservedChanges") {}
 const Api = contract("idle", {
-	queries: [query("greet", { payload: { name: Schema.String }, readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
+	queries: [
+		query("greet", {
+			payload: { name: Schema.String },
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			success: Schema.String,
+		}),
+	],
 }).middleware(Observed);
 
-const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
+const customHandlers = changesHandlerLayer(
+	Api,
+	() => () =>
+		Stream.fromEffect(Greeting).pipe(
+			Stream.map((greeting) => ({
+				_tag: "Changed",
+				keys: [{ _tag: "Item", collection: "greetings", id: greeting }],
+			})),
+		),
+);
+
+const openHost = Effect.fn("Test.openHost")(function* (live: boolean, custom = false) {
 	const started = yield* Deferred.make<void>();
 	const runtime = yield* Effect.acquireRelease(
 		Effect.sync(() =>
@@ -26,8 +45,9 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
 				appHost({
 					config: { port: 0 },
 					group: Api,
-					handlers: Layer.merge(
+					handlers: Layer.mergeAll(
 						Api.application.toLayer({ "idle.greet": ({ name }) => Effect.map(Greeting, (greeting) => `${greeting}, ${name}`) }),
+						custom ? customHandlers : Layer.empty,
 						Layer.succeed(Observed, (effect) =>
 							Effect.andThen(Deferred.succeed(started, undefined), Effect.provideService(effect, Greeting, "Hello")),
 						),
@@ -94,6 +114,22 @@ export const applicationHandlersStory = storyKit({
 		greet: (name: string) => {
 			story.tell(`a client greets ${name}`);
 			return answered(state.client("idle.greet", { name }));
+		},
+	}),
+});
+
+export const customHandlerStory = storyKit({
+	clock: "live",
+	create: () => openHost(false, true),
+	name: "custom hosted changes handler",
+	stages: [],
+	verbs: (state, story) => ({
+		firstHint: () => {
+			story.tell("subscribe through the custom handler that reads the middleware's greeting");
+			return state.client("idle.$changes", { queries: [] }).pipe(
+				Stream.runHead,
+				Effect.map((update) => (Option.isSome(update) ? hintWords(update.value) : "no hint")),
+			);
 		},
 	}),
 });

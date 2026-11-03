@@ -78,7 +78,10 @@ for (const progress of ["item", "event"] as const) {
 				nativeRequests()
 					.filter((request) => request.method === "turn/start")
 					.map((request) => request.params),
-			).toMatchObject([{ clientUserMessageId: "operation-1" }, { clientUserMessageId: "operation-2", input: [{ text: ANSWER_INSTRUCTIONS }] }]);
+			).toMatchObject([
+				{ clientUserMessageId: "operation-1" },
+				{ clientUserMessageId: "operation-2", input: [{ text: expect.stringContaining(ANSWER_INSTRUCTIONS) }] },
+			]);
 			expect(publishedDecisions()).toEqual(["May I use the existing dependency?"]);
 		},
 	);
@@ -97,7 +100,10 @@ isolatedEngine.it(
 			nativeRequests()
 				.filter((request) => request.method === "turn/start")
 				.map((request) => request.params),
-		).toMatchObject([{ clientUserMessageId: "operation-1" }, { clientUserMessageId: "operation-2", input: [{ text: ANSWER_INSTRUCTIONS }] }]);
+		).toMatchObject([
+			{ clientUserMessageId: "operation-1" },
+			{ clientUserMessageId: "operation-2", input: [{ text: expect.stringContaining(ANSWER_INSTRUCTIONS) }] },
+		]);
 	},
 );
 
@@ -118,6 +124,9 @@ isolatedEngine.it(
 			nativeRequests()
 				.filter((request) => request.method === "turn/start")
 				.map((request) => request.params),
-		).toMatchObject([{ clientUserMessageId: "operation-1" }, { clientUserMessageId: "operation-2", input: [{ text: ANSWER_INSTRUCTIONS }] }]);
+		).toMatchObject([
+			{ clientUserMessageId: "operation-1" },
+			{ clientUserMessageId: "operation-2", input: [{ text: expect.stringContaining(ANSWER_INSTRUCTIONS) }] },
+		]);
 	},
 );

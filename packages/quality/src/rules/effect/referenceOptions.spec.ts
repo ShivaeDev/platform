@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { carries, effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
@@ -57,24 +57,35 @@ const REFERENCE_PARAMETERS = [
 	},
 ];
 
-for (const { code, name } of OPTION_PARAMETERS) {
-	ruleStory.it(
-		`effect/service-parameters accepts ${name}`,
-		[effectResolves(), repositoryHas(serviceModule("src/options.ts", ...REFERENCES, code))],
-		function* ({ check }) {
-			expect(yield* check(serviceParameters)).toEqual([]);
-		},
-	);
-}
+ruleStory.it(
+	"effect/service-parameters accepts plain options held by References and third-party types",
+	[
+		effectResolves(),
+		repositoryHas(
+			...OPTION_PARAMETERS.map(({ code }, index) => serviceModule(`src/options-${String(index).padStart(2, "0")}.ts`, ...REFERENCES, code)),
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check(serviceParameters)).toEqual([]);
+	},
+);
 
-for (const { code, name, parameter } of REFERENCE_PARAMETERS) {
-	ruleStory.it(
-		`effect/service-parameters reports a parameter that takes ${name}`,
-		[effectResolves(), repositoryHas(serviceModule("src/options.ts", ...REFERENCES, code))],
-		function* ({ check, messages }) {
-			yield* check(serviceParameters);
+ruleStory.it(
+	"effect/service-parameters reports Reference keys and service shapes alongside plain options",
+	[
+		effectResolves(),
+		repositoryHas(
+			...REFERENCE_PARAMETERS.map(({ code }, index) => serviceModule(`src/reference-${String(index).padStart(2, "0")}.ts`, ...REFERENCES, code)),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(serviceParameters);
 
-			expect(yield* messages()).toEqual([carries(parameter)]);
-		},
-	);
-}
+		expect(findings.map(({ file, message }) => ({ file, message }))).toEqual(
+			REFERENCE_PARAMETERS.map(({ parameter }, index) => ({
+				file: `src/reference-${String(index).padStart(2, "0")}.ts`,
+				message: carries(parameter),
+			})),
+		);
+	},
+);

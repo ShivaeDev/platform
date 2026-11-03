@@ -28,6 +28,8 @@ export const launchPrompt = Effect.fn("FleetHost.launchPrompt")(function* (host:
 		? workerPrompt({
 				branch: `${host.worker.branchPrefix}${work.workId}`,
 				deliverable: work.deliverable,
+				repository: host.repository,
+				setupCommand: host.worker.setupCommand,
 				sharedEnvironment: host.worker.sharedEnvironment,
 				task: yield* workerBrief(work),
 				workId: work.workId,

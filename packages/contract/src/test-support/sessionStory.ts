@@ -90,7 +90,7 @@ export const sessionStory = storyKit({
 		announce: (person: Person) => {
 			story.tell(`the server announces a change to ${person}'s preferences`);
 			mark(engine);
-			return engine.announce(person);
+			return engine.announce();
 		},
 		bindWithoutOwner: () => {
 			story.tell("the client binds the session contract without an owning registry");
@@ -185,7 +185,7 @@ export function pausedWithChangeHeld() {
 				const alice = engine.clients.alice;
 				alice.registry.set(alice.otherBinding[LiveConnection].paused, true);
 				engine.stored.set("alice", "Written while paused");
-				yield* engine.announce("alice");
+				yield* engine.announce();
 				yield* untilPending(engine, "alice");
 			}),
 	);

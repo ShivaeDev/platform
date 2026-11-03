@@ -2,7 +2,7 @@ import { Context, Effect, Layer } from "effect";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note } from "./lifecycleLog.ts";
 
-class FileService extends Context.Service<FileService, string>()("@test/FileService") {}
+class FileService extends Context.Service<FileService, string>()("@shivaedev/test/test/FileService") {}
 
 const { effectApp } = makeEffectIt({
 	layer: Layer.effect(

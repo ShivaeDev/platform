@@ -2,7 +2,7 @@ import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { formStories } from "./formStories.ts";
 
-class SaveConnection extends Context.Service<SaveConnection, string>()("form/test/SaveConnection") {}
+class SaveConnection extends Context.Service<SaveConnection, string>()("@shivaedev/form/test/SaveConnection") {}
 
 interface Resources {
 	readonly active: Set<string>;

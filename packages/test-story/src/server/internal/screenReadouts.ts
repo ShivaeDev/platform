@@ -1,5 +1,5 @@
-import { screenElements } from "#adapters/screenElements.ts";
-import type { ScreenTarget } from "#screenDriver.ts";
+import { screenElements } from "#server/adapters/screenElements.ts";
+import type { ScreenTarget } from "#server/screenDriver.ts";
 import { accessibility, isRendered, targetName } from "./screenAccessibility.ts";
 
 export function screenReadouts(currentRoot: () => HTMLElement, tell: (line: string) => void, dialogs = true) {

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { integration } from "#test/postgres-example/integration.ts";
 import { commitIsHeld, editorsAreOpen, liveRefreshBesideDirtyName, writerCommitHeld } from "#test/postgres-example/liveTraits.ts";

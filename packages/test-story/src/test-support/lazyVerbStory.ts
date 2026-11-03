@@ -1,4 +1,4 @@
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export const lazyVerbStory = storyKit({
 	create: (): { count: number; reads: number } => ({ count: 0, reads: 0 }),

@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 
-export class RuntimeValue extends Context.Service<RuntimeValue, string>()("@test/PlatformRuntimeValue") {}
-export class RuntimeOther extends Context.Service<RuntimeOther, string>()("@test/PlatformRuntimeOther") {}
+export class RuntimeValue extends Context.Service<RuntimeValue, string>()("@shivaedev/server/test/PlatformRuntimeValue") {}
+export class RuntimeOther extends Context.Service<RuntimeOther, string>()("@shivaedev/server/test/PlatformRuntimeOther") {}
 
 export function runtimeLayer(lifecycle: string[]) {
 	return Layer.merge(

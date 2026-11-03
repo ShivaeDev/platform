@@ -4,7 +4,7 @@ import { MinimumLogLevel } from "effect/References";
 export class RecordedLogs extends Context.Service<
 	RecordedLogs,
 	Array<{ readonly annotations: Record<string, unknown>; readonly cause: string; readonly level: string; readonly message: unknown }>
->()("sql/test/RecordedLogs") {
+>()("@shivaedev/sql/test/RecordedLogs") {
 	static readonly layer = Layer.unwrap(
 		Effect.sync(() => {
 			const entries: RecordedLogs["Service"] = [];

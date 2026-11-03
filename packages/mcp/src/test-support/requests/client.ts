@@ -16,5 +16,11 @@ export function tool(name: string) {
 export function call(client: McpClient.McpClient, name: string) {
 	return client
 		.callTool({ schema: Schema.String, tool: tool(name) })
-		.pipe(Effect.catchReason("McpClientError", "ProtocolError", (reason) => Effect.succeed(`refused: ${reason.description}`)));
+		.pipe(
+			Effect.catchReason("McpClientError", "ProtocolError", (reason, error) =>
+				reason.code === -32_602 && reason.description === `Tool '${name}' not found`
+					? Effect.succeed({ refused: "tool not found", tool: name })
+					: Effect.fail(error),
+			),
+		);
 }

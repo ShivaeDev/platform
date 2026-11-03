@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
-import type { ScreenTarget } from "#screenDriver.ts";
+import { outcomes } from "#server/outcomes.ts";
+import type { ScreenTarget } from "#server/screenDriver.ts";
 import { refusalOf } from "#test/attempt.ts";
 import { scopedScreen } from "#test/scopedScreen.ts";
 

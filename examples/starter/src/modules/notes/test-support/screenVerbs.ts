@@ -2,7 +2,7 @@ import { Effect, Fiber } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { countWords } from "@shivaedev/test/answers.ts";
+import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenView } from "#test-support/screenState.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";

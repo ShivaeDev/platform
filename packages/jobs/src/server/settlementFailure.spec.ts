@@ -1,6 +1,6 @@
 import { Redacted, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { ProviderRejected } from "#test/ProviderRejected.ts";
 import { running, runtime } from "#test/runtime/kit.ts";
 import { settlementFailsWith } from "#test/runtime/settlementFailsWith.ts";

@@ -1,4 +1,4 @@
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { rateLimited, timedHttpApp } from "#test/httpFaultApp.ts";
 
 for (const phase of ["before", "after"] as const) {

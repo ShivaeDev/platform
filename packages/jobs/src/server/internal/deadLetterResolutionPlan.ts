@@ -1,4 +1,4 @@
-import { quotedSchema } from "#internal/storedRows.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
 
 export function deadLetterResolutionPlan(schema: string): string {
 	const quoted = quotedSchema(schema);

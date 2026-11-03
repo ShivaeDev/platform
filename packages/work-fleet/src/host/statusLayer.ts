@@ -14,8 +14,8 @@ import { executing, type FleetRecord } from "#model.ts";
 
 const { SourceFailure } = diagnosticsApi;
 
-class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
-class StatusGithub extends Context.Service<StatusGithub, Effect.Effect<readonly GithubObservation[]>>()("Fleet/StatusGithub") {}
+class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("@shivaedev/work-fleet/StatusHealth") {}
+class StatusGithub extends Context.Service<StatusGithub, Effect.Effect<readonly GithubObservation[]>>()("@shivaedev/work-fleet/StatusGithub") {}
 
 export function statusLayer(
 	root: string,
@@ -23,7 +23,7 @@ export function statusLayer(
 	background = false,
 ) {
 	const StatusPublication = defineService({
-		id: "Fleet/StatusPublication",
+		id: "@shivaedev/work-fleet/StatusPublication",
 		initialize: Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			const publicationScope = background ? yield* Effect.scope : undefined;
@@ -33,19 +33,22 @@ export function statusLayer(
 			const realRoot = yield* fs.realPath(root);
 			const lock = yield* Semaphore.make(1);
 			const snapshot = yield* Ref.make<FleetHealth | null>(null);
-			const publication = Effect.fn("FleetStatus.publication")(function* (read: typeof fleet.list) {
-				const records = (yield* read()).map(({ value }) => value);
-				yield* writeStatus(root, realRoot, records).pipe(
-					Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)),
-				);
-				if (healthConfig === undefined) {
-					return;
-				}
-				const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
-				const nextHealth = fleetHealth(records, yield* github, { ...(yield* healthConfig), ...state }, yield* Clock.currentTimeMillis);
-				yield* Ref.set(snapshot, nextHealth);
-				yield* writeHealth(root, realRoot, nextHealth);
-			});
+			const publication = Effect.fn("FleetStatus.publication")(
+				function* (read: typeof fleet.list) {
+					const records = (yield* read()).map(({ value }) => value);
+					yield* writeStatus(root, realRoot, records).pipe(
+						Effect.catch((error) => Console.error(`work-fleet: status publication failed: ${error.message}`)),
+					);
+					if (healthConfig === undefined) {
+						return;
+					}
+					const state = health._tag === "Some" ? yield* Ref.get(health.value) : { lastCapacityRejection: null, lastSchedulerPass: null };
+					const nextHealth = fleetHealth(records, yield* github, { ...(yield* healthConfig), ...state }, yield* Clock.currentTimeMillis);
+					yield* Ref.set(snapshot, nextHealth);
+					yield* writeHealth(root, realRoot, nextHealth);
+				},
+				Effect.provideService(FileSystem.FileSystem, fs),
+			);
 			function publishFrom(read: typeof fleet.list) {
 				return lock.withPermit(publication(read)).pipe(Effect.catch((error) => Console.error(`work-fleet: publication failed: ${error.message}`)));
 			}

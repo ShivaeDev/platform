@@ -5,7 +5,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { clientIp, railway } from "#test/better-auth/clientIp.ts";
 
 clientIp.it(
-	"the starter's Railway trust stores the forwarded client IP and sends a secure session cookie",
+	"Railway proxy trust stores the forwarded client IP and sends a secure session cookie",
 	[railway],
 	function* ({ signUp, signInResponse, storedSessions }) {
 		yield* signUp();
@@ -30,14 +30,10 @@ clientIp.it(
 	},
 );
 
-clientIp.it(
-	"the starter's Railway trust accepts the forwarded HTTPS origin and refuses an HTTP or foreign origin",
-	[railway],
-	function* ({ rpcStatus }) {
-		yield* outcomes([
-			["foreign origin", () => rpcStatus("https://elsewhere.example"), HttpStatus.fromLiteral("Forbidden")],
-			["HTTPS public origin", () => rpcStatus("https://app.example"), HttpStatus.fromLiteral("OK")],
-			["wrong scheme", () => rpcStatus("http://app.example"), HttpStatus.fromLiteral("Forbidden")],
-		]);
-	},
-);
+clientIp.it("Railway proxy trust accepts the forwarded HTTPS origin and refuses an HTTP or foreign origin", [railway], function* ({ rpcStatus }) {
+	yield* outcomes([
+		["foreign origin", () => rpcStatus("https://elsewhere.example"), HttpStatus.fromLiteral("Forbidden")],
+		["HTTPS public origin", () => rpcStatus("https://app.example"), HttpStatus.fromLiteral("OK")],
+		["wrong scheme", () => rpcStatus("http://app.example"), HttpStatus.fromLiteral("Forbidden")],
+	]);
+});

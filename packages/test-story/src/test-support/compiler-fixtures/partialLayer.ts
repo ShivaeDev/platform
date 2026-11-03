@@ -1,8 +1,8 @@
 import { Context, Layer } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
-class PgBoss extends Context.Service<PgBoss, number>()("compiler/PgBoss") {}
-class Ledger extends Context.Service<Ledger, number>()("compiler/Ledger") {}
+class PgBoss extends Context.Service<PgBoss, number>()("@shivaedev/test-story/compiler/PgBoss") {}
+class Ledger extends Context.Service<Ledger, number>()("@shivaedev/test-story/compiler/Ledger") {}
 
 storyKit({
 	after: { built: () => undefined },

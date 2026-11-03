@@ -1,7 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceCredentialsSet, browser, onlyFullChromiumCached } from "#test/browser.ts";
-import { addIsBlocked, liveBrowser, navigationFails, nonRpcFrame } from "#test/liveBrowser.ts";
 
 browser.it(
 	"a check of / and /notes visits both pages in order and saves each as a numbered PNG screenshot",
@@ -113,11 +112,6 @@ browser.it(
 );
 
 for (const [name, args, failure] of [
-	[
-		"live notes without test-user credentials",
-		["--live-notes"],
-		"--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD for an existing disposable user.",
-	],
 	["a page that answers HTTP 404", ["--page", "/missing"], "Error: Page the app/missing returned HTTP 404."],
 	["text absent from the page", ["--text", "Text absent from the app"], "TimeoutError: locator.waitFor: Timeout 5000ms exceeded."],
 	[
@@ -132,62 +126,3 @@ for (const [name, args, failure] of [
 		expect(yield* outcome()).toBe(`failed: ${failure}`);
 	});
 }
-
-liveBrowser.it(
-	"failed navigation leaves no unhandled live-wait rejection after the tabs close",
-	[navigationFails()],
-	function* ({ checksLiveNotes, closesTabs, outcome, unhandledRejections }) {
-		yield* checksLiveNotes();
-		yield* closesTabs();
-
-		yield* outcomes([
-			["check", () => outcome(), "failed"],
-			["unhandled rejections", () => unhandledRejections(), []],
-		]);
-	},
-);
-
-liveBrowser.it(
-	"a live-wait timeout during an unfinished add leaves no unhandled rejection",
-	[addIsBlocked()],
-	function* ({ checksLiveNotes, closesTabs, outcome, unhandledRejections }) {
-		yield* checksLiveNotes();
-		yield* closesTabs();
-
-		yield* outcomes([
-			["check", () => outcome(), "failed"],
-			["unhandled rejections", () => unhandledRejections(), []],
-		]);
-	},
-);
-
-liveBrowser.it(
-	"closing tabs during an unfinished add fails the check without an unhandled rejection",
-	[addIsBlocked()],
-	function* ({ startsLiveCheck, waitsForDraft, closesTabs, outcome, unhandledRejections }) {
-		yield* startsLiveCheck();
-		yield* waitsForDraft();
-
-		yield* closesTabs();
-
-		yield* outcomes([
-			["check", () => outcome(), "failed"],
-			["unhandled rejections", () => unhandledRejections(), []],
-		]);
-	},
-);
-
-for (const kind of ["Resync", "Changed", "notes.list"] as const) {
-	liveBrowser.it(`a non-RPC ${kind} frame cannot verify the live check`, [nonRpcFrame(kind)], function* ({ checksLiveNotes, closesTabs, outcome }) {
-		yield* checksLiveNotes();
-		yield* closesTabs();
-
-		expect(yield* outcome()).toBe("failed");
-	});
-}
-
-liveBrowser.it("RPC hints and a list request verify the two-tab live check", [], function* ({ checksLiveNotes, outcome }) {
-	yield* checksLiveNotes();
-
-	expect(yield* outcome()).toBe("passed");
-});

@@ -85,7 +85,7 @@ for (const source of ["argument", "stdin"] as const) {
 				step: resumed.step,
 			}).toEqual({
 				launches: [started.attempts[0]?.operationId],
-				prompt: ANSWER,
+				prompt: expect.stringContaining(ANSWER),
 				response: expect.not.stringContaining("fleet-action"),
 				session: started.attempts[0]?.receipt?.sessionId,
 				step: "working",

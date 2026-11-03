@@ -13,13 +13,10 @@ export const PullRequest = Schema.Struct({
 	number: Positive,
 	state: Schema.Literals(["open", "closed"]),
 }).pipe(Schema.encodeKeys({ changedFiles: "changed_files", htmlUrl: "html_url" }));
-export const FilePages = Schema.Array(
-	Schema.Array(
-		Schema.Struct({ filename: Schema.String, previousFilename: Schema.optional(Schema.String) }).pipe(
-			Schema.encodeKeys({ previousFilename: "previous_filename" }),
-		),
-	),
+export const ChangedFile = Schema.Struct({ filename: Schema.String, previousFilename: Schema.optional(Schema.String) }).pipe(
+	Schema.encodeKeys({ previousFilename: "previous_filename" }),
 );
+export const FilePages = Schema.Array(Schema.Array(ChangedFile));
 
 export interface GithubRead {
 	readonly get: (endpoint: string) => Effect.Effect<string, FleetError>;

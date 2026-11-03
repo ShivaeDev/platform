@@ -1,6 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Effect, FileSystem, Schema } from "effect";
+import { Publication, publishOnce } from "@shivaedev/work-board/server/publication.ts";
+import { readPublication } from "#board/readPublication.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
-import { reportPayloadFile } from "#board/reportPayloadFile.ts";
 import { BoardFailure, type BoardWork } from "#policy.ts";
 import type { ReportFile } from "#reportAttachments.ts";
 import { ReportFileFailure } from "#reportFileFailure.ts";
@@ -52,22 +53,38 @@ export function reportPayload(root: string, work: BoardWork, observation: Sessio
 				)
 			: decode(content, payloadPath);
 	}
-	function failure(error: ReportFileFailure) {
+	function failure(error: { readonly message: string }) {
 		return new BoardFailure({ message: error.message });
 	}
+	const read = Effect.gen(function* () {
+		const fs = yield* FileSystem.FileSystem;
+		const realRoot = yield* fs.realPath(root);
+		const content = yield* readPublication(root, realRoot, payloadPath, {
+			bytes: REPORT_LIMITS.attachmentBytes * 2 + 512 * 1024,
+			reason: "Report payload exceeds size limit",
+		});
+		if (content !== undefined) {
+			yield* publishOnce({ content, path: payloadPath, realRoot, root }).pipe(Effect.provide(Publication.layer));
+		}
+		return content;
+	});
 	return {
-		read: reportPayloadFile(root, itemId).pipe(
+		read: read.pipe(
 			Effect.flatMap((content) => (content === undefined ? Effect.succeed(undefined) : decode(content, payloadPath))),
 			Effect.mapError(failure),
 		),
 		save: (payload: ReportPayload) =>
-			reportPayloadFile(
-				root,
-				itemId,
-				JSON.stringify({
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const content = JSON.stringify({
 					files: payload.files.map(({ path, bytes }) => ({ base64: Buffer.from(bytes).toString("base64"), path })),
 					output: payload.output,
-				}),
-			).pipe(Effect.flatMap(saved), Effect.mapError(failure)),
+				});
+				yield* publishOnce({ content, path: payloadPath, realRoot: yield* fs.realPath(root), root }).pipe(
+					Effect.provide(Publication.layer),
+					Effect.catchTag("Conflict", () => Effect.void),
+				);
+				return yield* read.pipe(Effect.flatMap(saved));
+			}).pipe(Effect.mapError(failure)),
 	};
 }

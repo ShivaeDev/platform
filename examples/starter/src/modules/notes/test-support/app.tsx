@@ -9,7 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/auth.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
-import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { heldSignIn } from "#modules/notes/test-support/heldSignIn.ts";
@@ -138,12 +138,12 @@ export function notesHostScreen(initial = "/sign-in") {
 			view.registry.get(engine.auth.session.atom).waiting
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
-		function connect() {
+		function connect(session: { readonly id: string }) {
 			const client = makeNotesClient(`${engine.baseUrl}/rpc`, {
 				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructorWS } : {}),
 			});
 			engine.activity = clientActivity(client);
-			return connectModules([notesRegistration(client)]);
+			return clientModules(session, [notesRegistration(client)]);
 		}
 
 		yield* Effect.promise(() => view.render(<App auth={engine.auth} connect={connect} history={engine.history} />));

@@ -56,7 +56,7 @@ engine.it(
 		const continued = yield* fleet.reconcile("one");
 		expect(continued.value.step).toBe("working");
 		expect(continued.value.boardContext).toBe(linkedBrief(source));
-		expect(continued.value.attempts.at(-1)?.prompt).toBe(answer.body);
+		expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);
 		expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 		expect(launches()).toEqual(["operation-1"]);
 	},
@@ -78,7 +78,7 @@ engine.it(
 		const newest = yield* answerWorker(decision, "response.second", "answer", undefined, "orchestrator");
 		const continued = yield* fleet.reconcile("one");
 		expect(continued.value.step).toBe("working");
-		expect(continued.value.attempts.at(-1)?.prompt).toBe(newest.body);
+		expect(continued.value.attempts.at(-1)?.prompt).toContain(newest.body);
 		expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: newest.id }]);
 		expect(
 			providerCalls()

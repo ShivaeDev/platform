@@ -90,14 +90,6 @@ export function collection(name: string, _id: Schema.Top, fields: BucketFields =
 	};
 }
 
-export interface KeyContext {
-	readonly scope: string;
-}
-
-function contextual(key: string, context?: KeyContext): string {
-	return context === undefined ? key : `${JSON.stringify(["session", context.scope])}:${key}`;
-}
-
 function own(key: Key): string {
 	switch (key._tag) {
 		case "List":
@@ -109,12 +101,14 @@ function own(key: Key): string {
 	}
 }
 
-export function readKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
-	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), `${key.collection}:*`] : [own(key)])))].map((key) =>
-		contextual(key, context),
-	);
+export function readKeys(keys: readonly Key[]): readonly string[] {
+	return [...new Set(keys.flatMap((key) => (key._tag === "List" ? [own(key)] : [own(key), `${key.collection}:*`])))];
 }
 
-export function invalidationKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
-	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), key.collection] : [own(key)])))].map((key) => contextual(key, context));
+export function collectionInvalidationKeys(name: string): readonly string[] {
+	return [name, `${name}:*`];
+}
+
+export function invalidationKeys(keys: readonly Key[]): readonly string[] {
+	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), key.collection] : [own(key)])))];
 }

@@ -10,7 +10,7 @@ import { githubToken } from "#host/githubToken.ts";
 const PAGE_LIMIT = 100;
 
 export const GithubApi = defineService({
-	id: "Fleet/GithubApi",
+	id: "@shivaedev/work-fleet/GithubApi",
 	initialize: Effect.gen(function* () {
 		return {
 			blocks: new Map<string, number>(),

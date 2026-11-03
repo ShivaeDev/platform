@@ -5,8 +5,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
+import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { Notes, notes, ReadAccess } from "./notes.ts";
 
@@ -56,8 +56,8 @@ export async function openHost() {
 						Effect.gen(function* () {
 							const { id } = yield* Identity;
 							yield* connected(id);
-							const { subscription, context } = yield* resolveChanges(rpc, queries);
-							return live.subscribe(subscription, context);
+							const subscription = yield* resolveChanges(rpc, queries);
+							return live.subscribe(subscription);
 						}),
 					),
 				"liveSession.get": () =>
@@ -93,7 +93,7 @@ export async function openHost() {
 			close: () => runtime.dispose(),
 			rename: (title: string) => {
 				state.title = title;
-				return runtime.runPromise(Reactivity.invalidate(invalidationKeys([notes.item(0)], { scope: "alice" })));
+				return runtime.runPromise(Reactivity.invalidate(invalidationKeys([notes.item(0)])));
 			},
 			state,
 			url: `http://127.0.0.1:${server.address.port}/rpc`,

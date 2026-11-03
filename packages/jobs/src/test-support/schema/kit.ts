@@ -4,7 +4,7 @@ import { assertPostgresMigrations } from "@shivaedev/sql/assertPostgresMigration
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { PostgresTestDatabase, type PostgresTestServices } from "@shivaedev/test-sql/server/database.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { installPgBossSchema, pgBossSchema } from "#schema.ts";
+import { installPgBossSchema, pgBossSchema } from "#server/schema.ts";
 import { type DatabaseEngine, databaseEngine } from "#test/postgres/databaseEngine.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
 import { listingVerbs } from "#test/postgres/listingVerbs.ts";

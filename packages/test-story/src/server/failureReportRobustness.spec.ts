@@ -1,5 +1,5 @@
-import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { expect } from "@effect/vitest";
+import { outcomes } from "#server/outcomes.ts";
 import { BLOCKED_SNAPSHOT_STORIES, rerun as rerunCommand } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 

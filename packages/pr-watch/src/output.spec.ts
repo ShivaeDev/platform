@@ -69,3 +69,24 @@ watch.it(
 		expect(yield* programOutcome()).toEqual(["WatchError: PermissionDenied: FileSystem.read", "WatchError: Output stream failed"]);
 	},
 );
+
+watch.it(
+	"an application callback failure keeps the transition available after restart",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ merges, refuseNextOutput, runOnce, programOutcome, printed, restart, savedSnapshot }) {
+		yield* merges(1);
+		yield* refuseNextOutput();
+
+		yield* runOnce();
+
+		yield* outcomes([
+			["outcome", () => programOutcome(), ["ConsumerFailure: GitHub request failed: Consumer refused the event"]],
+			["saved snapshot", () => savedSnapshot(1), "open, auto-merge"],
+			["printed", () => printed(), ["error", "stopped: failed"]],
+		]);
+
+		yield* restart();
+
+		expect(yield* printed()).toEqual(["error", "stopped: failed", "PR 1 merged"]);
+	},
+);

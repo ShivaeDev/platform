@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { defineSchedule } from "#defineSchedule.ts";
-import { defineQueue } from "#definition.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { running } from "#test/postgres/traits.ts";
 import { cleanupSchedule, emailQueue, queueNames } from "#test/queueNames.ts";

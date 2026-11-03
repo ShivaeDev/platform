@@ -17,7 +17,7 @@ describe("continuation launch backpressure", () => {
 			engine.it(
 				`a rejected continuation from ${checksFailure ? "waiting" : "completed"} retries its saved message on the same thread`,
 				[queuedContinuationTrait],
-				function* ({ launches, providerCalls, finishWorkers, prepareWork, restart, fleet, schedule }) {
+				function* ({ launches, providerCalls, finishWorkers, workerReports, prepareWork, restart, fleet, schedule }) {
 					yield* prepareWork("one");
 					yield* fleet.dispatch("one");
 					finishWorkers();
@@ -47,15 +47,15 @@ describe("continuation launch backpressure", () => {
 					expect(accepted.launchRetry).toBeUndefined();
 					expect(accepted.attentionOwner).toBeUndefined();
 					expect(accepted.attempts.at(-1)).toMatchObject({
-						prompt: "Check another case",
+						prompt: expect.stringContaining("Check another case"),
 						receipt: { sessionId },
 						role: "repair",
 						settings: { model: "initial-model" },
 					});
 					expect(accepted.history).toMatchObject([{ attempts: stopped.attempts, step: stopped.step }]);
 					expect(launches()).toEqual(["operation-1", "operation-2"]);
-					finishWorkers();
-					expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { evidence: ["Check another case"] }, step: "done" });
+					workerReports("Checked the additional case.");
+					expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { evidence: ["Checked the additional case."] }, step: "done" });
 				},
 			);
 		}

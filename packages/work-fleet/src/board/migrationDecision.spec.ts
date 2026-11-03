@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
 import { MIGRATED } from "#test/boardDecisionVerbs.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 

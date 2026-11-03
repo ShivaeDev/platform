@@ -14,13 +14,21 @@ export function appTemplate(template: Template, minimal = false): Template {
 		return files;
 	}
 	return files
-		.filter((entry) => !entry.path.startsWith("src/modules/notes/"))
+		.filter((entry) => !(entry.path.startsWith("src/modules/notes/") || entry.path.startsWith("tooling/notes/")))
 		.map((entry) => {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
 			}
 			// Updates must reconstruct historical minimal files exactly to recognize unmodified deletions.
-			if (!["src/admin/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
+			if (
+				![
+					"src/admin/foundation.ts",
+					"src/admin/modules.ts",
+					"src/server/modules.ts",
+					"src/server/workerModules.ts",
+					"src/client/modules.ts",
+				].includes(entry.path)
+			) {
 				return entry;
 			}
 			const source = Buffer.from(entry.content, "base64")
@@ -89,7 +97,11 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 			versions,
 		),
 		devDependencies: registryDependencies(manifest.devDependencies, versions),
-		scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
+		scripts: Object.fromEntries(
+			Object.entries(scripts)
+				.filter(([name]) => !minimal || name !== "browser-check:live-notes")
+				.map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")]),
+		),
 	};
 	return manifestJson(prepared);
 }

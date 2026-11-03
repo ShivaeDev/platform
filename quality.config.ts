@@ -63,7 +63,6 @@ export default defineConfig({
 		"boundaries/auth-sql": {
 			options: {
 				owners: [
-					{ glob: "packages/admin/src/server/users.ts", reason: "Admin implements user listing over the auth provider storage." },
 					{ glob: "packages/identity/src/server/better-auth/**", reason: "Identity owns Better Auth storage and provider integration." },
 					{ glob: "examples/starter/src/server/migrations/0001_auth.ts", reason: "This migration creates the Better Auth tables." },
 					{
@@ -88,7 +87,7 @@ export default defineConfig({
 					},
 					{ glob: "packages/pr-watch/src/requestFailure.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
 					{
-						glob: "packages/react/src/client/authAction.ts",
+						glob: "packages/identity/src/client/adapters/authCall.ts",
 						reason: "This Better Auth client adapter translates HTTP rate limits into typed AuthFailure errors.",
 					},
 				],

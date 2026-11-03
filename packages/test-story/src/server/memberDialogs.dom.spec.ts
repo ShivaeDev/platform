@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { refusal, refusalOf } from "#test/attempt.ts";
 import { memberDialogs, twoMembers } from "#test/memberDialogs.tsx";
 

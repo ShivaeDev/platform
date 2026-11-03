@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { settledReferencesFixture } from "#test/settledReferencesFixture.ts";
 

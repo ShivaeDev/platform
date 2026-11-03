@@ -11,9 +11,9 @@ export type QueryRerun<E = unknown, R = never> = (request: QueryRequest) => Effe
 
 export interface QuerySubscription<E = never, R = never> {
 	readonly authorized: Effect.Effect<boolean, E, R>;
-	readonly globalKeys?: readonly Key[];
 	readonly keys: readonly Key[];
 	readonly queries?: readonly QueryRequest[];
+	readonly readScopes?: Effect.Effect<readonly (readonly Key[])[], E, R>;
 	readonly refresh?: Effect.Effect<Context.Context<never>, E, R>;
 	readonly scopes: readonly (readonly Key[])[];
 }
@@ -37,7 +37,10 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 				const context = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
 				return {
 					check: Effect.provideContext(checkQuery(query, payload, viewer), context),
-					keys: queryReadKeys(query, payload, viewer).pipe(Effect.provideContext(context)),
+					keys: Effect.gen(function* () {
+						const current = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
+						return yield* queryReadKeys(query, payload, viewer).pipe(Effect.provideContext(current));
+					}),
 					permitted: Effect.gen(function* () {
 						const current = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
 						return yield* Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)).pipe(Effect.provideContext(current));
@@ -46,14 +49,12 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 			}),
 		);
 		yield* Effect.forEach(policies, ({ check }) => check);
-		const scopes = yield* Effect.forEach(policies, ({ keys }) => keys);
+		const readScopes = Effect.forEach(policies, ({ keys }) => keys);
+		const scopes = yield* readScopes;
 		const authorized = Effect.map(
 			Effect.forEach(policies, ({ permitted }) => permitted),
 			(permissions) => permissions.every(Boolean),
 		);
-		const globalKeys = queries.flatMap(
-			({ query }) => query.readsCollections?.map((collection) => ({ _tag: "List" as const, collection: collection.name })) ?? [],
-		);
-		return { authorized, globalKeys, keys: scopes.flat(), queries, scopes } satisfies QuerySubscription<unknown, unknown>;
+		return { authorized, keys: scopes.flat(), queries, readScopes, scopes } satisfies QuerySubscription<unknown, unknown>;
 	})();
 }

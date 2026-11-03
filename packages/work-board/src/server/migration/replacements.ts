@@ -1,5 +1,5 @@
+import { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 import { states } from "#server/migration/oldVocabulary.ts";
-import { sourceHeader } from "#server/migration/sourceHeader.ts";
 
 function successorsOf(data: Readonly<Record<string, unknown>>) {
 	const named = data.superseded_by ?? data.replaced_by;
@@ -38,7 +38,7 @@ function successorsOf(data: Readonly<Record<string, unknown>>) {
 export function replacements(files: readonly { readonly file: string; readonly source: string }[]) {
 	const records = files.flatMap(({ file, source }) => {
 		const header = sourceHeader(source);
-		return header ? [{ data: header.doc.toJS(), file }] : [];
+		return header ? [{ data: header.data, file }] : [];
 	});
 	const ids = new Set(records.map(({ data }) => data.id));
 	const replaced = new Set(

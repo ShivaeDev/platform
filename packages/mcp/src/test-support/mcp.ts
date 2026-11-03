@@ -6,10 +6,12 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 import { admissionVerbs } from "./admissionVerbs.ts";
+import { banVerbs } from "./banVerbs.ts";
 import { clientVerbs } from "./client.ts";
 import { discoveryReadouts } from "./discoveryReadouts.ts";
 import { grantVerbs } from "./grantVerbs.ts";
 import { type Engine, startEngine } from "./host.ts";
+import { mixedAuthVerbs } from "./mixedAuthVerbs.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 import { tokenVerbs } from "./tokenVerbs.ts";
 
@@ -30,9 +32,11 @@ const definition = {
 	verbs: (engine: Engine, story: { readonly tell: (line: string) => void }) => ({
 		...adminVerbs(engine, story.tell),
 		...admissionVerbs(engine, story.tell),
+		...banVerbs(engine, story.tell),
 		...clientVerbs(engine, story.tell),
 		...discoveryReadouts(engine),
 		...grantVerbs(engine, story.tell),
+		...mixedAuthVerbs(engine, story.tell),
 		...oauthVerbs(engine, story.tell),
 		...tokenVerbs(engine, story.tell),
 	}),

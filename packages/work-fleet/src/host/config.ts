@@ -49,6 +49,7 @@ const settingFields = {
 		Schema.Struct({
 			branchPrefix: Text,
 			reviewerGuidance: Schema.optional(Guidance),
+			setupCommand: Schema.optional(Text),
 			sharedEnvironment: Text,
 			workerGuidance: Schema.optional(Guidance),
 		}),

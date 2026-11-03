@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import * as Effect from "effect/Effect";
-import { makeForwardingProxy } from "#adapters/makeForwardingProxy.ts";
-import { loopbackServer } from "#internal/loopback.ts";
+import { makeForwardingProxy } from "#server/adapters/makeForwardingProxy.ts";
+import { loopbackServer } from "#server/internal/loopback.ts";
 
 export interface ForwardingProxyOptions {
 	readonly forwardedHops?: readonly string[];

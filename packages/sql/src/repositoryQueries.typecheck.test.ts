@@ -4,7 +4,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { type FindMany, makeRepository } from "#repository.ts";
 
-class Codec extends Context.Service<Codec, string>()("WindowCodec") {}
+class Codec extends Context.Service<Codec, string>()("@shivaedev/sql/WindowCodec") {}
 const Name = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((value: string) => Effect.map(Codec, (prefix) => value.slice(prefix.length))),

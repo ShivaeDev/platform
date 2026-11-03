@@ -3,7 +3,7 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
 import { host } from "./story.ts";
 
-const Note = Context.Service<string>("publicReasonNote");
+const Note = Context.Service<string>("@shivaedev/server/publicReasonNote");
 const group = RpcGroup.make(
 	Rpc.make("nativeStack", {
 		payload: {

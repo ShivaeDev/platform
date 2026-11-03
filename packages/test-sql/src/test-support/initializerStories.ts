@@ -1,9 +1,10 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { CloneStory, tableNames } from "./cloneStory.ts";
+import { storyDatabase } from "#server/storyDatabase.ts";
 import { type InitializerSource, initializerLayer } from "./initializerLayer.ts";
 import { configured } from "./postgres.ts";
+import { tableNames } from "./tableNames.ts";
 
 const appState = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -14,18 +15,18 @@ const appState = Effect.gen(function* () {
 function initializerKit(source: InitializerSource) {
 	const { layer, preparation } = initializerLayer(source);
 	return storyKit({
-		after: { database: (engine) => engine.acquire() },
+		after: { database: (engine) => engine.acquire },
 		clock: "live",
-		create: () => new CloneStory(),
-		inspect: (engine) => ({ preparation, template: engine.template }),
+		create: () => storyDatabase(),
+		inspect: () => ({ preparation }),
 		layer,
 		name: `initializer through ${source}`,
 		runIf: configured,
 		stages: ["database"],
-		verbs: (engine, story) => ({
+		verbs: (_engine, story) => ({
 			appState: () => {
 				story.tell("the story reads the initialized application state");
-				return engine.run(appState);
+				return appState;
 			},
 			initializerResources: () => {
 				story.tell("the story reads whether initializer resources were released");
@@ -37,7 +38,7 @@ function initializerKit(source: InitializerSource) {
 			},
 			tables: () => {
 				story.tell("the story reads the cloned database’s tables");
-				return engine.run(tableNames);
+				return tableNames;
 			},
 		}),
 	});
@@ -49,6 +50,6 @@ export const firstDeployment = urlInitializer.trait(
 	"database",
 	"the app has never been deployed, so the story starts from the empty template",
 	(engine) => {
-		engine.template = "empty";
+		engine.select("empty");
 	},
 );

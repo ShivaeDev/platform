@@ -23,7 +23,7 @@ function failUnavailable() {
 	return Effect.fail(unavailable());
 }
 export const SettingsService = defineService({
-	id: "settings-example/Service",
+	id: "@shivaedev/react/settings-example/Service",
 	initialize: Effect.void,
 	methods: () => ({
 		get: (userId: string, entityId: number) =>

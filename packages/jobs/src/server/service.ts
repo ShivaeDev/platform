@@ -2,19 +2,22 @@ import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
-import { clientErrorLogger } from "#adapters/clientErrorLogger.ts";
-import { clientErrorReporter } from "#adapters/clientErrorReporter.ts";
-import type { PgBossClientFactory } from "#client.ts";
-import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
-import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
-import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
-import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
-import { makeService } from "#internal/makeService.ts";
-import { registrationName } from "#internal/register.ts";
-import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
-import { validateQueueNames } from "#internal/validateQueueNames.ts";
-import { PgBoss } from "#PgBoss.ts";
+import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
+import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
+import { jobEngine } from "#server/adapters/jobEngine.ts";
+import { clientEngine } from "#server/adapters/lifecycle.ts";
+import type { PgBossClientFactory } from "#server/client.ts";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
+import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
+import { JobEngine } from "#server/internal/engine.ts";
+import { ClientEngine } from "#server/internal/lifecycle.ts";
+import { makeService } from "#server/internal/makeService.ts";
+import { registrationName } from "#server/internal/register.ts";
+import { registerReleasedJobs } from "#server/internal/registerReleasedJobs.ts";
+import { validateQueueNames } from "#server/internal/validateQueueNames.ts";
+import { PgBoss } from "#server/PgBoss.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
@@ -60,20 +63,19 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 		PgBoss,
 		Effect.gen(function* () {
 			const report = yield* clientErrorLogger();
-			const acquired = yield* Effect.acquireRelease(
-				acquireClient(
-					{
-						clientCacheKey,
-						clientFactory,
-						constructor: constructorOptions,
-					},
-					report,
-				),
-				(client) => releaseClient(client, stop),
+			const engine = yield* ClientEngine;
+			const acquired = yield* engine.acquire(
+				{
+					clientCacheKey,
+					clientFactory,
+					constructor: constructorOptions,
+				},
+				report,
+				stop,
 			);
 			return { ...acquired, schema: settings.schema, stop };
 		}),
-	);
+	).pipe(Layer.provide(Layer.succeed(ClientEngine, clientEngine)));
 }
 
 export interface PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> {
@@ -103,7 +105,9 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				yield* validateQueueNames(options.jobs, queueNames);
 				const acquired = yield* PgBoss;
 				const workerScope = yield* Scope.make();
-				const service = makeService(acquired.client, options.jobs.map(registrationName), acquired.schema);
+				const service = yield* makeService(acquired.client, options.jobs.map(registrationName), acquired.schema).pipe(
+					Effect.provideService(JobEngine, jobEngine(acquired.client, acquired.schema)),
+				);
 				yield* Effect.gen(function* () {
 					const context = yield* Effect.context<R | E>();
 					const reportError = options.onError ?? logClientError;

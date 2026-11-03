@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { ready, tracingApp } from "#test/tracingApp.ts";
 
 tracingApp.it("starts each request in a root span of its own", [], function* ({ sendsRequest, serverSpans }) {

@@ -5,7 +5,7 @@ import { query } from "@shivaedev/contract/operation.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export const notes = collection("notes", Schema.Number);
-export class ReadAccess extends Context.Service<ReadAccess, () => boolean>()("test/LiveReadAccess") {}
+export class ReadAccess extends Context.Service<ReadAccess, () => boolean>()("@shivaedev/react/test/LiveReadAccess") {}
 export const Notes = contract("liveSession", {
 	keyScope: "session",
 	queries: [

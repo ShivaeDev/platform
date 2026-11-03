@@ -10,15 +10,15 @@ Polling each PR with a separate process repeats setup and burns quota. `pr-watch
 pr-watch --repo acme/project --fleet
 ```
 
-```json
-{ "branch": "feature", "event": "merged", "number": 42, "title": "Ship the feature" }
+```text
+{"branch":"feature","event":"merged","head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","number":42,"title":"Ship the feature"}
 ```
 
-Each PR event occupies one JSON line with its PR number, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
+Each PR event occupies one JSON line with its PR number, observed head SHA, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
 
 ## Run the watcher
 
-Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline. If the PR is already queued or has auto-merge enabled with conflicts or failing required checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
+Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline and reports any existing conflict, including before auto-merge or queue entry. If the PR is already queued or has auto-merge enabled with conflicts or failing required checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
 
 ```sh
 pr-watch --repo acme/project 42 57 --state ./watch-state.json
@@ -40,7 +40,7 @@ The watcher emits these transitions, once per successful comparison:
 | ---------------- | ------------------------------------------------------------------------------------------------------------- |
 | `merged`         | The PR becomes merged.                                                                                        |
 | `closed`         | An open PR closes without merging.                                                                            |
-| `conflict`       | An open PR's mergeable state becomes `dirty`.                                                                 |
+| `conflict`       | An open PR is first observed with a conflict, becomes `dirty`, or has a conflicting new head.                 |
 | `queued`         | An open PR enters the merge queue.                                                                            |
 | `dequeued`       | A previously queued open PR has no queue ref, and its own queue entry and auto-merge request are both absent. |
 | `auto-merge-off` | An open PR's auto-merge is disabled outside the queue after being enabled or queued.                          |
@@ -78,7 +78,7 @@ Transitions that reverse between observations, including while the watcher is do
 
 ### Compose the engine
 
-`watch(options, { heartbeat, once }, emit, diagnostic)` from `@shivaedev/pr-watch/program.ts` runs the same polling, health reporting and retry loop as the CLI without parsing arguments. `heartbeat` is milliseconds; `0` disables routine heartbeats. Both callbacks return an Effect with typed `WatchError` failures. The runner requires `Watcher`; `watcherLayer` from `@shivaedev/pr-watch/watcherLayer.ts` supplies the production services, native file system, fetch client and GitHub authentication. Scope and interruption stay with the caller. `Options.numbers` is read each poll, so a caller can supply a getter to include newly published PRs without restarting the engine.
+`watch(options, { heartbeat, once }, emit, diagnostic)` from `@shivaedev/pr-watch/program.ts` runs the same polling, health reporting and retry loop as the CLI without parsing arguments. `heartbeat` is milliseconds; `0` disables routine heartbeats. `emit` receives a `WatchEvent` value from `@shivaedev/pr-watch/outputEvent.ts`; `diagnostic` receives a message string. Both callbacks return Effects, and their failure and service requirement types remain in the runner’s Effect. `TransitionEvent`, `HealthEvent` and their union `WatchEvent` are exported Schemas discriminated by `event`. The CLI writes each value through `encodeJsonLine`, which returns one JSON line including its trailing newline. The runner requires `Watcher`; `watcherLayer` from `@shivaedev/pr-watch/watcherLayer.ts` supplies the production services, native file system, fetch client and GitHub authentication. Scope and interruption stay with the caller. `Options.numbers` is read each poll, so a caller can supply a getter to include newly published PRs without restarting the engine.
 
 The exported `StateFile.layer` requires Effect `FileSystem`. `GitHubHttp.layer` requires the `GitHub` client service from `@shivaedev/github/GitHub.ts`, which owns authentication, conditional representations, Link pagination and rate-limit observations. Provide that client's `GitHub.layer` with Effect `HttpClient` and `GitHubToken.fromEnvOrCli` from `@shivaedev/github/GitHubToken.ts`; this Layer requires `ChildProcessSpawner` and reads `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`. If authentication is unavailable, startup fails with `GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh`. Watcher `Options` contain polling and repository settings; authentication belongs to the Layer. The CLI supplies these Layers, `NodeServices.layer` and a `FetchHttpClient` layer that refuses redirects. GitHub and HTTP failures retain their original typed errors through the watcher. Watcher validation, state and response failures use `WatchError.reason`; wrapped failures retain a non-enumerable `cause`. Retry policy matches classes and fields. The CLI uses Effect CLI and NodeRuntime; SIGINT and SIGTERM interrupt the watch, print the interrupted stop and exit with status 130.
 

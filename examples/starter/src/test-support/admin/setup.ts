@@ -5,13 +5,11 @@ import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapt
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { migrations } from "#server/migrations.ts";
 import { type RunningHost, secret, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { adminCommand } from "./command.ts";
@@ -29,7 +27,7 @@ export const adminSetup = storyKit({
 	inspect: ({ host }) => ({ baseUrl: host?.baseUrl }),
 	layer: postgres,
 	name: "admin setup",
-	stages: ["database", "accounts"],
+	stages: ["accounts"],
 	verbs: (engine, story) => {
 		function host() {
 			if (engine.host === undefined) {
@@ -67,11 +65,6 @@ export const adminSetup = storyKit({
 			}),
 		};
 	},
-});
-
-export const authTablesReady = adminSetup.trait("database", "the app's authentication tables exist", function* () {
-	const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
-	yield* steps.migrateTo("0004_stored_roles");
 });
 
 export const aliceSignedInWithGitHub = adminSetup.trait(

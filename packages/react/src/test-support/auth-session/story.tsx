@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { sessionClient } from "./client.ts";

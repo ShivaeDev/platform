@@ -24,7 +24,7 @@ export class CodexLocalConfig extends Context.Service<CodexLocalConfig, CodexLoc
 
 // The installed CLI schema verifies these local methods; it provides no hosted transport contract.
 const CodexLocal = defineService({
-	id: "Fleet/CodexLocal",
+	id: "@shivaedev/work-fleet/CodexLocal",
 	initialize: Effect.gen(function* () {
 		const config = yield* Schema.decodeUnknownEffect(CodexLocalConfiguration)(yield* CodexLocalConfig).pipe(
 			Effect.mapError(() => failure("unavailable", "Local Codex configuration requires a finite positive request timeout")),

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 
 export interface ScreenSurface {
 	activity?: ClientActivity;

@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { authSession } from "./authSession.ts";
 
 interface Session {
@@ -12,7 +13,7 @@ interface Session {
 interface Refused {
 	readonly code: "REFUSED";
 }
-const session = authSession((_signal) => Promise.resolve<{ data: Session | null; error: Refused | null }>({ data: null, error: null }));
+const session = authSession(readSession((_signal) => Promise.resolve<{ data: Session | null; error: Refused | null }>({ data: null, error: null })));
 export const atom: Atom.Atom<AsyncResult.AsyncResult<Session | null, Refused | AuthUnavailable>> = session.atom;
 export const refresh: Effect.Effect<Session | null, Refused | AuthUnavailable, AtomRegistry.AtomRegistry> = session.refresh;
 // @ts-expect-error Refresh needs the registry that owns the session.

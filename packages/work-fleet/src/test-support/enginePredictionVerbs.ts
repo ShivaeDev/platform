@@ -43,7 +43,11 @@ export function enginePredictionVerbs(state: EngineStory, tell: (line: string) =
 		publishedPredictionResult: (id: string) => repository().result(id),
 		pushWorkerBranch: (id: string, files: Readonly<Record<string, string>>) => {
 			repository().push(id, files);
-			tell(`worker ${id} pushes its branch and opens a PR`);
+			tell(`worker ${id} pushes its PR branch`);
+		},
+		removeWorkerPath: (id: string, path: string) => {
+			repository().remove(id, path);
+			tell(`worker ${id} deletes ${path} and pushes`);
 		},
 		reserveWatchedPr: (id: string) => running(state).fixture.foreign(repository().result(id).pr),
 	};

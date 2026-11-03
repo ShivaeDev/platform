@@ -1,5 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
 import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import type { RouteContext } from "#client/Module.ts";
@@ -12,10 +13,16 @@ import { NotFound } from "./NotFound.tsx";
 import { RouteFailure } from "./RouteFailure.tsx";
 import { NotesScreen } from "./Screen.tsx";
 
-export function notesRegistration(
-	client: NotesClient = makeNotesClient(new URL("/rpc", window.location.href).href),
-	admin: AdminClient = makeAdminClient(new URL("/rpc", window.location.href).href),
-) {
+export function notesRegistration(client?: NotesClient, admin?: AdminClient) {
+	return Effect.map(AtomRegistry.AtomRegistry, (registry) =>
+		notesModule(
+			client ?? makeNotesClient(new URL("/rpc", window.location.href).href, { registry }),
+			admin ?? makeAdminClient(new URL("/rpc", window.location.href).href, { registry }),
+		),
+	);
+}
+
+function notesModule(client: NotesClient, admin: AdminClient) {
 	return {
 		admin: Admin,
 		api: client.api,

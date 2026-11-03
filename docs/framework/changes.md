@@ -14,7 +14,20 @@ After a hosted command's handler returns, the host publishes its declared `inval
 
 Failed declared-key publication retries twice, after 50 ms and 100 ms, without repeating the handler. Exhausted retries preserve the committed result and mark local live streams for Resync, then attempt a broadcast Resync on the PostgreSQL change channel. The broadcast reconciles all listening hosts, including streams whose keys were not in the failed batch. If the channel is unreachable or rejects that broadcast, the server logs the delivery gap: a healthy remote listener can remain stale until a later reconnect, listener recovery or other reconciliation. NOTIFY has no durable replay.
 
-Use `invalidateOnCommit` only for derived keys that neither a repository write nor the command declaration names. Ordinary SQL remains available for joins and exceptional writes, but raw writes must explicitly name their changes.
+Use `invalidateOnCommit` for derived keys that neither a repository write nor the command declaration names. Raw SQL writers declare their changes once with `changes` from `@shivaedev/sql/changes.ts`:
+
+```ts
+const moved = changes({
+  notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)],
+});
+
+yield* Effect.gen(function* () {
+  yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
+  yield* moved.record();
+}).pipe(transact({ onSqlError: (error) => error }));
+```
+
+The table-to-key declaration also goes directly to `withChangeCoverage(body, moved)`. `moved.record({ publication: "local" })` refreshes local readers after commit without sending NOTIFY. `invalidateOnCommit(keys, { publication: "local" })` supports the same option. Publication defaults to `"shared"`; shared recordings in the same transaction still publish, and a key recorded both ways publishes once. Both kinds disappear on rollback.
 
 ## Host and session defaults
 
@@ -32,7 +45,7 @@ PostgreSQL's `pg_stat_xact_user_tables` scan counters cannot identify a query's 
 
 ## Catch uncovered SQL in stories
 
-The sql story kit exposes `withChangeCoverage(body, { covers }?)`, also exported from `@shivaedev/sql/testing.ts`. It runs the body inside `transact`, compares `pg_stat_xact_user_tables` counters before and after it, and requires every declared record and bucket key to have been recorded through `invalidateOnCommit`. Repositories declare their keys automatically. Raw SQL writers declare affected keys by table, for example `{ covers: { notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList)] } }`, including every bucket the row belongs to. A table name alone covers nothing. The check fails with `UnannouncedWrites` before commit and rolls back the body when declarations or recordings are missing. It checks declared keys rather than inspecting arbitrary SQL to infer affected rows; the raw writer remains responsible for complete declarations. PostgreSQL's transaction statistics retain writes from rolled-back savepoints, so those writes still need declarations.
+The sql story kit exposes `withChangeCoverage(body, { covers }?)`, also exported from `@shivaedev/sql/testing.ts`. It runs the body inside `transact`, compares `pg_stat_xact_user_tables` counters before and after it, and requires every declared record and bucket key to have been recorded through `invalidateOnCommit`. Repositories declare their keys automatically. Raw SQL writers pass their `changes` declaration as the second argument, or use `{ covers: { notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList)] } }`, including every bucket the row belongs to. Both shared and local recordings count. A table name alone covers nothing. The check fails with `UnannouncedWrites` before commit and rolls back the body when declarations or recordings are missing. It checks declared keys rather than inspecting arbitrary SQL to infer affected rows; the raw writer remains responsible for complete declarations. PostgreSQL's transaction statistics retain writes from rolled-back savepoints, so those writes still need declarations.
 
 The sql kit's `body.pipe(expectPublished(keys))`, also exported from `@shivaedev/sql/testing.ts`, observes `Published` events on the existing channel and compares distinct keys without regard to order. Wrap the committing body so the check sees publication after commit. Rolled-back keys do not count. `PublishedKeysMismatch` reports `expected` and `actual` keys in its fields and message. It preserves the body's result and existing delivery; an assertion failure after commit cannot undo the write.
 

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { documentData } from "#test/documentRendering.ts";
 import { serverMarkup } from "#test/documentScreens.ts";
 import { documentSource } from "#test/documentSource.ts";

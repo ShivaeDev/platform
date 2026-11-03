@@ -21,7 +21,7 @@ const invalidCreate = Effect.flatMap(GitHub, (github) => {
 const waiting: typeof CreateCheckRun.Type = { headSha: "abc", name: "Coverage", status: "waiting" };
 void [completed, missingConclusion, invalidCreate, waiting];
 
-class DecoderPrefix extends Context.Service<DecoderPrefix, string>()("github/types/DecoderPrefix") {}
+class DecoderPrefix extends Context.Service<DecoderPrefix, string>()("@shivaedev/github/types/DecoderPrefix") {}
 const WithService = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((value: string) => Effect.map(DecoderPrefix, (prefix) => prefix + value)),

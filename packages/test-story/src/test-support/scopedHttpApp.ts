@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { storyKit } from "#storyKit.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { httpClient, type Send } from "./httpClient.ts";
 
 interface Caller {

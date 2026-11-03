@@ -2,13 +2,14 @@ import { Clock, Duration, Effect, Stream } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { CloneStory } from "./cloneStory.ts";
+import { storyDatabase } from "#server/storyDatabase.ts";
 import { configured, setup, values } from "./postgres.ts";
 
 export const cloneClock = storyKit({
+	after: { database: (state) => state.clone.acquire },
 	clock: "test",
 	*create() {
-		const clone = new CloneStory();
+		const clone = yield* storyDatabase();
 		const state = { clone, elapsed: 0, sleeps: 0 };
 		const clock = yield* watchedClock;
 		yield* Stream.runForEach(clock.sleeps, () =>
@@ -16,14 +17,13 @@ export const cloneClock = storyKit({
 				state.sleeps += 1;
 			}),
 		).pipe(Effect.forkScoped);
-		yield* clone.acquire();
 		return state;
 	},
 	inspect: ({ elapsed, sleeps }) => ({ elapsed, sleeps }),
 	layer: setup().layer,
 	name: "clone clock",
 	runIf: configured,
-	stages: [],
+	stages: ["database"],
 	verbs: (state, story) => ({
 		elapsedMilliseconds: () => {
 			story.tell("the story reads the elapsed wall clock time");
@@ -39,11 +39,11 @@ export const cloneClock = storyKit({
 			}),
 		items: () => {
 			story.tell("the story reads the cloned database’s items");
-			return state.clone.run(values);
+			return values;
 		},
 		storyTime: () => {
 			story.tell("the story reads the cloned database’s clock");
-			return state.clone.run(Clock.currentTimeMillis);
+			return Clock.currentTimeMillis;
 		},
 		testClockSleeps: () => {
 			story.tell("the story reads how many sleeps the test clock observed");

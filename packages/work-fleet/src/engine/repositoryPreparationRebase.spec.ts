@@ -18,7 +18,7 @@ for (const scenario of [
 			expect(launched.decision).toBeUndefined();
 			expect(launched.step).toBe("working");
 			expect(launched.preparation).toEqual({ ...preparation, baseRevision: "current-main", observedAt: 200 });
-			expect(fleet.providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one"]);
+			expect(fleet.providerStarts().map(({ prompt }) => prompt)).toEqual([expect.stringContaining("Implement one")]);
 		},
 	);
 }

@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
+import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
 import { browserErrorRoute } from "#browserErrorRoute.ts";
@@ -14,7 +15,6 @@ import { hostRpcRoutes } from "#hostRpcRoutes.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
-import { nodeHttpServer } from "#nodeHttpServer.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
@@ -53,7 +53,7 @@ export function appHostHttp<
 					const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
 					const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
-					const server = nodeHttpServer(host, options.config);
+					const server = nodeHttpServer(host, { ...options.config, maxBodySize: bodySize });
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
 					const httpRoutes = Layer.mergeAll(
 						routes,

@@ -13,7 +13,7 @@ import { revisionOf } from "#server/responses/records.ts";
 import { Workspace } from "#server/workspace.ts";
 
 export const HandoffsService = defineService({
-	id: "WorkBoard/HandoffsService",
+	id: "@shivaedev/work-board/HandoffsService",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
 		return { fs: yield* FileSystem.FileSystem, lock: yield* Semaphore.make(1), options: yield* workspace.settings(), workspace };

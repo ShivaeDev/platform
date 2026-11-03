@@ -45,9 +45,9 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 		hashes.set(index, hash);
 		return { _tag: "Result", query: request.query.name, queryIndex: index, value } satisfies QueryResult;
 	});
-	return Effect.fnUntraced(function* (hint: LiveHint) {
+	return Effect.fnUntraced(function* (hint: LiveHint, scopes: readonly (readonly Key[])[] = subscription.scopes) {
 		const updates: QueryUpdate[] = [];
-		const affected = hint._tag === "Resync" ? undefined : changedHint(hint.keys, subscription.scopes);
+		const affected = hint._tag === "Resync" ? undefined : changedHint(hint.keys, scopes);
 		const matching = queries
 			.map((request, index) => ({ index, request }))
 			.filter(
@@ -58,6 +58,6 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 			const result = yield* resultFor(request, index);
 			updates.push(result);
 		}
-		return [...updates, ...hintsFor(hint, subscription)];
+		return [...updates, ...hintsFor(hint, { ...subscription, scopes })];
 	});
 }

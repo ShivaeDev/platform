@@ -1,5 +1,5 @@
 import { createConnection, createServer, type Socket } from "node:net";
-import type { DisconnectProxyOptions } from "#disconnectProxy.ts";
+import type { DisconnectProxyOptions } from "#server/disconnectProxy.ts";
 import { notificationFilter } from "./notificationFilter.ts";
 
 export async function openDisconnectProxy(destination: string, options: DisconnectProxyOptions) {

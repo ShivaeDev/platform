@@ -17,7 +17,7 @@ export class BoardWorkspace extends Context.Service<
 		readonly paths: () => readonly string[];
 		readonly synchronize: Effect.Effect<void, PlatformError.PlatformError>;
 	}
->()("Test/BoardWorkspace") {}
+>()("@shivaedev/work-board/BoardWorkspace") {}
 
 const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
 
@@ -34,6 +34,7 @@ export function workspaceBoard(files: Readonly<Record<string, string>>, options?
 				Layer.provide([
 					Layer.succeed(WorkspaceConfig, {
 						changes: index.changes,
+						fleetPort,
 						home,
 						index: index.read,
 						pullRequests: Effect.succeed(options?.pullRequests),

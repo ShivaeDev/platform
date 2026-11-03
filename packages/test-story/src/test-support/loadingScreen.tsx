@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
-import { type ScreenDriverOptions, screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { type ScreenDriverOptions, screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { refusal } from "./attempt.ts";
 import { type LoadingIndicator, LoadingPage } from "./LoadingPage.tsx";
 

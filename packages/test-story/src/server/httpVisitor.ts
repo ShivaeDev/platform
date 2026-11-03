@@ -1,8 +1,8 @@
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
-import { visitHttp } from "#adapters/visitHttp.ts";
-import { type ForwardingProxyOptions, forwardingProxy } from "#forwardingProxy.ts";
-import { visitorCookies } from "#internal/visitorCookies.ts";
+import { visitHttp } from "#server/adapters/visitHttp.ts";
+import { type ForwardingProxyOptions, forwardingProxy } from "#server/forwardingProxy.ts";
+import { visitorCookies } from "#server/internal/visitorCookies.ts";
 
 export interface HttpVisitorOptions {
 	readonly baseUrl?: string;

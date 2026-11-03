@@ -3,8 +3,8 @@ import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase } from "#database.ts";
-import { observeUntil } from "#observeUntil.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
+import { observeUntil } from "#server/observeUntil.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { databaseQueries } from "./databaseQueries.ts";
 import { inPlace } from "./inPlace.ts";
@@ -22,7 +22,7 @@ export function writeItem(value: string) {
 }
 
 const Items = defineService({
-	id: "@test/Items",
+	id: "@shivaedev/test-sql/test/Items",
 	initialize: Effect.void,
 	methods: () => ({ rename: (value: string) => Effect.asVoid(writeItem(value)) }),
 	requires: [SqlClient.SqlClient],

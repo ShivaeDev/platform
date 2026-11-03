@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ConfigurationView } from "./ConfigurationView.tsx";
 import { type ConfigurationProps, type Current, firstRuntime, Name, NormalizedName, secondRuntime } from "./configurationModel.ts";

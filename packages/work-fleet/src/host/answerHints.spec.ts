@@ -26,7 +26,7 @@ for (const mode of ["board", "port", "board and port"] as const) {
 			expect((yield* daemon.appliedAnswer()).responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);
 			const resumed = yield* daemon.reconcile();
 			expect(resumed.step).toBe("working");
-			expect(resumed.attempts.at(-1)?.prompt).toBe(text);
+			expect(resumed.attempts.at(-1)?.prompt).toContain(text);
 			const board = ` --board '${daemon.board().replaceAll("'", "'\\''")}'`;
 			const port = ` --port ${daemon.port()}`;
 			const expectedSelection = { board, "board and port": `${board}${port}`, port };

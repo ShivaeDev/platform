@@ -22,7 +22,7 @@
 		"releases": "node --conditions=source packages/releases/src/cli.ts",
 		"setup": "pnpm install --frozen-lockfile && pnpm --filter @shivaedev/work-board-plugin build:client && pnpm hooks && node --conditions=source packages/quality/src/cli.ts baseline install-driver && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
-		"test:ci": "node --conditions=source node_modules/vitest/vitest.mjs run script/ci/TestSequencer.test.ts script/ci/mainShardPlan.test.ts script/ci/mergeConsumerTimings.test.ts script/ci/mergeTestTimings.test.ts script/ci/shard.test.ts script/ci/shardCount.test.ts script/ci/testPackages.test.ts script/ci/timings.test.ts script/ci/timings.unit.test.ts script/ci/workspaceCoverage.spec.ts --configLoader native",
+		"test:ci": "node --conditions=source node_modules/vitest/vitest.mjs run script/ci/TestSequencer.test.ts script/ci/mainShardPlan.test.ts script/ci/mergeConsumerTimings.test.ts script/ci/mergeTestTimings.test.ts script/ci/shard.test.ts script/ci/shardCount.test.ts script/ci/testPackages.test.ts script/ci/timings.test.ts script/ci/timings.unit.test.ts script/ci/workspaceCoverage.heavy.spec.ts --configLoader native",
 		"test:focused-config": "node --conditions=source script/ci/focused-tests.ts",
 		"test:orchestration": "pnpm test:ci && pnpm test:quality && node --conditions=source node_modules/vitest/vitest.mjs run script/package-check/*.test.ts script/package-check/adapters/server.test.ts script/starter-published/*.test.ts script/test-harness/environment.spec.ts script/release/holdReason.unit.test.ts script/release/repository.spec.ts script/release/dependencyRanges.spec.ts script/release/releaseCoverage.spec.ts script/release/publishing.spec.ts script/release/pullRequest.spec.ts script/release/migrationNotes.spec.ts script/release/pullRequestStability.spec.ts script/release/pullRequestHold.spec.ts script/starter-published/portableCommits.spec.ts script/starter-published/packedGenerator.spec.ts --configLoader native",
 		"test:package": "env -u NODE_OPTIONS node --conditions=source packages/heavy-lock/src/cli.ts -- node --conditions=source script/package-check.ts",
@@ -47,7 +47,7 @@
 		"typescript": "catalog:compiler-api",
 		"vitest": "catalog:"
 	},
-	"packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
+	"packageManager": "pnpm@12.16.0+sha512.e9ccc91a0b8d52da297c16841f9ee05f3ddd631bd757ef26a211687d4a38de653c614453649294438c58be74c2ba62d53e633a4e153708c012296d0f3ee27b36",
 	"engines": {
 		"node": ">=24"
 	}

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, ConfigProvider, Effect } from "effect";
 import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
-import { answered } from "@shivaedev/test/answers.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { setupDatabases } from "#setupDatabases.ts";
 

@@ -1,9 +1,9 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { type StoryKit, storyKit, type Trait } from "#storyKit.ts";
+import { type StoryKit, storyKit, type Trait } from "#server/storyKit.ts";
 
-class Count extends Context.Service<Count, number>()("effectHooks/Count") {}
-class Missing extends Context.Service<Missing, number>()("effectHooks/Missing") {}
+class Count extends Context.Service<Count, number>()("@shivaedev/test-story/effectHooks/Count") {}
+class Missing extends Context.Service<Missing, number>()("@shivaedev/test-story/effectHooks/Missing") {}
 class Stuck extends Data.TaggedError("Stuck") {}
 
 interface Engine {
@@ -102,4 +102,39 @@ it("infers the engine and verbs with no available trait stage when the stage lis
 	expectTypeOf(collection).toEqualTypeOf<StoryKit<Set<string>, never, { add: (item: string) => Set<string> }, never, never>>();
 	// @ts-expect-error A kit with no stages cannot accept a staged trait.
 	collection.trait("configured", "the collection starts empty", (items) => items.clear());
+});
+
+class Selected extends Context.Service<Selected, string>()("@shivaedev/test-story/stageServices/Selected") {}
+class App extends Context.Service<App, string>()("@shivaedev/test-story/stageServices/App") {}
+
+const stageKit = storyKit({
+	after: {
+		app: () => Effect.map(Selected, (selected) => Context.make(App, selected)),
+		database: () => Effect.succeed(Context.make(Selected, "selected")),
+	},
+	create: () => ({}),
+	inspect: () => App,
+	name: "stage services",
+	stages: ["database", "app"],
+	verbs: () => ({ selected: () => Selected }),
+});
+
+it("infers services returned by stages for later hooks, traits and the body", () => {
+	const selectedTrait = stageKit.trait("app", "the selected service is read", () => Effect.asVoid(Selected));
+	stageKit.it("reads stage-provided services", [selectedTrait], function* ({ selected }) {
+		expectTypeOf(yield* selected()).toEqualTypeOf<string>();
+		expectTypeOf(yield* App).toEqualTypeOf<string>();
+	});
+	const missing = stageKit.trait("app", "a service is missing", () => Effect.asVoid(Missing));
+	// @ts-expect-error Neither the worker Layer nor a stage provides Missing.
+	stageKit.it("rejects missing services", [missing]);
+});
+
+// @ts-expect-error Creation runs before stage-provided services are available.
+storyKit({
+	after: { database: () => Context.make(Selected, "selected") },
+	create: () => Effect.as(Selected, {}),
+	name: "creation before selection",
+	stages: ["database"],
+	verbs: () => ({}),
 });

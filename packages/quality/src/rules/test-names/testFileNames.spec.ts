@@ -6,7 +6,7 @@ const CART = { content: "export {};\n", path: "src/cart/cart.ts" };
 const BASKET = { content: "export {};\n", path: "src/cart/Basket.tsx" };
 const RENDERS = 'import { render } from "@testing-library/react";\n';
 const GRAMMAR =
-	"A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, slow, typecheck and unit.";
+	"A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, heavy, slow, typecheck and unit.";
 
 const misnamed = [
 	[
@@ -81,6 +81,8 @@ for (const [test, file, message] of misnamed) {
 
 const named = [
 	["a test beside its file", { content: "export {};\n", path: "src/cart/cart.test.ts" }],
+	["a heavy test beside its file", { content: "export {};\n", path: "src/cart/cart.heavy.test.ts" }],
+	["a heavy behaviour spec", { content: "export {};\n", path: "src/cart/checkoutFlow.heavy.spec.ts" }],
 	["a slow test beside its file", { content: "export {};\n", path: "src/cart/cart.slow.test.ts" }],
 	["a typecheck test beside its file", { content: "export {};\n", path: "src/cart/cart.typecheck.test.ts" }],
 	["a unit test beside its file", { content: "export {};\n", path: "src/cart/cart.unit.test.ts" }],

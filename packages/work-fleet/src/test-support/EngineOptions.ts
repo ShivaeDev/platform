@@ -2,6 +2,7 @@ import type { Effect, Layer } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { BoardAcknowledgementStale, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetError } from "#errors.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import type { FleetRecord } from "#model.ts";
 import type {
 	BoardFailure,
@@ -10,7 +11,6 @@ import type {
 	ChangeResult,
 	Checks,
 	Delivery,
-	FleetConfiguration,
 	FleetIntegrations,
 	WorkPublication,
 	WorkResult,
@@ -30,6 +30,7 @@ export interface EngineOptions {
 	readonly checksFailure?: boolean;
 	readonly checksGate?: Effect.Effect<void>;
 	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetError>;
+	readonly ciHold?: typeof FleetIntegrations.Service.ciHold;
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
 	readonly decorateBoard?: (board: typeof BoardGateway.Service) => typeof BoardGateway.Service;

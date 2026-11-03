@@ -1,7 +1,7 @@
 import { Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { postgresTestUrl } from "#adapters/postgresTestUrl.ts";
-import { makePostgresTestLayer } from "#postgres.ts";
+import { postgresTestUrl } from "#server/adapters/postgresTestUrl.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
 
 export const databaseUrl = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").url;
 export const postgres = makePostgresTestLayer({

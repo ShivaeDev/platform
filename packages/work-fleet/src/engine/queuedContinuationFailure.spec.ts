@@ -95,7 +95,7 @@ isolatedEngine.it(
 		expect(resumed.pendingContinuation).toBeUndefined();
 		expect(resumed.attempts).toMatchObject([
 			{
-				prompt: "Finish the queued change",
+				prompt: expect.stringContaining("Finish the queued change"),
 				receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
 				role: "repair",
 			},

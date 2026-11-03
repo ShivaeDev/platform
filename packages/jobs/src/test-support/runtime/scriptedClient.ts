@@ -1,4 +1,4 @@
-import type { PgBossClient } from "#client.ts";
+import type { PgBossClient } from "#server/client.ts";
 
 function unexpected(operation: string): never {
 	throw new Error(`Unexpected pg-boss client call: ${operation}`);

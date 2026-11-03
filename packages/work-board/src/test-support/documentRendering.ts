@@ -1,9 +1,9 @@
 import { Clock, Effect } from "effect";
 import { act, createElement } from "react";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 export function documentData(source: string): Document {

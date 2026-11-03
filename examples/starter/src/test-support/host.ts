@@ -6,7 +6,6 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
-import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { testPoolSizes } from "./poolSizes.ts";
 
 export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
@@ -25,7 +24,6 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const deployed = options.deployed === true;
 	const jobsTesting = options.jobsTesting ?? makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
-	yield* Effect.scoped(migrateDatabase(database.url));
 	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {};
 	if (options.ownerAccounts !== undefined) {
 		env.AUTH_OWNER_ACCOUNTS = options.ownerAccounts;

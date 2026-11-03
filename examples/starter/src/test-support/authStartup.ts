@@ -1,23 +1,17 @@
 import { betterAuth } from "better-auth";
 import { Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { secret } from "./host.ts";
 import { postgres } from "./postgres.ts";
 
 export const authStartup = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	*create() {
-		const database = yield* PostgresTestDatabase;
-		yield* Effect.scoped(migrateDatabase(database.url));
-		return { validation: "not started" };
-	},
+	create: () => ({ validation: "not started" }),
 	layer: postgres,
 	name: "authentication startup",
 	stages: [],

@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import { diagramPalette } from "./diagramPalette.ts";
 import { readingSettles } from "./readingSettle.ts";
 import { screenAct } from "./screenAct.ts";
 import type { DiagramDrawing } from "./screenDiagrams.ts";
@@ -60,16 +59,6 @@ export function diagramDrawingVerbs(engine: ScreenEngine, tell: (line: string) =
 			Effect.sync(() => {
 				tell("the reader reads what Mermaid was asked to draw");
 				return (engine.drawings ?? []).map((drawing) => `${diagramName(drawing.source)} in ${themeOf(drawing.dark)}`);
-			}),
-		mermaidColours: (diagram: string, theme: Theme) =>
-			Effect.sync(() => {
-				tell(`the reader checks the colours Mermaid was given to draw ${diagram} in ${theme}`);
-				const drawing = (engine.drawings ?? []).find((request) => diagramName(request.source) === diagram && themeOf(request.dark) === theme);
-				if (!drawing) {
-					throw new Error(`Mermaid was not asked to draw ${diagram} in ${theme}`);
-				}
-				const { amber, effects, offBoard, unreadable } = diagramPalette(drawing);
-				return { amber, effects, offBoard, unreadable };
 			}),
 		mermaidDraws: (diagram: string, theme: Theme = "light") => answer(diagram, theme),
 		mermaidFails: (diagram: string, error: string, theme: Theme = "light") => answer(diagram, theme, error),

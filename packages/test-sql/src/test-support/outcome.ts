@@ -1,8 +1,8 @@
 import { Effect, Exit, Predicate } from "effect";
 import { Migrator } from "effect/sql";
 import { isSqlError } from "effect/sql/SqlError";
-import { answered, answerOf } from "@shivaedev/test/answers.ts";
-import { ModelColumnMismatch } from "#assertModelColumns.ts";
+import { answered, answerOf } from "@shivaedev/test-story/server/answers.ts";
+import { ModelColumnMismatch } from "#server/assertModelColumns.ts";
 
 function sqlState(error: unknown) {
 	return Predicate.hasProperty(error, "code") && typeof error.code === "string" ? error.code : "unknown";

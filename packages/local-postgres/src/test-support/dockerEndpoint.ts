@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { docker } from "#localDocker.ts";
+import { docker } from "#server/localDocker.ts";
 import { environmentGate } from "#test/environmentGate.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";

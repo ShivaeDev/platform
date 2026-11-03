@@ -1,7 +1,7 @@
 import { Clock, DateTime, Effect, Schema } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { TimestampReadout } from "./TimestampReadout.ts";
 import { timestampHost } from "./timestampHost.ts";
 import { timestampScreen } from "./timestampScreen.ts";

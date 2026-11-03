@@ -33,6 +33,11 @@ export const stopWorkStory = {
 };
 
 export const recoveryStories = [
+	{
+		name: "releasing a CI hold queues only that head across restart and a later push holds it again",
+		sites: ['engine/ciHold.ts: step: "waiting"'],
+		spec: "ciChangeHolds.spec.ts",
+	},
 	mergeQueueRecoveryStory,
 	stopWorkStory,
 	publicationRecoveryStory,

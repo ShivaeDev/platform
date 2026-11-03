@@ -1,8 +1,8 @@
 import { Cause, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
-import type { PgBossClientFactory } from "#client.ts";
-import { PgBossError } from "#error.ts";
-import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#service.ts";
+import type { PgBossClientFactory } from "#server/client.ts";
+import { PgBossError } from "#server/error.ts";
+import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";

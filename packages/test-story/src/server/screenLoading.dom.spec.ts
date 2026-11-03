@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { atLeast, lessThan } from "#adapters/outcomeMatchers.ts";
-import { outcomes } from "#outcomes.ts";
+import { atLeast, lessThan } from "#server/adapters/outcomeMatchers.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { defaultBudgets, hiddenLoading, loading, loadingScreen, missingSave, stuckLoading } from "#test/loadingScreen.tsx";
 
 const MISSING = 'died: The screen has 0 matches for button named "Save".';

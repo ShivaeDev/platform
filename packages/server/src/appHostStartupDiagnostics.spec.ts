@@ -1,12 +1,19 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { preflight } from "#test/app-host/preflight.ts";
-import { configuration, environment, host, startupFails } from "#test/app-host/story.ts";
+import { configuration, environment, host, postgresHost, startupFails } from "#test/app-host/story.ts";
 
-for (const mode of ["http", "migrate", "check", "wait"] as const) {
+const hosts: readonly [Pick<typeof host, "it">, Parameters<typeof preflight>[0]][] = [
+	[host, "http"],
+	[postgresHost, "migrate"],
+	[postgresHost, "check"],
+	[postgresHost, "wait"],
+];
+
+for (const [kit, mode] of hosts) {
 	for (const deferred of mode === "http" ? [false] : [false, true]) {
 		const label = `a ${mode} host${deferred ? " with deferred construction" : ""}`;
 
-		host.it(
+		kit.it(
 			`${label} redacts a preflight failure's log while preserving its typed tag and message`,
 			[preflight(mode, deferred, "failure"), startupFails],
 			function* ({ diagnosticLog, logMentions, startup, startupFailureMessage }) {
@@ -24,7 +31,7 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			},
 		);
 
-		host.it(
+		kit.it(
 			`${label} preserves an ordinary preflight log and still logs its listening address`,
 			[preflight(mode, deferred, "success"), environment({ "APP_ID": "valid-app" })],
 			function* ({ diagnosticLog, logMentions, startup }) {

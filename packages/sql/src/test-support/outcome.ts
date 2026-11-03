@@ -1,6 +1,7 @@
-import { Cause, Effect, Exit, Option, Predicate, Result, Schema } from "effect";
+import { Cause, type Effect, type Exit, Predicate, Result, Schema } from "effect";
 import { Migrator } from "effect/sql";
 import { isSqlError, type SqlError } from "effect/sql/SqlError";
+import { captureOutcome, renderOutcome } from "@shivaedev/test-story/server/captureOutcome.ts";
 import { OptimisticConcurrencyError } from "#repository.ts";
 
 const SQL_REASONS: Readonly<Record<string, string>> = {
@@ -64,25 +65,35 @@ export function failureOf(error: unknown): string {
 	return String(error);
 }
 
+function renderers<A, TSuccess>(success: (value: A) => TSuccess) {
+	return {
+		onDefect: (_defect: unknown, cause: Cause.Cause<unknown>) => {
+			const defect = Cause.findDefect(cause);
+			return Result.isSuccess(defect) ? `died with ${failureOf(defect.success)}` : "ended without a reason";
+		},
+		onFailure: (error: unknown) => `failed with ${failureOf(error)}`,
+		onInterrupt: () => "interrupted",
+		onSuccess: success,
+	};
+}
+
 export function outcomeOf(exit: Exit.Exit<unknown, unknown>): string {
-	if (Exit.isSuccess(exit)) {
-		return "succeeded";
-	}
-	const failure = Cause.findErrorOption(exit.cause);
-	if (Option.isSome(failure)) {
-		return `failed with ${failureOf(failure.value)}`;
-	}
-	const defect = Cause.findDefect(exit.cause);
-	if (Result.isSuccess(defect)) {
-		return `died with ${failureOf(defect.success)}`;
-	}
-	return Cause.hasInterrupts(exit.cause) ? "interrupted" : "ended without a reason";
+	return renderOutcome(
+		exit,
+		renderers(() => "succeeded"),
+	);
 }
 
 export function attempt<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A | string, never, R> {
-	return Effect.map(Effect.exit(effect), (exit) => (Exit.isSuccess(exit) ? exit.value : outcomeOf(exit)));
+	return captureOutcome(
+		effect,
+		renderers((value: A) => value),
+	);
 }
 
 export function endingOf<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<string, never, R> {
-	return Effect.map(Effect.exit(effect), outcomeOf);
+	return captureOutcome(
+		effect,
+		renderers(() => "succeeded"),
+	);
 }

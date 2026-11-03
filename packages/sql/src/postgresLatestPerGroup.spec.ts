@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { indexedRuns, queries } from "#test/queries.ts";
+import { indexedRuns, queries, queryTables } from "#test/queries.ts";
 import { LatestRun } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
@@ -8,7 +8,7 @@ const threeAmountsPerGroup = ["build", "deploy"].flatMap((note) => [1, 2, 3].map
 
 queries.it(
 	"latestPerGroup reads the two highest-amount lines of every name and note group in one statement",
-	[],
+	[queryTables("lines")],
 	function* ({ lastResult, latestLines, saveLines, statementsSent }) {
 		yield* saveLines([...threeAmountsPerGroup, ...[1, 2, 3].map((amount) => ({ amount, name: "B", note: "build" }))]);
 
@@ -47,7 +47,7 @@ const tieBreaks = [
 for (const { direction, expected } of tieBreaks) {
 	queries.it(
 		`latestPerGroup breaks the tie among three equal amounts at the limit by ${direction}ending id in a pinned group`,
-		[],
+		[queryTables("lines")],
 		function* ({ latestLines, saveLines }) {
 			yield* saveLines([1, 1, 1, 2].map((amount) => ({ amount, name: "A", note: null })));
 
@@ -74,7 +74,7 @@ const twoAsAndOneB = [
 
 const newestPerName = { orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["name"] } as const;
 
-queries.it("latestPerGroup returns every line of a group smaller than the limit", [], function* ({ latestLines, saveLines }) {
+queries.it("latestPerGroup returns every line of a group smaller than the limit", [queryTables("lines")], function* ({ latestLines, saveLines }) {
 	yield* saveLines(twoAsAndOneB);
 
 	const latest = yield* latestLines({ ...newestPerName, limit: 3 });
@@ -86,7 +86,7 @@ queries.it("latestPerGroup returns every line of a group smaller than the limit"
 	]);
 });
 
-queries.it("latestPerGroup with a zero limit returns no lines", [], function* ({ latestLines, saveLines }) {
+queries.it("latestPerGroup with a zero limit returns no lines", [queryTables("lines")], function* ({ latestLines, saveLines }) {
 	yield* saveLines(twoAsAndOneB);
 
 	const latest = yield* latestLines({ ...newestPerName, limit: 0 });
@@ -96,7 +96,7 @@ queries.it("latestPerGroup with a zero limit returns no lines", [], function* ({
 
 queries.it(
 	"latestPerGroup encodes its equality, in and null filters before ranking, so excluded lines never take a group's place",
-	[],
+	[queryTables("lines")],
 	function* ({ latestLines, saveLines }) {
 		yield* saveLines([
 			{ amount: 1, name: "A", note: null },
@@ -189,7 +189,7 @@ const pins = [
 for (const { groups, matches, name, partitionBy, where } of pins) {
 	queries.it(
 		`latestPerGroup pinned by ${name} returns the newest twenty runs of each pinned group, as the full ranking does`,
-		[indexedRuns()],
+		[queryTables("runs"), indexedRuns()],
 		function* ({ latestRuns }) {
 			const ranked = yield* latestRuns({ ...newestTwenty, partitionBy });
 			const rankedOfPinnedGroups = Array.isArray(ranked) ? ranked.filter(matches) : [];
@@ -203,7 +203,7 @@ for (const { groups, matches, name, partitionBy, where } of pins) {
 
 	queries.it(
 		`latestPerGroup pinned by ${name} walks each group's index only as far as twenty runs, without a window ranking`,
-		[indexedRuns()],
+		[queryTables("runs"), indexedRuns()],
 		function* ({ latestRuns, readPlan }) {
 			yield* latestRuns({ ...newestTwenty, partitionBy, where });
 
@@ -221,7 +221,7 @@ const emptyPins = [
 for (const { name, where } of emptyPins) {
 	queries.it(
 		`latestPerGroup pinned by ${name} returns no runs without sending SQL`,
-		[indexedRuns()],
+		[queryTables("runs"), indexedRuns()],
 		function* ({ lastResult, latestRuns, statementsSent }) {
 			yield* latestRuns({ ...newestTwenty, partitionBy: ["repository"], where });
 
@@ -258,7 +258,7 @@ const completed = { repository: 1, status: "completed" } as const;
 
 queries.it(
 	"latestPerGroup pinned on the repository alone still ranks each workflow of it, keeping the newest three completed runs per workflow",
-	[indexedRuns()],
+	[queryTables("runs"), indexedRuns()],
 	function* ({ latestRuns }) {
 		const latest = yield* latestRuns({ ...latestThreePerWorkflow, where: { repository: 1, status: "completed" } });
 
@@ -278,7 +278,7 @@ queries.it(
 
 queries.it(
 	"latestPerGroup pinned on every partition field filters by status before keeping the newest three runs",
-	[indexedRuns()],
+	[queryTables("runs"), indexedRuns()],
 	function* ({ latestRuns }) {
 		const latest = yield* latestRuns({ ...latestThreePerWorkflow, where: { repository: 1, status: "completed", workflow: null } });
 

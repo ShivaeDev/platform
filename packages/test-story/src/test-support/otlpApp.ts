@@ -1,8 +1,8 @@
 import { type Duration, Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
-import { type OtlpSpan, otlpReceiver } from "#otlpReceiver.ts";
-import { storyKit } from "#storyKit.ts";
+import { type OtlpSpan, otlpReceiver } from "#server/otlpReceiver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 import { bytesInWords } from "./httpClient.ts";
 
@@ -81,14 +81,11 @@ export function otlpApp(protobuf: boolean) {
 						receiver.requests.map(({ headers, path }) => `${path} as ${headers["content-type"]} with token "${headers["x-collector-token"]}"`),
 					),
 				exportsCarrying: (text: string) => Effect.sync(() => receiver.requests.filter(({ body }) => body.includes(Buffer.from(text))).length),
-				exportsItsWork: () =>
-					Effect.promise(async () => {
-						story.tell("the application traces work, traces a failure and shuts down its runtime");
-						traced.ids = await runtime.runPromise(exportWork);
-						await runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore));
-						await runtime.dispose();
-					}),
 				finished: running.finished,
+				shutsDown: () => {
+					story.tell("the application shuts down its runtime");
+					return Effect.promise(() => runtime.dispose());
+				},
 				startsWaitingForSpan: (name: string) =>
 					running.starts(
 						name,
@@ -96,6 +93,16 @@ export function otlpApp(protobuf: boolean) {
 						(span) => span.name,
 					),
 				tracedIds: () => Effect.sync(() => traced.ids),
+				tracesFailure: () => {
+					story.tell("the application traces failed work");
+					return Effect.promise(() => runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore)));
+				},
+				tracesWork: () => {
+					story.tell("the application traces work");
+					return Effect.promise(async () => {
+						traced.ids = await runtime.runPromise(exportWork);
+					});
+				},
 				waitsForSpan: (name: string, timeout: Duration.Input = "5 seconds") =>
 					receiver.untilSpan((span) => span.name === name, { name: `exported ${name} span`, timeout }),
 			};

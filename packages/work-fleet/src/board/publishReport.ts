@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import { Effect } from "effect";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { Publication, publishOnce } from "@shivaedev/work-board/server/publication.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";
@@ -12,7 +13,7 @@ import { BoardFailure, type BoardWork } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
 const { metadataModel } = board;
-const { publish, revisionOf } = responses;
+const { revisionOf } = responses;
 
 export function publishReport(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
 	return Effect.fn("FleetBoard.report")(function* (work: BoardWork, observation: SessionObservation, kind?: "review") {
@@ -34,7 +35,8 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 		}
 		const { itemId } = reportIdentity(work, observation.receipt);
 		const content = yield* reportContent(work, observation, kind);
-		yield* publish(root, realRoot, itemId, content).pipe(
+		yield* publishOnce({ content, path: `responses/${itemId}.md`, realRoot, root }).pipe(
+			Effect.provide(Publication.layer),
 			Effect.mapError(() => new BoardFailure({ message: "The worker report could not be recorded on Board; retry the same completed attempt." })),
 		);
 		yield* recordBoardSource(realRoot, `responses/${itemId}.md`, content);

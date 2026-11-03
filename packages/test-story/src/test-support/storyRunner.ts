@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { LARGE_BAKERY } from "./failureReport.ts";
 import { LIFETIME_LOG } from "./lifetimeLog.ts";
 import { quotedStoryFile } from "./quotedStoryFile.ts";

@@ -21,7 +21,7 @@ for (const sharedArea of [false, true]) {
 			yield* outcomes([
 				["two", () => workStages(["two"]), { two: "working" }],
 				["one", () => workState("one"), { attempts: 0, step: "queued" }],
-				["launched prompts", () => launchedPrompts(), ["Implement two"]],
+				["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement two")]],
 			]);
 		},
 	);
@@ -41,7 +41,7 @@ engine.it(
 		yield* outcomes([
 			["one", () => workStages(["one"]), { one: "working" }],
 			["two", () => workState("two"), { attempts: 0, step: "queued" }],
-			["launched prompts", () => launchedPrompts(), ["Implement one"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one")]],
 		]);
 	},
 );
@@ -63,7 +63,7 @@ engine.it(
 		yield* outcomes([
 			["one", () => get("one"), { value: { attempts: [{ receipt: running.attempts[0]?.receipt, status: "running" }], step: "working" } }],
 			["two", () => workState("two"), { attempts: 0, step: "queued" }],
-			["launched prompts", () => launchedPrompts(), ["Implement one"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one")]],
 		]);
 	},
 );
@@ -103,7 +103,7 @@ engine.it(
 
 		yield* outcomes([
 			["stages", () => workStages(["one", "two"]), { one: "queued", two: "working" }],
-			["launched prompts", () => launchedPrompts(), ["Implement one", "Implement two"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one"), expect.stringContaining("Implement two")]],
 		]);
 	},
 );

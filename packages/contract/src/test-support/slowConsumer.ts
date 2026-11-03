@@ -1,10 +1,10 @@
-import { Deferred, Effect, Stream, SubscriptionRef } from "effect";
+import { Deferred, Effect, Queue, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
-import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { clientReadKeys } from "#clientKeys.ts";
 import { live } from "#live.ts";
 import { hintWords } from "./answers.ts";
 import { Notes, notes, viewerEngine } from "./viewerEngine.ts";
@@ -23,8 +23,8 @@ const slowConsumerEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const query = Client.query("notes.list", { title: "" }, { reactivityKeys: readKeys([notes.bucket.userId("alice")], { scope: "alice" }) });
-	const stream = Stream.transformPull(server.live.stream([notes.bucket.userId("alice")], { scope: "alice" }), (pull) =>
+	const query = Client.query("notes.list", { title: "" }, { reactivityKeys: clientReadKeys([notes.bucket.userId("alice")], { scope: "alice" }) });
+	const stream = Stream.transformPull(server.live.stream([notes.bucket.userId("alice")]), (pull) =>
 		Effect.sync(() => {
 			let initial = true;
 			return Effect.gen(function* () {
@@ -50,7 +50,13 @@ const slowConsumerEngine = Effect.gen(function* () {
 	yield* Deferred.await(stalled);
 	yield* AtomRegistry.getResult(registry, query, { suspendOnWaiting: true });
 	const initialReads = (yield* SubscriptionRef.get(server.reads)).length;
-	return { initialReads, query, received, registry, resumed, server };
+	const flushed = yield* Queue.unbounded<unknown>();
+	yield* server.live.stream([notes.bucket.userId("alice")]).pipe(
+		Stream.runForEach((hint) => Queue.offer(flushed, hint)),
+		Effect.forkScoped,
+	);
+	yield* Queue.take(flushed);
+	return { flushed, initialReads, query, received, registry, resumed, server };
 });
 
 export const slowConsumer = storyKit({
@@ -66,8 +72,7 @@ export const slowConsumer = storyKit({
 				story.tell(`alice renames note 1 ${count} times while the live consumer is stalled`);
 				for (let edit = 1; edit <= count; edit += 1) {
 					yield* engine.server.client("notes.rename", { id: 1, title: `Edit ${edit}` }, { headers: { viewer: "alice" } });
-					// Separate flushes exercise queue overflow rather than synchronous key batching.
-					yield* Effect.promise(() => Promise.resolve());
+					yield* Queue.take(engine.flushed);
 				}
 			}),
 		resume: () => {

@@ -22,7 +22,7 @@ The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` sub
 
 ### How to think about it
 
-An admin page is a native `@shivaedev/contract` contract plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer the application writes. Everything else, from the admin shell and its views to session policy and the RPC host, stays with the application.
+An admin page is a native `@shivaedev/contract` contract plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer the application writes. Admin supplies optional default React views for Users, Sessions and Jobs. The application owns the admin shell, custom views, route composition, styling, session policy and RPC host.
 
 ### Declare pages and the registry
 
@@ -177,10 +177,10 @@ The default `jobsPage` declares no commands, and its bound client has no retry o
 
 #### Mount the Jobs view
 
-Bind the page contract to the application's AtomRpc client and pass the shared queue names to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in their client CSS.
+Bind the page contract to the application's AtomRpc client and pass the shared queue names to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
-import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 
 const jobs = bind(JobsPage.contract, Client);
 
@@ -210,14 +210,14 @@ A successful bound retry invalidates health, the affected queue's counts and bot
 
 ### Built-in Users page
 
-Call `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with the application's code-defined role set. Add the returned page to the same registry as Jobs and register `users: usersHandlers(UsersPage, AppAccess)` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers use the application's existing Effect SQL client. For custom auth tables, pass the same Better Auth options used by `betterAuthMount` as the third argument: `usersHandlers(UsersPage, AppAccess, authOptions)`. The list follows `user.modelName`, `user.fields.name`, `email` and `createdAt`, and `user.additionalFields.role.fieldName`; role changes also follow `user.fields.updatedAt`. Omitting the options keeps the default PostgreSQL `user` table and column names.
+Call `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with the application's code-defined role set. Add the returned page to the same registry as Jobs and register `users: usersHandlers(UsersPage)` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers require identity's `UserDirectory` service. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the same options used by `betterAuthMount`. Identity owns the PostgreSQL reads and role writes, including custom auth mappings. The page reads identity's exported `userKeys.list` collection, so role changes refresh open user lists.
 
 Each user stores one role string accepted by `AppAccess.Role`. Each role declares an explicit permission list in application code. The Users area assigns roles; it does not edit their grants.
 
-Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in `src/client/entry.css`:
+Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in `src/client/entry.css`:
 
 ```tsx
-import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
+import { UsersView } from "@shivaedev/admin/client/adapters/UsersView.ts";
 
 const users = bind(UsersPage.contract, Client);
 const changeRole = Client.runtime.fn(users.changeRole.run);
@@ -229,16 +229,16 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 
 `admin.users.changeRole` takes `{ userId, role }`; its role Schema is the application's declared role union. The handler also requires `AssignRoles` (`roles.assign`) from `@shivaedev/identity/roles.ts`. The view shows a role select only to callers with that permission. Role writes use identity’s `assignRole` verb, serialize in a transaction and return `LastRoleAssigner` (from `@shivaedev/identity/roles.ts`) if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
 
-Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. Both also accept `authOptions` as a third argument for custom mappings. These enforce their respective domain permissions using `SessionUser`. Decode untrusted role input with `AppAccess.Role` before calling `changeUserRole` directly; native RPC performs that decode at the contract boundary. Identity resolves the caller's stored role through the session policy.
+Applications can call `listUsers(input)` and `changeUserRole(input)` from `@shivaedev/admin/server/users.ts` on the server. Both require `UserDirectory` from the Effect environment. These enforce their respective domain permissions using `SessionUser`. Decode untrusted role input with `AppAccess.Role` before calling `changeUserRole` directly; native RPC performs that decode at the contract boundary. Identity resolves the caller's stored role through the session policy.
 
-Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy: the policy covers only `admin.users.changeRole`, so disable Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints, which write roles outside it. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
+Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through `UserDirectory.assignRole` to retain the final-assigner policy. Keep Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints disabled because they write roles outside that policy. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
 ### Built-in Sessions page
 
 Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
 
 ```tsx
-import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
+import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";
 
 const sessions = bind(SessionsPage.contract, Client);
 
@@ -259,8 +259,8 @@ The view lists signed-in sessions with the user's name and email, started, last 
 
 ### Install and limits
 
-Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react` as peers. The package has no root entry; import the module that defines the name.
+Install `@shivaedev/admin` with its required `effect` peer. Registry, contract and guard consumers need no React stack. To use the optional default views, also install the optional peers `react`, `@effect/atom-react` and `@shivaedev/react`. The package has no root entry; import the module that defines the name.
 
-Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Jobs, Users and Sessions views under `/client` use React. Applications own route composition and styling.
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the optional default Jobs, Users and Sessions views under `/client/adapters` use React. Applications own route composition and styling.
 
 This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

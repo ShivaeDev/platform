@@ -7,7 +7,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { memberScreens } from "@shivaedev/test-story/server/memberScreens.ts";
+import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { makeAuth } from "#client/auth.ts";
@@ -26,12 +26,13 @@ export function notesMemberScreens(baseUrl: string) {
 			);
 			const client = makeNotesClient(`${baseUrl}/rpc`, { live: false, protocol });
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
-			const router = yield* appRouter(
-				connectModules([notesRegistration(client)]),
-				auth.actions,
-				createMemoryHistory({ initialEntries: ["/"] }),
-				() => ({ user: { id: member.name } }),
-			).pipe(Effect.provideService(AtomRegistry.AtomRegistry, member.registry));
+			const connection = yield* notesRegistration(client).pipe(
+				Effect.map((module) => connectModules([module])),
+				Effect.provideService(AtomRegistry.AtomRegistry, member.registry),
+			);
+			const router = yield* appRouter(connection, auth.actions, createMemoryHistory({ initialEntries: ["/"] }), () => ({
+				user: { id: member.name },
+			})).pipe(Effect.provideService(AtomRegistry.AtomRegistry, member.registry));
 			pending.set(member.name, clientActivity(client));
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {

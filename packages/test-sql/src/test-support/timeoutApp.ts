@@ -3,8 +3,8 @@ import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase } from "#database.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { setup } from "./postgres.ts";
 
 export interface CloneObservation {

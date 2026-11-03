@@ -1,12 +1,20 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { APIError } from "better-auth/api";
-import { type Cause, Context, Effect, Result } from "effect";
+import { type Cause, Context, Data, Effect, Result } from "effect";
 import { authCall } from "#server/adapters/authCall.ts";
 import type { BetterAuthHookError } from "#server/better-auth/databaseHooks.ts";
 
+export class HookRefusal extends Data.TaggedError("HookRefusal")<BetterAuthHookError> {}
+
+interface RequestState<R> {
+	cause?: Cause.Cause<never>;
+	readonly context: Context.Context<R>;
+	refusal?: HookRefusal;
+}
+
 export const hookRuntime = Effect.fnUntraced(function* <R>() {
 	const context = yield* Effect.context<R>();
-	const requests = new AsyncLocalStorage<{ readonly context: Context.Context<R>; cause?: Cause.Cause<never> }>();
+	const requests = new AsyncLocalStorage<RequestState<R>>();
 	return {
 		runHook: async <A>(hook: () => Effect.Effect<A, BetterAuthHookError, R>, signal: AbortSignal | undefined): Promise<A> => {
 			const request = requests.getStore();
@@ -21,6 +29,9 @@ export const hookRuntime = Effect.fnUntraced(function* <R>() {
 				signal,
 			});
 			if (Result.isFailure(result)) {
+				if (request !== undefined) {
+					request.refusal = new HookRefusal(result.failure);
+				}
 				throw new APIError("FORBIDDEN", { code: result.failure.code, message: result.failure.message });
 			}
 			return result.success;
@@ -28,12 +39,15 @@ export const hookRuntime = Effect.fnUntraced(function* <R>() {
 		runRequest: <A>(request: (signal: AbortSignal) => Promise<A>) =>
 			Effect.withFiber((fiber) =>
 				Effect.gen(function* () {
-					const state: { readonly context: Context.Context<R>; cause?: Cause.Cause<never> } = {
+					const state: RequestState<R> = {
 						context: Context.merge(context, fiber.context),
 					};
 					const exit = yield* Effect.exit(authCall((signal) => requests.run(state, () => request(signal))));
 					if (state.cause !== undefined) {
 						return yield* Effect.failCause(state.cause);
+					}
+					if (state.refusal !== undefined) {
+						return yield* Effect.fail(state.refusal);
 					}
 					return yield* exit;
 				}),

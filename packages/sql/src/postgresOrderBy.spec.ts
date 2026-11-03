@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { queries } from "#test/queries.ts";
+import { queries, queryTables } from "#test/queries.ts";
 
 const twoAsAndTwoBs = [
 	{ amount: 1, name: "B", note: null },
@@ -28,7 +28,7 @@ const listOrders = [
 ] as const;
 
 for (const { expected, name, orderBy } of listOrders) {
-	queries.it(`findMany sorts by the ordering list in list order: ${name}`, [], function* ({ findLines, saveLines }) {
+	queries.it(`findMany sorts by the ordering list in list order: ${name}`, [queryTables("lines")], function* ({ findLines, saveLines }) {
 		yield* saveLines(twoAsAndTwoBs);
 
 		const sorted = yield* findLines({ orderBy, select: ["id"] });
@@ -37,20 +37,24 @@ for (const { expected, name, orderBy } of listOrders) {
 	});
 }
 
-queries.it("findMany applies ascending names and descending ids before keeping the first three lines", [], function* ({ findLines, saveLines }) {
-	yield* saveLines(twoAsAndTwoBs);
+queries.it(
+	"findMany applies ascending names and descending ids before keeping the first three lines",
+	[queryTables("lines")],
+	function* ({ findLines, saveLines }) {
+		yield* saveLines(twoAsAndTwoBs);
 
-	const firstThree = yield* findLines({
-		limit: 3,
-		orderBy: [
-			{ direction: "asc", field: "name" },
-			{ direction: "desc", field: "id" },
-		],
-		select: ["id"],
-	});
+		const firstThree = yield* findLines({
+			limit: 3,
+			orderBy: [
+				{ direction: "asc", field: "name" },
+				{ direction: "desc", field: "id" },
+			],
+			select: ["id"],
+		});
 
-	expect(firstThree).toEqual([{ id: 4 }, { id: 2 }, { id: 3 }]);
-});
+		expect(firstThree).toEqual([{ id: 4 }, { id: 2 }, { id: 3 }]);
+	},
+);
 
 const singleOrders = [
 	{ name: "a single ordering object", orderBy: { direction: "desc", field: "id" } },
@@ -58,7 +62,7 @@ const singleOrders = [
 ] as const;
 
 for (const { name, orderBy } of singleOrders) {
-	queries.it(`findMany sorts by ${name}`, [], function* ({ findLines, saveLines }) {
+	queries.it(`findMany sorts by ${name}`, [queryTables("lines")], function* ({ findLines, saveLines }) {
 		yield* saveLines([
 			{ amount: 1, name: "A", note: null },
 			{ amount: 1, name: "B", note: null },
@@ -70,14 +74,14 @@ for (const { name, orderBy } of singleOrders) {
 	});
 }
 
-const unknownField: "name" = JSON.parse('"missing"');
+const UNKNOWN_FIELD = "missing";
 
 const unknownOrders = [
-	{ name: "a single ordering object", orderBy: { direction: "asc", field: unknownField } },
+	{ name: "a single ordering object", orderBy: { direction: "asc", field: UNKNOWN_FIELD } },
 	{
 		name: "the first entry of an ordering list",
 		orderBy: [
-			{ direction: "asc", field: unknownField },
+			{ direction: "asc", field: UNKNOWN_FIELD },
 			{ direction: "desc", field: "id" },
 		],
 	},
@@ -85,14 +89,14 @@ const unknownOrders = [
 		name: "a later entry of an ordering list",
 		orderBy: [
 			{ direction: "asc", field: "id" },
-			{ direction: "desc", field: unknownField },
+			{ direction: "desc", field: UNKNOWN_FIELD },
 		],
 	},
 ] as const;
 
 for (const { name, orderBy } of unknownOrders) {
-	queries.it(`findMany rejects an unknown runtime field in ${name} with a schema error`, [], function* ({ findLines }) {
-		const sorted = yield* findLines({ orderBy });
+	queries.it(`findMany rejects an unknown runtime field in ${name} with a schema error`, [], function* ({ findUnknownLines }) {
+		const sorted = yield* findUnknownLines({ orderBy });
 
 		expect(sorted).toBe("failed with a schema error");
 	});

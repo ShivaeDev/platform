@@ -2,13 +2,13 @@ import { Clock, Deferred, Effect, Option, type Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { JobWithMetadata, SendOptions } from "pg-boss";
 import { transact } from "@shivaedev/sql/transact.ts";
-import type { QueueDefinition } from "#definition.ts";
-import { deadLetterQueueName } from "#health.ts";
-import type { PgBossService } from "#service.ts";
+import type { QueueDefinition } from "#server/definition.ts";
+import { deadLetterQueueName } from "#server/health.ts";
+import type { PgBossService } from "#server/service.ts";
+import type { PgBossTesting } from "#server/testing.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { Registration } from "#test/workers.ts";
 import { untilWork } from "#test/workers.ts";
-import type { PgBossTesting } from "#testing.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, controllerWorking, provided, runningIn, type StartOptions, startRuntime, until } from "./engine.ts";
 

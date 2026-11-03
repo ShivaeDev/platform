@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { Recording, recording, spanReadouts, tracedAsTheStory } from "#test/spanRecording.ts";
 
 export const tracingApp = storyKit({

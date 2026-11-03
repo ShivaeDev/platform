@@ -8,6 +8,7 @@ import type { DatabaseEngine } from "./databaseEngine.ts";
 import { writeItem } from "./databaseVerbs.ts";
 import { inPlace } from "./inPlace.ts";
 import { limitedRole } from "./limitedRole.ts";
+import { ITEMS_KEY } from "./postgres.ts";
 
 export function poolLimit(maxConnections: number) {
 	return database.trait("configuration", `pools allow ${maxConnections} connections`, (engine) => {
@@ -103,14 +104,16 @@ export const watchingInvalidations = database.trait("activity", "the shared data
 	engine.run(
 		Effect.gen(function* () {
 			const reactivity = yield* Reactivity.Reactivity;
-			const unregister = reactivity.registerUnsafe(["items"], () => engine.published.push("items"));
+			const unregister = reactivity.registerUnsafe([ITEMS_KEY], () => engine.published.push("items"));
 			yield* Effect.addFinalizer(() => Effect.sync(unregister));
 		}),
 	),
 );
 
 export function itemsInvalidated(block: string) {
-	return database.trait("activity", `${block} invalidates the items key on commit`, (engine) => engine.inBlock(block, invalidateOnCommit(["items"])));
+	return database.trait("activity", `${block} invalidates the items key on commit`, (engine) =>
+		engine.inBlock(block, invalidateOnCommit([ITEMS_KEY])),
+	);
 }
 
 function queryClone(sql: SqlClient.SqlClient, engine: DatabaseEngine) {

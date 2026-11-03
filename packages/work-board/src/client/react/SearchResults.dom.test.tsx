@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { passage, searchResultScreen, shown } from "#test/searchResultScreen.tsx";
 import type { SearchItem } from "./searchCommands.ts";

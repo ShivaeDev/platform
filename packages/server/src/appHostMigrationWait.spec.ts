@@ -115,7 +115,7 @@ migrationHost.it(
 				pendingComponents: [
 					{
 						detail: expect.stringMatching(/installed version missing, required version \d+$/u),
-						name: expect.stringMatching(/^pg-boss:waiting_[a-f0-9]+_jobs$/u),
+						name: "pg-boss:waiting_jobs",
 					},
 				],
 				pendingMigrations: [

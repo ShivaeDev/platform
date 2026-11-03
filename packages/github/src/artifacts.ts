@@ -1,9 +1,10 @@
 import { Effect } from "effect";
-import { FetchHttpClient, HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
+import { HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
 import type { RemoteStatusError } from "@shivaedev/http/errors.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { manualRedirects } from "#adapters/manualRedirects.ts";
 import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { type ArtifactExtractionOptions, extractArtifactArchive } from "#artifactExtraction.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
@@ -44,10 +45,7 @@ export const artifacts = Effect.fn("GitHub.artifacts")(function* (apiUrl: string
 			if (redirect.status !== HttpStatus.fromLiteral("Found") || location === undefined) {
 				return yield* new GitHubArtifactError({ stage: "redirect", status: redirect.status });
 			}
-			const response = yield* download.get(location).pipe(
-				Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" }),
-				Effect.mapError((cause) => downloadFailure(path, cause)),
-			);
+			const response = yield* manualRedirects(download.get(location)).pipe(Effect.mapError((cause) => downloadFailure(path, cause)));
 			return yield* readBoundedBody(response, options.byteLimit).pipe(
 				Effect.catchTags({
 					HttpClientError: (cause) => Effect.fail(new GitHubTransportError({ path }, { cause })),

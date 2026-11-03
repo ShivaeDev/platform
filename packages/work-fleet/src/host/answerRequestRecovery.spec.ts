@@ -21,7 +21,7 @@ for (const release of [false, true]) {
 			{ action: release ? "release" : "continue", boardAcknowledged: true },
 		]);
 		if (!release) {
-			expect(applied.attempts.at(-1)?.prompt).toBe("Use PostgreSQL.");
+			expect(applied.attempts.at(-1)?.prompt).toContain("Use PostgreSQL.");
 		}
 		expect(yield* host.storedRequests()).toEqual([]);
 	});

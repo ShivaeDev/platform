@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import type { Element } from "hast";
-import type { Components } from "react-markdown";
+import type { markdownElement } from "#adapters/markdownElement.ts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#client/react/components/ui/table.tsx";
 
 function columnClass(node: Element | undefined) {
@@ -15,3 +15,5 @@ export const documentElements: Components = {
 	thead: ({ node: _node, ...props }) => <TableHeader {...props} />,
 	tr: ({ node: _node, ...props }) => <TableRow {...props} />,
 };
+
+type Components = NonNullable<Parameters<typeof markdownElement>[1]["components"]>;

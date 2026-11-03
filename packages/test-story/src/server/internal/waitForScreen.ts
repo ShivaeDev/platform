@@ -3,9 +3,9 @@ import * as Queue from "effect/Queue";
 import * as Result from "effect/Result";
 import * as Stream from "effect/Stream";
 import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
-import { screenAct } from "#adapters/screenAct.ts";
-import { screenMutations } from "#adapters/screenMutations.ts";
-import type { ScreenDriverOptions } from "#screenDriver.ts";
+import { screenAct } from "#server/adapters/screenAct.ts";
+import { screenMutations } from "#server/adapters/screenMutations.ts";
+import type { ScreenDriverOptions } from "#server/screenDriver.ts";
 
 type WaitOptions = Required<Pick<ScreenDriverOptions, "act">> & {
 	readonly pending: ScreenDriverOptions["pending"];

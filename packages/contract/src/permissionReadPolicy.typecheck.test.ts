@@ -7,7 +7,7 @@ import { permissionReadPolicy } from "#permissionReadPolicy.ts";
 import { signedIn } from "#readPolicy.ts";
 
 const workspaces = collection("workspaces", Schema.Int);
-class Permissions extends Context.Service<Permissions, boolean>()("test/CollectionPolicyTypes") {}
+class Permissions extends Context.Service<Permissions, boolean>()("@shivaedev/contract/test/CollectionPolicyTypes") {}
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 const policy = permissionReadPolicy({ name: "workspaces.manage" }, () =>
 	Effect.flatMap(Permissions, (allowed) => (allowed ? Effect.succeed(true) : Effect.fail(new Unavailable()))),

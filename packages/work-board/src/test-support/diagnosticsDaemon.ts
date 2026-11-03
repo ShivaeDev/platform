@@ -16,10 +16,10 @@ export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(funct
 	read: () => unknown,
 	port = 0,
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
-	briefProblems: (briefs: readonly Brief[]) => readonly BriefRefusal[] = () => [],
+	briefProblems: ((briefs: readonly Brief[]) => readonly BriefRefusal[]) | Effect.Effect<readonly BriefRefusal[], ServiceUnavailable> = () => [],
 ) {
 	const handlers = DaemonReadContract.application.toLayer({
-		"daemon.briefProblems": ({ briefs }) => Effect.sync(() => briefProblems(briefs)),
+		"daemon.briefProblems": ({ briefs }) => (typeof briefProblems === "function" ? Effect.sync(() => briefProblems(briefs)) : briefProblems),
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});

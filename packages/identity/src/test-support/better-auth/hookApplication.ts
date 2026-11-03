@@ -8,13 +8,13 @@ class AdmissionRefused extends Data.TaggedError("AdmissionRefused")<{
 }> {}
 
 export class Admission extends Context.Service<Admission, { readonly check: (userId: string) => Effect.Effect<void, AdmissionRefused> }>()(
-	"identity/test/Admission",
+	"@shivaedev/identity/test/Admission",
 ) {}
 
 export const hookApplication = Effect.gen(function* () {
 	const probe = yield* policyProbe;
 	const users = new Map<string, string>();
-	const state = { defective: false, nativeRefuses: false, policyRefuses: false, userHooks: false, userTransforms: true };
+	const state = { afterRefuses: false, defective: false, nativeRefuses: false, policyRefuses: false, userHooks: false, userTransforms: true };
 	function admission(allowed: string) {
 		return {
 			check: (userId: string) =>
@@ -32,7 +32,15 @@ export const hookApplication = Effect.gen(function* () {
 		};
 	}
 	const hooks: BetterAuthDatabaseHooks<Admission> = {
-		session: { create: { before: (session) => Effect.flatMap(Admission, ({ check }) => check(session.userId)) } },
+		session: {
+			create: {
+				after: () =>
+					state.afterRefuses
+						? Effect.fail(new AdmissionRefused({ code: "SESSION_NOTICE_FAILED", message: "The session notice could not be sent" }))
+						: Effect.void,
+				before: (session) => Effect.flatMap(Admission, ({ check }) => check(session.userId)),
+			},
+		},
 	};
 	return { admission, hooks, probe, state, users };
 });

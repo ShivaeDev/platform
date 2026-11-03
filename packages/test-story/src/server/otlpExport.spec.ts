@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { lifecycle, otlpApp } from "#test/otlpApp.ts";
 
 const MALFORMED = Buffer.from([0x0a, 0xff]);
@@ -11,20 +11,24 @@ for (const [format, contentType] of [
 ] as const) {
 	const app = otlpApp(format === "protobuf");
 
-	app.it(`reads every span a ${format} exporter sends`, [], function* ({ exportedSpanNames, exportsItsWork }) {
-		yield* exportsItsWork();
+	app.it(`reads every span a ${format} exporter sends`, [], function* ({ exportedSpanNames, tracesWork, tracesFailure, shutsDown }) {
+		yield* tracesWork();
+		yield* tracesFailure();
+		yield* shutsDown();
 
 		expect(yield* exportedSpanNames()).toEqual(["child", "failed", "parent"]);
 	});
 
-	app.it(`keeps the ids the application traced on a ${format} span`, [], function* ({ exportedSpanIds, exportsItsWork, tracedIds }) {
-		yield* exportsItsWork();
+	app.it(`keeps the ids the application traced on a ${format} span`, [], function* ({ exportedSpanIds, tracesWork, shutsDown, tracedIds }) {
+		yield* tracesWork();
+		yield* shutsDown();
 
 		expect(yield* exportedSpanIds("child")).toEqual(yield* tracedIds());
 	});
 
-	app.it(`decodes a ${format} span's attributes, events, links, kind, resource and status`, [], function* ({ exportedSpan, exportsItsWork }) {
-		yield* exportsItsWork();
+	app.it(`decodes a ${format} span's attributes, events, links, kind, resource and status`, [], function* ({ exportedSpan, tracesWork, shutsDown }) {
+		yield* tracesWork();
+		yield* shutsDown();
 
 		expect(yield* exportedSpan("child")).toMatchObject({
 			attributes: expect.arrayContaining([
@@ -48,20 +52,25 @@ for (const [format, contentType] of [
 		});
 	});
 
-	app.it(`decodes a failed ${format} span's error status and message`, [], function* ({ exportedSpan, exportsItsWork }) {
-		yield* exportsItsWork();
+	app.it(`decodes a failed ${format} span's error status and message`, [], function* ({ exportedSpan, tracesFailure, shutsDown }) {
+		yield* tracesFailure();
+		yield* shutsDown();
 
 		expect(yield* exportedSpan("failed")).toMatchObject({ status: { code: 2, message: "failed work" } });
 	});
 
-	app.it(`keeps the path and headers of each ${format} export request`, [], function* ({ exportRequests, exportsItsWork }) {
-		yield* exportsItsWork();
+	app.it(`keeps the path and headers of each ${format} export request`, [], function* ({ exportRequests, tracesWork, tracesFailure, shutsDown }) {
+		yield* tracesWork();
+		yield* tracesFailure();
+		yield* shutsDown();
 
 		expect(yield* exportRequests()).toEqual(Array.from({ length: 3 }, () => `/v1/traces as ${contentType} with token "collector secret"`));
 	});
 
-	app.it(`keeps the raw bytes of each ${format} export`, [], function* ({ exportsCarrying, exportsItsWork }) {
-		yield* exportsItsWork();
+	app.it(`keeps the raw bytes of each ${format} export`, [], function* ({ exportsCarrying, tracesWork, tracesFailure, shutsDown }) {
+		yield* tracesWork();
+		yield* tracesFailure();
+		yield* shutsDown();
 
 		yield* outcomes([
 			["exports carrying the header secret", () => exportsCarrying("collector secret"), 0],

@@ -2,7 +2,7 @@ import { Deferred, Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act, type ReactNode, StrictMode } from "react";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { Answer, Round } from "./lifecycleViews.tsx";

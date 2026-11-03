@@ -8,7 +8,7 @@ import { command } from "@shivaedev/contract/operation.ts";
 import { appHost } from "#appHost.ts";
 import type { HostState } from "./state.ts";
 
-class Issuer extends Context.Service<Issuer, string>()("@test/InviteIssuer") {}
+class Issuer extends Context.Service<Issuer, string>()("@shivaedev/server/test/InviteIssuer") {}
 const Invites = contract("invites", {
 	commands: [command("create", { invalidates: () => [], success: Schema.Struct({ code: Schema.String, issuer: Schema.String }) })],
 });

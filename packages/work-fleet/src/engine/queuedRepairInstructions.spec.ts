@@ -27,7 +27,7 @@ for (const kind of ["review", "checks"] as const) {
 				return yield* Effect.die("Expected the next repair receipt");
 			}
 			expect(attempt.role).toBe("repair");
-			expect(attempt.prompt).toBe(`${repairPrompt}\n\n${GUIDANCE}`);
+			expect(attempt.prompt).toContain(`${repairPrompt}\n\n${GUIDANCE}`);
 			expect(attempt.receipt.sessionId).toBe(ready.value.attempts[0]?.receipt?.sessionId);
 			expect(turnOutputById(attempt.receipt.turnId)).toBe(attempt.prompt);
 			expect(next.value.pendingAnswers).toBeUndefined();

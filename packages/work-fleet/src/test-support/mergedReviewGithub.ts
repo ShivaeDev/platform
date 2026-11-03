@@ -3,76 +3,17 @@ import { createServer } from "node:http";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { GithubApi } from "#host/githubApi.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
+import { githubCiHold } from "#host/githubCiHold.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { httpGithubApi } from "#test/githubApi.ts";
-import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
+import { BASE, HEAD, resultFixture } from "#test/githubResult.ts";
+import { type GithubState, githubFilePage, githubResponses } from "#test/mergedReviewResponses.ts";
 
-interface GithubState {
-	base: string;
-	failed: boolean;
-	head: string;
-	legacyResult: boolean;
-	mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
-	paths: string[];
-	pending: boolean;
-	status: "OPEN" | "CLOSED" | "MERGED";
-	unavailableReads: number;
-}
-
-function githubResponses(state: GithubState): Readonly<Record<string, unknown>> {
-	const merged = state.status === "MERGED";
-	const conclusion = state.failed ? "failure" : "success";
-	return {
-		"/repos/example/repository/branches/main": [{ protected: false }],
-		"/repos/example/repository/git/matching-refs/heads/synthetic%2Fone": [{ ref: "refs/heads/synthetic/one" }],
-		"/repos/example/repository/pulls?state=all&head=example%3Asynthetic%2Fone&per_page=100": [
-			[
-				{
-					"created_at": "2026-01-01T00:00:00Z",
-					"html_url": PR,
-					"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
-					state: state.status === "OPEN" ? "open" : "closed",
-				},
-			],
-		],
-		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
-		"/repos/example/repository/rules/branches/main": [
-			[{ parameters: { "required_status_checks": [{ context: "test" }] }, type: "required_status_checks" }],
-		],
-		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
-			{
-				"check_runs": [
-					{
-						conclusion: state.pending ? null : conclusion,
-						"details_url": null,
-						"head_sha": state.head,
-						"html_url": `${PR}/checks`,
-						name: "test",
-						status: state.pending ? "queued" : "completed",
-					},
-				],
-			},
-		],
-		[`/repos/example/repository/commits/${state.head}/status?per_page=100`]: [{ sha: state.head, statuses: [] }],
-		"/repos/example/repository/pulls/7": {
-			base: { ref: "main", sha: state.base },
-			"changed_files": state.paths.length,
-			head: { sha: state.head },
-			"html_url": PR,
-			"merge_commit_sha": merged ? BASE : null,
-			mergeable: state.mergeable === "UNKNOWN" ? null : state.mergeable === "MERGEABLE",
-			merged,
-			"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
-			number: 7,
-			state: state.status === "OPEN" ? "open" : "closed",
-		},
-	};
-}
-
-export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* () {
+export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* (boardDir?: string) {
 	const state: GithubState = {
 		base: BASE,
 		failed: false,
@@ -98,7 +39,11 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 			response.writeHead(HttpStatus.fromLiteral("ServiceUnavailable")).end();
 			return;
 		}
-		const body = githubResponses(state)[path];
+		const page = githubFilePage(state, path);
+		const body = page?.body ?? githubResponses(state)[path];
+		if (page?.next !== undefined) {
+			response.setHeader("Link", `<http://${request.headers.host}${page.next}>; rel="next"`);
+		}
 		const json = JSON.stringify(body);
 		const etag = `"${createHash("sha256")
 			.update(json ?? "")
@@ -106,6 +51,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		response.setHeader("ETag", etag);
 		if (body !== undefined && request.headers["if-none-match"] === etag) {
 			conditionalHits.push(path);
+			response.removeHeader("Link");
 			response.writeHead(HttpStatus.fromLiteral("NotModified")).end();
 			return;
 		}
@@ -122,12 +68,14 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 	const api = yield* httpGithubApi(origin);
 	const { host } = resultFixture();
 	const github = { get: api.get, pages: api.get };
-	const adopt = githubResult(host, github, Effect.succeed("example/repository"));
+	const adopt = githubResult({ ...host, boardDir: boardDir ?? host.boardDir }, api, Effect.succeed("example/repository"));
 	return {
 		checksQuery: makeGithubChecks(github.pages),
 		conditionalHits,
 		deliveryQuery: githubDelivery(readPullRequest(github.get)),
 		mutations,
+		observeCiPaths: (result: Parameters<typeof githubCiHold>[0], approvedHead?: string) =>
+			githubCiHold(result, approvedHead).pipe(Effect.provideService(GithubApi, api)),
 		publication: githubPublication(
 			{ ...host, worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" } },
 			github,

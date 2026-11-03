@@ -2,7 +2,8 @@ import { createMemoryHistory, createRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { App } from "#client/App.tsx";
 import { Home } from "#client/Home.tsx";
-import { connectModules, type RouteContext } from "#client/Module.ts";
+import type { RouteContext } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import { screens } from "#modules/notes/test-support/screens.ts";
@@ -30,7 +31,13 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 		const view = yield* acquireScreen(engine);
 		const resume = resumeModule(moduleLink);
 		yield* Effect.promise(() =>
-			view.render(<App auth={fixture.auth} connect={() => connectModules([resume, notesRegistration(engine.client)])} history={history} />),
+			view.render(
+				<App
+					auth={fixture.auth}
+					connect={(session) => clientModules(session, [Effect.succeed(resume), notesRegistration(engine.client)])}
+					history={history}
+				/>,
+			),
 		);
 	});
 }

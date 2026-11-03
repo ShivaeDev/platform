@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
-import type { PgBossClient } from "#client.ts";
-import { toPgBossError } from "#error.ts";
-import type { QueueCounts } from "#health.ts";
-import { quotedSchema } from "#internal/storedRows.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { toPgBossError } from "#server/error.ts";
+import type { QueueCounts } from "#server/health.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
 
 const Counts = Schema.Struct({
 	activeCount: Schema.Number,
@@ -11,7 +11,7 @@ const Counts = Schema.Struct({
 	totalCount: Schema.Number,
 });
 
-export function countsFor(client: PgBossClient, schema: string, name: string): Effect.Effect<QueueCounts, import("#error.ts").PgBossError> {
+export function countsFor(client: PgBossClient, schema: string, name: string): Effect.Effect<QueueCounts, import("#server/error.ts").PgBossError> {
 	return Effect.tryPromise({
 		catch: (error) => toPgBossError("counts", error, name),
 		try: async () => {

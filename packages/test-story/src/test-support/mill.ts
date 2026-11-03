@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export interface Mill {
 	sacks: number;

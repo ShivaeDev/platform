@@ -3,14 +3,14 @@ import * as Effect from "effect/Effect";
 import type * as Stream from "effect/Stream";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { screenAct } from "#adapters/screenAct.ts";
-import { screenElements } from "#adapters/screenElements.ts";
-import { nextClientHint } from "#internal/nextClientHint.ts";
-import { targetName } from "#internal/screenAccessibility.ts";
-import { screenInteractions } from "#internal/screenInteractions.ts";
-import { screenReadouts } from "#internal/screenReadouts.ts";
-import { screenWaits } from "#internal/screenWaits.ts";
-import type { SignalNotReceived } from "#until.ts";
+import { screenAct } from "#server/adapters/screenAct.ts";
+import { screenElements } from "#server/adapters/screenElements.ts";
+import { nextClientHint } from "#server/internal/nextClientHint.ts";
+import { targetName } from "#server/internal/screenAccessibility.ts";
+import { screenInteractions } from "#server/internal/screenInteractions.ts";
+import { screenReadouts } from "#server/internal/screenReadouts.ts";
+import { screenWaits } from "#server/internal/screenWaits.ts";
+import type { SignalNotReceived } from "#server/until.ts";
 
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 

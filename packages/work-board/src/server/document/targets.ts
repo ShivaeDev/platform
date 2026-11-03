@@ -1,9 +1,6 @@
 import type { Root } from "mdast";
-import remarkDirective from "remark-directive";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { resolveDocumentLink } from "#render/documentLinks.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
@@ -11,7 +8,7 @@ import { referencesOf } from "#server/metadata/referencesOf.ts";
 
 export function documentTargets(document: MetadataDocument, model: MetadataModel, additional: readonly string[] = []) {
 	const urls = new Set(document.links);
-	const tree: Root = unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(document.parsed.body);
+	const tree: Root = parseMarkdown(document.parsed.body, { directives: true, gfm: true });
 	visit(tree, (node) => {
 		if (node.type === "link" || node.type === "image" || node.type === "definition") {
 			urls.add(node.url);

@@ -4,6 +4,7 @@ import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { form } from "#form.ts";
 import { FieldFailure, type Invalid, type Snapshot } from "#shape.ts";
+import { PROFILE_KEY } from "#test/ProfileKey.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const Fields = Schema.Struct({ name: Schema.String });
@@ -28,12 +29,12 @@ form(Fields, {
 		Effect.gen(function* () {
 			yield* Scope.Scope;
 			yield* AtomRegistry;
-			yield* Reactivity.invalidate(["profile"]);
+			yield* Reactivity.invalidate([PROFILE_KEY]);
 			return values;
 		}),
 });
 
-class Secret extends Context.Service<Secret, { readonly value: string }>()("test/Secret") {}
+class Secret extends Context.Service<Secret, { readonly value: string }>()("@shivaedev/form/test/Secret") {}
 
 // @ts-expect-error Application services require an explicit runtime.
 form(Fields, { initialValues: { name: "" }, onSubmit: () => Secret });

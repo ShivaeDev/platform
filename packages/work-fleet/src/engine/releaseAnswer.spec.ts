@@ -36,7 +36,7 @@ for (const explicit of [false, true]) {
 			});
 			const dispatched = (yield* fleet.dispatch("one")).value;
 			expect(dispatched).toMatchObject({ preparation: { baseRevision: "current-main" }, step: "working" });
-			expect(fleet.providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one on current main"]);
+			expect(fleet.providerStarts().map(({ prompt }) => prompt)).toEqual([expect.stringContaining("Implement one on current main")]);
 			fleet.finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			yield* fleet.schedule();

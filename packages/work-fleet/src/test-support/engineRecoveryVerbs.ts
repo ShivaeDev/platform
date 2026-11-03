@@ -1,8 +1,8 @@
 import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import { Fleet } from "#fleet.ts";
-import type { FleetConfiguration } from "#policy.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { storedBoardResponses } from "#test/storedBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";

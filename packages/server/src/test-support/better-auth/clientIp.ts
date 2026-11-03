@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -62,10 +61,13 @@ export const clientIp = storyKit({
 	},
 });
 
-export const railway = clientIp.trait("configured", "the starter's Railway environment runs with a simulated Railway proxy peer", function* (engine) {
-	const text = yield* Effect.promise(() => readFile(new URL("../../../../../examples/starter/.railway/proxy.json", import.meta.url), "utf8"));
-	const proxy = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.String)))(text);
-	Object.assign(engine.env, proxy, { "HOST": "0.0.0.0", "PUBLIC_URL": "https://app.example" });
+export const railway = clientIp.trait("configured", "Railway proxy settings with a simulated transport peer", (engine) => {
+	Object.assign(engine.env, {
+		"AUTH_CLIENT_IP_HEADER": "x-real-ip",
+		"HOST": "0.0.0.0",
+		"PUBLIC_URL": "https://app.example",
+		"TRUSTED_PROXY": "100.64.0.0/10",
+	});
 	engine.proxyPeer = "100.64.0.2";
 });
 

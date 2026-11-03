@@ -4,10 +4,11 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
 import { statusWords } from "./outcomeWords.ts";
 import { QueryFeedbackScreen } from "./QueryFeedbackScreen.tsx";
+import { REPORTS_KEY } from "./ReportsKey.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
@@ -29,11 +30,11 @@ export function heldReads() {
 	const queries = Atom.family((payload: string) =>
 		Atom.make(Effect.suspend(() => Deferred.await(gate)).pipe(Effect.onInterrupt(() => Effect.sync(() => interrupted.push(payload))))).pipe(
 			Atom.setIdleTTL(0),
-			Atom.withReactivity(["reports"]),
+			Atom.withReactivity([REPORTS_KEY]),
 		),
 	);
 	const runtime = Atom.runtime(Layer.empty);
-	const invalidation = runtime.fn<void>()(() => Reactivity.invalidate(["reports"]));
+	const invalidation = runtime.fn<void>()(() => Reactivity.invalidate([REPORTS_KEY]));
 	return {
 		held: (label: string) => {
 			const found = held.get(label);

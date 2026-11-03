@@ -1,7 +1,7 @@
 import { Context } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
-class PgBoss extends Context.Service<PgBoss, number>()("compiler/PgBoss") {}
+class PgBoss extends Context.Service<PgBoss, number>()("@shivaedev/test-story/compiler/PgBoss") {}
 
 storyKit({
 	after: { built: () => undefined },

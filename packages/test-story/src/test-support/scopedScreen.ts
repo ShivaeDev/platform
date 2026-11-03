@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export const scopedScreen = storyKit({
 	*create() {

@@ -1,5 +1,4 @@
-import { join } from "node:path";
-import { Effect, FileSystem } from "effect";
+import { Effect, FileSystem, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configureRegistered } from "#adapters/rule.ts";
 import { services } from "#cli/runMain.ts";
@@ -16,10 +15,11 @@ interface RuleEngine {
 
 const writeAll = Effect.fn("RuleStory.writeAll")(function* (root: string, files: readonly SeedFile[]) {
 	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
 	for (const file of files) {
-		const path = join(root, file.path);
-		yield* fs.makeDirectory(join(path, ".."), { recursive: true });
-		yield* fs.writeFileString(path, file.content);
+		const target = path.join(root, file.path);
+		yield* fs.makeDirectory(path.dirname(target), { recursive: true });
+		yield* fs.writeFileString(target, file.content);
 	}
 });
 
@@ -79,7 +79,8 @@ export function makeRuleStory() {
 				if (configured._tag === "Invalid") {
 					return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
 				}
-				const inputs = yield* Effect.promise(() => scanned(join(engine.root, directory)));
+				const path = yield* Path.Path;
+				const inputs = yield* Effect.promise(() => scanned(path.join(engine.root, directory)));
 				engine.findings = yield* configured.check(inputs);
 				return engine.findings;
 			}),
@@ -100,7 +101,8 @@ export function makeRuleStory() {
 			removes: Effect.fn("RuleStory.removes")(function* (path: string) {
 				story.tell(`the author removes ${path}`);
 				const fs = yield* FileSystem.FileSystem;
-				yield* fs.remove(join(engine.root, path), { force: true, recursive: true });
+				const paths = yield* Path.Path;
+				yield* fs.remove(paths.join(engine.root, path), { force: true, recursive: true });
 			}),
 			writes: (...files: readonly SeedFile[]) => {
 				story.tell(`the author writes ${pathsOf(files)}`);
@@ -117,8 +119,9 @@ export function makeRuleStory() {
 		return ruleStory.trait("repository", `the repository links ${path} to ${target}`, (engine) =>
 			Effect.gen(function* () {
 				const fs = yield* FileSystem.FileSystem;
-				yield* fs.makeDirectory(join(engine.root, path, ".."), { recursive: true });
-				yield* fs.symlink(target, join(engine.root, path));
+				const paths = yield* Path.Path;
+				yield* fs.makeDirectory(paths.dirname(paths.join(engine.root, path)), { recursive: true });
+				yield* fs.symlink(target, paths.join(engine.root, path));
 			}),
 		);
 	}

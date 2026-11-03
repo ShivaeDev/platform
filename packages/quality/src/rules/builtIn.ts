@@ -7,8 +7,10 @@ import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
+import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
+import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
@@ -24,15 +26,18 @@ import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
+import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
 import { authSql } from "#rules/stories/authSql.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
+import { importedChangeKeys } from "#rules/stories/importedChangeKeys.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noExpect } from "#rules/stories/noExpect.ts";
 import { noLimitImports } from "#rules/stories/noLimitImports.ts";
+import { queueReadouts } from "#rules/stories/queueReadouts.ts";
 import { queueSql } from "#rules/stories/queueSql.ts";
 import { storySetup } from "#rules/stories/setup.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
@@ -58,8 +63,10 @@ import { unusedCode } from "./unusedCode.ts";
 
 export const builtInRules = [
 	unusedCode,
+	adapterImports,
 	effectBoundary,
 	failureHonesty,
+	serviceIds,
 	serviceParameters,
 	sharedErrorClasses,
 	jsxConditionals,
@@ -102,9 +109,12 @@ export const builtInRules = [
 	testsColocated,
 	storySetup,
 	storySpecs,
+	adapterOnlyFakes,
 	globalRetries,
 	storyEngine,
 	queueSql,
+	queueReadouts,
+	importedChangeKeys,
 	authSql,
 	noExpect,
 	specHelpers,

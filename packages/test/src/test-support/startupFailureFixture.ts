@@ -5,7 +5,7 @@ import { note, releasedOnClose } from "./lifecycleLog.ts";
 
 class StartupFailure extends Data.TaggedError("StartupFailure")<{ readonly message: string }> {}
 
-class Connection extends Context.Service<Connection, string>()("@test/Connection") {}
+class Connection extends Context.Service<Connection, string>()("@shivaedev/test/test/Connection") {}
 
 const { effectApp } = makeEffectIt({
 	layer: Layer.effect(

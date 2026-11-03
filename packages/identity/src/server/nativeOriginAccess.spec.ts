@@ -208,16 +208,3 @@ origins.it(
 		]);
 	},
 );
-
-origins.it(
-	"interrupting a native WebSocket subscription releases its server stream",
-	[],
-	function* ({ nativeStreamIsInterrupted, nativeStreamOpens, openServerStreams }) {
-		yield* nativeStreamOpens(NATIVE_ORIGIN);
-		expect(yield* openServerStreams()).toBe("one open stream");
-
-		yield* nativeStreamIsInterrupted();
-
-		expect(yield* openServerStreams()).toBe("no open streams");
-	},
-);

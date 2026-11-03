@@ -8,7 +8,7 @@ import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
 import { inPlace } from "./inPlace.ts";
-import { adminUrl, configured, values } from "./postgres.ts";
+import { adminUrl, configured, ITEMS_KEY, values } from "./postgres.ts";
 
 const sessions = Effect.gen(function* () {
 	const pool = yield* PgPool.PgPool;
@@ -78,8 +78,8 @@ export const productionServices = storyKit({
 					name,
 					Effect.gen(function* () {
 						const reactivity = yield* Reactivity.Reactivity;
-						const reader = { changes: 0, results: yield* reactivity.query(["items"], values) };
-						const unregister = reactivity.registerUnsafe(["items"], () => {
+						const reader = { changes: 0, results: yield* reactivity.query([ITEMS_KEY], values) };
+						const unregister = reactivity.registerUnsafe([ITEMS_KEY], () => {
 							reader.changes += 1;
 						});
 						yield* Effect.addFinalizer(() => Effect.sync(unregister));
@@ -95,7 +95,7 @@ export const productionServices = storyKit({
 						Effect.gen(function* () {
 							const sql = yield* SqlClient.SqlClient;
 							yield* sql`update items set value = ${value}`;
-							yield* invalidateOnCommit(["items"]);
+							yield* invalidateOnCommit([ITEMS_KEY]);
 						}),
 						{ onSqlError: (error) => error },
 					),

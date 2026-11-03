@@ -1,6 +1,6 @@
 import { Clock, Duration, Effect } from "effect";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { answered } from "#answers.ts";
 import { type EventuallyOptions, eventually } from "#eventually.ts";
 
 function notReady(message: string) {

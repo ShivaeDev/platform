@@ -4,7 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { act } from "react";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
 import { Notes, Read } from "./screen.tsx";

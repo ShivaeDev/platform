@@ -1,8 +1,8 @@
 import { Clock, Duration, Effect, Queue } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { storyKit } from "#storyKit.ts";
-import { passes, untilTimer } from "#watchedClock.ts";
+import { storyKit } from "#server/storyKit.ts";
+import { passes, untilTimer } from "#server/watchedClock.ts";
 import { attempt, background } from "./attempt.ts";
 
 function timerKit(clock: "live" | "test" = "test") {

@@ -6,6 +6,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authSession } from "#client/authSession.ts";
@@ -65,10 +66,12 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		api,
 		readSession: (role: Role) =>
 			authSession(
-				async (_signal): Promise<{ data: { user: { id: string } }; error: null }> => ({
-					data: { user: { id: "alice", ...(await Effect.runPromise(Roles.resolve(role))) } },
-					error: null,
-				}),
+				readSession(
+					async (_signal): Promise<{ data: { user: { id: string } }; error: null }> => ({
+						data: { user: { id: "alice", ...(await Effect.runPromise(Roles.resolve(role))) } },
+						error: null,
+					}),
+				),
 			),
 		requests,
 		state,

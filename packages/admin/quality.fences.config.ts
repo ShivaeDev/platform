@@ -5,6 +5,7 @@ const server = folders("packages/admin/src/server", "packages/admin/src/test-sup
 const client = folders("packages/admin/src/client");
 const browser = folders("packages/admin/src").except(server, client);
 const identityDeclarations = files(
+	"packages/identity/src/PermissionSession.ts",
 	"packages/identity/src/identity.ts",
 	"packages/identity/src/middleware.ts",
 	"packages/identity/src/permission.ts",
@@ -47,7 +48,7 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/admin/src/client/UsersView.ts", external("node:fs")],
-			legal: ["packages/admin/src/client/UsersView.ts", external("react")],
+			illegal: ["packages/admin/src/client/adapters/UsersView.ts", external("node:fs")],
+			legal: ["packages/admin/src/client/adapters/UsersView.ts", external("react")],
 		}),
 ];

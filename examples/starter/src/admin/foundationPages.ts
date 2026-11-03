@@ -4,11 +4,10 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { SessionsPage } from "@shivaedev/admin/sessions/Page.ts";
 import { usersPage } from "@shivaedev/admin/users/page.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { foundationQueues } from "./foundationQueues.ts";
 
 const UsersPage = usersPage(AppAccess);
 
 export function foundationPages<const TQueues extends readonly JobsEntry[]>(...queues: TQueues) {
-	const JobsPage = jobsPage(...foundationQueues, ...queues);
+	const JobsPage = jobsPage(...queues);
 	return { admin: adminRegistry(JobsPage, UsersPage, SessionsPage), JobsPage, queues: JobsPage.queues, SessionsPage, UsersPage };
 }

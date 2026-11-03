@@ -25,9 +25,9 @@ type Store = Effect.Success<ReturnType<typeof makePostgresFleetStore<typeof Flee
 export class FleetRepository extends Context.Service<FleetRepository, Omit<Store, "operationEntries"> & Partial<Pick<Store, "operationEntries">>>()(
 	"@shivaedev/work-fleet/FleetRepository",
 ) {}
-class RepositoryNamespace extends Context.Service<RepositoryNamespace, string | undefined>()("Fleet/RepositoryNamespace") {}
+class RepositoryNamespace extends Context.Service<RepositoryNamespace, string | undefined>()("@shivaedev/work-fleet/RepositoryNamespace") {}
 const PostgresFleetRepository = defineService({
-	id: "Fleet/PostgresFleetRepository",
+	id: "@shivaedev/work-fleet/PostgresFleetRepository",
 	initialize: Effect.gen(function* () {
 		const namespace = yield* RepositoryNamespace;
 		return yield* makePostgresFleetStore(FleetRecord, { ...fleetStoreOptions, ...(namespace === undefined ? {} : { namespace }) });
@@ -42,7 +42,7 @@ export function postgresFleetRepository(namespace?: string) {
 	);
 }
 const FleetSessionJournal = defineService({
-	id: "Fleet/SessionJournal",
+	id: "@shivaedev/work-fleet/FleetSessionJournal",
 	initialize: Effect.gen(function* () {
 		const store = yield* FleetRepository;
 		const namingWork = new Map<string, string>();

@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { subscriptionClients } from "#test/subscriptionClients.ts";
 
 subscriptionClients.it(

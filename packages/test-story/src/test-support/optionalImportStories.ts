@@ -1,9 +1,9 @@
-import "#browserReads.ts";
-import "#client/react.ts";
-import "#memberScreens.ts";
-import "#otlpReceiver.ts";
-import "#seedCookies.ts";
-import { storyKit } from "#storyKit.ts";
+import "#server/browserReads.ts";
+import "#client/adapters/react.ts";
+import "#server/adapters/memberScreens.ts";
+import "#server/otlpReceiver.ts";
+import "#server/adapters/seedCookies.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const integrations = storyKit({
 	create: () => ({}),

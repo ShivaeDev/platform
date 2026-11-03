@@ -4,14 +4,12 @@ import type { MissingReadPolicies } from "@shivaedev/contract/readPolicyErrors.t
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
-import type { RenderFailed } from "#render/Failed.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";
 import type { HomeMissing } from "#server/files/home.ts";
 import type { MermaidMissing } from "#server/http/assets.ts";
 import { boardRoutes } from "#server/http/boardRoutes.ts";
 import { RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
-import { Highlighter } from "#server/render/Highlighter.ts";
 
 export interface BoardOptions {
 	readonly fleetPort?: number | null;
@@ -27,8 +25,7 @@ type BoardError =
 	| InternalServerError
 	| HomeMissing
 	| MermaidMissing
-	| PlatformError.PlatformError
-	| RenderFailed;
+	| PlatformError.PlatformError;
 type BoardServices =
 	| FileSystem.FileSystem
 	| HttpRouter.HttpRouter
@@ -47,5 +44,5 @@ export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError
 			).pipe(Layer.provide(runtime.live));
 			return Layer.mergeAll(boardRoutes(options, runtime), rpc, rpcPolicy);
 		}),
-	).pipe(Layer.provide(Highlighter.layer));
+	);
 }

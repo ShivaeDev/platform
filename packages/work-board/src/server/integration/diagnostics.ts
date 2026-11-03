@@ -2,9 +2,9 @@ import { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract } from "#diagnostics/
 import { FleetStage, FleetTimestamp } from "#diagnostics/fleetItems.ts";
 import { CapacityRejection as CapacityRejectionSchema, FLEET_HEALTH_NAME, FleetHealth as FleetHealthSchema } from "#diagnostics/health.ts";
 import { DiagnosticsSources, diagnostics as readDiagnostics, SourceFailure as SourceFailureClass } from "#diagnostics/source.ts";
+import { fleetHealth } from "#server/adapters/fleetHealth.ts";
 import { codexLimits } from "#server/diagnostics/codexLimits.ts";
 import { codexRateLimits } from "#server/diagnostics/codexRateLimits.ts";
-import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
 import { githubLimits } from "#server/diagnostics/githubLimits.ts";
 
 export type CapacityRejection = typeof CapacityRejectionSchema.Type;

@@ -3,9 +3,9 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { LocalPostgresError } from "#LocalPostgresError.ts";
-import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
-import type { PostgresCommandError } from "#PostgresCommandError.ts";
+import type { LocalPostgresError } from "#server/LocalPostgresError.ts";
+import { LOCAL_SERVER, localPostgres } from "#server/localPostgres.ts";
+import type { PostgresCommandError } from "#server/PostgresCommandError.ts";
 
 export const cancellation = storyKit({
 	clock: "live",

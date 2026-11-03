@@ -2,17 +2,17 @@ import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Tracer from "effect/Tracer";
-import type { TestContext } from "vitest";
-import { callSite } from "#internal/callSite.ts";
-import { hooked } from "#internal/hooked.ts";
-import { narrate, narrateCreation } from "#internal/narration.ts";
-import { runUntil } from "#internal/runUntil.ts";
-import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#internal/seed.ts";
+import type { FailureContext } from "#server/adapters/storyFailure.ts";
+import { callSite } from "#server/internal/callSite.ts";
+import { hooked } from "#server/internal/hooked.ts";
+import { narrate, narrateCreation } from "#server/internal/narration.ts";
+import { runUntil } from "#server/internal/runUntil.ts";
+import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#server/internal/seed.ts";
 
 export const start = Effect.fnUntraced(function* (
 	definition: LooseDefinition,
 	given: readonly LooseTrait[],
-	context: TestContext,
+	context: FailureContext,
 	body: (told: object) => Effect.Effect<unknown, unknown, unknown>,
 ) {
 	const engine = yield* hooked(definition.create).pipe(
@@ -20,8 +20,7 @@ export const start = Effect.fnUntraced(function* (
 		Effect.tapCause(() => narrateCreation(definition.name, context)),
 	);
 	const { narration, captureFailure } = yield* narrate({ engine, inspect: definition.inspect, name: definition.name }, context);
-	return yield* Effect.gen(function* () {
-		yield* seed(definition, engine, narration, given);
+	const bodyEffect = Effect.suspend(() => {
 		const story: LooseStory = {
 			engine,
 			lines: narration.lines,
@@ -32,7 +31,7 @@ export const start = Effect.fnUntraced(function* (
 			},
 			tell: narration.tell,
 		};
-		return yield* body(
+		return body(
 			Object.defineProperties(
 				{},
 				{
@@ -41,5 +40,6 @@ export const start = Effect.fnUntraced(function* (
 				},
 			),
 		);
-	}).pipe(Effect.tapCause((cause) => captureFailure(Cause.prettyErrors(cause)[0]?.stack)));
+	});
+	return yield* seed(definition, engine, narration, given, bodyEffect, (cause) => captureFailure(Cause.prettyErrors(cause)[0]?.stack));
 });

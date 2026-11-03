@@ -1,7 +1,8 @@
 import { type ChildProcess, type ExecFileException, execFile, spawn } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Deferred, Effect, Exit } from "effect";
+import { Deferred, Effect, Exit, Schema } from "effect";
+import { WatchEvent } from "#outputEvent.ts";
 import { type Engine, programArguments } from "./engine.ts";
 import { described } from "./readouts.ts";
 import { REPOSITORY } from "./server.ts";
@@ -15,8 +16,17 @@ function exitOf(error: ExecFileException | null) {
 	return typeof error.code === "number" ? error.code : null;
 }
 
+const decodeLine = Schema.decodeUnknownSync(Schema.fromJsonString(WatchEvent));
+
+function events(stdout: string) {
+	return stdout
+		.split("\n")
+		.slice(0, -1)
+		.map((line) => decodeLine(line));
+}
+
 function lines(stdout: string) {
-	return stdout.split("\n").slice(0, -1).map(described);
+	return events(stdout).map(described);
 }
 
 function spawnWatch(engine: Engine, notify: () => void) {
@@ -57,6 +67,7 @@ export function cliVerbs(engine: Engine, tell: (line: string) => void) {
 	}
 	let running: ChildProcess | undefined;
 	return {
+		cliEvents: () => Effect.sync(() => events(engine.cli.stdout)),
 		cliExit: () => Effect.sync(() => (engine.cli.exit === undefined ? "still running" : `exit code ${engine.cli.exit}`)),
 		cliPrinted: () => Effect.sync(() => lines(engine.cli.stdout)),
 		cliPrints: (line: string) =>

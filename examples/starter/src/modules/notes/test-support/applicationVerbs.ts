@@ -183,11 +183,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			story.tell(`${name} opens her notes list on a live socket`);
 			return watchedList(liveAddress(engine), account(engine, name).cookie);
 		},
-		wordCountJobs: Effect.fn("AppStory.wordCountJobs")(function* () {
-			story.tell("read the word-count jobs in the queue");
-			const jobs = yield* runningHost(engine).jobsTesting.jobs(CountWords);
-			return jobs.map(({ data, state }) => ({ noteId: data.noteId, state }));
-		}),
 		workerCountsQueuedNotes: Effect.fn("AppStory.workerCountsQueuedNotes")(function* () {
 			story.tell("the word-count worker starts and counts every queued note");
 			const { jobs } = yield* startWorker();

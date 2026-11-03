@@ -91,7 +91,7 @@ Put `fleet.config.json` in the Board folder. For `up` or `serve`, `--config <fil
 
 Replace the placeholders with trusted host settings. Missing or invalid configuration fails.
 
-`cloud.environmentId` identifies the Codex Cloud environment configuration, and `cloud.cwd` identifies its workspace. The Cloud transport confirms the returned environment before starting a turn. It rejects work prepared for a different workspace and rejects an echoed service tier that differs from the requested tier. `worker` supplies the branch prefix and environment script path used in the generated worker instructions.
+`cloud.environmentId` identifies the Codex Cloud environment configuration, and `cloud.cwd` identifies its workspace. The Cloud transport confirms the returned environment before starting a turn. It rejects work prepared for a different workspace and rejects an echoed service tier that differs from the requested tier. `worker` supplies the branch prefix and environment script path used in the generated worker instructions. Optional `worker.setupCommand` sets the setup command in Cloud worker instructions; it defaults to `./script/update`.
 
 The hosted Codex transport sends the configured environment and launch fields, then reads the final answer from a terminal turn. It authenticates from a Codex login file and can run a configured refresh command for an expired login; a failed refresh leaves the provider unavailable. `cloud.authFile` names the login file, which defaults to `auth.json` under `CODEX_HOME` or `~/.codex`, and `cloud.refreshCommand` (`{ "command": ..., "args": [...] }`) replaces the default `codex app-server --listen stdio://` refresh.
 
@@ -99,7 +99,7 @@ Cloud host configuration also accepts `cloud.threadNamePrefix` (default `Fleet: 
 
 `"provider": "local"` runs workers through a local Codex app-server instead and needs `local.endpoint`, a loopback `ws://` address, with optional `local.requestTimeoutMs` (default 30 seconds).
 
-`repository` names the Git remote and base branch Fleet observes, `{ "remote": "origin", "branch": "main" }` by default. `"result": "github"` adopts worker results from GitHub pull requests, as described under [After launch: adoption](#after-launch-adoption).
+`repository` names the Git remote and base branch Fleet observes and includes in Cloud worker instructions, `{ "remote": "origin", "branch": "main" }` by default. `"result": "github"` adopts worker results from GitHub pull requests, as described under [After launch: adoption](#after-launch-adoption).
 
 Each task can override `launch` per field, as described under [Approve a task](#approve-a-task).
 
@@ -204,7 +204,7 @@ Status reports the supervisor and child pids, ports, uptime, restart counts and 
 
 `work-fleet serve <board-dir>` runs only the daemon, binding to `127.0.0.1:3457`; `--port <port>` selects another port. The `work-board <board-dir>` command starts Board independently when the directory is not supervised. The daemon composes the Fleet service, the host and the scheduler once for its lifetime, writes its bound port to `<board-dir>/.fleet-port`, and on shutdown removes the port file if it still holds that daemon's port.
 
-Work commands connect to the daemon's loopback port over RPC and open no PostgreSQL connection. They read the port file from `--board <board-dir>` (default `.work`); an explicit `--port` overrides discovery. The running daemon owns its configuration; client `--config` does not change it. Without a daemon, clients other than the JSON watch and `watch --follow` exit 1 with the address and a command to start it.
+Work commands connect to the daemon's loopback port over RPC and open no PostgreSQL connection. They read the port file from `--board <board-dir>` (default `.work`); an explicit `--port` overrides discovery. The running daemon owns its configuration; client `--config` does not change it. Without a daemon, continuous watches keep reconnecting; other clients exit 1 with the address and a command to start it.
 
 #### Edit the configuration while the daemon runs
 
@@ -306,6 +306,14 @@ Fleet gives available areas to eligible queued tasks and code repairs by `fleet-
 #### Queue reviewed PRs
 
 The GitHub host enables squash auto-merge when a Fleet PR has an approved review and passing required checks for its exact head and GitHub reports it mergeable. The mutation pins `expectedHeadOid` to that reviewed commit. Fleet waits on automation for GitHub to land it and observes the merge before completing the task; no orchestrator answer is needed. Main advancing alone does not require another review. A restart reconciles the existing auto-merge request before submitting anything else.
+
+Fleet holds any adopted PR whose current diff against its base touches `.github/`, including deletions and renames. It names the changed CI files in the orchestrator wait and removes existing queue entries and auto-merge requests. After the maintainer reviews the CI changes, the orchestrator releases that exact PR head:
+
+```sh
+work-fleet release-ci sample-one <head> --board ./notes
+```
+
+Use the head shown in the hold reason. The release survives restart and keeps the usual review and required-check gates. A later push whose diff still touches `.github/` needs another release.
 
 Automatic queuing applies to PRs on the configured worker branch for that task in the same repository, targeting the configured base branch. Foreign PRs, release branches, PRs titled Release or labelled `release`, and hosts without a queue integration retain the human merge path. A PR with unknown mergeability waits for GitHub. If GitHub removes auto-merge from a queued PR without merging it, Fleet sends a fix turn to the existing worker for fresh review and checks.
 
@@ -529,28 +537,30 @@ Fleet closes an ask and marks its question `status: done` when it applies the an
 
 `work-fleet wait <id> --timeout <seconds>` subscribes to daemon snapshots until the item reaches an outcome, prints a summary and exits with a code that says which outcome; an item not yet recorded keeps waiting. `--interval <seconds>` controls the reconnect delay and defaults to 15.
 
-`work-fleet watch` follows newly launched work and continuously prints one text event per line, with no blank or decorative lines, from the daemon's stored Fleet state. From the repository root it uses `.work`, like other work commands; `--board <dir>` selects another Board. PR queue and health events are included, and quiet heartbeats are disabled.
+`work-fleet watch --follow` follows newly launched work and prints only events that need action, one per line: orchestrator and maintainer waits, stuck work, answer and dispatch failures, PR conflicts, failed queue removals and closed PRs. The bare `work-fleet watch` uses the same default. From the repository root it uses `.work`; `--board <dir>` selects another Board.
 
 ```sh
-work-fleet watch
-work-fleet watch --json
-work-fleet watch --events released
+work-fleet watch --follow
+work-fleet watch --follow --json
+work-fleet watch --follow --all
 ```
 
-Use `--json` for one JSON object per line, `--pr-events false` to disable PR monitoring, or `--heartbeat <seconds>` to emit quiet heartbeats. Stop with Ctrl-C or `--timeout <seconds>` (exit 4). `--events` accepts a comma-separated list of the following kinds; omitted, every kind except `released` is enabled. Unknown kinds fail at startup. With `--events` or `--json`, positional work IDs restrict the continuous stream to those items.
+Each actionable event prints once per work item, head and reason during the watch, including across reconnects and later passes with new decision IDs. Ordinary capacity, open-PR, area, dependency and pending-review dispatch deferrals stay quiet, as do merged PRs, done work, requeued Board changes, unsubstantiated release holds, queue-related auto-merge changes and recovering GitHub errors. Daemon outages that recover within a minute stay quiet.
 
-| Kind                                                          | Transition                                                                                                                          |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `waiting-on-orchestrator`                                     | Work needs orchestrator action, including a PR on the human merge path.                                                             |
-| `waiting-on-you`                                              | Work needs a maintainer decision.                                                                                                   |
-| `done`                                                        | Fleet accepts completion.                                                                                                           |
-| `released`                                                    | Fleet releases ownership.                                                                                                           |
-| `stuck`                                                       | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). Further progress permits a later stuck event. |
-| `dispatch-failed`                                             | Background dispatch fails; ordinary dependency and area waits are excluded.                                                         |
-| `answer-failed`                                               | A recorded answer fails to apply.                                                                                                   |
-| `board-answer`                                                | Another person answers a Board question.                                                                                            |
-| `pr-merged`, `pr-closed`                                      | A watched PR merges or closes.                                                                                                      |
-| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention.                                                                                        |
+Use `--all` for the full stream, including completion, Board answers and health diagnostics, or `--events <kinds>` to select events explicitly. `--json` prints one JSON object per line; `--pr-events false` disables PR monitoring. Heartbeats are off unless `--heartbeat <seconds>` is set. Stop with Ctrl-C or `--timeout <seconds>` (exit 4). Positional IDs restrict continuous watches to those items. `--events` accepts the following kinds; unknown kinds fail at startup.
+
+| Kind                                                          | Transition                                                                                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `waiting-on-orchestrator`                                     | Work needs orchestrator action, including a PR on the human merge path.                                                  |
+| `waiting-on-you`                                              | Work needs a maintainer decision.                                                                                        |
+| `done`                                                        | Fleet accepts completion.                                                                                                |
+| `released`                                                    | Fleet releases ownership.                                                                                                |
+| `stuck`                                                       | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). The default reports once per head. |
+| `dispatch-failed`                                             | Background dispatch fails; ordinary queueing deferrals are excluded.                                                     |
+| `answer-failed`                                               | A recorded answer fails to apply.                                                                                        |
+| `board-answer`                                                | Another person answers a Board question.                                                                                 |
+| `pr-merged`, `pr-closed`                                      | A watched PR merges or closes.                                                                                           |
+| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention.                                                                             |
 
 Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR on the human merge path includes its reason, PR URL and reviewed head SHA:
 
@@ -564,7 +574,7 @@ Text events start with the event kind followed by named JSON values, so multilin
 }
 ```
 
-`watch <ids...>` without event flags prints text outcomes once and exits when every selected item has reported; `watch --follow` keeps printing outcomes for all or selected items. The [watch guide](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/watching.md) covers heartbeats, reconnection, deduplication, Board answer and PR events, and how followers handle a newer daemon.
+`watch <ids...>` without event flags prints text outcomes once and exits when every selected item has reported. Add `--follow` for the continuous actionable event stream. The [watch guide](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/watching.md) covers heartbeats, reconnection, deduplication, Board answer and PR events.
 
 ### Examples
 
@@ -650,8 +660,8 @@ export const waiting = Effect.scoped(
 - `work-fleet release <work-id>... [--port <port>]`: Releases terminal waiting items and records closing responses on their Board decisions.
 - `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]`: Reassigns the exact current question to maintainer, orchestrator or automation.
 - `work-fleet wait <work-id> --timeout <seconds> [--port <port>]`: Subscribes to daemon snapshots until an outcome or timeout.
-- `work-fleet watch --board <dir> [--pr-events] [--events <kinds>] [--stuck-after <seconds>]`: Streams Fleet transitions, Board answers, optional PR events and daemon health as JSON.
-- `work-fleet watch <work-ids...> [--follow]`: Reports text outcomes once, or continuously with `--follow`.
+- `work-fleet watch [work-ids...] --follow [--all] [--json] [--board <dir>] [--events <kinds>] [--stuck-after <seconds>]`: Streams actionable Fleet and PR events; `--all` includes routine events and health diagnostics.
+- `work-fleet watch <work-ids...>`: Reports text outcomes once and exits after each item reports.
 - `work-fleet continue <work-id> [message] [--port <port>]`: Continues terminal work on its existing worker thread; reads stdin when the message is omitted.
 - `work-fleet stop <work-id> [--port <port>]`: Interrupts running work and records its closing Board response while preserving the branch and PR.
 - `work-fleet answer <work-id> [text] [--release] [--port <port>]`: Answers the waiting worker question or Fleet decision; reads text from stdin when omitted, except with `--release`.

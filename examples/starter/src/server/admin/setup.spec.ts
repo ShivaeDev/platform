@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { adminSetup, aliceSignedInWithGitHub, authTablesReady } from "#test-support/admin/setup.ts";
+import { adminSetup, aliceSignedInWithGitHub } from "#test-support/admin/setup.ts";
 
 adminSetup.it(
 	"alice's GitHub account, configured as owner, makes her an owner who may assign roles when the app boots",
-	[authTablesReady, aliceSignedInWithGitHub],
+	[aliceSignedInWithGitHub],
 	function* ({ appStarts, signedInAccount }) {
 		yield* appStarts("github:1001");
 
@@ -19,7 +19,7 @@ adminSetup.it(
 
 adminSetup.it(
 	"the bootstrap command creates a first owner who signs in with the users, roles and jobs permissions",
-	[authTablesReady],
+	[],
 	function* ({ adminCommandRuns, appStarts, signedInAccount, signsIn }) {
 		const created = yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123");
 
@@ -41,7 +41,7 @@ adminSetup.it(
 	},
 );
 
-adminSetup.it("the bootstrap command refuses a second admin with the same email", [authTablesReady], function* ({ adminCommandRuns }) {
+adminSetup.it("the bootstrap command refuses a second admin with the same email", [], function* ({ adminCommandRuns }) {
 	expect(yield* adminCommandRuns("first-admin@app.test", "first-admin-password-123")).toBe("created");
 
 	const again = yield* adminCommandRuns("first-admin@app.test", "another-admin-password-123");

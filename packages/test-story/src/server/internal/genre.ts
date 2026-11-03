@@ -1,4 +1,4 @@
-import type { GenreTag } from "#genreTags.ts";
+import type { GenreTag } from "#server/genreTags.ts";
 
 export interface Genre {
 	readonly tag: GenreTag;

@@ -2,6 +2,7 @@ import type { BetterAuthOptions } from "better-auth";
 import { APIError } from "better-auth/api";
 import { Effect, Exit } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
+import { authRefusals } from "#authRefusal.ts";
 import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 
 export function roleSeedOptions<E>(options: BetterAuthOptions, seed: AccountRoleSeed<E> | undefined): BetterAuthOptions {
@@ -28,7 +29,7 @@ export function roleSeedOptions<E>(options: BetterAuthOptions, seed: AccountRole
 							{ signal: endpoint?.request?.signal },
 						);
 						if (Exit.isFailure(exit)) {
-							throw new APIError("SERVICE_UNAVAILABLE", { code: "role_seed_failed", message: "Sign-in is temporarily unavailable" });
+							throw new APIError("SERVICE_UNAVAILABLE", { code: authRefusals.roleSeedFailed.wire, message: "Sign-in is temporarily unavailable" });
 						}
 						return result;
 					},

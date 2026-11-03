@@ -11,7 +11,7 @@ import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
-class Greeting extends Context.Service<Greeting, string>()("host-test/Greeting") {}
+class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/host-test/Greeting") {}
 export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String })).middleware(
 	Authenticated,
 );

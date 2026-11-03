@@ -4,7 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { BrowserClient, Reader } from "#adapters/browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
@@ -16,7 +16,7 @@ import { screenTransport } from "#test/screenTransport.ts";
 import { workspaceBoard } from "#test/workspaceBoard.ts";
 
 function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions, runtime?: Atom.RuntimeFactory) {
-	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
+	class Client extends AtomRpc.Service<Reader>()("@shivaedev/work-board/RenderTest", {
 		group: workRpcs,
 		makeEffect: screenTransport(options),
 		protocol: workspaceBoard(files, options),

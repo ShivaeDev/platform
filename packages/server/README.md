@@ -25,6 +25,8 @@ The process migrates the database, serves `Api` at `/rpc` and the built client f
 
 The host composes pieces that live in their own packages. Request identity, sessions, Origin policy, permissions and Better Auth come from [`@shivaedev/identity`](https://github.com/ShivaeDev/platform/tree/main/packages/identity#readme); shared failures and redaction from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme); outside HTTP calls from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme). This package hosts them: `appHost` serves the RPC group with the application's session policy, database and migrations.
 
+The RPC host composes contract's `CommandGuard` with `publishCommand` and the `CommandPublication` port from `@shivaedev/changes/commandPublication.ts`. Session middleware supplies the viewer. Successful commands publish declared changes after their handlers finish committing, deduplicating changes already announced by the handler. Publication retries do not repeat the write; exhausted retries request a live resync while preserving the committed result. Failed commands publish no declared changes.
+
 The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, and `node-http/` combines subscription cancellation sources. Choose the modules that match the application rather than adopting every integration.
 
 ### Prepare local development
@@ -124,7 +126,7 @@ Static layers mounted manually through `routes` keep Effect's native behavior. T
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` and `listenDatabaseUrl` (Effect `Redacted<string>` values), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
-RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body, fixed-length or chunked, returns a 4xx before any RPC handler runs. This limit applies to the host's RPC route.
+RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body, fixed-length or chunked, returns a 4xx before any RPC handler runs. The same byte limit applies to each WebSocket RPC message, including binary messages and the combined payload of continuation frames. An oversized message closes the connection with code 1009 before any RPC in that message runs; native Effect socket clients receive a typed `SocketError` with a `SocketCloseError` reason. The limit includes bearer authentication frames, and zero refuses every nonempty message. This limit applies to the host's RPC route.
 
 For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
@@ -330,7 +332,7 @@ Build the application Layer once. `runWithServices` supplies an invocation's ove
 
 ```ts
 import { Context, Layer } from "effect";
-import { makePlatformRuntime } from "@shivaedev/server/runtime/makePlatform.ts";
+import { makePlatformRuntime } from "@shivaedev/server/adapters/makePlatformRuntime.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("app/Greeting") {}
 
@@ -353,7 +355,7 @@ A long-lived response can receive cancellation from a Web request, a procedure a
 
 ```ts
 import type { IncomingMessage } from "node:http";
-import { nodeSubscriptionSignal } from "@shivaedev/server/node-http/subscriptionSignal.ts";
+import { nodeSubscriptionSignal } from "@shivaedev/server/adapters/subscriptionSignal.ts";
 
 export async function consumeSubscription(
 	request: Request,
@@ -408,6 +410,12 @@ host.it("the running application answers health checks", [], function* ({ health
 
 `health()` requests `/health` and returns `{ status, body, headers }`. `headers(path)` returns the named path's response headers as a lowercase-keyed record. Both use real HTTP and leave redirects visible. The host's normal health semantics apply: reachable PostgreSQL produces 200; a host without a database produces 503. `url` and `pid` identify the ready child. Launch, signal and HTTP failures use the typed `HostProcessError` from `@shivaedev/server/testing/HostProcessError.ts`, with `operation` and the original `cause`. A child exit before readiness or signal acknowledgement fails the waiting action. A live child that never reports the expected message stays pending until its owning story is interrupted or times out.
 
+For lifecycle observations, acquire `hostProcessReadouts` from `@shivaedev/server/testing/hostProcessReadouts.ts` in the child before reporting readiness. Keep its scope open until shutdown reporting finishes. Wrap a running Effect with `readouts.work(name, effect)` and a finalizer's Effect with `readouts.finalizer(name, effect)`. These wrappers observe the Effects the application runs; they do not discover uninstrumented work or finalizers. The parent's `activeWork()` returns names in start order, removing each item when it ends, including interrupted work and overlapping items with the same name. `finalizers()` returns names in completion order.
+
+Wrap disposal of the host scope or runtime with `readouts.shutdown(dispose)`, then acknowledge the application's shutdown signal. `shutdownDuration()` returns `null` before shutdown completes and elapsed milliseconds afterwards, including finalizer time. The parent retains the completed shutdown's readouts after the child process and its owning scope close; `activeWork()` then returns the work that was active when shutdown began. Forced termination without a completed shutdown report cannot provide these observations.
+
+To exercise PostgreSQL recovery, install the optional `@shivaedev/test-sql` peer and pass a redacted `databaseUrl` to `hostProcess`. The kit opens a `disconnectProxy` in its owning scope and gives the child its URL through `DATABASE_URL`; the child must use that setting. This mode uses the explicit `env` record plus the proxy's `DATABASE_URL` as the child's environment. Call `disconnectIdlePostgres()` once the host's database connections are idle. It cuts the proxy's existing connections while allowing new ones, so a following HTTP health request can exercise the host's PostgreSQL pool recovery.
+
 ### Low-memory PostgreSQL hosts
 
 Use sql's [opt-in preset](https://github.com/ShivaeDev/platform/tree/main/packages/sql#low-memory-postgresql-hosts) with the host's ten-minute connection lifetime and one-minute idle timeout. The preset bounds PostgreSQL shared memory and per-operation work; connection recycling releases backend memory, and a page-cache trim releases clean file pages charged to the container. A busy workload still needs memory for its working set.
@@ -449,8 +457,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `otlpTracing.ts`                                                                | `otlpTracing`: redacting Railway OTLP export for worker spans, logs and error reports.                                                                          |
 | `RedactionPolicy.ts`                                                            | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
-| `runtime/makePlatform.ts`                                                       | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                         |
-| `node-http/subscriptionSignal.ts`                                               | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                |
+| `adapters/makePlatformRuntime.ts`                                               | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                         |
+| `adapters/subscriptionSignal.ts`                                                | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                |
 
 ### Install, setup and limits
 

@@ -1,4 +1,4 @@
-import type { QueueOptions } from "#definition.ts";
+import type { QueueOptions } from "#server/definition.ts";
 
 export function maxDeferrals(options: QueueOptions | undefined): number {
 	const limit = options?.maxDeferrals ?? 10;

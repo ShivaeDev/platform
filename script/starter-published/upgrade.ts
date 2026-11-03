@@ -1,5 +1,4 @@
-import { join } from "node:path";
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
@@ -18,7 +17,8 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 	minimal: boolean,
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	const directory = join(temporary, minimal ? "upgrade-minimal" : "upgrade-full");
+	const paths = yield* Path.Path;
+	const directory = paths.join(temporary, minimal ? "upgrade-minimal" : "upgrade-full");
 	yield* fs.makeDirectory(directory);
 	const archive = (yield* command(directory, "npm", [
 		"pack",
@@ -26,9 +26,9 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 		"--ignore-scripts",
 		"--loglevel=error",
 	])).trim();
-	const folder = yield* generateStarter(root, directory, join(directory, archive), {}, undefined, minimal);
-	const app = join(directory, folder);
-	const home = join(app, "src/client/Home.tsx");
+	const folder = yield* generateStarter(root, directory, paths.join(directory, archive), {}, undefined, minimal);
+	const app = paths.join(directory, folder);
+	const home = paths.join(app, "src/client/Home.tsx");
 	const original = yield* fs.readFileString(home);
 	yield* requireThat(original.includes("Your app"), "The previous starter must have a home-page heading to customize.");
 	yield* fs.writeFileString(home, original.replace("Your app", "Our customized app"));
@@ -56,10 +56,10 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 			"src/server/browserReports.spec.ts",
 			"--reporter=default",
 			"--reporter=json",
-			`--outputFile=${join(directory, "upgrade-stories.json")}`,
+			`--outputFile=${paths.join(directory, "upgrade-stories.json")}`,
 		]),
 	);
-	const report = decodeReport(yield* fs.readFileString(join(directory, "upgrade-stories.json")));
+	const report = decodeReport(yield* fs.readFileString(paths.join(directory, "upgrade-stories.json")));
 	yield* requireThat(
 		report.numTotalTests > 0 && report.numPendingTests === 0 && report.numPassedTests === report.numTotalTests,
 		"The upgraded app's PostgreSQL and HTTP stories must pass without skips.",

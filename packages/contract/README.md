@@ -333,19 +333,41 @@ Preferences.application.toLayer({
 });
 ```
 
-`store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host of `@shivaedev/server` resolves the server key scope from that same request-local identity.
+`store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host uses plain repository keys for every subscriber and rechecks each subscriber’s read policy before delivery.
 
 The registry is required for session-scoped bindings. Query atoms and live connections belong in it; command and one-off query Effects execute through it. Explicit streams also run through its client, preserving the session transport and headers; disposing the registry ends those streams. Streams on ordinary contracts use the caller's client. A successful command invalidates its owner's keys, while a rejected command declares no invalidation. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
 
-`List` and `Item` are still the key shapes. `readKeys(keys, { scope })` and `invalidationKeys(keys, { scope })` resolve the extra dimension while preserving item, list and wildcard semantics. An item invalidation refreshes that scope's item and list; a wildcard reaches only that scope's items. The client's opaque scope comes from its registry and is never sent as an owner id.
+Server subscriptions and committed writes use the same plain record, list and bucket keys, including for `keyScope: "session"`. A background worker needs no request identity or account prefix to refresh a session's query. Matching keys trigger the query's own read policy; authorized reads remain responsible for filtering rows to the viewer. A shared key can therefore trigger authorized rechecks for several accounts. Use model buckets to narrow that fan-out.
 
-Server adapters read the RPC's `KeyScope` annotation. For `"session"`, they must obtain scope from request-local authenticated identity, then pass the same `{ scope }` to dependency registration, invalidation and `makeLiveServer.stream(keys, context)`. A shared server Layer must not capture identity, accept a client-selected scope or fall back to unscoped keys. This package supplies metadata and contextual keys; it has no server or authentication dependency.
+Client cache isolation belongs to the owning registry. `bind` supplies its opaque context automatically. Custom client coordination uses these helpers and context type:
+
+```ts
+import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "@shivaedev/contract/clientKeys.ts";
+```
+
+`clientReadKeys(keys, context)` registers client dependencies; `clientInvalidationKeys(keys, context)` announces client cache changes. The context has type `KeyContext`. Never publish contextual client keys on the server.
+
+### Compose feature bindings
+
+Use `composeBindings(client, bindings)` when a connection contains several feature modules. The returned object keeps the client's fields and types and carries an explicit list of bound APIs. `liveBindings(connection)` reads this list; it also accepts a binding directly or an object with bound APIs as its own properties.
+
+```ts
+import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
+
+const modules = [notesModule, tasksModule] as const;
+const connection = composeBindings(
+	{ modules },
+	modules.map((module) => module.api),
+);
+```
+
+`notesModule` and `tasksModule` are application modules whose `api` values come from `bind` or `makeClient`. Return `connection` from React's `SessionBoundary` connection callback to mount both bindings while keeping the modules nested.
 
 ### 4. Live invalidation and resume
 
 The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries. Bindings on the same client runtime share this pause state.
 
-Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary mounts the bindings declared with `composeBindings`, or finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
 Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
 
@@ -380,7 +402,34 @@ const changes = Stream.unwrap(
 );
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers call `querySubscription(rpc, references, viewer)` with the native changes RPC definition and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers call `querySubscription(rpc, references, viewer)` with the native changes RPC definition and pass its authorized result to `makeLiveServer.subscribe(subscription)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
+
+Custom subscription handlers use `changesHandlerLayer` to derive the reserved handler Layer from the contract:
+
+```ts
+import { Effect, Stream } from "effect";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { Notes } from "./notes.ts";
+
+const changes = changesHandlerLayer(
+	Notes,
+	(rpc) =>
+		({ queries }) =>
+			Stream.unwrap(
+				Effect.gen(function* () {
+					const viewer = yield* CurrentViewer;
+					const subscription = yield* querySubscription(rpc, queries, viewer);
+					const live = yield* LiveServer;
+					return yield* live.subscribe(subscription);
+				}),
+			),
+);
+```
+
+Merge this Layer with `Notes.application.toLayer(...)`. It retains the query read-policy and custom stream services as requirements, excluding services supplied by RPC middleware. The builder can also return an Effect to acquire services or fail during Layer construction. Declared stream failures remain in the contract's error channel. Pushed results are validated against the contract's decoded success types; custom handlers do not decode `changesSuccess` themselves.
 
 For a custom transport or explicit pause and status controls, use the native live APIs.
 
@@ -470,13 +519,15 @@ Call the release functions and dispose the registry when the application's root 
 
 ### Server hint streams
 
-Import `LiveServer` from `@shivaedev/contract/LiveServer.ts`. Provide `LiveServer.layer` with the server's `Reactivity` Layer; PostgreSQL `appHost` apps already provide it. Yield `LiveServer` to obtain the shared service. Its methods return Effects: unwrap `hints.stream(keys, context)` or `hints.subscribe(subscription, context, read?)` with `Stream.unwrap`, and call `hints.resync()` to reconcile its active streams. Subscription policy failures and caller requirements remain on the returned Stream.
+Import `LiveServer` from `@shivaedev/contract/LiveServer.ts`. Provide `LiveServer.layer` with the server's `Reactivity` Layer; PostgreSQL `appHost` apps already provide it. Yield `LiveServer` to obtain the shared service. Its methods return Effects: unwrap `hints.stream(keys)` or `hints.subscribe(subscription, read?)` with `Stream.unwrap`, and call `hints.resync()` to reconcile its active streams. Subscription policy failures and caller requirements remain on the returned Stream.
 
 Import `makeLiveServer` from `@shivaedev/contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
 
 Each stream queues at most 256 hints. Overflow discards the pending hints and retains one `Resync`; further hints are absorbed until that reconciliation hint is pulled. Hint consumers read current query results; rerun-and-compare subscriptions rerun on the server and push changed current results. The [PostgreSQL and React stories](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/comparedPostgres.dom.spec.ts) prove compared delivery without client reads, suppression of equal and SQL-filtered results, and reconciliation into a rendered query after a real loopback WebSocket withholds RPC acknowledgements across 257 repository commits. The [in-memory slow-consumer stories](src/slowConsumer.spec.ts) cover hint reconciliation. The queue bound counts hints, not commits or bytes: each hint's keys depend on the subscription. Transport buffers remain the transport's responsibility; a client lagging by 256 commits does not necessarily overflow this queue. Browser suspension, proxy buffering and deployment delivery are not proven here.
 
 ### Query policies, record keys and buckets
+
+The application host installs `ReadPolicyGuard` from `@shivaedev/contract/ReadPolicyGuard.ts` and evaluates an ordinary query’s policy once per request, after identity middleware resolves `CurrentViewer`. Custom hosts serve the group returned by `yield* guardReads(group)` and provide `readPolicyGuardLayer()`. `guardReads` places the guard inside the group’s identity middleware on a server-side copy; custom authentication middleware supplies `CurrentViewer` from its validated session. Pass `{ websocket: true }` to `readPolicyGuardLayer` when serving the WebSocket protocol; the default refuses `$changes` calls with `WebSocketRequired`. Subscription delivery and pushed reruns continue to check current access.
 
 A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections`; a failing access check reaches the client as its declared error, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
 
@@ -518,7 +569,7 @@ const AllNotes = query("allNotes", {
 
 The application supplies the permission checker through `permissionReadPolicy(permission, check)`; `check` receives that permission and the current viewer, and must check the viewer's grant using server services. Its failures and service requirements flow through the query like any other read policy. Supply `SessionUser` with the application's identity middleware. The policy guards both calls and subscriptions, and runs again before changed hints are delivered. `readsCollections` requires this policy at declaration: a `signedIn` or ordinary boolean policy fails TypeScript checking, and building an untyped contract with that declaration throws an error explaining the required permission policy. The server also refuses collection queries changed to an ordinary policy after construction as `QueryReadDenied`. Tenant-facing queries use `notes.bucket.userId(viewerId)` instead.
 
-Collection reads reuse the bare repository table key, the same key as `notes.list`, even when the contract uses `keyScope: "session"`; ordinary reads keep their session scope. They add no wildcard matching or write-side work. Every committed repository insert, update, delete, upsert and bulk write already publishes that key. Generated-id inserts also publish the bare collection key alongside their generated record key, so `publishes` stories that check exact published keys must allow the bare key today. For a table named `notes`, that is `"notes"` alongside `"notes:<id>"` and any affected bucket keys. Mounting a collection subscriber adds **zero PostgreSQL NOTIFY messages per write**: it consumes the existing payloads. It adds a normal query subscription and an authorized reread when the collection changes.
+Collection reads reuse the bare repository table key, the same key as `notes.list`, even when the contract uses `keyScope: "session"`; record and bucket reads also use plain server keys. They add no wildcard matching or write-side work. Every committed repository insert, update, delete, upsert and bulk write already publishes that key. Generated-id inserts also publish the bare collection key alongside their generated record key, so `publishes` stories that check exact published keys must allow the bare key today. For a table named `notes`, that is `"notes"` alongside `"notes:<id>"` and any affected bucket keys. Mounting a collection subscriber adds **zero PostgreSQL NOTIFY messages per write**: it consumes the existing payloads. It adds a normal query subscription and an authorized reread when the collection changes.
 
 For dependencies that need server data, add `serverReads(payload, viewer)`, an Effect returning extra keys. Keep `reads` for keys the browser can derive, or return `[]` there. The server checks every referenced query's policy before it runs any `serverReads`, and resolves it with the owning query handler's services. Declare its failures in the query's `rejections`, as with policy failures. A denied subscription never runs the resolver.
 
@@ -684,6 +735,7 @@ Import the module that defines the name; the package has no root entry.
 | `rejection.ts`            | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                                             |
 | `bind.ts`                 | `bind(contract, atomRpcService, { registry?, live?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live?, resume?, resumeWindow? })`, which builds the shared WebSocket client and binds it. |
 | `queryCoalesceWindow.ts`  | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window.                                                                                                                                                                                                                                                                                                                                                    |
+| `clientKeys.ts`           | `KeyContext`, `clientReadKeys`, `clientInvalidationKeys`: registry-local cache keys for custom clients.                                                                                                                                                                                                                                                                                                                                        |
 | `live.ts`                 | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, initialResync?, keyContext?, resume?, retryDelay?, retryKeys? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`.                                                                                                                                                                                                                                    |
 | `querySubscription.ts`    | `querySubscription(rpc, references, viewer)` checks each referenced query, resolves its payload and server-derived keys, and captures its scopes and ongoing authorization.                                                                                                                                                                                                                                                                    |
 | `LiveServer.ts`           | `LiveServer`, the shared live server service and its `.layer`, requiring `Reactivity`.                                                                                                                                                                                                                                                                                                                                                         |
@@ -691,6 +743,7 @@ Import the module that defines the name; the package has no root entry.
 | `readPolicy.ts`           | `QueryReadPolicy`, `Viewer`, `signedIn`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`.                                                                                                                                                                                                                                                                                                                                           |
 | `validateReadPolicies.ts` | `validateReadPolicies(group)`, an Effect that fails with `MissingReadPolicies` when any served or subscribable query omits its policy.                                                                                                                                                                                                                                                                                                         |
 | `readPolicyErrors.ts`     | `MissingReadPolicies` (boot), `MissingReadPolicy` (native-server request fallback) and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                                                      |
+| `CommandGuard.ts`         | `guardCommands(group)` places command publication inside viewer-providing middleware; `commandGuardLayer(boundary)` evaluates declared invalidations for that viewer and delegates publication to the host boundary.                                                                                                                                                                                                                           |
 | `serverMetadata.ts`       | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                                                                                               |
 | `queryKeys.ts`            | `queryKeys(queries, references, viewer?)` authorizes references and resolves payload and server-derived keys using the provided services.                                                                                                                                                                                                                                                                                                      |
 | `QueryServerReads.ts`     | `QueryServerReads<Payload, E, R>`, the server-only resolver type.                                                                                                                                                                                                                                                                                                                                                                              |

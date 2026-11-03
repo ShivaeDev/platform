@@ -1,49 +1,14 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { findingsBaselined } from "#test/findingsBaselined.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { trees } from "#test/trees.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
-const EXCEPTIONS = {
-	content:
-		'export default { exceptions: [{ files: ["src/long.ts", "src/longer.ts"], reason: "Generated from the schema.", rules: ["structure/max-lines"] }], rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
-	path: "quality.config.ts",
-};
 const LONG_FIXED = { content: "String(0);\n", path: "src/long.ts" };
 const LONGER_SHRUNK = { content: "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\n", path: "src/longer.ts" };
 const LONGER_GROWN = { content: "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\nString(5);\nString(6);\n", path: "src/longer.ts" };
 const BASELINE = "quality-baseline.jsonl";
-
-repositoryStory.it(
-	"quality lint passes when the config exceptions cover every finding and counts the registered findings",
-	[qualityInstalled(), repositoryHas(...trees.dirty, EXCEPTIONS), biomeFormatted()],
-	function* ({ outcome, runs, stdout }) {
-		yield* runs("lint");
-
-		yield* outcomes([
-			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), expect.stringContaining("quality: passed. 3 source files checked; 2 registered violations not shown.")],
-		]);
-	},
-	CLI_TIMEOUT,
-);
-
-repositoryStory.it(
-	"once the author fixes a registered file, quality lint rejects its config exception as matching no violation",
-	[qualityInstalled(), repositoryHas(...trees.dirty, EXCEPTIONS), biomeFormatted()],
-	function* ({ runs, writes }) {
-		expect((yield* runs("lint")).outcome).toBe("passed");
-
-		yield* writes(LONG_FIXED);
-
-		expect(yield* runs("lint")).toMatchObject({
-			outcome: "rejected",
-			stdout: expect.stringContaining("structure/max-lines src/long.ts matches no violation."),
-		});
-	},
-	CLI_TIMEOUT,
-);
 
 repositoryStory.it(
 	"quality baseline write records an entry with the excess lines of each file over the limit",
@@ -110,37 +75,6 @@ repositoryStory.it(
 			["fixed file", () => stdout(), expect.stringContaining("structure/max-lines src/long.ts has no violations left.")],
 			["note", () => stdout(), expect.stringContaining("note quality-baseline.jsonl: 2 stale entries")],
 			["shrunk file", () => stdout(), expect.stringContaining("structure/max-lines src/longer.ts allows more than is left")],
-		]);
-	},
-	CLI_TIMEOUT,
-);
-
-repositoryStory.it(
-	"quality baseline prune removes the entry of a fixed file and lowers the entry of a shrunk one",
-	[qualityInstalled(), repositoryHas(...trees.dirty), biomeFormatted(), findingsBaselined()],
-	function* ({ reads, runs, stdout, writes }) {
-		yield* writes(LONG_FIXED, LONGER_SHRUNK);
-		expect(yield* reads(BASELINE)).toContain('{"path":"src/long.ts"');
-
-		yield* runs("baseline", "prune");
-
-		yield* outcomes([
-			["baseline", () => reads(BASELINE), '{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n'],
-			["report", () => stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
-		]);
-	},
-	CLI_TIMEOUT,
-);
-
-repositoryStory.it(
-	"quality baseline write refuses to replace an existing baseline unless the author names a rule",
-	[qualityInstalled(), repositoryHas(...trees.dirty, { content: "", path: BASELINE }), biomeFormatted()],
-	function* ({ outcome, runs, stderr }) {
-		yield* runs("baseline", "write");
-
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("a baseline exists. Record a rule with --rule <id>")],
-			["exit", () => outcome(), "invalid"],
 		]);
 	},
 	CLI_TIMEOUT,

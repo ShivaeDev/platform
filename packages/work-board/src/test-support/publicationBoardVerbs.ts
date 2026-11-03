@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { Effect, Fiber, Order } from "effect";
 import { browserClient } from "#adapters/browserClient.ts";
+import { publishIn } from "#server/adapters/publishIn.ts";
 import { publish } from "#server/responses/publish.ts";
-import { publishIn } from "#server/responses/publishIn.ts";
 import type { RunningBoard } from "./board.ts";
 import { distinctVerbs } from "./distinctVerbs.ts";
 import { embeddedBoard } from "./embeddedBoard.ts";
@@ -93,7 +93,7 @@ export function publicationBoardVerbs(engine: BoardEngine, tell: (line: string) 
 			if (!folder) {
 				throw new Error("No writer has opened responses/; add responsesFolderOpen()");
 			}
-			return settledCall(() => publishIn(folder, root, root, id, content).then(() => "published"));
+			return settledCall(() => publishIn(folder, root, root, `${id}.md`, content, "responses", new AbortController().signal).then(() => "published"));
 		},
 		publishRecord: (id: string, content: string) => {
 			tell(`a writer publishes ${id}`);

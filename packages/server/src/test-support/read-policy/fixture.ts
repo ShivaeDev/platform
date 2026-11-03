@@ -11,8 +11,8 @@ import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "#appHost.ts";
 import type { HostState } from "#test/app-host/state.ts";
 
-class ReadChecks extends Context.Service<ReadChecks, Check[]>()("test/ReadChecks") {}
-class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("test/ReadStore") {}
+class ReadChecks extends Context.Service<ReadChecks, Check[]>()("@shivaedev/server/test/ReadChecks") {}
+class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("@shivaedev/server/test/ReadStore") {}
 export const documents = collection("documents", Schema.String);
 const Get = query("get", {
 	payload: { owner: Schema.String },
@@ -27,6 +27,7 @@ const Get = query("get", {
 });
 const Account = contract("account", { queries: [Get] }).middleware(Authenticated);
 const Profile = contract("profile", { queries: [Get] }).middleware(AuthenticatedUser);
+const Optional = contract("optional", { queries: [Get] }).middleware(MaybeAuthenticated);
 const Public = contract("public", {
 	queries: [
 		query("read", {
@@ -53,7 +54,7 @@ const Plain = contract("plain", {
 		}),
 	],
 });
-export const Api = Account.merge(Profile, Public, Plain);
+export const Api = Account.merge(Profile, Optional, Public, Plain);
 export interface Check {
 	readonly key: Key;
 	readonly viewer: Option.Option<IdentityValue>;
@@ -80,6 +81,7 @@ export function policyHost(state: HostState, checks: Check[], revoked: Set<strin
 		handlers: Layer.mergeAll(
 			Account.application.toLayer({ "account.get": read }),
 			Profile.application.toLayer({ "profile.get": read }),
+			Optional.application.toLayer({ "optional.get": read }),
 			Public.application.toLayer({ "public.read": () => Effect.succeed("Public documents") }),
 			Plain.application.toLayer({
 				"plain.get": () =>

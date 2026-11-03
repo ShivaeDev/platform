@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { type MemberScreen, memberScreens } from "#memberScreens.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
+import { type MemberScreen, memberScreens } from "#server/adapters/memberScreens.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { type DialogKind, MemberPreferences, type PortalTarget } from "./MemberPreferences.tsx";
 
 expectNoReactWarnings();

@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import type { Headers } from "effect/http";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import {
 	Identity,
@@ -12,7 +12,6 @@ import {
 	type SessionUserWithProviderAccountsValue,
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
-import { commandChanges } from "#server/commandChanges.ts";
 import { providerAccountsUser } from "#server/providerAccountsUser.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { lookupSession, sessionRequest } from "./lookupSession.ts";
@@ -39,16 +38,17 @@ export function authenticatedLayer() {
 		Effect.map(
 			SessionPolicy,
 			(policy) =>
-				(effect, { headers, rpc, payload }) =>
+				(effect, { headers, rpc }) =>
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
 							return yield* new Unauthorized({ message: "Authentication required" });
 						}
 						const id = yield* identified(session.value.user.id);
-						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
+						return yield* effect.pipe(
 							revalidateStream(rpc, id, recheckSession(headers, rpc._tag)),
 							Effect.provideService(Identity, { id }),
+							Effect.provideService(CurrentViewer, Option.some({ id })),
 							Effect.annotateLogs({ userId: id }),
 						);
 					}).pipe(Effect.provideService(SessionPolicy, policy)),
@@ -61,17 +61,18 @@ export function maybeAuthenticatedLayer() {
 		Effect.map(
 			SessionPolicy,
 			(policy) =>
-				(effect, { headers, rpc, payload }) =>
+				(effect, { headers, rpc }) =>
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
-							const invocation = authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.none());
+							const invocation = effect.pipe(Effect.provideService(CurrentViewer, Option.none()));
 							return yield* Effect.provideService(invocation, OptionalIdentity, Option.none());
 						}
 						const id = yield* identified(session.value.user.id);
-						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
+						return yield* effect.pipe(
 							revalidateStream(rpc, id, recheckSession(headers, rpc._tag)),
 							Effect.provideService(OptionalIdentity, Option.some({ id })),
+							Effect.provideService(CurrentViewer, Option.some({ id })),
 							Effect.annotateLogs({ userId: id }),
 						);
 					}).pipe(Effect.provideService(SessionPolicy, policy)),
@@ -92,6 +93,7 @@ export function withSessionUser(headers: Headers.Headers, operation: string) {
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
+				Effect.provideService(CurrentViewer, Option.some({ id })),
 				Effect.provideService(SessionUser, user),
 				Effect.annotateLogs({ userId: id }),
 			);
@@ -103,8 +105,8 @@ export function authenticatedUserLayer() {
 		Effect.map(
 			SessionPolicy,
 			(policy) =>
-				(effect, { headers, rpc, payload }) =>
-					Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
+				(effect, { headers, rpc }) =>
+					effect.pipe(
 						(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(rpc, id, recheckSession(headers, rpc._tag)))),
 						withSessionUser(headers, rpc._tag),
 						Effect.provideService(SessionPolicy, policy),
@@ -122,7 +124,7 @@ export function authenticatedUserWithProviderAccountsLayer() {
 		Effect.map(
 			SessionPolicy,
 			(policy) =>
-				(effect, { headers, rpc, payload }) =>
+				(effect, { headers, rpc }) =>
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
@@ -131,9 +133,10 @@ export function authenticatedUserWithProviderAccountsLayer() {
 						const { providerAccounts, ...user } = yield* providerAccountsUser(session.value.user);
 						const { id } = user;
 						yield* identified(id);
-						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
+						return yield* effect.pipe(
 							revalidateStream(rpc, id, recheckSession(headers, rpc._tag)),
 							Effect.provideService(Identity, { id }),
+							Effect.provideService(CurrentViewer, Option.some({ id })),
 							Effect.provideService(SessionUser, user),
 							Effect.provideService(SessionUserWithProviderAccounts, { ...user, providerAccounts }),
 							Effect.annotateLogs({ userId: id }),

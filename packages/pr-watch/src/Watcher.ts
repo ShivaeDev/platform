@@ -1,8 +1,10 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { events } from "#events.ts";
 import { GitHub } from "#GitHub.ts";
-import type { Options, Snapshot, State, WatchError } from "#model.ts";
+import type { Emit } from "#health.ts";
+import type { Options, Snapshot, State } from "#model.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { StateFile } from "#StateFile.ts";
 
@@ -23,7 +25,7 @@ export const Watcher = defineService({
 		return { file: yield* StateFile, github: yield* GitHub };
 	}),
 	methods: ({ file, github }) => {
-		function commit(state: State, snapshot: Snapshot, options: Options, emit: (line: string) => Effect.Effect<void, WatchError>) {
+		function commit<E, R>(state: State, snapshot: Snapshot, options: Options, emit: Emit<E, R>) {
 			return Effect.uninterruptible(
 				Effect.gen(function* () {
 					const before = state.prs[String(snapshot.number)];
@@ -31,8 +33,8 @@ export const Watcher = defineService({
 						before === undefined && (snapshot.merged || snapshot.state === "closed") && state.openNumbers?.includes(snapshot.number)
 							? { ...snapshot, merged: false, state: "open" as const }
 							: before;
-					for (const line of events(baseline, snapshot, options.events)) {
-						yield* Effect.interruptible(emit(line));
+					for (const event of events(baseline, snapshot, options.events)) {
+						yield* Effect.interruptible(emit(event));
 					}
 					const next = {
 						...state,
@@ -68,38 +70,40 @@ export const Watcher = defineService({
 				return { numbers, queue, state: next };
 			});
 		}
+		function poll<E, R, TDiagnosticError, TDiagnosticRequirements>(
+			options: Options,
+			previous: State,
+			emit: Emit<E, R>,
+			diagnostic: (failure: ObservationFailure) => Effect.Effect<void, TDiagnosticError, TDiagnosticRequirements>,
+		) {
+			return Effect.gen(function* () {
+				let state: State = { ...previous, prs: { ...previous.prs } };
+				const targetsForRound = yield* targets(options, state);
+				const { numbers, queue } = targetsForRound;
+				state = targetsForRound.state;
+				let failure: ObservationFailure | undefined;
+				for (const number of numbers) {
+					const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));
+					if (result._tag === "Failure") {
+						yield* diagnostic(result.failure);
+						failure = prioritizeFailure(failure, result.failure);
+						continue;
+					}
+					if (result.success !== undefined) {
+						state = yield* commit(state, result.success, options, emit);
+					}
+				}
+				if (failure !== undefined) {
+					return yield* Effect.fail(failure);
+				}
+				return state;
+			});
+		}
 		return {
 			delay: github.delay,
 			load: (options: Options) => file.load(options.stateFile, options.repository),
 			pacing: github.pacing,
-			poll: (
-				options: Options,
-				previous: State,
-				emit: (line: string) => Effect.Effect<void, WatchError>,
-				diagnostic: (failure: ObservationFailure) => Effect.Effect<void, WatchError>,
-			) =>
-				Effect.gen(function* () {
-					let state: State = { ...previous, prs: { ...previous.prs } };
-					const targetsForRound = yield* targets(options, state);
-					const { numbers, queue } = targetsForRound;
-					state = targetsForRound.state;
-					let failure: ObservationFailure | undefined;
-					for (const number of numbers) {
-						const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));
-						if (result._tag === "Failure") {
-							yield* diagnostic(result.failure);
-							failure = prioritizeFailure(failure, result.failure);
-							continue;
-						}
-						if (result.success !== undefined) {
-							state = yield* commit(state, result.success, options, emit);
-						}
-					}
-					if (failure !== undefined) {
-						return yield* Effect.fail(failure);
-					}
-					return state;
-				}),
+			poll: genericMethod(poll),
 		};
 	},
 	requires: [GitHub, StateFile],

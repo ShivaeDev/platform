@@ -1,10 +1,10 @@
 import { Context, Effect, Layer, Redacted, Schema, SchemaGetter } from "effect";
 import type { SendOptions } from "pg-boss";
 import { expectTypeOf } from "vitest";
-import { defineSchedule } from "#defineSchedule.ts";
-import { defineQueue, type JobRegistration, type QueuePolicy, type RegistrationRequirements } from "#definition.ts";
-import type { PgBoss } from "#PgBoss.ts";
-import { makePgBoss, pgBossLayer } from "#service.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
+import { defineQueue, type JobRegistration, type QueuePolicy, type RegistrationRequirements } from "#server/definition.ts";
+import type { PgBoss } from "#server/PgBoss.ts";
+import { makePgBoss, pgBossLayer } from "#server/service.ts";
 import { PullRequestJob } from "#test/singletonQueueOptions.ts";
 
 expectTypeOf<QueuePolicy>().toEqualTypeOf<"standard" | "short" | "singleton" | "stately" | "exclusive" | "key_strict_fifo">();
@@ -47,9 +47,9 @@ defineQueue({ name: "typo", queue: { policy: "singelton" }, schema: PullRequestJ
 // @ts-expect-error The key must return a string.
 defineQueue({ key: () => 42, name: "numeric-key", queue: { policy: "singleton" }, schema: PullRequestJob });
 
-class Handler extends Context.Service<Handler, number>()("@test/RegistrationHandler") {}
-class Decoder extends Context.Service<Decoder, number>()("@test/RegistrationDecoder") {}
-class Scheduler extends Context.Service<Scheduler, number>()("@test/RegistrationScheduler") {}
+class Handler extends Context.Service<Handler, number>()("@shivaedev/jobs/test/RegistrationHandler") {}
+class Decoder extends Context.Service<Decoder, number>()("@shivaedev/jobs/test/RegistrationDecoder") {}
+class Scheduler extends Context.Service<Scheduler, number>()("@shivaedev/jobs/test/RegistrationScheduler") {}
 
 const ServiceQueue = defineQueue({
 	name: "registration",

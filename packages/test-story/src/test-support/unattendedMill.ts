@@ -1,4 +1,4 @@
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export const unattendedMill = storyKit({
 	create: () => ({ wind: 0 }),

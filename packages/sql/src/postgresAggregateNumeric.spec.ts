@@ -1,9 +1,9 @@
 import { expect } from "vitest";
-import { queries, testResults } from "#test/queries.ts";
+import { queries, queryTables, testResults } from "#test/queries.ts";
 
 queries.it(
 	"aggregate reads the smallest, largest and average duration of each group as numbers, keeping a fractional average",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults }) {
 		const groups = yield* aggregateResults({
 			aggregates: { average: { avg: "durationMs" }, longest: { max: "durationMs" }, shortest: { min: "durationMs" } },
@@ -23,23 +23,27 @@ queries.it(
 	},
 );
 
-queries.it("aggregate reads the alphabetically first and last project of each file as text", [testResults()], function* ({ aggregateResults }) {
-	const groups = yield* aggregateResults({
-		aggregates: { first: { min: "project" }, last: { max: "project" } },
-		groupBy: ["file"],
-		orderBy: [{ direction: "asc", field: "file" }],
-	});
+queries.it(
+	"aggregate reads the alphabetically first and last project of each file as text",
+	[queryTables("results"), testResults()],
+	function* ({ aggregateResults }) {
+		const groups = yield* aggregateResults({
+			aggregates: { first: { min: "project" }, last: { max: "project" } },
+			groupBy: ["file"],
+			orderBy: [{ direction: "asc", field: "file" }],
+		});
 
-	expect(groups).toEqual([
-		{ file: "a.test.ts", first: "api", last: "web" },
-		{ file: "b.test.ts", first: "web", last: "web" },
-		{ file: "c.test.ts", first: "api", last: "api" },
-	]);
-});
+		expect(groups).toEqual([
+			{ file: "a.test.ts", first: "api", last: "web" },
+			{ file: "b.test.ts", first: "web", last: "web" },
+			{ file: "c.test.ts", first: "api", last: "api" },
+		]);
+	},
+);
 
 queries.it(
 	"aggregate keeps every digit of decimal sums, averages, minimums and maximums, and reads null for a group of only null weights",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults }) {
 		const groups = yield* aggregateResults({
 			aggregates: { average: { avg: "weight" }, heaviest: { max: "weight" }, lightest: { min: "weight" }, total: { sum: "weight" } },

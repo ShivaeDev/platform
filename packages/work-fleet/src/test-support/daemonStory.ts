@@ -8,12 +8,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { FleetRecord } from "#model.ts";
 import { DaemonStoryEngine } from "#test/DaemonStoryEngine.ts";
 import { daemonFollowerVerbs } from "#test/daemonFollowerVerbs.ts";
-import { daemonWireVerbs } from "#test/daemonWireVerbs.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { followerProcess } from "#test/followerProcess.ts";
 import { hostVerbs } from "#test/hostVerbs.ts";
-import { ownedFollower } from "#test/ownedFollower.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
@@ -40,7 +38,6 @@ export const fleetDaemon = storyKit({
 	verbs: (engine, story) => ({
 		...hostVerbs(engine, story.tell),
 		...daemonFollowerVerbs(engine, story.tell),
-		...daemonWireVerbs(engine, story),
 		awaitError: (text: string, offset = 0) => untilError(follower(engine), text, offset),
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
 		awaitSnapshot: () =>
@@ -68,16 +65,6 @@ export const fleetDaemon = storyKit({
 		exit: () => Effect.promise(() => follower(engine).done).pipe(Effect.timeout("5 seconds")),
 		isRunning: () => follower(engine).isRunning(),
 		output: () => follower(engine).output(),
-		ownedWatchWithoutDiscovery: () => {
-			story.tell("start a follower on its owned daemon without a discovery file");
-			return ownedFollower(engine.fixture).pipe(
-				Effect.tap((watch) =>
-					Effect.sync(() => {
-						engine.follower = watch;
-					}),
-				),
-			);
-		},
 		port: () => engine.daemon.port,
 		portFile: () =>
 			Effect.sync(() => {

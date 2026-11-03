@@ -1,5 +1,5 @@
+import type { Element } from "hast";
 import { type ComponentProps, createContext, createElement, useContext, useLayoutEffect, useRef } from "react";
-import type { ExtraProps } from "react-markdown";
 import { textContent } from "#render/textContent.ts";
 
 export const DetailStatesContext = createContext(new Map<string, boolean>());
@@ -19,4 +19,8 @@ export function DocumentDetails({ node, children, ...props }: ComponentProps<"de
 		};
 	}, [identity, props.open, states]);
 	return createElement("details", { ...props, ref: elementRef }, children);
+}
+
+interface ExtraProps {
+	readonly node?: Element | undefined;
 }

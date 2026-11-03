@@ -1,8 +1,8 @@
 import { DateTime, Effect, Option, Schema } from "effect";
-import { HttpClient, type HttpClientResponse } from "effect/http";
+import type { HttpClientResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedText } from "@shivaedev/http/body.ts";
-import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { checkStatus as checkResponseStatus } from "@shivaedev/http/checkStatus.ts";
 import { parseRetryAfter } from "@shivaedev/http/parseRetryAfter.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 
@@ -29,7 +29,7 @@ export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResp
 			return yield* refusal;
 		}
 	}
-	return yield* filterStatus(HttpClient.makeWith(() => Effect.succeed(response), Effect.succeed)).execute(response.request);
+	return yield* checkResponseStatus(response);
 });
 
 const Message = Schema.fromJsonString(Schema.Struct({ message: Schema.String }));

@@ -48,7 +48,7 @@ export function privateHandlers(table: string, beforeCommit: Effect.Effect<void,
 				const sql = yield* SqlClient.SqlClient;
 				return yield* Effect.gen(function* () {
 					yield* sql`update ${sql(table)} set name = ${title} where "ownerId" = ${id}`;
-					yield* invalidateOnCommit(invalidationKeys([preferences.item(0)], { scope: id }));
+					yield* invalidateOnCommit(invalidationKeys([preferences.item(0)]));
 					yield* beforeCommit;
 					return title;
 				}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die));

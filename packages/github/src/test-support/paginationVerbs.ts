@@ -6,7 +6,7 @@ export function paginationVerbs({ server, state }: FakeRepository, tell: (line: 
 	return {
 		changeNextPage: (page: number, next: number | undefined) =>
 			Effect.sync(() => {
-				tell(`GitHub revalidates page ${page} with ${next === undefined ? "no next page" : `page ${next} next`}`);
+				tell(`GitHub revalidates page ${page} with ${next === undefined ? "the Link header omitted" : `page ${next} next`}`);
 				state.pageReplies.set(page, {
 					headers: next === undefined ? {} : { Link: `</repos/acme/widgets/pulls?page=${next}>; rel="next"` },
 					status: HttpStatus.fromLiteral("NotModified"),

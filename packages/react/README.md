@@ -105,6 +105,24 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 `Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
+#### Connections with several modules
+
+Declare all the connection's bound APIs with contract's `composeBindings`. The session boundary mounts each declared binding and applies its `liveCoalesceWindow` to all of them. The client can keep its application modules nested:
+
+```ts
+import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
+
+function connect(session: Session, registry: AtomRegistry.AtomRegistry) {
+	const modules = [notesModule(registry), tasksModule(registry)];
+	return composeBindings(
+		{ modules },
+		modules.map((module) => module.api),
+	);
+}
+```
+
+`Session`, `notesModule` and `tasksModule` belong to the application; each module binds its contract with the supplied registry. Import `AtomRegistry` from `effect/reactivity/AtomRegistry`. Return the resulting connection from `SessionBoundary`'s `connect` callback and render `client.modules` in its child.
+
 #### Resume from a native shell
 
 For a native shell, pass its resume source when binding the API returned by `connect`:
@@ -709,7 +727,8 @@ import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
 import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
-import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
+import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
+import { can } from "@shivaedev/react/can.ts";
 import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
@@ -800,10 +819,10 @@ const showNotes = can(auth.session, ReadNotes);
 
 #### Better Auth actions
 
-`authAction` from `@shivaedev/react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
+`authAction` from `@shivaedev/react/client/authAction.ts` turns an input-to-Effect function into a native action atom. Bridge Better Auth with `authCall` from `@shivaedev/identity/client/adapters/authCall.ts`, then pass the atom to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
 
 ```tsx
-const signIn = authAction((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const signIn = authAction(authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal })));
 
 function SignInButton({ email, password }: { email: string; password: string }) {
 	const action = useAction(signIn);
@@ -819,27 +838,19 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 }
 ```
 
-The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Actions fail with `AuthFailure` from the same module. Its `code` uses the closed `AuthFailureCode` union: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error is available in `cause`. Applications own the sentences, and can make their mapping exhaustive with `Record<AuthFailureCode, string>`.
+The example uses `authAction`, identity's `authCall`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Identity owns the Promise bridge and its typed failures; see [Better Auth client adapters](https://github.com/ShivaeDev/platform/blob/main/packages/identity/README.md#better-auth-client-adapters). For a form's Effect-based `onSubmit`, pass the function returned by `authCall` directly.
 
-For a form's Effect-based `onSubmit`, use `authCall` from the same module:
-
-```ts
-const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
-const onSubmit = (credentials: { email: string; password: string }) => signIn(credentials);
-```
-
-`authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
-
-Use `authSession` from `@shivaedev/react/client/authSession.ts` for the application's Better Auth session. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/react/permissions.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
+Use `authSession` from `@shivaedev/react/client/authSession.ts` to wrap identity's session Effect. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/identity/PermissionSession.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
 
 ```tsx
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { authCall } from "@shivaedev/react/client/authAction.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { authSession } from "@shivaedev/react/client/authSession.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 
-const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
+const session = authSession(readSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } })));
 const updateUser = authCall((name: string, signal) => authClient.updateUser({ name }, { signal }));
 const rename = Atom.fn<string>()((name) => updateUser(name).pipe(Effect.andThen(session.refresh)));
 
@@ -859,9 +870,9 @@ function Account() {
 
 The example uses `Option` from `effect` and the application's Better Auth client. The mutation stays pending until the refreshed session settles; the query retains its previous data while refreshing and exposes `pending` for `aria-busy`. Compose email verification with `session.refresh` the same way. Reads preserve returned auth errors and use `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts` for rejected promises; a failed refresh fails the composed mutation. A successful `null` session represents sign-out.
 
-`session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; this adapter does not subscribe to Better Auth's hook or store.
+`session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; the session atom does not subscribe to Better Auth's hook or store.
 
-For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Call `authQuery((input, signal) => authClient.getSession({ query: input, fetchOptions: { signal } }))` with an explicitly typed input, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Pass an input-to-Effect function, such as the result of `authQuery` from `@shivaedev/identity/client/adapters/authQuery.ts`, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
 For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
@@ -921,7 +932,7 @@ Without a runtime it uses a native empty atom runtime. Stories supply a runtime 
 
 #### Render tests in happy-dom
 
-Use `@shivaedev/test-story/client/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
 pnpm add @shivaedev/changes @shivaedev/contract
@@ -940,7 +951,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -1013,7 +1024,7 @@ The spec drives one action and states what the screen shows. With `#test/*` mapp
 
 ```tsx
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { notesScreen } from "#test/notesScreen.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -1052,7 +1063,7 @@ screenStories.it("shows the route failure", [], async () => {
 });
 ```
 
-Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/adapters/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
 A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/adapters/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
 

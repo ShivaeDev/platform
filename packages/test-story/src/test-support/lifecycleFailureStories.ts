@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const unavailable = {
 	name: "unavailable mill",
@@ -25,7 +25,7 @@ throwing.it("creation throws", []);
 failing.it("creation fails", []);
 dying.it("creation dies", []);
 
-class Inventory extends Context.Service<Inventory, string>()("lifecycleFailure/Inventory") {}
+class Inventory extends Context.Service<Inventory, string>()("@shivaedev/test-story/lifecycleFailure/Inventory") {}
 
 const closing = storyKit({
 	*create() {

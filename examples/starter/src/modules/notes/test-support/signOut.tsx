@@ -1,12 +1,13 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthActions } from "#client/auth.ts";
-import { connectModules } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
@@ -24,10 +25,12 @@ export const signOut = storyKit({
 		const history = createMemoryHistory({ initialEntries: ["/"] });
 		const auth: AuthActions = {
 			...screenAuth(),
-			signOut: authAction<void, object, never>(() => {
-				requested.resolve();
-				return response.promise;
-			}),
+			signOut: authAction(
+				authCall<void, object, never>(() => {
+					requested.resolve();
+					return response.promise;
+				}),
+			),
 		};
 		const screen: ScreenSurface = { view: undefined };
 		const view = yield* acquireScreen(screen, {
@@ -38,7 +41,7 @@ export const signOut = storyKit({
 			return view.render(
 				<SessionApp
 					auth={auth}
-					connect={() => connectModules([notesRegistration(client)])}
+					connect={(session) => clientModules(session, [notesRegistration(client)])}
 					history={history}
 					recheck={() => undefined}
 					session={signedIn ? { user: { id: "alice", permissions: [] } } : null}

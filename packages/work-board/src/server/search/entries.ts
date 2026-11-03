@@ -1,7 +1,7 @@
-import { MarkdownAsync } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
+import { markdownElement } from "#adapters/markdownElement.ts";
 import { fileUrl } from "#files/url.ts";
 import { callouts } from "#render/callouts.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
@@ -51,8 +51,7 @@ export async function entriesOf(source: string, file: string, home: boolean, bod
 		if (fragment) {
 			fragmentLength = fragment.split("\n").length;
 			fragmentLine = board ? fragmentLocation(source, fragment, bodyLine, seenFragments) : bodyLine;
-			await MarkdownAsync({
-				children: board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment,
+			await markdownElement(board?.definitions ? `${fragment}\n\n${board.definitions}` : fragment, {
 				rehypePlugins: [rehypeRaw, headings.plugin, plugin, linkCollector(links)],
 				remarkPlugins: [remarkGfm, remarkDirective, visualDocuments, callouts],
 			});

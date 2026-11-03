@@ -6,11 +6,10 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { Migrator } from "effect/sql";
 import { LiveHint } from "@shivaedev/contract/live.ts";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import {
@@ -53,13 +52,14 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 		Effect.map(
 			SessionPolicy,
 			(policy) =>
-				(effect, { headers, rpc, payload }) =>
+				(effect, { headers, rpc }) =>
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
 							return yield* new Unauthorized({ message: "Sign in" });
 						}
-						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id: session.value.user.id })).pipe(
+						return yield* effect.pipe(
+							Effect.provideService(CurrentViewer, Option.some({ id: session.value.user.id })),
 							Effect.provideService(Identity, { id: session.value.user.id }),
 						);
 					}).pipe(Effect.provideService(SessionPolicy, policy)),

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { type ScreenTarget, screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 
 export const roleScreen = storyKit({

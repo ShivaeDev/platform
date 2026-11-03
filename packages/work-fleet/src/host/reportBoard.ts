@@ -1,10 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, FileSystem, Layer } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { markdownBoard } from "#board/markdown.ts";
+import { publishReportAttachments } from "#board/publishReportAttachments.ts";
 import { reportContent } from "#board/reportContent.ts";
-import { reportFiles } from "#board/reportFiles.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportLinks } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
@@ -50,10 +50,10 @@ class ReportInputs extends Context.Service<
 		readonly check: (work: BoardWork) => Effect.Effect<boolean, unknown>;
 		readonly files: (observation: SessionObservation) => Effect.Effect<ReportAttachments, unknown>;
 	}
->()("Fleet/ReportInputs") {}
+>()("@shivaedev/work-fleet/ReportInputs") {}
 
 const ReportBoard = defineService({
-	id: "Fleet/ReportBoard",
+	id: "@shivaedev/work-fleet/ReportBoard",
 	initialize: Effect.gen(function* () {
 		const board = yield* BoardGateway;
 		const { root, check, files } = yield* ReportInputs;
@@ -85,14 +85,14 @@ const ReportBoard = defineService({
 			const payload = existing ?? (yield* collect(work, observation));
 			const reportObservation = { ...observation, output: payload.output };
 			yield* reportContent(work, reportObservation);
-			yield* reportFiles(root, itemId, payload.files);
+			yield* publishReportAttachments(root, itemId, payload.files);
 			return yield* board.report(work, reportObservation);
 		}, Effect.mapError(attachmentFailure));
 
 		return { inspect, report };
 	}),
 	methods: ({ inspect, report }) => ({ check: inspect, report }),
-	requires: [BoardGateway, ReportInputs],
+	requires: [BoardGateway, ReportInputs, FileSystem.FileSystem],
 });
 
 export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileError>(
@@ -119,7 +119,7 @@ export function reportBoard<TCheckServices, TCheckError, TFileServices, TFileErr
 				}),
 			).pipe(Layer.provide(ReportBoard.layer.pipe(Layer.provide(inputs))));
 		}),
-	);
+	).pipe(Layer.provide(NodeServices.layer));
 }
 
 export function hostReportBoard(host: FleetHost) {

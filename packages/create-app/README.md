@@ -71,3 +71,5 @@ const template = packTemplate("/path/to/starter", "/path/to/template.json");
 ### Requirements
 
 Use Node 24 or newer and pnpm. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.
+
+The [packed starter check](https://github.com/ShivaeDev/platform/blob/main/examples/starter/README.md) runs package adoption proofs inside its existing generated app. Add a fixture folder and its stories to that shared check; packages do not add adoption CI jobs or separate generated-app installs.

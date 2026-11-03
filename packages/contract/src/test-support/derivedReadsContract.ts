@@ -5,7 +5,8 @@ import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
-export const records = collection("timeline", Schema.Number, { listId: Schema.Number, scope: Schema.String });
+export const records = collection("timeline", Schema.Number, { listId: Schema.Number });
+export const lists = collection("timeline-lists", Schema.Number, { scope: Schema.String });
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 export class TimelineData extends Context.Service<
 	TimelineData,
@@ -13,12 +14,14 @@ export class TimelineData extends Context.Service<
 		readonly keys: (scope: string) => Effect.Effect<readonly Key[], Unavailable>;
 		readonly load: (scope: string) => Effect.Effect<readonly string[], Unavailable>;
 	}
->()("test/TimelineData") {}
-export class Guard extends RpcMiddleware.Service<Guard>()("test/TimelineGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+>()("@shivaedev/contract/test/TimelineData") {}
+export class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/TimelineGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 export const Timeline = query("timeline", {
 	payload: { scope: Schema.String },
 	readPolicy: ({ scope }, viewer) => Effect.succeed(Option.exists(viewer, ({ id }) => id === scope)),
-	reads: () => [],
+	reads: ({ scope }) => [lists.bucket.scope(scope)],
 	rejections: { Unavailable },
 	serverReads: ({ scope }) => Effect.flatMap(TimelineData, (data) => data.keys(scope)),
 	success: Schema.Array(Schema.String),
@@ -30,7 +33,7 @@ export const Edit = command("edit", {
 	success: Schema.Number,
 });
 export const Create = command("create", {
-	invalidates: ({ scope }) => [records.bucket.scope(scope)],
+	invalidates: ({ scope }) => [lists.bucket.scope(scope)],
 	payload: { body: Schema.String, id: Schema.Number, scope: Schema.String },
 	rejections: { Unavailable },
 });
