@@ -1,12 +1,12 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
 import { reportAttachmentFiles } from "#host/reportAttachmentFiles.ts";
 import { reportBoard } from "#host/reportBoard.ts";
 import { BoardGateway } from "#policy.ts";
 import { changedReportAttachment } from "#test/changedReportAttachment.ts";
 import { engine } from "#test/engineStory.ts";
 import { HEAD } from "#test/githubResult.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { mainObservation } from "#test/preparation.ts";
 import { reportBoard as reportRoot } from "#test/report.ts";
 import { reconstructedAttachment } from "#test/reportAttachmentSafety.ts";
@@ -16,7 +16,7 @@ export function reportFileFailure(scenario: "escape" | "oversized-payload" | "ch
 		const root = yield* reportRoot;
 		const work = yield* BoardGateway.pipe(
 			Effect.flatMap((board) => board.get("one")),
-			Effect.provide(markdownBoard(root)),
+			Effect.provide(liveBoard(root)),
 		);
 		let attachment: { readonly folder: string; readonly name: string } | undefined;
 		if (scenario === "escape") {
@@ -40,6 +40,6 @@ export function reportFileFailure(scenario: "escape" | "oversized-payload" | "ch
 				attachment === undefined
 					? Effect.succeed({ files: [], unavailable: [] })
 					: reportAttachmentFiles(attachment.folder, [attachment.name]).pipe(Effect.map((files) => ({ files, unavailable: [] }))),
-		).pipe(Layer.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
+		).pipe(Layer.provide(liveBoard(root).pipe(Layer.provide(NodeServices.layer))));
 	});
 }

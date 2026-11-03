@@ -3,7 +3,7 @@ import { Clock, Effect } from "effect";
 import { vi } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
-import * as parsing from "#server/metadata/adapters/parse.ts";
+import * as parsing from "#metadata/adapters/parse.ts";
 import * as metadata from "#server/metadata/model.ts";
 import * as updates from "#server/metadata/updateModel.ts";
 import { boardStory } from "./boardStory.ts";

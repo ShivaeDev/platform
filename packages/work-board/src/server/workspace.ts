@@ -2,6 +2,7 @@ import { Context, Effect, FileSystem, Path, type PlatformError, Semaphore } from
 import { type BadRequest, Forbidden, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { loadSettled } from "#server/archive/loadSettled.ts";
 import { readDocument } from "#server/document/read.ts";
@@ -9,7 +10,6 @@ import type { Changes } from "#server/files/changes.ts";
 import { refreshWritten } from "#server/files/changes.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { closeDecision, metadataValues, patchMetadata } from "#server/metadata/adapters/frontmatter.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { Publication, replaceIfUnchanged } from "#server/publication.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 

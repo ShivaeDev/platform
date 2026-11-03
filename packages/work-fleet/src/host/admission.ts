@@ -1,8 +1,9 @@
 import { Effect, FileSystem } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved } from "#board/fleetField.ts";
 import { inBoardReadPass } from "#board/readPass.ts";
+import { snapshotProblems } from "#board/workPolicy.ts";
+import { boardDocuments, boardSnapshot } from "#board/workspace.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { STOP_REASON } from "#engine/stopCommand.ts";
 import { Fleet } from "#fleet.ts";
@@ -119,7 +120,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 	const records = new Map((yield* fleet.list()).map(({ value }) => [value.workId, value]));
 	const fs = yield* FileSystem.FileSystem;
 	const snapshot = yield* boardSnapshot(host.boardDir, yield* fs.realPath(host.boardDir));
-	const failures = [...Array.from(snapshot.problems.values(), (problem) => problem.message), ...(yield* refreshForeignReservations())];
+	const failures = [...Array.from(snapshotProblems(snapshot).values(), (problem) => problem.message), ...(yield* refreshForeignReservations())];
 	const dispatches = yield* (yield* dispatchStore(host.namespace)).list();
 	const cancelled = new Set(dispatches.filter((request) => request.status === "cancelled").map((request) => request.workId));
 	for (const workId of (yield* approvedWorkIds(host)).filter((id) => !cancelled.has(id))) {

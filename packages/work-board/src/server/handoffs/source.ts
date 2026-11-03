@@ -2,9 +2,9 @@ import { Effect, type FileSystem } from "effect";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 

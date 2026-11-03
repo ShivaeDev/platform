@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { briefAtPhase, criteriaBrief, noChangeDuringBriefPhase } from "#test/engineBriefFixtures.ts";
 import { engine } from "#test/engineStory.ts";

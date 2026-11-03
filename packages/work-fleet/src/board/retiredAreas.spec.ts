@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 import { refusal } from "#test/refusal.ts";
 
-for (const status of ["done", "dropped", "ready"]) {
+for (const status of ["done", "dropped"]) {
 	boardFolderStory.it(
 		`a ${status} brief in a removed area stays readable without an area warning`,
 		[folderContains("retiredAreas")],

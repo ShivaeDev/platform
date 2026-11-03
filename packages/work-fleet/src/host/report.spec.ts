@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { HEAD } from "#test/githubResult.ts";
 import { REPORT_SOURCE } from "#test/hostReportTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";
@@ -31,9 +31,9 @@ host.it("records the whole result and finishes without PR integrations", [boardW
 	expect(content.endsWith(OUTPUT)).toBe(true);
 	expect(content).toContain(JSON.stringify({ ...observation?.receipt, workRevision: value.boardRevision }));
 	expect(daemon.boardFiles("responses")).toEqual([`${report.itemId}.md`]);
-	expect(daemon.readBoard("research.md")).toBe(
-		REPORT_SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
-	);
+	const completed = metadataParse(daemon.readBoard("research.md"));
+	expect(completed.fields).toMatchObject({ id: "research", nextAction: "Done; report recorded.", status: "done" });
+	expect(completed.body).toBe(metadataParse(REPORT_SOURCE).body);
 	expect((yield* daemon.wait("research")).code).toBe(WAIT_EXIT.completed);
 	const status = yield* daemon.renderedStatus();
 	expect(status).toContain("Done (1)");

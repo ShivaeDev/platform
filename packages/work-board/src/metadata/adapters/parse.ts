@@ -1,7 +1,7 @@
 import { LineCounter, parseDocument } from "yaml";
 import type { Diagnostic, ParsedMetadata } from "#integration/metadata.ts";
-import { metadataLocations } from "#server/metadata/adapters/locations.ts";
-import { metadataFields } from "#server/metadata/fields.ts";
+import { metadataLocations } from "#metadata/adapters/locations.ts";
+import { metadataFields } from "#metadata/fields.ts";
 
 export function metadataParse(source: string): ParsedMetadata {
 	const plain: ParsedMetadata = { body: source, bodyLine: 1, diagnostics: [], fields: {}, lines: {} };
@@ -44,5 +44,5 @@ export function metadataParse(source: string): ParsedMetadata {
 	if (typeof data !== "object" || Array.isArray(data)) {
 		return { ...plain, diagnostics: [{ line: 2, message: "Frontmatter must be a mapping; the original Markdown is shown." }] };
 	}
-	return { ...result, ...metadataFields(data, lines) };
+	return { ...result, ...metadataFields(data, lines), values: Object.fromEntries(Object.entries(data)) };
 }

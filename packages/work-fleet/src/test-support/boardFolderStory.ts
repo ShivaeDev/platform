@@ -2,13 +2,13 @@ import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardAnswerVerbs } from "#test/boardAnswerVerbs.ts";
 import { boardDecisionVerbs } from "#test/boardDecisionVerbs.ts";
 import { boardFolder } from "#test/boardFolder.ts";
 import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { captureLogs } from "#test/captureLogs.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 
 interface FolderState {
 	board: typeof BoardGateway.Service | undefined;
@@ -22,7 +22,7 @@ export const boardFolderStory = storyKit({
 				return yield* Effect.die("The story must name its Board folder contents");
 			}
 			state.root = yield* boardFolder(state.kind);
-			state.board = Context.get(yield* Layer.build(markdownBoard(state.root)), BoardGateway);
+			state.board = Context.get(yield* Layer.build(liveBoard(state.root)), BoardGateway);
 		},
 	},
 	clock: "live",
@@ -66,12 +66,12 @@ export const boardFolderStory = storyKit({
 			},
 			readBrief: (id: string) => {
 				story.tell(`Fleet reads the Board brief ${id}`);
-				return board.get(id).pipe(Effect.provide(logs.layer));
+				return board.get(id, { fresh: true }).pipe(Effect.provide(logs.layer));
 			},
 			recordedBoardWarnings: () => Effect.sync(() => logs.entries.map(({ message }) => JSON.stringify(message))),
 			reopenBoard: () => {
 				story.tell("reopen the Board folder");
-				return Layer.build(Layer.fresh(markdownBoard(state.root))).pipe(
+				return Layer.build(Layer.fresh(liveBoard(state.root))).pipe(
 					Effect.tap((services) =>
 						Effect.sync(() => {
 							board = Context.get(services, BoardGateway);

@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";

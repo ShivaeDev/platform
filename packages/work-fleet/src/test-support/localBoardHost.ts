@@ -3,9 +3,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 
 export function localBoardHost(fixture: HostFixture, { ignored = true, inside = true } = {}) {
@@ -38,5 +38,5 @@ export function localBoardHost(fixture: HostFixture, { ignored = true, inside = 
 }
 
 function board(boardDir: string) {
-	return Layer.merge(markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)), Layer.succeed(ReportInspection)({ check: () => Effect.void }));
+	return Layer.merge(liveBoard(boardDir).pipe(Layer.provide(NodeServices.layer)), Layer.succeed(ReportInspection)({ check: () => Effect.void }));
 }

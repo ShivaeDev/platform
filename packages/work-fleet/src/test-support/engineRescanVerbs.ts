@@ -17,7 +17,6 @@ export function engineRescanVerbs(state: EngineStory, tell: (line: string) => vo
 		});
 	}
 	return {
-		boardRescanInFlight: () => state.bufferedBoard?.readingBriefs() ?? false,
 		finishBoardRescan: () =>
 			Effect.gen(function* () {
 				tell("let the Board reads finish");
@@ -37,14 +36,6 @@ export function engineRescanVerbs(state: EngineStory, tell: (line: string) => vo
 				}
 				const gate = yield* state.sourceReads.pauseReads;
 				yield* start(gate.entered, gate.release);
-			}),
-		startBufferedBoardRescan: () =>
-			Effect.gen(function* () {
-				tell("rescan the Board while all brief reads can complete immediately");
-				if (state.bufferedBoard === undefined) {
-					return yield* Effect.die("No buffered Board is configured");
-				}
-				yield* start(yield* state.bufferedBoard.observeReads);
 			}),
 	};
 }

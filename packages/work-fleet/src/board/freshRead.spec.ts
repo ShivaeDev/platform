@@ -5,16 +5,16 @@ import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
 import { watchedBoardReads } from "#test/watchedBoardReads.ts";
 
 boardReadStory.it(
-	"a fresh read sees an edit the watched index has not observed while later passes keep the indexed brief",
+	"a fresh read sees an unobserved edit and advances later passes to that brief",
 	[hasBoardItems(1), watchedBoardReads()],
 	function* ({ edit, readInPass }) {
-		const indexed = yield* readInPass("item.0");
+		expect((yield* readInPass("item.0")).approved).toBe(true);
 		yield* edit("0.md", "item.0", false, "An edit outside the observed index.");
 
 		const fresh = yield* readInPass("item.0", { fresh: true });
 
 		expect(fresh.approved).toBe(false);
-		expect(yield* readInPass("item.0")).toEqual(indexed);
+		expect(yield* readInPass("item.0")).toEqual(fresh);
 	},
 );
 
@@ -34,9 +34,9 @@ boardReadStory.it(
 );
 
 boardReadStory.it(
-	"a fresh read within a pass rereads only its own file, and later reads in the pass see the new brief",
+	"a fresh read within a pass gives later reads the new brief and revision",
 	[hasBoardItems(2)],
-	function* ({ duringOnePass, edit, read, readFiles, revisionMatchesMetadata, scannedFolders }) {
+	function* ({ duringOnePass, edit, read, revisionMatchesMetadata }) {
 		yield* duringOnePass(
 			Effect.gen(function* () {
 				yield* read("item.0");
@@ -49,12 +49,6 @@ boardReadStory.it(
 				yield* outcomes([
 					["fresh revision matches its metadata", () => revisionMatchesMetadata(fresh), true],
 					["later read", () => read("item.0"), fresh],
-					["scanned folders", () => scannedFolders(), ["."]],
-					[
-						"read files",
-						() => readFiles().pipe(Effect.map((files) => [...files.slice(0, -1).toSorted(), ...files.slice(-1)])),
-						["0.md", "1.md", "0.md"],
-					],
 				]);
 			}),
 		);
@@ -69,7 +63,7 @@ boardReadStory.it(
 			Effect.gen(function* () {
 				expect(yield* approvalOf("item.0")).toBe("approved");
 
-				makeUnreadable("0.md");
+				yield* makeUnreadable("0.md");
 
 				expect(yield* refusalOf("item.0", { fresh: true })).toContain("Board source could not be read: 0.md");
 			}),

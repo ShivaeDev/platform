@@ -47,20 +47,18 @@ for (const unavailable of ["decision", "question", "answer", "directory"] as con
 			const file = { answer: responseFile, decision: published.sourcePath, directory: "responses", question: `responses/${published.questionId}.md` }[
 				unavailable
 			];
-			makeBoardUnreadable(file);
+			yield* makeBoardUnreadable(file);
 			resumeAcknowledgements();
 			yield* restart();
 			const waiting = yield* fleet.reconcile("item.0");
 			expect(waiting.value.responses).toEqual(applied.value.responses);
 			expect(pendingAcknowledgements(waiting.value)).toMatchObject([{ input: { decision: published, disposition: "applied", responseId } }]);
-			expect(waiting.value.blocker).toContain(
-				unavailable === "directory" ? "Board sources could not be listed" : `Board source could not be read: ${file}`,
-			);
+			expect(waiting.value.blocker).toContain(`Board source is unavailable: ${file}`);
 			expect(waiting.value.blocker).toContain(file);
 			expect(waiting.value.integrationRetry).toBeUndefined();
 
 			expect(boardReceipts()).toHaveLength(0);
-			restoreBoardReads();
+			yield* restoreBoardReads();
 			yield* restart();
 			const recovered = yield* fleet.reconcile("item.0");
 			expect(recovered.value.responses).toEqual(applied.value.responses?.map((response) => ({ ...response, boardAcknowledged: true })));

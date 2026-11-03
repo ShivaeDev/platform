@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardEditRacesCompletion } from "#test/engineBoardTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { checksWithoutRepair, githubPullRequest, markdownWork, noChangeReported } from "#test/engineTraits.ts";
@@ -7,7 +8,7 @@ import { reportMain } from "#test/reportMain.ts";
 
 for (const released of [false, true]) {
 	engine.it(
-		`a synthetic merge marks ${released ? "released" : "completed"} Board work done without changing other bytes or its cycle`,
+		`a synthetic merge marks ${released ? "released" : "completed"} Board work done and preserves its authored context and cycle`,
 		[githubPullRequest({ failed: released }), checksWithoutRepair(), markdownWork()],
 		function* ({
 			fleet,
@@ -33,7 +34,9 @@ for (const released of [false, true]) {
 			yield* schedule();
 			const done = yield* fleet.get("one");
 			expect(done.value.step).toBe(released ? "released" : "done");
-			expect(readBoardWork()).toBe(original.replace("status: draft", "status: done").replace("Implement the work.", '"Done; PR #7 merged."'));
+			const completed = metadataParse(readBoardWork());
+			expect(completed.fields).toMatchObject({ ...metadataParse(original).fields, nextAction: "Done; PR #7 merged.", status: "done" });
+			expect(completed.body).toBe(metadataParse(original).body);
 			expect(done.value.boardRevision).toBe(waiting.value.boardRevision);
 			expect(done.value.boardContext).toBe(original);
 			expect(done.value.history ?? []).toEqual(waiting.value.history ?? []);
@@ -83,7 +86,9 @@ engine.it(
 		const done = yield* fleet.get("one");
 		expect(done.value.step).toBe("done");
 		expect(done.value.report).toBeDefined();
-		expect(readBoardWork()).toBe(original.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'));
+		const completed = metadataParse(readBoardWork());
+		expect(completed.fields).toMatchObject({ ...metadataParse(original).fields, nextAction: "Done; report recorded.", status: "done" });
+		expect(completed.body).toBe(metadataParse(original).body);
 		yield* schedule();
 		expect(yield* fleet.get("one")).toEqual(done);
 		expect(done.value.history).toBeUndefined();
@@ -99,9 +104,9 @@ engine.it(
 		yield* schedule();
 		const done = yield* fleet.get("one");
 		expect(done.value.step).toBe("done");
-		expect(readBoardWork()).toBe(
-			boardBrief().replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
-		);
+		const completed = metadataParse(readBoardWork());
+		expect(completed.fields).toMatchObject({ id: "one", nextAction: "Done; no change needed.", status: "done" });
+		expect(completed.body).toBe(metadataParse(boardBrief()).body);
 		yield* schedule();
 		expect(yield* fleet.get("one")).toEqual(done);
 		expect(done.value.history).toBeUndefined();

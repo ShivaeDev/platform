@@ -13,6 +13,7 @@ export interface ParsedMetadata {
 	readonly fields: Metadata;
 	readonly lines: Readonly<Record<string, number>>;
 	readonly raw?: string;
+	readonly values?: Readonly<Record<string, unknown>>;
 }
 
 export interface MetadataDocument {

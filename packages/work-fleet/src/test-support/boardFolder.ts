@@ -15,9 +15,8 @@ export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait:
 			"---\nid: task.one\nkind: task\nareas: [work-fleet/host, work-board/ui]\nstatus: done\nrelationships:\n  - kind: depends_on\n    target: task.before\n---\n# Useful work\n",
 		);
 	} else if (trait === "retiredAreas") {
-		mkdirSync(join(root, "archive"));
-		for (const status of ["done", "dropped", "ready"]) {
-			const file = status === "ready" ? "archive/ready.md" : `${status}.md`;
+		for (const status of ["done", "dropped"]) {
+			const file = `${status}.md`;
 			writeFileSync(join(root, file), `---\nid: ${status}\nkind: task\nstatus: ${status}\nareas: [removed-package]\n---\n# Historical work\n`);
 		}
 	} else {

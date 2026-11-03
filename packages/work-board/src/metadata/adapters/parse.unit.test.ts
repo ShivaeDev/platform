@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 
 describe("optional metadata", () => {
 	it("recognizes addon-owned fields without interpreting them or hiding unowned fields", () => {
@@ -7,6 +7,7 @@ describe("optional metadata", () => {
 			"---\nid: item.fixture\nfleet: approved\nfleet-launch: { effort: low }\ndelivers: report\nfleet-priority: urgent\nflavor: sweet\n---\n# Work";
 		const parsed = metadataParse(source);
 		expect(parsed.fields).toEqual({ delivers: "report", fleet: "approved", id: "item.fixture" });
+		expect(parsed.values).toMatchObject({ flavor: "sweet", "fleet-launch": { effort: "low" }, "fleet-priority": "urgent" });
 		expect(parsed.diagnostics).toEqual([{ field: "flavor", line: 7, message: "Unknown field flavor; kept in the original frontmatter." }]);
 		expect(parsed.raw + parsed.body).toBe(source);
 	});

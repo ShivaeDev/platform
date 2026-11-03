@@ -1,43 +1,26 @@
 import * as Effect from "effect/Effect";
 import * as Queue from "effect/Queue";
 import * as Result from "effect/Result";
-import * as Stream from "effect/Stream";
 import { screenAct } from "#server/adapters/screenAct.ts";
 import { screenMutations } from "#server/adapters/screenMutations.ts";
 import type { ScreenDriverOptions } from "#server/screenDriver.ts";
+import { observeScreen } from "./observeScreen.ts";
 
 type WaitOptions = Required<Pick<ScreenDriverOptions, "act">> & {
-	readonly pending: ScreenDriverOptions["pending"];
+	readonly activity?: ScreenDriverOptions["activity"];
+	readonly pending?: ScreenDriverOptions["pending"];
+	readonly transport?: ScreenDriverOptions["transport"];
 	readonly root: () => HTMLElement;
 };
 
-const observePending = Effect.fnUntraced(function* (pending: ScreenDriverOptions["pending"], changes: Queue.Queue<void>) {
-	if (pending === undefined) {
-		return Effect.succeed(false);
-	}
-	if (typeof pending === "function") {
-		return Effect.sync(pending);
-	}
-	let busy = true;
-	const states = "current" in pending ? Stream.map(pending, (state) => state.pending) : pending;
-	yield* states.pipe(
-		Stream.runForEach((value) =>
-			Effect.sync(() => {
-				busy = value;
-				Queue.offerUnsafe(changes, undefined);
-			}),
-		),
-		Effect.forkScoped,
-	);
-	return "current" in pending ? Effect.map(pending.current, (state) => state.pending) : Effect.sync(() => busy);
-});
-
-export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, root }: WaitOptions, read: Effect.Effect<A, E>) {
+export const waitForScreen = Effect.fnUntraced(function* <A, E>(options: WaitOptions, read: Effect.Effect<A, E>) {
+	const { act, root } = options;
+	const supplied = options.pending !== undefined || options.activity !== undefined || options.transport !== undefined;
 	const changes = yield* Queue.sliding<void>(1);
 	yield* screenMutations(root(), () => Queue.offerUnsafe(changes, undefined));
-	const isBusy = yield* observePending(pending, changes);
+	const isBusy = yield* observeScreen(options, changes);
 	do {
-		if (pending !== undefined) {
+		if (supplied) {
 			yield* screenAct(act, Effect.void);
 		}
 		if (!(yield* isBusy)) {
@@ -46,6 +29,6 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, 
 				return result.success;
 			}
 		}
-		yield* pending === undefined ? Queue.take(changes) : screenAct(act, Queue.take(changes));
+		yield* supplied ? screenAct(act, Queue.take(changes)) : Queue.take(changes);
 	} while (true);
 }, Effect.scoped);

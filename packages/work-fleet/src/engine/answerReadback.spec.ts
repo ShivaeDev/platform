@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber, Schedule } from "effect";
+import { Effect, Fiber } from "effect";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { readableBoard } from "#test/readableBoard.ts";
 
 isolatedEngine.it(
-	"an answer is recorded and applied while an older Board scan is running",
+	"an answer recorded during an older Board scan is applied successfully",
 	[readableBoard()],
 	function* ({ prepareWork, fleet, workerQuestion, pauseBoardScan, startHostAnswer }) {
 		yield* prepareWork("item.0");
@@ -21,12 +21,8 @@ isolatedEngine.it(
 		yield* scan.release;
 		yield* Fiber.join(scan.read);
 		yield* Fiber.join(answer.result);
-		const applied = yield* fleet
-			.get("item.0")
-			.pipe(
-				Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (record) => record.value.step === "working" }),
-				Effect.timeout("5 seconds"),
-			);
+		expect(yield* answer.applied).toBe("applied");
+		const applied = yield* fleet.get("item.0");
 		expect(applied.value.responses).toContainEqual(expect.objectContaining({ action: "continue", decisionId: waiting.decision?.id }));
 		expect(applied.value.attempts.at(-1)?.prompt).toContain("Use the approved scope.");
 	},

@@ -1,12 +1,15 @@
 import { Effect } from "effect";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { documentSource } from "@shivaedev/work-board/server/metadata/model.ts";
+import type { Snapshot as BoardSnapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { closePublishedDecision } from "#board/closePublishedDecision.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import { type BoardSnapshot, recordBoardSource } from "#board/readPass.ts";
+import { recordBoardWrite } from "#board/readPass.ts";
 import { reviewedDecision } from "#board/reviewedDecision.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
+import { snapshotProblems } from "#board/workPolicy.ts";
 import { BoardFailure } from "#policy.ts";
 
 const { metadataModel } = boardApi;
@@ -23,11 +26,11 @@ export function acknowledgeDecision(
 	}
 	return Effect.fn("FleetBoard.acknowledgeDecision")(function* (input: BoardDecisionAcknowledgement) {
 		const current = yield* read(input.decision.itemId);
-		const incomplete = Array.from(current.problems.values()).find((problem) => problem.code === "incomplete-observation");
+		const incomplete = Array.from(snapshotProblems(current).values()).find((problem) => problem.code === "incomplete-observation");
 		if (incomplete !== undefined) {
 			return yield* Effect.fail(incomplete);
 		}
-		const all = current.documents.filter((document) => !current.problems.has(document.file));
+		const all = current.documents.filter((document) => !snapshotProblems(current).has(document.file));
 		const decision = input.decision;
 		const requestReceipt = {
 			disposition: input.disposition,
@@ -44,7 +47,7 @@ export function acknowledgeDecision(
 		if (
 			source?.parsed.fields.status === "done"
 			&& request?.state === "closed"
-			&& all.some((document) => document.file === file && document.source === content)
+			&& all.some((document) => document.file === file && documentSource(document) === content)
 		) {
 			return;
 		}
@@ -65,9 +68,9 @@ export function acknowledgeDecision(
 		yield* publish(root, realRoot, id, content).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "The managed request acknowledgement could not be recorded on Board." })),
 		);
-		yield* recordBoardSource(realRoot, file, content, receiptDocument.parsed);
+		yield* recordBoardWrite(realRoot, file);
 		const reason = input.disposition === "superseded" ? supersededReason(all, decision.workId) : undefined;
-		yield* closePublishedDecision(root, realRoot, source, reason);
+		yield* closePublishedDecision(realRoot, source, reason);
 	});
 }
 

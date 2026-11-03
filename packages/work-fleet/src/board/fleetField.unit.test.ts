@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { fleetApproved, fleetDeliverable, fleetLaunch } from "#board/fleetField.ts";
 
 function parsed(fleet?: string) {

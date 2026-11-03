@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import type { browserClient } from "#adapters/browserClient.ts";
 import type { AnswerInput } from "#browser/responses/schema.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import type { Folder, RunningBoard } from "./board.ts";
 import { renderRemaining } from "./renderRemaining.tsx";
 

@@ -1,7 +1,7 @@
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { type Changes, watchChanges } from "#server/files/changes.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import { areaFolders, repositoryRoot } from "#server/metadata/areaFolders.ts";
 import { metadataModel } from "#server/metadata/model.ts";
