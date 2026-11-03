@@ -1,10 +1,10 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import type { RepositoryChanges } from "./repositoryChanges.ts";
-import { makeUpsertDecoder, upsertReturning } from "./upsertResult.ts";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
+import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 
 export type InsertMany<TModel extends Model.Any, TServices = never> = (
 	inputs: readonly TModel["insert"]["Type"][],
@@ -14,20 +14,20 @@ export interface BatchWrites<TModel extends Model.Any> {
 	readonly insertMany: InsertMany<TModel>;
 }
 
-export function makeInsertMany<TServices = never>(
+export const makeInsertMany = Effect.fnUntraced(function* <TServices = never>(
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
-	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices> = () =>
-		Effect.succeed(sql``),
+	prepare?: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices>,
 	upsert = false,
 ) {
+	const sql = yield* SqlClient.SqlClient;
+	const prepareRow = prepare ?? (() => Effect.succeed(sql``));
 	const encode = Schema.encodeEffect(model.insert);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
 	const decodeUpsert = makeUpsertDecoder(model);
-	const returning = options.changes.returning(upsert ? upsertReturning(sql) : sql`*`);
+	const returning = options.changes.returning(upsert ? yield* upsertReturning() : sql`*`);
 	return (inputs: readonly unknown[]) =>
 		Effect.gen(function* () {
 			if (inputs.length === 0) {
@@ -57,7 +57,7 @@ export function makeInsertMany<TServices = never>(
 			for (const row of rows) {
 				const value = sql`(${sql.csv(columns.map((column) => (Object.hasOwn(row, column) ? sql`${row[column]}` : sql`default`)))})`;
 				const size = value.compile()[1].length;
-				const prepared = yield* prepare(row);
+				const prepared = yield* prepareRow(row);
 				const suffixSize = sql`${prepared}`.compile()[1].length;
 				// Bound native fragment size as well as PostgreSQL's 65,535 bind parameters.
 				if (chunk.length > 0 && (chunk.length === chunkSize || parameters + size + suffixSize > 10_000)) {
@@ -71,4 +71,4 @@ export function makeInsertMany<TServices = never>(
 			yield* options.changes.record(changedRows);
 			return results;
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.${operation}`));
-}
+});

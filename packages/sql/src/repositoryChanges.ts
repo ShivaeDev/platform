@@ -8,12 +8,8 @@ import { invalidateOnCommit, transact } from "#transact.ts";
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
 
-export const repositoryChanges = Effect.fnUntraced(function* (
-	sql: SqlClient.SqlClient,
-	table: string,
-	columns: readonly string[],
-	fields: Schema.Struct.Fields = {},
-) {
+export const repositoryChanges = Effect.fnUntraced(function* (table: string, columns: readonly string[], fields: Schema.Struct.Fields = {}) {
+	const sql = yield* SqlClient.SqlClient;
 	const buckets = declaredBuckets(fields);
 	const bucketKeys = Effect.fnUntraced(function* (row: Readonly<Record<string, unknown>>) {
 		const keys: Key[] = [];

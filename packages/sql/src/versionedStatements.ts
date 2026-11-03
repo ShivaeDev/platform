@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
 
@@ -14,21 +14,21 @@ export interface VersionedOptions {
 	readonly versionColumn: string;
 }
 
-export function versionedStatements(model: Model.Any, sql: SqlClient.SqlClient, options: VersionedOptions) {
+export const versionedStatements = Effect.fnUntraced(function* (model: Model.Any, options: VersionedOptions) {
+	const sql = yield* SqlClient.SqlClient;
 	const { tableName, idColumns, versionColumn, conflict } = options;
-	const fields = Object.fromEntries(
-		idColumns.map((column) => {
-			const field = model.fields[column];
-			if (field === undefined) {
-				throw new Error(`Unknown ID column: ${column}`);
-			}
-			return [column, field];
-		}),
-	);
-	const encodeKey = Schema.encodeEffect(Schema.Struct(fields));
+	const entries: [string, Schema.Constraint][] = [];
+	for (const column of idColumns) {
+		const field = model.fields[column];
+		if (field === undefined) {
+			return yield* Effect.die(new Error(`Unknown ID column: ${column}`));
+		}
+		entries.push([column, field]);
+	}
+	const encodeKey = Schema.encodeEffect(Schema.Struct(Object.fromEntries(entries)));
 	const versionSchema = model.fields[versionColumn];
 	if (versionSchema === undefined) {
-		throw new Error(`Unknown version column: ${versionColumn}`);
+		return yield* Effect.die(new Error(`Unknown version column: ${versionColumn}`));
 	}
 	const encodeVersion = Schema.encodeEffect(versionSchema);
 	const encodeInsert = Schema.encodeEffect(model.insert);
@@ -36,7 +36,7 @@ export function versionedStatements(model: Model.Any, sql: SqlClient.SqlClient, 
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const validateVersion = Schema.decodeUnknownEffect(Version);
 	const clause =
-		options.conflictColumns === undefined ? undefined : makeConflictClause(model, sql, { ...options, conflictColumns: options.conflictColumns });
+		options.conflictColumns === undefined ? undefined : yield* makeConflictClause(model, { ...options, conflictColumns: options.conflictColumns });
 	function key(input: unknown) {
 		return idColumns.length === 1 ? { [idColumns[0] ?? ""]: input } : input;
 	}
@@ -86,4 +86,4 @@ export function versionedStatements(model: Model.Any, sql: SqlClient.SqlClient, 
 		});
 	}
 	return { insert, remove, update };
-}
+});

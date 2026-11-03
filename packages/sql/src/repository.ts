@@ -1,6 +1,6 @@
 import { Data, Effect, type Schema } from "effect";
 import type { Model } from "effect/schema";
-import { SqlClient } from "effect/sql";
+import type { SqlClient } from "effect/sql";
 import { makeBatchedDelete } from "#batchedDelete.ts";
 import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
@@ -117,27 +117,26 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 ): Effect.Effect<unknown, BucketRegistrationError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		yield* validateRepositoryCollection(model.fields, options);
-		const sql = yield* SqlClient.SqlClient;
 		const composite = typeof options.idColumn === "object";
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
-		const changes = yield* repositoryChanges(sql, options.tableName, idColumns, model.fields);
+		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields);
 		const crud = {
-			...makeCompositeCrud(model, sql, { ...options, columns: idColumns }, changes),
+			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns }, changes)),
 			deleteBatched: yield* makeBatchedDelete(model, options, changes),
 		};
-		const queries = makeQueries(model, sql, options);
+		const queries = yield* makeQueries(model, options);
 		return {
 			...crud,
 			...queries,
 			...(options.versionColumn === undefined
 				? {
-						insertFromSelect: makeInsertFromSelect(model, sql, { ...options, changes }, "insertFromSelect"),
-						insertMany: makeInsertMany(model, sql, { ...options, changes }, "insertMany"),
+						insertFromSelect: yield* makeInsertFromSelect(model, { ...options, changes }, "insertFromSelect"),
+						insertMany: yield* makeInsertMany(model, { ...options, changes }, "insertMany"),
 						...(options.conflictColumns === undefined
 							? {}
-							: makeConflictWrites(model, sql, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
+							: yield* makeConflictWrites(model, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
 					}
-				: makeVersionedWrites(model, sql, {
+				: yield* makeVersionedWrites(model, {
 						...options,
 						changes,
 						conflict: (id, expectedVersion, reason) => new OptimisticConcurrencyError({ expectedVersion, id, reason, tableName: options.tableName }),

@@ -1,18 +1,18 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import { type SqlClient, SqlSchema } from "effect/sql";
-import type { RepositoryChanges } from "./repositoryChanges.ts";
-import { makeFilter } from "./repositoryFilter.ts";
-import { selectedUpdate } from "./repositoryUpdate.ts";
+import { SqlClient, SqlSchema } from "effect/sql";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
+import { makeFilter } from "#repositoryFilter.ts";
+import { selectedUpdate } from "#repositoryUpdate.ts";
 
-export function repositoryWrites(
+export const repositoryWrites = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: { readonly idColumns: readonly string[]; readonly tableName: string; readonly spanPrefix: string },
 	changes: RepositoryChanges,
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const { idColumns, tableName, spanPrefix } = options;
-	const { where } = makeFilter(model, sql);
+	const { where } = yield* makeFilter(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const filterRecord = Schema.decodeUnknownEffect(Schema.Record(Schema.PropertyKey, Schema.Unknown));
 	function predicate(input: Readonly<Record<string, unknown>>) {
@@ -49,7 +49,7 @@ export function repositoryWrites(
 	const idColumn = idColumns[0] ?? "";
 	const key = model.fields[idColumn];
 	if (key === undefined) {
-		throw new Error("Unknown repository ID column");
+		return yield* Effect.die(new Error("Unknown repository ID column"));
 	}
 	const isKey = Schema.is(key);
 	const removeByKey = SqlSchema.void({
@@ -84,4 +84,4 @@ export function repositoryWrites(
 				.write(settings === undefined ? updateVoid(input) : selected(input, settings.columns, false))
 				.pipe(Effect.withSpan(`${spanPrefix}.updateVoid`)),
 	};
-}
+});

@@ -1,12 +1,12 @@
 import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient, SqlModel } from "effect/sql";
+import { SqlClient, type SqlModel } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PrimaryKey, Repository } from "#compositeRepository.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { UpdateInput } from "#repositoryUpdate.ts";
 import { type VersionedOptions, versionedStatements } from "#versionedStatements.ts";
-import type { RepositoryChanges } from "./repositoryChanges.ts";
 
 export type IdColumn<TModel extends Model.Any> = keyof TModel["Type"] & keyof TModel["update"]["Type"] & keyof TModel["fields"];
 export type VersionColumn<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = {
@@ -43,13 +43,13 @@ export interface VersionedWrites<TModel extends Model.Any, TId extends PrimaryKe
 	readonly updateVoid: (input: UpdateInput<TModel>) => Effect.Effect<void, WriteError, TModel["update"]["EncodingServices"]>;
 }
 
-export function makeVersionedWrites(
+export const makeVersionedWrites = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: VersionedOptions & { readonly changes: RepositoryChanges; readonly spanPrefix: string },
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const { spanPrefix, changes } = options;
-	const statements = versionedStatements(model, sql, options);
+	const statements = yield* versionedStatements(model, options);
 	const decodeRow = Schema.decodeUnknownEffect(model);
 	function insert(input: unknown) {
 		return Effect.gen(function* () {
@@ -106,4 +106,4 @@ export function makeVersionedWrites(
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.delete`));
 	}
 	return { delete: deleteRow, insert, insertVoid, update, updateVoid, ...(options.conflictColumns === undefined ? {} : { insertOrIgnore }) };
-}
+});

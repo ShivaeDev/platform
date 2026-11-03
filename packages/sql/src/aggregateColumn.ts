@@ -1,5 +1,5 @@
 import { Effect, Schema, SchemaAST } from "effect";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 
 const Expression = Schema.Tuple([Schema.Tuple([Schema.Literals(["count", "sum", "avg", "min", "max", "boolOr", "boolAnd"]), Schema.String])]);
 const functions = { avg: "avg", boolAnd: "bool_and", boolOr: "bool_or", count: "count", max: "max", min: "min", sum: "sum" };
@@ -31,7 +31,8 @@ function resultSchema(operation: Operation, field: Schema.Constraint): Schema.Co
 	}
 }
 
-export function aggregateColumn(sql: SqlClient.SqlClient, fieldAt: (key: string) => Effect.Effect<Schema.Constraint, Schema.SchemaError>) {
+export const aggregateColumn = Effect.fnUntraced(function* (fieldAt: (key: string) => Effect.Effect<Schema.Constraint, Schema.SchemaError>) {
+	const sql = yield* SqlClient.SqlClient;
 	return Effect.fnUntraced(function* (name: string, expression: object) {
 		const [[operation, key]] = yield* Schema.decodeUnknownEffect(Expression)(Object.entries(expression));
 		const countRows = operation === "count" && key === "*";
@@ -46,4 +47,4 @@ export function aggregateColumn(sql: SqlClient.SqlClient, fieldAt: (key: string)
 			schema: operation === "count" ? Result : Schema.NullOr(Result),
 		};
 	});
-}
+});

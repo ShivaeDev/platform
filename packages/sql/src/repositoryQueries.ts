@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
 import type { Aggregate } from "#aggregateQuery.ts";
@@ -46,62 +46,64 @@ export interface Queries<TModel extends Model.Any> {
 
 export function makeQueries<TModel extends Model.Any>(
 	model: TModel,
-	sql: SqlClient.SqlClient,
 	options: {
 		readonly tableName: string;
 		readonly spanPrefix: string;
 	},
-): Queries<TModel> {
-	const { fieldAt, where } = makeFilter(model, sql);
-	const readLatest = makeLatestPerGroup(model, sql, options.tableName);
-	const { decodeLimit, orderClause, limitClause } = makeQueryClauses(sql, fieldAt);
-	const aggregate = makeAggregate(model, sql, options);
-	function count(query?: Pick<FindMany<TModel, Key<TModel>>, "where">): ReturnType<Queries<TModel>["count"]>;
-	function count(query: Pick<FindMany<TModel, Key<TModel>>, "where"> = {}): Effect.Effect<number, SqlError | Schema.SchemaError, unknown> {
-		return Effect.gen(function* () {
-			const predicate = yield* where(query.where, true, true);
-			const rows = yield* sql`select cast(count(*) as text) as count from ${sql(options.tableName)} where ${predicate}`;
-			const [result] = yield* Schema.decodeUnknownEffect(CountResult)(rows);
-			return result.count;
-		}).pipe(Effect.withSpan(`${options.spanPrefix}.count`));
-	}
-	function select<TKey extends Key<TModel> = Key<TModel>>(
-		query?: FindMany<TModel, TKey>,
-	): RepositorySelect<Pick<TModel["fields"], TKey>, TModel["fields"][Key<TModel>]["EncodingServices"]>;
-	function select(query: FindMany<TModel, Key<TModel>> = {}): RepositorySelect<Schema.Struct.Fields, unknown> {
-		const keys = query.select ?? Object.keys(model.fields);
-		const fields = Object.fromEntries(keys.map((key) => [key, model.fields[key]]));
-		const statement = Effect.gen(function* () {
-			yield* Effect.forEach(keys, fieldAt);
-			const predicate = yield* where(query.where, true, true);
-			const order = yield* orderClause(query.orderBy);
-			const limit = yield* limitClause(query.limit);
-			return sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
-		});
-		return { fields, statement };
-	}
-	function findMany<TKey extends Key<TModel> = Key<TModel>>(
-		query?: FindMany<TModel, TKey>,
-	): Effect.Effect<
-		Pick<Row<TModel>, TKey>[],
-		SqlError | Schema.SchemaError,
-		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
-	>;
-	// Object.fromEntries erases the selected key-to-schema correspondence, so the typed overload restates it.
-	function findMany(query: FindMany<TModel, Key<TModel>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
-		return Effect.gen(function* () {
-			const selected = select(query);
-			const rows = yield* sql`${yield* selected.statement}`;
-			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(selected.fields)))(rows);
-		}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
-	}
-	function latestPerGroup(query: LatestPerGroup<TModel>): ReturnType<Queries<TModel>["latestPerGroup"]>;
-	function latestPerGroup(query: LatestPerGroup<TModel>): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
-		return Effect.gen(function* () {
-			const order = yield* orderClause(query.orderBy);
-			const rowLimit = yield* decodeLimit(query.limit);
-			return yield* readLatest(query, order, rowLimit);
-		}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
-	}
-	return { aggregate, count, findMany, latestPerGroup, select };
+): Effect.Effect<Queries<TModel>, never, SqlClient.SqlClient> {
+	return Effect.fnUntraced(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const { fieldAt, where } = yield* makeFilter(model);
+		const readLatest = yield* makeLatestPerGroup(model, options.tableName);
+		const { decodeLimit, orderClause, limitClause } = yield* makeQueryClauses(fieldAt);
+		const aggregate = yield* makeAggregate(model, options);
+		function count(query?: Pick<FindMany<TModel, Key<TModel>>, "where">): ReturnType<Queries<TModel>["count"]>;
+		function count(query: Pick<FindMany<TModel, Key<TModel>>, "where"> = {}): Effect.Effect<number, SqlError | Schema.SchemaError, unknown> {
+			return Effect.gen(function* () {
+				const predicate = yield* where(query.where, true, true);
+				const rows = yield* sql`select cast(count(*) as text) as count from ${sql(options.tableName)} where ${predicate}`;
+				const [result] = yield* Schema.decodeUnknownEffect(CountResult)(rows);
+				return result.count;
+			}).pipe(Effect.withSpan(`${options.spanPrefix}.count`));
+		}
+		function select<TKey extends Key<TModel> = Key<TModel>>(
+			query?: FindMany<TModel, TKey>,
+		): RepositorySelect<Pick<TModel["fields"], TKey>, TModel["fields"][Key<TModel>]["EncodingServices"]>;
+		function select(query: FindMany<TModel, Key<TModel>> = {}): RepositorySelect<Schema.Struct.Fields, unknown> {
+			const keys = query.select ?? Object.keys(model.fields);
+			const fields = Object.fromEntries(keys.map((key) => [key, model.fields[key]]));
+			const statement = Effect.gen(function* () {
+				yield* Effect.forEach(keys, fieldAt);
+				const predicate = yield* where(query.where, true, true);
+				const order = yield* orderClause(query.orderBy);
+				const limit = yield* limitClause(query.limit);
+				return sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
+			});
+			return { fields, statement };
+		}
+		function findMany<TKey extends Key<TModel> = Key<TModel>>(
+			query?: FindMany<TModel, TKey>,
+		): Effect.Effect<
+			Pick<Row<TModel>, TKey>[],
+			SqlError | Schema.SchemaError,
+			TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
+		>;
+		// Object.fromEntries erases the selected key-to-schema correspondence, so the typed overload restates it.
+		function findMany(query: FindMany<TModel, Key<TModel>> = {}): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
+			return Effect.gen(function* () {
+				const selected = select(query);
+				const rows = yield* sql`${yield* selected.statement}`;
+				return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(selected.fields)))(rows);
+			}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
+		}
+		function latestPerGroup(query: LatestPerGroup<TModel>): ReturnType<Queries<TModel>["latestPerGroup"]>;
+		function latestPerGroup(query: LatestPerGroup<TModel>): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
+			return Effect.gen(function* () {
+				const order = yield* orderClause(query.orderBy);
+				const rowLimit = yield* decodeLimit(query.limit);
+				return yield* readLatest(query, order, rowLimit);
+			}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
+		}
+		return { aggregate, count, findMany, latestPerGroup, select };
+	})();
 }

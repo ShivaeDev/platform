@@ -51,27 +51,25 @@ export function tupleIn<TModel extends Model.Any, const TFields extends readonly
 	return { [tupleFilter]: { fields, model, types: fields.map((field: TFields[number]) => types[field]), values } };
 }
 
-export function tuplePredicate(
+export const tuplePredicate = Effect.fnUntraced(function* (
 	input: Partial<TupleFilter<Model.Any>>,
-	sql: SqlClient.SqlClient,
 	fieldAt: (key: string) => Effect.Effect<Schema.Constraint, Schema.SchemaError>,
 ) {
 	const tuple = input[tupleFilter];
 	if (tuple === undefined) {
-		return Effect.succeed(undefined);
+		return undefined;
 	}
-	return Effect.gen(function* () {
-		const fields = yield* Effect.forEach(tuple.fields, fieldAt);
-		const encode = Schema.encodeUnknownEffect(Schema.Tuple(fields));
-		const columns = sql.csv(tuple.fields.map((field) => sql`${sql(field)}`));
-		const rows: readonly (readonly unknown[])[] = yield* Effect.forEach(tuple.values, (value) => encode(value));
-		if (rows.length === 0) {
-			return sql`1 = 0`;
-		}
-		if (sql.onDialectOrElse({ orElse: () => false, pg: () => true })) {
-			const relation = yield* tupleUnnest(tuple.types, rows).pipe(Effect.provideService(SqlClient.SqlClient, sql));
-			return sql`(${columns}) in (select * from ${relation})`;
-		}
-		return sql.or(rows.map((row) => sql`(${columns}) = (${sql.csv(row.map((entry) => sql`${entry}`))})`));
-	});
-}
+	const sql = yield* SqlClient.SqlClient;
+	const fields = yield* Effect.forEach(tuple.fields, fieldAt);
+	const encode = Schema.encodeUnknownEffect(Schema.Tuple(fields));
+	const columns = sql.csv(tuple.fields.map((field) => sql`${sql(field)}`));
+	const rows: readonly (readonly unknown[])[] = yield* Effect.forEach(tuple.values, (value) => encode(value));
+	if (rows.length === 0) {
+		return sql`1 = 0`;
+	}
+	if (sql.onDialectOrElse({ orElse: () => false, pg: () => true })) {
+		const relation = yield* tupleUnnest(tuple.types, rows).pipe(Effect.provideService(SqlClient.SqlClient, sql));
+		return sql`(${columns}) in (select * from ${relation})`;
+	}
+	return sql.or(rows.map((row) => sql`(${columns}) = (${sql.csv(row.map((entry) => sql`${entry}`))})`));
+});

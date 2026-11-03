@@ -1,6 +1,6 @@
 import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
 import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpsert } from "#conditionalUpsert.ts";
@@ -40,9 +40,8 @@ export interface ConflictWrites<TModel extends Model.Any, TExcluded extends Prop
 	>;
 }
 
-export function makeConflictWrites(
+export const makeConflictWrites = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: {
 		readonly changes: RepositoryChanges;
 		readonly tableName: string;
@@ -52,25 +51,27 @@ export function makeConflictWrites(
 		readonly idColumns: readonly string[];
 	},
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const { tableName, spanPrefix } = options;
+	const returning = yield* upsertReturning();
 	const encode = Schema.encodeEffect(model.insert);
 	const decode = Schema.decodeUnknownEffect(model);
 	const decodeUpsert = makeUpsertDecoder(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
-	const conditional = makeConditionalUpsert(model, sql, options);
-	const clause = makeConflictClause(model, sql, options);
+	const conditional = yield* makeConditionalUpsert(model, options);
+	const clause = yield* makeConflictClause(model, options);
 	function statement(input: unknown, updateColumns?: readonly UpsertAssignment[]) {
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encode(input));
 			const suffix = yield* clause(encoded, updateColumns);
-			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning ${options.changes.returning(updateColumns === undefined ? sql`*` : upsertReturning(sql))}`;
+			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning ${options.changes.returning(updateColumns === undefined ? sql`*` : returning)}`;
 		});
 	}
 	return {
-		insertFromSelectOrIgnore: makeInsertFromSelect(model, sql, options, "insertFromSelectOrIgnore", (columns) =>
+		insertFromSelectOrIgnore: yield* makeInsertFromSelect(model, options, "insertFromSelectOrIgnore", (columns) =>
 			clause(Object.fromEntries(columns.map((key) => [key, undefined]))),
 		),
-		insertManyOrIgnore: makeInsertMany(model, sql, options, "insertManyOrIgnore", (row) => clause(row)),
+		insertManyOrIgnore: yield* makeInsertMany(model, options, "insertManyOrIgnore", (row) => clause(row)),
 		insertOrIgnore: (input: unknown) =>
 			Effect.gen(function* () {
 				const rows = yield* yield* statement(input);
@@ -93,7 +94,10 @@ export function makeConflictWrites(
 			settings: { readonly updateColumns: readonly UpsertAssignment[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
 		) =>
 			settings.updateWhere === undefined
-				? makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns), true)(inputs)
+				? Effect.flatMap(
+						makeInsertMany(model, options, "upsertMany", (row) => clause(row, settings.updateColumns), true),
+						(insertMany) => insertMany(inputs),
+					).pipe(Effect.provideService(SqlClient.SqlClient, sql))
 				: conditional(inputs, { ...settings, updateWhere: settings.updateWhere }),
 	};
-}
+});

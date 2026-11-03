@@ -18,8 +18,9 @@ function groupMasks(input: readonly (readonly unknown[])[]) {
 	return [...masks.values()];
 }
 
-export function latestPerGroup(model: Model.Any, sql: SqlClient.SqlClient, tableName: string) {
-	const { fieldAt, where } = makeFilter(model, sql);
+export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tableName: string) {
+	const sql = yield* SqlClient.SqlClient;
+	const { fieldAt, where } = yield* makeFilter(model);
 	function groupSource(groups: readonly (readonly unknown[])[], partitionBy: readonly string[], fromTuple: boolean) {
 		const partitions = sql.csv(partitionBy.map((key) => sql`${sql(key)}`));
 		if (fromTuple) {
@@ -37,7 +38,7 @@ export function latestPerGroup(model: Model.Any, sql: SqlClient.SqlClient, table
 		const partitions = sql.csv(query.partitionBy.map((key) => sql`${sql(key)}`));
 		const keys = Object.keys(model.fields);
 		const columns = sql.csv(keys.map((key) => sql`${sql(key)}`));
-		const pinned = yield* pinnedGroups(model, sql, query.partitionBy, query.where);
+		const pinned = yield* pinnedGroups(model, query.partitionBy, query.where).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 		if (pinned !== undefined && pinned.groups.length === 0) {
 			return [];
 		}
@@ -82,4 +83,4 @@ export function latestPerGroup(model: Model.Any, sql: SqlClient.SqlClient, table
 		order by ${partitions}, ${sql(rankColumn)}`;
 		return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(model.fields)))(rows);
 	});
-}
+});
