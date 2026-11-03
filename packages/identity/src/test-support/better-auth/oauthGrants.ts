@@ -51,7 +51,7 @@ export const oauthGrants = storyKit({
 		}
 		const denied = new Set<string>();
 		const layer = betterAuthOauthGrants({ admitsUser: (id) => Effect.sync(() => !denied.has(id)), auth });
-		return { auth, context: yield* Layer.build(layer), denied, people, sql: yield* SqlClient.SqlClient };
+		return { auth, context: yield* Layer.build(layer), denied, grantIds: new Map<string, string>(), people, sql: yield* SqlClient.SqlClient };
 	},
 	inspect: ({ people }) => ({ people: [...people.keys()] }),
 	layer: postgres,
@@ -79,7 +79,10 @@ export const oauthGrants = storyKit({
 					Effect.map((grants) => [...grants].sort((a, b) => a.clientId.localeCompare(b.clientId))),
 				),
 			listFailure: () => failure(Effect.flatMap(service, (grants) => grants.list(id("alice"), { limit: 100 }))),
-			lookupFailure: () => failure(Effect.flatMap(service, (grants) => grants.resolveSubject(id("alice"), "desktop"))),
+			lookupFailure: () =>
+				failure(
+					Effect.flatMap(service, (grants) => grants.resolveGrant(engine.grantIds.get(`${id("alice")}-desktop`) ?? "", id("alice"), "desktop")),
+				),
 			revokeAllClients: (name: Person) =>
 				Effect.flatMap(service, (grants) => {
 					story.tell(`${name} revokes every client`);
@@ -105,42 +108,10 @@ export const oauthGrants = storyKit({
 						refresh: await adapter.count({ model: "oauthRefreshToken", where }),
 					}));
 				}),
-			subject: (name: Person, client: string) =>
-				Effect.flatMap(service, (grants) => grants.resolveSubject(id(name), client)).pipe(
-					Effect.map(Option.match({ onNone: () => "refused", onSome: (user) => user.name })),
+			subject: (name: Person, client: string, grantOwner = name) =>
+				Effect.flatMap(service, (grants) => grants.resolveGrant(engine.grantIds.get(`${id(grantOwner)}-${client}`) ?? "", id(name), client)).pipe(
+					Effect.map(Option.match({ onNone: () => "refused", onSome: (grant) => grant.user.name })),
 				),
 		};
 	},
 });
-
-export const existingGrants = oauthGrants.trait(
-	"grants",
-	"alice and bob already consented to desktop and phone clients with stored tokens",
-	function* (engine) {
-		const { adapter } = yield* Effect.promise(() => engine.auth.$context);
-		const now = DateTime.toDateUtc(yield* DateTime.now);
-		const expiresAt = new Date(now.getTime() + 3_600_000);
-		// Minted grants isolate identity's lifecycle from the provider's OAuth flow.
-		for (const clientId of ["desktop", "phone"]) {
-			yield* Effect.promise(() => adapter.create({ data: { clientId, redirectUris: ["http://localhost/callback"] }, model: "oauthClient" }));
-			for (const userId of engine.people.values()) {
-				yield* Effect.promise(() =>
-					adapter.create({ data: { clientId, createdAt: now, scopes: ["mcp"], updatedAt: now, userId }, model: "oauthConsent" }),
-				);
-				for (const [index, model] of [
-					[1, "oauthAccessToken"],
-					[2, "oauthAccessToken"],
-					[1, "oauthRefreshToken"],
-					[2, "oauthRefreshToken"],
-				] as const) {
-					yield* Effect.promise(() =>
-						adapter.create({
-							data: { clientId, createdAt: now, expiresAt, scopes: ["mcp"], token: `${userId}-${clientId}-${model}-${index}`, userId },
-							model,
-						}),
-					);
-				}
-			}
-		}
-	},
-);

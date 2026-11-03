@@ -14,6 +14,10 @@ export class OauthGrants extends Context.Service<
 		) => Effect.Effect<readonly OauthGrant[], AuthUnavailable>;
 		readonly revokeClient: (userId: string, clientId: string) => Effect.Effect<void, AuthUnavailable>;
 		readonly revokeAllClients: (userId: string) => Effect.Effect<void, AuthUnavailable>;
-		readonly resolveSubject: (userId: string, clientId: string) => Effect.Effect<Option.Option<SessionUserValue>, AuthUnavailable>;
+		readonly resolveGrant: (
+			grantId: string,
+			userId: string,
+			clientId: string,
+		) => Effect.Effect<Option.Option<{ readonly user: SessionUserValue; readonly scopes: readonly string[] }>, AuthUnavailable>;
 	}
 >()("@shivaedev/identity/OauthGrants") {}

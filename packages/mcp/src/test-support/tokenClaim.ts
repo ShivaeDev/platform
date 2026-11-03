@@ -15,6 +15,7 @@ export function tokenClaim(name: string, claim: string, value: unknown) {
 					aud: engine.resource,
 					"client_id": engine.clientIds.get(name),
 					exp: Math.floor(now / 1000) + 3600,
+					"grant_id": engine.grantIds.get(name),
 					iss: engine.issuer,
 					scope: "mcp",
 					sub: person(engine, name).id,
@@ -28,4 +29,22 @@ export function tokenClaim(name: string, claim: string, value: unknown) {
 			},
 		),
 	);
+}
+
+export function referencesGrant(name: string, grantOwner: string) {
+	return mcp.trait("tokens", `${name}'s token references ${grantOwner}'s grant`, function* (engine) {
+		const now = yield* Clock.currentTimeMillis;
+		engine.tokens.set(
+			name,
+			engine.signToken({
+				aud: engine.resource,
+				"client_id": engine.clientIds.get(name),
+				exp: Math.floor(now / 1000) + 3600,
+				"grant_id": engine.grantIds.get(grantOwner),
+				iss: engine.issuer,
+				scope: "mcp",
+				sub: person(engine, name).id,
+			}),
+		);
+	});
 }

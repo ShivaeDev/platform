@@ -40,6 +40,13 @@ function bearerFailure(cause: unknown): Effect.Effect<Option.Option<never>, Auth
 	);
 }
 
+function requiredClaim(value: unknown, claim: string) {
+	if (typeof value !== "string" || value.trim() === "") {
+		throw new InvalidTokenClaim({ claim });
+	}
+	return value;
+}
+
 export function bearer(jwks: JwksSource, audience: string, issuer: string) {
 	return (token: string | undefined) => {
 		if (!token) {
@@ -47,20 +54,16 @@ export function bearer(jwks: JwksSource, audience: string, issuer: string) {
 		}
 		return Effect.tryPromise(async () => {
 			const claims = await verifyJwsAccessToken(token, { jwksFetch: jwks, verifyOptions: { audience, issuer } });
-			const { sub, client_id: clientId } = claims;
-			if (typeof sub !== "string" || sub.trim() === "") {
-				throw new InvalidTokenClaim({ claim: "sub" });
-			}
-			if (typeof clientId !== "string" || clientId.trim() === "") {
-				throw new InvalidTokenClaim({ claim: "client_id" });
-			}
+			const sub = requiredClaim(claims.sub, "sub");
+			const clientId = requiredClaim(claims.client_id, "client_id");
+			const grantId = requiredClaim(claims.grant_id, "grant_id");
 			if (typeof claims.scope !== "string" || !claims.scope.split(" ").includes("mcp")) {
 				throw new InvalidTokenClaim({ claim: "scope" });
 			}
 			if (claims.cnf !== undefined) {
 				throw new InvalidTokenClaim({ claim: "cnf" });
 			}
-			return { ...claims, "client_id": clientId, sub };
+			return { ...claims, "client_id": clientId, "grant_id": grantId, sub };
 		}).pipe(
 			Effect.map(Option.some),
 			Effect.catch(({ cause }) => bearerFailure(cause)),
