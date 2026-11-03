@@ -8,15 +8,16 @@ import { watch } from "#test/watch.ts";
 watch.it(
 	"the CLI encodes a title with a line break as one transition line followed by its stopped event",
 	[openPr(1), watching(1), baselineSaved],
-	function* ({ pushesHead, merges, runCli, cliEvents }) {
+	function* ({ pushesHead, merges, runCli, cliStdout }) {
 		yield* pushesHead(1, "new-branch", "new-head", 'Changed\n"title"');
 		yield* merges(1);
 
 		yield* runCli("--once");
 
-		expect(yield* cliEvents()).toEqual([
-			{ branch: "new-branch", event: "merged", head: "new-head", number: 1, title: 'Changed\n"title"' },
-			{ at: expect.any(String), event: "stopped", reason: "completed" },
+		expect((yield* cliStdout()).split("\n")).toEqual([
+			'{"branch":"new-branch","event":"merged","head":"new-head","number":1,"title":"Changed\\n\\"title\\""}',
+			expect.stringMatching(/^\{"at":".+","event":"stopped","reason":"completed"\}$/u),
+			"",
 		]);
 	},
 );

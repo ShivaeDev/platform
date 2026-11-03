@@ -2,30 +2,31 @@ import { Schema } from "effect";
 import { eventKinds } from "#events.ts";
 
 const prFields = {
-	branch: Schema.String,
 	head: Schema.optionalKey(Schema.String),
 	number: Schema.Int,
 	title: Schema.String,
 };
 export const TransitionEvent = Schema.Union([
 	Schema.Struct({
-		...prFields,
+		branch: Schema.String,
 		event: Schema.Literals(eventKinds.filter((kind) => kind !== "dequeued")),
+		...prFields,
 	}),
-	Schema.Struct({ ...prFields, event: Schema.Literal("dequeued"), reason: Schema.String }),
+	Schema.Struct({ branch: Schema.String, event: Schema.Literal("dequeued"), ...prFields, reason: Schema.String }),
 ]);
 export type TransitionEvent = typeof TransitionEvent.Type;
 
+const cooldownFields = {
+	delayMs: Schema.optionalKey(Schema.Number),
+	message: Schema.String,
+	nextPollAt: Schema.String,
+};
+const errorFields = { errorTag: Schema.String, message: Schema.String };
+
 export const HealthEvent = Schema.Union([
 	Schema.Struct({ at: Schema.String, event: Schema.Literal("heartbeat"), nextPollAt: Schema.String }),
-	Schema.Struct({
-		at: Schema.String,
-		delayMs: Schema.optionalKey(Schema.Number),
-		event: Schema.Literal("cooldown"),
-		message: Schema.String,
-		nextPollAt: Schema.String,
-	}),
-	Schema.Struct({ at: Schema.String, errorTag: Schema.String, event: Schema.Literal("error"), message: Schema.String }),
+	Schema.Struct({ at: Schema.String, event: Schema.Literal("cooldown"), ...cooldownFields }),
+	Schema.Struct({ at: Schema.String, event: Schema.Literal("error"), ...errorFields }),
 	Schema.Struct({ at: Schema.String, event: Schema.Literal("stopped"), reason: Schema.Literals(["completed", "failed", "interrupted"]) }),
 ]);
 export type HealthEvent = typeof HealthEvent.Type;
