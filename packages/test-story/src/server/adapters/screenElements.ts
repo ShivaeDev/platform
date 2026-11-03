@@ -1,6 +1,7 @@
-import { isRendered, targetName } from "#server/internal/screenAccessibility.ts";
 import { screenText } from "#server/internal/screenText.ts";
+import { targetName } from "#server/internal/targetName.ts";
 import type { ScreenTarget } from "#server/screenDriver.ts";
+import { isRendered } from "./screenAccessibility.ts";
 import { screenQueries } from "./screenQueries.ts";
 
 export function screenElements(root: () => HTMLElement, dialogs = true) {

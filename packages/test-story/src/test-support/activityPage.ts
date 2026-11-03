@@ -1,6 +1,6 @@
 import { Deferred, type Duration, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "#server/screenDriver.ts";
@@ -28,11 +28,12 @@ export const activityPage = storyKit({
 	name: "client activity screen",
 	stages: [],
 	verbs: ({ client, raw, host, view, writer }, story) => {
-		const pending = clientActivity(client);
+		const activity = clientActivity(client);
+		const pending = activityScreenSignal(activity);
 		const driver = screenDriver({ act, pending, root: view.container, tell: story.tell });
 		return {
 			...driver,
-			activity: () => pending.current,
+			activity: () => activity.current,
 			closePage: () => Effect.promise(view.unmount),
 			coalesceFor: (duration: Duration.Input) => Effect.sync(() => view.registry.set(queryCoalesceWindow(client.api.get.query({ id: 1 })), duration)),
 			holdRefresh: () => Effect.sync(host.holdRead),

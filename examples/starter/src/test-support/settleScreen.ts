@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type ScreenSurface, screenView } from "./screenState.ts";
 
@@ -13,7 +14,7 @@ export const settleScreen = Effect.fnUntraced(function* (engine: ScreenSurface, 
 	});
 	yield* screen.settle();
 	if (engine.activity !== undefined) {
-		yield* screenDriver({ act, pending: engine.activity, root: view.container, tell }).settle();
+		yield* screenDriver({ act, pending: activityScreenSignal(engine.activity), root: view.container, tell }).settle();
 		yield* screen.settle();
 	}
 });

@@ -957,19 +957,21 @@ verbs: ({ view, requests }, story) =>
 	});
 ```
 
-For a real contract client, use its activity instead of maintaining request counters or reading loading markup:
+A `ScreenSignal` from `server/screenSignal.ts` is a native `Stream<ScreenSignalState>` with a `current` Effect. Each state reports `pending` until screen work is ready to render and a monotonic `hints` count for received updates. Any engine can supply this shape; waits observe it without knowing which engine produced it.
+
+For a real contract client, project its activity into this signal instead of maintaining request counters or reading loading markup:
 
 ```ts
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
-const screen = screenDriver({ act, pending: clientActivity(client), root, tell });
+const screen = screenDriver({ act, pending: activityScreenSignal(clientActivity(client)), root, tell });
 yield* screen.click({ role: "button", name: "Save" });
 yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs a `ScreenSignal`; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)`, `select(selector, value)`, `focus(selector)`, `blur(selector)`, `pressKey(selector, key, options?)`, `hover(selector)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document (owned by that member for `memberScreens`); missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 

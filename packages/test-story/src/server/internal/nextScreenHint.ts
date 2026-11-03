@@ -1,13 +1,13 @@
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
-import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
+import type { ScreenSignal } from "#server/screenSignal.ts";
 import { SignalNotReceived } from "#server/until.ts";
 
-export const nextClientHint = Effect.fnUntraced(function* (activity: ClientActivity) {
-	const before = (yield* activity.current).liveHints;
-	const hint = yield* activity.pipe(
-		Stream.filter((state) => state.liveHints > before),
+export const nextScreenHint = Effect.fnUntraced(function* (signal: ScreenSignal) {
+	const before = (yield* signal.current).hints;
+	const hint = yield* signal.pipe(
+		Stream.filter((state) => state.hints > before),
 		Stream.runHead,
 	);
 	if (Option.isNone(hint)) {

@@ -1,8 +1,8 @@
 import { type Cause, Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
-import type { ClientActivityState } from "@shivaedev/contract/clientActivity.ts";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "#server/screenDriver.ts";
+import type { ScreenSignalState } from "#server/screenSignal.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 expectNoReactWarnings();
@@ -11,9 +11,9 @@ export const hintScreen = storyKit({
 	clock: "live",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-		const updates = yield* Queue.unbounded<ClientActivityState, Cause.Done>();
+		const updates = yield* Queue.unbounded<ScreenSignalState, Cause.Done>();
 		const listening = yield* Deferred.make<void>();
-		let current: ClientActivityState = { liveHints: 0, liveInvalidations: 0, refreshingAtoms: 0, rpcCalls: 0 };
+		let current: ScreenSignalState = { hints: 0, pending: false };
 		const pending = Object.assign(Stream.unwrap(Deferred.succeed(listening, undefined).pipe(Effect.as(Stream.fromQueue(updates)))), {
 			current: Effect.sync(() => current),
 		});
@@ -23,7 +23,7 @@ export const hintScreen = storyKit({
 		);
 		return {
 			deliverHint: () => {
-				current = { ...current, liveHints: current.liveHints + 1 };
+				current = { ...current, hints: current.hints + 1 };
 				return Queue.offer(updates, current);
 			},
 			listening,
