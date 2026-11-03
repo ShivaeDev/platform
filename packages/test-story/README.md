@@ -928,18 +928,31 @@ pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react
 
 `render(node, options?)` attaches a React root with its own native atom registry. Its `render(nextNode)` keeps that registry; `unmount()` disposes the root, registry and container. Acquire it with `Effect.acquireRelease` in a story kit so the scope releases it. `captureReactWarnings` acquires a scoped readout of console warnings and caught React errors; `expectNoReactWarnings()` registers a Vitest guard instead. The [React render testing guide](https://github.com/ShivaeDev/platform/tree/main/packages/react#render-tests-in-happy-dom) shows the helpers with a native RPC component and explains the act wait and error declarations.
 
+### Mounting a fresh app
+
+Acquire `mountApp({ create, render })` from `@shivaedev/test-story/server/mountApp.ts` in a DOM kit's `create` hook. Each acquisition runs the application's `create` Effect and mounts its React node with a fresh atom registry and root. The result exposes `app`, `container`, `registry`, `render` and `unmount`. Scope unmounts the view before releasing resources acquired by `create`. Put clients and mutable application state in that Effect; imports can stay at module level without `vi.resetModules()`.
+
+```ts
+const view = yield* mountApp({
+	create: Effect.sync(() => makeNotesApp(host.url)),
+	render: (app) => createElement(NotesApp, { app }),
+});
+```
+
+Stories can edit and save through this view while the next story starts with its own client, query cache and inputs. `mountApp` does not reset state that an application keeps outside its factory.
+
 ### Driving a screen
 
 Acquire `domPage(url)` from `@shivaedev/test-story/server/domPage.ts` in the DOM kit's `create` hook before mounting a page that calls global `fetch`. While its Scope is open, string URLs resolve against the window's current address, including after navigation. Native `URL` and `Request` inputs and fetch options pass through to the existing Node transport. Closing the Scope restores global fetch and the previous page address; outside it, relative global fetch URLs keep Node's behavior. This helper uses the single shared window, so acquire and close pages serially.
 
 ```ts
 const page = yield* domPage(`${host.url}/notes`);
-const driver = screenDriver({ act, pending: page.pending, root: view.container, tell: story.tell });
+const driver = screenDriver({ act, transport: page.pending, root: view.container, tell: story.tell });
 ```
 
-Pass the page's native `pending` stream to the screen driver to wait for global fetches to resolve or reject, including requests sent by `useBrowserErrors`. After a page action, `yield* driver.settle()` waits for every outstanding fetch without sleeping. This counts fetch completion at response headers, not consumption of a streaming response body, and does not supply the document cookie jar; keep using `domFetch` for clients that need that document transport.
+Pass the page's native `pending` stream as the driver's `transport` option to wait for global fetches to resolve or reject, including requests sent by `useBrowserErrors`. After a page action, `yield* driver.settle()` waits for every outstanding fetch without sleeping. This counts fetch completion at response headers, not consumption of a streaming response body, and does not supply the document cookie jar; keep using `domFetch` for clients that need that document transport.
 
-`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is required for `settle()`; `nextLiveHint()` requires client activity in that option. DOM actions, lookups and synchronous readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. Supply at least one of `pending`, `activity` or `transport` for `settle()`. `nextLiveHint()` needs `activity` or a `ScreenSignal` in `pending`. DOM actions, lookups and synchronous readouts work without these signals. Without any completion signal, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
 
 To use `settle()`, supply a native `Stream<boolean>` as `pending`, emitting the current pending state on subscription and every subsequent change. For example, a package that tracks work in a native `SubscriptionRef<boolean>` supplies `pending: SubscriptionRef.changes(requests.pending)`. For a native boolean atom, use `AtomRegistry.toStream(view.registry, pendingAtom)` from `effect/reactivity/AtomRegistry`. Keep pending true until the resulting screen work is ready to render. Settlement keeps its `Effect<void>` type with no typed errors and waits until the stream emits false; DOM mutations also wake the driver, and repeated identical renders never count as completion. `find()` waits for pending work to finish and its target to appear, reacting to both signals and mutations.
 
@@ -959,19 +972,26 @@ verbs: ({ view, requests }, story) =>
 
 A `ScreenSignal` from `server/screenSignal.ts` is a native `Stream<ScreenSignalState>` with a `current` Effect. Each state reports `pending` until screen work is ready to render and a monotonic `hints` count for received updates. Any engine can supply this shape; waits observe it without knowing which engine produced it.
 
-For a real contract client, project its activity into this signal instead of maintaining request counters or reading loading markup:
+For a real contract client, project its native activity with `activityScreenSignal`. Combine it with application work and transport requests when a screen uses all three:
 
 ```ts
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
-const screen = screenDriver({ act, pending: activityScreenSignal(clientActivity(client)), root, tell });
+const screen = screenDriver({
+	act,
+	activity: activityScreenSignal(clientActivity(client)),
+	pending: SubscriptionRef.changes(app.pending),
+	transport: page.pending,
+	root,
+	tell,
+});
 yield* screen.click({ role: "button", name: "Save" });
 yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs a `ScreenSignal`; a callback-only driver fails with `MissingClientActivity`.
+`settle()` waits until every supplied source is idle together, then flushes the renderer before returning. A source that becomes busy while another finishes keeps the wait open. `pending` and `transport` each accept the same sampler, boolean stream or `ScreenSignal` shape; `activity` accepts a `ScreenSignal`; contract owns the projection from native `ClientActivity`. It observes changes from all three without sleeps, quiet windows or polling. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs `activity` or a `ScreenSignal` in `pending`; a callback-only driver fails with `MissingClientActivity`. Existing `pending: activityScreenSignal(clientActivity(client))` wiring remains supported.
 
 `click(selector)`, `enter(selector, value)`, `select(selector, value)`, `focus(selector)`, `blur(selector)`, `pressKey(selector, key, options?)`, `hover(selector)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document (owned by that member for `memberScreens`); missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
@@ -1036,6 +1056,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/watchedClock.ts`                   | `watchedClock`, `WatchedClock`, `untilTimer(interval, options?)`, `passes(interval, then)`                                                                                                                                                                                                                                                                                          |
 | `server/browserReads.ts`                   | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
 | `server/domFetch.ts`                       | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
+| `server/mountApp.ts`                       | `mountApp({ create, render })` acquires a fresh app and React root in Scope                                                                                                                                                                                                                                                                                                         |
 | `server/domPage.ts`                        | `domPage(url)` with a scoped global fetch and a `pending` stream                                                                                                                                                                                                                                                                                                                    |
 | `server/adapters/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
 | `server/routeOutbound.ts`                  | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |

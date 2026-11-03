@@ -45,7 +45,7 @@ export const pageRequests = storyKit({
 	name: "page requests",
 	stages: [],
 	verbs: ({ host, originalFetch, originalUrl, page, scope, view }, story) => {
-		const screen = screenDriver({ act, pending: page.pending, root: view.container, tell: story.tell });
+		const screen = screenDriver({ act, root: view.container, tell: story.tell, transport: page.pending });
 		const settling = background();
 		return {
 			...screen,

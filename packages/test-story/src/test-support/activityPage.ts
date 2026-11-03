@@ -2,7 +2,8 @@ import { Deferred, type Duration, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
-import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
+import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { ActivityPageView, activityPageClient } from "./activityPageView.ts";
@@ -15,13 +16,13 @@ export const activityPage = storyKit({
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* readPageHost;
-		const client = activityPageClient(host.url);
+		const view = yield* mountApp({
+			create: Effect.sync(() => activityPageClient(host.url)),
+			render: (app) => createElement(ActivityPageView, { client: app }),
+		});
+		const client = view.app;
 		const raw = yield* client.client;
 		const writer = yield* activityPageClient(host.url).client;
-		const view = yield* Effect.acquireRelease(
-			Effect.promise(() => render(createElement(ActivityPageView, { client }))),
-			(rendered) => Effect.promise(rendered.unmount),
-		);
 		return { client, host, raw, view, writer };
 	},
 	inspect: ({ client, view }) => ({ activity: Effect.runSync(clientActivity(client).current), text: view.container.textContent }),
@@ -30,7 +31,7 @@ export const activityPage = storyKit({
 	verbs: ({ client, raw, host, view, writer }, story) => {
 		const activity = clientActivity(client);
 		const pending = activityScreenSignal(activity);
-		const driver = screenDriver({ act, pending, root: view.container, tell: story.tell });
+		const driver = screenDriver({ act, activity: pending, root: view.container, tell: story.tell });
 		return {
 			...driver,
 			activity: () => activity.current,

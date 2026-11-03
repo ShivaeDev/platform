@@ -17,6 +17,7 @@ type Options = Omit<ScreenDriverOptions, "act" | "root" | "timeoutMs" | "pending
 
 export function screenWaits(options: Options, elements: ReturnType<typeof screenElements>, dialogs: boolean) {
 	const { act, pending, root, tell, timeoutMs } = options;
+	const supplied = pending !== undefined || options.activity !== undefined || options.transport !== undefined;
 	const loading = screenLoading(root, dialogs);
 	function unsettled(limit: number) {
 		return new Error(
@@ -29,7 +30,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 			Effect.sync(() => tell(line)).pipe(
 				Effect.andThen(
 					Effect.raceFirst(
-						waitForScreen({ act, pending, root }, Effect.try(read)),
+						waitForScreen({ ...options, act, pending, root }, Effect.try(read)),
 						loadingDeadline(root, loading, limit, timeout === undefined ? (options.loadingTimeoutMs ?? 10_000) : limit, expired),
 					),
 				),
@@ -45,7 +46,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 				settings.timeout,
 				() => {
 					const lookup = Effect.sync(() => elements.element(target));
-					return pending === undefined ? lookup : lookup.pipe(Effect.andThen(Effect.die(unsettled(limit))));
+					return supplied ? lookup.pipe(Effect.andThen(Effect.die(unsettled(limit)))) : lookup;
 				},
 			);
 		},
@@ -75,7 +76,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 				Effect.sync(() => tell(`wait for ${targetName(target)} to disappear`)).pipe(
 					Effect.andThen(
 						waitForScreen(
-							{ act, pending, root },
+							{ ...options, act, pending, root },
 							Effect.suspend(() => (elements.matches(target).length === 0 ? Effect.void : Effect.fail(stillHere()))),
 						),
 					),
@@ -103,7 +104,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 			const limit = settings.timeoutMs ?? timeoutMs;
 			return withLive(
 				Effect.sync(() => tell("wait for the screen's pending work")).pipe(
-					Effect.andThen(waitForScreen({ act, pending, root }, Effect.void)),
+					Effect.andThen(waitForScreen({ ...options, act, pending, root }, Effect.void)),
 					Effect.tap(() => Effect.sync(() => tell("the screen has no pending work"))),
 					Effect.timeoutOrElse({ duration: limit, orElse: () => Effect.die(unsettled(limit)) }),
 				),
