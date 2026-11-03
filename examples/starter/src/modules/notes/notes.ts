@@ -23,7 +23,7 @@ export class NoteReadAccess extends Context.Service<
 	NoteReadAccess,
 	(id: number, userId: string) => Effect.Effect<boolean, NotFound | ServiceUnavailable>
 >()("app/NoteReadAccess") {}
-export const Get = query("get", {
+const Get = query("get", {
 	payload: NoteId,
 	readPolicy: ({ id }, viewer) =>
 		Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id, viewer.value.id)),
@@ -31,7 +31,7 @@ export const Get = query("get", {
 	rejections: { InternalServerError, NotFound, ServiceUnavailable },
 	success: Note.json,
 });
-export const List = query("list", {
+const List = query("list", {
 	readPolicy: signedIn,
 	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 	rejections: { InternalServerError, ServiceUnavailable },

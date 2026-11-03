@@ -70,19 +70,23 @@ export const Handlers = Api.toLayer({
 
 `storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. Before masking an unexpected failure, the boundary reports its diagnostic-redacted cause through Effect's registered `ErrorReporter`s at `Error` severity. Request tracing logs that masked failure at ERROR with its redacted stack, while declared rejections stay at INFO. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
 
-Apply the same boundary to an entire handler registration with `rpcBoundaryHandlers(group, boundary, handlers)`:
+Apply boundary options to an entire handler registration with `rpcBoundaryHandlers(group, options, handlers)`:
 
 ```ts
 import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
 
 export const Handlers = Api.toLayer(
-	rpcBoundaryHandlers(Api, expose, {
-		Save: () => storageSave,
-	}),
+	rpcBoundaryHandlers(
+		Api,
+		{ unexpected: (message) => new InternalServerError({ message }) },
+		{
+			Save: () => storageSave,
+		},
+	),
 );
 ```
 
-The group supplies payload and result types. Each RPC must declare the boundary's rejection schema. Effect and Stream handlers share the mapping, including failures after a stream has delivered values; native `Rpc.Wrapper` options remain available. Handler service requirements pass through to the native handler Layer. Use this map inside an Effect passed to `toLayer` when handler construction needs services. Queue-backed streams and Deferred results use native handlers with an explicit boundary at their producer instead.
+The group supplies payload, result and rejection types for each operation. Each handler keeps only its own declared rejections; a rejection declared by another operation is unexpected here. Every operation must declare the fallback returned by `unexpected`. Effect and Stream handlers share the mapping, including failures after a stream has delivered values; native `Rpc.Wrapper` options remain available. Handler service requirements pass through to the native handler Layer. Use this map inside an Effect passed to `toLayer` when handler construction needs services. Queue-backed streams and Deferred results use native handlers with an explicit boundary at their producer instead.
 
 ### Masking secrets in failures
 

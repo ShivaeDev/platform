@@ -159,7 +159,7 @@ export const NotesHandlers = Notes.toLayer(
 
 Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
 
-To map unexpected failures once for a handler registration, declare `boundary = rpcBoundary(schema, options)` once and use `rpcBoundaryHandlers(Notes.application, boundary, handlers)` from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#mapping-unexpected-failures-at-the-handler-edge), then pass the map to `Notes.application.toLayer`. Each operation declares the boundary's rejection schema; payloads, successful results and required services retain their native types.
+To map unexpected failures once for a handler registration, use `rpcBoundaryHandlers(Notes.application, options, handlers)` from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#mapping-unexpected-failures-at-the-handler-edge), then pass the map to `Notes.application.toLayer`. The helper derives each operation's rejection schema independently, and every operation declares the fallback returned by `options.unexpected`. Payloads, successful results and required services retain their native types.
 
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
