@@ -10,7 +10,7 @@ for (const pathname of ["/", "/notes", "/admin/users"]) {
 			const response = yield* request(pathname, "operator");
 
 			expect(response).toEqual({
-				body: "<!doctype html><main>Starter app</main>",
+				body: "<!doctype html><main>App shell</main>",
 				cache: "no-store",
 				frameAncestors: "frame-ancestors 'none'",
 				frames: "DENY",
@@ -21,7 +21,7 @@ for (const pathname of ["/", "/notes", "/admin/users"]) {
 }
 
 for (const [pathname, body, cache] of [
-	["/assets/app.12345678.js", 'console.log("Starter app");', "public, max-age=31536000, immutable"],
+	["/assets/app.12345678.js", 'console.log("App shell");', "public, max-age=31536000, immutable"],
 	["/robots.txt", "User-agent: *", "no-cache"],
 ] as const) {
 	assets.it(`${pathname} serves its content with the shared asset cache policy`, [], function* ({ request }) {

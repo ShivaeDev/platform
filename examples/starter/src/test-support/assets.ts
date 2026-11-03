@@ -15,10 +15,10 @@ export const assets = storyKit({
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
-		const root = yield* fs.makeTempDirectoryScoped({ prefix: "starter-assets-" });
+		const root = yield* fs.makeTempDirectoryScoped({ prefix: "app-assets-" });
 		yield* fs.makeDirectory(path.join(root, "dist", "assets"), { recursive: true });
-		yield* fs.writeFileString(path.join(root, "dist", "index.html"), "<!doctype html><main>Starter app</main>");
-		yield* fs.writeFileString(path.join(root, "dist", "assets", "app.12345678.js"), 'console.log("Starter app");');
+		yield* fs.writeFileString(path.join(root, "dist", "index.html"), "<!doctype html><main>App shell</main>");
+		yield* fs.writeFileString(path.join(root, "dist", "assets", "app.12345678.js"), 'console.log("App shell");');
 		yield* fs.writeFileString(path.join(root, "dist", "robots.txt"), "User-agent: *");
 		const database = yield* PostgresTestDatabase;
 		const host = yield* deployChild("web", database.url, 0, {}, root);
