@@ -91,14 +91,17 @@ export const application = storyKit({
 					return result;
 				}),
 			ready: () => script("the app runs pnpm ready against workspace packages", () => readyAgainstWorkspace(target(), engine.source.starter)),
-			runAdminStories: () => script("the app runs its admin stories against workspace sources", () => runAdminStories(target(), false)),
+			runAdminStories: () =>
+				script("the app runs its asset and admin stories against workspace sources", () => runAdminStories(target(), engine.source.starter)),
 			runDatabaseProbe: () =>
 				script("the app runs a test that records its environment and both databases", () => {
 					installDatabaseProbe(target());
 					return appScript(target(), "test", ["--config", "environment.config.ts"]);
 				}),
 			runFoundationAdminStories: () =>
-				script("the app runs its foundation admin stories against workspace sources", () => runAdminStories(target(), true)),
+				script("the app runs its asset and foundation admin stories against workspace sources", () =>
+					runAdminStories(target(), engine.source.starter, true),
+				),
 			scriptResult: () => Effect.sync(() => engine.scripts.at(-1) ?? "the app ran no script"),
 			version: () => {
 				story.tell("create-app --version");

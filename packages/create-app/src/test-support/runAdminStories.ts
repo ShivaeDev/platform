@@ -1,8 +1,10 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { appScript } from "./environment.ts";
 
-export function runAdminStories(app: string, foundationOnly = false) {
+export function runAdminStories(app: string, starter: string, foundationOnly = false) {
+	const child = "src/test-support/deployChild.ts";
+	writeFileSync(join(app, child), readFileSync(join(starter, child)));
 	writeFileSync(
 		join(app, "admin-stories.config.ts"),
 		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["source"]);\n',
@@ -11,6 +13,7 @@ export function runAdminStories(app: string, foundationOnly = false) {
 		app,
 		"test",
 		[
+			"src/server/assets.spec.ts",
 			"src/server/admin/foundation.spec.ts",
 			"src/client/admin/jobs.dom.spec.tsx",
 			...(foundationOnly

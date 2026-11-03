@@ -8,6 +8,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	url: Redacted.Redacted<string>,
 	port = 0,
 	env: Record<string, string> = {},
+	cwd?: string,
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const target = new URL(Redacted.value(url));
@@ -17,6 +18,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	const child = yield* spawner.spawn(
 		ChildProcess.make(process.execPath, ["--conditions=source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind], {
 			additionalFds: { fd3: { type: "output" } },
+			cwd,
 			env: {
 				"DATABASE_URL": target.toString(),
 				...env,
