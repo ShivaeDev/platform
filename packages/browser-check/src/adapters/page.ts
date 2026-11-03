@@ -31,9 +31,10 @@ export function pageAdapter(page: Page): BrowserPage {
 			attempt(async () => {
 				const socket = await page.waitForEvent("websocket", { predicate: (candidate) => new URL(candidate.url()).pathname === path });
 				return {
-					closed: attempt(async () => {
-						await socket.waitForEvent("close");
-					}),
+					closed: (timeoutMillis: number) =>
+						attempt(async () => {
+							await socket.waitForEvent("close", { timeout: timeoutMillis });
+						}),
 					received: (matches: (payload: string) => boolean) =>
 						attempt(async () => {
 							await socket.waitForEvent("framereceived", { predicate: ({ payload }) => matches(payload.toString()) });

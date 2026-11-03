@@ -41,11 +41,10 @@ export const liveNotes = Effect.fn("Notes.liveNotes")(function* (
 		return yield* new BrowserCheckError({ message: "The second tab navigated instead of updating its open notes list." });
 	}
 	yield* observer.screenshot(`${folder}/live-notes.png`);
-	yield* Effect.all(
-		[rpcSocket.closed, writer.click({ name: "Sign out", role: "button" }), observer.waitFor({ role: "alert", text: "Sign in to view your notes." })],
-		{ concurrency: "unbounded" },
-	);
+	// A quiet host revalidates the session every 30 seconds.
+	yield* Effect.all([rpcSocket.closed(35_000), writer.click({ name: "Sign out", role: "button" })], { concurrency: "unbounded" });
 	yield* writer.waitFor({ name: "Sign in", role: "heading" });
+	yield* observer.waitFor({ name: "Sign in", role: "heading" });
 	yield* observer.waitFor({ name: title, role: "link" }, "hidden");
 	yield* observer.screenshot(`${folder}/signed-out.png`);
 });

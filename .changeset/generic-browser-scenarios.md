@@ -12,3 +12,9 @@
 ### Added
 
 - `@shivaedev/browser-check`: Exports the generic `Browser`, `BrowserPage`, `BrowserSocket` and `BrowserCheckError` modules and the Playwright Layer at `adapters/playwright.ts` for application-owned Effect scenarios.
+
+### Fixed
+
+- `@shivaedev/create-app`: Generated apps adapt the default module factory to the session connection callback. The callback's registry argument no longer replaces the factory's optional registrations list, so signed-in and anonymous screens render without the `Not a valid effect: ~effect/reactivity/AtomRegistry` failure. Existing apps can apply the template update or change the default connection in `SessionApp` to `(session) => clientModules(session)`.
+
+- `@shivaedev/create-app`: The local notes scenario allows the host’s normal 30-second session revalidation period and checks the current sign-in screen after sign-out.
