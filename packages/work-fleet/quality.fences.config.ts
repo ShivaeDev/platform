@@ -22,7 +22,7 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/work-fleet/src/board/documents.ts", "packages/work-board/src/server/metadata/parse.ts"],
+			illegal: ["packages/work-fleet/src/board/documents.ts", "packages/work-board/src/server/metadata/adapters/parse.ts"],
 			legal: ["packages/work-fleet/src/board/documents.ts", "packages/work-board/src/server/integration/board.ts"],
 		}),
 ];
