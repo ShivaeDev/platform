@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
 import { HEAD } from "#test/githubResult.ts";
 import { REPORT_SOURCE } from "#test/hostReportTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";

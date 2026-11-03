@@ -4,7 +4,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Console, Effect, FileSystem } from "effect";
 import { Argument, Command } from "effect/cli";
 import { listMarkdown } from "#server/files/list.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { VERSION } from "#server/packageInfo.ts";
 import { archiveDocuments } from "./documents.ts";
 import { archiveSettled } from "./settled.ts";

@@ -1,7 +1,7 @@
 import { Effect, FileSystem } from "effect";
 import type { MetadataDocument } from "#integration/metadata.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { type Entry, entriesOf } from "./entries.ts";
 
 export interface IndexedDocument {

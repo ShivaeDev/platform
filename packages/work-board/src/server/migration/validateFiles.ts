@@ -1,9 +1,8 @@
 import { Effect } from "effect";
-import { isNode } from "yaml";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
-import { sourceHeader } from "#server/migration/sourceHeader.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { sourceValue } from "#server/migration/adapters/sourceValue.ts";
 
 export function validateFiles(
 	files: readonly { readonly file: string; readonly source: string }[],
@@ -12,9 +11,7 @@ export function validateFiles(
 	const problems = documents.flatMap(({ file, parsed, source }) =>
 		parsed.diagnostics.map((problem) => {
 			const field = problem.field ?? "frontmatter";
-			const header = sourceHeader(source);
-			const node = header?.doc.get(field, true);
-			const value = header && isNode(node) && node.range ? source.slice(header.offset + node.range[0], header.offset + node.range[1]) : "<missing>";
+			const value = sourceValue(source, field);
 			return `${file}: ${field}: ${value}: ${problem.message}`;
 		}),
 	);

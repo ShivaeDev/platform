@@ -250,7 +250,7 @@
 {"path":"packages/work-board/src/server/files/watchDirectories.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-board/src/server/files/watchSentinel.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/server/handoffs/Service.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/handoffs/records.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/work-board/src/server/handoffs/records.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/handoffs/source.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/http/assets.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/http/attachment.ts","rule":"effect/boundary","count":1}
@@ -269,16 +269,8 @@
 {"path":"packages/work-board/src/server/mcp/client.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/mcp/run.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/metadata/areaFolders.ts","rule":"effect/failure-honesty","count":2}
-{"path":"packages/work-board/src/server/metadata/locations.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/metadata/parse.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/metadata/parse.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/metadata/sourceLinks.ts","rule":"effect/boundary","count":2}
-{"path":"packages/work-board/src/server/migration/decisionClosed.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/migration/replacementEdit.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/migration/runMigrate.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/migration/sourceEdits.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/migration/sourceHeader.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/server/migration/validateFiles.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"biome/plugin","count":2}
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"effect/adapter-imports","count":4}
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"effect/boundary","count":29}
@@ -295,7 +287,7 @@
 {"path":"packages/work-board/src/server/responses/optionPrompt.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/responses/optionPrompt.unit.test.ts","rule":"effect/boundary","count":5}
 {"path":"packages/work-board/src/server/responses/readingActions.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/server/responses/records.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/work-board/src/server/responses/records.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/responses/registerQuestion.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/responses/retry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/responses/template.ts","rule":"effect/boundary","count":9}

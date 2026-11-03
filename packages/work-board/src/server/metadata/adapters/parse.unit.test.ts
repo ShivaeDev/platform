@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { metadataParse } from "./parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 
 describe("optional metadata", () => {
 	it("recognizes addon-owned fields without interpreting them or hiding unowned fields", () => {

@@ -1,5 +1,5 @@
 import { isSeq } from "yaml";
-import type { sourceHeader } from "./sourceHeader.ts";
+import type { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 
 export function replacementEdit(header: NonNullable<ReturnType<typeof sourceHeader>>, source: string, targets: readonly string[]) {
 	const links = header.doc.get("relationships", true);

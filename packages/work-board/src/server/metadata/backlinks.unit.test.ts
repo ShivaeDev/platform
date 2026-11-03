@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { backlinksOf } from "./backlinks.ts";
 import { metadataModel } from "./model.ts";
-import { metadataParse } from "./parse.ts";
 
 it("resolves workspace references once per immutable model across different document opens", () => {
 	let resolutions = 0;

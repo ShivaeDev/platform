@@ -1,4 +1,4 @@
-import { sourceHeader } from "./sourceHeader.ts";
+import { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 
 interface File {
 	readonly file: string;
@@ -22,7 +22,7 @@ export function waitingQuestions(files: readonly File[]) {
 	const waiting = waitingWork(files);
 	const documents = files.flatMap(({ source }) => {
 		const header = sourceHeader(source);
-		return header ? [header.doc.toJS()] : [];
+		return header ? [header.data] : [];
 	});
 	const blocking = new Set<string>();
 	for (const data of documents) {

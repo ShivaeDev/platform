@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { questionTemplate } from "./template.ts";
 import { validatedInput } from "./validatedInput.ts";

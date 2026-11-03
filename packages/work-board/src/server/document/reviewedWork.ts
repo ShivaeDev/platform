@@ -1,4 +1,4 @@
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 
 export const REVIEWED_WORK_HEADING = "## Reviewed Board work";
 
