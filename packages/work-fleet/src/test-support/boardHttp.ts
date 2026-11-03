@@ -4,7 +4,7 @@ import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
 import { storedBoardSource } from "#test/storedBoard.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {

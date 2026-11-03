@@ -1,7 +1,7 @@
+import { sourceEdits } from "#server/migration/adapters/sourceEdits.ts";
+import { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 import { kinds, oldOwner, states } from "#server/migration/oldVocabulary.ts";
 import { questionFields } from "#server/migration/questionFields.ts";
-import { sourceEdits } from "#server/migration/sourceEdits.ts";
-import { sourceHeader } from "#server/migration/sourceHeader.ts";
 
 export interface MigrationContext {
 	readonly answers: ReadonlySet<string>;
@@ -15,23 +15,23 @@ export function migrateSource(source: string, context: MigrationContext) {
 		return { fields: 0, source };
 	}
 	const edits = sourceEdits(source, header);
-	const { doc } = header;
+	const { data } = header;
 	function mapped(field: string, values: Readonly<Record<string, string>>) {
-		const value = doc.get(field);
+		const value = data[field];
 		if (typeof value === "string" && values[value]) {
 			edits.set(field, values[value]);
 		}
 	}
 	mapped("kind", kinds);
-	if (["response", "handoff", "board"].includes(String(doc.get("kind")))) {
+	if (["response", "handoff", "board"].includes(String(data.kind))) {
 		edits.remove("kind");
 	}
 	edits.remove("superseded_by");
 	edits.remove("replaced_by");
-	if (doc.get("kind") !== "decision") {
+	if (data.kind !== "decision") {
 		mapped("status", states);
 	}
-	const owner = doc.get("owner");
+	const owner = data.owner;
 	const responsible = typeof owner === "string" ? oldOwner(owner) : undefined;
 	if (responsible) {
 		edits.set("owner", responsible);

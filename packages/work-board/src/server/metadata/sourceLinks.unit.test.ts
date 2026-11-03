@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { metadataModel } from "./model.ts";
-import { metadataParse } from "./parse.ts";
 import { referenceFile, sourceFile, sourceHref } from "./sourceLinks.ts";
 
 it("resolves nested/encoded Markdown and root routes without treating external or executable sources as local", () => {

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { stringify } from "yaml";
 import type { DraftInput, Question, Reading, RecordedResponse } from "#browser/responses/schema.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
+import { recordMarkdown } from "#server/adapters/recordMarkdown.ts";
 
 export function revisionOf(source: string) {
 	return createHash("sha256").update(source).digest("hex");
@@ -10,10 +10,10 @@ export function questionId(item: string, request: string, revision: string, sour
 	return `question.${revisionOf(JSON.stringify([item, request, revision, source]))}`;
 }
 export function questionMarkdown(record: Question, urgency: "blocking" | "whenever" = "whenever"): string {
-	return `---\n${stringify({ id: record.id, kind: "question", question: record.question, scope: "task", urgency })}---\n${record.context}`;
+	return recordMarkdown({ id: record.id, kind: "question", question: record.question, scope: "task", urgency }, record.context);
 }
 export function responseMarkdown(record: RecordedResponse): string {
-	return `---\n${stringify({ id: record.id, response: record.response })}---\n${record.body}`;
+	return recordMarkdown({ id: record.id, response: record.response }, record.body);
 }
 export function questionFrom(document: MetadataDocument): Question | undefined {
 	const { id, kind, question } = document.parsed.fields;

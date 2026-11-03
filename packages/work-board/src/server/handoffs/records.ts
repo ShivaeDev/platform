@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { Schema } from "effect";
-import { stringify } from "yaml";
 import type { Handoff, HandoffInput, HandoffRecord } from "#browser/handoffs/schema.ts";
 import { HandoffRecord as RecordSchema } from "#browser/handoffs/schema.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
+import { recordMarkdown } from "#server/adapters/recordMarkdown.ts";
 
 export function handoffFrom(document: MetadataDocument | undefined, root: string): Handoff | undefined {
 	if (!document) {
@@ -18,7 +18,7 @@ export function handoffPrompt(path: string): string {
 	return `Read the handoff at ${JSON.stringify(path)}. Record receipt by editing its handoff.state and add handoff.by/note; then follow its instructions.`;
 }
 export function handoffMarkdown(id: string, handoff: HandoffRecord, context: string): string {
-	return `---\n${stringify({ handoff: Schema.encodeSync(RecordSchema)(handoff), id })}---\n${context}`;
+	return recordMarkdown({ handoff: Schema.encodeSync(RecordSchema)(handoff), id }, context);
 }
 export function matchesHandoff(record: Handoff, input: HandoffInput) {
 	const saved = record.handoff;
