@@ -44,7 +44,7 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (
 	const after = yield* githubJson(PullRequest, read.get(endpoint));
 	yield* validatePullRequest(after, head, number, prUrl, host.repository.branch);
 	if (before.changedFiles !== after.changedFiles || !completeFileListing(files, after.changedFiles)) {
-		files = yield* compareChangedFiles(read, repository, after, files.length);
+		files = yield* compareChangedFiles(host, after, files.length);
 		const verified = yield* githubJson(PullRequest, read.get(endpoint));
 		yield* validatePullRequest(verified, head, number, prUrl, host.repository.branch);
 		if (verified.base.sha !== after.base.sha) {

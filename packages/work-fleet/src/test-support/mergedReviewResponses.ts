@@ -8,7 +8,6 @@ interface GithubFile {
 export interface GithubState {
 	base: string;
 	changedFiles?: number;
-	comparison?: { readonly files?: readonly GithubFile[] };
 	failed: boolean;
 	filePages?: readonly (readonly GithubFile[])[];
 	head: string;
@@ -36,9 +35,6 @@ export function githubResponses(state: GithubState): Readonly<Record<string, unk
 				},
 			],
 		],
-		[`/repos/example/repository/compare/${state.base}...${state.head}?per_page=1`]: state.comparison ?? {
-			files: state.paths.map((filename) => ({ filename })),
-		},
 		"/repos/example/repository/rules/branches/main": [
 			[{ parameters: { "required_status_checks": [{ context: "test" }] }, type: "required_status_checks" }],
 		],

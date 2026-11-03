@@ -10,7 +10,7 @@ Workers state the exact head's CI result before the final `FLEET_PR: <url>` or `
 
 With `"result": "github"`, the final two report lines are one `FLEET_HEAD: <sha>` line with the full head SHA and one `FLEET_PR: https://github.com/<owner>/<repo>/pull/<number>` line. Both markers tolerate surrounding whitespace and backticks around their values.
 
-Fleet reads every page of the PR's changed files, preserving both paths of renames. If the listing disagrees with the PR's file count, contains duplicate filenames or reaches GitHub's 3,000-file limit, Fleet compares the observed base and head commits instead. A unique comparison below GitHub's 300-file limit supplies the paths; an omitted, duplicated or potentially truncated comparison creates one decision with the reported and listed counts, without automatic read retries. Fleet rechecks the PR's head and base after the comparison before adopting those paths.
+Fleet reads every page of the PR's changed files, preserving both paths of renames. If the listing disagrees with the PR's file count, contains duplicate filenames or reaches GitHub's 3,000-file limit, Fleet fetches the observed base and head commits into the host checkout and reads their local three-dot git diff instead. This comparison has no file-count limit and includes both names of a rename. A failed fetch or diff creates one decision with the reported and listed counts, without automatic read retries. Fleet rechecks the PR's head and base after the comparison before adopting those paths.
 
 ```text
 Required checks passed on the exact head.
