@@ -560,16 +560,17 @@ Include every target queue in `jobs`, as either a worker or a producer-only defi
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
 
 ```ts
-import { Context, Layer, Option } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
+import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
 
 const emailStories = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
-		const testing = makePgBossTesting({ retryPolicy: testRetryPolicy });
+		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed), retryPolicy: testRetryPolicy });
 		const context = yield* Layer.build(
 			Jobs.layer({ jobs: [SendEmail] }).pipe(Layer.provide(pgBossLayer({ connectionString: databaseUrl, clientFactory: testing.clientFactory }))),
 		);
@@ -591,7 +592,7 @@ emailStories.it("decodes the queued email", [], function* ({ enqueue, testing })
 
 Set `retryPolicy: testRetryPolicy` through the controller to override queue and send settings with `retryDelay: 0` and `retryBackoff: false`. A failing worker can then exhaust its native retries without production backoff. The policy applies to subsequently sent jobs; it does not rewrite jobs already stored.
 
-For stories that pass time, give the controller the native story `TestClock` and use its `timePasses` verb:
+To pass time, use the controller's `timePasses` verb with the same native story `TestClock`:
 
 ```ts
 import { Effect } from "effect";
@@ -602,7 +603,7 @@ const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect
 yield* testing.timePasses("1 day");
 ```
 
-The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` to the jobs Layer as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Omit `clock` to keep the normal live pg-boss clock.
+The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` to the jobs Layer as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Supply the story clock so both the application and pg-boss stay under the kit's control.
 
 `schedules()` lists registered schedules as `{ name, cron, timezone }` entries from PostgreSQL. `trigger(schedule)` takes a schedule definition, such as `Cleanup`, and enqueues one run now using its stored schedule data and options. It returns the run ID, or null when pg-boss suppresses the send. Register `Cleanup.run(effect)` in the testing Layer first, then yield `testing.trigger(Cleanup)` and `testing.waitForIdle` before observing the Effect's result. An unregistered schedule fails with `PgBossTestingError` (`operation: "trigger"`).
 
