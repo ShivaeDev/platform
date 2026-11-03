@@ -69,7 +69,7 @@ export const boardReadStory = storyKit({
 				state.board.readDecision(decision).pipe(Effect.map((reading) => reading._tag.toLowerCase())),
 			deferStatus: () => {
 				story.tell("defer the generated status publication");
-				return publishAfterBoardPass(publish);
+				return publishAfterBoardPass(publish.pipe(Effect.provide(fixture.services)));
 			},
 			duringOnePass: <A, E, R>(effect: Effect.Effect<A, E, R>) => {
 				story.tell("start a Board read pass");

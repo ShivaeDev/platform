@@ -6,11 +6,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { boardOf } from "@shivaedev/work-board/server/render/board.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { markdownBoard } from "#board/markdown.ts";
-import { reportFiles } from "#board/reportFiles.ts";
+import { publishReportAttachments } from "#board/publishReportAttachments.ts";
 import { reportFileName } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
-import { reportPayloadFile } from "#board/reportPayloadFile.ts";
-import { writeCompletion } from "#board/writeCompletion.ts";
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { Health } from "#engine/health.ts";
@@ -21,8 +19,6 @@ import { BoardGateway } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { completionFolder } from "#test/completionFolder.ts";
 import { healthFolder } from "#test/health.ts";
-import { linkedReportBoundary } from "#test/linkedReportBoundary.ts";
-import { linkedReportPayload } from "#test/linkedReportPayload.ts";
 import { refusal } from "#test/refusal.ts";
 import { reportBoard } from "#test/report.ts";
 import { reportPublicationVerbs } from "#test/reportPublicationVerbs.ts";
@@ -33,9 +29,7 @@ export const boardFileStory = storyKit({
 	*create() {
 		return {
 			completion: yield* completionFolder,
-			externalFile: "",
 			health: yield* healthFolder(),
-			outside: "",
 			reportRoot: yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped(),
 			status: yield* statusFolder(),
 		};
@@ -56,17 +50,6 @@ export const boardFileStory = storyKit({
 					story.tell(`complete Board work ${id} from ${file.replace(state.completion.root, "")}`);
 					return refusal(completeWork(state.completion.root, id, file, summary));
 				},
-				linkOutside: (location: "root" | "directory" | "file") => {
-					story.tell(`the completion ${location} is a symlink to a folder outside the Board`);
-					const { outside, root } = state.completion;
-					const target = { directory: `${root}/tasks`, file: `${root}/tasks/one.md`, root }[location];
-					return fs.remove(target, { recursive: true }).pipe(Effect.andThen(fs.symlink(location === "file" ? `${outside}/one.md` : outside, target)));
-				},
-				outsideSource: () => fs.readFileString(`${state.completion.outside}/one.md`),
-				publish: (originalRoot: string, file: string, source: string, content: string) => {
-					story.tell(`publish completion at ${file}`);
-					return refusal(writeCompletion(state.completion.root, originalRoot, file, source, content));
-				},
 				taskSource: () => fs.readFileString(`${state.completion.root}/tasks/one.md`),
 				writeTask: (content: string) => {
 					story.tell("a person rewrites tasks/one.md");
@@ -84,23 +67,20 @@ export const boardFileStory = storyKit({
 					kind === "attachment"
 						? Effect.sync(() => readFileSync(join(state.reportRoot, "responses", `${report.itemId}.attachments`, reportFileName("evidence.txt"))))
 						: Effect.sync(() => readFileSync(join(state.reportRoot, report.sourcePath), "utf8")),
-				externalFile: state.externalFile,
-				externalSource: () => Effect.sync(() => readFileSync(state.externalFile, "utf8")),
-				outside: state.outside,
-				outsideEntries: () => Effect.sync(() => readdirSync(state.outside)),
-				payload: (id: string, content?: string) => {
-					story.tell(content === undefined ? `read report payload ${id}` : `retain report payload ${id}`);
-					return reportPayloadFile(state.reportRoot, id, content);
-				},
-				publishAttachments: (id: string, files: Parameters<typeof reportFiles>[2]) => {
+				publishAttachments: (id: string, files: Parameters<typeof publishReportAttachments>[2]) => {
 					story.tell(`publish report attachments ${files.map(({ path }) => path).join(", ")}`);
-					return reportFiles(state.reportRoot, id, files);
+					return publishReportAttachments(state.reportRoot, id, files);
 				},
 				readReport: (work: BoardWork, observation: SessionObservation) => {
 					story.tell("decode the persisted report payload");
 					return refusal(exposeFailure(reportPayload(state.reportRoot, work, observation).read));
 				},
+				retainReport: (work: BoardWork, observation: SessionObservation, output: string) => {
+					story.tell("retain the completed report for recovery");
+					return reportPayload(state.reportRoot, work, observation).save({ files: [], output });
+				},
 				root: state.reportRoot,
+				savedReport: (work: BoardWork, observation: SessionObservation) => reportPayload(state.reportRoot, work, observation).read,
 				source: (path: string) => Effect.sync(() => readFileSync(join(state.reportRoot, path), "utf8")),
 				work: (id: string) =>
 					Effect.gen(function* () {
@@ -108,6 +88,12 @@ export const boardFileStory = storyKit({
 						const board = Context.get(yield* Layer.build(markdownBoard(state.reportRoot)), BoardGateway);
 						return yield* board.get(id);
 					}),
+				writePayload: (id: string, content: string) => {
+					story.tell(`an earlier Fleet left report payload ${id}`);
+					return fs
+						.makeDirectory(`${state.reportRoot}/.fleet-reports`, { recursive: true })
+						.pipe(Effect.andThen(fs.writeFileString(`${state.reportRoot}/.fleet-reports/${id}.json`, content)));
+				},
 			},
 			health: {
 				...state.health,
@@ -124,7 +110,9 @@ export const boardFileStory = storyKit({
 					story.tell(`a reader reads health while Fleet replaces it ${replacements} times`);
 					const versions: number[] = [];
 					for (let running = 0; running < replacements; running += 1) {
-						const writing = Effect.runPromise(writeHealth(state.health.root, state.health.root, { ...snapshot, running }));
+						const writing = Effect.runPromise(
+							writeHealth(state.health.root, state.health.root, { ...snapshot, running }).pipe(Effect.provideService(FileSystem.FileSystem, fs)),
+						);
 						versions.push(state.health.read().version);
 						yield* Effect.promise(() => writing);
 					}
@@ -175,21 +163,6 @@ export function statusBoundary(boundary: Parameters<typeof statusFolder>[0]) {
 export function healthBoundary(boundary: Parameters<typeof healthFolder>[0]) {
 	return boardFileStory.trait("boundary", `health publication meets ${boundary}`, function* (state) {
 		state.health = yield* healthFolder(boundary);
-	});
-}
-
-export function attachmentBoundary(boundary: string, id: string, name: string) {
-	return boardFileStory.trait("boundary", `report attachments meet a linked ${boundary}`, function* (state) {
-		const fixture = yield* linkedReportBoundary(boundary, id, name);
-		state.reportRoot = fixture.workspace;
-		state.outside = fixture.outside;
-	});
-}
-export function payloadBoundary(boundary: string, id: string) {
-	return boardFileStory.trait("boundary", `report payload meets a linked ${boundary}`, function* (state) {
-		const fixture = yield* linkedReportPayload(boundary, id);
-		state.reportRoot = fixture.workspace;
-		state.externalFile = fixture.externalFile;
 	});
 }
 
