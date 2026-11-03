@@ -9,6 +9,11 @@ export default [
 			packages("work-board").except(
 				files(
 					"packages/work-board/src/integration/metadata.ts",
+					"packages/work-board/src/metadata/adapters/parse.ts",
+					"packages/work-board/src/server/workspace.ts",
+					"packages/work-board/src/server/workspaceLayer.ts",
+					"packages/work-board/src/server/metadata/model.ts",
+					"packages/work-board/src/server/metadata/adapters/frontmatter.ts",
 					"packages/work-board/src/server/search/snapshot.ts",
 					"packages/work-board/src/diagnostics/source.ts",
 					"packages/work-board/src/server/integration/board.ts",
@@ -22,7 +27,7 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/work-fleet/src/board/documents.ts", "packages/work-board/src/server/metadata/adapters/parse.ts"],
-			legal: ["packages/work-fleet/src/board/documents.ts", "packages/work-board/src/server/integration/board.ts"],
+			illegal: ["packages/work-fleet/src/board/markdown.ts", "packages/work-board/src/server/search/watchIndex.ts"],
+			legal: ["packages/work-fleet/src/board/markdown.ts", "packages/work-board/src/server/workspace.ts"],
 		}),
 ];
