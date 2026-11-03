@@ -18,6 +18,7 @@ import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "#test/answers.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/ReadPolicyGuard", {
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
@@ -43,7 +44,7 @@ const layer = Layer.unwrap(
 
 export const readPolicyStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`create function policy_access() returns boolean language sql as 'select true'`;
@@ -54,10 +55,12 @@ export const readPolicyStory = storyKit({
 			"reads.read": () => Effect.succeed("Alice's note"),
 		}).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)));
 		const protocol = handlers.pipe(Layer.provideMerge(Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer))));
+		const runtime = yield* storyRuntime;
 		class Client extends AtomRpc.Service<Client>()("test/ReadPolicyClient", {
 			group: Reads,
 			makeEffect: RpcTest.makeClient(Reads, { flatten: true }),
 			protocol,
+			runtime,
 		}) {}
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),

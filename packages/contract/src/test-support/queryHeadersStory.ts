@@ -7,7 +7,7 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { queryHeadersEngine, records } from "./queryHeadersEngine.ts";
 
 export const queryHeadersStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine = yield* queryHeadersEngine();
 		return { ...engine, views: [engine.api.hints.query()] };

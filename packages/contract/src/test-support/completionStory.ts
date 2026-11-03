@@ -10,7 +10,7 @@ import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 
 export const completionStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const marked: { mark: Mark | undefined } = { mark: undefined };
 		return { ...(yield* completionEngine), ...marked };

@@ -1,4 +1,4 @@
-import { type Duration, Effect, Ref } from "effect";
+import { Clock, type Duration, Effect, Ref } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
@@ -17,7 +17,7 @@ import { liveNotesVerbs } from "./liveNotesVerbs.ts";
 import { notes } from "./notes.ts";
 
 export const liveNotesStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.gen(function* () {
 			const server = yield* Effect.acquireRelease(
@@ -28,7 +28,7 @@ export const liveNotesStory = storyKit({
 				Effect.sync(() => AtomRegistry.make()),
 				(current) => Effect.sync(() => current.dispose()),
 			);
-			return makeLiveEngine(server, registry);
+			return makeLiveEngine(server, registry, yield* Clock.Clock);
 		}),
 	inspect: liveSnapshot,
 	name: "live notes",
@@ -54,13 +54,13 @@ export function firstHintNamesOnlyNoteOne() {
 
 export function withoutResumeSignal() {
 	return liveNotesStory.trait("consumer", "the client's live connection has no resume signal", (engine) => {
-		engine.client = liveClient(engine.server.url, {}, { includeResume: false });
+		engine.client = liveClient(engine.server.url, {}, { clock: engine.clock, includeResume: false, nextEvent: engine.server.nextEvent });
 	});
 }
 
 export function readScopeOfOnlyNoteOne() {
 	return liveNotesStory.trait("consumer", "the client reconciles a read scope of only note 1", (engine) => {
-		engine.client = liveClient(engine.server.url, {}, { resyncKeys: [notes.item(1)] });
+		engine.client = liveClient(engine.server.url, {}, { clock: engine.clock, nextEvent: engine.server.nextEvent, resyncKeys: [notes.item(1)] });
 	});
 }
 

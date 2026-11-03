@@ -2,13 +2,12 @@ import { Clock, Effect, Layer, Queue, Ref, Stream, SubscriptionRef } from "effec
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { bind } from "#bind.ts";
+import { makeClient } from "#bind.ts";
 import { type LiveHint, live } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { times } from "./answers.ts";
@@ -21,13 +20,9 @@ const runtimeTimeEngine = Effect.gen(function* () {
 	const server = yield* notesServer;
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
 	runtime.addGlobalLayer(Layer.succeed(Clock.Clock, yield* Clock.Clock));
-	class Client extends AtomRpc.Service<Client>()("test/RuntimeTime", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: server.layer,
-		runtime,
-	}) {}
-	const api = bind(Notes, Client, { live: false });
+	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide(server.layer)));
+	const connectionClient = makeClient(Notes, { live: false, protocol: Layer.succeedContext(transport), runtime, url: "memory://runtime-time" });
+	const { api, Client } = connectionClient;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),

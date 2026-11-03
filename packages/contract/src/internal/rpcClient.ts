@@ -47,6 +47,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		group,
 		makeEffect: make,
 		protocol: typeof customProtocol === "object" ? customProtocol : (get) => protocolFor(get(socketIdentity)),
+		runtime: options.runtime,
 	});
 	clientActivities.set(Client, activity);
 	const directClient = Effect.flatMap(Layer.build(protocol), (context) =>

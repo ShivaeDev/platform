@@ -1,6 +1,7 @@
 import { Effect, Ref, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
+import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { shareQuerySignals } from "#querySignals.ts";
@@ -86,7 +87,7 @@ function automaticOf(engine: ResumeEngine) {
 }
 
 export const resumeStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => resumeEngine,
 	inspect: ({ browser, native, server }) => ({
 		browserListeners: browser.listeners.size,
@@ -118,6 +119,10 @@ export const resumeStory = storyKit({
 		},
 		listeners: () => Effect.sync(() => ({ browser: engine.browser.listeners.size, native: engine.native.listeners.size })),
 		openStreams: () => Effect.map(SubscriptionRef.get(automaticOf(engine).active), (count) => streams(count, "open")),
+		reconnectionIntervalPasses: () => {
+			story.tell("two seconds pass for the automatic live stream to reconnect");
+			return TestClock.adjust("2 seconds");
+		},
 		resume: (trigger: Resume) => {
 			story.tell(trigger);
 			mark(engine);
@@ -156,7 +161,7 @@ export function automaticLive(resume: "native" | "browser") {
 			? "the client's bound queries go live automatically with the native resume source"
 			: "the client's bound queries go live automatically and resume from the global window",
 		(engine) => {
-			engine.automatic = automaticResumeClient(engine.server, resume === "native" ? engine.native.source : undefined);
+			engine.automatic = automaticResumeClient(engine.server, engine.runtime, resume === "native" ? engine.native.source : undefined);
 		},
 	);
 }

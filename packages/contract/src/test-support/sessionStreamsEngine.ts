@@ -9,6 +9,7 @@ import { bind, makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { stream } from "#operation.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export type StreamPerson = "alice" | "bob";
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
@@ -22,6 +23,7 @@ const Owned = contract("session-streams", { keyScope: "session", streams: [Subsc
 const Ordinary = contract("session-streams", { streams: [Subscribe] });
 
 export const sessionStreamsEngine = Effect.gen(function* () {
+	const runtime = yield* storyRuntime;
 	const open = yield* SubscriptionRef.make<readonly string[]>([]);
 	function subscribe(person: StreamPerson, { mode, name }: typeof Subscribe.payload.Type, headers: Readonly<Record<string, string>>) {
 		return Stream.unwrap(
@@ -71,6 +73,7 @@ export const sessionStreamsEngine = Effect.gen(function* () {
 				url: urls[identity === "alice" ? "alice" : "bob"],
 			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 		registry: registries.alice,
+		runtime,
 		url: urls.alice,
 	});
 	const apis = {

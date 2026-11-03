@@ -63,7 +63,7 @@ const resyncOf = Effect.fnUntraced(function* (engine: HintsEngine, server: HintS
 });
 
 export const liveHints = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => hintsEngine,
 	inspect: ({ watchers }) => ({ watchers: [...watchers.keys()] }),
 	layer: Reactivity.layer,

@@ -77,7 +77,7 @@ function saveOf(engine: SessionEngine, person: Person, title: string, runtime: P
 }
 
 export const sessionStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => sessionEngine,
 	inspect: (engine) => ({
 		reads: Effect.runSync(SubscriptionRef.get(engine.reads)),

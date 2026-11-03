@@ -18,13 +18,18 @@ export interface NotesSource {
 }
 
 export interface ServedRead {
-	readonly at: number;
 	readonly label: string;
+	readonly order: number;
 }
 
 export type ReadHold = "every note read" | "next note read" | "no read";
 
 export async function liveServer(asset = "", source?: NotesSource) {
+	let event = 0;
+	function nextEvent() {
+		event += 1;
+		return event;
+	}
 	const server = await Effect.runPromise(notesServer);
 	await Effect.runPromise(
 		Ref.set(
@@ -46,7 +51,7 @@ export async function liveServer(asset = "", source?: NotesSource) {
 	const held = Effect.runSync(SubscriptionRef.make(0));
 	const release = Effect.runSync(Deferred.make<void>());
 	function serve(label: string) {
-		return SubscriptionRef.update(served, (all) => [...all, { at: performance.now(), label }]);
+		return SubscriptionRef.update(served, (all) => [...all, { label, order: nextEvent() }]);
 	}
 	const hold = Effect.gen(function* () {
 		const mode = yield* Ref.getAndUpdate(holding, (current) => (current === "next note read" ? "no read" : current));
@@ -137,6 +142,7 @@ export async function liveServer(asset = "", source?: NotesSource) {
 		held,
 		holding,
 		initialHint,
+		nextEvent,
 		reactivity,
 		releaseHeld: () => Deferred.succeed(release, undefined),
 		served,

@@ -19,7 +19,7 @@ function headers(viewer: Viewer) {
 }
 
 export const policyFallbackStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const read = query("read", { readPolicy: signedIn, reads: () => [], success: Schema.String });
 		const Reads = contract("reads", { queries: [read] }).middleware(Guard);
