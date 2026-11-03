@@ -128,19 +128,18 @@ boardFolderStory.it(
 boardFolderStory.it(
 	"an edited decision source is stale and refuses new responses",
 	[folderContains("withDependency")],
-	function* ({ decisionState, files, publishDecision, respond }) {
+	function* ({ decisionState, files, publishDecision, recordedResponses, respond }) {
 		const denied = yield* publishDecision();
 		expect(yield* decisionState(denied)).toBe("pending");
 
 		files.write(denied.sourcePath, `${files.read(denied.sourcePath)}\nChanged context.\n`);
 
+		const late = yield* respond(denied, { body: "Old context.", id: "response.stale", type: "clarify" });
+
+		expect(late).toBe("precondition failed: Source changed or moved. Keep the draft and review the new revision before responding.");
 		yield* outcomes([
 			["decision", () => decisionState(denied), "stale"],
-			[
-				"late response",
-				() => respond(denied, { body: "Old context.", id: "response.stale", type: "clarify" }),
-				expect.not.stringMatching(/^accepted$/u),
-			],
+			["recorded responses", () => recordedResponses(denied), []],
 		]);
 	},
 );
