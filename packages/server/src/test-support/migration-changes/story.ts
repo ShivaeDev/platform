@@ -57,7 +57,7 @@ const create = Effect.fnUntraced(function* () {
 
 export const migrationChangesStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create,
 	layer: postgres,
 	name: "hosted migration change delivery",

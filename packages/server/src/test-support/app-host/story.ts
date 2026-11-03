@@ -3,7 +3,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { close, start } from "./lifecycle.ts";
+import { start, teardown } from "./lifecycle.ts";
 import { emptyHost, type HostState } from "./state.ts";
 import { hostVerbs } from "./verbs.ts";
 
@@ -12,11 +12,11 @@ export function hostOptions() {
 		after: {
 			configured: (state: HostState) =>
 				Effect.gen(function* () {
-					yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
+					yield* Effect.addFinalizer(() => teardown(state).pipe(Effect.orDie));
 					yield* start(state);
 				}),
 		},
-		clock: "live" as const,
+		clock: "test" as const,
 		*create() {
 			const state = emptyHost();
 			yield* Effect.addFinalizer(() =>

@@ -1,5 +1,6 @@
 import { Effect, Exit, type Redacted, Result, Scope } from "effect";
 import { SqlClient } from "effect/sql";
+import { TestClock } from "effect/testing";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
@@ -16,7 +17,7 @@ interface ProcessHostState {
 }
 
 const processOptions = {
-	clock: "live" as const,
+	clock: "test" as const,
 	*create(): Effect.fn.Return<ProcessHostState> {
 		return { scope: yield* Scope.make() };
 	},
@@ -82,7 +83,7 @@ const processOptions = {
 			},
 			shutdown: () => {
 				story.tell("the child disposes its background workers and HTTP host, then acknowledges shutdown");
-				return Effect.suspend(() => running().signal("SIGHUP"));
+				return TestClock.adjust("60 millis").pipe(Effect.andThen(Effect.suspend(() => running().signal("SIGHUP"))));
 			},
 			shutdownDuration: () => Effect.suspend(() => running().shutdownDuration()),
 			signal: (signal: NodeJS.Signals) => {

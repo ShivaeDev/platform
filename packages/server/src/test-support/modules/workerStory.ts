@@ -2,6 +2,7 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { TestClock } from "effect/testing";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -17,6 +18,7 @@ interface State {
 	collision?: "shared" | "separate" | "within";
 	failure?: { readonly queue: string; readonly firstModule: string; readonly secondModule: string };
 	replaced: boolean;
+	readonly sender: ReturnType<typeof makePgBossTesting>;
 	readonly testing: ReturnType<typeof makePgBossTesting>;
 	url: string;
 }
@@ -43,7 +45,9 @@ export const moduleWorkers = storyKit({
 			}
 			const jobs = pgBossLayer({ clientFactory: state.testing.clientFactory, connectionString: database.url, migrate: false, supervise: false });
 			const services = modules.services.pipe(Layer.provideMerge(jobs));
-			const hostServices = modules.services.pipe(Layer.provide(pgBossLayer({ connectionString: database.url, migrate: false, supervise: false })));
+			const hostServices = modules.services.pipe(
+				Layer.provide(pgBossLayer({ clientFactory: state.sender.clientFactory, connectionString: database.url, migrate: false, supervise: false })),
+			);
 			const config = { databaseUrl: database.url, port: 0 };
 			const host = yield* Layer.build(appHost({ ...modules, config, policy: "loopback", services: hostServices }));
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(host));
@@ -55,8 +59,11 @@ export const moduleWorkers = storyKit({
 		}),
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
-	create: (): State => ({ replaced: false, testing: makePgBossTesting(), url: "" }),
+	clock: "test",
+	*create(): Effect.fn.Return<State> {
+		const clock = yield* TestClock.testClockWith(Effect.succeed);
+		return { replaced: false, sender: makePgBossTesting({ clock }), testing: makePgBossTesting({ clock }), url: "" };
+	},
 	layer: postgres,
 	name: "module workers",
 	runIf: databaseUrl !== undefined,

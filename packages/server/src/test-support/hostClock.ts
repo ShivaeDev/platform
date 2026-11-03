@@ -12,7 +12,7 @@ import { Api, openHost } from "#test/host-clock/feature.ts";
 import { followHints } from "#test/rpc/followHints.ts";
 
 export const hostClock = storyKit({
-	around: (effect) => Clock.clockWith((clock) => TestClock.withLive(withIsolatedDatabase(effect.pipe(Effect.provideService(Clock.Clock, clock))))),
+	around: withIsolatedDatabase,
 	clock: "test",
 	*create() {
 		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
@@ -22,9 +22,8 @@ export const hostClock = storyKit({
 			return yield* Effect.die("Expected a TCP host");
 		}
 		const protocol = yield* Layer.build(
-			RpcClient.layerProtocolSocket().pipe(
+			RpcClient.layerProtocolSocket({ pingInterval: Duration.infinity }).pipe(
 				Layer.provide([layerWebSocket(`ws://127.0.0.1:${address.port}/rpc`), RpcSerialization.layerNdjson]),
-				Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())),
 			),
 		);
 		const client = yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(protocol));

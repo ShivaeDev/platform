@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Context, Deferred, Effect, type Fiber, Layer, ManagedRuntime, Option, Schema, Stream } from "effect";
+import { Clock, Context, Deferred, Effect, type Fiber, Layer, ManagedRuntime, Option, Schema, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -38,6 +38,7 @@ const customHandlers = changesHandlerLayer(
 );
 
 const openHost = Effect.fn("Test.openHost")(function* (live: boolean, custom = false) {
+	const clock = yield* Clock.Clock;
 	const started = yield* Deferred.make<void>();
 	const runtime = yield* Effect.acquireRelease(
 		Effect.sync(() =>
@@ -54,7 +55,7 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean, custom = f
 					),
 					policy: "loopback",
 					services: live ? LiveServer.layer.pipe(Layer.provide(Reactivity.layer)) : Layer.empty,
-				}),
+				}).pipe(Layer.provideMerge(Layer.succeed(Clock.Clock, clock))),
 			),
 		),
 		(current) => Effect.promise(() => current.dispose()),
@@ -71,7 +72,7 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean, custom = f
 });
 
 export const hostChangesStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const state: { hints: string[]; subscription?: Fiber.Fiber<string> } = { hints: [] };
 		return Object.assign(state, yield* openHost(false));
@@ -100,7 +101,7 @@ export const hostChangesStory = storyKit({
 });
 
 export const applicationHandlersStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => openHost(true),
 	name: "hosted application handlers",
 	stages: [],
@@ -119,7 +120,7 @@ export const applicationHandlersStory = storyKit({
 });
 
 export const customHandlerStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => openHost(false, true),
 	name: "custom hosted changes handler",
 	stages: [],

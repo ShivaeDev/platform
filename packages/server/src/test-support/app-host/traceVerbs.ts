@@ -4,6 +4,7 @@ import { HttpBody, HttpClient } from "effect/http";
 import { OtlpExporter } from "effect/observability";
 import type { OtlpSpan } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
+import { finishExports } from "./finishExports.ts";
 import { ping } from "./ping.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
 
@@ -115,12 +116,14 @@ export function traceVerbs(state: HostState, tell: (line: string) => void) {
 		exportWarnings: () => Effect.sync(() => state.logs.filter(({ level }) => level === "Warn").map(logWords)),
 		flushedRequest: () => {
 			tell("a traced RPC request is answered and the exporter flushes its batch");
-			return io(async () => {
-				const runtime = runtimeOf(state);
-				await ping(`${state.url}${state.rpcPath}`);
-				const context = await runtime.runPromise(Effect.context());
-				await runtime.runPromise(Option.getOrThrow(Context.getOption(context, OtlpExporter.Flusher)).flush);
-			});
+			return finishExports(
+				io(async () => {
+					const runtime = runtimeOf(state);
+					await ping(`${state.url}${state.rpcPath}`);
+					const context = await runtime.runPromise(Effect.context());
+					await runtime.runPromise(Option.getOrThrow(Context.getOption(context, OtlpExporter.Flusher)).flush);
+				}),
+			);
 		},
 		logMentions: (...secrets: readonly string[]) =>
 			Effect.sync(() => {

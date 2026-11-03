@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 
 export const collectorResponses = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const gate = Promise.withResolvers<void>();
 		yield* Effect.addFinalizer(() => Effect.sync(() => gate.resolve()));
