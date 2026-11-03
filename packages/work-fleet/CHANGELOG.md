@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.32.2 - 2026-11-03
+
+### Changed
+
+- Update `@shivaedev/server` from 0.20.1 to 0.20.2.
+- Update `@shivaedev/work-board` from 0.44.0 to 0.44.1.
+
 ## 0.32.1 - 2026-11-03
 
 ### Changed
