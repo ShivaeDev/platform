@@ -11,8 +11,8 @@ import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "#appHost.ts";
 import type { HostState } from "#test/app-host/state.ts";
 
-class ReadChecks extends Context.Service<ReadChecks, Check[]>()("test/ReadChecks") {}
-class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("test/ReadStore") {}
+class ReadChecks extends Context.Service<ReadChecks, Check[]>()("@shivaedev/server/test/ReadChecks") {}
+class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("@shivaedev/server/test/ReadStore") {}
 export const documents = collection("documents", Schema.String);
 const Get = query("get", {
 	payload: { owner: Schema.String },

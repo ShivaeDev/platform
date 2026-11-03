@@ -1,7 +1,7 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 
-export class KeyPrefix extends Context.Service<KeyPrefix, string>()("test/KeyPrefix") {}
+export class KeyPrefix extends Context.Service<KeyPrefix, string>()("@shivaedev/sql/test/KeyPrefix") {}
 
 export const PrefixedKey = Schema.String.pipe(
 	Schema.decodeTo(Schema.String, {

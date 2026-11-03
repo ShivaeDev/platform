@@ -2,8 +2,8 @@ import { type Cause, Context, Effect, Layer, type Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useAction } from "./resultState.ts";
 
-class Titles extends Context.Service<Titles, { readonly prefix: string }>()("test/Titles") {}
-class Missing extends Context.Service<Missing, { readonly value: number }>()("test/Missing") {}
+class Titles extends Context.Service<Titles, { readonly prefix: string }>()("@shivaedev/react/test/Titles") {}
+class Missing extends Context.Service<Missing, { readonly value: number }>()("@shivaedev/react/test/Missing") {}
 const runtime = Atom.runtime(Layer.succeed(Titles, { prefix: "Report" }));
 const failingRuntime = Atom.runtime(Layer.effect(Titles, Effect.fail("RuntimeUnavailable" as const)));
 const run = Effect.fnUntraced(function* (input: { readonly title: string }) {

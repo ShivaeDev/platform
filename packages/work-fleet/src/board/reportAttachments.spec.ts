@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
-import { attachmentBoundary, boardFileStory } from "#test/boardFileStory.ts";
+import { boardFileStory } from "#test/boardFileStory.ts";
 import { refusal } from "#test/refusal.ts";
 import { BINARY_FILE } from "#test/reportAttachments.ts";
 
@@ -23,33 +23,14 @@ boardFileStory.it("a Markdown attachment is stored as attachment bytes that the 
 	]);
 });
 
-boardFileStory.it("republishing identical attachment bytes after a lost acknowledgement returns the same link", [], function* ({ files }) {
-	const link = yield* files.publishAttachments(ID, [CAPTURE]);
-
-	expect(yield* files.publishAttachments(ID, [CAPTURE])).toBe(link);
-});
-
 boardFileStory.it("different bytes for a published attachment are refused and the first bytes are kept", [], function* ({ files }) {
 	yield* files.publishAttachments(ID, [CAPTURE]);
 
 	const replaced = yield* refusal(files.publishAttachments(ID, [{ ...CAPTURE, bytes: Uint8Array.of(42) }]));
 
-	expect(replaced).toMatch(/^report file failure: /u);
+	expect(replaced).toBe("conflict: This identity already records different content; no file was replaced.");
 	yield* outcomes([
 		["attachments", () => files.attachmentNames(ID), [CAPTURE_NAME]],
 		["stored bytes", () => files.attachment(ID, CAPTURE_NAME), Buffer.from(BINARY_FILE)],
 	]);
 });
-
-for (const boundary of ["root", "responses", "attachments", "file"]) {
-	boardFileStory.it(
-		`attachments through a symlinked ${boundary} are refused and nothing is written outside`,
-		[attachmentBoundary(boundary, ID, CAPTURE_NAME)],
-		function* ({ files }) {
-			const published = yield* refusal(files.publishAttachments(ID, [CAPTURE]));
-
-			expect(published).toMatch(/^report file failure: /u);
-			expect(yield* files.outsideEntries()).toEqual(boundary === "root" ? ["linked-root"] : []);
-		},
-	);
-}

@@ -4,7 +4,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { useField } from "@shivaedev/form/adapters/react.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type Create, useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
 import { UnstableSession } from "./UnstableSession.tsx";

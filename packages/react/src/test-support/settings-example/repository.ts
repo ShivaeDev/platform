@@ -20,8 +20,12 @@ const settings = makeRepository(SettingsRow, {
 	spanPrefix: "Settings",
 	tableName: "entity_settings",
 });
-export class EntitiesRepository extends Context.Service<EntitiesRepository, Effect.Success<typeof entities>>()("settings-example/Entities") {}
-export class SettingsRepository extends Context.Service<SettingsRepository, Effect.Success<typeof settings>>()("settings-example/Settings") {}
+export class EntitiesRepository extends Context.Service<EntitiesRepository, Effect.Success<typeof entities>>()(
+	"@shivaedev/react/settings-example/Entities",
+) {}
+export class SettingsRepository extends Context.Service<SettingsRepository, Effect.Success<typeof settings>>()(
+	"@shivaedev/react/settings-example/Settings",
+) {}
 export const repositories = Layer.merge(Layer.effect(EntitiesRepository, entities), Layer.effect(SettingsRepository, settings));
 export const migrations = {
 	loader: Migrator.fromRecord({

@@ -4,8 +4,8 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
 
-export class Session extends Context.Service<Session, string>()("test/PrivateSession") {}
-export class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("test/PrivateGuard") {}
+export class Session extends Context.Service<Session, string>()("@shivaedev/contract/test/PrivateSession") {}
+export class Guard extends RpcMiddleware.Service<Guard, { provides: Session }>()("@shivaedev/contract/test/PrivateGuard") {}
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", {}) {}
 export const preferences = collection("preferences", Schema.Number);
 export const Self = query("self", { readPolicy: () => Effect.succeed(true), reads: () => [preferences.item(0)], success: Schema.String });

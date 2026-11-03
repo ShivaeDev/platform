@@ -110,7 +110,26 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. The application SQL Layer owns shutdown.
+
+The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
+
+```ts
+import { SqlClient } from "effect/sql";
+import { transact } from "@shivaedev/sql/transact.ts";
+
+const register = (body: { email: string; name: string; password: string }) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const database = yield* betterAuthDatabase();
+		const { auth } = yield* betterAuthMount({ database, emailAndPassword: { enabled: true } });
+		const created = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body }));
+		yield* sql`insert into registrations (email) values (${created.user.email})`;
+		return created.user;
+	}).pipe(transact({ onSqlError: (error) => error }), Effect.scoped);
+```
+
+With `SqlClient`, `Reactivity` and `Store` provided, the auth and application rows commit or roll back together. The mount's `before` and `after` hook SQL shares that outer boundary too.
 
 Provide `memoryStore` once around the host Layer with `Layer.provide(memoryStore)`, so auth mounts and other rate-limited operations share it. For a standalone authentication Effect, use `authentication.pipe(Effect.provide(memoryStore))`.
 
@@ -171,6 +190,8 @@ const authentication = (options: BetterAuthOptions) =>
 Provide the hook's services when building the mount. Mounted HTTP requests run hooks with the request's services, spans, log annotations and cancellation signal; request services override the mount's services. A direct call through `auth.api` uses the mount's services and the endpoint request's signal when present.
 
 Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is required" }`, or an application tagged error with those fields, to refuse the operation with HTTP 403 and that code and message. Defects remain defects in the mounted request, even when Better Auth catches the callback rejection. Hooks follow Better Auth's lifecycle: use `before` to refuse a write; `after` runs after the write and does not undo it.
+
+Effect hook SQL uses the hook runtime's Effect context; it does not inherit Better Auth's internal write transaction. In a startup mount, a `before` hook's application SQL can commit even when that hook refuses the operation and Better Auth rolls back its auth rows. Use the transaction-local adapter and mount composition above when those writes must roll back together. Completing an `after` hook does not mean the outer application transaction has committed.
 
 Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
 
@@ -549,6 +570,8 @@ Review and commit `0002_auth_roles`, then apply it with the other numbered migra
 
 A numbered migration calling `getMigrations(authOptions)` live is **not frozen**, even if it copies the options into that file: the installed Better Auth version still decides the DDL. `migrateBetterAuth` is also live; use it for disposable test setup, not shipped migrations. It executes compiled DDL on the native SQL connection. Generated modules use a PostgreSQL `DO` block to execute the compiled statements together on that connection.
 
+If an application-authored numbered migration calls `auth.api`, create its adapter inside the migration Effect, and its mount there too when using Effect hooks. It then uses the migrator's transaction connection: auth reads and writes can follow auth-table DDL without waiting for another connection, including with a one-connection pool. Reusing a startup adapter instead can wait on the migration's table locks or exhaust the pool.
+
 After applying all numbered migrations in an isolated story database, check them against the current options:
 
 ```ts
@@ -753,7 +776,7 @@ Use `storedProviderAccounts(auth, userId)` to observe credential storage through
 ```ts
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {

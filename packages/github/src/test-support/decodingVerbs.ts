@@ -2,7 +2,7 @@ import { Context, Effect, Schema, SchemaGetter } from "effect";
 import { type GitHub, read, write } from "#GitHub.ts";
 import { PullRequest } from "./fixtures.ts";
 
-class TitlePrefix extends Context.Service<TitlePrefix, string>()("github/test/ResponseTitlePrefix") {}
+class TitlePrefix extends Context.Service<TitlePrefix, string>()("@shivaedev/github/test/ResponseTitlePrefix") {}
 
 const WithPrefix = PullRequest.pipe(
 	Schema.decodeTo(PullRequest, {

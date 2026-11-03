@@ -9,9 +9,11 @@ import { query } from "@shivaedev/contract/operation.ts";
 import type { AppModule } from "#AppModule.ts";
 import { ToolsPermission } from "#test/permissions.ts";
 
-export class TitleSource extends Context.Service<TitleSource, (title: string) => Effect.Effect<string>>()("test/modules/TitleSource") {}
-class Notes extends Context.Service<Notes, string>()("test/modules/Notes") {}
-class Tasks extends Context.Service<Tasks, string>()("test/modules/Tasks") {}
+export class TitleSource extends Context.Service<TitleSource, (title: string) => Effect.Effect<string>>()(
+	"@shivaedev/server/test/modules/TitleSource",
+) {}
+class Notes extends Context.Service<Notes, string>()("@shivaedev/server/test/modules/Notes") {}
+class Tasks extends Context.Service<Tasks, string>()("@shivaedev/server/test/modules/Tasks") {}
 
 export const NotesApi = RpcGroup.make(Rpc.make("notes.read", { success: Schema.String }));
 export const TasksApi = RpcGroup.make(Rpc.make("tasks.read", { success: Schema.String }));

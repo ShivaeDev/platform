@@ -9,7 +9,7 @@ import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 
 class Note extends Model.Class<Note>("CostNote")({ id: Schema.Number, room: bucket(Schema.String), text: Schema.String }) {}
-export class Cost extends Context.Service<Cost, { checks: number; lookups: number; reruns: number }>()("test/LiveCost") {}
+export class Cost extends Context.Service<Cost, { checks: number; lookups: number; reruns: number }>()("@shivaedev/server/test/LiveCost") {}
 export const notes = collection("cost_notes", Schema.Number, { room: Schema.String });
 export const Notes = contract("costNotes", {
 	queries: [

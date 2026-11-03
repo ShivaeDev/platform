@@ -45,7 +45,7 @@ const startApp = Effect.gen(function* () {
 	return { observation, tables: () => tables(sql) };
 });
 
-class App extends Context.Service<App, Effect.Success<typeof startApp>>()("test-sql/SelectedApp") {}
+class App extends Context.Service<App, Effect.Success<typeof startApp>>()("@shivaedev/test-sql/SelectedApp") {}
 
 export function selectedApp(template?: PostgresTestTemplate) {
 	return storyKit({

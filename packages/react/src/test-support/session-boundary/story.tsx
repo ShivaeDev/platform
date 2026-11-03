@@ -1,6 +1,6 @@
 import { createBrowserHistory, createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";

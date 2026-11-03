@@ -7,7 +7,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { memberScreens } from "@shivaedev/test-story/server/memberScreens.ts";
+import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { makeAuth } from "#client/auth.ts";

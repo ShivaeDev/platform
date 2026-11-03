@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act, type ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
-import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

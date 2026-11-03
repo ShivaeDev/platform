@@ -4,7 +4,7 @@ import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { recordLifetime } from "./lifetimeLog.ts";
 
-export class OrderLabel extends Context.Service<OrderLabel, string>()("composition/OrderLabel") {}
+export class OrderLabel extends Context.Service<OrderLabel, string>()("@shivaedev/test-story/composition/OrderLabel") {}
 
 export const orders = storyKit({
 	after: { ordered: () => recordLifetime("orders after") },

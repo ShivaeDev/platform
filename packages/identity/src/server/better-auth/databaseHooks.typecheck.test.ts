@@ -6,7 +6,7 @@ import type { Store } from "@shivaedev/rate-limit/Store.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
 
-class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("identity/typecheck/Application") {}
+class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("@shivaedev/identity/typecheck/Application") {}
 
 const mounted = betterAuthMount(
 	{ secret: "typecheck-only-secret-at-least-32-characters" },

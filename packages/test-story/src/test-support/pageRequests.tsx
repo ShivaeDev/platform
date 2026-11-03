@@ -1,6 +1,6 @@
 import { Effect, Exit, Option, Scope, Stream } from "effect";
 import { act } from "react";
-import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { domPage } from "#server/domPage.ts";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { screenDriver } from "#server/screenDriver.ts";

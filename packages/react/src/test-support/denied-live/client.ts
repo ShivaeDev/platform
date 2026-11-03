@@ -14,7 +14,7 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 
 const notes = collection("denied-live-notes", Schema.String);
-class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("test/DeniedLiveAccess") {}
+class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("@shivaedev/react/test/DeniedLiveAccess") {}
 const Notes = contract("deniedLive", {
 	queries: [
 		query("get", {

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement } from "react";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { NativeNotesView } from "./NativeNotesView.ts";
 import { NotesClient } from "./NotesClient.ts";

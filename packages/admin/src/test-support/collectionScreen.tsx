@@ -3,7 +3,7 @@ import { Effect, Option, Ref } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "./Access.ts";
 import { CollectionView } from "./CollectionView.tsx";

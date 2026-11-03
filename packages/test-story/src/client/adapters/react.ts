@@ -5,7 +5,6 @@ import * as Scope from "effect/Scope";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { beforeEach, expect, vi } from "vitest";
-import { reactRendering } from "#client/adapters/reactRendering.ts";
 
 type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
 
@@ -87,7 +86,12 @@ export interface Rendered {
 	readonly unmount: () => Promise<void>;
 }
 export async function render(node: ReactNode, options?: RootOptions): Promise<Rendered> {
-	const [{ RegistryContext }, registryModule, { createRoot }, { act, createElement }] = await reactRendering();
+	const [{ RegistryContext }, registryModule, { createRoot }, { act, createElement }] = await Promise.all([
+		import("@effect/atom-react"),
+		import("effect/reactivity/AtomRegistry"),
+		import("react-dom/client"),
+		import("react"),
+	]);
 	const registry = registryModule.make();
 	const container = document.createElement("div");
 	document.body.append(container);

@@ -57,7 +57,7 @@ export function conflictingFields(kind: "nested" | "record" | "encoded" | "selfE
 		const group = RpcGroup.make(
 			Rpc.make("conflictingState", { error: kind === "encoded" ? Schema.Struct({ wireState: Schema.String }) : Schema.Never, success }),
 		);
-		class PublicStateMiddleware extends RpcMiddleware.Service<PublicStateMiddleware>()("PublicStateMiddleware", {
+		class PublicStateMiddleware extends RpcMiddleware.Service<PublicStateMiddleware>()("@shivaedev/server/PublicStateMiddleware", {
 			error: kind === "middleware" ? Schema.Struct({ state: Schema.String }) : Schema.Never,
 		}) {}
 		const api = group.middleware(PublicStateMiddleware);

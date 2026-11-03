@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import type { Create } from "#client/create.ts";
 import type { LoadedEditor } from "#client/editor.ts";
 
-export class Destination extends Context.Service<Destination, string>()("configuration/Destination") {}
+export class Destination extends Context.Service<Destination, string>()("@shivaedev/react/configuration/Destination") {}
 export class Rejected extends Data.TaggedError("Rejected")<{ readonly field: "name"; readonly message: string }> {}
 export const Name = Schema.Struct({ name: Schema.String });
 export const NormalizedName = Schema.Struct({ name: Schema.Trim });

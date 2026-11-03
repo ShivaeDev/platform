@@ -1,6 +1,6 @@
 import { Deferred, Effect, Stream, SubscriptionRef } from "effect";
 import { createElement } from "react";
-import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";

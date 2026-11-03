@@ -2,7 +2,7 @@ import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Tracer from "effect/Tracer";
-import type { TestContext } from "vitest";
+import type { FailureContext } from "#server/adapters/storyFailure.ts";
 import { callSite } from "#server/internal/callSite.ts";
 import { hooked } from "#server/internal/hooked.ts";
 import { narrate, narrateCreation } from "#server/internal/narration.ts";
@@ -12,7 +12,7 @@ import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#s
 export const start = Effect.fnUntraced(function* (
 	definition: LooseDefinition,
 	given: readonly LooseTrait[],
-	context: TestContext,
+	context: FailureContext,
 	body: (told: object) => Effect.Effect<unknown, unknown, unknown>,
 ) {
 	const engine = yield* hooked(definition.create).pipe(

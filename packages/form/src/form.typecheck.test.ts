@@ -34,7 +34,7 @@ form(Fields, {
 		}),
 });
 
-class Secret extends Context.Service<Secret, { readonly value: string }>()("test/Secret") {}
+class Secret extends Context.Service<Secret, { readonly value: string }>()("@shivaedev/form/test/Secret") {}
 
 // @ts-expect-error Application services require an explicit runtime.
 form(Fields, { initialValues: { name: "" }, onSubmit: () => Secret });

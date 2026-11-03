@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { parseDocument } from "yaml";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import { Publication, replaceIfUnchanged } from "@shivaedev/work-board/server/publication.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource } from "#board/readPass.ts";
-import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardFailure } from "#policy.ts";
 
 export function publishedDecision(document: BoardDocument) {
@@ -47,7 +47,10 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 		metadata.set("next_action", reason);
 	}
 	const content = `---\n${metadata.toString()}---\n${document.parsed.body}`;
-	const written = yield* writeCompletion(root, realRoot, document.file, document.source, content).pipe(
+	const written = yield* replaceIfUnchanged({ content, expectedSource: document.source, path: document.file, realRoot, root }).pipe(
+		Effect.provide(Publication.layer),
+		Effect.as(true),
+		Effect.catchTag("PreconditionFailed", () => Effect.succeed(false)),
 		Effect.mapError((error) => new BoardFailure({ message: error.message })),
 	);
 	if (!written) {

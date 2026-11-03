@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { answerCardFixture, decisionFile, decisionId } from "#test/answerCardFixture.ts";
 import { deniedClipboard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";

@@ -14,8 +14,10 @@ export class Access extends Context.Service<
 		checks: number;
 		rejection: "denied" | "NotFound" | "Rejected";
 	}
->()("test/DeniedAccess") {}
-export class Guard extends RpcMiddleware.Service<Guard>()("test/DeniedGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+>()("@shivaedev/contract/test/DeniedAccess") {}
+export class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/DeniedGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 export const records = collection("denied-records", Schema.Number);
 const policy = Effect.fnUntraced(function* (_payload: unknown, viewer: Option.Option<{ readonly id: string }>) {
 	const access = yield* Access;

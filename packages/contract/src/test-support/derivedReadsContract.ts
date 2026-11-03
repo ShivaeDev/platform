@@ -14,8 +14,10 @@ export class TimelineData extends Context.Service<
 		readonly keys: (scope: string) => Effect.Effect<readonly Key[], Unavailable>;
 		readonly load: (scope: string) => Effect.Effect<readonly string[], Unavailable>;
 	}
->()("test/TimelineData") {}
-export class Guard extends RpcMiddleware.Service<Guard>()("test/TimelineGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+>()("@shivaedev/contract/test/TimelineData") {}
+export class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/TimelineGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 export const Timeline = query("timeline", {
 	payload: { scope: Schema.String },
 	readPolicy: ({ scope }, viewer) => Effect.succeed(Option.exists(viewer, ({ id }) => id === scope)),

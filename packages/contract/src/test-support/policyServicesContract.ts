@@ -15,7 +15,7 @@ export class ReadAccess extends Context.Service<
 			viewer: Option.Option<Viewer>,
 		) => Effect.Effect<boolean, AuthUnavailable | Unauthorized, SessionUserWithProviderAccounts>;
 	}
->()("test/ProviderReadAccess") {}
+>()("@shivaedev/contract/test/ProviderReadAccess") {}
 
 export const documents = collection("provider-documents", Schema.String);
 const definition = {

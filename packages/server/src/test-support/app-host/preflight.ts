@@ -7,7 +7,7 @@ import { Ping } from "./ping.ts";
 import { databaseOf } from "./state.ts";
 import { host } from "./story.ts";
 
-export class AppId extends Context.Service<AppId, string>()("@test/PreflightAppId") {}
+export class AppId extends Context.Service<AppId, string>()("@shivaedev/server/test/PreflightAppId") {}
 class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", { message: Schema.optional(Schema.String) }) {}
 
 function preflightDiagnostic(diagnostics: "failure" | "success" | undefined) {

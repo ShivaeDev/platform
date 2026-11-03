@@ -15,7 +15,7 @@ import { LiveServer } from "#LiveServer.ts";
 import { query } from "#operation.ts";
 
 export const records = collection("header-records", Schema.Number);
-class Incoming extends RpcMiddleware.Service<Incoming>()("test/QueryHeaders") {}
+class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/contract/test/QueryHeaders") {}
 const definition = { readPolicy: () => Effect.succeed(true), reads: () => [records.item(1)], success: Schema.String };
 const Records = contract("header-records", {
 	queries: [query("hints", definition), query("pushed", { ...definition, live: "rerun-and-compare" })],

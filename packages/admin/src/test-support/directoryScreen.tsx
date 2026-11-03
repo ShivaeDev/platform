@@ -4,7 +4,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

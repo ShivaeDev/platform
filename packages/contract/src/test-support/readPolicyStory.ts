@@ -19,7 +19,9 @@ import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "#test/answers.ts";
 import { watchHints } from "#testing.ts";
 
-class Guard extends RpcMiddleware.Service<Guard>()("test/ReadPolicyGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
+class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/ReadPolicyGuard", {
+	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+}) {}
 const Read = query("read", {
 	readPolicy: () =>
 		Effect.gen(function* () {

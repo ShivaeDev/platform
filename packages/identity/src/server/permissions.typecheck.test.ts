@@ -7,7 +7,7 @@ import { UseTools } from "#test/auth/permissions.ts";
 import { permissionRoute } from "./permissions.ts";
 import type { SessionPolicy } from "./SessionPolicy.ts";
 
-class Required extends Context.Service<Required, string>()("admin-route/Required") {}
+class Required extends Context.Service<Required, string>()("@shivaedev/identity/admin-route/Required") {}
 class HandlerFailure extends Data.TaggedError("HandlerFailure") {}
 
 const guard = permissionRoute(UseTools);

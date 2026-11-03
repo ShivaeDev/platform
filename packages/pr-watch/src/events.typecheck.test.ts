@@ -6,8 +6,8 @@ import type { WatchEvent } from "#outputEvent.ts";
 import { watch } from "#program.ts";
 import type { Watcher } from "#Watcher.ts";
 
-class Consumer extends Context.Service<Consumer, object>()("@types/Consumer") {}
-class Diagnostics extends Context.Service<Diagnostics, object>()("@types/Diagnostics") {}
+class Consumer extends Context.Service<Consumer, object>()("@shivaedev/pr-watch/types/Consumer") {}
+class Diagnostics extends Context.Service<Diagnostics, object>()("@shivaedev/pr-watch/types/Diagnostics") {}
 
 const emit: Emit<"consumer-failure", Consumer> = (_event: WatchEvent) => Consumer.pipe(Effect.andThen(Effect.fail("consumer-failure" as const)));
 function diagnostic(_message: unknown) {

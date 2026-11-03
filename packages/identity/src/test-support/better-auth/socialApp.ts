@@ -1,6 +1,6 @@
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { socialEngine } from "./socialEngine.ts";

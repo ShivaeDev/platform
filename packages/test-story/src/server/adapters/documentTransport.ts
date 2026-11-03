@@ -2,9 +2,9 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import type { IFetchInterceptor } from "happy-dom";
 import FetchRequestHeaderUtility from "happy-dom/lib/fetch/utilities/FetchRequestHeaderUtility.js";
 import WindowBrowserContext from "happy-dom/lib/window/WindowBrowserContext.js";
-import { documentRedirect } from "#server/internal/documentRedirect.ts";
-import { documentRequest } from "#server/internal/documentRequest.ts";
-import { documentResponse, documentResponseHeaders } from "#server/internal/documentResponse.ts";
+import { documentRedirect } from "#server/adapters/documentRedirect.ts";
+import { documentRequest } from "#server/adapters/documentRequest.ts";
+import { documentResponse, documentResponseHeaders } from "#server/adapters/documentResponse.ts";
 
 export function documentTransport(fetch: typeof globalThis.fetch): IFetchInterceptor {
 	return {

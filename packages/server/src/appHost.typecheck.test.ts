@@ -6,7 +6,7 @@ import { expectTypeOf, it } from "vitest";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppHostOptions, appHost } from "#appHost.ts";
 
-class Required extends Context.Service<Required, string>()("host-test/Required") {}
+class Required extends Context.Service<Required, string>()("@shivaedev/server/host-test/Required") {}
 class BuildFailure extends Schema.TaggedError<BuildFailure>()("BuildFailure", {}) {}
 const Api = RpcGroup.make(Rpc.make("read", { success: Schema.String }));
 const handlers = Api.toLayer({ read: () => Required });
@@ -92,7 +92,7 @@ it("deferred construction preserves its requirements and typed failures while su
 	expectTypeOf<Extract<Layer.Error<typeof deferred>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
 });
 
-class PreflightInput extends Context.Service<PreflightInput, string>()("host-test/PreflightInput") {}
+class PreflightInput extends Context.Service<PreflightInput, string>()("@shivaedev/server/host-test/PreflightInput") {}
 const preflight = Layer.effect(Required, PreflightInput.pipe(Effect.flatMap(() => Effect.fail(new BuildFailure()))));
 const preflightHttp = appHost({ group: Api, handlers, policy: "loopback", preflight });
 const preflightDatabase = appHost({ ...options, migrations: { loader: Required.pipe(Effect.as([])) }, preflight });

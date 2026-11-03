@@ -4,7 +4,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { type KeysetPage, keysetPage } from "#keysetPage.ts";
 
-class Decoder extends Context.Service<Decoder, string>()("KeysetDecoder") {}
+class Decoder extends Context.Service<Decoder, string>()("@shivaedev/sql/KeysetDecoder") {}
 const Row = Schema.Struct({ id: Schema.Number, name: Schema.String });
 type Row = typeof Row.Type;
 interface Cursor {

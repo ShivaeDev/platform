@@ -8,7 +8,7 @@ function overloaded(value: string | number) {
 }
 
 defineService({
-	id: "invalid/Overloaded",
+	id: "@shivaedev/service/invalid/Overloaded",
 	initialize: Effect.void,
 	methods: () => ({ overloaded }),
 	requires: [],

@@ -6,7 +6,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { form } from "@shivaedev/form/form.ts";
 import { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authAction } from "#client/authAction.ts";
 import { AuthActionControl, AuthFormControl } from "./authControls.tsx";

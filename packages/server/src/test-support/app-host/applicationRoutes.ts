@@ -4,7 +4,9 @@ import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 import { host } from "./story.ts";
 
-class Metadata extends Context.Service<Metadata, { readonly path: HttpRouter.PathInput; readonly content: string }>()("host-test/Metadata") {}
+class Metadata extends Context.Service<Metadata, { readonly path: HttpRouter.PathInput; readonly content: string }>()(
+	"@shivaedev/server/host-test/Metadata",
+) {}
 
 const metadataRoutes = Layer.merge(
 	Layer.unwrap(

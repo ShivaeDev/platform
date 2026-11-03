@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { storyRunner } from "#test/storyRunner.ts";
 
-const DOM = { environment: fileURLToPath(new URL("./domEnvironment.config.ts", import.meta.url)) };
+const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
 
 storyRunner.it("a timed-out find fails only its own story and the next story renders normally", [], function* ({ run, outcome, results }) {
 	yield* run("findTimeoutStories", DOM);

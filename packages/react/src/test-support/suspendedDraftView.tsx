@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode, Suspense, startTransition } from "react";
 import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { DraftSuspender } from "./DraftSuspender.tsx";

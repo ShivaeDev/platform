@@ -2,7 +2,7 @@ import { Deferred, Effect, PubSub } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
-import type { render } from "@shivaedev/test-story/client/react.ts";
+import type { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { createLazyChunks } from "#client/react/adapters/createLazyChunks.ts";
 import type { BoardFixtureOptions } from "#test/BoardFixtureOptions.ts";
 import type { FileSystemWrapper } from "#test/board.ts";
