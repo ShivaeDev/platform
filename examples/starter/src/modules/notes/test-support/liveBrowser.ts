@@ -33,7 +33,7 @@ export const liveBrowser = storyKit({
 		yield* passwordUser(auth, { email: credentials.email, name: "alice", passwordHash: PASSWORD_HASH });
 		const { url } = yield* developmentServer(host.baseUrl);
 		const fs = yield* FileSystem.FileSystem;
-		const folder = yield* fs.makeTempDirectoryScoped({ prefix: "starter-live-notes-" });
+		const folder = yield* fs.makeTempDirectoryScoped({ prefix: "live-notes-browser-" });
 		return { folder, outcome: "not run", url };
 	},
 	inspect: ({ outcome, url }) => ({ outcome, url }),
@@ -43,7 +43,7 @@ export const liveBrowser = storyKit({
 	stages: [],
 	verbs: (engine, story) => ({
 		check: Effect.fn("LiveNotesStory.check")(function* () {
-			story.tell("alice runs the live-notes browser check against the starter with her existing account");
+			story.tell("alice runs the live-notes browser check against the app with her existing account");
 			const result = yield* checkLiveNotes(engine.url, engine.folder, credentials).pipe(Effect.scoped, Effect.result);
 			engine.outcome = Result.isFailure(result) ? result.failure.message : "passed";
 		}),
