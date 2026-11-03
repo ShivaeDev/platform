@@ -1,21 +1,21 @@
 import { type Config, Effect, type Option, type Redacted, Schema } from "effect";
 import type { JobPayloadSchema, QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
-import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
+import { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 import { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
 import type { WebhookUnauthorized } from "#server/WebhookUnauthorized.ts";
 
 const enqueue = Symbol("WebhookJob.enqueue");
 
 export interface WebhookJob<R = never> {
-	readonly [enqueue]: (jobs: PgBossService) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, R>;
+	readonly [enqueue]: Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, R | WebhookEnqueue>;
 }
 
 export function webhookJob<const TName extends string, TPayload extends JobPayloadSchema>(
 	queue: QueueDefinition<TName, TPayload>,
 	payload: NoInfer<Schema.Schema.Type<TPayload>>,
 ): WebhookJob<TPayload["EncodingServices"]> {
-	return { [enqueue]: (jobs) => jobs.enqueue(queue, payload) };
+	return { [enqueue]: Effect.flatMap(WebhookEnqueue, (jobs) => jobs.enqueue(queue, payload)) };
 }
 
 export interface WebhookEvent<R = never, E = never> {
@@ -53,6 +53,6 @@ export interface WebhookStrategy {
 	) => Effect.Effect<void, WebhookUnauthorized>;
 }
 
-export function enqueueWebhookJobs<R>(requests: readonly WebhookJob<R>[], jobs: PgBossService) {
-	return Effect.forEach(requests, (request) => request[enqueue](jobs));
+export function enqueueWebhookJobs<R>(requests: readonly WebhookJob<R>[]) {
+	return Effect.forEach(requests, (request) => request[enqueue]);
 }
