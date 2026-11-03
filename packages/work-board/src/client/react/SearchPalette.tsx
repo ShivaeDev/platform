@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { type KeyboardEvent, type RefObject, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useId, useRef } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { ActiveDescendant } from "#client/react/ActiveDescendant.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
@@ -14,6 +14,7 @@ import { searchStatus } from "#client/react/searchStatus.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
 import { usePaletteCommands } from "#client/react/usePaletteCommands.ts";
+import { useSearchText } from "#client/react/useSearchText.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 
 export function SearchPalette({
@@ -38,7 +39,7 @@ export function SearchPalette({
 	readonly setRecords: (records: boolean) => void;
 }) {
 	const recordsId = useId();
-	const [text, setText] = useState(() => input.trim());
+	const [text, setText] = useSearchText(input);
 	const listRef = useRef<HTMLDivElement>(null);
 	const query = useQuery(api.search.query(records ? { query: text, records } : { query: text }));
 	const data = Option.getOrUndefined(query.data);
@@ -58,10 +59,7 @@ export function SearchPalette({
 				destinations.add(destination);
 				return true;
 			});
-	useEffect(() => {
-		const timer = setTimeout(() => setText(input.trim()), 150);
-		return () => clearTimeout(timer);
-	}, [input]);
+
 	function activate(item: SearchItem) {
 		activateCommand(item.command, appearance, toggleSidebar);
 		close(!item.command);

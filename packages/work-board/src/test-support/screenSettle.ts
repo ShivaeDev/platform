@@ -1,5 +1,6 @@
 import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { session } from "#client/session.ts";
@@ -63,9 +64,13 @@ export const screenSettles = Effect.fn("ScreenSettle.screenSettles")(function* (
 	tell: (line: string) => void = (line) => engine.tell?.(line),
 ) {
 	const pending = yield* screenPendingWork(engine);
-	yield* screenDriver({ act: screenAct, pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
-		timeoutMs: SETTLE_LIMIT_MS,
-	});
+	yield* screenDriver({
+		act: screenAct,
+		...(engine.session && holds(engine).length === 0 ? { activity: activityScreenSignal(clientActivity(session(engine.session.environment))) } : {}),
+		pending: pendingSignal(engine, pending),
+		root: () => document.body,
+		tell,
+	}).settle({ timeoutMs: SETTLE_LIMIT_MS });
 });
 
 type Settled<TResult> = [TResult] extends [Effect.Effect<infer TSuccess, infer TError, infer TServices>]

@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
+import { pageTraffic } from "#test/pageTraffic.ts";
 
 const files = projectFiles({ "task.md": "---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\n---\n# A task\n" });
 // Only document, search, table and goal views use these, and each would add tens of kilobytes to every first page.
@@ -15,7 +16,7 @@ boardStory.it("the first page's chunks bundle React but none of the libraries on
 
 boardStory.it(
 	"Today fetches the search palette once it shows, and not the work table",
-	[files, readerAt("/")],
+	[files, pageTraffic(), readerAt("/")],
 	function* ({ chunkArrives, chunkFetched, pageShows }) {
 		yield* pageShows("/");
 
@@ -29,7 +30,7 @@ boardStory.it(
 
 boardStory.it(
 	"the work page's table view fetches the work table",
-	[files, readerAt("/_board/work?view=table")],
+	[files, pageTraffic(), readerAt("/_board/work?view=table")],
 	function* ({ chunkFetched, pageShows }) {
 		yield* pageShows("/_board/work?view=table");
 

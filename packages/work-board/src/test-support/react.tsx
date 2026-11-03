@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { Clock, Layer, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -19,7 +19,7 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 	class Client extends AtomRpc.Service<Reader>()("@shivaedev/work-board/RenderTest", {
 		group: workRpcs,
 		makeEffect: screenTransport(options),
-		protocol: workspaceBoard(files, options),
+		protocol: workspaceBoard(files, options).pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue()))),
 		runtime,
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
@@ -43,7 +43,7 @@ export async function renderBoard(
 	options?: BoardFixtureOptions,
 	runtime?: Atom.RuntimeFactory,
 ) {
-	const api = boardClient(files, options, runtime);
+	const api = boardClient(files, options, runtime ?? options?.runtime);
 	const view = await render(
 		<FormContext.Provider value={api.forms}>
 			<BoardFixture create={(registry) => component(api, registry)} />

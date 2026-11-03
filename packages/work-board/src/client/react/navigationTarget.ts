@@ -1,5 +1,8 @@
 import { useRouterState } from "@tanstack/react-router";
+import { Duration, Effect } from "effect";
 import { useEffect, useState } from "react";
+import { clockEffect } from "#client/react/adapters/clockEffect.ts";
+import { useBoardClock } from "#client/react/FormContext.ts";
 import type { MainLocation } from "./mainLocation.ts";
 import { workspaceDestinations } from "./workspaceDestinations.ts";
 
@@ -23,17 +26,18 @@ export function useCurrentDestination(main: MainLocation): Destination | undefin
 }
 
 export function useNavigationPending() {
+	const clock = useBoardClock();
 	const target = useNavigationTarget();
 	const [shown, setShown] = useState<string>();
 	useEffect(() => {
 		if (target === undefined) {
 			return;
 		}
-		const timer = setTimeout(() => setShown(target), PENDING_FEEDBACK_MS);
+		const stop = clockEffect(clock.sleep(Duration.millis(PENDING_FEEDBACK_MS)).pipe(Effect.andThen(Effect.sync(() => setShown(target)))));
 		return () => {
-			clearTimeout(timer);
+			stop();
 			setShown(undefined);
 		};
-	}, [target]);
+	}, [clock, target]);
 	return target !== undefined && shown === target;
 }

@@ -1,6 +1,5 @@
 import { Effect, Struct } from "effect";
 import { act } from "react";
-import { vi } from "vitest";
 import type { SearchItem } from "#client/react/searchCommands.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
@@ -118,15 +117,9 @@ export function shellSearchVerbs(engine: ScreenEngine, tell: (line: string) => v
 		searchFor: (query: string) =>
 			Effect.gen(function* () {
 				tell(`the reader types ${JSON.stringify(query)} into Search and pauses for the palette's ${SEARCH_PAUSE_MS} ms debounce`);
-				vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-				try {
-					type(query);
-					act(() => {
-						vi.advanceTimersByTime(SEARCH_PAUSE_MS);
-					});
-				} finally {
-					vi.useRealTimers();
-				}
+				type(query);
+				yield* engine.clock.timer(SEARCH_PAUSE_MS);
+				yield* engine.clock.advance(SEARCH_PAUSE_MS);
 				yield* screenSettles(engine, tell);
 			}),
 		searchHints: () =>
@@ -155,12 +148,7 @@ export function shellSearchVerbs(engine: ScreenEngine, tell: (line: string) => v
 		typeBeforeSearchPause: (query: string) =>
 			Effect.sync(() => {
 				tell(`the reader types ${JSON.stringify(query)} into Search and acts before the palette's ${SEARCH_PAUSE_MS} ms debounce ends`);
-				vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-				try {
-					type(query);
-				} finally {
-					vi.useRealTimers();
-				}
+				type(query);
 			}),
 	};
 }

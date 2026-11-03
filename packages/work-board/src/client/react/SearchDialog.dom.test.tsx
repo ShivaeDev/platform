@@ -14,6 +14,38 @@ const threeNotes = {
 };
 
 screenStory.it(
+	"Typing again cancels the earlier Search pause and waits for the new query",
+	[searchOpened(threeNotes)],
+	function* ({ advanceClock, resultTitles, typeBeforeSearchPause }) {
+		yield* typeBeforeSearchPause("Shared");
+		yield* advanceClock(100);
+
+		yield* typeBeforeSearchPause("Shared phrase two");
+		yield* advanceClock(50);
+		expect(yield* resultTitles()).toEqual([]);
+
+		yield* advanceClock(100);
+
+		expect(yield* resultTitles()).toEqual(["Second"]);
+	},
+);
+
+screenStory.it(
+	"Search waits 150 ms after typing before it shows matching documents",
+	[searchOpened(threeNotes)],
+	function* ({ advanceClock, resultTitles, typeBeforeSearchPause }) {
+		yield* typeBeforeSearchPause("Shared phrase");
+
+		yield* advanceClock(149);
+		expect(yield* resultTitles()).toEqual([]);
+
+		yield* advanceClock(1);
+
+		expect(yield* resultTitles()).toEqual(["First", "Second", "Third"]);
+	},
+);
+
+screenStory.it(
 	"when a refresh drops the selected third result, the remaining first result becomes selected and announced",
 	[searchOpened(threeNotes)],
 	function* ({ editFile, pressInSearch, refreshSearch, resultTitles, searchFor, selectedResult }) {
