@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import type { PgBossClient } from "#server/client.ts";
+import { deferralChanges } from "#server/internal/adapters/deferralChanges.ts";
 import { STATELY_DEFERRAL_POLICY } from "#server/internal/deferral.ts";
 import type { JobAttempt } from "#server/internal/engine.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
@@ -11,8 +12,9 @@ export async function settleDeferral(client: PgBossClient, schema: string, job: 
 		throw new TypeError("This pg-boss client does not support getDb for RetryAt");
 	}
 	const quoted = quotedSchema(schema);
+	const db = client.getDb();
 	// Native failure settlement deletes and reinserts jobs, so a cascading job foreign key would erase the counter.
-	const { rows } = await client.getDb().executeSql(
+	const { rows } = await db.executeSql(
 		`WITH claimed AS MATERIALIZED (
 			SELECT name, id, created_on,
 				GREATEST(keep_until, $4::timestamptz + (keep_until - start_after)) AS keep_until
@@ -50,5 +52,9 @@ export async function settleDeferral(client: PgBossClient, schema: string, job: 
 		SELECT EXISTS (SELECT 1 FROM claimed) AS claimed, EXISTS (SELECT 1 FROM deferred) AS deferred`,
 		[job.name, job.id, job.retryCount, at, reason, Reflect.get(job, "startedOn"), maxDeferrals],
 	);
-	return Schema.decodeUnknownSync(Settlement)(rows[0]);
+	const settled = Schema.decodeUnknownSync(Settlement)(rows[0]);
+	if (settled.deferred) {
+		deferralChanges.get(db)?.();
+	}
+	return settled;
 }
