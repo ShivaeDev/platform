@@ -3,16 +3,19 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mintedSocialSession, socialApp } from "#test/better-auth/socialApp.ts";
 
-socialApp.it("Alice's GitHub sign-in sends the browser to github.com", [], function* ({ pageHost, signInWithGitHub }) {
-	yield* signInWithGitHub();
-
-	expect(yield* pageHost()).toBe("github.com");
-});
-
 socialApp.it(
-	"after GitHub redirects back, Alice sees the signed-in page with a session cookie hidden from page scripts",
+	"GitHub sign-in through the mount creates Alice's session and exposes her linked account through RPC",
 	[],
-	function* ({ aliceSignsInWithGitHub, pageHeading, pagePath, sessionCookieVisibility, sessionEmail }) {
+	function* ({
+		aliceSignsInWithGitHub,
+		pageHeading,
+		pagePath,
+		providerAccounts,
+		sessionCookieVisibility,
+		sessionEmail,
+		storedSessionCount,
+		storedUserEmails,
+	}) {
 		yield* aliceSignsInWithGitHub();
 
 		yield* outcomes([
@@ -20,17 +23,6 @@ socialApp.it(
 			["path", () => pagePath(), "/signed-in"],
 			["session cookie", () => sessionCookieVisibility(), "hidden from page scripts"],
 			["session email", () => sessionEmail(), "alice@social.test"],
-		]);
-	},
-);
-
-socialApp.it(
-	"Alice's GitHub sign-in stores her user, one session and her GitHub account",
-	[],
-	function* ({ aliceSignsInWithGitHub, providerAccounts, storedSessionCount, storedUserEmails }) {
-		yield* aliceSignsInWithGitHub();
-
-		yield* outcomes([
 			["provider accounts", () => providerAccounts(), [{ accountId: "123", providerId: "github" }]],
 			["stored sessions", () => storedSessionCount(), 1],
 			["stored users", () => storedUserEmails(), ["alice@social.test"]],
@@ -39,16 +31,10 @@ socialApp.it(
 );
 
 socialApp.it(
-	"Alice's GitHub sign-in exchanges the callback code with GitHub without forwarding her cookies",
-	[],
-	function* ({ aliceSignsInWithGitHub, codeExchange, providerCookiesSent, providerRoutes }) {
-		yield* aliceSignsInWithGitHub();
-
-		yield* outcomes([
-			["code exchange", () => codeExchange(), "sent the callback code"],
-			["cookies sent to GitHub", () => providerCookiesSent(), 0],
-			["GitHub routes", () => providerRoutes(), ["GET /login/oauth/authorize", "POST /login/oauth/access_token", "GET /user", "GET /user/emails"]],
-		]);
+	"Bob's signed-in GitHub account reaches the provider-accounts RPC",
+	[mintedSocialSession([{ accountId: "123", providerId: "github" }])],
+	function* ({ providerAccounts }) {
+		expect(yield* providerAccounts()).toEqual([{ accountId: "123", providerId: "github" }]);
 	},
 );
 

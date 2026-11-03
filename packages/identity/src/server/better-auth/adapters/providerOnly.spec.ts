@@ -1,5 +1,13 @@
 import { expect } from "vitest";
-import { adminListDisabled, adminListEnabled, emailEndpointEnabled, providerOnly, withoutPreset } from "#test/better-auth/providerOnly.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	adminListDisabled,
+	adminListEnabled,
+	emailEndpointEnabled,
+	providerOnly,
+	signedInProviderUser,
+	withoutPreset,
+} from "#test/better-auth/providerOnly.ts";
 
 const closedEndpoints = [
 	["/sign-in/email", "POST"],
@@ -62,42 +70,32 @@ const credentials = [
 	{ accountId: "123", hasAccessToken: false, hasIdToken: false, hasPassword: false, hasRefreshToken: false, providerId: "github" },
 ];
 
-providerOnly.it("GitHub sign-in stores the provider account without access or refresh tokens", [], function* ({ signIn, storedProviderAccounts }) {
-	yield* signIn();
-
-	expect(yield* storedProviderAccounts()).toEqual(credentials);
-});
-
-providerOnly.it("a returning GitHub sign-in also leaves no stored provider tokens", [], function* ({ signIn, storedProviderAccounts }) {
-	yield* signIn();
-
-	yield* signIn();
-
-	expect(yield* storedProviderAccounts()).toEqual(credentials);
-});
-
-providerOnly.it("GitHub account creates and updates still run the application's database hooks", [], function* ({ accountHookCalls, signIn }) {
-	yield* signIn();
-	yield* signIn();
-
-	expect(yield* accountHookCalls()).toEqual(["create", "update"]);
-});
-
 providerOnly.it(
-	"GitHub sign-in issues only the session token cookie, without session or account cache cookies",
+	"provider-only GitHub sign-in keeps credentials and cache cookies out while running account hooks",
 	[],
-	function* ({ browserCookieNames, signIn }) {
+	function* ({ accountHookCalls, browserCookieNames, session, signIn, storedProviderAccounts }) {
 		yield* signIn();
 
-		expect(yield* browserCookieNames()).toEqual(["better-auth.session_token"]);
+		yield* outcomes([
+			["session", () => session(), "Alice"],
+			["stored credentials", () => storedProviderAccounts(), credentials],
+			["browser cookies", () => browserCookieNames(), ["better-auth.session_token"]],
+			["account hooks", () => accountHookCalls(), ["create"]],
+		]);
+
+		yield* signIn();
+
+		yield* outcomes([
+			["returning account credentials", () => storedProviderAccounts(), credentials],
+			["returning account hooks", () => accountHookCalls(), ["create", "update"]],
+		]);
 	},
 );
 
 providerOnly.it(
 	"after the stored session expires, GitHub's signed-in browser has no cached session",
-	[],
-	function* ({ expireSessions, session, signIn }) {
-		yield* signIn();
+	[signedInProviderUser],
+	function* ({ expireSessions, session }) {
 		expect(yield* session()).toBe("Alice");
 
 		yield* expireSessions();

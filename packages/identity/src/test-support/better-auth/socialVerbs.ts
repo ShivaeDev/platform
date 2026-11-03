@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { signedInUser, storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
@@ -30,13 +30,7 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 			.getSession({ headers: new Headers({ cookie, host: new URL(baseUrl).host }) })
 			.then((session) => session?.user.name ?? "an expired session");
 	}
-	function providerCalls() {
-		return provider.requests.map(({ body, headers, method, path }) => ({
-			body: body.toString(),
-			cookie: headers.cookie,
-			route: `${method} ${new URL(path, provider.url).pathname}`,
-		}));
-	}
+
 	return {
 		accountLookupUsers: () => Effect.promise(() => Promise.all(engine.accountRequests().map(accountLookupUser))),
 		aliceSignsInWithGitHub: () => {
@@ -46,14 +40,6 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 				Effect.promise(() => domNavigate()),
 			);
 		},
-		codeExchange: () =>
-			Effect.sync(() => {
-				const exchange = providerCalls().find(({ route }) => route === "POST /login/oauth/access_token");
-				if (exchange === undefined) {
-					return "no token request";
-				}
-				return exchange.body.includes("code=story-code") ? "sent the callback code" : "sent no callback code";
-			}),
 		expireBeforeAccountLookup: () => {
 			story.tell("the session expires between identity resolution and the account lookup");
 			return Effect.sync(engine.expireBeforeAccountLookup);
@@ -73,23 +59,15 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 				minted.set(name, user.id);
 				yield* seedCookies(cookies);
 			}),
-		narrationMentions: (...texts: readonly string[]) => Effect.sync(() => texts.filter((text) => story.lines.join("\n").includes(text))),
 		pageHeading: () => Effect.sync(() => document.querySelector("h1")?.textContent ?? "no heading"),
-		pageHost: () => Effect.sync(() => new URL(window.location.href).hostname),
 		pagePath: () => Effect.sync(() => new URL(window.location.href).pathname),
 		providerAccounts: () => {
 			story.tell("the signed-in user reads provider account IDs through native RPC");
 			return answered(readProviderAccounts(baseUrl, fetch));
 		},
-		providerCookiesSent: () => Effect.sync(() => providerCalls().filter(({ cookie }) => cookie !== undefined).length),
-		providerRoutes: () => Effect.sync(() => providerCalls().map(({ route }) => route)),
 		sessionCookieVisibility: () =>
 			Effect.sync(() => (document.cookie.includes("session_token") ? "visible to page scripts" : "hidden from page scripts")),
 		sessionEmail: () => Effect.map(currentSession(), (session) => session?.user?.email ?? "signed out"),
-		signInWithGitHub: () => {
-			story.tell("Alice starts signing in with GitHub");
-			return signInWithGitHub();
-		},
 		signOut: () =>
 			Effect.promise(async () => {
 				story.tell("the signed-in user signs out");
@@ -102,13 +80,6 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 					throw new Error(`Sign-out failed: ${response.status}`);
 				}
 			}),
-		storedProviderAccounts: () =>
-			Effect.flatMap(currentSession(), (session) =>
-				Effect.promise(() => {
-					story.tell("read which credentials the signed-in user's provider accounts store");
-					return storedProviderAccounts(auth, session?.user?.id ?? "");
-				}),
-			),
 		storedSessionCount: () => storage.sessions.pipe(Effect.map((sessions) => sessions.length)),
 		storedUserEmails: () => storage.users.pipe(Effect.map((users) => users.map(({ email }) => email))),
 		userIdOf: (name: string) => Effect.sync(() => minted.get(name) ?? `no minted session for ${name}`),

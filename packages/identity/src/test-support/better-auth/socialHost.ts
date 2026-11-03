@@ -1,12 +1,12 @@
-import { type BetterAuthOptions, betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { testUtils } from "better-auth/plugins";
-import { Effect, Layer } from "effect";
-import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { ConfigProvider, Effect, Layer } from "effect";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
@@ -16,31 +16,28 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
 	const pool = yield* betterAuthDatabase();
 	const storage = yield* authTestDatabase;
 	const options = {
-		advanced: { useSecureCookies: false },
-		"baseURL": { allowedHosts: ["localhost:*"], protocol: "http" },
 		database: pool,
-		emailAndPassword: { enabled: true },
-		plugins: [testUtils()],
 		secret: "social-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
-		trustedOrigins: ["http://localhost:*"],
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => {
 		await (await getMigrations(options)).runMigrations();
 	});
-	const auth = betterAuth(options);
+	const mounted = yield* betterAuthMount(options).pipe(
+		Effect.provide(memoryStore),
+		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
+	);
+	const { auth } = mounted;
 	let accountLookupFails = false;
-	let accountLookups = 0;
 	const accountRequests: string[] = [];
 	let expireBeforeAccounts = false;
 	const sessions = {
 		origin: ({ headers }: { readonly headers: Readonly<Record<string, string>> }) =>
 			headers.origin === undefined || headers.origin === `http://${headers.host}`,
-		provider: betterAuthSessions(
+		provider: mounted.admittedSessions(
 			(headers) => auth.api.getSession({ headers }),
 			async (headers) => {
-				accountLookups += 1;
 				accountRequests.push(headers.get("cookie") ?? "");
 				if (expireBeforeAccounts) {
 					await Effect.runPromise(storage.expireSessions());
@@ -53,12 +50,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
 		),
 	};
 	const routes = Layer.merge(
-		HttpRouter.add("*", "/api/auth/*", (request) =>
-			Effect.gen(function* () {
-				const web = yield* HttpServerRequest.toWeb(request);
-				return HttpServerResponse.fromWeb(yield* Effect.promise(() => auth.handler(web)));
-			}),
-		),
+		mounted.routes,
 		HttpRouter.add("GET", "/signed-in", (request) =>
 			Effect.gen(function* () {
 				const session = yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
@@ -80,7 +72,6 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
 		return yield* Effect.die("Social story host needs a TCP address");
 	}
 	return {
-		accountLookups: () => accountLookups,
 		accountRequests: () => [...accountRequests],
 		auth,
 		baseUrl: `http://localhost:${server.address.port}`,
