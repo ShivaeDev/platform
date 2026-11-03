@@ -17,6 +17,20 @@
 			"run": ["core.ts"]
 		}
 	],
+	"agent-pi": [
+		{
+			"entries": ["./piLayer.ts"],
+			"fixtures": ["core.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["core.ts"]
+		},
+		{
+			"entries": ["./piLayer.ts"],
+			"fixtures": ["core.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["core.ts"]
+		}
+	],
 	"errors": [
 		{
 			"entries": ["./boundary.ts", "./taxonomy.ts"],
@@ -51,7 +65,14 @@
 			"run": ["local-guard.ts"]
 		}
 	],
-	"mcp": [{ "entries": ["./routes.ts"], "fixtures": ["core.ts.txt"], "omitOptionalPeers": true, "run": ["core.ts"] }],
+	"mcp": [
+		{
+			"entries": ["./routes.ts"],
+			"fixtures": ["core.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["core.ts"]
+		}
+	],
 	"platform": [
 		{
 			"entries": [],

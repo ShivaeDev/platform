@@ -1,0 +1,19 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { Effect } from "effect";
+import { describe, requireFeatures } from "@shivaedev/agent/agent.ts";
+import { piLayer } from "@shivaedev/agent-pi/piLayer.ts";
+
+const require = createRequire(import.meta.url);
+for (const dependency of ["@anthropic-ai/claude-agent-sdk", "@openai/codex-sdk", "@opencode-ai/sdk"]) {
+  assert.throws(() => require.resolve(dependency), { code: "MODULE_NOT_FOUND" });
+}
+await Effect.runPromise(Effect.gen(function* () {
+  const descriptor = yield* describe;
+  assert.equal(descriptor.backend, "pi");
+  const agent = yield* requireFeatures(["sessions", "queuedInput", "steering", "interruption", "models"]);
+  const reconciliation = yield* agent.reconcile("not-in-this-runtime");
+  assert.equal(reconciliation.type, "uncertain");
+  const image = yield* requireFeatures(["imageInput"]).pipe(Effect.flip);
+  assert.equal(image.requirement, "imageInput");
+}).pipe(Effect.provide(piLayer()), Effect.scoped));
