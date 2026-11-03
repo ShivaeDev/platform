@@ -15,6 +15,7 @@ notesDeployment.it(
 		workerIsKilled,
 		workerPollPasses,
 		workerStarts,
+		workerTimePasses,
 	}) {
 		const interrupted = yield* notesOf("alice").create("Interrupted by crash");
 		yield* noteIsHeld(interrupted);
@@ -25,8 +26,10 @@ notesDeployment.it(
 		const queued = yield* notesOf("alice").create("Replacement handles queued jobs");
 		yield* workerIsKilled("crashed");
 		yield* heldNoteIsReleased();
-		yield* workerPollPasses();
+		yield* workerPollPasses("replacement");
 		expect(yield* wordCountOf("alice", queued)).toBe("not counted");
+
+		yield* workerTimePasses("replacement", "6 seconds");
 
 		const counted = yield* wordCountArrives("alice", queued);
 

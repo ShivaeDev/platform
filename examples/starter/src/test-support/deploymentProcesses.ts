@@ -9,11 +9,12 @@ type DeployedProcess = Effect.Success<ReturnType<typeof deployChild>>;
 
 export interface DeploymentEngine {
 	address: string | undefined;
+	readonly clockStart: number;
 	readonly processes: Map<string, DeployedProcess>;
 }
 
-export function deploymentEngine(): DeploymentEngine {
-	return { address: undefined, processes: new Map() };
+export function deploymentEngine(clockStart: number): DeploymentEngine {
+	return { address: undefined, clockStart, processes: new Map() };
 }
 
 export function releaseEnv(release: string): Record<string, string> {
@@ -42,7 +43,9 @@ export function deploymentControls(engine: DeploymentEngine) {
 		},
 		start: Effect.fn("DeploymentStory.start")(function* (name: string, kind: "worker" | "web" | "migrate", env: Record<string, string>, port = 0) {
 			const database = yield* PostgresTestDatabase;
-			const child = yield* deployChild(kind, database.url, port, env).pipe(Effect.provide(NodeServices.layer));
+			const child = yield* deployChild(kind, database.url, port, { "STORY_CLOCK_START": String(engine.clockStart), ...env }).pipe(
+				Effect.provide(NodeServices.layer),
+			);
 			engine.processes.set(name, child);
 			return child;
 		}),

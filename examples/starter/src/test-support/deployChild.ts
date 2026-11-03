@@ -1,6 +1,6 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Deferred, Effect, Fiber, Option, Redacted, Stream } from "effect";
+import { Deferred, Duration, Effect, Fiber, Option, Queue, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 export const deployChild = Effect.fn("Test.deployChild")(function* (
@@ -15,6 +15,8 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	target.searchParams.set("application_name", `deploy_${kind}`);
 	const entry = kind === "migrate" ? "../server/migrate.ts" : "./deployApplication.ts";
 	const preload = fileURLToPath(new URL("./moduleLoads.ts", import.meta.url));
+	const commands = yield* Queue.unbounded<Uint8Array>();
+	const passed = yield* Queue.unbounded<void>();
 	const child = yield* spawner.spawn(
 		ChildProcess.make(process.execPath, ["--conditions=source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind], {
 			additionalFds: { fd3: { type: "output" } },
@@ -25,6 +27,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
 			},
 			extendEnv: false,
+			stdin: Stream.fromQueue(commands),
 		}),
 	);
 	const started = yield* Deferred.make<string, Error>();
@@ -39,6 +42,9 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 		Stream.runForEach((line) =>
 			Effect.gen(function* () {
 				logs.push(line);
+				if (line.includes("Story time passed")) {
+					yield* Queue.offer(passed, undefined);
+				}
 				if (line.includes("Workers paused")) {
 					yield* Deferred.succeed(paused, undefined);
 				}
@@ -79,6 +85,11 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 		paused: Deferred.await(paused).pipe(Effect.timeout("20 seconds")),
 		ready: Effect.raceFirst(kind === "web" ? listening : Deferred.await(started), failedToStart).pipe(Effect.timeout("20 seconds")),
 		resumed: Deferred.await(resumed).pipe(Effect.timeout("20 seconds")),
+		timePasses: (duration: Duration.Input, options?: { readonly poll?: boolean }) =>
+			Queue.offer(
+				commands,
+				new TextEncoder().encode(`${JSON.stringify({ milliseconds: Duration.toMillis(duration), poll: options?.poll !== false })}\n`),
+			).pipe(Effect.andThen(Effect.raceFirst(Queue.take(passed), failedToStart)), Effect.timeout("20 seconds")),
 		waitingForSchema: Effect.raceFirst(Deferred.await(waitingForSchema), failedToStart).pipe(Effect.timeout("20 seconds")),
 	};
 });

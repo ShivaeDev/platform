@@ -22,7 +22,7 @@ notesDeployment.it(
 		yield* workerStarts("current");
 		yield* wordCountBlocks();
 		yield* workerIsAskedToStop("current");
-		yield* workerPollPasses();
+		yield* workerPollPasses("current");
 		expect(yield* processState("current worker")).toBe("running");
 
 		yield* heldNoteIsReleased();

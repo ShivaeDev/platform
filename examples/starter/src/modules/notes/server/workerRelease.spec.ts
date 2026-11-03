@@ -10,7 +10,7 @@ notesDeployment.it(
 		yield* workerStartsWaiting("new");
 
 		const note = yield* notesOf("alice").create("New release takes over");
-		yield* workerPollPasses();
+		yield* workerPollPasses("new");
 
 		expect(yield* wordCountOf("alice", note)).toBe("not counted");
 	},
@@ -29,7 +29,7 @@ notesDeployment.it(
 		yield* workerStarts("new");
 		const queued = yield* notesOf("alice").create("New release takes over");
 
-		yield* heartbeatWindowPasses();
+		yield* heartbeatWindowPasses("old", "new");
 
 		yield* outcomes([
 			["draining note", () => wordCountOf("alice", draining), "not counted"],

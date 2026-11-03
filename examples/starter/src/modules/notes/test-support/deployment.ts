@@ -1,4 +1,4 @@
-import { Effect, Fiber } from "effect";
+import { Clock, type Duration, Effect, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
@@ -40,7 +40,7 @@ export const notesDeployment = storyKit({
 	clock: "live",
 	*create() {
 		const engine: NotesDeploymentEngine = {
-			...deploymentEngine(),
+			...deploymentEngine(yield* Clock.currentTimeMillis),
 			accounts: new Map(),
 			database: yield* storyDatabase(),
 			held: undefined,
@@ -84,9 +84,11 @@ export const notesDeployment = storyKit({
 		});
 		return {
 			...deploymentVerbs(engine, story.tell),
-			heartbeatWindowPasses: () => {
+			heartbeatWindowPasses: (draining: string, replacement: string) => {
 				story.tell("the draining worker outlives the heartbeat staleness window");
-				return Effect.sleep("6 seconds");
+				return processOf(`${draining} worker`)
+					.timePasses("6 seconds", { poll: false })
+					.pipe(Effect.andThen(processOf(`${replacement} worker`).timePasses("6 seconds")));
 			},
 			heldNoteIsReleased: () => {
 				story.tell("the lock on the held note is released");
@@ -149,14 +151,18 @@ export const notesDeployment = storyKit({
 				yield* processOf(`${release} worker`).paused;
 				return "paused";
 			}),
-			workerPollPasses: () => {
+			workerPollPasses: (release: string) => {
 				story.tell("a worker polling interval passes");
-				return Effect.sleep("1200 millis");
+				return processOf(`${release} worker`).timePasses("1200 millis");
 			},
 			workerResumes: Effect.fn("DeploymentStory.workerResumes")(function* (release: string) {
 				yield* processOf(`${release} worker`).resumed;
 				return "resumed";
 			}),
+			workerTimePasses: (release: string, duration: Duration.Input) => {
+				story.tell(`${duration} pass for the ${release} worker and its release check finishes`);
+				return processOf(`${release} worker`).timePasses(duration);
+			},
 		};
 	},
 });

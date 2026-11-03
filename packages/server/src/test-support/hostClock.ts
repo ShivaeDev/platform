@@ -15,7 +15,7 @@ export const hostClock = storyKit({
 	around: (effect) => Clock.clockWith((clock) => TestClock.withLive(withIsolatedDatabase(effect.pipe(Effect.provideService(Clock.Clock, clock))))),
 	clock: "test",
 	*create() {
-		const testing = makePgBossTesting();
+		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 		const services = yield* openHost(testing);
 		const { address } = Context.get(services, HttpServer.HttpServer);
 		if (!NetAddress.isInetAddress(address)) {
@@ -36,17 +36,21 @@ export const hostClock = storyKit({
 	runIf: databaseUrl !== undefined,
 	stages: [],
 	verbs: (state, story) => ({
+		daysPass: (days: number) =>
+			Effect.gen(function* () {
+				story.tell(`${days} days pass while the host, database and worker stay running`);
+				const live = Clock.Clock.defaultValue();
+				const started = live.monotonicTimeNanosUnsafe();
+				yield* state.testing.timePasses(Duration.days(days));
+				state.elapsed = Duration.toMillis(Duration.nanos(live.monotonicTimeNanosUnsafe() - started));
+			}),
+		deferWrite: (title: string, days: number) => {
+			story.tell(`the client asks the worker to write ${title} after ${days} days`);
+			return state.client("clock.defer", { days, title }).pipe(Effect.andThen(state.testing.waitForIdle));
+		},
 		elapsedMilliseconds: () => Effect.sync(() => state.elapsed),
 		nextHint: () => state.feed.next,
 		read: () => state.client("clock.read", undefined),
-		sevenDaysPass: () =>
-			Effect.gen(function* () {
-				story.tell("seven days pass while the host, database and worker stay running");
-				const live = Clock.Clock.defaultValue();
-				const started = live.monotonicTimeNanosUnsafe();
-				yield* TestClock.adjust("7 days");
-				state.elapsed = Duration.toMillis(Duration.nanos(live.monotonicTimeNanosUnsafe() - started));
-			}),
 		write: (title: string) => {
 			story.tell(`the client asks the worker to write ${title}`);
 			return state.client("clock.write", { title }).pipe(Effect.andThen(state.testing.waitForIdle));
