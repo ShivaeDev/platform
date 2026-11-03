@@ -1,6 +1,6 @@
 # @shivaedev/local-postgres
 
-Make development and integration tests share one persistent local PostgreSQL service. Repeat setup without rebuilding the database contents, and keep each application's database names and schema preparation in its own setup script.
+Make development and integration tests share one persistent local PostgreSQL service, or let a local application own a private instance. Keep data across starts and leave schema preparation with the application.
 
 ## Why you want this
 
@@ -112,10 +112,50 @@ The last three functions are members of the object returned by `localPostgres`, 
 
 The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/adapters/docker.ts` and `@shivaedev/local-postgres/server/adapters/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
 
+### An instance owned by a local application
+
+`appPostgres` from `@shivaedev/local-postgres/server/appPostgres.ts` initializes a cluster in `dataDirectory` and starts PostgreSQL as a child in the current Effect scope. Closing the scope sends a fast-shutdown signal and waits for the child to exit. The data directory survives; the temporary socket directory is removed. Keep the scope open for the application's lifetime:
+
+```ts
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { Effect } from "effect";
+import { hostPostgresBinaries } from "@shivaedev/local-postgres/server/adapters/hostPostgresBinaries.ts";
+import { appPostgres } from "@shivaedev/local-postgres/server/appPostgres.ts";
+
+const app = Effect.scoped(
+	Effect.gen(function* () {
+		const postgres = yield* appPostgres({ dataDirectory: "/path/to/app/data", backupsToKeep: 3 });
+		yield* Effect.log(postgres.connectionUrl);
+		yield* Effect.never;
+	}),
+);
+
+NodeRuntime.runMain(app.pipe(Effect.provide(hostPostgresBinaries()), Effect.provide(NodeServices.layer)));
+```
+
+The instance listens on a Unix socket in a directory with permissions `0700` and opens no TCP listener. `connectionUrl` selects the `postgres` database and role through that socket. Use it with the application's PostgreSQL client. App-owned mode is separate from the shared development service on port 55432.
+
+Before migrations, yield `migrateAppPostgres(instance, migrations)` from `@shivaedev/local-postgres/server/migrateAppPostgres.ts`. `migrations` is the application's Effect, such as its `@shivaedev/sql` migration entry point. The wrapper finishes a custom-format `pg_dump` before evaluating that Effect. A backup failure prevents the migration from running. Completed dumps live in `dataDirectory/backups`; `backupsToKeep` defaults to five and must be a positive integer. After each completed backup, only the newest configured number of dumps remain. The same module exports `backupAppPostgres(instance)` for an explicit backup; it returns the completed dump's path.
+
+The instance reads its binaries from the `PostgresBinaries` port in `@shivaedev/local-postgres/server/PostgresBinaries.ts`. `hostPostgresBinaries(directory?)` supplies host executables: either from the supplied directory, from `PATH`, or from `pg_config --bindir` when `postgres` is absent from `PATH`. It checks `initdb`, `postgres` and `pg_dump`. Another adapter can supply the port's `initdb`, `postgres` and `pgDump` paths without changing instance management.
+
+Before starting an existing cluster, the instance compares `PG_VERSION` with the server binary's major version. A mismatch fails with `AppPostgresVersionMismatch` from `@shivaedev/local-postgres/server/AppPostgresVersionMismatch.ts`, carrying `dataDirectory`, `expectedMajor` and `observedMajor`. It does not initialize or upgrade that data directory. Choose upgrades and restores outside this package.
+
+App-owned mode needs host PostgreSQL server and client binaries and a Unix-socket-capable system. Its real-instance stories skip with a diagnostic when those binaries are absent; set `PLATFORM_LOCAL_POSTGRES_BIN_DIRECTORY` to run them with a particular installed binary directory.
+
 ### Install and machine setup
+
+For shared development and test setup tooling:
 
 ```sh
 pnpm add --save-dev @shivaedev/local-postgres @effect/platform-node effect
+```
+
+For an app-owned instance, install these as runtime dependencies:
+
+```sh
+pnpm add @shivaedev/local-postgres @effect/platform-node effect
 ```
 
 The package requires Node 24 or later and uses Effect as a peer dependency. It needs host `psql` or a local Docker installation. SQL uses host `psql` when available and falls back to the container's client when the host executable is missing. Both clients receive the connection password through `PGPASSWORD`, outside the command line. Query failures retain PostgreSQL's diagnostics and command failure details (and a platform `cause` when a process cannot start) without exposing the connection password.
@@ -132,8 +172,8 @@ Yield `dockerEnvironment` from `@shivaedev/local-postgres/server/dockerEnvironme
 
 ### Limits
 
-- The service version, port, container name and volume name are fixed. Choose any upgrade and data-preservation procedure outside this package.
-- Keep commands in development and test setup tooling; setup never becomes an application request path.
+- The shared service's version, port, container name and volume name are fixed. Choose any upgrade and data-preservation procedure outside this package.
+- Keep shared-service commands in development and test setup tooling. App-owned mode manages the local child's lifetime; runtime queries belong to the application's SQL client.
 - Keep allowed names, schema changes, test isolation and cleanup in the application. Preparation is not a database reset.
 - A prepared database name has 1–63 lowercase letters, digits or underscores and starts with a letter. An allowlisted connection URL does not bypass this SQL-name constraint.
 - Concurrent creation of the same absent database is not supported. Prepare databases before parallel tests begin.
