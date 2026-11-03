@@ -1,124 +1,100 @@
-import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect, Predicate } from "effect";
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { Effect } from "effect";
 import { act } from "react";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AppAccess } from "#AppAccess.ts";
-import { foundation } from "#admin/foundation.ts";
-import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
-import { clientModules } from "#client/modules.ts";
-import { SessionApp } from "#client/SessionApp.tsx";
-import { adminRegistration } from "#modules/notes/client/admin/registration.tsx";
-import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
-import type { ScreenSurface } from "#test-support/screenState.ts";
-import { acquireScreen, screenView } from "#test-support/screenState.ts";
+import type { AppAccess } from "#AppAccess.ts";
+import { makeFoundationClient } from "#client/admin/foundation.ts";
+import { notesHttp } from "#modules/notes/test-support/http.ts";
+import { startHost } from "#test-support/host.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
-import { failedJob } from "./backend.ts";
-import { adminClient } from "./client.ts";
+import { openScreen } from "./openScreen.tsx";
 
-const { UsersPage } = foundation;
-
-const warnings = expectNoReactWarnings();
-
-interface Screen extends ScreenSurface {
-	client: ReturnType<typeof adminClient>;
-	switchSession: (() => Promise<void>) | undefined;
+type Account = Effect.Success<ReturnType<typeof mintUser>>;
+export interface AdminScreen extends ScreenSurface {
+	readonly accounts: Map<string, Account>;
+	readonly host: Effect.Success<ReturnType<typeof startHost>>;
 }
 
 export const adminScreens = storyKit({
+	around: withIsolatedDatabase,
 	clock: "live",
-	create: (): Screen => ({ client: adminClient(), switchSession: undefined, view: undefined }),
-	inspect: (engine) => ({ activeStreams: engine.client.backend.state.activeStreams, text: engine.view?.container.textContent }),
+	*create(): Generator<ReturnType<typeof startHost>, AdminScreen, never> {
+		return { accounts: new Map(), host: yield* startHost(), view: undefined };
+	},
+	inspect: (engine) => ({ accounts: [...engine.accounts.keys()], baseUrl: engine.host.baseUrl, text: engine.view?.container.textContent }),
+	layer: postgres,
 	name: "admin screen",
-	stages: ["backend", "screen"],
+	stages: ["accounts", "notes", "screen"],
 	verbs: (engine, story) => {
 		const ui = uiScreenVerbs(engine, story.tell);
+		const controls = screenDriver({ act, root: () => screenView(engine).container, tell: story.tell });
 		function container() {
 			return screenView(engine).container;
 		}
+		function userRow(name: string) {
+			const found = [...container().querySelectorAll("tbody tr")].find((row) =>
+				row.querySelectorAll("td")[1]?.textContent.includes(`${name}@app.test`),
+			);
+			if (found === undefined) {
+				throw new Error(`No Users row for ${name}`);
+			}
+			return found;
+		}
 		return {
-			changesSession: () =>
-				Effect.promise(() => {
-					story.tell("the signed-in session changes to bob");
-					if (engine.switchSession === undefined) {
-						throw new Error("Admin screen is not open");
-					}
-					return engine.switchSession();
-				}),
-			choosesQueue: (name: string) =>
-				Effect.promise(async () => {
-					story.tell(`choose the ${name} queue`);
-					const select = container().querySelector("select");
-					if (select === null) {
-						throw new Error("The Jobs queue picker is not rendered");
-					}
-					await act(() => {
-						select.value = name;
-						select.dispatchEvent(new Event("change", { bubbles: true }));
-					});
-				}),
-			failedJobs: () => Effect.sync(() => [...container().querySelectorAll("tbody tr button")].map((button) => button.textContent)),
+			alert: () => Effect.sync(() => container().querySelector('[role="alert"]')?.textContent ?? "no alert"),
+			assignsRole: Effect.fn("AdminScreen.assignsRole")(function* (actor: string, target: string, role: typeof AppAccess.Role.Type) {
+				story.tell(`${actor} assigns ${target} the ${role} role from another client`);
+				const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, {
+					headers: { cookie: engine.accounts.get(actor)?.headers.get("cookie") ?? "", origin: engine.host.origin },
+					webSocketConstructor: layerWebSocketConstructorWS,
+				});
+				yield* (yield* client.client)["admin.users.changeRole"]({ role, userId: engine.accounts.get(target)?.user.id ?? "missing" });
+			}),
+			choosesRole: (name: string, role: string) =>
+				Effect.andThen(controls.select({ name: `Role for ${name}@app.test`, role: "combobox" }, role), ui.settle()),
 			heading: ui.heading,
-			liveAdminStreams: () => Effect.sync(() => (engine.client.backend.state.activeStreams > 0 ? "open" : "none open")),
 			noteStatistics: () =>
 				Effect.sync(() =>
 					Object.fromEntries([...container().querySelectorAll("dl dt")].map((term) => [term.textContent, term.nextElementSibling?.textContent])),
 				),
-			offers: (label: string) =>
-				Effect.sync(() => ([...container().querySelectorAll("button")].some((button) => button.textContent === label) ? "offered" : "not offered")),
-			openJob: () =>
-				Effect.sync(() => {
-					const detail = container().querySelector('[aria-label="Job detail"]')?.textContent;
-					return detail === undefined ? "no detail" : (engine.client.backend.state.jobs.find((job) => detail.includes(job.id))?.id ?? "unknown job");
-				}),
-			opensFailedJob: (id: string) => Effect.andThen(ui.clickControl({ name: id, role: "button" }), ui.settle()),
 			opensNoteStatistics: () => Effect.andThen(ui.clickControl({ name: "Note statistics", role: "link" }), ui.settle()),
-			queueFilter: () => Effect.sync(() => [...container().querySelectorAll("select option")].map((option) => option.getAttribute("value"))),
+			queueFilter: () => Effect.sync(() => controls.selection({ name: "Queue", role: "combobox" }).options.map(({ value }) => value)),
+			refreshesUsers: () => Effect.andThen(ui.clickControl({ name: "Refresh users", role: "button" }), ui.settle()),
+			roleControl: (name: string) => Effect.sync(() => (userRow(name).querySelector("select") === null ? "not offered" : "offered")),
 			settle: ui.settle,
 			shown: ui.shown,
+			shownRole: (name: string) =>
+				Effect.sync(() => userRow(name).querySelector("select")?.value ?? userRow(name).querySelectorAll("td")[2]?.querySelector("div")?.textContent),
+			shownUsers: () =>
+				Effect.sync(() =>
+					[...container().querySelectorAll("tbody tr")]
+						.map((row) => row.querySelectorAll("td")[1]?.querySelector("div")?.textContent ?? "no email")
+						.sort((left, right) => left.localeCompare(right)),
+				),
 		};
 	},
 });
 
 export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Type = "admin") {
-	return adminScreens.trait("screen", `alice, signed in as ${role === "admin" ? "an admin" : `a ${role}`}, opens ${path}`, function* (engine) {
-		const access = yield* AppAccess.resolve(role);
-		const view = yield* acquireScreen(
-			engine,
-			AppAccess.hasPermission(role, UsersPage.route.permission)
-				? undefined
-				: { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
-		);
-		const other = adminClient();
-		const history = createMemoryHistory({ initialEntries: [path] });
-		const auth = screenAuth();
-		function connect({ id }: { readonly id: string }) {
-			const client = id === "alice" ? engine.client : other;
-			return clientModules({ id }, [foundationRegistration(client), Effect.succeed(adminRegistration(client))]);
-		}
-		function recheck() {
-			return undefined;
-		}
-		function show(id: string) {
-			return view.render(
-				<SessionApp
-					auth={auth}
-					connect={connect}
-					history={history}
-					recheck={recheck}
-					session={{ user: { id, permissions: access.permissions } }}
-					userId={id}
-				/>,
-			);
-		}
-		engine.switchSession = () => show("bob");
-		yield* Effect.promise(() => show("alice"));
+	return adminScreens.trait("screen", `alice, signed in as ${role}, opens ${path} on the real app host`, function* (engine) {
+		engine.accounts.set("alice", yield* mintUser(engine.host, "alice", role));
+		yield* openScreen(engine, path, role);
 	});
 }
 
-export const twoFailedJobs = adminScreens.trait("backend", "two note word-count jobs have failed", (engine) => {
-	engine.client.backend.state.jobs = [failedJob("first-job"), failedJob("second-job")];
-});
-export const countedNotes = adminScreens.trait("backend", "the backend has counted 7 notes with 53 words and 2 counts pending", (engine) => {
-	engine.client.backend.state.statistics = { notes: 7, pending: 2, words: 53 };
+export function adminScreenAccount(name: string, role: typeof AppAccess.Role.Type = "user") {
+	return adminScreens.trait("accounts", `${name} has a signed-in ${role} account`, function* (engine) {
+		engine.accounts.set(name, yield* mintUser(engine.host, name, role));
+	});
+}
+
+export const pendingNote = adminScreens.trait("notes", "bob creates a note whose word count is pending", function* (engine) {
+	const bob = yield* mintUser(engine.host, "bob");
+	const client = yield* notesHttp(engine.host.baseUrl, bob.headers.get("cookie") ?? "", engine.host.origin);
+	yield* client["notes.create"]({ title: "A note awaiting word count" });
 });
