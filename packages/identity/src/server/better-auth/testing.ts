@@ -36,7 +36,7 @@ export const signedInUser = Effect.fnUntraced(function* (
 	}: UserFields & {
 		readonly providerAccounts?: readonly { readonly providerId: string; readonly accountId: string }[];
 	},
-) {
+): Effect.fn.Return<Login> {
 	const context = yield* Effect.promise(() => auth.$context);
 	const user = yield* saveUser(context, fields);
 	for (const { providerId, accountId } of providerAccounts) {
@@ -45,7 +45,10 @@ export const signedInUser = Effect.fnUntraced(function* (
 	return yield* signInAgain(auth, user.id);
 });
 
-export const signInAgain = Effect.fnUntraced(function* (auth: { readonly $context: Promise<SessionContext> }, userId: string) {
+export const signInAgain = Effect.fnUntraced(function* (
+	auth: { readonly $context: Promise<SessionContext> },
+	userId: string,
+): Effect.fn.Return<Login> {
 	const { internalAdapter, sessionConfig, authCookies, secret, baseURL } = yield* Effect.promise(() => auth.$context);
 	const now = yield* Clock.currentTimeMillis;
 	const session = yield* Effect.promise(() => internalAdapter.createSession(userId, false, {}, true));
