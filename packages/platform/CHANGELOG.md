@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.38.5 - 2026-11-03
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.19.1 to 0.19.2.
+- Update `@shivaedev/form` from 0.13.1 to 0.14.0.
+- Update `@shivaedev/identity` from 0.21.0 to 0.22.0.
+- Update `@shivaedev/local-postgres` from 0.11.0 to 0.12.0.
+- Update `@shivaedev/react` from 0.36.0 to 0.37.0.
+- Update `@shivaedev/server` from 0.20.1 to 0.20.2.
+
 ## 0.38.4 - 2026-11-03
 
 ### Changed

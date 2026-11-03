@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.37.0 - 2026-11-03
+
+### Added
+
+- Editors and create forms attach observed draft storage to the form atoms' lifetime.
+
+### Fixed
+
+- Completing an older submission preserves newer shared draft input and local edits in progress.
+
 ## 0.36.0 - 2026-11-03
 
 ### Breaking

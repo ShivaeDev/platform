@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.14.0 - 2026-11-03
+
+### Added
+
+- Persist drafts through asynchronous native Effect storage operations, with optional observation across editors. Observed changes preserve local edits and adopt untouched fields.
+
+### Fixed
+
+- Clear only the submitted draft revision after a successful save, keeping newer stored input from another editor. Serialize asynchronous writes and clears, and condition metadata writes on the owned revision.
+
+### Breaking
+
+- Custom `DraftStorage.removeItem` implementations must accept `(key, expected)` and atomically remove only when the stored serialized value equals `expected`. Custom `setItem(key, value, expected?)` implementations must also compare atomically when `expected` is supplied, so rebasing accepted fields cannot overwrite newer stored input. Replace unconditional mutations with conditional mutations at the storage owner; writes without `expected` still store new local input. The browser adapter handles this contract; providers can keep synchronous reads and writes or return native Effects.
+- Lower-level `Persistence` integrations use `observe` and `revision` in place of `read`; mount the draft's atoms to own observation. Core form consumers mount `form.dirty` before reading restored input; asynchronous restoration arrives through the existing field refs. Form's React hooks attach this lifetime automatically.
+
 ## 0.13.1 - 2026-11-03
 
 ### Changed
