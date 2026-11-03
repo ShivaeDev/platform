@@ -11,6 +11,7 @@ export const restartStory = storyKit({
 			Array.from({ length: 12 }, (_, index) => `tab ${index + 1}`),
 			(tab) => openTab(host.port, tab),
 		);
+		yield* Effect.forEach(tabs, (tab) => tab.results(host.pid), { concurrency: "unbounded" });
 		return { host, tabs };
 	},
 	name: "live tabs across a host restart",
@@ -28,10 +29,11 @@ export const restartStory = storyKit({
 				}),
 			restart: () =>
 				Effect.gen(function* () {
-					story.tell("the host process is killed and a new process starts on the same port while every query remains mounted");
+					story.tell(
+						"a replacement process loads, then the host is killed and the replacement listens on the same port with every query still mounted",
+					);
 					const port = state.host.port;
-					yield* state.host.stop();
-					state.host = yield* startHost(port);
+					state.host = yield* startHost(port, state.host.stop());
 				}),
 		};
 	},
