@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/supervisor",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Scoped local process supervision for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/supervisor#readme",
 	"bugs": {

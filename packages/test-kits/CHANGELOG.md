@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2026-11-03
+
+### Added
+
+- Issue valid MCP bearer tokens with `mcpBearerToken` using the application's Better Auth issuer, signing key and persisted consent grant, so application stories exercise live grant checks.
+
 ## 0.1.1 - 2026-11-03
 
 ### Changed
