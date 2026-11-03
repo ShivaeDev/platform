@@ -3,6 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, ConfigProvider, Context, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type { Options } from "#model.ts";
+import type { WatchEvent } from "#outputEvent.ts";
 import { Watcher } from "#Watcher.ts";
 import { makeIo } from "./io.ts";
 import { makeOutput } from "./makeOutput.ts";
@@ -47,7 +48,7 @@ export const makeEngine = Effect.gen(function* () {
 	const cliEnvironment: NodeJS.ProcessEnv = { "GH_TOKEN": "test-token" };
 	const diagnostics: string[] = [];
 	const observation: { failure?: unknown } = {};
-	const lines: string[] = [];
+	const lines: WatchEvent[] = [];
 	const settings: { heartbeat?: number } = {};
 	return {
 		cli,

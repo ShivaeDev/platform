@@ -1,27 +1,27 @@
 import { Clock, Effect } from "effect";
-import type { WatchError } from "#model.ts";
+import type { HealthEvent, WatchEvent } from "#outputEvent.ts";
 
-export type Emit = (line: string) => Effect.Effect<void, WatchError>;
-export const health = Effect.fnUntraced(function* (
-	emit: Emit,
-	event: "heartbeat" | "cooldown" | "error" | "stopped",
-	fields: Record<string, unknown> = {},
-) {
+export type Emit<E = never, R = never> = (event: WatchEvent) => Effect.Effect<void, E, R>;
+export type Diagnostic<E = never, R = never> = (message: string) => Effect.Effect<void, E, R>;
+export const health = Effect.fnUntraced(function* <E, R>(emit: Emit<E, R>, fields: HealthFields) {
 	const at = new Date(yield* Clock.currentTimeMillis).toISOString();
-	yield* emit(JSON.stringify({ at, event, ...fields }));
+	yield* emit({ at, ...fields });
 });
 
-export const makeOutput = Effect.fnUntraced(function* (emit: Emit, heartbeat: number) {
+type WithoutTimestamp<T> = T extends HealthEvent ? Omit<T, "at"> : never;
+type HealthFields = WithoutTimestamp<HealthEvent>;
+
+export const makeOutput = Effect.fnUntraced(function* <E, R>(emit: Emit<E, R>, heartbeat: number) {
 	let lastOutputAt = yield* Clock.currentTimeMillis;
-	const write: Emit = Effect.fnUntraced(function* (line: string) {
-		yield* emit(line);
+	const write: Emit<E, R> = Effect.fnUntraced(function* (event: WatchEvent) {
+		yield* emit(event);
 		lastOutputAt = yield* Clock.currentTimeMillis;
 	});
 	const waitForPoll = Effect.fnUntraced(function* (interval: number, delay: number, message = "GitHub quota pacing") {
 		const next = (yield* Clock.currentTimeMillis) + delay;
 		const nextPollAt = new Date(next).toISOString();
 		if (delay > interval) {
-			yield* health(write, "cooldown", { delayMs: delay, message, nextPollAt });
+			yield* health(write, { delayMs: delay, event: "cooldown", message, nextPollAt });
 		}
 		let now = yield* Clock.currentTimeMillis;
 		while (now < next) {
@@ -31,7 +31,7 @@ export const makeOutput = Effect.fnUntraced(function* (emit: Emit, heartbeat: nu
 			}
 			const due = lastOutputAt + heartbeat;
 			if (now >= due) {
-				yield* health(write, "heartbeat", { nextPollAt });
+				yield* health(write, { event: "heartbeat", nextPollAt });
 			} else {
 				yield* Effect.sleep(Math.min(next - now, due - now));
 			}

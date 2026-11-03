@@ -5,6 +5,7 @@ import { Cause, Console, Effect, Logger, Stdio, Stream } from "effect";
 import { CliError, Command } from "effect/cli";
 import { GitHubTokenError } from "@shivaedev/github/errors.ts";
 import { WatchError } from "#model.ts";
+import { encodeJsonLine, type WatchEvent } from "#outputEvent.ts";
 import packageInfo from "#package.json" with { type: "json" };
 import { watchCommand } from "#program.ts";
 import { requestFailure } from "#requestFailure.ts";
@@ -12,8 +13,8 @@ import { watcherLayer } from "#watcherLayer.ts";
 
 const main = Effect.gen(function* () {
 	const stdio = yield* Stdio.Stdio;
-	function emit(line: string) {
-		return Stream.make(`${line}\n`).pipe(
+	function emit(event: WatchEvent) {
+		return Stream.make(encodeJsonLine(event)).pipe(
 			Stream.run(stdio.stdout({ endOnDone: false })),
 			Effect.mapError((cause) => new WatchError({ message: "Output stream failed", reason: "output" }, { cause })),
 		);
