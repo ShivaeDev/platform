@@ -34,7 +34,7 @@ const create = Effect.fnUntraced(function* () {
 			Effect.provide(
 				Layer.succeed(OauthGrants, {
 					list: () => Effect.succeed([]),
-					resolveSubject: () => Effect.succeed(Option.none()),
+					resolveGrant: () => Effect.succeed(Option.none()),
 					revokeAllClients: () => Effect.void,
 					revokeClient: () => Effect.void,
 				}),

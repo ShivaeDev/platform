@@ -24,6 +24,17 @@ export function grantVerbs(engine: Engine, tell: (line: string) => void) {
 				await engine.auth.api.deleteOAuthConsent({ body: { id: consent.id }, headers });
 			}),
 		hasRefreshToken: (client: string) => Effect.sync(() => typeof engine.refreshTokens.get(client) === "string"),
+		narrowsScopes: (name: string, scopes: string[]) =>
+			Effect.promise(async () => {
+				tell(`${name} narrows the client's consent scopes to ${scopes.join(", ")}`);
+				const headers = new Headers({ cookie: person(engine, name).cookie });
+				const consents = await engine.auth.api.getOAuthConsents({ headers });
+				const consent = consents.find((entry) => entry.clientId === clientId(engine, name));
+				if (consent === undefined) {
+					throw new Error(`${name}'s client has no consent`);
+				}
+				await engine.auth.api.updateOAuthConsent({ body: { id: consent.id, update: { scopes } }, headers });
+			}),
 		refreshes: (client: string) =>
 			Effect.promise(async () => {
 				tell(`${client}'s client exchanges its refresh token`);
@@ -48,6 +59,15 @@ export function grantVerbs(engine: Engine, tell: (line: string) => void) {
 				engine.tokens.set(client, body.access_token);
 				engine.refreshTokens.set(client, body.refresh_token);
 				return "refreshed";
+			}),
+		retainsToken: (client: string, copy: string) =>
+			Effect.sync(() => {
+				tell(`${copy} retains ${client}'s current access token`);
+				const token = engine.tokens.get(client);
+				if (token === undefined) {
+					throw new Error(`${client} has no token`);
+				}
+				engine.tokens.set(copy, token);
 			}),
 		revokesAllClients: (name: string) =>
 			Effect.suspend(() => {

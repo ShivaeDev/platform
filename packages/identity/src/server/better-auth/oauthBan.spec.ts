@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { existingGrants, oauthGrants } from "#test/better-auth/oauthGrants.ts";
+import { existingGrants } from "#test/better-auth/existingGrants.ts";
+import { oauthGrants } from "#test/better-auth/oauthGrants.ts";
 
 oauthGrants.it(
 	"alice's temporary ban refuses her grant through expiry and admits it one millisecond later",

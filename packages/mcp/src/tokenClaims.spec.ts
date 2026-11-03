@@ -4,7 +4,7 @@ import { mcp } from "#test/mcp.ts";
 import { tokenClaim } from "#test/tokenClaim.ts";
 import { holdsToken, signedIn } from "#test/traits.ts";
 
-const requiredClaims = ["client_id", "sub", "iss", "aud", "scope"] as const;
+const requiredClaims = ["grant_id", "client_id", "sub", "iss", "aud", "scope"] as const;
 
 for (const claim of requiredClaims) {
 	for (const value of [undefined, "", 42]) {
@@ -38,6 +38,7 @@ for (const claim of requiredClaims) {
 
 for (const [claim, value] of [
 	["client_id", " "],
+	["grant_id", " "],
 	["sub", " "],
 	["scope", "other"],
 	["exp", "tomorrow"],

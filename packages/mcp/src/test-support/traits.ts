@@ -9,7 +9,14 @@ function sign(engine: Engine, payload: Record<string, string | number>) {
 }
 
 function claims(engine: Engine, name: string, client: string) {
-	return { aud: engine.resource, "client_id": engine.clientIds.get(client) ?? "", iss: engine.issuer, scope: "mcp", sub: person(engine, name).id };
+	return {
+		aud: engine.resource,
+		"client_id": engine.clientIds.get(client) ?? "",
+		"grant_id": engine.grantIds.get(client) ?? "",
+		iss: engine.issuer,
+		scope: "mcp",
+		sub: person(engine, name).id,
+	};
 }
 
 export const REFUSED_TOKENS = [
@@ -53,12 +60,13 @@ export function holdsToken(name: string, kind: TokenKind = "for this endpoint", 
 		const clientId = `${client}-client`;
 		const now = DateTime.toDateUtc(yield* DateTime.now);
 		yield* Effect.promise(() => adapter.create({ data: { clientId, redirectUris: ["http://localhost:8123/callback"] }, model: "oauthClient" }));
-		yield* Effect.promise(() =>
-			adapter.create({
+		const consent = yield* Effect.promise(() =>
+			adapter.create<{ id: string }>({
 				data: { clientId, createdAt: now, scopes: ["mcp"], updatedAt: now, userId: person(engine, name).id },
 				model: "oauthConsent",
 			}),
 		);
+		engine.grantIds.set(client, consent.id);
 		engine.clientIds.set(client, clientId);
 		engine.tokens.set(client, yield* TOKENS[kind](engine, name, client));
 	});

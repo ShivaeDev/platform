@@ -41,8 +41,8 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 		if (Option.isNone(claims)) {
 			return Option.none();
 		}
-		const subject = yield* grants.resolveSubject(claims.value.sub, claims.value.client_id);
-		return Option.map(subject, (user) => ({ user }));
+		const grant = yield* grants.resolveGrant(claims.value.grant_id, claims.value.sub, claims.value.client_id);
+		return Option.filter(grant, (live) => live.scopes.includes("mcp")).pipe(Option.map(({ user }) => ({ user })));
 	});
 	const sessions = Layer.succeed(SessionPolicy, {
 		origin: options.origin,

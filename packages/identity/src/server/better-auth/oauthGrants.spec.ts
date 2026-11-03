@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { existingGrants, oauthGrants } from "#test/better-auth/oauthGrants.ts";
+import { existingGrants } from "#test/better-auth/existingGrants.ts";
+import { oauthGrants } from "#test/better-auth/oauthGrants.ts";
 
 oauthGrants.it("lists alice's client grants and their scopes", [existingGrants], function* ({ list }) {
 	expect(yield* list("alice")).toEqual([
@@ -82,3 +83,11 @@ for (const [operation, method] of [
 		expect(answer).toBe("auth unavailable with cause");
 	});
 }
+
+oauthGrants.it("a live desktop grant cannot resolve another user", [existingGrants], function* ({ subject }) {
+	expect(yield* subject("bob", "desktop")).toBe("bob");
+
+	const resolution = yield* subject("alice", "desktop", "bob");
+
+	expect(resolution).toBe("refused");
+});

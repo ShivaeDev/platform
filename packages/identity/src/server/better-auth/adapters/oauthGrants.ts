@@ -51,7 +51,7 @@ export function betterAuthOauthGrants(options: {
 			});
 			return yield* Schema.decodeUnknownEffect(Schema.Array(OauthGrant))(consents).pipe(Effect.mapError(unavailable));
 		}),
-		resolveSubject: Effect.fn("OauthGrants.resolveSubject")(function* (userId: string, clientId: string) {
+		resolveGrant: Effect.fn("OauthGrants.resolveGrant")(function* (grantId: string, userId: string, clientId: string) {
 			const now = yield* Clock.currentTimeMillis;
 			const subject = yield* Effect.tryPromise({
 				catch: unavailable,
@@ -68,18 +68,23 @@ export function betterAuthOauthGrants(options: {
 					const consent = await adapter.findOne({
 						model: "oauthConsent",
 						where: [
+							{ field: "id", value: grantId },
 							{ field: "userId", value: userId },
 							{ field: "clientId", value: clientId },
 						],
 					});
-					return consent === null ? null : user;
+					return consent === null ? null : { consent, user };
 				},
 			});
-			if (subject === null || !(yield* admitsUser(subject.id))) {
+			if (subject === null || !(yield* admitsUser(subject.user.id))) {
 				return Option.none();
 			}
-			const role: unknown = Reflect.get(subject, "role");
-			return Option.some({ email: subject.email, id: subject.id, name: subject.name, ...(typeof role === "string" ? { role } : {}) });
+			const role: unknown = Reflect.get(subject.user, "role");
+			const grant = yield* Schema.decodeUnknownEffect(OauthGrant)(subject.consent).pipe(Effect.mapError(unavailable));
+			return Option.some({
+				scopes: grant.scopes,
+				user: { email: subject.user.email, id: subject.user.id, name: subject.user.name, ...(typeof role === "string" ? { role } : {}) },
+			});
 		}),
 		revokeAllClients: (userId) => revoke(userId),
 		revokeClient: (userId, clientId) => revoke(userId, clientId),
