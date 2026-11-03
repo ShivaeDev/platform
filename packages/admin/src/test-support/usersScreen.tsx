@@ -9,7 +9,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "./Access.ts";
 import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { Page, usersEngine } from "./usersEngine.ts";
+import { mappedTables } from "./mappedTables.ts";
+import { makeUsersEngine, Page, usersEngine } from "./usersEngine.ts";
 import { availability, rowOf, screenOf, usersReadouts } from "./usersScreenReadouts.ts";
 
 type Engine = Effect.Success<typeof usersEngine> & {
@@ -32,41 +33,46 @@ function driverFor(engine: Engine, tell: (line: string) => void) {
 	});
 }
 
-export const usersScreen = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
-	create: () =>
-		Effect.map(usersEngine, (engine) => ({
-			...engine,
-			activity: Option.none<ClientActivity>(),
-			actor: "alice",
-			container: Option.none<HTMLElement>(),
-		})),
-	layer: postgresLayer,
-	name: "admin users screen",
-	runIf: postgresConfigured,
-	stages: ["users", "caller", "screen", "page"],
-	verbs: (engine, story) => {
-		const driver = driverFor(engine, story.tell);
-		return {
-			alert: () => Effect.sync(() => screenOf(engine).querySelector('[role="alert"]')?.textContent ?? "no alert"),
-			assignFromAnotherClient: (actor: string, userId: string, role: typeof Access.Role.Type) => {
-				story.tell(`${actor} assigns ${role} to ${userId} from another client`);
-				return engine.clientAs(actor).pipe(Effect.flatMap((client) => client["admin.users.changeRole"]({ role, userId })));
-			},
-			chooseRole: (name: string, role: string) => Effect.andThen(driver.within(rowOf(engine, name)).select("select", role), driver.settle()),
-			nextUsers: () => Effect.andThen(driver.click({ name: "Next users", role: "button" }), driver.settle()),
-			nextUsersButton: () =>
-				Effect.sync(() => {
-					const button = [...screenOf(engine).querySelectorAll("button")].find(({ textContent }) => textContent === "Next users");
-					return availability(button, "missing");
-				}),
-			previousUsers: () => Effect.andThen(driver.click({ name: "Previous users", role: "button" }), driver.settle()),
-			refreshUsers: () => Effect.andThen(driver.click({ name: "Refresh users", role: "button" }), driver.settle()),
-			...usersReadouts(engine, driver),
-		};
-	},
-});
+function usersScreenKit(engineEffect: typeof usersEngine) {
+	return storyKit({
+		around: withIsolatedDatabase,
+		clock: "live",
+		create: () =>
+			Effect.map(engineEffect, (engine) => ({
+				...engine,
+				activity: Option.none<ClientActivity>(),
+				actor: "alice",
+				container: Option.none<HTMLElement>(),
+			})),
+		layer: postgresLayer,
+		name: "admin users screen",
+		runIf: postgresConfigured,
+		stages: ["users", "caller", "screen", "page"],
+		verbs: (engine, story) => {
+			const driver = driverFor(engine, story.tell);
+			return {
+				alert: () => Effect.sync(() => screenOf(engine).querySelector('[role="alert"]')?.textContent ?? "no alert"),
+				assignFromAnotherClient: (actor: string, userId: string, role: typeof Access.Role.Type) => {
+					story.tell(`${actor} assigns ${role} to ${userId} from another client`);
+					return engine.clientAs(actor).pipe(Effect.flatMap((client) => client["admin.users.changeRole"]({ role, userId })));
+				},
+				chooseRole: (name: string, role: string) => Effect.andThen(driver.within(rowOf(engine, name)).select("select", role), driver.settle()),
+				nextUsers: () => Effect.andThen(driver.click({ name: "Next users", role: "button" }), driver.settle()),
+				nextUsersButton: () =>
+					Effect.sync(() => {
+						const button = [...screenOf(engine).querySelectorAll("button")].find(({ textContent }) => textContent === "Next users");
+						return availability(button, "missing");
+					}),
+				previousUsers: () => Effect.andThen(driver.click({ name: "Previous users", role: "button" }), driver.settle()),
+				refreshUsers: () => Effect.andThen(driver.click({ name: "Refresh users", role: "button" }), driver.settle()),
+				...usersReadouts(engine, driver),
+			};
+		},
+	});
+}
+
+export const usersScreen = usersScreenKit(usersEngine);
+export const mappedUsersScreen = usersScreenKit(makeUsersEngine(mappedTables));
 
 export const cannotAssignRoles = usersScreen.trait("caller", "carol reads users without permission to assign roles", (engine) => {
 	engine.actor = "carol";
