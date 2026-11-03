@@ -122,6 +122,10 @@ export function runtimeVerbs(engine: DatabaseEngine, tell: Tell) {
 			tell(`${name} asks its jobs service to ${request}`);
 			return Effect.suspend(() => answer(engine, provided(engine, name, call(runningIn(engine, name).jobs))));
 		},
+		askForJob: (as: string) => {
+			tell(`read the details of ${as}`);
+			return answer(engine, lookup(engine, as));
+		},
 		askTesting: <A, E>(name: string, request: string, call: (testing: PgBossTesting) => Effect.Effect<A, E>) => {
 			tell(`the testing controller of ${name} is asked to ${request}`);
 			return Effect.suspend(() => answer(engine, call(testingOf(engine, name))));

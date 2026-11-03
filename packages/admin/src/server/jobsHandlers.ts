@@ -1,7 +1,7 @@
-import { type Context, DateTime, Effect, Option, Schema } from "effect";
+import { type Context, DateTime, Effect, Option, type Schema } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
-import { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
+import { readJobFailure } from "@shivaedev/jobs/server/readJobFailure.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import type { jobsPage } from "#jobs/page.ts";
@@ -64,9 +64,7 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 					return Option.none();
 				}
 				const job = result.value;
-				const output = yield* Schema.decodeUnknownEffect(Schema.NullOr(JobFailure))(job.output).pipe(
-					Effect.mapError(() => new JobsPayloadInvalid({ queue })),
-				);
+				const output = yield* jobsFailures(readJobFailure(queue, job.output));
 				return Option.some({
 					attempt: job.startedOn === null ? 0 : job.retryCount + 1,
 					completedOn: Option.map(Option.fromNullishOr(job.completedOn), DateTime.makeUnsafe),
