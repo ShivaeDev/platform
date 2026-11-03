@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { constants } from "node:fs";
-import { mkdtemp, open, realpath, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
@@ -9,8 +8,8 @@ import { RequestReceipt } from "@shivaedev/work-board/attention/RequestReceipt.t
 import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
-import { directoryPath, validateDirectory } from "@shivaedev/work-board/server/responses/publicationDirectory.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { Publication, publishOnce, replaceIfUnchanged } from "@shivaedev/work-board/server/publication.ts";
 
 const { listMarkdown, markdownPath, metadataModel, metadataParse, searchSnapshot, watchChanges } = board;
 const { DAEMON_PORT, DAEMON_RPC_PATH, DiagnosticsContract, diagnostics, FleetHealth } = diagnosticsApi;
@@ -19,12 +18,13 @@ const { currentResponses, publish, questionFrom, questionId, questionMarkdown, R
 const root = await mkdtemp(join(tmpdir(), "board-integration-"));
 try {
   const realRoot = await realpath(root);
-  const directory = await open(root, constants.O_RDONLY | constants.O_DIRECTORY);
-  try {
-    await validateDirectory(directory, directoryPath(directory, realRoot), realRoot);
-  } finally {
-    await directory.close();
-  }
+  const report = { root, realRoot, path: "fleet/review.md", content: "Report" };
+  await Effect.runPromise(Effect.gen(function* () {
+    yield* publishOnce(report);
+    yield* publishOnce(report);
+    yield* replaceIfUnchanged({ ...report, expectedSource: "Report", content: "Reviewed report" });
+  }).pipe(Effect.provide(Publication.layer)));
+  assert.equal(await readFile(join(root, report.path), "utf8"), "Reviewed report");
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
     const source = "---\nid: decision.example\nkind: question\nscope: task\nurgency: blocking\nattention:\n  - id: choose\n    kind: decision\n    state: open\n    managed: true\n    response_from: [maintainer]\n    unblocks: [decision.example]\n    reason: Choose the next step\n---\n# Next step\n";
     yield* publish(root, realRoot, "decision.example", source);

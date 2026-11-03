@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Context, Deferred, Effect, Fiber, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
-import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "@shivaedev/work-board/server/adapters/fleetHealth.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import * as statusPublication from "#board/writeStatus.ts";
 import { capacityRejected, HealthSnapshot } from "#engine/health.ts";
