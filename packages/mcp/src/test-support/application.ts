@@ -1,6 +1,6 @@
 import { createServer } from "node:net";
 import { getMigrations } from "better-auth/db/migration";
-import { admin, jwt, testUtils } from "better-auth/plugins";
+import { admin, jwt } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
@@ -54,7 +54,6 @@ export const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission
 		plugins: [
 			admin(),
 			jwt(issuerPath === undefined ? {} : { jwt: { issuer: `${publicUrl}${issuerPath}` } }),
-			testUtils(),
 			mcpProvider({
 				allowDynamicClientRegistration: true,
 				allowUnauthenticatedClientRegistration: true,
