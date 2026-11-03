@@ -21,7 +21,7 @@ export default [
 		.from(browser)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts"),
+				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts", "packages/jobs/src/display.ts"),
 				browser,
 				packages("access"),
 				packages("contract", "errors", "types"),
@@ -38,7 +38,7 @@ export default [
 		.from(client)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts"),
+				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts", "packages/jobs/src/display.ts"),
 				client,
 				browser,
 				packages("access"),

@@ -144,7 +144,7 @@ The read stays in notes because notes owns the table. The [client registration](
 
 ### Built-in Jobs page
 
-Share each queue's name and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.
+Share each queue's name, optional display label, subject columns and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.
 
 ```ts
 import { Schema } from "effect";
@@ -152,7 +152,12 @@ import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 
 const MailPayload = Schema.Struct({ id: Schema.NumberFromString });
-const JobsPage = jobsPage({ name: "mail", schema: MailPayload });
+const JobsPage = jobsPage({
+	name: "mail",
+	label: "Email delivery",
+	schema: MailPayload,
+	subject: [{ field: "id", label: "Message" }],
+});
 const Admin = adminRegistry(JobsPage);
 ```
 
@@ -177,17 +182,19 @@ The default `jobsPage` declares no commands, and its bound client has no retry o
 
 #### Mount the Jobs view
 
-Bind the page contract to the application's AtomRpc client and pass the shared queue names to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
+Bind the page contract to the application's AtomRpc client and pass `JobsPage.queues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
 import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 
 const jobs = bind(JobsPage.contract, Client);
 
-<JobsView api={jobs} queues={queueNames} />;
+<JobsView api={jobs} queues={JobsPage.queues} />;
 ```
 
 For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omitting `retry` leaves the view read-only. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
+
+Queue and schedule labels replace internal names in the queue picker and selected queue heading. A queue's `subject` columns select fields from its masked inspection payload; numbers display as decoded values, and missing fields display `—`. Native `Redacted` fields and sensitive keys remain masked. Failed and dead-lettered jobs use the same subject columns, with dead-letter copies under their source queue's tab rather than separate queue choices. String-only queue lists remain supported and show internal names without subject columns. `defineQueue` checks subject field names against its payload Schema; browser-safe declarations can use `SubjectColumn<typeof PayloadSchema>` from `@shivaedev/jobs/display.ts` to check columns before sharing them with the server.
 
 ## Declare retry explicitly
 

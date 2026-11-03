@@ -1,8 +1,18 @@
+import { Predicate } from "effect";
 import type { ReactNode } from "react";
+import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { JobButton } from "./JobButton.tsx";
 import type { AdminJob } from "./jobsTypes.ts";
 
-export function JobTable({ jobs, select }: { readonly jobs: readonly AdminJob[]; readonly select: (job: AdminJob) => void }) {
+interface JobTableProps {
+	readonly jobs: readonly AdminJob[];
+	readonly select: (job: AdminJob) => void;
+	readonly subject?: QueueDisplay["subject"];
+}
+
+const noSubjectColumns: NonNullable<QueueDisplay["subject"]> = [];
+
+export function JobTable({ jobs, select, subject = noSubjectColumns }: JobTableProps) {
 	return (
 		<table className="block w-full text-left text-sm sm:table">
 			<caption className="sr-only">Jobs and failures</caption>
@@ -13,18 +23,31 @@ export function JobTable({ jobs, select }: { readonly jobs: readonly AdminJob[];
 							{label}
 						</th>
 					))}
+					{subject.map(({ field, label }) => (
+						<th className="p-3" key={field} scope="col">
+							{label}
+						</th>
+					))}
 				</tr>
 			</thead>
 			<tbody className="grid gap-4 sm:table-row-group">
 				{jobs.map((job) => (
-					<JobRow job={job} key={job.id} select={select} />
+					<JobRow job={job} key={job.id} select={select} subject={subject} />
 				))}
 			</tbody>
 		</table>
 	);
 }
 
-function JobRow({ job, select }: { readonly job: AdminJob; readonly select: (job: AdminJob) => void }) {
+function JobRow({
+	job,
+	select,
+	subject,
+}: {
+	readonly job: AdminJob;
+	readonly select: (job: AdminJob) => void;
+	readonly subject: NonNullable<QueueDisplay["subject"]>;
+}) {
 	const failure = ("sourceOutput" in job ? job.sourceOutput : job.output)?.message ?? "No failure recorded.";
 	return (
 		<tr className="block min-w-0 rounded-md border sm:table-row">
@@ -34,8 +57,21 @@ function JobRow({ job, select }: { readonly job: AdminJob; readonly select: (job
 			<JobCell label="State">{job.state}</JobCell>
 			<JobCell label="Attempt">{job.attempt}</JobCell>
 			<JobCell label="Failure">{failure}</JobCell>
+			{subject.map(({ field, label }) => (
+				<JobCell key={field} label={label}>
+					{subjectValue(job.data, field)}
+				</JobCell>
+			))}
 		</tr>
 	);
+}
+
+function subjectValue(data: unknown, field: string): string {
+	const value = Predicate.isObject(data) ? data[field] : undefined;
+	if (value === undefined || value === null) {
+		return "—";
+	}
+	return typeof value === "string" ? value : JSON.stringify(value);
 }
 
 function JobCell({ label, children }: { readonly label: string; readonly children: ReactNode }) {

@@ -3,18 +3,24 @@ import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { Users } from "./pages.ts";
-import { Scheduled } from "./Scheduled.ts";
+import { ScheduledWorker } from "./ScheduledWorker.ts";
 
 export const Mail = defineQueue({
+	label: "Email delivery",
 	name: "mail",
 	schema: Schema.Struct({
 		href: Schema.optionalKey(Schema.Redacted(Schema.String)),
 		id: Schema.NumberFromString,
 		token: Schema.optionalKey(Schema.String),
 	}),
+	subject: [
+		{ field: "id", label: "Message" },
+		{ field: "href", label: "Link" },
+		{ field: "token", label: "Token" },
+	],
 });
 export const Sync = defineQueue({ name: "sync", schema: Schema.Struct({ key: Schema.String }) });
 export const Private = defineQueue({ name: "private", schema: Schema.Struct({ id: Schema.Number }) });
 export function pages() {
-	return adminRegistry(jobsPageWithRetry({ name: Mail.name, schema: Mail.schema }, { name: Sync.name, schema: Sync.schema }, Scheduled), Users);
+	return adminRegistry(jobsPageWithRetry(Mail, Sync, ScheduledWorker), Users);
 }

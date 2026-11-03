@@ -1,17 +1,30 @@
 import { useState } from "react";
+import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { JobList } from "./JobList.tsx";
 import { JobsMetrics } from "./JobsMetrics.tsx";
 import { JobsQueryPanel } from "./JobsQueryPanel.tsx";
 import type { JobsViewClient, RetryJob } from "./jobsTypes.ts";
 
-export function JobsQueueView({ api, queue, retry }: { readonly api: JobsViewClient; readonly queue: string; readonly retry: RetryJob | undefined }) {
+export function JobsQueueView({
+	api,
+	label,
+	queue,
+	retry,
+	subject,
+}: {
+	readonly api: JobsViewClient;
+	readonly label?: string | undefined;
+	readonly queue: string;
+	readonly retry: RetryJob | undefined;
+	readonly subject?: QueueDisplay["subject"];
+}) {
 	const [kind, setKind] = useState<"failed" | "deadLettered">("failed");
 	const counts = useQuery(api.counts.query({ queue }));
 	return (
 		<>
 			<section aria-label="Queue counts" className="space-y-4">
-				<h2 className="text-xl font-semibold">Queue counts</h2>
+				<h2 className="text-xl font-semibold">{label ?? queue}</h2>
 				<JobsQueryPanel state={counts}>
 					{(value) => (
 						<JobsMetrics values={{ Active: value.activeCount, Failed: value.failedCount, Queued: value.queuedCount, Total: value.totalCount }} />
@@ -24,7 +37,7 @@ export function JobsQueueView({ api, queue, retry }: { readonly api: JobsViewCli
 						["failed", "Failed"],
 						["deadLettered", "Dead-lettered"],
 					] as const
-				).map(([value, label]) => (
+				).map(([value, tabLabel]) => (
 					<button
 						aria-controls={`jobs-${value}-panel`}
 						aria-selected={kind === value}
@@ -35,12 +48,12 @@ export function JobsQueueView({ api, queue, retry }: { readonly api: JobsViewCli
 						role="tab"
 						type="button"
 					>
-						{label}
+						{tabLabel}
 					</button>
 				))}
 			</div>
 			<div aria-labelledby={`jobs-${kind}-tab`} id={`jobs-${kind}-panel`} role="tabpanel">
-				<JobList api={api} key={kind} kind={kind} queue={queue} retry={retry} />
+				<JobList api={api} key={kind} kind={kind} queue={queue} retry={retry} subject={subject} />
 			</div>
 		</>
 	);
@@ -51,7 +64,7 @@ export function JobsQueuePicker({
 	select,
 	value,
 }: {
-	readonly queues: readonly string[];
+	readonly queues: readonly (string | QueueDisplay)[];
 	readonly select: (queue: string) => void;
 	readonly value: string;
 }) {
@@ -63,11 +76,14 @@ export function JobsQueuePicker({
 				onChange={(event) => select(event.target.value)}
 				value={value}
 			>
-				{queues.map((name) => (
-					<option key={name} value={name}>
-						{name}
-					</option>
-				))}
+				{queues.map((queue) => {
+					const { name, label } = typeof queue === "string" ? { name: queue } : queue;
+					return (
+						<option key={name} value={name}>
+							{label ?? name}
+						</option>
+					);
+				})}
 			</select>
 		</label>
 	);
