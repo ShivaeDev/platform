@@ -1,7 +1,7 @@
 import { Cause, Option, Predicate } from "effect";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
-import type { Delete, Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/notes.ts";
 import type { NotesClient } from "./make.ts";
 
 export function NoteDelete({
@@ -15,7 +15,7 @@ export function NoteDelete({
 	readonly onDeleted: () => void;
 	readonly saving: boolean;
 }) {
-	const action = useAction(client.runtime, (input: typeof Delete.payload.Type) => client.api.delete.run(input), { onSuccess: onDeleted });
+	const action = useAction(client.runtime, client.api.delete.run, { onSuccess: onDeleted });
 	const failure = Option.flatMap(action.cause, Cause.findErrorOption);
 	const failureMessage = Option.isSome(failure) && (
 		<p className="text-destructive text-sm" role="alert">
