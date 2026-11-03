@@ -2,6 +2,13 @@ import { expect } from "@effect/vitest";
 import { prWatchAuthentication, signedOut } from "#test/prWatchAuthentication.ts";
 import { refusal } from "#test/refusal.ts";
 
+prWatchAuthentication.it("an empty PR watch needs no GitHub authentication", [signedOut], function* (story) {
+	yield* story.startEmpty({});
+
+	expect(story.authenticationCommands()).toEqual([]);
+	expect(story.requests()).toEqual([]);
+});
+
 for (const [name, variables, token] of [
 	["GH_TOKEN ahead of GITHUB_TOKEN", { "GH_TOKEN": "primary-token", "GITHUB_TOKEN": "fallback-token" }, "primary-token"],
 	["GITHUB_TOKEN when GH_TOKEN is absent", { "GITHUB_TOKEN": "fallback-token" }, "fallback-token"],

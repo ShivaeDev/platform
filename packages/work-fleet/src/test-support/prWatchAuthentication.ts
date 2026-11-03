@@ -3,7 +3,10 @@ import { ConfigProvider, Context, Effect, FileSystem, Layer } from "effect";
 import type { Options } from "@shivaedev/pr-watch/model.ts";
 import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { githubApiLayer } from "#host/githubApi.ts";
+import { eventKinds } from "#host/watchEvents.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";
+import { watchPullRequests } from "#host/watchPullRequests.ts";
 import { githubCli } from "#test/githubCli.ts";
 import { watchPrApi } from "#test/watchPrApi.ts";
 
@@ -21,12 +24,13 @@ export const prWatchAuthentication = storyKit({
 			repository: "example/repository",
 			stateFile: `${directory}/state.json`,
 		};
-		return { api, cli: githubCli(new Map([["token", "fleet-gh-token"]])), options };
+		return { api, cli: githubCli(new Map([["token", "fleet-gh-token"]])), directory, options };
 	},
 	layer: NodeServices.layer,
 	name: "Fleet PR watch authentication",
 	stages: ["authentication"],
 	verbs: (engine, story) => ({
+		authenticationCommands: () => engine.cli.commands,
 		poll: (watcher: typeof Watcher.Service) =>
 			Effect.gen(function* () {
 				story.tell("poll the watched pull request");
@@ -43,10 +47,28 @@ export const prWatchAuthentication = storyKit({
 			story.tell("start Fleet's PR watcher");
 			return Layer.build(
 				watchPrLayer(() => Effect.void).pipe(
+					Layer.provide(githubApiLayer),
 					Layer.provide(engine.cli.layer),
 					Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnvRecord(variables))),
 				),
 			).pipe(Effect.map((context) => Context.get(context, Watcher)));
+		},
+		startEmpty: (variables: Record<string, string>) => {
+			story.tell("start a PR watch with no active repositories");
+			return watchPullRequests(
+				{
+					board: engine.directory,
+					events: eventKinds,
+					intervalMs: 500,
+					prEvents: true,
+					stuckMs: 1_800_000,
+					workIds: [],
+				},
+				() => Effect.void,
+			).pipe(
+				Effect.flatMap((watcher) => watcher.update([])),
+				Effect.provide(Layer.merge(engine.cli.layer, ConfigProvider.layer(ConfigProvider.fromEnvRecord(variables)))),
+			);
 		},
 	}),
 });
