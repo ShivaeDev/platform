@@ -3,7 +3,7 @@ import { type FileHandle, open, realpath } from "node:fs/promises";
 import { Effect, Schema } from "effect";
 import { FLEET_HEALTH_NAME, FleetHealth } from "#diagnostics/health.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
-import { directoryPath, validateDirectory } from "#server/responses/publicationDirectory.ts";
+import { directoryPath, validateDirectory } from "./publicationDirectory.ts";
 
 function readFailure(error: unknown): SourceFailure {
 	if (error instanceof SourceFailure) {

@@ -240,8 +240,6 @@
 {"path":"packages/work-board/src/server/diagnostics/codexProtocol.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/diagnostics/codexRateLimits.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/server/diagnostics/codexRateLimits.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/work-board/src/server/diagnostics/fleetHealth.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/work-board/src/server/diagnostics/fleetHealth.ts","rule":"effect/boundary","count":21}
 {"path":"packages/work-board/src/server/document/read.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/document/requests.ts","rule":"effect/boundary","count":6}
 {"path":"packages/work-board/src/server/document/targets.ts","rule":"effect/adapter-imports","count":1}
@@ -296,13 +294,6 @@
 {"path":"packages/work-board/src/server/responses/locate.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/responses/optionPrompt.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/responses/optionPrompt.unit.test.ts","rule":"effect/boundary","count":5}
-{"path":"packages/work-board/src/server/responses/publicationDirectory.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/work-board/src/server/responses/publicationDirectory.ts","rule":"effect/boundary","count":8}
-{"path":"packages/work-board/src/server/responses/publish.ts","rule":"effect/adapter-imports","count":3}
-{"path":"packages/work-board/src/server/responses/publish.ts","rule":"effect/boundary","count":25}
-{"path":"packages/work-board/src/server/responses/publishIn.ts","rule":"biome/plugin","count":1}
-{"path":"packages/work-board/src/server/responses/publishIn.ts","rule":"effect/adapter-imports","count":3}
-{"path":"packages/work-board/src/server/responses/publishIn.ts","rule":"effect/boundary","count":36}
 {"path":"packages/work-board/src/server/responses/readingActions.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/responses/records.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-board/src/server/responses/registerQuestion.ts","rule":"effect/service-parameters","count":1}
