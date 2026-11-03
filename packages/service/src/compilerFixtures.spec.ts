@@ -70,3 +70,26 @@ for (const [definition, fixture, reason] of rejections) {
 		expect(yield* rejection()).toContain(reason);
 	});
 }
+
+compilerStory.it(
+	"an undeclared Reactivity requirement names the write method and Reactivity in the type error",
+	[],
+	function* ({ compileInvalid, rejection }) {
+		yield* compileInvalid("methodReactivity");
+
+		expect(yield* rejection()).toContain('MethodHasUndeclaredServiceRequirements<"write", Reactivity>');
+	},
+);
+
+compilerStory.it(
+	"each invalid method names all its missing services, excluding declared services and caller scope",
+	[],
+	function* ({ compileInvalid, rejection }) {
+		yield* compileInvalid("methodRequirements");
+
+		yield* outcomes([
+			["read diagnostic", () => rejection(), expect.stringContaining('MethodHasUndeclaredServiceRequirements<"read", Secret>')],
+			["write diagnostic", () => rejection(), expect.stringContaining('MethodHasUndeclaredServiceRequirements<"write", Reactivity | Secret>')],
+		]);
+	},
+);
