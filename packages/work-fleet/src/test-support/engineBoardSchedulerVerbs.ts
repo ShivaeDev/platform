@@ -1,9 +1,5 @@
-import { Deferred, Effect } from "effect";
-import { run } from "#engine/scheduler.ts";
-import { Fleet } from "#fleet.ts";
 import type { SessionReceipt } from "#session/schema.ts";
-import { type EngineStory, running } from "#test/engineState.ts";
-import { openFleetBoard } from "#test/withFleetBoard.ts";
+import type { EngineStory } from "#test/engineState.ts";
 
 export function engineBoardSchedulerVerbs(state: EngineStory, tell: (line: string) => void) {
 	function provider() {
@@ -27,28 +23,5 @@ export function engineBoardSchedulerVerbs(state: EngineStory, tell: (line: strin
 			tell(`hold the provider observation of ${receipt.turnId}`);
 			return provider().hold(receipt.sessionId);
 		},
-		startBoardReadScheduler: (workId: string) =>
-			Effect.gen(function* () {
-				tell("start the autonomous scheduler with a Board admission read");
-				if (state.root === "") {
-					return yield* Effect.die("No Markdown Board is configured");
-				}
-				const board = yield* openFleetBoard(state.root);
-				const fleet = running(state).fleet;
-				const reconciled = yield* Deferred.make<
-					Effect.Success<ReturnType<typeof fleet.reconcile>>,
-					Effect.Error<ReturnType<typeof fleet.reconcile>>
-				>();
-				const sleeping = yield* Deferred.make<void>();
-				const pause = Deferred.succeed(sleeping, undefined).pipe(Effect.andThen(Effect.never));
-				const runner = yield* Effect.scoped(run(pause, board.get(workId).pipe(Effect.asVoid, Effect.orDie))).pipe(
-					Effect.provideService(Fleet, {
-						...fleet,
-						reconcile: (id) => fleet.reconcile(id).pipe(Effect.onExit((exit) => Deferred.done(reconciled, exit))),
-					}),
-					Effect.forkChild,
-				);
-				return { reconciled: Deferred.await(reconciled), runner, sleeping: Deferred.await(sleeping) };
-			}),
 	};
 }

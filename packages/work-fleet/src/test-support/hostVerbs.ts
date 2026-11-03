@@ -49,10 +49,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 	return {
 		...answerApplicationRaceVerbs(engine, tell),
 		...preparationReadVerbs(engine, tell),
-		awaitSchedulerPause: () => {
-			tell("wait for the scheduler to enter its GitHub-paced pause");
-			return engine.schedulerPaused ?? Effect.die("Configure a paced scheduler first");
-		},
 		...missedBoardEventVerbs(engine, tell),
 		...admissionFetchVerbs(engine, tell),
 		...codexHostVerbs(engine, tell),

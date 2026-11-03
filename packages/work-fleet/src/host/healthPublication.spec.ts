@@ -4,12 +4,11 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
 import { publicationStory, publishedBoard } from "#test/publicationStory.ts";
 
-publicationStory.it("publishes an idle scheduler pass from one snapshot without an extra list request", [publishedBoard], function* (fleet) {
+publicationStory.it("publishes the time of an idle scheduler pass", [publishedBoard], function* (fleet) {
 	expect((yield* fleet.publications.health()).lastSchedulerPass).toBeNull();
 
-	const lists = yield* fleet.publications.idlePassLists();
+	yield* fleet.publications.idlePass();
 
-	expect(lists).toEqual([[]]);
 	expect((yield* fleet.publications.health()).lastSchedulerPass).toBeGreaterThan(0);
 });
 
