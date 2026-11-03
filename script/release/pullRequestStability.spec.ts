@@ -56,17 +56,17 @@ releasePullRequest.it(
 	},
 );
 
-releasePullRequest.it("an edited changeset replaces the applied release and PR notes", [], function* ({ pushMain, run, git, readGitHub }) {
+releasePullRequest.it("an edited changeset replaces the applied release notes", [], function* ({ pushMain, run, git }) {
 	yield* pushMain(".changeset/draft.md", PENDING);
 	yield* run();
 	const head = yield* git("rev-parse", "origin/release/next");
 	yield* pushMain(".changeset/draft.md", PENDING.replace("Keep a saved draft.", "Restore the latest draft."));
 	expect(yield* run()).toBe("updated");
 	expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-	expect((yield* readGitHub()).body).toContain("Restore the latest draft.");
+	expect(yield* git("show", "origin/release/next:packages/platform/CHANGELOG.md")).toContain("Restore the latest draft.");
 });
 
-releasePullRequest.it("removing a pending changeset removes its notes from the standing release", [], function* ({ pushMain, run, git, readGitHub }) {
+releasePullRequest.it("removing a pending changeset removes its notes from the standing release", [], function* ({ pushMain, run, git }) {
 	yield* pushMain(".changeset/draft.md", PENDING);
 	yield* pushMain(".changeset/removed.md", PENDING.replace("Keep a saved draft.", "A withdrawn fix."));
 	yield* run();
@@ -75,7 +75,6 @@ releasePullRequest.it("removing a pending changeset removes its notes from the s
 	yield* git("commit", "-m", "Withdraw pending fix");
 	yield* git("push", "origin", "main");
 	expect(yield* run()).toBe("updated");
-	expect((yield* readGitHub()).body).not.toContain("A withdrawn fix.");
 	expect(yield* git("show", "origin/release/next:packages/platform/CHANGELOG.md")).not.toContain("A withdrawn fix.");
 });
 

@@ -5,8 +5,9 @@ import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 const LATER = PENDING.replace("Keep a saved draft.", "Restore the latest draft.");
+const NOTES = "origin/release/next:packages/platform/CHANGELOG.md";
 
-releasePullRequest.it("a conflicting release with successful CI stays frozen", [], function* ({ pushMain, run, git, readGitHub, setCiRun }) {
+releasePullRequest.it("a conflicting release with successful CI stays frozen", [], function* ({ pushMain, run, git, setCiRun }) {
 	yield* pushMain(".changeset/draft.md", PENDING);
 	yield* run();
 	yield* setCiRun("completed", "success");
@@ -17,8 +18,8 @@ releasePullRequest.it("a conflicting release with successful CI stays frozen", [
 
 	yield* outcomes([
 		["release head", () => git("rev-parse", "origin/release/next"), head],
-		["PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
-		["later notes", () => readGitHub(), { body: expect.not.stringContaining("Restore the latest draft.") }],
+		["release notes", () => git("show", NOTES), expect.stringContaining("Keep a saved draft.")],
+		["later release notes", () => git("show", NOTES), expect.not.stringContaining("Restore the latest draft.")],
 	]);
 });
 
@@ -70,20 +71,20 @@ for (const [status, conclusion, reason] of [
 	releasePullRequest.it(
 		`${status} approved CI freezes the release while a newer changeset lands on main`,
 		[],
-		function* ({ pushMain, run, git, readGitHub, setCiRun }) {
+		function* ({ pushMain, run, git, setCiRun }) {
 			yield* pushMain(".changeset/draft.md", PENDING);
 			yield* run();
 			yield* setCiRun(status, conclusion);
 			const head = yield* git("rev-parse", "origin/release/next");
-			expect((yield* readGitHub()).body).not.toContain("Restore the latest draft.");
+			expect(yield* git("show", NOTES)).not.toContain("Restore the latest draft.");
 			yield* pushMain(".changeset/later.md", LATER);
 
 			expect(yield* run()).toBe(`held: ${reason}`);
 
 			yield* outcomes([
 				["release head", () => git("rev-parse", "origin/release/next"), head],
-				["original PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
-				["later PR notes", () => readGitHub(), { body: expect.not.stringContaining("Restore the latest draft.") }],
+				["original release notes", () => git("show", NOTES), expect.stringContaining("Keep a saved draft.")],
+				["later release notes", () => git("show", NOTES), expect.not.stringContaining("Restore the latest draft.")],
 			]);
 		},
 	);
@@ -93,7 +94,7 @@ for (const conclusion of ["failure", "cancelled"] as const) {
 	releasePullRequest.it(
 		`${conclusion} after approval lets an unrelated main push refresh the release`,
 		[],
-		function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
+		function* ({ pushMain, run, git, setCiRun, check }) {
 			yield* pushMain(".changeset/draft.md", PENDING);
 			yield* run();
 			yield* setCiRun("in_progress");
@@ -107,7 +108,7 @@ for (const conclusion of ["failure", "cancelled"] as const) {
 
 			yield* outcomes([
 				["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
-				["original PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
+				["original release notes", () => git("show", NOTES), expect.stringContaining("Keep a saved draft.")],
 				["released main change", () => git("show", "origin/release/next:README.md"), "Another main push."],
 				["validated release", () => check().pipe(Effect.as("valid")), "valid"],
 			]);
@@ -132,7 +133,8 @@ releasePullRequest.it(
 
 		yield* outcomes([
 			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
-			["reopened PR", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft."), open: true }],
+			["reopened PR", () => readGitHub(), { open: true }],
+			["release notes", () => git("show", NOTES), expect.stringContaining("Restore the latest draft.")],
 		]);
 	},
 );
