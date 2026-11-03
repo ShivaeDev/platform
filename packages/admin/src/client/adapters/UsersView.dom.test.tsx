@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { bobCanAssignRoles, cannotAssignRoles, onLastPage, twentyOneUsers, usersScreen, viewOpen } from "#test/usersScreen.tsx";
+import { bobCanAssignRoles, cannotAssignRoles, mappedUsersScreen, onLastPage, twentyOneUsers, usersScreen, viewOpen } from "#test/usersScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -37,43 +37,48 @@ const firstPage = [
 	"d17",
 ];
 
-usersScreen.it(
-	"carol can read users' names, emails, roles and sign-up times without role controls",
-	[cannotAssignRoles, viewOpen],
-	function* ({ roleControl, shownUsers }) {
-		yield* outcomes([
-			["alice's role control", () => roleControl("alice"), "no role control"],
-			["shown users", () => shownUsers(), [alice, bob, carol]],
-		]);
-	},
-);
+for (const [screen, mapping] of [
+	[usersScreen, "default"],
+	[mappedUsersScreen, "custom"],
+] as const) {
+	screen.it(
+		`carol opens the ${mapping} users page and reads names, emails, roles and sign-up times without role controls`,
+		[cannotAssignRoles, viewOpen],
+		function* ({ roleControl, shownUsers }) {
+			yield* outcomes([
+				["alice's role control", () => roleControl("alice"), "no role control"],
+				["shown users", () => shownUsers(), [alice, bob, carol]],
+			]);
+		},
+	);
 
-usersScreen.it(
-	"next users moves from twenty users to the twenty-first user, where next users is disabled",
-	[twentyOneUsers, viewOpen],
-	function* ({ nextUsers, nextUsersButton, shownNames }) {
-		expect(yield* shownNames()).toEqual(firstPage);
+	screen.it(
+		`the ${mapping} users page moves from twenty users to the twenty-first user, where next users is disabled`,
+		[twentyOneUsers, viewOpen],
+		function* ({ nextUsers, nextUsersButton, shownNames }) {
+			expect(yield* shownNames()).toEqual(firstPage);
 
-		yield* nextUsers();
+			yield* nextUsers();
 
-		yield* outcomes([
-			["next users", () => nextUsersButton(), "disabled"],
-			["shown users", () => shownNames(), ["d18"]],
-		]);
-	},
-);
+			yield* outcomes([
+				["next users", () => nextUsersButton(), "disabled"],
+				["shown users", () => shownNames(), ["d18"]],
+			]);
+		},
+	);
 
-usersScreen.it(
-	"previous users returns from the last page to the first twenty users",
-	[twentyOneUsers, viewOpen, onLastPage],
-	function* ({ previousUsers, shownNames }) {
-		expect(yield* shownNames()).toEqual(["d18"]);
+	screen.it(
+		`the ${mapping} users page returns from the last page to the first twenty users`,
+		[twentyOneUsers, viewOpen, onLastPage],
+		function* ({ previousUsers, shownNames }) {
+			expect(yield* shownNames()).toEqual(["d18"]);
 
-		yield* previousUsers();
+			yield* previousUsers();
 
-		expect(yield* shownNames()).toEqual(firstPage);
-	},
-);
+			expect(yield* shownNames()).toEqual(firstPage);
+		},
+	);
+}
 
 usersScreen.it(
 	"alice makes bob an auditor and sees his saved role with the role control enabled again",
