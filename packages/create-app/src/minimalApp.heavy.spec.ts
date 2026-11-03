@@ -18,7 +18,17 @@ application.it(
 		yield* createApp("my-app", "--minimal", "--no-git");
 
 		yield* outcomes([
-			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/", "tooling/notes/"]],
+			[
+				"only in the full app",
+				() => filesOnlyIn("full/my-app"),
+				[
+					"src/modules/notes/",
+					"tooling/notes/browser-check/live.ts",
+					"tooling/notes/browser-check/rpcFrames.ts",
+					"tooling/notes/browser-check/rpcFrames.unit.test.ts",
+					"tooling/notes/browser-check/run.ts",
+				],
+			],
 			["only in the minimal app", () => filesMissingFrom("full/my-app"), []],
 			[
 				"different files",

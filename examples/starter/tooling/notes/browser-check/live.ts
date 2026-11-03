@@ -4,7 +4,7 @@ import { Browser } from "@shivaedev/browser-check/Browser.ts";
 import { BrowserCheckError } from "@shivaedev/browser-check/BrowserCheckError.ts";
 import { rpcHint, rpcListRequest } from "./rpcFrames.ts";
 
-export const liveNotes = Effect.fn("Starter.liveNotes")(function* (
+export const liveNotes = Effect.fn("Notes.liveNotes")(function* (
 	url: string,
 	folder: string,
 	credentials: { readonly email: string; readonly password: string },
