@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { isForbidden, isServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Screen, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";

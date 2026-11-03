@@ -11,7 +11,10 @@ export default defineConfig({
 			typeof project === "object" && "test" in project && project.test?.name === "dom"
 				? {
 						...project,
-						test: { ...project.test, environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts")) },
+						test: {
+							...project.test,
+							environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/adapters/domEnvironment.config.ts")),
+						},
 					}
 				: project,
 		),

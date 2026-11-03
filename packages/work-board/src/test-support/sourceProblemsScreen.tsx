@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SystemSourceProblems } from "#client/react/SystemSourceProblems.tsx";
 import { rpcCall } from "./nativeRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";

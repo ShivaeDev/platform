@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { health } from "#test/diagnostics.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
 import { fleetHealth, unreadableHome } from "#test/screenEnvironment.ts";

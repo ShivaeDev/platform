@@ -4,7 +4,7 @@ import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { idleRegistry } from "./idleRegistry.ts";
 import { routerApp } from "./routerApp.ts";

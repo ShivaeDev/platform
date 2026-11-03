@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
+import { seedCookies } from "#server/adapters/seedCookies.ts";
 import { domFetch } from "#server/domFetch.ts";
 import { domNavigate } from "#server/domNavigate.ts";
 import { routeOutbound } from "#server/routeOutbound.ts";
-import { seedCookies } from "#server/seedCookies.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 

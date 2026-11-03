@@ -1,16 +1,7 @@
 import * as Effect from "effect/Effect";
-import { type DeeplyAllowMatchers, expect } from "vitest";
-import type { NumericBound } from "#server/adapters/outcomeMatchers.ts";
+import { assertOutcomes, type Expected } from "#server/adapters/assertOutcomes.ts";
 
 type AnyReadout = Effect.Effect<unknown, unknown, unknown>;
-type NativeMatcher = Exclude<DeeplyAllowMatchers<number>, number>;
-type Expected<T> =
-	| NativeMatcher
-	| (T extends readonly unknown[]
-			? { readonly [TKey in keyof T]: Expected<T[TKey]> }
-			: T extends object
-				? { readonly [TKey in keyof T]?: Expected<T[TKey]> }
-				: T | (T extends number ? NumericBound : never));
 
 export const outcomes = Effect.fn("Story.outcomes")(check);
 
@@ -26,5 +17,5 @@ function* check(rows: readonly (readonly [string, () => AnyReadout, unknown])[])
 		actual.push({ [label]: yield* Effect.suspend(readout) });
 		expected.push({ [label]: value });
 	}
-	expect(actual).toMatchObject(expected);
+	yield* assertOutcomes(actual, expected);
 }

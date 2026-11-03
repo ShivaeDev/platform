@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";

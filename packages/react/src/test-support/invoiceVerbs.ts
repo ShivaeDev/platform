@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import type { editing, Session, switching } from "./invoiceScreens.tsx";
 import type { Screen } from "./Screen.ts";

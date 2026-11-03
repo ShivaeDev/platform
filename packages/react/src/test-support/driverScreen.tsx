@@ -2,7 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
