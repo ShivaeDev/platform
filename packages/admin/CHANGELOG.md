@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.1 - 2026-11-03
+
+### Changed
+
+- Jobs pages read queue state through the shared jobs inspection service.
+
 ## 0.19.0 - 2026-11-03
 
 ### Added

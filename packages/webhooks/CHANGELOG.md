@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-03
+
+### Added
+
+- Webhook producers reject conflicting enqueue IDs owned by a queue definition.
+
 ## 0.5.0 - 2026-11-03
 
 ### Added

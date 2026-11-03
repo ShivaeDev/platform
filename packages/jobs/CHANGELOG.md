@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.32.0 - 2026-11-03
+
+### Added
+
+- Expose `PgBossInspection` for stored jobs, deferrals, expiry, queue diagnostics and scoped PostgreSQL queue-change signals. Jobs runtimes also expose the service through `inspection()`.
+- Refresh cached queue statistics through `testing.refreshQueueStats(queue?)` before reading health.
+- Read and await jobs with null payloads through `testing.jobs({ name, schema: Schema.Null })` and `testing.untilJob`.
+- Queues accept `id: ["field", ...]` to derive deterministic UUIDs from the queue name and typed scalar payload parts. Repeated parts deduplicate while pg-boss retains the job. Enqueueing rejects conflicting IDs owned by a queue definition.
+
+### Changed
+
+- The testing controller reads through inspection and waits on committed queue changes, including work done by another client, without production testing hooks or private settlement spies.
+
+### Fixed
+
+- Apply testing expiry controls to triggered schedule runs.
+
+### Breaking
+
+- Import `SnapshotQueue` and `UnfinishedJob` from `@shivaedev/jobs/server/inspection.ts` instead of `server/testing.ts`.
+- Remove `__test__enableSpies` from client options. Replace `EngineClient.getSpy` waits with inspection `changes()`. Replace `getJobById(name, id)` with `storedJobs({ name }, { id })`, taking the first result; missing jobs return an empty array.
+- `testing.trigger(schedule)` returns the run ID, or null when pg-boss suppresses the send, instead of void. Consumers that require an `Effect<void>` should apply `Effect.asVoid` to the result.
+- Replace singleton `key: (payload) => string` callbacks with `key: ["field", ...]`, naming required string, number, boolean or null fields in the decoded payload schema. Use `key: []` for a queue-wide singleton key. To preserve application-specific normalization, put the normalized value in a payload field and name it as a part. Derived singleton key strings use typed tuples; drain existing singleton work before switching producers and workers together so old and new keys do not run concurrently.
+
 ## 0.31.0 - 2026-11-03
 
 ### Added
