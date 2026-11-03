@@ -50,11 +50,12 @@ database.it(
 database.it(
 	"a deferred attempt ends its job span successfully with a job.deferred event",
 	[deferring],
-	function* ({ enqueue, spans, untilDeferred, untilIdle, pollNow }) {
+	function* ({ enqueue, spans, untilDeferred, untilIdle, untilJobSpanEnds, pollNow }) {
 		yield* enqueue("app", Deferring, { id: 42 }, { as: "job 42" });
 		yield* pollNow("app", Deferring);
 		yield* untilDeferred("app", Deferring, 1);
 		yield* untilIdle("app");
+		yield* untilJobSpanEnds("job 42");
 
 		expect((yield* spans()).map(({ events, name, outcome }) => ({ events, name, outcome }))).toEqual([
 			{ events: [expect.stringMatching(/^job\.deferred \{"at":"[^"]+","reason":"Provider quota"\}$/u)], name: "deferring", outcome: "succeeded" },

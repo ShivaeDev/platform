@@ -46,6 +46,6 @@ export const database = storyKit({
 		...timeVerbs(engine, story.tell),
 		...waitingVerbs(engine, story.tell),
 		...readouts(engine),
-		...traceReadouts(engine),
+		...traceReadouts(engine, story.tell),
 	}),
 });
