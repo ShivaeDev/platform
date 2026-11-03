@@ -2,12 +2,14 @@
 "@shivaedev/contract": minor
 "@shivaedev/server": patch
 "@shivaedev/work-board": minor
+"@shivaedev/create-app": patch
 ---
 
 ### Fixed
 
 - `@shivaedev/contract`: Contract groups enforce query read policies automatically in native Effect RPC hosts as well as the application host. A false policy returns `QueryReadDenied` without running the handler. Ordinary queries evaluate their policy once per request.
 - `@shivaedev/server`: The application host uses the contract's attached guard and retains its HTTP refusal of WebSocket-only subscriptions.
+- `@shivaedev/create-app`: Generated notes test hosts supply the authenticated viewer alongside identity and session data so native contract reads use the fixture's session.
 
 ### Breaking
 

@@ -1,5 +1,6 @@
-import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
+import { Deferred, Effect, Layer, Option, PubSub, Stream } from "effect";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
@@ -27,6 +28,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	const authentication = Layer.succeed(AuthenticatedUser, (effect) =>
 		session.signedIn
 			? effect.pipe(
+					Effect.provideService(CurrentViewer, Option.some({ id: "alice" })),
 					Effect.provideService(Identity, { id: "alice" }),
 					Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice" }),
 				)
