@@ -1,8 +1,8 @@
-import { Clock, Context, Crypto, Effect, Layer, Option, Schema, Stream } from "effect";
+import { Clock, Context, Crypto, Effect, Layer, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcMiddleware, RpcTest } from "effect/rpc";
+import { RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
@@ -10,14 +10,11 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
-import { authorizeReads, CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
-import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 
 const notes = collection("denied-live-notes", Schema.String);
 class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("@shivaedev/react/test/DeniedLiveAccess") {}
-class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/react/test/DeniedLiveGuard", {
-	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
-}) {}
 const Notes = contract("deniedLive", {
 	queries: [
 		query("get", {
@@ -31,7 +28,7 @@ const Notes = contract("deniedLive", {
 			success: Schema.String,
 		}),
 	],
-}).middleware(Guard);
+});
 
 export const deniedLiveClient = Effect.gen(function* () {
 	const access: { allowed: boolean; checks: string[] } = { allowed: true, checks: [] };
@@ -64,10 +61,7 @@ export const deniedLiveClient = Effect.gen(function* () {
 	class Client extends AtomRpc.Service<Client>()("test/DeniedLiveClient", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: Layer.merge(
-			handlers,
-			Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, Option.none())),
-		).pipe(Layer.provide(Layer.succeed(Access, access))),
+		protocol: handlers.pipe(Layer.provide(Layer.succeed(Access, access))),
 		runtime,
 	}) {}
 	const api = bind(Notes, Client);

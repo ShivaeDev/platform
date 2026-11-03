@@ -28,7 +28,7 @@ expectTypeOf<QueryFailure>().toEqualTypeOf<Expected>();
 expectTypeOf<Atom.Failure<ReturnType<typeof api.list.query>>>().toEqualTypeOf<Expected>();
 expectTypeOf<Atom.Failure<ReturnType<typeof made.api.get.query>>>().toEqualTypeOf<Expected>();
 expectTypeOf<Effect.Error<ReturnType<typeof api.get.run>>>().toEqualTypeOf<
-	NoteMissing | AccessDenied | ClientOffline | RpcClientError | QueryReadDenied
+	NoteMissing | AccessDenied | ClientOffline | RpcClientError | QueryReadDenied | MissingReadPolicy | WebSocketRequired
 >();
 expectTypeOf<Failure<Extract<Rpcs, { readonly _tag: "query-failures.get" }>>>().toEqualTypeOf<Effect.Error<ReturnType<typeof api.get.run>>>();
 expectTypeOf<Atom.Failure<ReturnType<BoundQuery<Extract<Rpcs, { readonly _tag: "query-failures.get" }>, "Self">["query"]>>>().toEqualTypeOf<

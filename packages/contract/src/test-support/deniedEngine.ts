@@ -10,7 +10,7 @@ import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { Access, Guard, Records } from "./deniedContract.ts";
 import { syntheticNative } from "./resumeSources.ts";
 
@@ -49,7 +49,7 @@ export const deniedEngine = Effect.gen(function* () {
 			const viewer = Option.map(Option.fromUndefinedOr(get(socketIdentity)), (id) => ({ id }));
 			return Layer.merge(
 				handlers,
-				Layer.succeed(Guard, (effect, request) => authorizeReads(effect, request, viewer).pipe(Effect.provideService(Access, access))),
+				Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer).pipe(Effect.provideService(Access, access))),
 			);
 		},
 		runtime,

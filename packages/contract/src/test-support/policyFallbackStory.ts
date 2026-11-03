@@ -6,7 +6,7 @@ import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads, CurrentViewer, signedIn } from "#readPolicy.ts";
+import { CurrentViewer, signedIn } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "./answers.ts";
 
@@ -35,9 +35,9 @@ export const policyFallbackStory = storyKit({
 			"reads.read": () => Effect.succeed("A note"),
 		});
 		const guard = Layer.succeed(Guard, (effect, request) =>
-			authorizeReads(
+			Effect.provideService(
 				effect,
-				request,
+				CurrentViewer,
 				Option.map(Option.fromUndefinedOr(request.headers.viewer), (id) => ({ id })),
 			),
 		);

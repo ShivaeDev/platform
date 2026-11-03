@@ -26,7 +26,8 @@ export const noteQuery: Atom.Atom<
 	id: 1,
 });
 export const listQuery = api.list.query();
-export const readOnce: Effect.Effect<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError, Client> = api.get.run({ id: 1 });
+export const readOnce: Effect.Effect<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError | MissingReadPolicy | WebSocketRequired, Client> =
+	api.get.run({ id: 1 });
 
 type Invalid = Effect.Error<ReturnType<typeof Rename.reject.Invalid>>;
 export const invalidField: Invalid["field"] = "title";

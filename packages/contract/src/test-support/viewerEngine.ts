@@ -6,7 +6,7 @@ import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads, CurrentViewer, signedIn } from "#readPolicy.ts";
+import { CurrentViewer, signedIn } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
@@ -58,7 +58,7 @@ export const viewerEngine = Effect.gen(function* () {
 	function guard(session?: string) {
 		return Layer.succeed(Guard, (effect, request) => {
 			const viewer = request.headers.viewer ?? session;
-			return authorizeReads(effect, request, Option.fromUndefinedOr(viewer).pipe(Option.map((id) => ({ id })))).pipe(
+			return Effect.provideService(effect, CurrentViewer, Option.fromUndefinedOr(viewer).pipe(Option.map((id) => ({ id })))).pipe(
 				Effect.provideService(Rows, stored),
 				Effect.provideService(PolicyChecks, checks),
 			);

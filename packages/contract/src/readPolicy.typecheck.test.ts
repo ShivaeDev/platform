@@ -31,7 +31,7 @@ query("undeclared", { readPolicy: policy, reads: () => [] });
 
 type ReadRpc = Extract<RpcGroup.Rpcs<typeof Reads>, { readonly _tag: "reads.read" }>;
 type ChangesRpc = Extract<RpcGroup.Rpcs<typeof Reads>, { readonly _tag: "reads.$changes" }>;
-expectTypeOf<Rpc.ErrorExit<ReadRpc>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied>();
+expectTypeOf<Rpc.ErrorExit<ReadRpc>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired>();
 expectTypeOf<Rpc.ExtractRequires<ChangesRpc, "reads.$changes">>().toEqualTypeOf<Database>();
 declare const rpc: ReadRpc;
 const authorized = authorizeReads(Effect.void, { payload: undefined, rpc }, Option.none());

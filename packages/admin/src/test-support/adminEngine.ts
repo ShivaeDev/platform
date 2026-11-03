@@ -7,7 +7,6 @@ import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { guardReads, ReadPolicyGuard, readPolicyGuardLayer } from "@shivaedev/contract/ReadPolicyGuard.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
@@ -49,16 +48,14 @@ export const adminEngine = Effect.gen(function* () {
 		restricted: Restricted.contract.application.toLayer({ "admin.restricted.profile": () => Effect.succeed("unrestricted") }),
 	});
 	const registration = mergeAdminRegistrations(jobsModule, usersModule, restrictedModule);
-	const group = yield* guardReads(registration.group);
+	const group = registration.group;
 	const changes = hostChanges(registration.group).pipe(Layer.provide(Layer.succeed(LiveServer, live)));
 	const policy = {
 		origin: () => true,
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
 	};
-	const protocol = Layer.mergeAll(registration.handlers, changes, readPolicyGuardLayer({ websocket: true })).pipe(
-		Layer.provide(Layer.succeed(SessionPolicy, policy)),
-	);
+	const protocol = Layer.mergeAll(registration.handlers, changes).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const client = yield* RpcTest.makeClient(group).pipe(Effect.provide(protocol));
 	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {
 		group,
@@ -69,6 +66,6 @@ export const adminEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const api = bind(Jobs.contract.middleware(ReadPolicyGuard), Client, { registry });
+	const api = bind(Jobs.contract, Client, { registry });
 	return { client, liveFailedJobs: () => AtomRegistry.getResult(registry, api.failed.query()), session };
 });

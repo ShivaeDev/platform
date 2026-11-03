@@ -1,5 +1,16 @@
-import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
 import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
+
+type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
+	infer THead extends OperationShape,
+	...infer TTail extends readonly OperationShape[],
+]
+	? (THead["name"] extends TSeen ? THead["name"] : never) | Duplicated<TTail, TSeen | THead["name"]>
+	: never;
+
+export type Unique<TOperations extends readonly OperationShape[]> = [Duplicated<TOperations>] extends [never]
+	? unknown
+	: `Operation names must be unique; duplicated: ${Duplicated<TOperations>}`;
 
 export function declarationError(contractName: string, operations: readonly (QueryShape | CommandShape | StreamShape)[]): string | undefined {
 	if (operations.some(({ name }) => name === "$changes")) {
