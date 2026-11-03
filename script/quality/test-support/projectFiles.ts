@@ -52,6 +52,7 @@ it("keeps the Node host separate from the document", () => {
 		"src/flow.spec.ts",
 		'import { readFileSync } from "node:fs";\nit("reads files in ordinary Node specs", () => { expect(readFileSync("package.json", "utf8")).toContain("module"); });',
 	),
+	spec("src/toolchain.heavy.spec.ts", 'it("runs heavy specs in Node", () => { expect(typeof document).toBe("undefined"); });'),
 	spec("e2e/smoke.spec.ts", 'it("runs specs outside src", () => { expect(typeof document).toBe("undefined"); });'),
 	spec("src/long.slow.test.ts", 'it("runs slow tests on request", () => { expect(typeof document).toBe("undefined"); });'),
 	...["src/never.typecheck.test.ts", "src/typecheck.test.ts", "src/never.typecheck.spec.ts"].map((path) =>

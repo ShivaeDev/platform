@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 
-export const ENVIRONMENTS = ["dom", "slow", "typecheck", "unit"] as const;
+export const ENVIRONMENTS = ["dom", "heavy", "slow", "typecheck", "unit"] as const;
 
 export type Environment = (typeof ENVIRONMENTS)[number];
 
