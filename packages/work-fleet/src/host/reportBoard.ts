@@ -50,10 +50,10 @@ class ReportInputs extends Context.Service<
 		readonly check: (work: BoardWork) => Effect.Effect<boolean, unknown>;
 		readonly files: (observation: SessionObservation) => Effect.Effect<ReportAttachments, unknown>;
 	}
->()("Fleet/ReportInputs") {}
+>()("@shivaedev/work-fleet/ReportInputs") {}
 
 const ReportBoard = defineService({
-	id: "Fleet/ReportBoard",
+	id: "@shivaedev/work-fleet/ReportBoard",
 	initialize: Effect.gen(function* () {
 		const board = yield* BoardGateway;
 		const { root, check, files } = yield* ReportInputs;

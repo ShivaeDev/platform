@@ -16,7 +16,7 @@ import { screenTransport } from "#test/screenTransport.ts";
 import { workspaceBoard } from "#test/workspaceBoard.ts";
 
 function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions, runtime?: Atom.RuntimeFactory) {
-	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
+	class Client extends AtomRpc.Service<Reader>()("@shivaedev/work-board/RenderTest", {
 		group: workRpcs,
 		makeEffect: screenTransport(options),
 		protocol: workspaceBoard(files, options),

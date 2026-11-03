@@ -17,7 +17,7 @@ export class BoardWorkspace extends Context.Service<
 		readonly paths: () => readonly string[];
 		readonly synchronize: Effect.Effect<void, PlatformError.PlatformError>;
 	}
->()("Test/BoardWorkspace") {}
+>()("@shivaedev/work-board/BoardWorkspace") {}
 
 const missing = Effect.fail(new SourceFailure({ kind: "not-configured", message: "Source missing" }));
 

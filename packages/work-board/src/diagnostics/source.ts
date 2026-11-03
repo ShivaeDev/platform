@@ -19,7 +19,7 @@ export interface Sources {
 	readonly fleet: Source<FleetHealth>;
 	readonly github: Source<GithubLimits>;
 }
-export class DiagnosticsSources extends Context.Service<DiagnosticsSources, Sources>()("WorkBoard/DiagnosticsSources") {}
+export class DiagnosticsSources extends Context.Service<DiagnosticsSources, Sources>()("@shivaedev/work-board/DiagnosticsSources") {}
 
 export type Observation<A> = limits.Observation<A>;
 
@@ -44,10 +44,10 @@ type DiagnosticsInput =
 	| { readonly _tag: "Sources"; readonly sources: Sources }
 	| { readonly _tag: "Read"; readonly read: Effect.Success<ReturnType<typeof diagnostics>> };
 
-export class DiagnosticsConfig extends Context.Service<DiagnosticsConfig, DiagnosticsInput>()("WorkBoard/DiagnosticsConfig") {}
+export class DiagnosticsConfig extends Context.Service<DiagnosticsConfig, DiagnosticsInput>()("@shivaedev/work-board/DiagnosticsConfig") {}
 
 export const Diagnostics = defineService({
-	id: "WorkBoard/Diagnostics",
+	id: "@shivaedev/work-board/Diagnostics",
 	initialize: Effect.gen(function* () {
 		const input = yield* DiagnosticsConfig;
 		return input._tag === "Sources" ? yield* diagnostics(input.sources) : input.read;
