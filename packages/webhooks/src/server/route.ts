@@ -1,4 +1,4 @@
-import { Cause, type Config, type Context, Effect, Layer, type Redacted } from "effect";
+import { Cause, type Config, Context, Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
@@ -7,10 +7,11 @@ import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { diagnosticError } from "#server/internal/diagnostics.ts";
 import { receive } from "#server/internal/receive.ts";
 import type { WebhookSource } from "#server/registration.ts";
+import { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 
 export interface WebhookRouteOptions<TJobs, R, E = never> {
 	readonly basePath: `/${string}`;
-	readonly jobs: Context.Key<TJobs, PgBossService>;
+	readonly jobs: Context.Key<TJobs, Pick<PgBossService, "enqueue">>;
 	readonly sources: Readonly<Record<string, WebhookSource<R, E>>>;
 }
 
@@ -48,6 +49,7 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 		Effect.gen(function* () {
 			const context = yield* Effect.context<TJobs | R | SqlClient.SqlClient>();
 			const jobs = yield* options.jobs;
+			const receiving = Context.add(context, WebhookEnqueue, { enqueue: jobs.enqueue });
 			const keys = new Map<string, Redacted.Redacted<string>>();
 			for (const [name, source] of Object.entries(options.sources)) {
 				keys.set(name, yield* source.key);
@@ -65,7 +67,7 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (HttpServerResponse.isHttpServerResponse(body)) {
 						return body;
 					}
-					return yield* receive(name, source, key, body, request.headers, jobs).pipe(Effect.scoped, Effect.provideContext(context));
+					return yield* receive(name, source, key, body, request.headers).pipe(Effect.scoped, Effect.provideContext(receiving));
 				}).pipe(Effect.catch(receiptFailure)),
 			);
 		}),

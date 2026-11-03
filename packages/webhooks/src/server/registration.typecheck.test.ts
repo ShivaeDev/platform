@@ -2,8 +2,9 @@ import { Config, Context, Data, Effect, type Layer, Redacted, Schema } from "eff
 import { expectTypeOf } from "vitest";
 import type { WorkerOptions } from "@shivaedev/jobs/server/workerOptions.ts";
 import { githubSource } from "#server/github.ts";
-import { webhookEvent, webhookJob } from "#server/registration.ts";
+import { enqueueWebhookJobs, webhookEvent, webhookJob } from "#server/registration.ts";
 import { webhookRoute } from "#server/route.ts";
+import type { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 import type { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
 import { issueQueue, Jobs } from "#test/fixture.ts";
 import { SenderCheckFailed, SenderPreferences } from "#test/senderCheck.ts";
@@ -14,6 +15,8 @@ class OtherFailure extends Data.TaggedError("OtherFailure") {}
 const Payload = Schema.Struct({ number: Schema.Number });
 expectTypeOf(issueQueue.workerOptions).toEqualTypeOf<WorkerOptions>();
 const pure = webhookEvent(Payload, (payload) => [webhookJob(issueQueue, payload)]);
+const enqueued = enqueueWebhookJobs([webhookJob(issueQueue, { number: 42 })]);
+expectTypeOf<Effect.Services<typeof enqueued>>().toEqualTypeOf<WebhookEnqueue>();
 const checked = webhookEvent(Payload, (payload) =>
 	Effect.gen(function* () {
 		const preferences = yield* SenderPreferences;

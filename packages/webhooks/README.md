@@ -81,6 +81,8 @@ const Host = appHost({
 
 `databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. Register workers separately with the job definitions' `handle` method, in the processes your application chooses. A missing signing key fails the route Layer with `ConfigError`; composing it into `Host` preserves that typed error for the application's startup to handle.
 
+The route provides `WebhookEnqueue`, an Effect service exposing only the jobs service's `enqueue` method. Job requests read it when enqueued, inside the receipt transaction. Direct callers of `enqueueWebhookJobs(requests)` from `registration.ts` provide `WebhookEnqueue` from `@shivaedev/webhooks/server/WebhookEnqueue.ts` with `Effect.provideService(WebhookEnqueue, { enqueue: jobs.enqueue })`.
+
 ### Decide with services
 
 The `webhookEvent` mapping can return an Effect to read application services and the clock before accepting a verified delivery. Return an empty array to ignore it, or fail with a typed error to refuse it. Pure mappings keep the same signature.
