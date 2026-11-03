@@ -6,14 +6,14 @@ import { WebSocketRequired } from "#WebSocketRequired.ts";
 
 export class ReadPolicyGuard extends RpcMiddleware.Service<ReadPolicyGuard>()("@shivaedev/contract/ReadPolicyGuard", {
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied, WebSocketRequired]),
-}) {
-	static layer(options: { readonly websocket?: boolean } = {}) {
-		return Layer.succeed(ReadPolicyGuard, (effect, request) =>
-			!options.websocket && request.rpc._tag.endsWith(".$changes")
-				? Effect.fail(new WebSocketRequired({ message: `${request.rpc._tag} needs the WebSocket protocol` }))
-				: Effect.flatMap(CurrentViewer, (viewer) => authorizeReads(effect, request, viewer)),
-		);
-	}
+}) {}
+
+export function readPolicyGuardLayer(options: { readonly websocket?: boolean } = {}): Layer.Layer<ReadPolicyGuard> {
+	return Layer.succeed(ReadPolicyGuard, (effect, request) =>
+		!options.websocket && request.rpc._tag.endsWith(".$changes")
+			? Effect.fail(new WebSocketRequired({ message: `${request.rpc._tag} needs the WebSocket protocol` }))
+			: Effect.flatMap(CurrentViewer, (viewer) => authorizeReads(effect, request, viewer)),
+	);
 }
 
 export const guardReads = Effect.fnUntraced(function* <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
