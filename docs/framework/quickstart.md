@@ -51,9 +51,11 @@ Each module owns its page registry and handler registration. Notes declares its 
 
 Give the queue's name and payload Schema a browser-safe module, as `src/modules/notes/queue.ts` does, and pass it to `defineQueue` in the module's `server/jobs.ts`. The module's server registration supplies a producer Layer that registers the queue definitions without starting a consumer, as `server/producer.ts` does. Use `jobModule` from `@shivaedev/jobs/server/jobModule.ts` in the module's `server/worker.ts` to contribute `queues` and `workers` fields to its server registration. Register the module once in `src/server/modules.ts`; both application processes use that module list, and `workerHost` supplies its services and ports after database preparation.
 
-Call `jobs.enqueue(queue, payload)` after the command's database transaction completes. Keep enqueueing independent of application SQL transactions and handle queue failures so a queue error cannot fail a note write. The starter logs failures and returns the saved note, leaving its word count pending when enqueueing fails.
+Call `jobs.enqueue(queue, payload)` inside the command's `transact` alongside the repository write, as the notes service does. An enqueue failure rolls back the note write, so a saved note always has its word-count work queued.
 
-After the worker writes, call `invalidateOnCommit` with the contract's invalidation keys; PostgreSQL delivers the hint to the server and the mounted live subscription refetches the query.
+Mark the stored model's owner field with `bucket` from `@shivaedev/changes/buckets.ts` and pass the shared collection to `makeRepository`, as [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts) does. Wrap the worker's repository writes in `transact` from `@shivaedev/sql/transact.ts`, following [the word-count worker](../../examples/starter/src/modules/notes/server/worker.ts). Repository writes announce their record and affected bucket keys when the transaction commits; PostgreSQL delivers the hint to the server and the mounted live subscription refetches the query. Keep repository-backed commands at `invalidates: () => []`.
+
+Only raw-SQL writers declare write keys manually, using `changes` from `@shivaedev/sql/changes.ts` and its `record()` method inside the same `transact` as the SQL write. The [live-update guide](./live-updates.md#raw-sql-writers) shows this exception.
 
 ## Deploy
 

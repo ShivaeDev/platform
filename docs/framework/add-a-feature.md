@@ -30,11 +30,11 @@ Declare a native migration loader on the server registration, as shown in step 6
 
 In `src/modules/bookmarks/bookmarks.ts`, define `Bookmark` with native `Model.Class`, following `Note` in [`notes.ts`](../../examples/starter/src/modules/notes/notes.ts). Use the same `Model.Field` variants for the generated id: it is present in JSON, selects and updates, and absent from inserts. Use `Schema.NonEmptyString` for the title and derive `BookmarkFields` with `Schema.Struct({ title: Bookmark.fields.title })` for the create payload and form.
 
-In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` with the same public fields plus `userId: Schema.String`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model.
+In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` with the same public fields plus `userId: bucket(Schema.String)`, importing `bucket` from `@shivaedev/changes/buckets.ts`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model. The bucket metadata lets repository writes announce changes to each affected owner's list.
 
 ## 3. Make the repository
 
-In that server module, call `makeRepository(StoredBookmark, { idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description.
+In that server module, call `makeRepository(StoredBookmark, { collection: bookmarks, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Import the shared `bookmarks` collection declared in step 5 from `#modules/bookmarks/bookmarks.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description.
 
 Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/Service.ts) does. Selecting only public fields keeps the owner out of the response.
 
@@ -42,13 +42,15 @@ Use `insert({ userId, title })` for creation. For the list, use `findMany` with 
 
 Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`. Follow [the notes service](../../examples/starter/src/modules/notes/server/Service.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`, and expose `list(userId)` and `create(input, userId)`.
 
-Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a word-count job within its write transaction; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
+Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. The repository derives record and bucket keys from the written rows and announces them only when the transaction commits; rollback discards the write and its announcement. Keep ownership explicit in both methods. The notes service also enqueues a word-count job within its write transaction; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
+
+Workers use the same model repository and `transact` path. Only raw-SQL writers declare write keys manually: use `changes` from `@shivaedev/sql/changes.ts` and call its `record()` method inside the write's `transact`, as shown in [the live-update guide](./live-updates.md#raw-sql-writers).
 
 ## 5. Declare the contract
 
 Finish `bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/modules/notes/notes.ts). Use `collection` from `@shivaedev/changes/keys.ts` for bookmark keys, `query` and `command` from `@shivaedev/contract/operation.ts`, and `contract` from `@shivaedev/contract/contract.ts` for the group.
 
-Declare a `userId` bucket on the collection with `collection("bookmarks", Schema.Number, { userId: Schema.String })`. The list query declares a read policy requiring a session viewer and reads `bookmarks.bucket.userId(viewer.value.id)` from that viewer, returns `Schema.Array(Bookmark.json)` and declares `InternalServerError` and `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `InternalServerError`, `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created record key and the viewer's `userId` bucket. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the errors from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
+Declare a `userId` bucket on the collection with `collection("bookmarks", Schema.Number, { userId: Schema.String })`, matching the stored model's bucket field. The list query declares a read policy requiring a session viewer and reads `bookmarks.bucket.userId(viewer.value.id)` from that viewer, returns `Schema.Array(Bookmark.json)` and declares `InternalServerError` and `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `InternalServerError`, `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and sets `invalidates: () => []`. The repository already announces the created record and owner's bucket; the command adds no keys. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the errors from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
 
 Export the operation declarations as `List` and `Create` for the server boundary. Apply `AuthenticatedUser` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; its query policy decides who may read, while server services implement SQL.
 
@@ -105,7 +107,7 @@ Create `client/registration.tsx` following [the notes client registration](../..
 
 Follow [the notes create form](../../examples/starter/src/modules/notes/client/Create.tsx). Import `useCreate` from `@shivaedev/react/client/create.ts` and `useField` from `@shivaedev/form/adapters/react.ts`. Supply `BookmarkFields`, `{ title: "" }`, the client runtime and `client.api.create.run`. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
 
-Keep a label, field error, save failure and pending button state. Follow [the notes screen](../../examples/starter/src/modules/notes/client/Screen.tsx) to render `useLoaderQuery` from `@shivaedev/react/client/useLoaderQuery.ts` with the same query atom and the route's loader data. The create command's invalidation refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
+Keep a label, field error, save failure and pending button state. Follow [the notes screen](../../examples/starter/src/modules/notes/client/Screen.tsx) to render `useLoaderQuery` from `@shivaedev/react/client/useLoaderQuery.ts` with the same query atom and the route's loader data. The repository's committed bucket announcement refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
 
 ## 9. Call an outside API
 
