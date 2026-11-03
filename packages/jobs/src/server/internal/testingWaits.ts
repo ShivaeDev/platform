@@ -1,4 +1,4 @@
-import { Clock, Duration, Effect, Option, Redacted } from "effect";
+import { Clock, Duration, Effect, Option, Redacted, type Schema } from "effect";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 import type { EngineClient } from "#server/engineClient.ts";
 import { type PgBossPayloadError, PgBossTestingError, PgBossWaitError } from "#server/error.ts";
@@ -73,8 +73,8 @@ export function testingWaits(client: () => EngineClient, fetches: () => TestingF
 					options,
 				);
 			}),
-		untilJob: <TName extends string, TPayload extends JobPayloadSchema>(
-			queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
+		untilJob: <TName extends string, TPayload extends JobPayloadSchema | typeof Schema.Null>(
+			queue: { readonly name: TName; readonly schema: TPayload },
 			id: string,
 			state: JobState,
 			options?: PgBossTestingWaitOptions,
