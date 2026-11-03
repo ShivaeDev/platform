@@ -1,9 +1,9 @@
 import { Clock, Context, Effect, Fiber, Layer, Stream, SubscriptionRef } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SchedulerPasses } from "#engine/health.ts";
-import { run } from "#engine/scheduler.ts";
+import { run } from "#engine/runScheduler.ts";
 import { Fleet } from "#fleet.ts";
-import { schedulerPause } from "#host/commands.ts";
+import { schedulerCadence } from "#host/commands.ts";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
@@ -61,8 +61,8 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 		const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 		yield* api.get(PR_ENDPOINT);
 		const passes = yield* SubscriptionRef.make(0);
-		const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
-		const scheduler = yield* Effect.scoped(run(pause)).pipe(
+		const cadence = schedulerCadence.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
+		const scheduler = yield* Effect.scoped(run(cadence)).pipe(
 			Effect.provideService(SchedulerPasses, passes),
 			Effect.provideService(Fleet, running(state).fleet),
 			Effect.forkChild,

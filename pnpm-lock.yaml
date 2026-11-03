@@ -2337,6 +2337,9 @@ importers:
       '@shivaedev/pr-watch':
         specifier: workspace:*
         version: link:../pr-watch
+      '@shivaedev/reconciler':
+        specifier: workspace:*
+        version: link:../reconciler
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server

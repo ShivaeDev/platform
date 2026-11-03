@@ -1,6 +1,8 @@
 import { Effect, Tracer } from "effect";
+import { changeSignal } from "#test/changeSignal.ts";
 
 export function boardReadCounts() {
+	const changed = changeSignal();
 	const passes = { completed: 0, live: 0, peak: 0, started: 0 };
 	const documents = { completed: 0, live: 0, peak: 0, started: 0 };
 	let reconciles = 0;
@@ -39,12 +41,18 @@ export function boardReadCounts() {
 				if (options.name === "FleetHost.admitApproved") {
 					cycles += 1;
 				}
+				changed.notify();
 				return end(...args);
 			};
 			return span;
 		},
 	});
 	return {
+		awaitReconciliation: (count: number) =>
+			changed.wait(
+				Effect.sync(() => ({ cycles, reconciles })),
+				(value) => value.cycles > 0 && value.reconciles >= count,
+			),
 		observe: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer),
 		peakPasses: () => [...peakPasses],
 		snapshot: () => ({ cycles, documents: { ...documents }, passes: { ...passes }, reconciles }),

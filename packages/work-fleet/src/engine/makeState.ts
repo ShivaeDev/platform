@@ -52,7 +52,7 @@ export const makeState = Effect.gen(function* () {
 			releaseWindow: value.step === "waiting" && value.blocker?.startsWith("Waiting for release PR #") ? value.releaseWindow : undefined,
 		};
 		if (admission === undefined) {
-			if (stored.value.step === "waiting" && JSON.stringify(record) === JSON.stringify(stored.value)) {
+			if (JSON.stringify(record) === JSON.stringify(stored.value)) {
 				return Effect.succeed(stored);
 			}
 			return store.compareAndSet(value.workId, stored.version, record);

@@ -27,6 +27,7 @@ host.it(
 			),
 		).toBe(true);
 		yield* first.kill;
+		daemon.revealCloudTurns();
 		const readsDue = Math.max(...(yield* daemon.cloudRecords()).map(({ value }) => value.attempts[0]?.readRetry?.retryAt ?? 0));
 		const restarted = yield* daemon.spawnHost();
 		yield* restarted.until(() => Effect.succeed(restarted.url !== undefined));

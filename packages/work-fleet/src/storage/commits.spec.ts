@@ -21,11 +21,11 @@ isolatedStorage.it(
 		const records = `${namespace}_records`;
 		const reservations = `${namespace}_foreign_reservations`;
 		expect(changes).toEqual([
-			[records, `${records}:one`, "fleet:one", "fleet"],
-			[records, `${records}:one`, "fleet:one", "fleet"],
-			[reservations, `${reservations}:external`, "fleet"],
-			[reservations, `${reservations}:external`, "fleet"],
-			[reservations, `${reservations}:external`, "fleet"],
+			[records, `${records}:one`, "fleet:one", "fleet", "fleet-scheduling:one", "fleet-scheduling"],
+			[records, `${records}:one`, "fleet:one", "fleet", "fleet-scheduling:one", "fleet-scheduling"],
+			[reservations, `${reservations}:external`, "fleet", "fleet-scheduling"],
+			[reservations, `${reservations}:external`, "fleet", "fleet-scheduling"],
+			[reservations, `${reservations}:external`, "fleet", "fleet-scheduling"],
 		]);
 	},
 );
