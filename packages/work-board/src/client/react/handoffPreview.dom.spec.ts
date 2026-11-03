@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { parseDocument } from "yaml";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { liveForm } from "#test/answerTraits.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";

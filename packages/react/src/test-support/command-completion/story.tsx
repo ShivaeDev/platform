@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import { startTransition } from "react";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { timesWords } from "#test/outcomeWords.ts";
 import type { Screen } from "#test/Screen.ts";

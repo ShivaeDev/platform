@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { isoBeforeNow, TIME_NOW, tickingTimeScreen, timeScreen } from "#test/timeScreen.tsx";
 import { exactTime } from "./timeLabel.ts";

@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { Notice } from "#notices.ts";
 import { Rejected } from "#test/notices/Api.ts";
 import { type HeldKind, noticeClient } from "#test/notices/client.ts";

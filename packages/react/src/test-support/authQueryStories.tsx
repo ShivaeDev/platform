@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { authQuery as readAuthQuery } from "@shivaedev/identity/client/adapters/authQuery.ts";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authQuery } from "#client/authQuery.ts";
 import { type AuthError, AuthRead, type AuthReadQuery } from "./AuthRead.tsx";

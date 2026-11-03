@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthActions } from "#client/auth.ts";

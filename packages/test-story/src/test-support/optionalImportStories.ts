@@ -1,8 +1,8 @@
 import "#server/browserReads.ts";
-import "#client/react.ts";
-import "#server/memberScreens.ts";
+import "#client/adapters/react.ts";
+import "#server/adapters/memberScreens.ts";
 import "#server/otlpReceiver.ts";
-import "#server/seedCookies.ts";
+import "#server/adapters/seedCookies.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 const integrations = storyKit({

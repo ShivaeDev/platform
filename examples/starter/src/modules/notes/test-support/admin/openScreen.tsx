@@ -2,7 +2,7 @@ import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect, Predicate } from "effect";
 import { clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { App } from "#client/App.tsx";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";

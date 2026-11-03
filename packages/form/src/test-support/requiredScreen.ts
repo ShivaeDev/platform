@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act, createElement } from "react";
-import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { useField } from "#adapters/react.ts";

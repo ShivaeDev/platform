@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { vi } from "vitest";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { FormOptionsView } from "./FormOptionsView.tsx";
 import { type Kind, TitleCheck } from "./formOptionsModel.ts";

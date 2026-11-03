@@ -8,7 +8,7 @@ const domEnvironment: Environment = {
 	async setup(global: typeof globalThis, { happyDOM = {} }) {
 		// Vitest loads environments outside the project's source resolution conditions.
 		const load = createRequire(import.meta.url);
-		const { documentTransport }: typeof import("#server/internal/documentTransport.ts") = load("#server/internal/documentTransport.ts");
+		const { documentTransport }: typeof import("#server/adapters/documentTransport.ts") = load("#server/adapters/documentTransport.ts");
 		const { installOutbound }: typeof import("#server/adapters/installOutbound.ts") = load("#server/adapters/installOutbound.ts");
 		const { installDomTimers }: typeof import("#server/internal/installDomTimers.ts") = load("#server/internal/installDomTimers.ts");
 		const native = Object.fromEntries(

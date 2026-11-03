@@ -1,6 +1,6 @@
 import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { Credentials } from "#client/Credentials.ts";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import type { appAuth } from "#test-support/appAuth.ts";

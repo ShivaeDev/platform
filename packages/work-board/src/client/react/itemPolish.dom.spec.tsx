@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { itemOpened } from "#test/itemContextTraits.tsx";
 import { itemPolishFixture } from "#test/itemPolishFixture.ts";
 import { screenStory } from "#test/screenStory.ts";

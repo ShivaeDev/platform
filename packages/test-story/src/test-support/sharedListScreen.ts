@@ -1,6 +1,6 @@
 import { Effect, Exit, Scope } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { type MemberScreen, memberScreens } from "#server/memberScreens.ts";
+import { type MemberScreen, memberScreens } from "#server/adapters/memberScreens.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { sharedListHost } from "./sharedListHost.ts";

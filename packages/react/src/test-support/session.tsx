@@ -1,5 +1,5 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { Editor } from "#test/order-example/Editor.tsx";
 import { makeClient } from "#test/order-example/makeClient.ts";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import type { MemberScreen } from "#server/memberScreens.ts";
+import type { MemberScreen } from "#server/adapters/memberScreens.ts";
 
 export type DialogKind = "native" | "dialog" | "alertdialog";
 export type PortalTarget = "member" | "body";

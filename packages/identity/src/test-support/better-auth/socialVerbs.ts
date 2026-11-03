@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { signedInUser, storedProviderAccounts } from "#server/better-auth/testing.ts";
 import { readProviderAccounts } from "./providerAccounts.ts";

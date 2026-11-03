@@ -753,7 +753,7 @@ Use `storedProviderAccounts(auth, userId)` to observe credential storage through
 ```ts
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {

@@ -2,7 +2,7 @@ import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
-import { render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { RowTime, Time, TimeAsOf, TimeTicker } from "#client/react/Time.tsx";
 import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
