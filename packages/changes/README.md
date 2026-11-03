@@ -98,6 +98,19 @@ When interruption arrives while commit is in flight, the boundary waits for the 
 
 Concurrent records from Effects that inherit the same frame join that frame and publish together. Keep all write-related work within the transaction's lifetime.
 
+### Publish a command's changes
+
+`CommandPublication` from `@shivaedev/changes/commandPublication.ts` is the public port for announcing a command's declared keys after its write commits. Its `publish(keys)` operation defaults to local Reactivity invalidation. The PostgreSQL `postgresChanges` Layer supplies a binding that buffers publication within an enclosing `transact` transaction, publishes only after commit and discards keys on rollback.
+
+```ts
+import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
+
+const publication = yield* CommandPublication;
+yield* publication.publish(["notes:1"]);
+```
+
+Both `publish` and `recover` have `CommandPublicationError` in their typed failure channel; its `cause` preserves the Effect cause. A failed announcement does not undo a committed write. The command boundary handles publication failure separately from the write and can run `publication.recover`. The PostgreSQL binding resynchronizes local streams and broadcasts Resync to other hosts; identity's command wrapper keeps the committed result even when publication or recovery fails.
+
 ### Record keys and buckets
 
 `keys.ts` owns the shared dependency format for contract queries, committed writes and subscriptions. An item key identifies a record by id. A bucket identifies every row with a declared field value; a collection list key covers the whole collection.

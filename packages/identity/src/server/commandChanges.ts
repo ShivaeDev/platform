@@ -1,12 +1,19 @@
 import { Context, Effect, Option, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
-import { SqlClient } from "effect/sql";
+import { CommandPublication, type CommandPublicationError } from "@shivaedev/changes/commandPublication.ts";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { CommandInvalidation } from "@shivaedev/contract/serverMetadata.ts";
-import { CommandRecovery } from "@shivaedev/sql/internal/CommandRecovery.ts";
-import { ChangeObserver, invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
+import { ChangeObserver } from "@shivaedev/sql/transact.ts";
+
+const recoverPublication = Effect.fnUntraced(function* (cause: CommandPublicationError) {
+	yield* Effect.logError("Committed command invalidation failed; resynchronizing live streams", cause);
+	const publication = yield* CommandPublication;
+	yield* publication.recover.pipe(
+		Effect.catch((error) => Effect.logError("Committed command Resync broadcast failed; other hosts may remain stale", error)),
+	);
+});
 
 export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc.AnyWithProps, payload: unknown) {
 	const invalidates = Context.getOption(rpc.annotations, CommandInvalidation);
@@ -16,7 +23,6 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 	const declared = invalidates.value.invalidates;
 	return Effect.uninterruptibleMask((restore) =>
 		Effect.gen(function* () {
-			const sql = yield* Effect.serviceOption(SqlClient.SqlClient);
 			const reactivity = yield* Effect.serviceOption(Reactivity.Reactivity);
 			if (Option.isNone(reactivity)) {
 				return yield* restore(effect);
@@ -36,24 +42,14 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 			const viewer = yield* CurrentViewer;
 			const keys = invalidationKeys(declared(payload, result, viewer)).filter((key) => !published.has(key));
 			if (keys.length > 0) {
-				const announce = Option.isNone(sql)
-					? reactivity.value.invalidate(keys)
-					: invalidateOnCommit(keys).pipe(
-							transact({ onSqlError: (error) => error }),
-							Effect.provideService(SqlClient.SqlClient, sql.value),
-							Effect.provideService(Reactivity.Reactivity, reactivity.value),
-						);
-				yield* announce.pipe(
-					Effect.catchCause(Effect.fail),
-					Effect.retry({ schedule: Schedule.exponential("50 millis"), times: 2 }),
-					Effect.catch((cause) =>
-						Effect.gen(function* () {
-							yield* Effect.logError("Committed command invalidation failed; resynchronizing live streams", cause);
-							const recover = yield* CommandRecovery;
-							yield* recover;
-						}),
-					),
-				);
+				const publication = yield* CommandPublication;
+				yield* publication
+					.publish(keys)
+					.pipe(
+						Effect.provideService(Reactivity.Reactivity, reactivity.value),
+						Effect.retry({ schedule: Schedule.exponential("50 millis"), times: 2 }),
+						Effect.catch(recoverPublication),
+					);
 			}
 			return result;
 		}),
