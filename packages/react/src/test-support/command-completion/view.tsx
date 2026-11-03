@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { NoticeHost } from "#notices.ts";
@@ -24,31 +24,31 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 	const list = useQuery(client.list);
 	const currentList = Option.getOrElse(list.data, () => "loading");
 	const [feedback, present] = useState("");
-	const action = useAction(
-		client.runtime,
-		(input: { readonly title: string }) => {
+	const run = useMemo(
+		() => (input: { readonly title: string }) => {
 			const effect = client.run(input);
 			return state.uninterruptible ? Effect.uninterruptible(effect) : effect;
 		},
-		{
-			concurrent: state.concurrent,
-			notices: {
-				onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
-				onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
-			},
-			onFailure: (error, input) => {
-				notices.push(`${callback}: ${input.title} rejected: ${error._tag}`);
-				present(`${callback}: ${input.title} rejected: ${error._tag} / ${currentList}`);
-			},
-			onSuccess: (value, input) => {
-				if (defect) {
-					throw new Error("Presentation failed");
-				}
-				notices.push(`${callback}: ${input.title} -> ${value}`);
-				present(`${callback}: ${input.title} -> ${value} / ${currentList}`);
-			},
-		},
+		[client, state.uninterruptible],
 	);
+	const action = useAction(client.runtime, run, {
+		concurrent: state.concurrent,
+		notices: {
+			onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
+			onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
+		},
+		onFailure: (error, input) => {
+			notices.push(`${callback}: ${input.title} rejected: ${error._tag}`);
+			present(`${callback}: ${input.title} rejected: ${error._tag} / ${currentList}`);
+		},
+		onSuccess: (value, input) => {
+			if (defect) {
+				throw new Error("Presentation failed");
+			}
+			notices.push(`${callback}: ${input.title} -> ${value}`);
+			present(`${callback}: ${input.title} -> ${value} / ${currentList}`);
+		},
+	});
 	if (state.suspend !== undefined) {
 		state.attempts.push(callback);
 		throw state.suspend;

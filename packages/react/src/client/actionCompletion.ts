@@ -24,10 +24,10 @@ export function useActionSource<TInput, A, E, R, TRuntimeError>(
 	const registry = useContext(RegistryContext);
 	const recheck = useSessionRecheck();
 	const notices = useContext(NoticeContext);
-	const latestRef = useRef({ options, recheck, run });
+	const latestRef = useRef({ options, recheck });
 	useInsertionEffect(() => {
-		latestRef.current = { options, recheck, run };
-	}, [options, recheck, run]);
+		latestRef.current = { options, recheck };
+	}, [options, recheck]);
 	const concurrent = options.concurrent;
 	const owner = useMemo(() => {
 		const lifetime = { active: false, registry };
@@ -60,11 +60,10 @@ export function useActionSource<TInput, A, E, R, TRuntimeError>(
 		}
 		function execute(input: TInput) {
 			return Effect.suspend(() => {
-				const command = latestRef.current.run;
-				if (!command) {
+				if (!run) {
 					return Effect.die(new Error("Missing command Effect"));
 				}
-				return Effect.matchEffect(command(input), {
+				return Effect.matchEffect(run(input), {
 					onFailure: (error) => rejected(error, input),
 					onSuccess: (value) => completed(value, input),
 				});
@@ -72,7 +71,7 @@ export function useActionSource<TInput, A, E, R, TRuntimeError>(
 		}
 		const atom = "fn" in source ? source.fn(execute, { concurrent }) : source;
 		return { atom, lifetime };
-	}, [source, registry, concurrent, notices]);
+	}, [source, run, registry, concurrent, notices]);
 	useInsertionEffect(() => {
 		owner.lifetime.active = true;
 		return () => {
