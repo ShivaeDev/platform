@@ -23,9 +23,11 @@ A source has a name, a verification strategy, a signing key loaded through Effec
 
 ### Register receipts and queues
 
-Register `webhookReceipts` in the host's `migrations.components` alongside `pgBossSchema()`. The normal migration mode applies it; `check` reports missing or pending receipt migrations, and `wait` waits for them. The receipt table is `webhook_receipts`, keyed by `(source, delivery_id)`, with the event, a UTC `timestamptz` received time, `queued` or `ignored` outcome, and a `text[]` column of queued job IDs. The component applies numbered migrations recorded in `webhook_receipts_migrations`, preserving existing receipts when their schema changes.
+Register `webhookReceipts()` in the host's `migrations.components` alongside `pgBossSchema()`. The normal migration mode applies it; `check` reports missing or pending receipt migrations, and `wait` waits for them. The receipt table is `webhook_receipts`, keyed by `(source, delivery_id)`, with the event, a UTC `timestamptz` received time, `queued` or `ignored` outcome, and a `text[]` column of queued job IDs. The component applies numbered migrations recorded in `webhook_receipts_migrations`, preserving existing receipts when their schema changes.
 
-When upgrading a database whose `job_ids` column is JSON, stop the older receivers, apply `webhookReceipts`, then start the new receivers. Direct SQL readers use PostgreSQL array operations for `job_ids`.
+To keep receipts separate from an application's tables, pass the same schema to `webhookReceipts({ schema: "webhooks" })` and `webhookRoute({ receiptsSchema: "webhooks", ... })`. The component creates that schema if needed and keeps both `webhook_receipts` and `webhook_receipts_migrations` there. The route qualifies its receipt queries with that schema. With both options omitted, table names remain unqualified and PostgreSQL's search path selects their schema, as before. Choosing a schema does not move receipts from another schema; keep the existing choice when retaining delivery deduplication history.
+
+When upgrading a database whose `job_ids` column is JSON, stop the older receivers, apply `webhookReceipts()`, then start the new receivers. Direct SQL readers use PostgreSQL array operations for `job_ids`.
 
 ```ts
 import { Config, Effect, Layer, Redacted, Schema } from "effect";
@@ -60,7 +62,7 @@ const Host = appHost({
 	config: { databaseUrl },
 	migrations: {
 		loader,
-		components: [pgBossSchema(), webhookReceipts],
+		components: [pgBossSchema(), webhookReceipts()],
 	},
 	application: Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;

@@ -36,6 +36,7 @@ export interface InboxState {
 	host: Fiber.Fiber<void, unknown> | undefined;
 	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
+	receiptsSchema: string | undefined;
 	receiver?: Effect.Success<ReturnType<typeof otlpReceiver>>;
 	readonly resources: ReturnType<typeof mappingResources>;
 	readonly sent: Sent[];
@@ -55,6 +56,7 @@ export function inboxState(mode: InboxState["mode"]): InboxState {
 		host: undefined,
 		logs: [],
 		mode,
+		receiptsSchema: undefined,
 		resources: mappingResources(),
 		sent: [],
 		signingKey: WEBHOOK_SECRET,
@@ -139,6 +141,7 @@ export function hostLayer(state: InboxState) {
 						routes: webhookRoute({
 							basePath: "/hooks",
 							jobs: Jobs,
+							receiptsSchema: state.receiptsSchema,
 							sources: registeredSources,
 						}).pipe(Layer.provide(jobs), Layer.provide(senderPreferences), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
 						services: jobs,
@@ -146,7 +149,7 @@ export function hostLayer(state: InboxState) {
 				}),
 				config: { databaseUrl: url },
 				migrations: {
-					components: [pgBossSchema(), webhookReceipts],
+					components: [pgBossSchema(), webhookReceipts({ schema: state.receiptsSchema })],
 					loader: Migrator.fromRecord({}),
 					...(state.mode === undefined ? {} : { mode: state.mode }),
 					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),

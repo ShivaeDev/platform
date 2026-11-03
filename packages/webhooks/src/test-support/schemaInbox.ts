@@ -27,7 +27,7 @@ export const schemaInbox = storyKit({
 	verbs: (state, story) => ({
 		applyReceipts: () => {
 			story.tell("the deployment applies the webhook receipts component");
-			return webhookReceipts.apply;
+			return webhookReceipts({ schema: state.receiptsSchema }).apply;
 		},
 		host: () =>
 			Effect.gen(function* () {
@@ -43,7 +43,7 @@ export const schemaInbox = storyKit({
 				}
 				return startup(yield* Fiber.await(state.host));
 			}),
-		pending: () => Effect.map(webhookReceipts.pending, (pending) => pending ?? "nothing pending"),
+		pending: () => Effect.map(webhookReceipts({ schema: state.receiptsSchema }).pending, (pending) => pending ?? "nothing pending"),
 		receiptJobIdsType: () => SqlClient.SqlClient.use((sql) => sql`select pg_typeof(job_ids)::text as type from webhook_receipts limit 1`),
 		receipts: () =>
 			SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by delivery_id`.withoutTransform).pipe(
@@ -57,7 +57,7 @@ export const schemaInbox = storyKit({
 });
 
 export const legacyReceipts = schemaInbox.trait("database", "receipts were recorded before the receipts migration ledger existed", function* () {
-	yield* createReceipts;
+	yield* createReceipts();
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`insert into webhook_receipts (source, delivery_id, event, received_at, outcome, job_ids) values
 		('github', 'delivery-1', 'issues', '2026-10-01T12:00:00Z', 'queued', '["second-job", "first-job"]'::jsonb),
@@ -75,3 +75,15 @@ export const hostWaitsForMigrations = schemaInbox.trait("host", "a host in wait 
 	state.host = yield* startHost(state).pipe(Effect.forkScoped);
 	yield* Deferred.await(state.waiting);
 });
+
+export function schemaReceiptsIn(schema: string) {
+	return schemaInbox.trait("database", `receipts belong to schema ${schema}`, (state) => {
+		state.receiptsSchema = schema;
+	});
+}
+
+export const defaultReceiptsInstalled = schemaInbox.trait(
+	"database",
+	"the default receipts and migration ledger already exist",
+	() => webhookReceipts().apply,
+);
