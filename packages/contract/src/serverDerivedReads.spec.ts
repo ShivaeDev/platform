@@ -48,7 +48,7 @@ for (const adapter of [
 
 for (const empty of [false, true]) {
 	derivedReadsStory.it(
-		`the ${empty ? "empty" : "populated"} timeline includes a list created after subscribing through its shared scope key`,
+		`the ${empty ? "empty" : "populated"} timeline includes a list created after subscribing through its membership key`,
 		[...(empty ? [emptyTimeline] : []), viewingTimeline],
 		function* ({ create, shown, waitForBody }) {
 			expect(yield* shown()).toEqual(empty ? [] : ["First", "Second"]);
