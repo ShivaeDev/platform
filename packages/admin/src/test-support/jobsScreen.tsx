@@ -1,37 +1,29 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
+import { vi } from "vitest";
 import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { JobsView } from "#client/adapters/JobsView.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { idOf, nameOf } from "./jobsNames.ts";
-import { pages } from "./jobsPages.ts";
+import { idOf, named } from "./jobsNames.ts";
+import { Mail, pages } from "./jobsPages.ts";
+import { type JobsScreenEngine, jobsReadouts, screenOf } from "./jobsScreenReadouts.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
-type Engine = Effect.Success<typeof jobsEngine> & { screen: Rendered | undefined };
-
-function screenOf(engine: Engine) {
-	if (engine.screen === undefined) {
-		throw new Error("The jobs screen is not open");
-	}
-	return engine.screen.container;
-}
-
-function driverFor(engine: Engine, tell: (line: string) => void) {
+function driverFor(engine: JobsScreenEngine, tell: (line: string) => void) {
 	return screenDriver({ act, pending: activityScreenSignal(engine.activity), root: () => screenOf(engine), tell });
 }
 
 export const jobsScreen = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	*create(): Generator<typeof jobsEngine, Engine, never> {
+	*create(): Generator<typeof jobsEngine, JobsScreenEngine, never> {
 		const engine = yield* jobsEngine;
-		const screen: Rendered | undefined = undefined;
-		return { ...engine, screen };
+		return { ...engine, screen: undefined };
 	},
 	inspect: (engine) => ({ responses: engine.responses, text: engine.screen?.container.textContent }),
 	layer: postgresLayer,
@@ -41,32 +33,27 @@ export const jobsScreen = storyKit({
 	verbs: (engine, story) => {
 		const driver = driverFor(engine, story.tell);
 		return {
-			alerts: () => Effect.sync(() => [...screenOf(engine).querySelectorAll('[role="alert"]')].map(({ textContent }) => textContent)),
+			...jobsReadouts(engine, driver),
 			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
+			failNextRead: () =>
+				Effect.gen(function* () {
+					story.tell("the next HTTP read loses its connection");
+					const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("The connection closed"));
+					yield* Effect.addFinalizer(() => Effect.sync(() => fetch.mockRestore()));
+				}),
+			nextPage: () => Effect.andThen(driver.click({ name: "Next", role: "button" }), driver.settle()),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
-			queueHeading: () => Effect.sync(() => screenOf(engine).querySelector('section[aria-label="Queue counts"] h2')?.textContent),
+			previousPage: () => Effect.andThen(driver.click({ name: "Previous", role: "button" }), driver.settle()),
+			refresh: (section: "Jobs health" | "Queue counts" | "Job detail" | "Job list") => {
+				const target = section === "Job list" ? '[role="tabpanel"]' : `section[aria-label="${section}"]`;
+				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driver.settle());
+			},
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
-			screenText: () => Effect.sync(() => screenOf(engine).textContent),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
-			shownJobs: () =>
-				Effect.sync(() =>
-					[...screenOf(engine).querySelectorAll("tbody tr")].map((row) => {
-						const cells = [...row.querySelectorAll("td > div")].map(({ textContent }) => textContent ?? "");
-						return { attempt: cells[2], failure: cells[3], job: nameOf(engine, cells[0] ?? ""), state: cells[1] };
-					}),
-				),
-			shownQueues: () => Effect.sync(() => driver.selection("select").options.map(({ label }) => label)),
-			shownSubjectColumns: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("thead th")].slice(4).map(({ textContent }) => textContent)),
-			shownSubjects: () =>
-				Effect.sync(() => {
-					const headings = [...screenOf(engine).querySelectorAll("thead th")].slice(4).map(({ textContent }) => textContent ?? "");
-					return [...screenOf(engine).querySelectorAll("tbody tr")].map((row) => {
-						const cells = [...row.querySelectorAll("td > div")].map(({ textContent }) => textContent ?? "");
-						return {
-							job: nameOf(engine, cells[0] ?? ""),
-							subject: Object.fromEntries(headings.map((heading, index) => [heading, cells[index + 4]])),
-						};
-					});
+			sendMail: (id: number) =>
+				Effect.gen(function* () {
+					story.tell(`enqueue mail ${id}`);
+					named(engine, Option.getOrThrow(yield* engine.jobs.enqueue(Mail, { id }, { retryLimit: 0 })), `mail ${id}`);
 				}),
 			stateOf: (name: string) =>
 				engine.client["admin.jobs.job"]({ id: idOf(engine, name), queue: "mail" }).pipe(
