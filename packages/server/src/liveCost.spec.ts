@@ -15,7 +15,7 @@ for (const queries of [1, 8]) {
 
 			yield* outcomes([
 				["query results", () => results(), Array.from({ length: 12 }, () => Array.from({ length: queries }, () => "Changed"))],
-				["session and read cost", () => Effect.sync(cost), { checks: 36 * queries, lookups: 12 + 12 * queries, reruns: 12 * queries }],
+				["session and read cost", () => Effect.sync(cost), { checks: 24 * queries, lookups: 12 + 12 * queries, reruns: 12 * queries }],
 			]);
 		},
 	);

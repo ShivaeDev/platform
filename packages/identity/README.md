@@ -643,25 +643,26 @@ const handlers = Api.toLayer({
 
 Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
-Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping commands with `commandChanges` before providing `Identity`:
+Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping commands with `commandChanges` before providing `Identity` and `CurrentViewer`:
 
 ```ts
 import { Effect, Layer, Option } from "effect";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 
 const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
 	Effect.gen(function* () {
 		const session = yield* requireTransportSession(headers, rpc);
-		return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
+		return yield* commandChanges(effect, rpc, payload).pipe(
+			Effect.provideService(CurrentViewer, Option.some({ id: session.user.id })),
 			Effect.provideService(Identity, { id: session.user.id }),
 		);
 	}),
 );
 ```
 
-`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` handles commands outside session middleware; custom auth middleware applies `commandChanges` inside its authenticated invocation. If a raw SQL transaction explicitly announces dependencies, use `invalidationKeys(keys)` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+`MyAuthentication` declares `provides: Identity` and its authentication errors. It supplies the validated session viewer through `CurrentViewer`; the application host installs contract’s `ReadPolicyGuard` to evaluate query policies once per request. Custom hosts serve `yield* guardReads(group)` and provide `ReadPolicyGuard.layer()`, both from `@shivaedev/contract/ReadPolicyGuard.ts`. Session middleware supplies identity and session validity; the contract guard owns read-policy evaluation. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` handles commands outside session middleware; custom auth middleware applies `commandChanges` inside its authenticated invocation. If a raw SQL transaction explicitly announces dependencies, use `invalidationKeys(keys)` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
 
 ### Session freshness in streams
 
