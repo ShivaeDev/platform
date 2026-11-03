@@ -1,5 +1,7 @@
-import { Effect, Order, Schedule } from "effect";
+import { Effect, Order } from "effect";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { entryModules } from "./entryModules.ts";
+import { pageSettlesOn } from "./pageSettle.ts";
 import { type BoardEngine, connected } from "./storyEngine.ts";
 
 const PAGE_LIMIT = "10 seconds";
@@ -11,20 +13,12 @@ function chunkFamilies(engine: BoardEngine) {
 }
 
 export function readingBoardVerbs(engine: BoardEngine, tell: (line: string) => void) {
-	// The bundle page offers no event for its own rendering or for chunk fetches, so these waits sample what the page records.
-	function sampled(signal: string, check: () => boolean) {
-		return Effect.sync(() => tell(`wait until ${signal}`)).pipe(
-			Effect.andThen(
-				Effect.sync(check).pipe(
-					Effect.flatMap((done) => (done ? Effect.void : Effect.fail("waiting" as const))),
-					Effect.retry(Schedule.spaced("10 millis")),
-					Effect.timeoutOrElse({ duration: PAGE_LIMIT, orElse: () => Effect.die(new Error(`The bundle page never reached: ${signal}`)) }),
-				),
-			),
-		);
-	}
 	return {
-		chunkArrives: (family: string) => sampled(`the page fetches its ${family} chunk`, () => chunkFamilies(engine).includes(family)),
+		chunkArrives: (family: string) =>
+			until(connected(engine).page.chunks, (chunks) => chunks.some((chunk) => CHUNK.exec(chunk)?.groups?.family === family), {
+				name: `the page fetches its ${family} chunk`,
+				timeout: PAGE_LIMIT,
+			}).pipe(Effect.asVoid),
 		chunkFetched: (family: string) =>
 			Effect.sync(() => {
 				tell(`the reader checks how often the page fetched its ${family} chunk`);
@@ -54,8 +48,10 @@ export function readingBoardVerbs(engine: BoardEngine, tell: (line: string) => v
 				return page.mermaidRequests.map((request) => request.replace(board.url, ""));
 			}),
 		pageShows: (route: string) =>
-			sampled(
-				`the page marks ${route} as rendered`,
+			pageSettlesOn(
+				engine,
+				tell,
+				`the page marks ${route} as rendered and completes its requests`,
 				() => connected(engine).page.document.getElementById("doc")?.getAttribute("data-route") === route,
 			),
 	};

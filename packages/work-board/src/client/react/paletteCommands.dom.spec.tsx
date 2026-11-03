@@ -6,13 +6,13 @@ import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 import { screenTheme } from "#test/screenWorkspaceTraits.ts";
-import { searchOpened } from "#test/shellTraits.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
 screenStory.it(
 	"the empty palette offers Go to for each view and each open goal, but not a finished goal, linked to its page",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ resultGroups, results }) {
 		yield* outcomes([
 			[
@@ -44,7 +44,7 @@ screenStory.it(
 
 screenStory.it(
 	"palette commands carry no kind subtitle, while a goal's command keeps the goal's ID",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ results }) {
 		expect(yield* results("title", "source")).toEqual([
 			{ source: undefined, title: "Go to Today" },
@@ -63,7 +63,7 @@ screenStory.it(
 for (const query of ["workspace", "project.workspace", "calmer"]) {
 	screenStory.it(
 		`searching ${JSON.stringify(query)} lists the goal once, first, as its Go to command`,
-		[searchOpened(paletteFixture())],
+		[searchScreen(paletteFixture())],
 		function* ({ firstResult, resultsLinkingTo, searchFor }) {
 			yield* searchFor(query);
 
@@ -75,7 +75,7 @@ for (const query of ["workspace", "project.workspace", "calmer"]) {
 	);
 }
 
-screenStory.it("searching Library ranks Go to Library first", [searchOpened(paletteFixture())], function* ({ firstResult, searchFor }) {
+screenStory.it("searching Library ranks Go to Library first", [searchScreen(paletteFixture())], function* ({ firstResult, searchFor }) {
 	yield* searchFor("Library");
 
 	expect(yield* firstResult()).toBe("Go to Library");
@@ -83,7 +83,7 @@ screenStory.it("searching Library ranks Go to Library first", [searchOpened(pale
 
 screenStory.it(
 	"choosing the theme command switches to the dark theme without leaving the page",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ browserPath, chooseResult, searchFor, shellPreferences }) {
 		yield* searchFor("theme");
 		const address = yield* browserPath();

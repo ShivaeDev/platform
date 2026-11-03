@@ -1,6 +1,7 @@
 import { Deferred, Effect, Stream } from "effect";
 import type { BrowserWindow } from "happy-dom";
-import { until } from "@shivaedev/test-story/server/until.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { pageRoot } from "./pageRoot.ts";
 import { type BoardEngine, connected } from "./storyEngine.ts";
 
 const SETTLE_MS = 10_000;
@@ -96,14 +97,13 @@ export const pageSettlesOn = Effect.fn("Story.pageSettlesOn")(function* (
 	const recorder = recordedTraffic(engine);
 	const since = recorder.answersAtSettle;
 	const window = connected(engine).page.window;
-	const current = Effect.sync(() => ({
-		pending: recorder.requests === 0 || !matches(recorder.answers, since) || busy(engine, recorder, window),
-		requests: waiting(engine, recorder),
-	}));
+	const current = Effect.sync(() => waiting(engine, recorder).length > 0);
 	const changes = Stream.fromEffectRepeat(Effect.promise(() => recorder.activity()).pipe(Effect.andThen(current)));
-	yield* until(Stream.concat(Stream.fromEffect(current), changes), (state) => !state.pending && state.requests.length === 0, {
-		name: line,
-		timeout: SETTLE_MS,
-	});
+	yield* screenDriver({
+		pending: () => recorder.requests === 0 || !matches(recorder.answers, since) || busy(engine, recorder, window),
+		root: () => pageRoot(window),
+		tell,
+		transport: Stream.concat(Stream.fromEffect(current), changes),
+	}).settle({ timeoutMs: SETTLE_MS });
 	recorder.answersAtSettle = recorder.answers.length;
 });

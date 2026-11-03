@@ -131,7 +131,7 @@ export const screenStory = storyKit({
 			settlingVerbs(engine, own, ["boardView", "captureReading", "documentView", "read", "routed", "screen"]),
 			settlingVerbs(engine, answerActions(story.tell)),
 			settlingVerbs(engine, readingActions(story.tell)),
-			settlingVerbs(engine, timeActions(engine, story.tell), ["advanceClock"]),
+			settlingVerbs(engine, timeActions(engine, story.tell)),
 			settlingVerbs(engine, appearanceActions(story.tell)),
 			readoutVerbs(engine, screenObservations(engine, story.tell)),
 			screenRoles(engine, story.tell),

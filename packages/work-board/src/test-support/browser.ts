@@ -1,4 +1,4 @@
-import { Effect, type Scope } from "effect";
+import { Effect, type Scope, type Stream, SubscriptionRef } from "effect";
 import { Browser, type BrowserWindow } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { type RunningBoard, rawGet } from "#test/board.ts";
@@ -30,6 +30,7 @@ export interface LiveStream {
 
 export interface OpenPage {
 	readonly chunkRequests: readonly string[];
+	readonly chunks: Stream.Stream<readonly string[]>;
 	readonly close: () => Promise<void>;
 	readonly document: BrowserWindow["document"];
 	readonly mermaid: MermaidControl;
@@ -53,6 +54,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	{ holds = new Map(), ready = true }: { readonly holds?: ReadonlyMap<string, Promise<void>>; readonly ready?: boolean } = {},
 ) {
 	const chunkRequests: string[] = [];
+	const chunks = yield* SubscriptionRef.make<readonly string[]>([]);
 	const mermaidRequests: string[] = [];
 	const mermaidRequested = Promise.withResolvers<void>();
 	const pageRequests: PageRequests = { answered: 0, calls: [], count: 0, held: holds, methods: [] };
@@ -67,7 +69,15 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		settings: {
 			"enableCSSFileLoading": true,
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, onMermaidRequest: mermaidRequested.resolve, theme }) },
+			fetch: {
+				interceptor: pageFetch({
+					chunkRequests,
+					mermaidRequests,
+					onChunkRequest: () => Effect.runSync(SubscriptionRef.set(chunks, [...chunkRequests])),
+					onMermaidRequest: mermaidRequested.resolve,
+					theme,
+				}),
+			},
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
@@ -110,6 +120,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	}
 	return {
 		chunkRequests,
+		chunks: SubscriptionRef.changes(chunks),
 		close,
 		document: window.document,
 		mermaid,

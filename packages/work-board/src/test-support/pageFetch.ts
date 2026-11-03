@@ -22,11 +22,13 @@ export default {
 export function pageFetch({
 	chunkRequests,
 	mermaidRequests,
+	onChunkRequest,
 	onMermaidRequest,
 	theme,
 }: {
 	readonly chunkRequests: string[];
 	readonly mermaidRequests: string[];
+	readonly onChunkRequest: () => void;
 	readonly onMermaidRequest: () => void;
 	readonly theme: RawResponse;
 }): IFetchInterceptor {
@@ -36,6 +38,7 @@ export function pageFetch({
 			const requested = new URL(request.url).pathname;
 			if (requested.startsWith("/_board/react-assets/") && requested.endsWith(".js")) {
 				chunkRequests.push(requested);
+				onChunkRequest();
 			}
 			if (!requested.startsWith("/_board/mermaid/")) {
 				return Promise.resolve(undefined);

@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
@@ -40,10 +39,9 @@ export function systemScreenVerbs(engine: ScreenEngine, tell: (line: string) => 
 		diagnosticsPollPasses: () =>
 			Effect.gen(function* () {
 				tell("the 15-second diagnostics poll interval passes");
-				yield* Effect.promise(() => act(() => vi.advanceTimersByTimeAsync(DIAGNOSTICS_POLL_MS)));
+				yield* engine.clock.advance(DIAGNOSTICS_POLL_MS);
+				yield* screenSettles(engine, tell);
 			}),
-		diagnosticsPollTimer: () =>
-			reads("the reader checks whether a diagnostics poll is still scheduled", () => (vi.getTimerCount() > 0 ? "scheduled" : "none")),
 		fleetStartDialog: () =>
 			reads("the reader reads the Start Fleet popover", () => {
 				const dialog = startDialog();

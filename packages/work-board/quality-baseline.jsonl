@@ -47,7 +47,6 @@
 {"path":"packages/work-board/src/client/react/EmptyState.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/Favorite.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/client/react/Favorite.tsx","rule":"react/jsx-conditionals","count":2}
-{"path":"packages/work-board/src/client/react/FormContext.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/client/react/FormContext.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/GoalChart.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/client/react/GoalCriteria.tsx","rule":"effect/adapter-imports","count":2}
@@ -109,7 +108,6 @@
 {"path":"packages/work-board/src/client/react/ResultFeedback.tsx","rule":"react/jsx-conditionals","count":6}
 {"path":"packages/work-board/src/client/react/ResultReview.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/SearchOutcome.tsx","rule":"react/jsx-conditionals","count":1}
-{"path":"packages/work-board/src/client/react/SearchPalette.tsx","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/client/react/SearchPalette.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/SearchResults.tsx","rule":"react/jsx-conditionals","count":8}
 {"path":"packages/work-board/src/client/react/SectionCard.tsx","rule":"effect/adapter-imports","count":1}
@@ -176,8 +174,6 @@
 {"path":"packages/work-board/src/client/react/loading.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/client/react/markdownRenderers.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/client/react/mountBoard.tsx","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"biome/plugin","count":1}
-{"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"code/unused","count":2}
 {"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/client/react/nowEligibility.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/progressWaits.dom.spec.tsx","rule":"effect/boundary","count":1}

@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { fleetItemRankingFixture } from "#test/searchRankingFixture.ts";
-import { searchOpened } from "#test/shellTraits.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -10,7 +10,7 @@ const { files, modified } = fleetItemRankingFixture();
 
 screenStory.it(
 	"searching watch lists the Done watch title match, then the open task that mentions it, then the notes heading, each task with its status",
-	[searchOpened(files, { home: undefined, modified })],
+	[searchScreen(files, { home: undefined, modified })],
 	function* ({ results, searchFor }) {
 		yield* searchFor("watch");
 
@@ -24,7 +24,7 @@ screenStory.it(
 
 screenStory.it(
 	"searching watch leaves out Fleet's status report, its reports and its decision records",
-	[searchOpened(files, { home: undefined, modified })],
+	[searchScreen(files, { home: undefined, modified })],
 	function* ({ results, searchFor }) {
 		yield* searchFor("watch");
 
@@ -38,7 +38,7 @@ screenStory.it(
 
 screenStory.it(
 	"searching records: watch ranks the Watch decision first, then the other matching work and notes, then Fleet's reports",
-	[searchOpened(files, { home: undefined, modified })],
+	[searchScreen(files, { home: undefined, modified })],
 	function* ({ results, searchFor }) {
 		yield* searchFor("records: watch");
 

@@ -6,6 +6,7 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
 import { type LiveBound, LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { type Bound, bind, makeClient } from "@shivaedev/contract/bind.ts";
+import { type ActiveClient, Activity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { Contract } from "@shivaedev/contract/contract.ts";
 import type { ResumeOptions } from "@shivaedev/contract/resume.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
@@ -32,7 +33,7 @@ type BoundContract<TContract> =
 	TContract extends Contract<infer TName, infer TQueries, infer TCommands, infer TRpcs, infer TStreams>
 		? Bound<TName, TQueries, TCommands, TRpcs, Reader, TStreams>
 		: never;
-export interface BrowserClient {
+export interface BrowserClient extends ActiveClient {
 	readonly api: BoundContract<typeof workContract>;
 	readonly handoffs: BoundContract<typeof handoffContract>;
 	readonly indexing: Atom.Atom<Indexing | undefined>;
@@ -46,7 +47,8 @@ export interface BrowserClient {
 }
 
 export function browserClient(url: string, options: BrowserClientOptions = {}): BrowserClient {
-	const { Client } = connection(url, options);
+	const connected = connection(url, options);
+	const { Client } = connected;
 	const bindOptions = {
 		...(options.live === undefined ? {} : { live: options.live }),
 		...(options.native === undefined ? {} : { resume: options.native }),
@@ -93,6 +95,7 @@ export function browserClient(url: string, options: BrowserClientOptions = {}): 
 	}
 	const responses = bind(responseContract, Client, bindOptions);
 	return {
+		[Activity]: clientActivity(connected),
 		api,
 		handoffs: bind(handoffContract, Client, bindOptions),
 		indexing,
