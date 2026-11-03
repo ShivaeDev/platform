@@ -1,10 +1,13 @@
-import type { User } from "better-auth";
 import type { Duration, Effect, Redacted } from "effect";
 import type { BetterAuthHookError } from "./databaseHooks.ts";
 
 interface Message {
 	readonly url: Redacted.Redacted<string>;
-	readonly user: Pick<User, "id" | "email" | "name">;
+	readonly user: {
+		id: string;
+		email: string;
+		name: string;
+	};
 }
 
 export type AuthEmail = Message &
