@@ -2,7 +2,7 @@ import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runVitest, type VitestTest } from "#adapters/runVitest.ts";
 import { type Fixture, type FixtureTestName, fixtureOf, type TesterVariant } from "./fixtures.ts";
@@ -20,6 +20,8 @@ function outcomeOf({ errors, state }: VitestTest): string {
 }
 
 export const vitestRun = storyKit({
+	// Vitest signals completion through promises, so this kit does not need tracked clock wakes.
+	clock: DateTime.makeUnsafe(0),
 	*create() {
 		const directory = yield* Effect.acquireRelease(
 			Effect.sync(() => mkdtempSync(join(tmpdir(), "test-vitest-run-"))),
