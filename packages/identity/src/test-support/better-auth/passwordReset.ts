@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { CURRENT_PASSWORD } from "./hardeningHost.ts";
+import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
 import { hookApplication } from "./hookApplication.ts";
 import { hookHost } from "./hookHost.ts";
 

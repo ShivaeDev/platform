@@ -8,8 +8,8 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signInAgain } from "#server/better-auth/testing.ts";
+import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
 import { recorder } from "#test/rpc/harness.ts";
-import { CURRENT_PASSWORD, PASSWORD_HASH } from "./hardeningHost.ts";
 import { Admission, type HookApplication, userCreationHooks } from "./hookApplication.ts";
 
 const ORIGIN = "http://localhost:3000";

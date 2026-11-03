@@ -14,7 +14,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/better-auth/hardeningHost.ts";
+import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
 
 export const ApplicationCode = Schema.Literals(["MEMBERS_ONLY", "MAIL_UNAVAILABLE"]);
 const Access = roleSet(role("member", []));

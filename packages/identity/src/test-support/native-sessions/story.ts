@@ -4,7 +4,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { passwordUser, signedInUser } from "#server/better-auth/testing.ts";
+import { passwordUser, signedInUser, signInAgain } from "#server/better-auth/testing.ts";
+import { PASSWORD_HASH } from "#test/passwordCredential.ts";
 import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { type Account, authRequest, client, login } from "./requests.ts";
 import { socketVerbs } from "./socketVerbs.ts";
@@ -243,9 +244,7 @@ function accounts(names: readonly string[], password: boolean) {
 			const auth = state.host.auth;
 			const fields = { email: `${name}@example.test`, name, role: "user" };
 			const session = password
-				? yield* passwordUser(auth, { ...fields, password: "story-password-123" }).pipe(
-						Effect.flatMap((user) => Effect.promise(async () => (await auth.$context).test.login({ userId: user.id }))),
-					)
+				? yield* passwordUser(auth, { ...fields, passwordHash: PASSWORD_HASH }).pipe(Effect.flatMap((user) => signInAgain(auth, user.id)))
 				: yield* signedInUser(auth, { ...fields, providerAccounts: [{ accountId: `${name}-github`, providerId: "github" }] });
 			const credential = decodeURIComponent(session.cookies.find((cookie) => cookie.name.endsWith("session_token"))?.value ?? "");
 			state.accounts.set(name, {
