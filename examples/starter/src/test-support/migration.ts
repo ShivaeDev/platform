@@ -7,7 +7,7 @@ import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDat
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { User } from "#roles/User.ts";
@@ -15,24 +15,29 @@ import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
 import { postgres } from "#test-support/postgres.ts";
 
+const migrationStepsWithApp = Effect.fn("AppStory.migrationStepsWithApp")(function* () {
+	return yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
+});
+
 export const migration = storyKit({
-	around: withIsolatedDatabase,
+	after: { database: (engine) => engine.database.acquire },
 	clock: "live",
 	*create() {
-		const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
-		return { steps, storage: yield* authTestDatabase };
+		return { database: yield* storyDatabase() };
 	},
 	layer: postgres,
 	name: "app authentication schema",
-	stages: ["schema"],
-	verbs: (engine, story) => ({
+	stages: ["database", "schema"],
+	verbs: (_engine, story) => ({
 		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(authOptions(), { defaultRole: User.name }), "accepted")),
 		migrates: Effect.fn("AppStory.migrates")(function* () {
 			story.tell("every numbered application migration runs");
-			yield* engine.steps.migrateToLatest;
+			const steps = yield* migrationStepsWithApp();
+			yield* steps.migrateToLatest;
 		}),
 		roleColumn: Effect.fn("AppStory.roleColumn")(function* () {
-			const [column] = yield* engine.storage.roleColumn;
+			const storage = yield* authTestDatabase;
+			const [column] = yield* storage.roleColumn;
 			if (column === undefined) {
 				return "missing";
 			}
@@ -44,14 +49,15 @@ export const migration = storyKit({
 		}),
 		rolesMigrationRuns: () => {
 			story.tell("the stored-roles migration runs");
-			return engine.steps.migrateTo("0004_stored_roles");
+			return Effect.flatMap(migrationStepsWithApp(), (steps) => steps.migrateTo("0004_stored_roles"));
 		},
-		storedRoles: () => engine.storage.userRoles,
+		storedRoles: () => Effect.flatMap(authTestDatabase, (storage) => storage.userRoles),
 	}),
 });
 
-export const legacyUser = migration.trait("schema", "alice has a user before roles are required", function* (engine) {
-	yield* engine.steps.migrateTo("0001_auth");
+export const legacyUser = migration.trait("schema", "alice has a user before roles are required", function* () {
+	const steps = yield* migrationStepsWithApp();
+	yield* steps.migrateTo("0001_auth");
 	const { auth } = yield* betterAuthMount({
 		advanced: { database: { validateSchema: true } },
 		database: yield* betterAuthDatabase(),
@@ -61,4 +67,8 @@ export const legacyUser = migration.trait("schema", "alice has a user before rol
 		session: { cookieCache: { enabled: false } },
 	}).pipe(Effect.provide(memoryStore));
 	yield* signedInUser(auth, { email: "alice@migration.test", name: "alice" });
+});
+
+export const emptyDatabase = migration.trait("database", "the story starts before migrations, from an empty database", (engine) => {
+	engine.database.select("empty");
 });

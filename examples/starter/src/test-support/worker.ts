@@ -7,7 +7,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
-import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { testPoolSizes } from "./poolSizes.ts";
 import { postgres } from "./postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";
@@ -17,7 +16,6 @@ export const worker = storyKit({
 	clock: "live",
 	*create() {
 		const database = yield* PostgresTestDatabase;
-		yield* Effect.scoped(migrateDatabase(database.url));
 		const env: Record<string, string> = {};
 		return { database, env, storage: yield* authTestDatabase, testing: makePgBossTesting() };
 	},

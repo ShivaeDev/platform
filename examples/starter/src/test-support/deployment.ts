@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { type DeploymentEngine, deploymentEngine, deploymentVerbs } from "./deploymentProcesses.ts";
@@ -9,17 +9,21 @@ import { holdSchemaCreation } from "./holdSchemaCreation.ts";
 import { startHost } from "./host.ts";
 
 interface DeploymentStoryEngine extends DeploymentEngine {
+	readonly database: Effect.Success<ReturnType<typeof storyDatabase>>;
 	schemaLock: Effect.Success<typeof holdSchemaCreation> | undefined;
 }
 
 export const deployment = storyKit({
-	around: withIsolatedDatabase,
+	after: { database: (engine) => engine.database.acquire },
 	clock: "live",
-	create: (): DeploymentStoryEngine => ({ ...deploymentEngine(), schemaLock: undefined }),
+	*create() {
+		const engine: DeploymentStoryEngine = { ...deploymentEngine(), database: yield* storyDatabase(), schemaLock: undefined };
+		return engine;
+	},
 	inspect: ({ address, processes }) => ({ address, processes: [...processes.keys()] }),
 	layer: postgres,
 	name: "deployment",
-	stages: [],
+	stages: ["database"],
 	verbs: (engine, story) => ({
 		...deploymentVerbs(engine, story.tell),
 		anotherAppListens: Effect.fn("DeploymentStory.anotherAppListens")(function* () {
@@ -53,4 +57,8 @@ export const deployment = storyKit({
 			return engine.schemaLock.release;
 		},
 	}),
+});
+
+export const emptyDatabase = deployment.trait("database", "the story starts before migrations, from an empty database", (engine) => {
+	engine.database.select("empty");
 });

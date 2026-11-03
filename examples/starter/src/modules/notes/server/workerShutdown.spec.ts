@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
+import { emptyDatabase, notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
 	"SIGTERM lets the worker finish its blocked word count before it exits cleanly",
-	[releaseMigrated("current"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("current"), webRunning(), signedUp("alice")],
 	function* ({
 		heldNoteIsReleased,
 		noteIsHeld,
