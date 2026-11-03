@@ -1,10 +1,11 @@
 import { relative } from "node:path";
 import { Clock, Effect } from "effect";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { documentSource } from "@shivaedev/work-board/server/metadata/model.ts";
 import { decisionAnswer } from "#board/decisionAnswer.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import { recordBoardSource, withBoardReadPass } from "#board/readPass.ts";
+import { recordBoardWrite, withBoardReadPass } from "#board/readPass.ts";
 import { reviewedDecision } from "#board/reviewedDecision.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { type DecisionCopy, decisionCopy } from "#engine/decisionCopy.ts";
@@ -65,7 +66,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		const itemId = `decision.${revisionOf(JSON.stringify([work.workId, work.revision, workSourcePath, input.id, input.reason, input.recommendation, input.links, ...(input.worker === undefined ? [] : [input.worker])]))}`;
 		const existing = input.published === undefined ? undefined : (yield* documents).find((document) => document.file === input.published?.sourcePath);
 		const copy = decisionCopy(input);
-		const context = existing?.parsed.fields.id === itemId ? existing.source : decisionSource(itemId, work, input, copy);
+		const context = existing?.parsed.fields.id === itemId ? documentSource(existing) : decisionSource(itemId, work, input, copy);
 		const parsed = boardApi.metadataParse(context);
 		if (new TextEncoder().encode(context).length > 256 * 1024 || parsed.diagnostics.length > 0) {
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
@@ -89,7 +90,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 		yield* publish(root, realRoot, itemId, context).pipe(
 			Effect.mapError((cause) => publicationFailure("Fleet decision source could not be recorded on Board", cause)),
 		);
-		yield* recordBoardSource(realRoot, sourcePath, context, parsed);
+		yield* recordBoardWrite(realRoot, sourcePath);
 		const all = yield* documents;
 		if (all.some((document) => questionFrom(document)?.id === id)) {
 			return receipt;
@@ -109,7 +110,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 			},
 		};
 		const candidate = questionMarkdown(question, "blocking");
-		const questionSource = yield* publish(root, realRoot, id, candidate).pipe(
+		yield* publish(root, realRoot, id, candidate).pipe(
 			Effect.as(candidate),
 			Effect.catchTag("Conflict", (cause) =>
 				Effect.gen(function* () {
@@ -117,12 +118,12 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 					if (saved === undefined || questionFrom(saved)?.context !== context) {
 						return yield* Effect.fail(cause);
 					}
-					return yield* publish(root, realRoot, id, saved.source).pipe(Effect.as(saved.source));
+					return yield* publish(root, realRoot, id, documentSource(saved)).pipe(Effect.as(documentSource(saved)));
 				}),
 			),
 			Effect.mapError((cause) => publicationFailure("Fleet decision question could not be registered on Board", cause)),
 		);
-		yield* recordBoardSource(realRoot, `responses/${id}.md`, questionSource);
+		yield* recordBoardWrite(realRoot, `responses/${id}.md`);
 		return receipt;
 	});
 }

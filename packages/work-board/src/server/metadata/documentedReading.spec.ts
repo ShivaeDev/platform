@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { revisionOf } from "#server/responses/records.ts";
 import { documentation } from "#test/documentedExamples.ts";
 import { documentedSourceStory, sourceExample } from "#test/documentedSourceStory.ts";

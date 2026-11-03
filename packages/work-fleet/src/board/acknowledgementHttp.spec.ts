@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 import { refusal } from "#test/refusal.ts";
 

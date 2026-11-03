@@ -1,11 +1,11 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { Publication, publishOnce } from "@shivaedev/work-board/server/publication.ts";
 import { briefRevision } from "#board/briefRevision.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import { recordBoardSource, workMetadata } from "#board/readPass.ts";
+import { recordBoardWrite, workMetadata } from "#board/readPass.ts";
 import { reportContent } from "#board/reportContent.ts";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { workRevision } from "#board/workRevision.ts";
@@ -39,7 +39,7 @@ export function publishReport(root: string, realRoot: string, documents: Effect.
 			Effect.provide(Publication.layer),
 			Effect.mapError(() => new BoardFailure({ message: "The worker report could not be recorded on Board; retry the same completed attempt." })),
 		);
-		yield* recordBoardSource(realRoot, `responses/${itemId}.md`, content);
+		yield* recordBoardWrite(realRoot, `responses/${itemId}.md`);
 		return { itemId, receipt: observation.receipt, revision: revisionOf(content), sourcePath: `responses/${itemId}.md`, workRevision: work.revision };
 	});
 }

@@ -7,14 +7,15 @@ export function boardReadRetry(state: EngineStory, tell: (line: string) => void)
 		return state.sourceReads;
 	}
 	return {
-		boardScans: () => source().scans(),
 		makeBoardUnreadable: (path: string) => {
-			source().unreadable.add(path);
 			tell(`Board source ${path} becomes unreadable`);
+			source().unreadable.add(path);
+			return source().refresh();
 		},
 		restoreBoardReads: () => {
-			source().unreadable.clear();
 			tell("Board sources become readable again");
+			source().unreadable.clear();
+			return source().refresh();
 		},
 		resumeAcknowledgements: () => {
 			if (!state.acknowledgementsPaused) {

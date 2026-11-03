@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Context, Effect, FileSystem, Layer, Path, type Scope } from "effect";
+import { Clock, Context, Effect, FileSystem, Layer, Path, type Scope } from "effect";
 import { markdownBoard } from "#board/markdown.ts";
 import type { Fleet } from "#fleet.ts";
 import { reportBoard } from "#host/reportBoard.ts";
@@ -16,7 +16,7 @@ export const createFleetBoard = Effect.fn("Test.createFleetBoard")(function* (op
 	}
 	const source = "---\nid: one\nkind: task\nfleet: approved\n---\n# Scoped work\n\nPreserve review and required validation.\n";
 	yield* fs.writeFileString(path.join(root, "one.md"), source);
-	const board = markdownBoard(root).pipe(Layer.provide(NodeServices.layer));
+	const board = markdownBoard(root).pipe(Layer.provide(NodeServices.layer), Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())));
 	const decorated =
 		options.decorateBoard === undefined
 			? board

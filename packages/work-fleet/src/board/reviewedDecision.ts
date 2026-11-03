@@ -1,5 +1,5 @@
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
-import type { BoardDocument } from "#board/documents.ts";
 import type { BoardDecision } from "#board/schema.ts";
 
 export function reviewedDecision(receipt: BoardDecision, source: BoardDocument | undefined, documents: readonly BoardDocument[]): boolean {

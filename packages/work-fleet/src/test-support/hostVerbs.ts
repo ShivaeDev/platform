@@ -8,7 +8,6 @@ import type { MainSnapshot } from "#host/mainSource.ts";
 import { admissionFetchVerbs } from "#test/admissionFetch.ts";
 import { answerApplicationRaceVerbs } from "#test/answerApplicationRace.ts";
 import { approvalBackoffVerbs } from "#test/approvalBackoff.ts";
-import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { cloudHostVerbs } from "#test/cloudHost.ts";
 import { cloudNamingVerbs } from "#test/cloudNaming.ts";
 import { codexHostVerbs } from "#test/codexHost.ts";
@@ -151,7 +150,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`resolve ${workId}'s decision ${decisionId}`);
 			return engine.running.client("fleet.resolve", { decisionId, responseId, workId });
 		},
-		retainedBoardSnapshots: () => retainedBoardSnapshots,
 		schedule: () => {
 			tell("run one host scheduler cycle");
 			return cycle.pipe(Effect.provideContext(engine.running.context), Effect.provide(engine.logs.layer));
@@ -178,6 +176,5 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		},
 		waitForRecord: (workId: string, ready: Parameters<typeof waitForRecord>[2]) =>
 			waitForRecord(engine.running.client, workId, ready, engine.running.context),
-		workerContextCount: () => engine.workerContexts?.length ?? 0,
 	};
 }

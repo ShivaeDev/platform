@@ -1,6 +1,6 @@
 import { mkdirSync, renameSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { type EngineStory, running } from "#test/engineState.ts";

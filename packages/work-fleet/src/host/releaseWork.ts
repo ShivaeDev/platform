@@ -1,14 +1,13 @@
-import { Context, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { Conflict, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
-import { BoardIndex } from "#board/Index.ts";
-import { watchedBoard } from "#board/watched.ts";
+import { workspaceLayer } from "@shivaedev/work-board/server/workspaceLayer.ts";
 import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 
-const { Responses, Workspace, WorkspaceConfig } = responses;
+const { Responses, Workspace } = responses;
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
 	return withDecisionResponses(host, releaseItems(host, workIds)).pipe(Effect.provide(hostLayer(host, parts)));
@@ -21,13 +20,9 @@ export function releaseItems(host: FleetHost, workIds: readonly string[], backgr
 export function decisionResponses(host: FleetHost) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const current = yield* Effect.serviceOption(BoardIndex);
-			const shared = current._tag === "Some" ? current.value : Context.get(yield* Layer.build(watchedBoard(host.boardDir)), BoardIndex);
-			const { changes, read: index } = shared.index;
-			return Responses.layer.pipe(
-				Layer.provide(Workspace.layer),
-				Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index, root: host.boardDir, writable: true })),
-			);
+			const current = yield* Effect.serviceOption(Workspace);
+			const workspace = current._tag === "Some" ? Layer.succeed(Workspace, current.value) : workspaceLayer({ root: host.boardDir, writable: true });
+			return Responses.layer.pipe(Layer.provide(workspace));
 		}),
 	);
 }

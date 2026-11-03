@@ -1,14 +1,15 @@
-import { Effect, PubSub, Stream } from "effect";
+import { Context, Effect, Layer, PubSub, Stream } from "effect";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { BoardIndex } from "#board/Index.ts";
+import { headlessBoard } from "#board/workspace.ts";
 
 export function watchBoardAnswers(root: string) {
 	return Stream.unwrap(
 		Effect.gen(function* () {
 			const shared = yield* Effect.serviceOption(BoardIndex);
-			const index = shared._tag === "Some" ? shared.value.index : yield* board.watchIndex(root);
+			const index = shared._tag === "Some" ? shared.value.index : Context.get(yield* Layer.build(headlessBoard(root)), BoardIndex).index;
 			const events = yield* PubSub.subscribe(index.changes.events);
 			function read(data: Snapshot) {
 				return Effect.gen(function* () {

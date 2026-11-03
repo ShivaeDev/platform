@@ -29,7 +29,6 @@ export class HostStoryEngine extends HostStoryScenario {
 	main: MainSnapshot | undefined;
 	integrations: HostFixture["parts"]["integrations"];
 	provider: HostFixture["parts"]["provider"] | undefined;
-	workerContexts: Context.Context<never>[] | undefined;
 	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
 	diagnostics: typeof DiagnosticsSources.Service | undefined;
@@ -125,7 +124,6 @@ export class HostStoryEngine extends HostStoryScenario {
 			engine.resources = yield* daemonResources(
 				engine.provider ?? engine.fixture.parts.provider,
 				engine.observeConnections ? engine.fixture.host : undefined,
-				engine.workerContexts,
 			);
 			engine.reads = snapshotReads(engine.fixture.host);
 			if (engine.beforeStart !== undefined) {

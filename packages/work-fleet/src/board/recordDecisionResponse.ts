@@ -1,21 +1,20 @@
 import { Clock, Effect, Schema } from "effect";
-import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { type Question, type DraftInput as ResponseInput, responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { decisionReading } from "#board/decisionReading.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import { recordBoardSource } from "#board/readPass.ts";
+import { recordBoardWrite } from "#board/readPass.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure, type Decision } from "#policy.ts";
 
 const { DraftInput, makeResponse, publish, readResponses, responseMarkdown } = responses;
 
-export function recordDecisionResponse(root: string, realRoot: string, documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
+export function recordDecisionResponse(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, BoardFailure>) {
 	return Effect.fn("FleetBoard.respond")(function* (
 		decision: Decision & { readonly published: BoardDecision },
 		action: "retry" | "release",
 		text?: string,
 	) {
-		const reading = yield* decisionReading(documents)(decision.published);
+		const reading = yield* decisionReading(snapshot)(decision.published);
 		if (reading._tag !== "Pending" && reading._tag !== "Response") {
 			return yield* new BoardFailure({ message: "Reconcile the exact decision response before answering" });
 		}
@@ -26,16 +25,9 @@ export function recordDecisionResponse(root: string, realRoot: string, documents
 		const input = yield* decisionResponseInput(decision, reading, action, text).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Invalid Board response; text must not exceed 32768 characters" })),
 		);
-		const all = yield* documents;
-		const snapshot = Effect.succeed({
-			documents: all,
-			entries: [],
-			model: board.metadataModel(all),
-			modified: new Map<string, number>(),
-			revision: 0,
-			unavailable: [],
-		});
-		const { question } = yield* readResponses(snapshot)(decision.published.questionId).pipe(
+
+		const current = yield* snapshot;
+		const { question } = yield* readResponses(Effect.succeed(current))(decision.published.questionId).pipe(
 			Effect.mapError((error) => new BoardFailure({ message: error.message })),
 		);
 		return yield* publishDecisionResponse(root, realRoot, input, question).pipe(
@@ -69,6 +61,6 @@ export const publishDecisionResponse = Effect.fn("FleetBoard.publishDecisionResp
 ) {
 	const content = responseMarkdown(makeResponse(input, question, yield* Clock.currentTimeMillis));
 	yield* publish(root, realRoot, input.id, content);
-	yield* recordBoardSource(realRoot, `responses/${input.id}.md`, content);
+	yield* recordBoardWrite(realRoot, `responses/${input.id}.md`);
 	return input.id;
 });

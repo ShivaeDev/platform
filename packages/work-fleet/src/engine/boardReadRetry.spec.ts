@@ -6,22 +6,20 @@ for (const source of [".", "0.md"]) {
 	isolatedEngine.it(
 		`an incomplete Board read retries without losing execution: ${source}`,
 		[readableBoard()],
-		function* ({ boardScans, makeBoardUnreadable, restoreBoardReads, launches, advanceTime, prepareWork, restart, fleet, schedule }) {
+		function* ({ makeBoardUnreadable, restoreBoardReads, launches, advanceTime, prepareWork, restart, fleet, schedule }) {
 			yield* prepareWork("item.0");
 			yield* fleet.dispatch("item.0");
-			makeBoardUnreadable(source);
+			yield* makeBoardUnreadable(source);
 			const waiting = (yield* fleet.reconcile("item.0")).value;
 			expect(waiting.step).toBe("working");
 			expect(waiting.decision).toBeUndefined();
 			expect(waiting.attentionOwner).toBe("automation");
-			expect(waiting.blocker).toContain(source === "." ? "Board sources could not be listed" : "Board source could not be read");
+			expect(waiting.blocker).toContain(source === "." ? "Board sources could not be read" : "Board sources are unavailable");
 			expect(waiting.integrationRetry).toMatchObject({ failures: 1, retryAt: 30_100 });
-			const scans = boardScans();
 			advanceTime(29_999);
 			yield* restart();
 			yield* schedule();
-			expect(boardScans()).toBe(scans);
-			restoreBoardReads();
+			yield* restoreBoardReads();
 			advanceTime(1);
 			yield* restart();
 			yield* schedule();
@@ -44,7 +42,7 @@ isolatedEngine.it(
 	function* ({ makeBoardUnreadable, restoreBoardReads, launches, advanceTime, currentTime, prepareWork, restart, fleet, schedule }) {
 		yield* prepareWork("item.0");
 		yield* fleet.dispatch("item.0");
-		makeBoardUnreadable(".");
+		yield* makeBoardUnreadable(".");
 		for (let failure = 1; failure <= 5; failure += 1) {
 			const failed = (yield* fleet.reconcile("item.0")).value;
 			if (failure < 5) {
@@ -61,7 +59,7 @@ isolatedEngine.it(
 		expect(parked.decision?.reason).toContain("read failure after 5 attempts");
 		expect(parked.decisionPublished).toBe(false);
 		expect((yield* fleet.reconcile("item.0")).value.decision).toEqual(parked.decision);
-		restoreBoardReads();
+		yield* restoreBoardReads();
 		yield* restart();
 		yield* schedule();
 		const published = (yield* fleet.get("item.0")).value;
@@ -78,20 +76,18 @@ isolatedEngine.it(
 isolatedEngine.it(
 	"an incomplete Board read before dispatch waits for its deadline and submits once",
 	[readableBoard()],
-	function* ({ boardScans, makeBoardUnreadable, restoreBoardReads, launches, advanceTime, prepareWork, restart, fleet, schedule }) {
+	function* ({ makeBoardUnreadable, restoreBoardReads, launches, advanceTime, prepareWork, restart, fleet, schedule }) {
 		yield* prepareWork("item.0");
-		makeBoardUnreadable(".");
+		yield* makeBoardUnreadable(".");
 		const waiting = (yield* fleet.dispatch("item.0")).value;
 		expect(waiting.step).toBe("queued");
 		expect(waiting.decision).toBeUndefined();
 		expect(waiting.attentionOwner).toBe("automation");
 		expect(waiting.integrationRetry).toMatchObject({ failures: 1, retryAt: 30_100 });
-		const scans = boardScans();
 		yield* restart();
 		yield* schedule();
-		expect(boardScans()).toBe(scans);
 		expect((yield* fleet.get("item.0")).value.integrationRetry).toEqual(waiting.integrationRetry);
-		restoreBoardReads();
+		yield* restoreBoardReads();
 		advanceTime(30_000);
 		yield* restart();
 		yield* schedule();

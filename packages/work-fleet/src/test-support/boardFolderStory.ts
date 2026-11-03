@@ -66,7 +66,7 @@ export const boardFolderStory = storyKit({
 			},
 			readBrief: (id: string) => {
 				story.tell(`Fleet reads the Board brief ${id}`);
-				return board.get(id).pipe(Effect.provide(logs.layer));
+				return board.get(id, { fresh: true }).pipe(Effect.provide(logs.layer));
 			},
 			recordedBoardWarnings: () => Effect.sync(() => logs.entries.map(({ message }) => JSON.stringify(message))),
 			reopenBoard: () => {

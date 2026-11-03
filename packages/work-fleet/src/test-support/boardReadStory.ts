@@ -1,15 +1,13 @@
 import { join } from "node:path";
-import { queryObjects } from "node:v8";
 import { NodeServices } from "@effect/platform-node";
-import { Context, Deferred, Effect, Fiber, FileSystem, Layer } from "effect";
-import { vi } from "vitest";
+import { Context, Deferred, Effect, Fiber, FileSystem, Layer, type Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { board as metadata } from "@shivaedev/work-board/server/integration/board.ts";
+import { Workspace } from "@shivaedev/work-board/server/workspace.ts";
 import { briefRevision } from "#board/briefRevision.ts";
-import { boardSnapshot } from "#board/documents.ts";
-import { BoardSnapshot, publishAfterBoardPass, withBoardReadPass, workMetadata } from "#board/readPass.ts";
+import { publishAfterBoardPass, withBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { statusMarkdown } from "#board/statusMarkdown.ts";
 import { workRevision } from "#board/workRevision.ts";
+import { boardSnapshot } from "#board/workspace.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { approvedWorkIds } from "#host/admission.ts";
 import { resolveHost } from "#host/config.ts";
@@ -22,18 +20,34 @@ import { statusRecord } from "#test/status.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export const boardReadStory = storyKit({
+	after: {
+		*files(state) {
+			if (state.board !== undefined) {
+				return;
+			}
+			const context = yield* Layer.build(state.fixture.board.pipe(Layer.provideMerge(state.fixture.services)));
+			state.board = Context.get(context, BoardGateway);
+			state.fixture.services = Layer.succeedContext<FileSystem.FileSystem | Path.Path>(context);
+			yield* state.fixture.observeWith(Context.get(context, Workspace));
+		},
+	},
 	clock: "live",
 	*create() {
 		const fixture = yield* boardReads(0);
-		const board = Context.get(yield* Layer.build(fixture.board), BoardGateway);
+		const optional: { board: typeof BoardGateway.Service | undefined } = { board: undefined };
 		const publications: string[] = [];
-		return { board, fixture, fs: yield* FileSystem.FileSystem, parses: (): number => 0, publications };
+		return { ...optional, fixture, fs: yield* FileSystem.FileSystem, publications };
 	},
 	layer: NodeServices.layer,
 	name: "Board folder reads",
 	stages: ["files"],
 	verbs: (state, story) => {
 		const { fixture, fs } = state;
+		const current = state.board;
+		if (current === undefined) {
+			throw new Error("The headless Board did not open");
+		}
+		const board = current;
 		const publish = writeStatus(fixture.root, fixture.root, [statusRecord("item.0")]).pipe(
 			Effect.provide(fixture.services),
 			Effect.orDie,
@@ -49,7 +63,7 @@ export const boardReadStory = storyKit({
 		function read(id: string, options?: { readonly fresh?: boolean }) {
 			return Effect.suspend(() => {
 				story.tell(`read Board work ${id}${options?.fresh ? " freshly" : ""}`);
-				return state.board.get(id, options);
+				return board.get(id, options);
 			});
 		}
 		return {
@@ -61,13 +75,13 @@ export const boardReadStory = storyKit({
 				return approvedIds;
 			},
 			approvedIdsFailure: () => refusal(approvedIds),
-			board: state.board,
-			decide: (id: string, decision: Parameters<typeof state.board.decision>[1]) => {
+			board,
+			decide: (id: string, decision: Parameters<typeof board.decision>[1]) => {
 				story.tell(`publish decision ${decision.id} for ${id}`);
-				return state.board.decision(id, decision);
+				return board.decision(id, decision);
 			},
-			decisionState: (decision: Parameters<typeof state.board.readDecision>[0]) =>
-				state.board.readDecision(decision).pipe(Effect.map((reading) => reading._tag.toLowerCase())),
+			decisionState: (decision: Parameters<typeof board.readDecision>[0]) =>
+				board.readDecision(decision).pipe(Effect.map((reading) => reading._tag.toLowerCase())),
 			deferStatus: () => {
 				story.tell("defer the generated status publication");
 				return publishAfterBoardPass(publish);
@@ -91,29 +105,15 @@ export const boardReadStory = storyKit({
 					},
 				};
 			}),
-			holdScanReading: Effect.fn("Story.holdScanReading")(function* (id: string, scope: "in a pass" | "without a pass") {
-				const pause = yield* fixture.pauseReads;
-				story.tell(`a scan reading ${id} ${scope} pauses after reading its first file`);
-				const first = yield* (scope === "in a pass" ? withBoardReadPass(state.board.get(id)) : state.board.get(id)).pipe(Effect.forkScoped);
-				yield* pause.entered;
-				return {
-					release: () => {
-						story.tell("the paused scan continues");
-						return pause.release;
-					},
-					result: () => Fiber.join(first),
-				};
-			}),
 			listingFailure: () => refusal(boardSnapshot(fixture.root, fixture.root).pipe(Effect.provide(fixture.services))),
 			makeReadable: () => {
 				story.tell("every Board file becomes readable again");
-				fixture.unreadable.clear();
+				return Effect.sync(() => fixture.unreadable.clear()).pipe(Effect.andThen(fixture.refresh()));
 			},
 			makeUnreadable: (file: string) => {
 				story.tell(`${file === "." ? "the Board folder" : file} becomes unreadable`);
-				fixture.unreadable.add(file);
+				return Effect.sync(() => fixture.unreadable.add(file)).pipe(Effect.andThen(fixture.refresh()));
 			},
-			parses: () => Effect.sync(() => state.parses()),
 			publicationCount: () => state.publications.length,
 			publications: () => Effect.sync(() => [...state.publications]),
 			publishedStatus: () =>
@@ -122,12 +122,10 @@ export const boardReadStory = storyKit({
 					return (yield* fs.exists(path)) ? yield* fs.readFileString(path) : undefined;
 				}),
 			read,
-			readFiles: () => Effect.sync(() => fixture.readFiles()),
 			readInPass: (id: string, options?: { readonly fresh?: boolean }) => {
 				story.tell(`read Board work ${id} in a new pass`);
-				return withBoardReadPass(state.board.get(id, options)).pipe(Effect.provide(fixture.services));
+				return withBoardReadPass(board.get(id, options)).pipe(Effect.provide(fixture.services));
 			},
-			readsPerFile: () => Effect.sync(() => [...fixture.reads.values()]),
 			refusalOf: (id: string, options?: { readonly fresh?: boolean }) => refusal(read(id, options)),
 			remove: (file: string) => {
 				story.tell(`remove Board file ${file}`);
@@ -135,27 +133,11 @@ export const boardReadStory = storyKit({
 			},
 			report: (work: BoardWork, observation: SessionObservation) => {
 				story.tell(`publish a report for ${work.workId}`);
-				return state.board.report(work, observation);
+				return board.report(work, observation);
 			},
 			revisionMatchesMetadata: (work: BoardWork) => workMetadata(work).pipe(Effect.map((parsed) => work.revision === briefRevision(parsed))),
 			root: fixture.root,
 			savedRevision: (revision: string, context?: string) => Effect.sync(() => workRevision(revision, context)),
-			scannedFolders: () => Effect.sync(() => fixture.scannedFolders()),
-			scans: () => Effect.sync(() => fixture.scans()),
-			startReaders: Effect.fn("Story.startReaders")(function* (count: number, id: string, scope: "in passes and without" | "in fresh passes") {
-				story.tell(`${count} readers ask for ${id} ${scope}`);
-				const readers = yield* Effect.all(
-					Array.from({ length: count }, (_, index) => {
-						if (scope === "in fresh passes") {
-							return withBoardReadPass(state.board.get(id), { fresh: true });
-						}
-						return index % 2 === 0 ? withBoardReadPass(state.board.get(id)) : state.board.get(id);
-					}),
-					{ concurrency: "unbounded" },
-				).pipe(Effect.forkScoped);
-				yield* Effect.yieldNow;
-				return { results: () => Fiber.join(readers) };
-			}),
 			storedSource: (file: string) => {
 				story.tell(`read the stored Board source ${file}`);
 				return fs.readFileString(join(fixture.root, file)).pipe(
@@ -190,13 +172,3 @@ export function hasBoardItems(count: number) {
 		}
 	});
 }
-
-export const countedParses = boardReadStory.trait("files", "Board metadata parses are counted", function* (state) {
-	const parse = vi.spyOn(metadata, "metadataParse");
-	yield* Effect.addFinalizer(() => Effect.sync(() => parse.mockRestore()));
-	state.parses = () => parse.mock.calls.length;
-});
-
-export const retainedBoardSnapshots = Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve))).pipe(
-	Effect.andThen(Effect.sync(() => queryObjects(BoardSnapshot, { format: "count" }))),
-);

@@ -1,8 +1,8 @@
 import { Clock, Effect } from "effect";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { Diagnostics } from "#diagnostics/source.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { identityUrl } from "#server/metadata/links.ts";
 import { startTemplates } from "#server/page/startTemplates.ts";
 import { Workspace } from "#server/workspace.ts";

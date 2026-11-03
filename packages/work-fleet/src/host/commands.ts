@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect, Layer, PubSub, Queue, Stream } from "effect";
 import { BoardIndex } from "#board/Index.ts";
-import { watchedBoard } from "#board/watched.ts";
+import { headlessBoard } from "#board/workspace.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { run } from "#engine/scheduler.ts";
 import { admitApproved } from "#host/admission.ts";
@@ -52,7 +52,7 @@ export function hostLayer(
 	return status.pipe(
 		Layer.provideMerge(runtime),
 		Layer.provideMerge(config),
-		Layer.provideMerge(watchedBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer))),
+		Layer.provideMerge(headlessBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer))),
 	);
 }
 

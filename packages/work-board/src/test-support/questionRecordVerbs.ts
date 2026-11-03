@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { Deferred, Effect, Order } from "effect";
 import { createResponse } from "#client/react/createResponse.ts";
 import { fileUrl } from "#files/url.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { rawPost } from "./board.ts";
 import { changesUntil, subscribe } from "./nativeRpc.ts";
 import { publicationSetup } from "./publicationFaults.ts";
