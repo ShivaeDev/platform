@@ -47,7 +47,7 @@ export const adapterOnlyFakes = defineRule({
 			}
 			visit(source);
 			for (const node of fakeReplacements(source, references)) {
-				const target = references.owner(node);
+				const target = references.owner(node, true);
 				if (target !== undefined && internal(target)) {
 					findings.push({ file: file.path, line: line(node), message: message(target) });
 				}

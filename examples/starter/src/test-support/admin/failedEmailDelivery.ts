@@ -12,7 +12,13 @@ export const failedEmailDelivery = foundationAdmin.trait("worker", "the email pr
 	const mail = yield* inbox();
 	yield* mail.endpoint.scriptFault(
 		"send",
-		{ kind: "status", reply: { body: { message: "provider unavailable", name: "validation_error" }, status: HttpStatus.fromLiteral("BadRequest") } },
+		{
+			kind: "status",
+			reply: {
+				body: { message: "provider unavailable", name: "validation_error", statusCode: HttpStatus.fromLiteral("BadRequest") },
+				status: HttpStatus.fromLiteral("BadRequest"),
+			},
+		},
 		{ repeat: true },
 	);
 	yield* Layer.build(

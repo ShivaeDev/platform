@@ -18,4 +18,4 @@
 
 ### Fixed
 
-- `@shivaedev/create-app`: Generated apps exercise email delivery failures through the real mailer and a refusing Resend HTTP endpoint.
+- `@shivaedev/create-app`: Generated apps receive the current story-testing guidance and exercise email delivery failures through the real mailer and a refusing Resend HTTP endpoint.

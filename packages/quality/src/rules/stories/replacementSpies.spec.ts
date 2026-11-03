@@ -57,3 +57,19 @@ ruleStory.it(
 		expect(yield* locations()).toEqual(["src/orders.spec.ts:2"]);
 	},
 );
+
+ruleStory.it(
+	"tests/adapter-only-fakes reports a replacement spy on an owned test-support export",
+	[
+		repositoryHas(
+			...fakeRepository,
+			{ content: "export const submit = () => 1;", path: "src/test-support/engine.ts" },
+			fakeSpec('import * as engine from "./test-support/engine.ts";\nvi.spyOn(engine, "submit").mockImplementation(() => 2);'),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(adapterOnlyFakes);
+
+		expect(findings).toEqual([{ file: "src/orders.spec.ts", line: 2, message: expect.stringContaining("src/test-support/engine.ts") }]);
+	},
+);

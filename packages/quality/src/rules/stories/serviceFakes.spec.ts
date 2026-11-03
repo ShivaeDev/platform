@@ -45,3 +45,21 @@ for (const source of [
 		},
 	);
 }
+
+ruleStory.it(
+	"tests/adapter-only-fakes follows an imported test-support implementation that replaces an owned service",
+	[
+		repositoryHas(
+			...fakeRepository,
+			{ content: "export const fakeOrders = { total: () => 2 };", path: "src/test-support/fakeOrders.ts" },
+			fakeSpec(
+				'import { Orders } from "./orders.ts";\nimport { fakeOrders } from "./test-support/fakeOrders.ts";\nimport { Layer } from "effect";\nLayer.succeed(Orders, fakeOrders);',
+			),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(adapterOnlyFakes);
+
+		expect(findings).toEqual([{ file: "src/orders.spec.ts", line: 4, message: expect.stringContaining("src/orders.ts") }]);
+	},
+);

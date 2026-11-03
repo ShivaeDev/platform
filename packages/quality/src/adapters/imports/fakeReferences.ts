@@ -71,23 +71,32 @@ export function fakeReferences(program: ts.Program, root: string) {
 		return symbol === undefined && ts.isIdentifier(node) && node.text === "vi" ? { module: "vitest", names: ["vi"] } : undefined;
 	}
 
-	function owner(expression: ts.Expression): string | undefined {
+	function ownedPath(file: string | undefined, includeTests: boolean): string | undefined {
+		const local = file === undefined ? undefined : relative(root, file);
+		if (local === undefined || local.startsWith("../") || local.includes("/node_modules/")) {
+			return undefined;
+		}
+		return !isTestCode(local) || includeTests ? local : undefined;
+	}
+
+	function owner(expression: ts.Expression, importedTests = false): string | undefined {
 		const node = unwrapped(expression);
 		let symbol = checker.getSymbolAtLocation(node);
-		if (symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias) {
+		const aliased = symbol !== undefined && (symbol.flags & ts.SymbolFlags.Alias) !== 0;
+		if (symbol !== undefined && aliased) {
 			symbol = checker.getAliasedSymbol(symbol);
 		}
 		const path = symbol?.declarations?.[0]?.getSourceFile().fileName;
-		const local = path === undefined ? undefined : relative(root, path);
-		if (local !== undefined && !local.startsWith("../") && !local.includes("/node_modules/") && !isTestCode(local)) {
+		const local = ownedPath(path, importedTests && aliased);
+		if (local !== undefined) {
 			return local;
 		}
 		if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
-			return owner(node.expression);
+			return owner(node.expression, importedTests);
 		}
 		const declaration = symbol?.valueDeclaration;
 		return declaration !== undefined && ts.isVariableDeclaration(declaration) && declaration.initializer !== undefined
-			? owner(declaration.initializer)
+			? owner(declaration.initializer, importedTests)
 			: undefined;
 	}
 	return { concreteService, initializer, owner, reference, source: (path: string) => program.getSourceFile(join(root, path)) };
