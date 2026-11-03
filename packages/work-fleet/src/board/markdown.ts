@@ -1,6 +1,7 @@
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { Publication, replaceIfUnchanged } from "@shivaedev/work-board/server/publication.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
 import { archivedSnapshot } from "#board/archivedSnapshot.ts";
 import { briefRevision } from "#board/briefRevision.ts";
@@ -16,7 +17,6 @@ import { recordBoardSource, workMetadata } from "#board/readPass.ts";
 import { recordDecisionResponse } from "#board/recordDecisionResponse.ts";
 import { upgradeDecisionClosure } from "#board/upgradeDecisionClosure.ts";
 import { workRevision } from "#board/workRevision.ts";
-import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardFailure, BoardGateway, Priority } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
@@ -30,7 +30,9 @@ const MarkdownBoard = defineService({
 		const path = yield* Path.Path;
 		const realRoot = yield* fs.realPath(root);
 		const sources = boundSnapshot(root, realRoot, fs, path);
-		const snapshot = sources.pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
+		const snapshot = sources.pipe(
+			Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs).pipe(Effect.provideService(FileSystem.FileSystem, fs))),
+		);
 		const documents = snapshot.pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
 		function decisionSnapshot(item: string) {
 			return snapshot.pipe(
@@ -91,14 +93,23 @@ const MarkdownBoard = defineService({
 					return;
 				}
 				const content = completionMarkdown(work.context, nextAction);
-				if (content === undefined) {
+				if (content === undefined || content === work.context) {
 					return;
 				}
 				const parsed = boardApi.metadataParse(content);
 				if (parsed.fields.id !== workId || parsed.diagnostics.length > 0 || briefRevision(parsed) !== work.revision) {
 					return yield* Effect.fail(new BoardFailure({ message: "Completion bookkeeping would change authored Board context or identity." }));
 				}
-				const written = yield* writeCompletion(root, realRoot, path.relative(realRoot, sourcePath), work.context, content).pipe(
+				const written = yield* replaceIfUnchanged({
+					content,
+					expectedSource: work.context,
+					path: path.relative(realRoot, sourcePath),
+					realRoot,
+					root,
+				}).pipe(
+					Effect.provide(Publication.layer),
+					Effect.as(true),
+					Effect.catchTag("PreconditionFailed", () => Effect.succeed(false)),
 					Effect.mapError((error) => new BoardFailure({ message: error.message })),
 				);
 				if (written) {

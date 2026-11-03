@@ -17,7 +17,7 @@ export default [
 					"packages/work-board/src/server/attention/managedRequestReceipt.ts",
 					"packages/work-board/src/attention/RequestReceipt.ts",
 					"packages/work-board/src/server/integration/diagnostics.ts",
-					"packages/work-board/src/server/adapters/publicationDirectory.ts",
+					"packages/work-board/src/server/publication.ts",
 				),
 			),
 		)
