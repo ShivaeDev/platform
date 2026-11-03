@@ -4,6 +4,7 @@ import { testingExpirations } from "#server/adapters/testingExpirations.ts";
 import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBossClient } from "#server/client.ts";
 import type { EngineClient } from "#server/engineClient.ts";
 import type { EnqueueOptions } from "#server/enqueueOptions.ts";
+import { deferralChanges } from "#server/internal/adapters/deferralChanges.ts";
 import type { TestingBatch, TestingWork } from "#server/internal/testingIdle.ts";
 import type { WorkerJob } from "#server/job.ts";
 
@@ -18,6 +19,7 @@ export interface TestingControls {
 
 export function testingClient(client: EngineClient, schema: string, controls: TestingControls): EngineClient {
 	const engine = testingEngine(client, schema);
+	deferralChanges.set(client.getDb(), controls.changed);
 
 	const expirations = testingExpirations(client);
 	function update(request: ClientUpdateRequest): Promise<ClientUpdateResult>;

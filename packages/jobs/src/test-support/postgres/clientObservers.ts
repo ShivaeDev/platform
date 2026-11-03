@@ -63,6 +63,22 @@ function priorityOf(job: Job<unknown>): number {
 	return "priority" in job && typeof job.priority === "number" ? job.priority : 0;
 }
 
+export function pauseChangeNotifications(engine: DatabaseEngine, client: PgBossClient, gate: string) {
+	const db = client.getDb?.();
+	const listen = db?.listen?.bind(db);
+	if (db === undefined || listen === undefined) {
+		throw new TypeError("This pg-boss client exposes no notifications to pause");
+	}
+	db.listen = (channel, onNotification, onReconnect) =>
+		listen(
+			channel,
+			(payload) => {
+				Effect.runFork(Deferred.await(engine.work.gate(gate).opened).pipe(Effect.andThen(Effect.sync(() => onNotification(payload)))));
+			},
+			onReconnect,
+		);
+}
+
 export function pauseCompletion(engine: DatabaseEngine, client: PgBossClient, gate: string) {
 	const db = client.getDb?.();
 	if (db === undefined) {
