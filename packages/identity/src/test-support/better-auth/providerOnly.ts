@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { signedInUser, storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -41,7 +41,7 @@ export const providerOnly = storyKit({
 	layer: postgres,
 	name: "provider-only auth mount",
 	runIf: databaseUrl !== undefined,
-	stages: ["configured"],
+	stages: ["configured", "account"],
 	verbs: (engine, story) => ({
 		accountHookCalls: () => Effect.sync(() => [...host(engine).accountHooks]),
 		browserCookieNames: () => Effect.sync(() => engine.cookie.split("; ").map((cookie) => cookie.split("=")[0])),
@@ -114,4 +114,13 @@ export const withoutPreset = providerOnly.trait("configured", "the app does not 
 
 export const emailEndpointEnabled = providerOnly.trait("configured", "the app re-enables the email sign-in endpoint", (engine) => {
 	engine.enabledPaths.push("/sign-in/email");
+});
+
+export const signedInProviderUser = providerOnly.trait("account", "Alice already has a GitHub session", function* (engine) {
+	const { headers } = yield* signedInUser(host(engine).auth, {
+		email: "alice@social.test",
+		name: "Alice",
+		providerAccounts: [{ accountId: "123", providerId: "github" }],
+	});
+	engine.cookie = headers.get("cookie") ?? "";
 });
