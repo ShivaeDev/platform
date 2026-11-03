@@ -79,12 +79,16 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 					),
 				),
 			);
-			yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
-				guarded.pipe(
-					Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
-					Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
-					Effect.provideService(RpcSerialization.RpcSerialization, wire),
-					HttpEffect.withPreResponseHandler(rpcCacheControl),
+			yield* router.add("POST", options.rpcPath ?? "/rpc", () =>
+				boundedRpcRequest().pipe(
+					Effect.flatMap((request) =>
+						guarded.pipe(
+							Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
+							Effect.provideService(HttpServerRequest.HttpServerRequest, request),
+							Effect.provideService(RpcSerialization.RpcSerialization, wire),
+							HttpEffect.withPreResponseHandler(rpcCacheControl),
+						),
+					),
 				),
 			);
 		}),

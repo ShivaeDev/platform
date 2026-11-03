@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { HttpIncomingMessage, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
+import { HttpIncomingMessage, HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 
 export class RequestBodyTooLarge
@@ -11,7 +11,8 @@ export class RequestBodyTooLarge
 	}
 }
 
-export const readBoundedBody = Effect.fnUntraced(function* (request: HttpServerRequest.HttpServerRequest) {
+export const readBoundedBody = Effect.fnUntraced(function* () {
+	const request = yield* HttpServerRequest.HttpServerRequest;
 	const maxBodySize = yield* HttpIncomingMessage.MaxBodySize;
 	if (maxBodySize === undefined) {
 		return yield* new RequestBodyTooLarge({ limit: 0 });

@@ -38,19 +38,19 @@ export const echoRpc = host.trait("configured", "RPC records accepted NDJSON bod
 		});
 });
 export const cachedBody = host.trait("configured", "the route reads bounded text and bytes repeatedly", (state) => {
-	state.routes = HttpRouter.add("POST", "/body", (incoming) => {
-		const bounded = boundedRpcRequest(incoming);
-		return Effect.gen(function* () {
+	state.routes = HttpRouter.add("POST", "/body", () =>
+		Effect.gen(function* () {
+			const bounded = yield* boundedRpcRequest();
 			const text = yield* bounded.text;
 			const bytes = yield* bounded.arrayBuffer;
 			return HttpServerResponse.text(`${text}\n${new TextDecoder().decode(bytes)}\n${yield* bounded.text}`);
-		}).pipe(Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(128)));
-	});
+		}).pipe(Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(128))),
+	);
 });
 export const boundedBody = host.trait("configured", "the body route accepts eight bytes on a persistent connection", (state) => {
-	state.routes = HttpRouter.add("POST", "/body", (incoming) =>
+	state.routes = HttpRouter.add("POST", "/body", () =>
 		Effect.gen(function* () {
-			const body = yield* readBoundedBody(incoming);
+			const body = yield* readBoundedBody();
 			state.calls.push(Buffer.from(body));
 			return HttpServerResponse.uint8Array(new Uint8Array(body));
 		}).pipe(Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(8))),
