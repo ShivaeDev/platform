@@ -5,7 +5,7 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

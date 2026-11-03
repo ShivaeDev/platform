@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/email",
 	"version": "0.2.0",
-	"description": "Transactional email with Resend, durable Effect jobs and story inboxes",
+	"description": "Transactional email with Resend and durable Effect jobs",
 	"keywords": [
 		"effect"
 	],
@@ -59,6 +59,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
@@ -67,13 +68,7 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
-		"@shivaedev/test-story": "workspace:*",
 		"effect": "catalog:"
-	},
-	"peerDependenciesMeta": {
-		"@shivaedev/test-story": {
-			"optional": true
-		}
 	},
 	"engines": {
 		"node": ">=24"

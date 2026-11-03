@@ -62,6 +62,7 @@
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

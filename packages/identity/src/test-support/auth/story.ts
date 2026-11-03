@@ -1,7 +1,7 @@
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 

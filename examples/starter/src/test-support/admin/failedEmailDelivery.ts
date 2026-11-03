@@ -1,6 +1,6 @@
 import { Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { inbox } from "@shivaedev/email/server/testing/adapters/inbox.ts";
+import { inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";

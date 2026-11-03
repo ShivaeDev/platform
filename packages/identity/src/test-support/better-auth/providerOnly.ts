@@ -1,10 +1,10 @@
 import { Effect, Schema } from "effect";
+import { storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { storedProviderAccounts } from "#server/better-auth/testing.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
 import { oauthProvider } from "./oauthProvider.ts";
 import { providerOnlyHost } from "./providerOnlyHost.ts";

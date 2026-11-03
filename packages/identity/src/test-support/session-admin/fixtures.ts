@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { signedInUser } from "#server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import type { SessionAdminHost } from "./host.ts";
 
 export type Device = "alice" | "bobLaptop" | "bobPhone";

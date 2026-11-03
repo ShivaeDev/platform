@@ -457,6 +457,9 @@ importers:
       '@shivaedev/skills':
         specifier: workspace:*
         version: link:../../packages/skills
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../../packages/test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story
@@ -683,6 +686,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -781,6 +787,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -997,6 +1006,9 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1113,6 +1125,9 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1405,6 +1420,9 @@ importers:
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1526,6 +1544,9 @@ importers:
       '@shivaedev/rate-limit':
         specifier: workspace:*
         version: link:../rate-limit
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1638,6 +1659,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1671,6 +1695,49 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.6
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/test-kits:
+    dependencies:
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@shivaedev/email':
+        specifier: workspace:*
+        version: link:../email
+      '@shivaedev/identity':
+        specifier: workspace:*
+        version: link:../identity
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+    devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      better-auth:
+        specifier: 'catalog:'
+        version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
         version: 4.0.6

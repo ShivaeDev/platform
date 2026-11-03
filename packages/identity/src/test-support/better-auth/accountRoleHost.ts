@@ -11,6 +11,7 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { AssignRoles } from "#roles.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
@@ -20,7 +21,6 @@ import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
 import { userKeys } from "#users.ts";
 

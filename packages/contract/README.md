@@ -695,12 +695,12 @@ The generated subscription uses the owning query handler's captured services too
 
 ### In-memory clients in story kits
 
-`layerMemoryProtocol(group)` from `@shivaedev/contract/testing.ts` connects the native RPC client and server in the same process. Provide the group's handlers and middleware with `Layer.provide`, then pass the protocol to the application's client factory:
+`layerMemoryProtocol(group)` from `@shivaedev/test-kits/contract/testing.ts` connects the native RPC client and server in the same process. Provide the group's handlers and middleware with `Layer.provide`, then pass the protocol to the application's client factory:
 
 ```ts
 import { Layer } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 
 const client = makeClient(Notes, {
 	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
@@ -712,7 +712,7 @@ The URL identifies the client configuration; the in-memory protocol opens no soc
 
 ### Live hints in stories
 
-Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
+Use `watchHints` and `heard` from `@shivaedev/test-kits/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
 
 ```ts
 const alice = yield* watchHints(aliceChanges);
@@ -751,7 +751,6 @@ Import the module that defines the name; the package has no root entry.
 | `resume.ts`               | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                                                  |
 | `querySignals.ts`         | `querySignals(query)` exposes completion counts and subscription status as a native atom.                                                                                                                                                                                                                                                                                                                                                      |
 | `clientActivity.ts`       | `clientActivity(client)` exposes a native activity Stream with a `current` Effect; `isClientIdle(state)` checks finite work; `activityScreenSignal(activity)` projects pending work and hints for screen waits.                                                                                                                                                                                                                                |
-| `testing.ts`              | `layerMemoryProtocol(group)` supplies an in-memory native RPC protocol backed by the group’s handlers and middleware; `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                           |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 

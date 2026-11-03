@@ -1,8 +1,8 @@
 import { Data, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { type BucketKey, type ItemKey, invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { ChangeDeclarations } from "#ChangeDeclarations.ts";
-import { ChangeObserver, transact } from "#transact.ts";
+import { ChangeDeclarations } from "@shivaedev/sql/ChangeDeclarations.ts";
+import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 
 export class UnannouncedWrites extends Data.TaggedError("UnannouncedWrites")<{ readonly tables: readonly string[] }> {}
 

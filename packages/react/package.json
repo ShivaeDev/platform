@@ -68,6 +68,7 @@
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@tanstack/react-router": "catalog:",

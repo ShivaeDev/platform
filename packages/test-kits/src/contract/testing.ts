@@ -1,7 +1,7 @@
 import { Deferred, type Duration, Effect, Fiber, Layer, Queue, Stream, SubscriptionRef } from "effect";
 import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import type { SubscriptionHint } from "#queryUpdate.ts";
+import type { SubscriptionHint } from "@shivaedev/contract/queryUpdate.ts";
 
 export interface HintViewer<E> {
 	readonly finished: Effect.Effect<void, E>;

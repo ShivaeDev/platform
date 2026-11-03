@@ -1,12 +1,12 @@
 import { Effect, Ref } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { answered } from "#test/answers.ts";
-import { watchHints } from "#testing.ts";
 import { derivedDatabase } from "./derivedReadsData.ts";
 import { derivedReadsEngine } from "./derivedReadsEngine.ts";
 

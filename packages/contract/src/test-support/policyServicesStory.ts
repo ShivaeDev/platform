@@ -1,8 +1,8 @@
 import { Effect, Option, Stream, SubscriptionRef } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { type HintViewer, heard, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { type HintViewer, heard, watchHints } from "#testing.ts";
 import { answered, updateWords } from "./answers.ts";
 import { documents } from "./policyServicesContract.ts";
 import { type Person, policyServicesEngine } from "./policyServicesEngine.ts";

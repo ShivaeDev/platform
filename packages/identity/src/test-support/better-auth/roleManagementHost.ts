@@ -12,13 +12,13 @@ import { usersPage } from "@shivaedev/admin/users/page.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 

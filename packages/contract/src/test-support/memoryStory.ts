@@ -2,13 +2,13 @@ import { Effect, Exit, Layer, Ref, Scope, Stream, SubscriptionRef } from "effect
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { type HintViewer, layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#queryKeys.ts";
-import { type HintViewer, layerMemoryProtocol, watchHints } from "#testing.ts";
 import { answered, hintWords, shown, streams } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";

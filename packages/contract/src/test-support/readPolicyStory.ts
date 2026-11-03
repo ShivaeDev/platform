@@ -5,6 +5,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -17,7 +18,6 @@ import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "#test/answers.ts";
-import { watchHints } from "#testing.ts";
 
 class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/ReadPolicyGuard", {
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),

@@ -4,8 +4,8 @@ import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/a
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";

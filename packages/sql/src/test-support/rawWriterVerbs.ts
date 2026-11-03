@@ -1,7 +1,7 @@
 import { Effect, Queue, Schema } from "effect";
 import { collection, readKeys } from "@shivaedev/changes/keys.ts";
+import { withChangeCoverage } from "@shivaedev/test-kits/sql/testing.ts";
 import { type ChangeDeclaration, changes } from "#changes.ts";
-import { withChangeCoverage } from "#testing.ts";
 import type { AnnouncementOptions } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
 import type { ChangeFeedEngine } from "./changeFeedEngine.ts";

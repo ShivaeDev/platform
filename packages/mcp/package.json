@@ -59,6 +59,7 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/server": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

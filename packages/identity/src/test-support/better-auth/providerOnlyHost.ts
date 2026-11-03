@@ -6,9 +6,9 @@ import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 
 export const providerOnlyHost = Effect.fnUntraced(function* (enabledPaths: readonly string[], disabledPaths: string[], preset: boolean) {
 	const accountHooks: string[] = [];

@@ -3,11 +3,11 @@ import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
 
 export const userReferences = storyKit({

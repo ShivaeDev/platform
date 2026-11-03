@@ -4,7 +4,7 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);

@@ -821,7 +821,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names.
 - `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
-- `@shivaedev/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
+- `@shivaedev/test-kits/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
 ### Install and database setup
 
@@ -883,7 +883,7 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writers can pass the declaration returned by `changes` directly to `withChangeCoverage` and record it through `record()`; a table key alone covers nothing. Local recordings satisfy coverage too. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
+The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/test-kits/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writers can pass the declaration returned by `changes` directly to `withChangeCoverage` and record it through `record()`; a table key alone covers nothing. Local recordings satisfy coverage too. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
 
 ```ts
 const changed = changes({

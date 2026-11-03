@@ -1,0 +1,78 @@
+{
+	"name": "@shivaedev/test-kits",
+	"version": "0.0.0",
+	"description": "Reusable story building blocks for Platform applications",
+	"keywords": [
+		"effect"
+	],
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-kits#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/test-kits"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm build",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/test-sql": "workspace:*",
+		"@shivaedev/test-story": "workspace:*"
+	},
+	"devDependencies": {
+		"@shivaedev/quality": "workspace:*",
+		"@types/node": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/email": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
+		"better-auth": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}
