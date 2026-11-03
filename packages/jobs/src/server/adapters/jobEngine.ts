@@ -4,10 +4,12 @@ import { toPgBossError } from "#server/error.ts";
 import { deferralObservers } from "#server/internal/deferral.ts";
 import type { JobEngine } from "#server/internal/engine.ts";
 import { listJobs } from "./listJobs.ts";
+import { queueAdministration } from "./queueAdministration.ts";
 import { settleDeferral } from "./settleDeferral.ts";
 
 export function jobEngine(client: PgBossClient, schema = "pgboss"): Context.Service.Shape<typeof JobEngine> {
 	return {
+		...queueAdministration(client),
 		getJob: (queue, id) =>
 			Effect.tryPromise({
 				catch: (error) => toPgBossError("getJob", error, queue),

@@ -1,9 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { docker } from "#server/localDocker.ts";
+import { docker } from "#server/adapters/docker.ts";
+import { type DockerEnvironment, dockerEnvironment } from "#server/dockerEnvironment.ts";
 import { environmentGate } from "#test/environmentGate.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";
@@ -37,8 +38,9 @@ export const dockerEndpoint = storyKit({
 			return command.args[0] === "context" ? Effect.succeed(scriptedProcess(endpoint)) : real.spawn(command);
 		});
 		const environment: Record<string, string> = {};
+		const configuration: DockerEnvironment = { "DOCKER_CONTEXT": "approved" };
 		const state: { outcome?: string; succeeded?: boolean } = {};
-		return { ...state, commands, daemon, environment, spawner };
+		return { ...state, commands, configuration, daemon, endpoint, environment, spawner };
 	},
 	inspect: ({ commands, daemon, outcome }) => ({ commands, outcome, requests: daemon.requests }),
 	layer: NodeServices.layer,
@@ -47,12 +49,16 @@ export const dockerEndpoint = storyKit({
 	stages: ["environment"],
 	verbs: (engine, story) => ({
 		commands: () => Effect.sync(() => engine.commands),
+		contextLookups: () => Effect.sync(() => engine.commands.filter(([command]) => command === "context")),
 		outcome: () => recorded(engine.outcome),
 		requests: () => Effect.sync(() => engine.daemon.requests.map(({ method, path }) => `${method} ${new URL(path, engine.daemon.url).pathname}`)),
 		run: Effect.fn("DockerEndpoint.run")(function* (args: readonly string[]) {
 			story.tell(`setup runs docker ${args.join(" ")}`);
 			const result = yield* attempt(
-				docker({ "DOCKER_CONTEXT": "approved" }, args, { env: { "DOCKER_API_VERSION": "1.47", ...engine.environment } }).pipe(
+				Effect.flatMap(dockerEnvironment, (environment) =>
+					docker(environment, args, { env: { "DOCKER_API_VERSION": "1.47", ...engine.environment } }),
+				).pipe(
+					Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown(engine.configuration))),
 					Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, engine.spawner),
 				),
 			);
@@ -62,6 +68,12 @@ export const dockerEndpoint = storyKit({
 		succeeded: () => Effect.sync(() => engine.succeeded),
 	}),
 });
+
+export function configuredDockerEndpoint(source: "host" | "active context") {
+	return dockerEndpoint.trait("environment", `Docker settings select the approved endpoint through ${source}`, (engine) => {
+		engine.configuration = source === "host" ? { "DOCKER_HOST": engine.endpoint } : {};
+	});
+}
 
 export function conflictingDockerEnvironment(key: "DOCKER_HOST" | "DOCKER_CONTEXT", value: string) {
 	return dockerEndpoint.trait("environment", `the command environment sets conflicting ${key} to ${value}`, (engine) => {

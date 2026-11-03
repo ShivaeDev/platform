@@ -1,7 +1,5 @@
-import type { Auth } from "better-auth";
 import { Effect } from "effect";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { providerFailure } from "#server/providerFailure.ts";
 
 export interface UserProfile {
 	readonly id: string;
@@ -9,22 +7,18 @@ export interface UserProfile {
 	readonly name: string;
 }
 
+export interface UserProfileStorage {
+	readonly findByIds: (userIds: readonly string[]) => Effect.Effect<readonly UserProfile[], AuthUnavailable>;
+}
+
 export const userProfiles = Effect.fn("Identity.userProfiles")(function* (
-	auth: { readonly $context: Promise<{ readonly adapter: Pick<Awaited<Auth["$context"]>["adapter"], "findMany"> }> },
+	storage: UserProfileStorage,
 	userIds: readonly string[],
 ): Effect.fn.Return<readonly UserProfile[], AuthUnavailable> {
 	const ids = [...new Set(userIds)];
 	if (ids.length === 0) {
 		return [];
 	}
-	const users = yield* Effect.tryPromise(async () => {
-		const { adapter } = await auth.$context;
-		return adapter.findMany<UserProfile>({
-			limit: ids.length,
-			model: "user",
-			select: ["id", "name", "image"],
-			where: [{ field: "id", operator: "in", value: ids }],
-		});
-	}).pipe(Effect.catch((error) => providerFailure(error.cause)));
+	const users = yield* storage.findByIds(ids);
 	return users.map(({ id, name, image }) => ({ id, image: image ?? null, name }));
 });

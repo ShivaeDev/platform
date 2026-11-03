@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { Effect, PlatformError } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { runCommand } from "#server/runCommand.ts";
+import { runCommand } from "#server/adapters/runCommand.ts";
 import { containerReady } from "#test/containerReady.ts";
 import { postgres } from "#test/postgres.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";

@@ -1,5 +1,6 @@
 import { Option } from "effect";
 import { useState } from "react";
+import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { JobDetail, JobRecord } from "./JobDetail.tsx";
 import { JobPagination } from "./JobPagination.tsx";
@@ -12,11 +13,13 @@ export function JobList({
 	queue,
 	kind,
 	retry,
+	subject,
 }: {
 	readonly api: JobsViewClient;
 	readonly queue: string;
 	readonly kind: "failed" | "deadLettered";
 	readonly retry: RetryJob | undefined;
+	readonly subject?: QueueDisplay["subject"];
 }) {
 	const [cursors, setCursors] = useState<readonly string[]>([]);
 	const [selectedId, select] = useState<string>();
@@ -38,7 +41,7 @@ export function JobList({
 						{page.jobs.length === 0 ? (
 							<p>No {kind === "failed" ? "failed" : "dead-lettered"} jobs.</p>
 						) : (
-							<JobTable jobs={page.jobs} select={selectJob} />
+							<JobTable jobs={page.jobs} select={selectJob} subject={subject} />
 						)}
 						<JobPagination change={changePage} cursors={cursors} next={page.next} pending={state.pending} />
 					</>

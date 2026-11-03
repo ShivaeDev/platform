@@ -8,9 +8,10 @@ import * as NetAddress from "effect/net/NetAddress";
 import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
-import { PASSWORD_HASH } from "./hardeningHost.ts";
+import { PASSWORD_HASH } from "#test/passwordCredential.ts";
 
 export const emailChangeHost = Effect.fnUntraced(function* () {
 	yield* postgresMigration;
@@ -22,35 +23,33 @@ export const emailChangeHost = Effect.fnUntraced(function* () {
 	const baseUrl = `http://127.0.0.1:${server.address.port}`;
 	const messages: AuthEmail[] = [];
 	const link = `${baseUrl}/api/auth/verify-email?callbackURL=/email-changed`;
-	const mounted = yield* betterAuthMount(
-		{
-			"baseURL": baseUrl,
-			database: yield* betterAuthDatabase(),
-			emailAndPassword: { enabled: true },
-			logger: { disabled: true },
-			plugins: [testUtils()],
-			secret: "email-change-story-secret-with-at-least-32-characters",
-			user: { changeEmail: { enabled: true } },
-		},
-		{
-			bearerSessions: { origins: ["capacitor://localhost"] },
-			emails: {
-				deliver: (message) => Effect.sync(() => void messages.push(message)),
-				routes: {
-					AccountAlreadyExists: link,
-					ApproveEmailChange: link,
-					ConfirmAccount: link,
-					ConfirmNewAddress: link,
-					ResetPassword: link,
-				},
+	const options = {
+		"baseURL": baseUrl,
+		database: yield* betterAuthDatabase(),
+		emailAndPassword: { enabled: true },
+		logger: { disabled: true },
+		plugins: [testUtils()],
+		secret: "email-change-story-secret-with-at-least-32-characters",
+		user: { changeEmail: { enabled: true } },
+	};
+	yield* migrateBetterAuth(options);
+	const mounted = yield* betterAuthMount(options, {
+		bearerSessions: { origins: ["capacitor://localhost"] },
+		emails: {
+			deliver: (message) => Effect.sync(() => void messages.push(message)),
+			routes: {
+				AccountAlreadyExists: link,
+				ApproveEmailChange: link,
+				ConfirmAccount: link,
+				ConfirmNewAddress: link,
+				ResetPassword: link,
 			},
 		},
-	)
+	})
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	yield* Layer.build(HttpRouter.serve(mounted.routes, { disableLogger: true })).pipe(Effect.provideContext(context));
-	const { test, internalAdapter, runMigrations } = yield* Effect.promise(() => mounted.auth.$context);
-	yield* Effect.promise(() => runMigrations());
+	const { test, internalAdapter } = yield* Effect.promise(() => mounted.auth.$context);
 	const user = yield* Effect.promise(() => test.saveUser(test.createUser({ email: "alice@example.test", emailVerified: true, name: "alice" })));
 	yield* Effect.promise(() =>
 		internalAdapter.createAccount({ accountId: user.id, password: PASSWORD_HASH, providerId: "credential", userId: user.id }),

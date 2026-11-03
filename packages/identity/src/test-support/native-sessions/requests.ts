@@ -2,6 +2,7 @@ import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
 import { Api } from "./api.ts";
 import { type Host, NATIVE_ORIGIN } from "./host.ts";
 
@@ -31,7 +32,7 @@ export const login = Effect.fn("NativeSessions.login")(function* (host: Host, na
 		{ origin: browser ? host.baseUrl : NATIVE_ORIGIN, ...headers },
 		{
 			email: `${name}@example.test`,
-			password: "story-password-123",
+			password: CURRENT_PASSWORD,
 		},
 	);
 	if (!response.ok) {

@@ -14,6 +14,7 @@ import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "#server/permissions.ts";
@@ -31,21 +32,18 @@ export const Api = Sessions.merge(Profile);
 
 export const sessionAdminHost = Effect.fnUntraced(function* () {
 	const pool = yield* betterAuthDatabase();
-	const mounted = yield* betterAuthMount(
-		{
-			"baseURL": ORIGIN,
-			database: pool,
-			logger: { disabled: true },
-			plugins: [testUtils()],
-			secret: "session-admin-story-secret-with-at-least-32-characters",
-			session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
-		},
-		{ defaultRole: "viewer", roles: Access },
-	)
+	const options = {
+		"baseURL": ORIGIN,
+		database: pool,
+		logger: { disabled: true },
+		plugins: [testUtils()],
+		secret: "session-admin-story-secret-with-at-least-32-characters",
+		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
+	};
+	yield* migrateBetterAuth(options, { defaultRole: "viewer" });
+	const mounted = yield* betterAuthMount(options, { defaultRole: "viewer", roles: Access })
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
-	const context = yield* Effect.promise(() => mounted.auth.$context);
-	yield* Effect.promise(() => context.runMigrations());
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));

@@ -3,8 +3,8 @@ import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeEmail } from "#client/adapters/changeEmail.ts";
+import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
 import { emailChangeHost } from "./emailChangeHost.ts";
-import { CURRENT_PASSWORD } from "./hardeningHost.ts";
 
 export const emailChanges = storyKit({
 	around: withIsolatedDatabase,

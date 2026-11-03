@@ -14,7 +14,6 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
-import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { secret } from "./host.ts";
 
@@ -36,9 +35,7 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		},
 		{ defaultRole: User.name, roles: AppAccess, signIn: { accounts: allowedAccounts } },
-	)
-		.pipe(Effect.provide(memoryStore))
-		.pipe(Effect.tap(({ auth }) => readyAuth(auth)));
+	).pipe(Effect.provide(memoryStore));
 	const sessions = {
 		...mounted.sessions,
 		origin: () => true,

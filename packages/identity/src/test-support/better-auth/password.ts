@@ -1,6 +1,5 @@
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { testUtils } from "better-auth/plugins";
 import { Effect, Redacted, Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
@@ -10,6 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { passwordUser } from "#server/better-auth/testing.ts";
+import { PASSWORD_HASH } from "#test/passwordCredential.ts";
 
 const ORIGIN = "http://localhost:3000";
 const credentials = { email: "ada@password.test", password: "correct-horse-battery-staple" };
@@ -30,7 +30,6 @@ export const passwordAuth = storyKit({
 			database: yield* betterAuthDatabase(),
 			emailAndPassword: { enabled: true },
 			logger: { disabled: true },
-			plugins: [testUtils()],
 			secret: "password-story-secret-with-at-least-32-characters",
 		};
 		yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
@@ -59,12 +58,12 @@ export const passwordAuth = storyKit({
 				const { email, name } = Schema.decodeUnknownSync(SessionBody)(body).user;
 				return { email, name };
 			}),
-		signIn: () =>
+		signIn: (password = credentials.password) =>
 			Effect.promise(async () => {
 				story.tell("ada signs in through the email route with her password");
 				const response = await engine.auth.handler(
 					new Request(`${ORIGIN}/api/auth/sign-in/email`, {
-						body: JSON.stringify(credentials),
+						body: JSON.stringify({ ...credentials, password }),
 						headers: { "content-type": "application/json", origin: ORIGIN },
 						method: "POST",
 					}),
@@ -81,4 +80,8 @@ export const passwordAuth = storyKit({
 
 export const adaPassword = passwordAuth.trait("account", "ada has a password account and is signed out", (engine) =>
 	passwordUser(engine.auth, { ...credentials, name: "ada" }).pipe(Effect.asVoid),
+);
+
+export const adaPrecomputedPassword = passwordAuth.trait("account", "ada has a precomputed password credential and is signed out", (engine) =>
+	passwordUser(engine.auth, { email: credentials.email, name: "ada", passwordHash: PASSWORD_HASH }).pipe(Effect.asVoid),
 );

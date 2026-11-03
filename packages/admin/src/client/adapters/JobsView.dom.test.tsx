@@ -2,32 +2,82 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { jobsScreen, jobsViewOpen } from "#test/jobsScreen.tsx";
-import { mailFails, scheduledRunFails, signedInAs } from "#test/jobsStory.ts";
+import { jobsScreen, jobsViewOpen, jobsViewOpenWithNames } from "#test/jobsScreen.tsx";
+import { mailFails, scheduledRunFails, secretMailFails, signedInAs } from "#test/jobsStory.ts";
 
 expectNoReactWarnings();
 
 jobsScreen.it(
-	"a jobs reader can select a worker-only schedule by its shared name and see its failed run",
+	"a jobs reader can select a worker-only schedule by its display label and see its failed run",
 	[signedInAs("operator"), scheduledRunFails, jobsViewOpen],
-	function* ({ chooseQueue, shownJobs, shownQueues }) {
-		expect(yield* shownQueues()).toContain("scheduled");
+	function* ({ chooseQueue, queueHeading, shownJobs, shownQueues }) {
+		expect(yield* shownQueues()).toContain("Nightly cleanup");
 
 		yield* chooseQueue("scheduled");
 
-		expect(yield* shownJobs()).toEqual([
-			{ attempt: "1", failure: "the worker rejected 0: password=<redacted>", job: "the scheduled run", state: "failed" },
+		yield* outcomes([
+			["queue heading", () => queueHeading(), "Nightly cleanup"],
+			[
+				"jobs",
+				() => shownJobs(),
+				[{ attempt: "1", failure: "the worker rejected 0: password=<redacted>", job: "the scheduled run", state: "failed" }],
+			],
 		]);
 	},
 );
 
 jobsScreen.it(
-	"a jobs reader sees failed mail with its readable redacted failure and the page's shared queues",
+	"a jobs reader sees failed mail with its readable redacted failure, queue labels and an unlabelled queue's name",
 	[signedInAs("operator"), mailFails(42), jobsViewOpen],
 	function* ({ shownJobs, shownQueues }) {
 		yield* outcomes([
 			["jobs", () => shownJobs(), [{ attempt: "1", failure: "the worker rejected 42: password=<redacted>", job: "mail 42", state: "failed" }]],
+			["queues", () => shownQueues(), ["Email delivery", "sync", "Nightly cleanup"]],
+		]);
+	},
+);
+
+jobsScreen.it(
+	"failed mail shows its decoded message number and masks native redacted links and sensitive tokens in subject columns",
+	[signedInAs("operator"), secretMailFails, jobsViewOpen],
+	function* ({ shownSubjects, screenText }) {
+		yield* outcomes([
+			["subject columns", () => shownSubjects(), [{ job: "secret mail", subject: { Link: "<redacted>", Message: "42", Token: "<redacted>" } }]],
+			["screen", () => screenText(), expect.not.stringContaining("one-time-")],
+		]);
+	},
+);
+
+jobsScreen.it(
+	"dead-letter copies stay under their source queue label and show the source's masked subject columns",
+	[signedInAs("operator"), secretMailFails, jobsViewOpen],
+	function* ({ selectList, shownQueues, shownSubjects, screenText }) {
+		yield* selectList("Dead-lettered");
+
+		yield* outcomes([
+			["queues", () => shownQueues(), ["Email delivery", "sync", "Nightly cleanup"]],
+			["subject columns", () => shownSubjects(), [{ subject: { Link: "<redacted>", Message: "42", Token: "<redacted>" } }]],
+			["screen", () => screenText(), expect.not.stringContaining("one-time-")],
+		]);
+	},
+);
+
+jobsScreen.it(
+	"mail with no optional link or token shows dashes for those subject columns",
+	[signedInAs("operator"), mailFails(42), jobsViewOpen],
+	function* ({ shownSubjects }) {
+		expect(yield* shownSubjects()).toEqual([{ job: "mail 42", subject: { Link: "—", Message: "42", Token: "—" } }]);
+	},
+);
+
+jobsScreen.it(
+	"string-only queue lists still show names and failed jobs without subject columns",
+	[signedInAs("operator"), mailFails(42), jobsViewOpenWithNames],
+	function* ({ shownJobs, shownQueues, shownSubjectColumns }) {
+		yield* outcomes([
 			["queues", () => shownQueues(), ["mail", "sync", "scheduled"]],
+			["jobs", () => shownJobs(), [{ job: "mail 42", state: "failed" }]],
+			["subject columns", () => shownSubjectColumns(), []],
 		]);
 	},
 );

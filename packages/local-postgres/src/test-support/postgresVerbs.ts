@@ -1,7 +1,8 @@
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
+import { docker } from "#server/adapters/docker.ts";
+import { startContainer } from "#server/adapters/localContainer.ts";
+import { dockerEnvironment } from "#server/dockerEnvironment.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import { startContainer } from "#server/localContainer.ts";
-import { docker } from "#server/localDocker.ts";
 import { PostgresCommandError } from "#server/PostgresCommandError.ts";
 import { type Credentials, connectionAs, passwordsShownIn, ROLE_PASSWORD } from "#test/credentials.ts";
 import { databaseUrl, type PostgresEngine, SERVER, usingCli } from "#test/postgresEngine.ts";
@@ -69,7 +70,13 @@ export function postgresVerbs(engine: PostgresEngine, story: { readonly tell: (l
 			Effect.flatMap(appDatabase(), (name) =>
 				Effect.map(usingCli(engine, engine.manager.sql(databaseUrl(name), "SELECT value FROM kept ORDER BY value")), (value) => value.split("\n")),
 			),
-		checkDocker: () => act("setup checks the Docker daemon", docker(engine.environment, ["info"])),
+		checkDocker: () =>
+			act(
+				"setup checks the Docker daemon using its configured settings",
+				Effect.flatMap(dockerEnvironment, (environment) => docker(environment, ["info"])).pipe(
+					Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown(engine.environment))),
+				),
+			),
 		connectWith: (credentials: Credentials) =>
 			asQueryRole(
 				`connect as the query role with ${credentials.name} and ask who is signed in`,

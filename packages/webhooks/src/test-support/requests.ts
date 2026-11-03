@@ -39,11 +39,13 @@ export const deliveries = {
 	"a fresh timestamped delivery": { sign: timestampedHeaders(), source: "timestamped" },
 	"a non-JSON delivery with a wrong signature": { body: "not-json", signature: wrongSignature },
 	"a ping": { body: JSON.stringify({ zen: "Keep it simple" }), event: "ping" },
+	"a signed delivery mapped with metadata": { delivery: "40bbf3db-0691-4dd1-93b3-9b0c778af4f4", event: "delivery_issues" },
 	"a signed issue 44 delivery with Unicode": { body: JSON.stringify({ action: "opened", issue: { number: 44 }, title: "Hello ☃ café" }) },
 	"a signed non-JSON delivery": { body: "not-json" },
 	"an issue delivery whose number is a string": { body: JSON.stringify({ action: "opened", issue: { number: PRIVATE_FIELD } }) },
 	"an unlisted event whose body is not JSON": { body: "not-json", event: "unlisted" },
 	"an unlisted event with private content": { body: PRIVATE_FIELD, event: "unlisted" },
+	"the same delivery through the mirror source": { delivery: "40bbf3db-0691-4dd1-93b3-9b0c778af4f4", event: "delivery_issues", source: "mirror" },
 	"the signed issue 42 delivery": {},
 	"the signed issue 43 delivery using a resource": {
 		body: JSON.stringify({ issue: { number: 43 } }),

@@ -20,7 +20,7 @@ export function profileVerbs(host: AdminHost, story: { tell: (line: string) => v
 			const start = host.queries.length;
 			const logs: unknown[] = [];
 			const logger = Logger.make(({ message }) => logs.push(message));
-			const result = yield* userProfiles(host.auth, ids).pipe(Effect.result, Effect.provide(Logger.layer([logger])));
+			const result = yield* userProfiles(host.profiles, ids).pipe(Effect.result, Effect.provide(Logger.layer([logger])));
 			lookup = { logs, queries: host.queries.slice(start).map(({ values }) => values), result };
 			return Result.isSuccess(result)
 				? [...result.success].sort((left, right) => left.name.localeCompare(right.name))

@@ -40,15 +40,13 @@ When database names come from the application's configured URLs, pass those URLs
 
 ```ts
 import { Config, Effect } from "effect";
+import { dockerEnvironment } from "@shivaedev/local-postgres/server/dockerEnvironment.ts";
 import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const setup = Effect.gen(function* () {
 	const development = yield* Config.String("DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/example_dev`));
 	const tests = yield* Config.String("TEST_DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/example_test`));
-	const environment = yield* Config.all({
-		"DOCKER_CONTEXT": Config.String("DOCKER_CONTEXT").pipe(Config.withDefault("")),
-		"DOCKER_HOST": Config.String("DOCKER_HOST").pipe(Config.withDefault("")),
-	});
+	const environment = yield* dockerEnvironment;
 	yield* localPostgres(environment).prepareDatabases([development, tests]);
 });
 ```
@@ -95,7 +93,7 @@ Run these setup Effects at a Node entry point with `NodeRuntime.runMain(setup.pi
 
 `startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `LOCAL_SERVER`. Prefer `prepareDatabases` when the setup script needs named databases as well.
 
-On each start, setup reads `SHOW max_connections`. Native servers retain their configured limit. When the running managed container publishes port 55432 and allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup fails with `PostgresSettingError` from `@shivaedev/local-postgres/server/localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
+On each start, setup reads `SHOW max_connections`. Native servers retain their configured limit. When the running managed container publishes port 55432 and allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup fails with `PostgresSettingError` from `@shivaedev/local-postgres/server/PostgresSettingError.ts`, with `_tag`, `container`, `setting` and the original `cause`.
 
 ### API
 
@@ -112,7 +110,7 @@ Import service preparation from `@shivaedev/local-postgres/server/localPostgres.
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They fail in the typed error channel. `PostgresCommandError` carries the command, diagnostic message and exit code or platform cause; `LocalPostgresError` describes local-target and image refusals, and malformed URL password escapes. Exhausted readiness checks retain their final failure; a version mismatch always names a version the service returned.
 
-The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/localDocker.ts` and `@shivaedev/local-postgres/server/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
+The module export pattern also exposes the lower-level Docker and container command functions in `@shivaedev/local-postgres/server/adapters/docker.ts` and `@shivaedev/local-postgres/server/adapters/localContainer.ts`. Use `@shivaedev/local-postgres/server/localPostgres.ts` for application preparation.
 
 ### Install and machine setup
 
@@ -130,7 +128,7 @@ postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f
 
 A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup accepts native PostgreSQL 18.6 version strings with distribution suffixes, such as `18.6 (Debian 18.6-1.pgdg13+2)`, without requiring a managed container or Docker installation. Setup refuses a running release other than 18.6 with `PostgresVersionMismatch` from `@shivaedev/local-postgres/server/PostgresVersionMismatch.ts`. The error carries `_tag: "PostgresVersionMismatch"`, `expectedVersion` and `observedVersion`. A running PostgreSQL 17 service is refused without losing its existing rows; upgrading it while preserving its data is your job. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
 
-Read Docker settings through Effect Config and pass them to `localPostgres`, as in the configuration example. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Each operation pins `DOCKER_HOST` to the validated endpoint and clears `DOCKER_CONTEXT`. The lower-level `docker` function refuses command environment settings that conflict with the supplied `DOCKER_HOST` or `DOCKER_CONTEXT` before invoking Docker.
+Yield `dockerEnvironment` from `@shivaedev/local-postgres/server/dockerEnvironment.ts` and pass its result to `localPostgres`, as in the configuration example. This reader uses Effect Config for `DOCKER_CONTEXT` and `DOCKER_HOST`, with empty defaults that let Docker use its active context. The same module exports the `DockerEnvironment` type. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Each operation pins `DOCKER_HOST` to the validated endpoint and clears `DOCKER_CONTEXT`. The lower-level `docker` function refuses command environment settings that conflict with the supplied `DOCKER_HOST` or `DOCKER_CONTEXT` before invoking Docker.
 
 ### Limits
 

@@ -44,7 +44,9 @@ export const jobsScreen = storyKit({
 			alerts: () => Effect.sync(() => [...screenOf(engine).querySelectorAll('[role="alert"]')].map(({ textContent }) => textContent)),
 			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
+			queueHeading: () => Effect.sync(() => screenOf(engine).querySelector('section[aria-label="Queue counts"] h2')?.textContent),
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
+			screenText: () => Effect.sync(() => screenOf(engine).textContent),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
 			shownJobs: () =>
 				Effect.sync(() =>
@@ -54,6 +56,18 @@ export const jobsScreen = storyKit({
 					}),
 				),
 			shownQueues: () => Effect.sync(() => driver.selection("select").options.map(({ label }) => label)),
+			shownSubjectColumns: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("thead th")].slice(4).map(({ textContent }) => textContent)),
+			shownSubjects: () =>
+				Effect.sync(() => {
+					const headings = [...screenOf(engine).querySelectorAll("thead th")].slice(4).map(({ textContent }) => textContent ?? "");
+					return [...screenOf(engine).querySelectorAll("tbody tr")].map((row) => {
+						const cells = [...row.querySelectorAll("td > div")].map(({ textContent }) => textContent ?? "");
+						return {
+							job: nameOf(engine, cells[0] ?? ""),
+							subject: Object.fromEntries(headings.map((heading, index) => [heading, cells[index + 4]])),
+						};
+					});
+				}),
 			stateOf: (name: string) =>
 				engine.client["admin.jobs.job"]({ id: idOf(engine, name), queue: "mail" }).pipe(
 					Effect.map((job) => (Option.isSome(job) ? job.value.state : "no job")),
@@ -63,10 +77,21 @@ export const jobsScreen = storyKit({
 	},
 });
 
-export const jobsViewOpen = jobsScreen.trait("screen", "the Jobs view opens against the admin HTTP host", function* (engine) {
-	engine.screen = yield* Effect.acquireRelease(
-		Effect.promise(() => render(<JobsView api={engine.api} queues={pages().pages[0].queues.map(({ name }) => name)} retry={engine.retryAction} />)),
-		(view) => Effect.promise(view.unmount),
+function openJobsView(namesOnly: boolean) {
+	return jobsScreen.trait(
+		"screen",
+		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}`,
+		function* (engine) {
+			const declarations = pages().pages[0].queues;
+			const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
+			engine.screen = yield* Effect.acquireRelease(
+				Effect.promise(() => render(<JobsView api={engine.api} queues={queues} retry={engine.retryAction} />)),
+				(view) => Effect.promise(view.unmount),
+			);
+			yield* driverFor(engine, () => undefined).settle();
+		},
 	);
-	yield* driverFor(engine, () => undefined).settle();
-});
+}
+
+export const jobsViewOpen = openJobsView(false);
+export const jobsViewOpenWithNames = openJobsView(true);

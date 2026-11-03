@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { PostgresSettingError } from "#server/localConnections.ts";
+import { PostgresSettingError } from "#server/PostgresSettingError.ts";
 import { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
 
 function messageOf(error: unknown) {

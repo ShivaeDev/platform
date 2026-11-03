@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { admin, testUtils } from "better-auth/plugins";
+import { admin } from "better-auth/plugins";
 import { ConfigProvider, Effect, Exit, Layer, Logger, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -28,7 +28,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		database: pool,
 		emailAndPassword: { autoSignIn: false, enabled: true },
 		logger: { disabled: true },
-		plugins: [admin(), testUtils()],
+		plugins: [admin()],
 		secret: "native-session-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*"],
