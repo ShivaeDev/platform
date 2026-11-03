@@ -1,7 +1,6 @@
 import { type Context, Effect } from "effect";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
-import { deferralObservers } from "#server/internal/deferral.ts";
 import type { JobEngine } from "#server/internal/engine.ts";
 import { listJobs } from "./listJobs.ts";
 import { queueAdministration } from "./queueAdministration.ts";
@@ -48,9 +47,6 @@ export function jobEngine(client: PgBossClient, schema = "pgboss"): Context.Serv
 						if (!settled.claimed || settled.deferred) {
 							// Native batch settlement must not match a sibling's new claim at the unchanged retry count.
 							job.retryCount = Number.MAX_SAFE_INTEGER;
-						}
-						if (settled.deferred) {
-							deferralObservers.get(client)?.();
 						}
 					}),
 				),

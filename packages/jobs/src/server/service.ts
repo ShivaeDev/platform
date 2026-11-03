@@ -17,6 +17,7 @@ import type {
 	PgBossQueueOptionsError,
 } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
+import type { PgBossInspectionService } from "#server/inspection.ts";
 import { acquireClient } from "#server/internal/acquireClient.ts";
 import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
 import { JobEngine } from "#server/internal/engine.ts";
@@ -49,6 +50,7 @@ export interface PgBossService {
 		id: string,
 	) => Effect.Effect<Option.Option<Job<unknown>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly health: (queues?: readonly Pick<QueueDefinition, "name">[]) => Effect.Effect<JobsHealth, PgBossError>;
+	readonly inspection: () => Effect.Effect<PgBossInspectionService>;
 	readonly refreshQueueStats: (queue?: Pick<QueueDefinition, "name">) => Effect.Effect<void, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
 	readonly unschedule: (schedule: Pick<ScheduleDefinition, "name" | "scheduleOptions">) => Effect.Effect<void, PgBossError | PgBossNotFoundError>;
@@ -117,6 +119,7 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				failedJobs: genericMethod(service.failedJobs),
 				getJob: genericMethod(service.getJob),
 				health: service.health,
+				inspection: service.inspection,
 				refreshQueueStats: service.refreshQueueStats,
 				retry: service.retry,
 				unschedule: service.unschedule,

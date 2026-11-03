@@ -1,7 +1,6 @@
 import type { ClientDatabase } from "#server/ClientDatabase.ts";
 
 export interface ClientOptions {
-	"__test__enableSpies"?: boolean;
 	allowSchemaCaseVariant?: boolean;
 	"application_name"?: string;
 

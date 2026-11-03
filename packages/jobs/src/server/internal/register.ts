@@ -7,7 +7,6 @@ import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, S
 import { PgBossQueueOptionsError, toPgBossError } from "#server/error.ts";
 import { ensureQueue } from "#server/internal/ensureQueue.ts";
 import { runQueueWorker } from "#server/internal/runQueueWorker.ts";
-import { registerTestingQueue } from "#server/internal/testingRegistrations.ts";
 
 function registrationDefinition(registration: JobRegistration): QueueDefinition | ScheduleDefinition {
 	if (registration._tag === "QueueDefinition") {
@@ -107,9 +106,6 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	const scope = yield* Scope.fork(yield* Effect.scope, "parallel");
 	yield* Effect.try({ catch: (error) => toPgBossError("register", error), try: () => registrationNames(registrations) });
 	yield* prepareQueues(client, registrations, replaceWorkers);
-	for (const registration of registrations) {
-		registerTestingQueue(client, registrationName(registration));
-	}
 	if (!startWorkers) {
 		return;
 	}

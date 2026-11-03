@@ -43,9 +43,14 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 			const deferrals = sql`${sql(schema)}.${sql("effect_job_deferral")}`;
 			const cleanup = sql`${sql(schema)}.${sql("effect_job_deferral_keep_until")}`;
 			const stately = sql`${sql(schema)}.${sql("effect_stately_deferral")}()`;
+			const changed = sql`${sql(schema)}.${sql("effect_job_changed")}()`;
 			const missing = yield* sql`SELECT name FROM (VALUES
 				('dead-letter resolution trigger', EXISTS (
 					SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_dead_letter_resolution'
+				)),
+				('effect_job_changed()', to_regprocedure(${changed.compile()[0]}) IS NOT NULL),
+				('effect_job_changed trigger', EXISTS (
+					SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_job_changed'
 				)),
 				('effect_job_deferral', to_regclass(${deferrals.compile()[0]}) IS NOT NULL),
 				('effect_job_deferral_keep_until', to_regclass(${cleanup.compile()[0]}) IS NOT NULL),

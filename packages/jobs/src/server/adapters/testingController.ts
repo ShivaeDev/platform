@@ -1,32 +1,33 @@
-import { Duration, Effect, Redacted } from "effect";
+import { Duration, Effect, Redacted, type Schema } from "effect";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import { testingClient } from "#server/adapters/testingClient.ts";
 import { testingDueNow } from "#server/adapters/testingDueNow.ts";
-import type { PgBossClientFactory } from "#server/client.ts";
-import type { QueueDefinition } from "#server/definition.ts";
+import type { JobReadOptions, PgBossClientFactory } from "#server/client.ts";
+import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 import type { EngineClient } from "#server/engineClient.ts";
 import { PgBossTestingError } from "#server/error.ts";
+import type { PgBossInspectionService, SnapshotQueue } from "#server/inspection.ts";
 import { type TestingFetches, testingFetches } from "#server/internal/adapters/testingFetches.ts";
-import { testingDeferrals } from "#server/internal/testingDeferrals.ts";
 import { type TestingWork, testingIdle } from "#server/internal/testingIdle.ts";
-import { testingOperation, testingReadout } from "#server/internal/testingReadout.ts";
+import { testingInspection, testingOperation } from "#server/internal/testingOperation.ts";
 import { testingSchedules } from "#server/internal/testingSchedules.ts";
-import { testingSignal } from "#server/internal/testingSignal.ts";
-import { testingSnapshot } from "#server/internal/testingSnapshot.ts";
 import { testingWaits } from "#server/internal/testingWaits.ts";
 import type { PgBossTestingOptions } from "#server/testing.ts";
-export function testingController(options: PgBossTestingOptions = {}) {
+import { queueSignal } from "./queueSignal.ts";
+import { testingInspectionClient } from "./testingInspectionClient.ts";
+export function testingController(settings: PgBossTestingOptions = {}) {
 	let current: EngineClient | undefined;
 	let fetches: TestingFetches | undefined;
 	let schema = "pgboss";
-	const signal = testingSignal();
+	const signal = queueSignal();
+	let observed: PgBossInspectionService | undefined;
 	const work: TestingWork = { batches: new Set(), queues: new Set() };
 	const controls = {
 		changed: signal.changed,
 		expirations: new Map<string, number>(),
 		expirySeconds: new Map<string, number>(),
 		failures: new Set<string>(),
-		retryPolicy: options.retryPolicy ?? {},
+		retryPolicy: settings.retryPolicy ?? {},
 		work,
 	};
 	function client(): EngineClient {
@@ -35,26 +36,34 @@ export function testingController(options: PgBossTestingOptions = {}) {
 		}
 		return current;
 	}
+	function inspection(): PgBossInspectionService {
+		if (observed === undefined) {
+			throw new Error("Provide the testing clientFactory to a jobs Layer first");
+		}
+		return observed;
+	}
 	const clientFactory: PgBossClientFactory = (clientOptions) => {
 		if (current !== undefined) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
 		schema = clientOptions.schema ?? "pgboss";
-		current = defaultClientFactory({ ...clientOptions, "__test__enableSpies": true });
+		current = defaultClientFactory(clientOptions);
 		fetches = testingFetches(current.getDb(), signal.changed);
 		current = testingClient(current, schema, controls);
-		return current;
+		return testingInspectionClient(current, schema, work, signal.changed, (reads) => {
+			observed = reads;
+		});
 	};
 	return {
-		...testingDeferrals(client),
+		deferred: (queue: Pick<QueueDefinition, "name">) => Effect.suspend(() => testingInspection("deferred", inspection().deferred(queue), queue.name)),
 		...testingDueNow(client, () => schema, signal.changed),
-		...testingSchedules(client),
-		...testingWaits(client, () => fetches, signal),
+		...testingSchedules(client, inspection),
+		...testingWaits(inspection, () => fetches, signal),
 		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
 			testingOperation(
 				"checkBatchWindow",
 				async () => {
-					const stored = await client().getQueue(queue.name);
+					const stored = await Effect.runPromise(inspection().queue(queue));
 					if (stored === null) {
 						throw new Error("Queue is not registered");
 					}
@@ -73,7 +82,7 @@ export function testingController(options: PgBossTestingOptions = {}) {
 			),
 		checkSchemaVersion: (expected: number) =>
 			testingOperation("checkSchemaVersion", async () => {
-				if ((await client().schemaVersion()) !== expected) {
+				if ((await Effect.runPromise(inspection().schemaVersion())) !== expected) {
 					throw new Error(`Expected pg-boss schema version ${expected}`);
 				}
 			}),
@@ -100,13 +109,17 @@ export function testingController(options: PgBossTestingOptions = {}) {
 				},
 			}),
 		failNextSend: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
-		jobs: testingReadout(client),
+		jobs: <TName extends string, TPayload extends JobPayloadSchema | typeof Schema.Null>(
+			queue: { readonly name: TName; readonly schema: TPayload },
+			readOptions?: JobReadOptions,
+		) => Effect.suspend(() => testingInspection("jobs", inspection().jobs(queue, readOptions), queue.name)),
 		refreshQueueStats: (queue?: Pick<QueueDefinition, "name">) =>
 			testingOperation("refreshQueueStats", () => client().supervise(queue?.name), queue?.name),
 		revision: signal.revision,
-		schemaVersion: testingOperation("schemaVersion", () => client().schemaVersion()),
-		snapshot: testingSnapshot(client, () => schema),
+		schemaVersion: Effect.suspend(() => testingInspection("schemaVersion", inspection().schemaVersion())),
+		snapshot: <const TQueues extends readonly SnapshotQueue[]>(queues: TQueues) =>
+			Effect.suspend(() => testingInspection("snapshot", inspection().snapshot(queues))),
 		waitForChange: signal.waitForChange,
-		waitForIdle: testingIdle(client, () => schema, work, signal),
+		waitForIdle: testingIdle(inspection, work, signal),
 	};
 }

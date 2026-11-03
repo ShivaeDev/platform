@@ -10,6 +10,7 @@ export type PgBossOperation =
 	| "getJob"
 	| "health"
 	| "install"
+	| "inspect"
 	| "register"
 	| "refreshQueueStats"
 	| "retry"

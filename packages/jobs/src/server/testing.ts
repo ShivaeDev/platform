@@ -1,19 +1,8 @@
-import { type DateTime, type Duration, Effect, type Tracer } from "effect";
+import { type Duration, Effect, type Tracer } from "effect";
 import { testingController } from "#server/adapters/testingController.ts";
-import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 
 export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	return testingController(options);
-}
-
-export type SnapshotQueue = Pick<QueueDefinition<string, JobPayloadSchema>, "name" | "schema">;
-
-export interface UnfinishedJob<TQueue extends SnapshotQueue> {
-	readonly data: TQueue["schema"]["Type"];
-	readonly id: string;
-	readonly queue: TQueue["name"];
-	readonly startAfter: DateTime.Utc;
-	readonly state: "active" | "created" | "deferred" | "failed" | "retry";
 }
 
 export interface PgBossTestingWaitOptions {

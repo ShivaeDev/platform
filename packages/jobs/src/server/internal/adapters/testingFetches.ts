@@ -1,4 +1,4 @@
-import type { EngineClient } from "#server/engineClient.ts";
+import type { ClientDatabase } from "#server/ClientDatabase.ts";
 
 // pg-boss offers no hook for a worker fetch that finds nothing, so the controller recognizes its claim statement on the client's database.
 const claim = /UPDATE\s+\S+\s+j\s+SET\s+state\s*=\s*'active'/u;
@@ -9,7 +9,7 @@ export interface TestingFetches {
 	readonly passedSince: (queue: string, begun: number) => number;
 }
 
-export function testingFetches(db: ReturnType<EngineClient["getDb"]>, changed: () => void): TestingFetches {
+export function testingFetches(db: ClientDatabase, changed: () => void): TestingFetches {
 	const begun = new Map<string, number>();
 	const passed = new Map<string, number[]>();
 	const executeSql = db.executeSql.bind(db);

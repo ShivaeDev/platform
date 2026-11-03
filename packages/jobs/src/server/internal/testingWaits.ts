@@ -1,10 +1,9 @@
 import { Clock, Duration, Effect, Option, Redacted, type Schema } from "effect";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
-import type { EngineClient } from "#server/engineClient.ts";
 import { type PgBossPayloadError, PgBossTestingError, PgBossWaitError } from "#server/error.ts";
+import type { PgBossInspectionService } from "#server/inspection.ts";
 import type { TestingFetches } from "#server/internal/adapters/testingFetches.ts";
-import { decodeStoredData } from "#server/internal/storedRows.ts";
-import { testingOperation } from "#server/internal/testingReadout.ts";
+import { testingInspection } from "#server/internal/testingOperation.ts";
 import type { Job, JobState } from "#server/job.ts";
 import type { PgBossTestingWaitOptions } from "#server/testing.ts";
 
@@ -50,7 +49,7 @@ function fetchesRefused(queue: Pick<QueueDefinition, "name">, original: Error) {
 	return new PgBossTestingError({ operation: "fetchesPass", original: Redacted.make(original), queue: queue.name });
 }
 
-export function testingWaits(client: () => EngineClient, fetches: () => TestingFetches | undefined, signal: Signal) {
+export function testingWaits(inspection: () => PgBossInspectionService, fetches: () => TestingFetches | undefined, signal: Signal) {
 	return {
 		fetchesPass: (queue: Pick<QueueDefinition, "name">, count: number, options?: PgBossTestingWaitOptions) =>
 			Effect.gen(function* () {
@@ -82,15 +81,15 @@ export function testingWaits(client: () => EngineClient, fetches: () => TestingF
 			waitUntil(
 				signal,
 				`job ${id} in ${queue.name} is ${state}`,
-				testingOperation("untilJob", () => client().getJobById<unknown>(queue.name, id), queue.name).pipe(
-					Effect.flatMap((job): Effect.Effect<Reading<Job<TPayload["Type"]>>, PgBossPayloadError, TPayload["DecodingServices"]> => {
-						if (job === null) {
+				Effect.suspend(() => testingInspection("untilJob", inspection().jobs(queue, { id }), queue.name)).pipe(
+					Effect.flatMap(([job]): Effect.Effect<Reading<Job<TPayload["Type"]>>, PgBossPayloadError, TPayload["DecodingServices"]> => {
+						if (job === undefined) {
 							return Effect.succeed({ arrived: Option.none(), seen: "no such job" });
 						}
 						if (job.state !== state) {
 							return Effect.succeed({ arrived: Option.none(), seen: job.state });
 						}
-						return Effect.map(decodeStoredData(queue, job.data), (data) => ({ arrived: Option.some({ ...job, data }), seen: job.state }));
+						return Effect.succeed({ arrived: Option.some(job), seen: job.state });
 					}),
 				),
 				options,

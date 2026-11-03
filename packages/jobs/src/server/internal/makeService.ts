@@ -1,11 +1,9 @@
 import { Effect } from "effect";
+import { inspection } from "#server/adapters/inspection.ts";
 import type { PgBossClient } from "#server/client.ts";
-import { countsFor } from "#server/internal/countsFor.ts";
 import { JobEngine } from "#server/internal/engine.ts";
 import { enqueueFor } from "#server/internal/enqueueFor.ts";
-import { healthFor } from "#server/internal/healthFor.ts";
 import { jobControl } from "#server/internal/jobControl.ts";
-import { jobListings } from "#server/internal/jobListings.ts";
 import type { PgBossService } from "#server/service.ts";
 
 export const makeService = Effect.fnUntraced(function* (
@@ -14,13 +12,16 @@ export const makeService = Effect.fnUntraced(function* (
 	schema = "pgboss",
 ): Effect.fn.Return<PgBossService, never, JobEngine> {
 	const engine = yield* JobEngine;
+	const reads = yield* inspection(client, schema);
 	return {
-		counts: (queue) => countsFor(client, schema, queue.name),
+		counts: (queue) => reads.counts(queue),
+		deadLetteredJobs: reads.deadLetteredJobs,
 		deleteQueue: engine.deleteQueue,
-		...(yield* jobListings),
 		enqueue: enqueueFor(client),
+		failedJobs: reads.failedJobs,
+		inspection: () => Effect.succeed(reads),
 		...(yield* jobControl),
-		health: (queues) => healthFor(client, queues === undefined ? names : queues.map((queue) => queue.name)),
+		health: (queues) => reads.health(queues ?? names.map((name) => ({ name }))),
 		refreshQueueStats: engine.refreshQueueStats,
 		unschedule: engine.unschedule,
 	};

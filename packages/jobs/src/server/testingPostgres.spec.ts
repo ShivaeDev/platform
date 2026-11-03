@@ -180,7 +180,7 @@ database.it(
 );
 
 database.it(
-	"the idle wait reads nothing while a batch is running and settles once the busy work finishes",
+	"the idle wait skips busy-state queries while a batch is running and settles once the busy work finishes",
 	[
 		running("app", [worker(Checked, { waitsFor: "busy" })], { controller: "test retries" }),
 		idleReadsCounted("app", "busy"),
