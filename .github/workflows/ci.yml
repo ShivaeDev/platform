@@ -236,6 +236,7 @@ jobs:
           retention-days: 14
 
   consumers:
+    if: github.event_name != 'push'
     needs: [ build, shard-plan ]
     name: packed consumers (${{ matrix.shard }})
     permissions:
@@ -288,6 +289,7 @@ jobs:
           retention-days: 14
 
   published-starter:
+    if: github.event_name != 'push'
     name: Packed starter (${{ matrix.variant }})
     needs: build
     permissions:
@@ -335,7 +337,8 @@ jobs:
             console.log(`${name}: ${job.result}`);
           }
           const mainPush = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
-          if (Object.entries(jobs).some(([name, job]) => job.result !== 'success' && !(mainPush && name === 'tests' && job.result === 'skipped'))) process.exit(1);
+          const checkedByMergeQueue = new Set(['tests', 'consumers', 'published-starter']);
+          if (Object.entries(jobs).some(([name, job]) => job.result !== 'success' && !(mainPush && checkedByMergeQueue.has(name) && job.result === 'skipped'))) process.exit(1);
           JS
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'merge_group'
