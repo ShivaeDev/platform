@@ -1,16 +1,16 @@
 import { rmSync } from "node:fs";
-import { Console, Effect, Layer } from "effect";
+import { ConfigProvider, Console, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { lint } from "#cli/lint.ts";
 import { services } from "#cli/runMain.ts";
 import { capturing, type Output } from "#testing/adapters/cli.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
 import { qualityTree } from "#testing/adapters/qualityTree.ts";
 import { LineAllowance } from "./customServiceRule.ts";
 
 const RULE_URL = new URL("./customServiceRule.ts", import.meta.url).href;
 
 export const customServiceStory = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync(() => ({
@@ -37,6 +37,11 @@ export const customServiceStory = storyKit({
 		checks: () => {
 			story.tell("quality lint runs the configured rule with the supplied line allowance");
 			return lint(engine.root, undefined).pipe(
+				Effect.provide(
+					ConfigProvider.layerAdd(ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": isolatedEnvironment(engine.root).HEAVY_PROCESS_LOCK } }), {
+						asPrimary: true,
+					}),
+				),
 				Effect.provideService(Console.Console, capturing(engine.output)),
 				Effect.catchTag("GateFailed", () => Effect.void),
 			);

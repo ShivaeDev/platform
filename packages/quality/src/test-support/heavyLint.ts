@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber, Queue } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, services } from "#cli/runMain.ts";
 import { capturing } from "#testing/adapters/cli.ts";
@@ -32,7 +33,6 @@ function observedSpawner(spawner: Context.Service.Shape<typeof ChildProcessSpawn
 }
 
 export const heavyLint = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const root = realpathSync(defaultTree(config('{ sources: ["src"] }')));
@@ -61,6 +61,10 @@ export const heavyLint = storyKit({
 				return fiber === undefined ? Effect.die("The lint fiber has not started") : Fiber.interrupt(fiber);
 			},
 			lockExists: () => Effect.sync(() => existsSync(engine.lock)),
+			lockPollPasses: () => {
+				story.tell("one second passes and the waiting lint checks the heavy-process lock again");
+				return untilTimer("1 second").pipe(Effect.andThen(passes("1 second", Effect.void)));
+			},
 			nextEvent: (name: string) => Queue.take(run(name).events),
 			starts: Effect.fn("HeavyLint.starts")(function* (name: string) {
 				story.tell(`the author starts ${name} with quality lint`);

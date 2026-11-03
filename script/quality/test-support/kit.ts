@@ -23,11 +23,11 @@ export const qualityKit = storyKit({
 			}),
 		fix: () => {
 			story.tell("run the repository formatter through quality fix");
-			return Effect.promise(() => runQuality(root, "fix"));
+			return runQuality(root, "fix");
 		},
 		lint: () => {
 			story.tell("lint the repository through Quality");
-			return Effect.promise(() => runQuality(root, "lint"));
+			return runQuality(root, "lint");
 		},
 		read: (path: string) => readFileSync(join(root, path), "utf8"),
 	}),

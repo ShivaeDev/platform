@@ -6,7 +6,7 @@ import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 heavyLint.it(
 	"a parallel lint waits until the lint running Biome releases the shared heavy-process lock",
 	[],
-	function* ({ biomeStarted, finishes, lockExists, nextEvent, starts }) {
+	function* ({ biomeStarted, finishes, lockExists, lockPollPasses, nextEvent, starts }) {
 		yield* starts("first");
 		yield* outcomes([
 			["first lint", () => nextEvent("first"), "Biome started"],
@@ -20,10 +20,11 @@ heavyLint.it(
 		]);
 
 		yield* finishes("first");
-		yield* outcomes([
-			["first lint", () => nextEvent("first"), "Exited 0"],
-			["second lint", () => nextEvent("second"), "Biome started"],
-		]);
+		yield* assertThat(yield* nextEvent("first"), (actual) => actual.toBe("Exited 0"));
+
+		yield* lockPollPasses();
+
+		yield* assertThat(yield* nextEvent("second"), (actual) => actual.toBe("Biome started"));
 
 		yield* finishes("second");
 		yield* outcomes([
@@ -37,17 +38,18 @@ heavyLint.it(
 heavyLint.it(
 	"interrupting a lint releases its hold and lets a waiting lint reach Biome",
 	[],
-	function* ({ finishes, interrupts, lockExists, nextEvent, starts }) {
+	function* ({ finishes, interrupts, lockExists, lockPollPasses, nextEvent, starts }) {
 		yield* starts("first");
 		yield* assertThat(yield* nextEvent("first"), (actual) => actual.toBe("Biome started"));
 		yield* starts("second");
 		yield* assertThat(yield* nextEvent("second"), (actual) => actual.toBe("Waiting for lock"));
 
 		yield* interrupts("first");
-		yield* outcomes([
-			["first lint", () => nextEvent("first"), "Exited 130"],
-			["second lint", () => nextEvent("second"), "Biome started"],
-		]);
+		yield* assertThat(yield* nextEvent("first"), (actual) => actual.toBe("Exited 130"));
+
+		yield* lockPollPasses();
+
+		yield* assertThat(yield* nextEvent("second"), (actual) => actual.toBe("Biome started"));
 
 		yield* finishes("second");
 		yield* outcomes([

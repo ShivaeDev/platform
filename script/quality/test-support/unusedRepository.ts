@@ -40,7 +40,7 @@ export const unusedRepository = storyKit({
 	stages: ["repository"],
 	verbs: (root, story) => ({
 		cli: (...args: readonly string[]) =>
-			Effect.promise(() => {
+			Effect.suspend(() => {
 				story.tell(`quality ${args.join(" ")}`);
 				return runQuality(root, ...args);
 			}),

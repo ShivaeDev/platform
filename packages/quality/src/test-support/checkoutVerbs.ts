@@ -3,7 +3,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { runQuality } from "#testing/adapters/cli.ts";
-import { git, ISOLATED_ENV } from "#testing/adapters/git.ts";
+import { git, isolatedEnvironment } from "#testing/adapters/git.ts";
 import { hookPath } from "#testing/adapters/hookPath.ts";
 import { checksLog, commits, type HookRepository, hookText } from "#testing/adapters/hookRepository.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
@@ -100,9 +100,9 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 		readsIn: (worktree: string, path: string) => Effect.sync(() => textIn(folderOf(engine, worktree), path)),
 		reported: () => Effect.sync(() => linesOf(engine.answer?.stdout ?? "").filter((line) => line.startsWith("quality: "))),
 		runsIn: (worktree: string, ...args: readonly string[]) =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell(`the author runs quality ${args.join(" ")} in the worktree ${worktree}`);
-				engine.answer = answerOf(await runQuality(folderOf(engine, worktree), ...args));
+				engine.answer = answerOf(yield* runQuality(folderOf(engine, worktree), ...args));
 				return engine.answer;
 			}),
 		runsOwnQuality: (...args: readonly string[]) =>
@@ -111,7 +111,11 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 					throw new Error("Declare qualityFileAt(path) before running the repository's own quality");
 				}
 				tell(`the author runs the repository's own quality file with ${args.join(" ")}`);
-				const run = spawnSync("node", ["--conditions=source", engine.ownQuality, ...args], { cwd: engine.root, encoding: "utf8", env: ISOLATED_ENV });
+				const run = spawnSync("node", ["--conditions=source", engine.ownQuality, ...args], {
+					cwd: engine.root,
+					encoding: "utf8",
+					env: isolatedEnvironment(engine.root),
+				});
 				engine.answer = answerOf({ status: run.status, stderr: run.stderr, stdout: run.stdout });
 				return engine.answer;
 			}),

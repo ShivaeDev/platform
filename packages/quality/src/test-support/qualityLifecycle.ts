@@ -7,7 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
 import { capturing, type Output, qualityArgs } from "#testing/adapters/cli.ts";
-import { ISOLATED_ENV } from "#testing/adapters/git.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
 import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
@@ -29,7 +29,7 @@ export interface Lifecycle {
 
 function closedReaderRun(engine: Lifecycle, args: readonly string[]): Promise<CliAnswer> {
 	return new Promise((resolve) => {
-		const child = spawn("node", qualityArgs(args), { cwd: engine.root, env: ISOLATED_ENV, stdio: ["ignore", "pipe", "pipe"] });
+		const child = spawn("node", qualityArgs(args), { cwd: engine.root, env: isolatedEnvironment(engine.root), stdio: ["ignore", "pipe", "pipe"] });
 		child.stdout.destroy();
 		let stderr = "";
 		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
@@ -57,7 +57,6 @@ export function startQuality(engine: Lifecycle, spawner: Context.Service.Shape<t
 }
 
 export const qualityLifecycle = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const engine: Lifecycle = {

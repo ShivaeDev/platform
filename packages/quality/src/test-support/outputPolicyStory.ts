@@ -21,7 +21,6 @@ function ran(engine: OutputEngine): string {
 }
 
 export const outputPolicyStory = storyKit({
-	clock: "live",
 	*create() {
 		const root = seedTree([
 			{ content: 'import { it } from "vitest";\nit("passes", () => console.log("diagnostic from a passing test"));', path: "probe.test.ts" },

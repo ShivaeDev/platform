@@ -35,9 +35,9 @@ export const effectPolicyStory = storyKit({
 	name: "Effect policy",
 	stages: ["repository"],
 	verbs: (root, story) => ({
-		baseline: (rule: string) => Effect.promise(() => runQuality(root, "baseline", "write", "--rule", rule)),
+		baseline: (rule: string) => runQuality(root, "baseline", "write", "--rule", rule),
 		lint: () =>
-			Effect.promise(() => {
+			Effect.suspend(() => {
 				story.tell("the author runs quality lint");
 				return runQuality(root, "lint");
 			}),

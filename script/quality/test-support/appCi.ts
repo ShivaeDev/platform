@@ -47,7 +47,7 @@ export const appCi = storyKit({
 		read: (path: string) => readFileSync(join(engine.root, path), "utf8"),
 		run: (...args: readonly string[]) => {
 			story.tell("run the shared application CI gate");
-			return Effect.promise(() => runQuality(engine.root, "ci", ...args));
+			return runQuality(engine.root, "ci", ...args);
 		},
 	}),
 });

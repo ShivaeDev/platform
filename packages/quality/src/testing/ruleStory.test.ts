@@ -4,16 +4,17 @@ import { draftRule } from "#test/draftRule.ts";
 import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
 const RULE_URL = new URL("../test-support/draftRule.ts", import.meta.url).href;
+const CLOCK_RULE_URL = new URL("../test-support/clockRule.ts", import.meta.url).href;
 
 ruleStory.it(
-	"a custom rule's findings reject the gate until the author repairs the source",
+	"custom rules run on the story's clock and reject the gate until the author repairs the source",
 	[
 		qualityInstalled(),
 		repositoryHas(
 			{ content: "node_modules/\n", path: ".gitignore" },
 			{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 			{
-				content: `import { draftRule } from ${JSON.stringify(RULE_URL)};\n\nexport default {\n\tlocal: [draftRule],\n\trules: { "local/no-draft": { options: { word: "draft" } } },\n\tsources: ["src"],\n};\n`,
+				content: `import { clockRule } from ${JSON.stringify(CLOCK_RULE_URL)};\nimport { draftRule } from ${JSON.stringify(RULE_URL)};\n\nexport default {\n\tlocal: [draftRule, clockRule],\n\trules: { "local/no-draft": { options: { word: "draft" } } },\n\tsources: ["src"],\n};\n`,
 				path: "quality.config.ts",
 			},
 			{ content: 'export function title(): string {\n\treturn "draft";\n}\n', path: "src/title.ts" },
@@ -29,6 +30,7 @@ ruleStory.it(
 		yield* outcomes([
 			["gate outcome", () => gateOutcome(), "rejected"],
 			["gate report", () => gateReport(), expect.stringContaining("Replace draft before merging.")],
+			["rule time", () => gateReport(), expect.stringContaining("Rule checked at 0")],
 		]);
 
 		yield* writes({ content: 'export function title(): string {\n\treturn "ready";\n}\n', path: "src/title.ts" });
