@@ -11,7 +11,10 @@ export const writePublished = Effect.fn("Fleet.writePublished")(function* (
 	owns: (source: string) => boolean,
 ) {
 	const path = name === ".fleet-decision-closure-v1.json" ? name : `fleet/${name}`;
-	const source = yield* readPublication(root, realRoot, path, 8 * 1024 * 1024);
+	const source = yield* readPublication(root, realRoot, path, {
+		bytes: 8 * 1024 * 1024,
+		reason: "Publication target must be a regular file under 8 MiB",
+	});
 	if (source !== undefined && !owns(source)) {
 		return yield* Effect.fail(new ReportFileFailure({ path, reason: "Publication target contains authored content" }));
 	}

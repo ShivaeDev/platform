@@ -1,7 +1,12 @@
 import { Effect, FileSystem } from "effect";
 import { ReportFileFailure } from "#reportFileFailure.ts";
 
-export const readPublication = Effect.fn("Fleet.readPublication")(function* (root: string, realRoot: string, path: string, limit: number) {
+export const readPublication = Effect.fn("Fleet.readPublication")(function* (
+	root: string,
+	realRoot: string,
+	path: string,
+	limit: { readonly bytes: number; readonly reason: string },
+) {
 	const fs = yield* FileSystem.FileSystem;
 	const target = `${realRoot}/${path}`;
 	const read = Effect.gen(function* () {
@@ -13,8 +18,8 @@ export const readPublication = Effect.fn("Fleet.readPublication")(function* (roo
 		if (info.type !== "File" || (yield* fs.realPath(target)) !== target) {
 			return yield* Effect.fail(new ReportFileFailure({ path, reason: "Publication target must be a regular file within the Board" }));
 		}
-		if (info.size > limit) {
-			return yield* Effect.fail(new ReportFileFailure({ path, reason: "Publication target exceeds size limit" }));
+		if (info.size > limit.bytes) {
+			return yield* Effect.fail(new ReportFileFailure({ path, reason: limit.reason }));
 		}
 		return yield* fs.readFileString(target);
 	});

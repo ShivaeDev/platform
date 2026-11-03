@@ -59,7 +59,10 @@ export function reportPayload(root: string, work: BoardWork, observation: Sessio
 	const read = Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const realRoot = yield* fs.realPath(root);
-		const content = yield* readPublication(root, realRoot, payloadPath, REPORT_LIMITS.attachmentBytes * 2 + 512 * 1024);
+		const content = yield* readPublication(root, realRoot, payloadPath, {
+			bytes: REPORT_LIMITS.attachmentBytes * 2 + 512 * 1024,
+			reason: "Report payload exceeds size limit",
+		});
 		if (content !== undefined) {
 			yield* publishOnce({ content, path: payloadPath, realRoot, root }).pipe(Effect.provide(Publication.layer));
 		}

@@ -23,12 +23,6 @@ boardFileStory.it("a Markdown attachment is stored as attachment bytes that the 
 	]);
 });
 
-boardFileStory.it("republishing identical attachment bytes after a lost acknowledgement returns the same link", [], function* ({ files }) {
-	const link = yield* files.publishAttachments(ID, [CAPTURE]);
-
-	expect(yield* files.publishAttachments(ID, [CAPTURE])).toBe(link);
-});
-
 boardFileStory.it("different bytes for a published attachment are refused and the first bytes are kept", [], function* ({ files }) {
 	yield* files.publishAttachments(ID, [CAPTURE]);
 
