@@ -8,6 +8,7 @@ import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
+import { completePublication } from "#test/completePublication.ts";
 import { followHints } from "#test/rpc/followHints.ts";
 import { Api, handlers, migrations } from "./feature.ts";
 
@@ -62,7 +63,7 @@ export const publicationRecoveryStory = storyKit({
 		read: (location: "local" | "remote") => engine[location].client("recovery.list", undefined),
 		saveWithOversizedKey: (title: string) => {
 			story.tell(`save ${title} with a declared key exceeding PostgreSQL's notification limit`);
-			return engine.local.client("recovery.save", { key: "x".repeat(8000), title });
+			return completePublication(engine.local.client("recovery.save", { key: "x".repeat(8000), title }), 2, story.tell);
 		},
 	}),
 });

@@ -11,6 +11,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
+import { completePublication } from "#test/completePublication.ts";
 import { host } from "./host.ts";
 import { viewerFixture } from "./viewerFixture.ts";
 
@@ -113,7 +114,8 @@ export const commandChanges = storyKit({
 			),
 		save: (title: string) => {
 			story.tell(`save the note "${title}" through the command`);
-			return engine.client["notes.save"]({ title });
+			const retries = engine.state.failures < 0 ? 2 : Math.min(engine.state.failures, 2);
+			return completePublication(engine.client["notes.save"]({ title }), retries, story.tell);
 		},
 		saveAnnounced: () => engine.client["notes.announce"]({ title: "Announced note" }),
 		saveAs: (auth: "required" | "optional" | "user" | "accounts", caller: "alice" | "anonymous" = "alice") => {

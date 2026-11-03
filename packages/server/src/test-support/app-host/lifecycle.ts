@@ -3,6 +3,8 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
+import { clockedLayer } from "#test/clockedLayer.ts";
+import { finishExports } from "./finishExports.ts";
 import { runtimeLayer } from "./runtimeLayer.ts";
 import { type HostState, io, recordLog, runtimeOf } from "./state.ts";
 
@@ -23,7 +25,7 @@ export function start(state: HostState) {
 				.build(state)
 				.pipe(
 					Layer.provideMerge(runtimeLayer(state.runtimeLifecycle)),
-					Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
+					(built) => clockedLayer(built, clock),
 					Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.env, preserveEmptyStrings: true }))),
 					Layer.provideMerge(Layer.merge(Logger.layer([logger]), Layer.succeed(References.MinimumLogLevel, state.minimumLogLevel))),
 				);
@@ -50,13 +52,20 @@ export function start(state: HostState) {
 	);
 }
 export function close(state: HostState) {
+	return finishExports(
+		io(async () => {
+			state.clientAbort?.controller.abort();
+			state.proxy?.setResponsive(true);
+			state.subscription?.outgoing?.destroy();
+			state.agent?.destroy();
+			await state.runtime?.dispose();
+		}),
+	);
+}
+export function teardown(state: HostState) {
 	return io(async () => {
-		state.clientAbort?.controller.abort();
-		state.proxy?.setResponsive(true);
-		state.subscription?.outgoing?.destroy();
-		state.agent?.destroy();
-		await state.runtime?.dispose();
-	});
+		await state.receiver?.close();
+	}).pipe(Effect.andThen(close(state)));
 }
 export const useForwardingProxy = Effect.fnUntraced(function* (state: HostState) {
 	const proxy = yield* forwardingProxy(state.url, {

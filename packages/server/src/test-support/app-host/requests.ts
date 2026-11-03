@@ -2,6 +2,7 @@ import { request } from "node:http";
 import { Effect, Result } from "effect";
 import { answered, decodedErrorWords, resultOf } from "@shivaedev/test-story/server/answers.ts";
 import { call, post } from "./fixture.ts";
+import { healthVerbs } from "./healthVerbs.ts";
 import { createInvite } from "./invites.ts";
 import { directPing, ping } from "./ping.ts";
 import { postBody } from "./postBody.ts";
@@ -60,15 +61,7 @@ export function requests(state: HostState, tell: (line: string) => void) {
 			tell(`${viewer} calls the greeting RPC with a name that is taken`);
 			return greet(viewer, true, headers);
 		},
-		health: () => {
-			tell("the health monitor probes the host");
-			return io(async () => {
-				const response = await fetch(`${state.url}/health`, {
-					headers: { origin: "https://health-monitor.example" },
-				});
-				return { body: await response.text(), cacheControl: response.headers.get("cache-control"), status: response.status };
-			});
-		},
+		...healthVerbs(state, tell),
 		httpAnswer: () => fetched("/").pipe(Effect.match({ onFailure: () => "refuses connections", onSuccess: () => "answers" })),
 		ping: (options?: Parameters<typeof ping>[1]) => {
 			tell(`the native RPC client pings ${state.rpcPath}`);
