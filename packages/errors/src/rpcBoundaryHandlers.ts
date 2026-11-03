@@ -1,5 +1,6 @@
-import { Effect, Result, Stream } from "effect";
+import { Effect, Result, Schema, Stream, type Types } from "effect";
 import { Rpc, type RpcGroup, RpcSchema } from "effect/rpc";
+import { type RpcBoundaryOptions, rpcBoundary } from "#boundary.ts";
 
 type HandlerResult = Effect.Effect<unknown, unknown, unknown> | Stream.Stream<unknown, unknown, unknown>;
 type Handlers<R extends Rpc.Any> = {
@@ -21,34 +22,48 @@ type Bounded<T, E> =
 				? Rpc.Wrapper<Bounded<TValue, E>>
 				: never;
 
-type BoundedHandlers<THandlers, E> = {
-	readonly [TKey in keyof THandlers]: THandlers[TKey] extends (...args: infer TArgs) => infer TValue ? (...args: TArgs) => Bounded<TValue, E> : never;
+type Rejection<TRpc extends Rpc.Any> = TRpc extends Rpc.AnyWithProps
+	? TRpc["errorSchema"]["Type"] | (TRpc["successSchema"] extends RpcSchema.Stream<infer _A, infer E> ? E["Type"] : never)
+	: never;
+
+type BoundedHandlers<TRpcs extends Rpc.Any, THandlers> = {
+	readonly [TKey in keyof THandlers]: THandlers[TKey] extends (...args: infer TArgs) => infer TValue
+		? (...args: TArgs) => Bounded<TValue, Rejection<Extract<TRpcs, { readonly _tag: TKey }>>>
+		: never;
 };
 
-export function rpcBoundaryHandlers<TRpcs extends Rpc.Any, E, THandlers extends Handlers<TRpcs>>(
+type GroupOptions<TRpcs extends Rpc.Any> = Types.UnionToIntersection<TRpcs extends unknown ? RpcBoundaryOptions<Rejection<TRpcs>> : never>;
+
+export function rpcBoundaryHandlers<TRpcs extends Rpc.Any, THandlers extends Handlers<TRpcs>>(
 	group: RpcGroup.RpcGroup<TRpcs>,
-	boundary: <A, TError, R>(effect: Effect.Effect<A, TError, R>) => Effect.Effect<A, E, R>,
+	options: NoInfer<GroupOptions<TRpcs>>,
 	handlers: THandlers,
-): BoundedHandlers<THandlers, E>;
-export function rpcBoundaryHandlers(
-	group: RpcGroup.RpcGroup<Rpc.Any>,
-	boundary: <A, TError, R>(effect: Effect.Effect<A, TError, R>) => Effect.Effect<A, unknown, R>,
-	handlers: Readonly<Record<string, (...args: never[]) => Rpc.WrapperOr<HandlerResult>>>,
+): BoundedHandlers<TRpcs, THandlers>;
+export function rpcBoundaryHandlers<TTag extends string>(
+	group: RpcGroup.RpcGroup<Rpc.AnyWithProps & { readonly _tag: TTag }>,
+	options: RpcBoundaryOptions<unknown>,
+	handlers: Readonly<Record<TTag, (...args: never[]) => Rpc.WrapperOr<HandlerResult>>>,
 ) {
 	return Object.fromEntries(
-		Object.entries<(...args: never[]) => Rpc.WrapperOr<HandlerResult>>(handlers).map(([tag, handler]) => [
-			tag,
-			(...args: never[]) => {
-				const constructed = Result.try(() => handler(...args));
-				if (Result.isFailure(constructed)) {
-					const failure = boundary(Effect.die(constructed.failure));
-					const rpc = group.requests.get(tag);
-					return Rpc.isRpc(rpc) && RpcSchema.isStreamSchema(rpc.successSchema) ? Stream.fromEffect(failure) : failure;
-				}
-				return Rpc.wrapMap(constructed.success, (result) =>
-					Effect.isEffect(result) ? boundary(result) : Stream.catchCause(result, (cause) => Stream.fromEffect(boundary(Effect.failCause(cause)))),
-				);
-			},
-		]),
+		Array.from(group.requests.values(), (rpc) => {
+			const tag = rpc._tag;
+			const handler = handlers[tag];
+			const streaming = RpcSchema.isStreamSchema(rpc.successSchema);
+			const schema = RpcSchema.isStreamSchema(rpc.successSchema) ? Schema.Union([rpc.errorSchema, rpc.successSchema.error]) : rpc.errorSchema;
+			const boundary = rpcBoundary(schema, options);
+			return [
+				tag,
+				(...args: never[]) => {
+					const constructed = Result.try(() => handler(...args));
+					if (Result.isFailure(constructed)) {
+						const failure = boundary(Effect.die(constructed.failure));
+						return streaming ? Stream.fromEffect(failure) : failure;
+					}
+					return Rpc.wrapMap(constructed.success, (result) =>
+						Effect.isEffect(result) ? boundary(result) : Stream.catchCause(result, (cause) => Stream.fromEffect(boundary(Effect.failCause(cause)))),
+					);
+				},
+			];
+		}),
 	);
 }

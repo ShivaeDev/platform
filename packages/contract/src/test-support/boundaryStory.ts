@@ -2,29 +2,29 @@ import { Context, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcSerialization } from "effect/rpc";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
-import { Conflict, InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import { Conflict, InternalServerError, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { contract } from "#contract.ts";
 import { command, query, stream } from "#operation.ts";
 import { answered } from "./answers.ts";
 
-const Outcome = Schema.Literals(["success", "unexpected", "defect", "declared"]);
+const Outcome = Schema.Literals(["success", "unexpected", "defect", "declared", "undeclared"]);
 type Outcome = typeof Outcome.Type;
 const declaration = {
 	payload: { outcome: Outcome },
-	rejections: { Conflict, InternalServerError },
 	success: Schema.String,
 };
 const Api = contract("boundary", {
-	commands: [command("save", { ...declaration, invalidates: () => [] })],
-	queries: [query("read", { ...declaration, readPolicy: () => Effect.succeed(true), reads: () => [] })],
-	streams: [stream("follow", { ...declaration, reads: () => [] })],
+	commands: [command("save", { ...declaration, invalidates: () => [], rejections: { Conflict, InternalServerError } })],
+	queries: [
+		query("read", { ...declaration, readPolicy: () => Effect.succeed(true), reads: () => [], rejections: { InternalServerError, NotFound } }),
+	],
+	streams: [stream("follow", { ...declaration, reads: () => [], rejections: { InternalServerError, NotFound } })],
 });
 
-function perform(result: Outcome) {
+function perform(result: Outcome, operation: "read" | "save") {
 	switch (result) {
 		case "success":
 			return Effect.succeed("a note");
@@ -33,19 +33,24 @@ function perform(result: Outcome) {
 		case "defect":
 			return Effect.die(new Error("database unavailable"));
 		case "declared":
-			return Effect.fail(new Conflict({ field: "title", message: "Title is taken" }));
+		case "undeclared":
+			return Effect.fail(
+				(result === "declared") === (operation === "save")
+					? new Conflict({ field: "title", message: "Title is taken" })
+					: new NotFound({ message: "Note is missing" }),
+			);
 	}
 }
 
-const boundary = rpcBoundary(Schema.Union([Conflict, InternalServerError]), {
+const boundaryOptions = {
 	message: "Notes unavailable",
-	unexpected: (message) => new InternalServerError({ message }),
-});
+	unexpected: (message: string) => new InternalServerError({ message }),
+};
 const handlers = Api.application.toLayer(
-	rpcBoundaryHandlers(Api.application, boundary, {
-		"boundary.follow": ({ outcome }) => Rpc.fork(Stream.concat(Stream.succeed("first note"), Stream.fromEffect(perform(outcome)))),
-		"boundary.read": ({ outcome }) => perform(outcome),
-		"boundary.save": ({ outcome }) => perform(outcome),
+	rpcBoundaryHandlers(Api.application, boundaryOptions, {
+		"boundary.follow": ({ outcome }) => Rpc.fork(Stream.concat(Stream.succeed("first note"), Stream.fromEffect(perform(outcome, "read")))),
+		"boundary.read": ({ outcome }) => perform(outcome, "read"),
+		"boundary.save": ({ outcome }) => perform(outcome, "save"),
 	}),
 );
 
@@ -68,7 +73,9 @@ export const boundaryStory = storyKit({
 	verbs: ({ client }, story) => ({
 		call: (operation: "read" | "save", result: Outcome) => {
 			story.tell(`the HTTP client calls ${operation} with a ${result} outcome`);
-			return answered(client(`boundary.${operation}`, { outcome: result }), (value) => value);
+			return operation === "read"
+				? answered(client("boundary.read", { outcome: result }), (value) => value)
+				: answered(client("boundary.save", { outcome: result }), (value) => value);
 		},
 		follow: (result: Outcome) => {
 			story.tell(`the HTTP client follows notes with a ${result} outcome after the first note`);

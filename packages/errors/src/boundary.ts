@@ -36,11 +36,7 @@ export interface RpcBoundaryOptions<E> {
 	readonly message?: string;
 	readonly unexpected: (message: string) => E;
 }
-export function rpcBoundary<
-	TSchema extends Schema.ConstraintDecoder<{
-		readonly message: string;
-	}>,
->(schema: TSchema, options: RpcBoundaryOptions<TSchema["Type"]>) {
+export function rpcBoundary<TSchema extends Schema.Constraint>(schema: TSchema, options: RpcBoundaryOptions<TSchema["Type"]>) {
 	const declared = Schema.is(schema);
 	return <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, TSchema["Type"], R> =>
 		Effect.catchCause(self, (cause) => {

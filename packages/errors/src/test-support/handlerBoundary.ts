@@ -1,7 +1,6 @@
 import { Effect, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { rpcBoundary } from "#boundary.ts";
 import { rpcBoundaryHandlers } from "#rpcBoundaryHandlers.ts";
 import { Conflict, InternalServerError } from "#taxonomy.ts";
 
@@ -30,12 +29,12 @@ function perform(outcome: Outcome) {
 	}
 }
 
-const boundary = rpcBoundary(declaration.error, {
+const boundaryOptions = {
 	message: "Notes unavailable",
-	unexpected: (message) => new InternalServerError({ message }),
-});
+	unexpected: (message: string) => new InternalServerError({ message }),
+};
 const handlers = Api.toLayer(
-	rpcBoundaryHandlers(Api, boundary, {
+	rpcBoundaryHandlers(Api, boundaryOptions, {
 		Follow: ({ outcome }) => Stream.fromEffect(perform(outcome)),
 		ForkFollow: ({ outcome }) => Rpc.fork(Stream.fromEffect(perform(outcome))),
 		ForkRead: ({ outcome }) => Rpc.fork(perform(outcome)),
