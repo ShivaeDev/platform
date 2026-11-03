@@ -11,18 +11,20 @@ import { statusRecord } from "#test/status.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
 
-export const host = storyKit({
+export const hostDefinition = {
 	after: { configuration: (engine: HostStoryEngine) => engine.deploy() },
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "live" as const,
 	create: () => new HostStoryEngine(),
-	inspect: (engine) => engine.inspect(),
+	inspect: (engine: HostStoryEngine) => engine.inspect(),
 	layer,
 	name: "Fleet host",
 	runIf: postgresEnabled,
-	stages: ["configuration", "observation"],
-	verbs: (engine, story) => hostVerbs(engine, story.tell),
-});
+	stages: ["configuration", "observation"] as const,
+	verbs: (engine: HostStoryEngine, story: { tell: (line: string) => void }) => hostVerbs(engine, story.tell),
+};
+
+export const host = storyKit(hostDefinition);
 
 export function boardWork(files: Readonly<Record<string, string>>, config: Partial<HostSettings> = {}) {
 	return host.trait("configuration", `Board work in ${Object.keys(files).join(", ")}`, (engine) => {

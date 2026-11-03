@@ -13,22 +13,22 @@ const POPULATED = { value: POPULATED_RECORD, version: 6 };
 isolatedStorage.it(
 	"the typed migration keeps every current and archived field, empty and absent structure, admission order, version and foreign reservation",
 	[],
-	function* ({ admissionOrder, migrate, openFleetStore, reserveForeignRow, seedTextRecords }) {
+	function* ({ admissionOrder, migrate, openFleetStorage, reserveForeignRow, seedTextRecords }) {
 		const namespace = "typed_upgrade";
 		yield* seedTextRecords(namespace, legacyTypedMigrationRecords());
 		yield* reserveForeignRow(namespace, "external");
 		const before = yield* admissionOrder(namespace);
-		const store = yield* openFleetStore({ namespace });
+		const fleet = yield* openFleetStorage({ namespace });
 
 		yield* migrate(namespace);
 
 		const index = { version: POPULATED.version, workId: "populated" };
 		yield* outcomes([
-			["listed records", () => store.list(), EXPECTED],
-			["loaded records", () => Effect.forEach(EXPECTED, ({ value }) => store.load(value.workId)), EXPECTED],
+			["listed records", () => fleet.records(), EXPECTED],
+			["loaded records", () => Effect.forEach(EXPECTED, ({ value }) => fleet.reload(value.workId)), EXPECTED],
 			["admission order", () => admissionOrder(namespace), before],
-			["foreign reservations", () => store.foreignReservations(), [{ areas: [], backlog: true, executing: false, owner: "external" }]],
-			["operation index", () => store.operationEntries("operation"), [index, index, index]],
+			["foreign reservations", () => fleet.reservations(), [{ areas: [], backlog: true, executing: false, owner: "external" }]],
+			["operation index", () => fleet.operations("operation"), [index, index, index]],
 		]);
 	},
 );
@@ -36,13 +36,13 @@ isolatedStorage.it(
 isolatedStorage.it(
 	"saving a typed record without attempts or history replaces its children and clears its operation index",
 	[],
-	function* ({ migrate, openFleetStore, seedTextRecords }) {
+	function* ({ migrate, openFleetStorage, seedTextRecords }) {
 		const namespace = "typed_upgrade";
 		yield* seedTextRecords(namespace, legacyTypedMigrationRecords());
-		const store = yield* openFleetStore({ namespace });
+		const fleet = yield* openFleetStorage({ namespace });
 		yield* migrate(namespace);
 
-		const changed = yield* store.compareAndSet(POPULATED.value.workId, POPULATED.version, {
+		const changed = yield* fleet.replace(POPULATED.value.workId, POPULATED.version, {
 			...POPULATED.value,
 			attempts: [],
 			history: undefined,
@@ -50,9 +50,9 @@ isolatedStorage.it(
 			pendingAnswers: undefined,
 		});
 
-		const reloaded = yield* store.load(POPULATED.value.workId);
+		const reloaded = yield* fleet.reload(POPULATED.value.workId);
 		expect(reloaded).toEqual(changed);
-		expect(yield* store.operationEntries("operation")).toEqual([]);
+		expect(yield* fleet.operations("operation")).toEqual([]);
 	},
 );
 
@@ -76,36 +76,40 @@ isolatedStorage.it(
 	},
 );
 
-isolatedStorage.it("a repaired text field migrates on retry", [], function* ({ migrate, migration, openFleetStore, seedTextRecords, setTextField }) {
-	const namespace = "typed_retry";
-	yield* seedTextRecords(namespace, VALUES);
-	yield* setTextField(namespace, "empty", "integrationRetry", "{");
-	expect(yield* migration(namespace)).toBe("failed");
-	yield* setTextField(namespace, "empty", "integrationRetry", null);
+isolatedStorage.it(
+	"a repaired text field migrates on retry",
+	[],
+	function* ({ migrate, migration, openFleetStorage, seedTextRecords, setTextField }) {
+		const namespace = "typed_retry";
+		yield* seedTextRecords(namespace, VALUES);
+		yield* setTextField(namespace, "empty", "integrationRetry", "{");
+		expect(yield* migration(namespace)).toBe("failed");
+		yield* setTextField(namespace, "empty", "integrationRetry", null);
 
-	yield* migrate(namespace);
+		yield* migrate(namespace);
 
-	expect((yield* (yield* openFleetStore({ namespace })).list()).map(({ value }) => value)).toEqual(
-		VALUES.map((value) => (value.workId === "empty" ? { ...value, integrationRetry: undefined } : value)),
-	);
-});
+		expect((yield* (yield* openFleetStorage({ namespace })).records()).map(({ value }) => value)).toEqual(
+			VALUES.map((value) => (value.workId === "empty" ? { ...value, integrationRetry: undefined } : value)),
+		);
+	},
+);
 
 isolatedStorage.it(
 	"a failed child write rolls back the record's root fields, version and children together",
 	[],
-	function* ({ forbidChildOperation, migrate, openFleetStore }) {
+	function* ({ forbidChildOperation, migrate, openFleetStorage }) {
 		const namespace = "typed_atomic";
-		const store = yield* openFleetStore({ namespace });
+		const fleet = yield* openFleetStorage({ namespace });
 		yield* migrate(namespace);
-		const saved = yield* store.insert(POPULATED.value);
+		const saved = yield* fleet.insert(POPULATED.value);
 		yield* forbidChildOperation(namespace, ["attempts"], "rejected");
 		const rejected = { operationId: "rejected", role: "worker" as const, status: "completed" as const, submittedAt: 1 };
 
 		const write = yield* refusal(
-			store.compareAndSet(POPULATED.value.workId, saved.version, { ...saved.value, attempts: [rejected], prompt: "new prompt" }),
+			fleet.replace(POPULATED.value.workId, saved.version, { ...saved.value, attempts: [rejected], prompt: "new prompt" }),
 		);
 
 		expect(write).toMatch(/^database failure/u);
-		expect(yield* store.load(POPULATED.value.workId)).toEqual(saved);
+		expect(yield* fleet.reload(POPULATED.value.workId)).toEqual(saved);
 	},
 );

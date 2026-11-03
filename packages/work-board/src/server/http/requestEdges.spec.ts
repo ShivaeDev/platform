@@ -10,18 +10,16 @@ for (const host of ["board.example", "board.example:4747", "["]) {
 	});
 }
 
-boardStory.it("a request addressed to localhost on the board's port is served", [note], function* ({ board, statusOf }) {
-	expect(yield* statusOf("/", `localhost:${board.port}`)).toBe("OK");
+boardStory.it("a request addressed to localhost on the board's port is served", [note], function* ({ localHost, statusOf }) {
+	expect(yield* statusOf("/", localHost("localhost"))).toBe("OK");
 });
 
 boardStory.it("an RPC request addressed to a host that is not loopback is refused", [note], function* ({ download }) {
 	expect(yield* download("/_board/rpc", { host: "evil.example" }, "POST")).toMatchObject({ status: "Forbidden" });
 });
 
-boardStory.it("an RPC request with a malformed Origin is refused as not same-origin", [note], function* ({ board, download }) {
-	expect(
-		yield* download("/_board/rpc", { "content-type": "application/json", host: `127.0.0.1:${board.port}`, origin: ":invalid:" }, "POST"),
-	).toMatchObject({
+boardStory.it("an RPC request with a malformed Origin is refused as not same-origin", [note], function* ({ localHost, download }) {
+	expect(yield* download("/_board/rpc", { "content-type": "application/json", host: localHost(), origin: ":invalid:" }, "POST")).toMatchObject({
 		status: "Forbidden",
 		text: "Local same-origin requests only",
 	});
