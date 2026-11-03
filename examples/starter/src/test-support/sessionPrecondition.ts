@@ -6,7 +6,6 @@ import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts"
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
-import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { secret } from "./host.ts";
 
@@ -28,7 +27,7 @@ export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(fun
 		},
 		{ defaultRole: User.name, roles: AppAccess },
 	).pipe(Effect.provide(memoryStore));
-	return yield* readyAuth(auth);
+	return auth;
 });
 
 export const mintUser = Effect.fn("AppStory.mintUser")(function* (host: SessionHost, name: string, role?: string) {

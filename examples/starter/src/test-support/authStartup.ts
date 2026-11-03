@@ -1,9 +1,9 @@
-import { betterAuth } from "better-auth";
 import { Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { secret } from "./host.ts";
 import { postgres } from "./postgres.ts";
@@ -17,21 +17,25 @@ export const authStartup = storyKit({
 	stages: [],
 	verbs: (engine) => ({
 		closeAuthenticationScope: Effect.fn("AuthStartupStory.closeAuthenticationScope")(function* () {
-			const pending = yield* Effect.scoped(
+			yield* Effect.scoped(
 				Effect.gen(function* () {
 					const database = yield* betterAuthDatabase();
-					const auth = betterAuth({ ...authOptions(), "baseURL": "http://localhost:3000", database, secret: Redacted.value(secret) });
+					const { auth } = yield* betterAuthMount({
+						...authOptions(),
+						"baseURL": "http://localhost:3000",
+						database,
+						secret: Redacted.value(secret),
+					}).pipe(Effect.provide(memoryStore));
 					const context = yield* Effect.promise(() => auth.$context);
 					if (context.checkSchema === undefined) {
 						return yield* Effect.die("The PostgreSQL auth adapter must provide schema validation");
 					}
 					const validation = context.checkSchema();
-					yield* readyAuth(auth);
-					return { validation };
+					engine.validation = validation === undefined ? "completed" : "pending";
+					if (validation !== undefined) {
+						yield* Effect.tryPromise(() => validation);
+					}
 				}),
-			);
-			engine.validation = yield* Effect.tryPromise(() => pending.validation ?? Promise.resolve()).pipe(
-				Effect.match({ onFailure: () => "failed", onSuccess: () => "completed" }),
 			);
 		}),
 		schemaValidation: () => Effect.sync(() => engine.validation),

@@ -83,7 +83,7 @@ export const authStorage = storyKit({
 	layer: postgres,
 	name: "auth storage fixtures",
 	runIf: databaseUrl !== undefined,
-	stages: ["accounts", "expiry", "schema", "hosting"],
+	stages: ["accounts", "expiry", "hosting"],
 	verbs: (engine, story) => ({
 		expireAllSessions: () => {
 			story.tell("every stored auth session expires");
@@ -134,10 +134,6 @@ export function expiredSession(person: Person) {
 	return authStorage.trait("expiry", `${person}'s stored auth session has expired`, (engine) =>
 		engine.storage.expireSessions(account(engine, person).userId),
 	);
-}
-
-export function missingImageColumn() {
-	return authStorage.trait("schema", "the default auth schema is missing its user image column", (engine) => engine.storage.omitImageColumn);
 }
 
 export const withoutAuthHost = authStorage.trait("hosting", "the worker never mounts Better Auth", (engine) => {
