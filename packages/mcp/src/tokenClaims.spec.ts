@@ -57,7 +57,7 @@ for (const [claim, value] of [
 }
 
 mcp.it(
-	"a valid token authenticates until its grant is revoked, then receives a grant refusal without a token claim diagnostic",
+	"a test-kits token authenticates until its grant is revoked, then receives a grant refusal without a token claim diagnostic",
 	[signedIn("alice", "user"), holdsToken("alice")],
 	function* ({ authenticates, revokesClient, tokenClaimLogs }) {
 		expect(yield* authenticates("alice")).toBe("signed in as alice");
@@ -68,5 +68,17 @@ mcp.it(
 			["authentication", () => authenticates("alice"), "grant refused"],
 			["recorded claim diagnostics", () => tokenClaimLogs(), []],
 		]);
+	},
+);
+
+mcp.it(
+	"removing grant_id from an admitted test-kits token receives the named claim refusal",
+	[signedIn("alice", "user"), holdsToken("alice")],
+	function* ({ authenticates, removesTokenClaim }) {
+		expect(yield* authenticates("alice")).toBe("signed in as alice");
+
+		yield* removesTokenClaim("alice", "grant_id");
+
+		expect(yield* authenticates("alice")).toEqual({ claim: "grant_id", refusal: "invalid token claim" });
 	},
 );
