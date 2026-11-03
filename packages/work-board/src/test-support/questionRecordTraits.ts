@@ -1,12 +1,13 @@
 import { symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Deferred, Effect, Exit, Tracer } from "effect";
-import { boardStory, deferredServing, projectFiles, responsesEnabled } from "./boardStory.ts";
-import { outsideFolder } from "./publicationTraits.ts";
-import type { Reply } from "./questionRecordReads.ts";
-import { MODEL_REVIEW, OPTION_DECISION, questionRecords, registeredQuestion, type ServiceStep } from "./questionRecordState.ts";
-import { startProject } from "./servingEngine.ts";
-import { served } from "./storyEngine.ts";
+import { TestClock } from "effect/testing";
+import { boardStory, deferredServing, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { outsideFolder } from "#test/publicationTraits.ts";
+import type { Reply } from "#test/questionRecordReads.ts";
+import { MODEL_REVIEW, OPTION_DECISION, questionRecords, registeredQuestion, type ServiceStep } from "#test/questionRecordState.ts";
+import { startProject } from "#test/servingEngine.ts";
+import { served } from "#test/storyEngine.ts";
 
 export function aModelReview(responses = true) {
 	return boardStory.traits(
@@ -35,6 +36,7 @@ export function replyRecorded(reply: Reply & { readonly id: string; readonly bod
 		"reader",
 		`the maintainer has recorded ${reply.id}${reply.type ? ` as ${reply.type}` : ""}: ${reply.body}`,
 		function* (engine) {
+			yield* TestClock.adjust(1);
 			const { client } = served(engine);
 			const question = registeredQuestion(engine).id;
 			yield* Effect.promise(() =>

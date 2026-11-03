@@ -2,7 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { Effect } from "effect";
 import { SourceFailure } from "#diagnostics/source.ts";
-import { codexReply } from "./codexProtocol.ts";
+import { codexReply } from "#server/diagnostics/codexProtocol.ts";
 
 export function codexRateLimits(
 	launch: () => ChildProcessWithoutNullStreams = () => spawn("codex", ["app-server", "--listen", "stdio://"], { stdio: "pipe" }),

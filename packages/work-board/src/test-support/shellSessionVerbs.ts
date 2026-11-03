@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import { screenAct } from "./screenAct.ts";
-import type { ScreenEngine } from "./screenEngine.ts";
+import { screenAct } from "#test/screenAct.ts";
+import type { ScreenEngine } from "#test/screenEngine.ts";
 
 const SCREEN_LIMIT_MS = 10_000;
 const NOT_ANSWERING = "The Board server isn't answering";
@@ -39,7 +39,7 @@ export function shellSessionVerbs(engine: ScreenEngine, tell: (line: string) => 
 					engine.serverStopped = false;
 					return Promise.resolve();
 				});
-			}).pipe(Effect.andThen(untilScreen(tell, livePageShown()))),
+			}).pipe(Effect.andThen(engine.clock.drive(untilScreen(tell, livePageShown())))),
 		boardServerStops: () =>
 			Effect.promise(async () => {
 				tell("the Board server stops answering and the header says so");

@@ -17,13 +17,15 @@ import { responseContract } from "#rpc/responseContract.ts";
 export interface BrowserClientOptions extends ResumeOptions {
 	readonly live?: boolean;
 	readonly protocol?: Layer.Layer<RpcClient.Protocol>;
+	readonly runtime?: Atom.RuntimeFactory;
 }
 
-function connection(url: string, { live, protocol }: BrowserClientOptions = {}) {
+function connection(url: string, { live, protocol, runtime }: BrowserClientOptions = {}) {
 	return makeClient(workContract, {
 		group: workRpcs,
 		url: `${url.replace(/\/$/u, "")}/_board/rpc`,
 		...(live === undefined ? {} : { live }),
+		...(runtime === undefined ? {} : { runtime }),
 		...(protocol === undefined ? {} : { protocol }),
 	});
 }

@@ -7,9 +7,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { searchMatch } from "#server/search/match.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
-import { type Folder, folder } from "./board.ts";
-import { incrementalIndex } from "./incrementalIndex.ts";
-import { indexState } from "./indexState.ts";
+import { type Folder, folder } from "#test/board.ts";
+import { incrementalIndex } from "#test/incrementalIndex.ts";
+import { indexState } from "#test/indexState.ts";
 
 interface IndexEngine {
 	addDuringListing: boolean;

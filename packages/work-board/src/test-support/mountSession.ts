@@ -36,6 +36,7 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 		document,
 		location: { origin: board.url },
 		removeEventListener: (type, listener) => window.removeEventListener(type, listener),
+		runtime: engine.clock.runtime,
 	};
 	const first = session(environment);
 	delete document.documentElement.dataset.boardReady;

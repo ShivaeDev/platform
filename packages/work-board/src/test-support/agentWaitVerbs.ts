@@ -8,11 +8,12 @@ import type { Question, WaitReading } from "#browser/responses/schema.ts";
 import { agentRequest } from "#server/responses/agent.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import { waitForResponse } from "#server/responses/waitFor.ts";
-import { questionnaireSource } from "./questionnaire.ts";
-import { type AgentAnswer, questionRecords, registeredQuestion, type ServiceStep } from "./questionRecordState.ts";
-import { recordedEdgeResponse } from "./responseEdges.ts";
-import { refusal, settledEffect } from "./responseOutcome.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { driveInterval } from "#test/driveWatchTimers.ts";
+import { questionnaireSource } from "#test/questionnaire.ts";
+import { type AgentAnswer, questionRecords, registeredQuestion, type ServiceStep } from "#test/questionRecordState.ts";
+import { recordedEdgeResponse } from "#test/responseEdges.ts";
+import { refusal, settledEffect } from "#test/responseOutcome.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 const execute = promisify(execFile);
 
@@ -100,7 +101,7 @@ export function agentWaitVerbs(engine: BoardEngine, tell: (line: string) => void
 			if (!waiting) {
 				throw new Error("No agent is waiting; call agentStartsWaiting() or agentWaitStarts() first");
 			}
-			return Effect.map(Fiber.await(waiting), (exit) => {
+			return Effect.map(driveInterval("1 second", Fiber.await(waiting)), (exit) => {
 				if (Exit.isSuccess(exit)) {
 					return replyOf(exit.value);
 				}
@@ -157,7 +158,7 @@ export function agentWaitVerbs(engine: BoardEngine, tell: (line: string) => void
 			tell(`the agent runs the bundled work-board wait ${question.id}`);
 			const args = ["--conditions=source", "src/server/cli.ts", "wait", question.id, "--port", String(served(engine).board.port)];
 			return Effect.promise(() =>
-				execute(process.execPath, args, { cwd: new URL("../../", import.meta.url), timeout: 10_000 }).then(
+				execute(process.execPath, args, { cwd: new URL("../../", import.meta.url) }).then(
 					({ stdout, stderr }) => ({ exitCode: 0, printed: stdout === "" ? "nothing" : replyOf(JSON.parse(stdout)), told: stderr.trim() }),
 					(failure: { code?: number; stdout?: string; stderr?: string }) => ({
 						exitCode: failure.code,

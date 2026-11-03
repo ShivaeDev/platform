@@ -3,9 +3,9 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Stream } from "effect";
 import * as Effect from "effect/Effect";
 import { Unanswered } from "#rpc/rejections.ts";
-import { agentRequest } from "./agent.ts";
-import { agentArguments } from "./agentArguments.ts";
-import { responseFeed } from "./feed.ts";
+import { agentRequest } from "#server/responses/agent.ts";
+import { agentArguments } from "#server/responses/agentArguments.ts";
+import { responseFeed } from "#server/responses/feed.ts";
 
 const followResponses = Effect.fn("WorkBoard.followResponses")(function* (
 	root: string,
@@ -20,6 +20,21 @@ const followResponses = Effect.fn("WorkBoard.followResponses")(function* (
 	);
 });
 
+export const agentCommand = Effect.fn("WorkBoard.agentCommand")(function* (args: readonly string[]) {
+	const parsed = yield* agentArguments(args);
+	if (parsed.action === "follow") {
+		yield* followResponses(
+			parsed.root,
+			parsed.since,
+			(line) => process.stdout.write(`${line}\n`),
+			(line) => process.stderr.write(`${line}\n`),
+		);
+	} else {
+		const response = yield* agentRequest(parsed.action, parsed.options, (text) => process.stderr.write(`${text}\n`));
+		process.stdout.write(`${JSON.stringify(response)}\n`);
+	}
+});
+
 export async function runAgent(args: readonly string[]) {
 	const controller = new AbortController();
 	function cancel() {
@@ -28,21 +43,7 @@ export async function runAgent(args: readonly string[]) {
 	process.once("SIGINT", cancel);
 	process.once("SIGTERM", cancel);
 	try {
-		const command = Effect.gen(function* () {
-			const parsed = yield* agentArguments(args);
-			if (parsed.action === "follow") {
-				yield* followResponses(
-					parsed.root,
-					parsed.since,
-					(line) => process.stdout.write(`${line}\n`),
-					(line) => process.stderr.write(`${line}\n`),
-				);
-			} else {
-				const response = yield* agentRequest(parsed.action, parsed.options, (text) => process.stderr.write(`${text}\n`));
-				process.stdout.write(`${JSON.stringify(response)}\n`);
-			}
-		});
-		const result = await Effect.runPromise(command.pipe(Effect.result), {
+		const result = await Effect.runPromise(agentCommand(args).pipe(Effect.result), {
 			signal: controller.signal,
 		});
 		if (result._tag === "Failure") {

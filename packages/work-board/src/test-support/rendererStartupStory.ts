@@ -2,10 +2,10 @@ import "#test/adapters/renderFaults.ts";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { refuseRenderers } from "#test/adapters/renderFaults.ts";
+import { type RunningBoard, rawGet, startBoard } from "#test/board.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
-import { type RunningBoard, rawGet, startBoard } from "./board.ts";
-import { embeddedBoard } from "./embeddedBoard.ts";
-import { type BoardEngine, createBoard } from "./storyEngine.ts";
+import { embeddedBoard } from "#test/embeddedBoard.ts";
+import { type BoardEngine, createBoard } from "#test/storyEngine.ts";
 
 interface StartupEngine extends BoardEngine {
 	readonly constructions: () => number;

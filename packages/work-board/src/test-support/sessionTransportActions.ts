@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { untilAtom } from "@shivaedev/react/test-support/untilAtom.ts";
 import { session } from "#client/session.ts";
+import { screenAct } from "#test/screenAct.ts";
 import type { ScreenEngine } from "#test/screenEngine.ts";
 
 export function sessionTransportActions(engine: ScreenEngine, tell: (line: string) => void) {
@@ -11,7 +12,9 @@ export function sessionTransportActions(engine: ScreenEngine, tell: (line: strin
 		}
 		const client = session(engine.session.environment);
 		return Effect.runPromise(
-			untilAtom(client.registry, client.updates.status, (status) => status.connection === "live", { name: "a live session connection" }),
+			untilAtom(client.registry, client.updates.status, (status) => status.connection === "live", { name: "a live session connection" }).pipe(
+				Effect.asVoid,
+			),
 		);
 	}
 	function boundary() {
@@ -50,14 +53,18 @@ export function sessionTransportActions(engine: ScreenEngine, tell: (line: strin
 				}),
 			);
 		},
-		setSessionOffline: async (offline: boolean) => {
-			tell(`native command delivery becomes ${offline ? "unavailable" : "available"}`);
-			await act(async () => {
-				boundary().offline = offline;
+		setSessionOffline: (offline: boolean) =>
+			Effect.gen(function* () {
+				tell(`native command delivery becomes ${offline ? "unavailable" : "available"}`);
+				yield* Effect.promise(() =>
+					act(() => {
+						boundary().offline = offline;
+						return Promise.resolve();
+					}),
+				);
 				if (!offline) {
-					await connected();
+					yield* engine.clock.drive(Effect.promise(() => screenAct(connected)));
 				}
-			});
-		},
+			}),
 	};
 }

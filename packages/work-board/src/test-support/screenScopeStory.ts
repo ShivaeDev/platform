@@ -3,9 +3,9 @@ import { createElement } from "react";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
+import { mountSession } from "#test/mountSession.ts";
+import { createScreen, type ScreenEngine, trackScreen } from "#test/screenEngine.ts";
 import { storyClock } from "#test/storyTime.ts";
-import { mountSession } from "./mountSession.ts";
-import { createScreen, type ScreenEngine, trackScreen } from "./screenEngine.ts";
 
 interface ScreenScope {
 	readonly browserFetch: typeof fetch;

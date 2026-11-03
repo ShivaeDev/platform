@@ -5,9 +5,9 @@ import { Effect, FileSystem, Order, PubSub, Queue, Stream, SubscriptionRef } fro
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { board } from "#server/integration/board.ts";
 import { IndexProgress } from "#server/search/IndexProgress.ts";
+import { type Folder, folder } from "#test/board.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
-import { type Folder, folder } from "./board.ts";
-import { type IndexAccesses, watchedIndexFilesystem } from "./watchedIndexFilesystem.ts";
+import { type IndexAccesses, watchedIndexFilesystem } from "#test/watchedIndexFilesystem.ts";
 
 interface Engine extends IndexAccesses {
 	index?: Effect.Success<ReturnType<typeof board.watchIndex>>;

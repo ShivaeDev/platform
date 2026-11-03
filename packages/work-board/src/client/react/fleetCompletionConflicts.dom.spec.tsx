@@ -1,10 +1,10 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
+import { WorkNow } from "#client/react/WorkNow.tsx";
 import { nowWork } from "#test/nowWork.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
 import { STORY_NOW } from "#test/storyTime.ts";
-import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { WorkNow } from "./WorkNow.tsx";
 
 const DAY = 86_400_000;
 

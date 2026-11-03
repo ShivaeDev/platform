@@ -5,9 +5,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PublicationFailure } from "#server/PublicationFailure.ts";
 import { Publication, publishOnce, replaceIfUnchanged } from "#server/publication.ts";
 import { duringTemporaryWrite, pausedTemporaryWrite } from "#test/adapters/publicationFaults.ts";
-import { type Folder, folder } from "./board.ts";
-import { entriesOf, textOf } from "./publicationFaults.ts";
-import { settledEffect } from "./responseOutcome.ts";
+import { type Folder, folder } from "#test/board.ts";
+import { entriesOf, textOf } from "#test/publicationFaults.ts";
+import { settledEffect } from "#test/responseOutcome.ts";
 
 interface PublicationEngine {
 	notes: Folder;

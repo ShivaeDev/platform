@@ -5,9 +5,9 @@ import { Deferred, Effect, Fiber, FileSystem, Order, PubSub, Stream } from "effe
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Change, type Changes, watchChanges } from "#server/files/changes.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { type Folder, folder } from "#test/board.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
-import { type Folder, folder } from "./board.ts";
-import { readinessEvents } from "./readinessEvents.ts";
+import { readinessEvents } from "#test/readinessEvents.ts";
 
 export interface WatcherEngine {
 	changes?: Changes;

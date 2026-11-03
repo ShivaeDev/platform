@@ -1,6 +1,6 @@
 import { type Clock, Deferred, Effect, PlatformError, Stream } from "effect";
-import type { FileSystemWrapper } from "./board.ts";
-import { readinessEvents } from "./readinessEvents.ts";
+import type { FileSystemWrapper } from "#test/board.ts";
+import { readinessEvents } from "#test/readinessEvents.ts";
 
 export interface FaultyWatch {
 	readonly attempts: readonly number[];

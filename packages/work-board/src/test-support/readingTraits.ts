@@ -10,10 +10,10 @@ import type { CodexLimits, Sources } from "#diagnostics/source.ts";
 import { fleetHealth } from "#server/adapters/fleetHealth.ts";
 import { codexLimits } from "#server/diagnostics/codexLimits.ts";
 import { codexRateLimits } from "#server/diagnostics/codexRateLimits.ts";
-import { boardStory } from "./boardStory.ts";
-import { syntheticSources } from "./diagnostics.ts";
-import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { healthReadingFolder } from "./healthReadingFolder.ts";
+import { boardStory } from "#test/boardStory.ts";
+import { syntheticSources } from "#test/diagnostics.ts";
+import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
+import { healthReadingFolder } from "#test/healthReadingFolder.ts";
 
 export function readingTime(milliseconds: number) {
 	return boardStory.trait("project", `the reader observes diagnostics at ${milliseconds}`, (engine) => {

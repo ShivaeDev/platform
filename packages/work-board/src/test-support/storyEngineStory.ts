@@ -2,9 +2,9 @@ import { existsSync } from "node:fs";
 import { Effect, Exit, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
+import { inboxQuestion } from "#test/inboxFixture.ts";
+import { type BoardEngine, connected, createBoard, inspectBoard, openReader, serveProject } from "#test/storyEngine.ts";
 import { storyClock } from "#test/storyTime.ts";
-import { inboxQuestion } from "./inboxFixture.ts";
-import { type BoardEngine, connected, createBoard, inspectBoard, openReader, serveProject } from "./storyEngine.ts";
 
 interface InnerStory {
 	board?: BoardEngine;

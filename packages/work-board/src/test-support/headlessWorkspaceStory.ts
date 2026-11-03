@@ -4,8 +4,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { Workspace } from "#server/workspace.ts";
 import { workspaceLayer } from "#server/workspaceLayer.ts";
+import { type Folder, folder } from "#test/board.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
-import { type Folder, folder } from "./board.ts";
 
 interface Engine {
 	changes?: Changes;

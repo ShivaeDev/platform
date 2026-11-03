@@ -1,12 +1,12 @@
 import { realpathSync } from "node:fs";
 import { relative } from "node:path";
-import { Deferred, Effect, PlatformError, Semaphore } from "effect";
-import { boardStory } from "./boardStory.ts";
-import { type BoardEngine, type WorkspaceReads, wrapFilesystem } from "./storyEngine.ts";
+import { Deferred, Effect, Option, PlatformError, Semaphore, Tracer } from "effect";
+import { boardStory } from "#test/boardStory.ts";
+import { type BoardEngine, type WorkspaceReads, wrapFilesystem } from "#test/storyEngine.ts";
 
 export function recordedReads(held = false) {
 	return boardStory.trait("project", held ? "workspace file reads wait until released" : "the board records the files it reads", (engine) => {
-		recordReads(engine, held ? { files: [], gate: Deferred.makeUnsafe<void>() } : { files: [] });
+		recordReads(engine, held ? { answerFiles: [], files: [], gate: Deferred.makeUnsafe<void>() } : { answerFiles: [], files: [] });
 	});
 }
 
@@ -45,10 +45,17 @@ function recordReads(engine: BoardEngine, reads: WorkspaceReads) {
 	wrapFilesystem(engine, (fs) => ({
 		...fs,
 		readFileString: (path, encoding) =>
-			Effect.suspend(() => {
-				reads.files.push(relative(engine.notes.root, path));
+			Effect.gen(function* () {
+				const file = relative(engine.notes.root, path);
+				if (file === ".." || file.startsWith("../")) {
+					return yield* fs.readFileString(path, encoding);
+				}
+				reads.files.push(file);
+				if (answerRequest(yield* Effect.serviceOption(Tracer.ParentSpan))) {
+					reads.answerFiles?.push(file);
+				}
 				const read = fs.readFileString(path, encoding);
-				return reads.gate ? Effect.andThen(released(reads.gate, reads.permits), read) : read;
+				return yield* reads.gate ? Effect.andThen(released(reads.gate, reads.permits), read) : read;
 			}),
 	}));
 }
@@ -64,4 +71,15 @@ export function unlistableWorkspace() {
 			readDirectory: () => Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readDirectory", module: "FileSystem" })),
 		}));
 	});
+}
+
+function answerRequest(current: Option.Option<Tracer.AnySpan>) {
+	let span = current;
+	while (Option.isSome(span) && span.value._tag === "Span") {
+		if (span.value.name.includes("answerQuestion")) {
+			return true;
+		}
+		span = span.value.parent;
+	}
+	return false;
 }

@@ -7,7 +7,7 @@ import { RenderFailed } from "#render/Failed.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { RenderOptions } from "#server/render/markdown.ts";
 import { observeRenderers, themeLoadingFails } from "#test/adapters/renderFaults.ts";
-import { type BoardEngine, createBoard } from "./storyEngine.ts";
+import { type BoardEngine, createBoard } from "#test/storyEngine.ts";
 
 interface RenderEngine extends BoardEngine {
 	cause?: unknown;

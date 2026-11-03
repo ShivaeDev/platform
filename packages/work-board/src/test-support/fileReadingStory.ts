@@ -9,9 +9,9 @@ import { HomeMissing, homeIn } from "#server/files/home.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { watchDirectories } from "#server/files/watchDirectories.ts";
 import { isWatchSentinel, READINESS_WITHIN } from "#server/files/watchSentinel.ts";
+import { type Folder, folder } from "#test/board.ts";
 import { driveWatchTimers } from "#test/driveWatchTimers.ts";
-import { type Folder, folder } from "./board.ts";
-import { unlinkBeforeStat } from "./fileRaces.ts";
+import { unlinkBeforeStat } from "#test/fileRaces.ts";
 
 interface FileReader {
 	link?: () => void;

@@ -1,9 +1,9 @@
 import { Deferred, Effect, PubSub } from "effect";
 import { act } from "react";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
-import { requestAvailability } from "./screenAvailability.tsx";
-import type { ScreenEngine } from "./screenEngine.ts";
+import type { BoardFixtureOptions } from "#test/BoardFixtureOptions.ts";
+import { requestAvailability } from "#test/screenAvailability.tsx";
+import type { ScreenEngine } from "#test/screenEngine.ts";
 
 export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOptions) {
 	const configured = {

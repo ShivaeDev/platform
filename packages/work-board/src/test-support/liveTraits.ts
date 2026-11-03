@@ -2,17 +2,17 @@ import { chmodSync } from "node:fs";
 import { relative } from "node:path";
 import { Clock, Deferred, Effect, PlatformError, Stream, Tracer } from "effect";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import { boardStory, deferredServing } from "./boardStory.ts";
-import { codexResponse, githubObservations, health } from "./diagnostics.ts";
-import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { directoryNotifications } from "./directoryNotifications.ts";
-import { embeddedBoard } from "./embeddedBoard.ts";
-import { changeSubscription, watcherChange } from "./liveChanges.ts";
-import { type CrashingStorage, type FailingWatcher, LIVE_CLIENT, liveState, type StartupReads } from "./liveState.ts";
-import { rpcWatcher } from "./nativeRpc.ts";
-import { attachServer, startProject } from "./servingEngine.ts";
-import { served, wrapFilesystem } from "./storyEngine.ts";
-import { Tally } from "./Tally.ts";
+import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { codexResponse, githubObservations, health } from "#test/diagnostics.ts";
+import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
+import { directoryNotifications } from "#test/directoryNotifications.ts";
+import { embeddedBoard } from "#test/embeddedBoard.ts";
+import { changeSubscription, watcherChange } from "#test/liveChanges.ts";
+import { type CrashingStorage, type FailingWatcher, LIVE_CLIENT, liveState, type StartupReads } from "#test/liveState.ts";
+import { rpcWatcher } from "#test/nativeRpc.ts";
+import { attachServer, startProject } from "#test/servingEngine.ts";
+import { served, wrapFilesystem } from "#test/storyEngine.ts";
+import { Tally } from "#test/Tally.ts";
 
 export const liveClientSubscribed = boardStory.trait(
 	"reader",
@@ -192,6 +192,9 @@ export function startupReadsObserved(held = false) {
 				...fs,
 				readFileString: (path, encoding) => {
 					const file = relative(engine.notes.root, path);
+					if (file === ".." || file.startsWith("../")) {
+						return fs.readFileString(path, encoding);
+					}
 					if (!reads.files.has(file)) {
 						reads.files.add(file);
 						reads.distinct.bump();

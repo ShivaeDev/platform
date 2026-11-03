@@ -1,15 +1,16 @@
 import { readFileSync } from "node:fs";
 import { Deferred, Effect, Order } from "effect";
+import { TestClock } from "effect/testing";
 import { createResponse } from "#client/react/createResponse.ts";
 import { fileUrl } from "#files/url.ts";
 import { metadataParse } from "#metadata/adapters/parse.ts";
-import { rawPost } from "./board.ts";
-import { changesUntil, subscribe } from "./nativeRpc.ts";
-import { publicationSetup } from "./publicationFaults.ts";
-import { described, questionRecordReads, type Reply } from "./questionRecordReads.ts";
-import { type Registration, registeredQuestion } from "./questionRecordState.ts";
-import { settledCall } from "./responseOutcome.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { rawPost } from "#test/board.ts";
+import { changesUntil, subscribe } from "#test/nativeRpc.ts";
+import { publicationSetup } from "#test/publicationFaults.ts";
+import { described, questionRecordReads, type Reply } from "#test/questionRecordReads.ts";
+import { type Registration, registeredQuestion } from "#test/questionRecordState.ts";
+import { settledCall } from "#test/responseOutcome.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 export function questionRecordVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const { records, client, path, draft, reading } = questionRecordReads(engine);
@@ -25,7 +26,7 @@ export function questionRecordVerbs(engine: BoardEngine, tell: (line: string) =>
 				yield* events.next();
 				yield* Effect.promise(async () => {
 					const preview = await client().run(client().responses.question.run({ item: "task.choice", request: "direction" }));
-					records.readMark = engine.reads?.files.length ?? 0;
+					records.readMark = engine.reads?.answerFiles?.length ?? 0;
 					await client().mutate(
 						createResponse(client(), preview, {
 							author: "maintainer",
@@ -88,11 +89,11 @@ export function questionRecordVerbs(engine: BoardEngine, tell: (line: string) =>
 			);
 		},
 		filesReadSinceAnswer: () => {
-			tell("the reader lists the workspace files the board read since the answer was sent");
-			if (!engine.reads || records.readMark === undefined) {
+			tell("the reader lists the workspace files read inside the answer request");
+			if (!engine.reads?.answerFiles || records.readMark === undefined) {
 				throw new Error("No answer was sent while the board recorded its reads");
 			}
-			return Effect.succeed([...new Set(engine.reads.files.slice(records.readMark))].sort(Order.String));
+			return Effect.succeed([...new Set(engine.reads.answerFiles.slice(records.readMark))].sort(Order.String));
 		},
 		nextReply: (after?: string) => {
 			tell(`the reader asks for the next reply${after ? ` after ${after}` : ""}`);
@@ -128,7 +129,7 @@ export function questionRecordVerbs(engine: BoardEngine, tell: (line: string) =>
 		},
 		recordReply: (reply: Reply = {}) => {
 			tell(`the maintainer records ${described(reply)}${reply.body ? `: ${reply.body}` : ""}`);
-			return settledCall(() => client().mutate(client().responses.recordResponse.run(draft(reply))));
+			return TestClock.adjust(1).pipe(Effect.andThen(settledCall(() => client().mutate(client().responses.recordResponse.run(draft(reply))))));
 		},
 		registerQuestion: (item = "investigation.choices", request = "direction") => {
 			tell(`the reader registers ${item}/${request} against its reviewed source`);

@@ -3,8 +3,8 @@ import { fileUrl } from "#files/url.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
-import { rawGet } from "./board.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { rawGet } from "#test/board.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 export function readingVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	return {

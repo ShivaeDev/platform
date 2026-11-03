@@ -5,8 +5,8 @@ import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
+import { clientActivities, makeActivity } from "#internal/clientActivity.ts";
 import { authenticateSocket } from "#socketAuthentication.ts";
-import { clientActivities, makeActivity } from "./clientActivity.ts";
 
 export interface RpcSource {
 	readonly annotations: Context.Context<never>;
@@ -47,6 +47,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		group,
 		makeEffect: make,
 		protocol: typeof customProtocol === "object" ? customProtocol : (get) => protocolFor(get(socketIdentity)),
+		runtime: options.runtime,
 	});
 	clientActivities.set(Client, activity);
 	const directClient = Effect.flatMap(Layer.build(protocol), (context) =>

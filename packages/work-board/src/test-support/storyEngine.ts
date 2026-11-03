@@ -35,6 +35,7 @@ export interface BoardEngine {
 }
 
 export interface WorkspaceReads {
+	readonly answerFiles?: string[];
 	readonly files: string[];
 	readonly gate?: Deferred.Deferred<void>;
 	readonly permits?: Semaphore.Semaphore;

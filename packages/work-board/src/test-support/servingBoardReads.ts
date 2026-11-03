@@ -7,13 +7,13 @@ import { boardInit, readBoard } from "@shivaedev/work-board-plugin/board.ts";
 import { answersTo, type Board } from "@shivaedev/work-board-plugin/boardTools.ts";
 import { rpcInit } from "@shivaedev/work-board-plugin/rpc.ts";
 import { fileUrl } from "#files/url.ts";
-import type { Exchange } from "./board.ts";
-import { rpcCall, rpcDocument, rpcWatcher, subscribe } from "./nativeRpc.ts";
-import { type ServingOptions, startProject } from "./servingEngine.ts";
-import { type LinkTarget, resolvedTarget } from "./servingLinks.ts";
-import { servingObservations } from "./servingObservations.ts";
-import { socketExchange } from "./socketRpc.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import type { Exchange } from "#test/board.ts";
+import { rpcCall, rpcDocument, rpcWatcher, subscribe } from "#test/nativeRpc.ts";
+import { type ServingOptions, startProject } from "#test/servingEngine.ts";
+import { type LinkTarget, resolvedTarget } from "#test/servingLinks.ts";
+import { servingObservations } from "#test/servingObservations.ts";
+import { socketExchange } from "#test/socketRpc.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 export const PLUGIN_DIRECTORY = "/project";
 
@@ -160,12 +160,15 @@ export function servingBoardReads(engine: BoardEngine, tell: (line: string) => v
 				const events = yield* subscribe(served(engine).board);
 				yield* events.next();
 				yield* turn();
-				for (;;) {
-					yield* events.next();
-					if ((yield* watching()) === wanted) {
-						return;
+				const changed = Effect.gen(function* () {
+					for (;;) {
+						yield* events.next();
+						if ((yield* watching()) === wanted) {
+							return;
+						}
 					}
-				}
+				});
+				yield* changed;
 			}),
 		).pipe(Effect.orDie);
 	}

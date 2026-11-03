@@ -2,16 +2,26 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import process from "node:process";
 import { createInterface } from "node:readline";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
+import { TestClock } from "effect/testing";
 import type { ResponseKind } from "#browser/responses/schema.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 const openFeed = Effect.fn("Story.openFeed")(function* (root: string, since?: string) {
+	const now = yield* Clock.currentTimeMillis;
 	const child = yield* Effect.acquireRelease(
 		Effect.sync(() =>
 			spawn(
 				process.execPath,
-				["--conditions=source", "src/server/cli.ts", "responses", "--follow", root, ...(since === undefined ? [] : ["--since", since])],
+				[
+					"--conditions=source",
+					"src/test-support/responseFeedChild.ts",
+					String(now),
+					"responses",
+					"--follow",
+					root,
+					...(since === undefined ? [] : ["--since", since]),
+				],
 				{ cwd: new URL("../../", import.meta.url), stdio: "pipe" },
 			),
 		),
@@ -72,8 +82,9 @@ function feedState(engine: BoardEngine) {
 export function responseFeedVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const state = feedState(engine);
 	function follow(since?: string) {
-		return Effect.map(openFeed(engine.notes.root, since), (feed) => {
-			state.feed = feed;
+		return Effect.gen(function* () {
+			yield* TestClock.adjust(1);
+			state.feed = yield* openFeed(engine.notes.root, since);
 		});
 	}
 	return {
@@ -101,14 +112,18 @@ export function responseFeedVerbs(engine: BoardEngine, tell: (line: string) => v
 			return follow(new Date(recordedAt).toISOString());
 		},
 		maintainerReplies: (item: string, request: string, id: string, body: string, type: typeof ResponseKind.Type = "answer") =>
-			Effect.promise(async () => {
-				tell(`the maintainer records ${id}${type === "answer" ? "" : ` as ${type}`} for ${item}/${request}: ${body}`);
-				const client = served(engine).client;
-				const preview = await client.run(client.responses.question.run({ item, request }));
-				const saved = await client.mutate(
-					client.responses.answerQuestion.run({ author: "maintainer", body, id, item, request, revision: preview.reviewedRevision, type }),
-				);
-				state.recordedAt.set(id, saved.response.recordedAt);
-			}),
+			TestClock.adjust(1).pipe(
+				Effect.andThen(
+					Effect.promise(async () => {
+						tell(`the maintainer records ${id}${type === "answer" ? "" : ` as ${type}`} for ${item}/${request}: ${body}`);
+						const client = served(engine).client;
+						const preview = await client.run(client.responses.question.run({ item, request }));
+						const saved = await client.mutate(
+							client.responses.answerQuestion.run({ author: "maintainer", body, id, item, request, revision: preview.reviewedRevision, type }),
+						);
+						state.recordedAt.set(id, saved.response.recordedAt);
+					}),
+				),
+			),
 	};
 }

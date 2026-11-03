@@ -1,13 +1,13 @@
 import { relative } from "node:path";
 import { Cause, Effect, Exit, Fiber } from "effect";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { rawGet } from "./board.ts";
-import { ended, fontFamily, liveBoardReads, watching } from "./liveBoardReads.ts";
-import { type Change, watcherChange } from "./liveChanges.ts";
-import { answeredPromise } from "./liveOutcomes.ts";
-import { LIVE_CLIENT, present } from "./liveState.ts";
-import { rpcDocument, rpcPaths } from "./nativeRpc.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { rawGet } from "#test/board.ts";
+import { ended, fontFamily, liveBoardReads, watching } from "#test/liveBoardReads.ts";
+import { type Change, watcherChange } from "#test/liveChanges.ts";
+import { answeredPromise } from "#test/liveOutcomes.ts";
+import { LIVE_CLIENT, present } from "#test/liveState.ts";
+import { rpcDocument, rpcPaths } from "#test/nativeRpc.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	const { state, subscription, owned, failingWatcher } = liveBoardReads(engine);
@@ -137,7 +137,8 @@ export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void
 			}),
 		watcherBecomes: Effect.fn("Story.watcherBecomes")(function* (wanted: "watching" | "not watching") {
 			tell(`${LIVE_CLIENT} waits until the board tells it the project is ${wanted}`);
-			yield* watcherChange(subscription(LIVE_CLIENT), served(engine).board, wanted === "watching");
+			const changed = watcherChange(subscription(LIVE_CLIENT), served(engine).board, wanted === "watching");
+			yield* changed;
 		}),
 		watcherFails: () =>
 			Effect.sync(() => {

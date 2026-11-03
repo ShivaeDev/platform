@@ -1,5 +1,5 @@
 import { act } from "react";
-import type { ScreenEngine } from "./screenEngine.ts";
+import type { ScreenEngine } from "#test/screenEngine.ts";
 
 export const SPACING = 1000;
 
@@ -39,7 +39,7 @@ export class StoryObserver implements IntersectionObserver {
 	}
 }
 
-function entry(target: Element): IntersectionObserverEntry {
+function entry(target: Element, now: number): IntersectionObserverEntry {
 	const bounds = target.getBoundingClientRect();
 	const isIntersecting = bounds.bottom > 0 && bounds.top < window.innerHeight;
 	return {
@@ -49,7 +49,7 @@ function entry(target: Element): IntersectionObserverEntry {
 		isIntersecting,
 		rootBounds: new DOMRect(0, 0, window.innerWidth, window.innerHeight),
 		target,
-		time: performance.now(),
+		time: now,
 	};
 }
 
@@ -64,7 +64,10 @@ export function outlineActions(engine: ScreenEngine, tell: (line: string) => voi
 			outline.offset = Math.max(0, headings().findIndex((heading) => heading.id === id) * SPACING);
 			act(() => {
 				for (const { callback, observer, targets } of StoryObserver.observed) {
-					callback([...targets].map(entry), observer);
+					callback(
+						[...targets].map((target) => entry(target, engine.clock.now())),
+						observer,
+					);
 				}
 			});
 		},

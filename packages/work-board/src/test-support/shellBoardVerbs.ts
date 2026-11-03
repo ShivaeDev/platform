@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { OpenPage } from "./browser.ts";
-import { type BoardEngine, connected } from "./storyEngine.ts";
+import type { OpenPage } from "#test/browser.ts";
+import { type BoardEngine, connected } from "#test/storyEngine.ts";
 
 const PAGE_LIMIT_MS = 10_000;
 

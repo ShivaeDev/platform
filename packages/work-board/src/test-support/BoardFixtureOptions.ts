@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { FleetHealth } from "#diagnostics/health.ts";
-import type { Folder } from "./board.ts";
+import type { Folder } from "#test/board.ts";
 
 export interface BoardFixtureOptions {
 	readonly afterRead?: (url: string) => Effect.Effect<void, InternalServerError>;

@@ -1,17 +1,17 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { Cause, Clock, Deferred, Effect, Exit, Fiber, Order } from "effect";
-import { folder, type RunningBoard, rawGet, rawPost, startBoard } from "./board.ts";
-import { boardCommand } from "./boardCommand.ts";
-import { driveDrainPeriod } from "./driveWatchTimers.ts";
-import { answered, answeredPromise } from "./liveOutcomes.ts";
-import { type BoardPlace, octal, sameOverBoth, serverAnswerOf, socketCall, socketFileOf, socketState } from "./liveSockets.ts";
-import { liveState, present } from "./liveState.ts";
-import { rpcCall, rpcDocument, rpcNavigation } from "./nativeRpc.ts";
-import { type ServingOptions, startProject } from "./servingEngine.ts";
-import { shutdownConnection } from "./shutdownConnection.ts";
-import { socketStartup } from "./socketStartup.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { folder, type RunningBoard, rawGet, rawPost, startBoard } from "#test/board.ts";
+import { boardCommand } from "#test/boardCommand.ts";
+import { driveInterval } from "#test/driveWatchTimers.ts";
+import { answered, answeredPromise } from "#test/liveOutcomes.ts";
+import { type BoardPlace, octal, sameOverBoth, serverAnswerOf, socketCall, socketFileOf, socketState } from "#test/liveSockets.ts";
+import { liveState, present } from "#test/liveState.ts";
+import { rpcCall, rpcDocument, rpcNavigation } from "#test/nativeRpc.ts";
+import { type ServingOptions, startProject } from "#test/servingEngine.ts";
+import { shutdownConnection } from "#test/shutdownConnection.ts";
+import { socketStartup } from "#test/socketStartup.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 function message(error: unknown) {
 	return error instanceof Error ? error.message : String(error);
@@ -232,7 +232,7 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 		stopTimed: Effect.fn("Story.stopTimed")(function* () {
 			tell("the board shuts down");
 			state.stopStarted = yield* Clock.currentTimeMillis;
-			yield* driveDrainPeriod(served(engine).board.stop());
+			yield* driveInterval("5 seconds", served(engine).board.stop());
 		}),
 		unfinishedRequestEnd: () => {
 			tell("the reader sees how the unfinished request ended");

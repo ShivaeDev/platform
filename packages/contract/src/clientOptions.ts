@@ -17,6 +17,7 @@ export interface ClientOptions {
 	readonly protocol?: Layer.Layer<RpcClient.Protocol> | ((identity: string | undefined) => Layer.Layer<RpcClient.Protocol>);
 	readonly resume?: ResumeSource;
 	readonly resumeWindow?: ResumeWindow;
+	readonly runtime?: Atom.RuntimeFactory;
 	readonly url: string;
 	readonly webSocketConstructor?: Layer.Layer<Socket.WebSocketConstructor>;
 }

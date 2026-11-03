@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, Logger, PlatformError, Queue, Stream } from "effect";
 import { isWatchSentinel } from "#server/files/watchSentinel.ts";
-import { type FileSystemWrapper, folder } from "./board.ts";
-import { fileReadingStory } from "./fileReadingStory.ts";
+import { type FileSystemWrapper, folder } from "#test/board.ts";
+import { holdReadinessRetouches } from "#test/driveWatchTimers.ts";
+import { fileReadingStory } from "#test/fileReadingStory.ts";
 
 export function anEndedWatcher() {
 	return fileReadingStory.trait("project", "the filesystem watcher ends without an error", (engine) => {
@@ -15,7 +16,8 @@ export function anEndedWatcher() {
 	});
 }
 export function aSilentWatcher() {
-	return fileReadingStory.trait("project", "the filesystem watcher starts but never reports a change", (engine) => {
+	return fileReadingStory.trait("project", "the filesystem watcher starts but never reports a change", function* (engine) {
+		yield* holdReadinessRetouches;
 		engine.services = Layer.effect(
 			FileSystem.FileSystem,
 			Effect.map(FileSystem.FileSystem, (fs) => ({

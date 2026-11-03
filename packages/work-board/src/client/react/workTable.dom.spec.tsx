@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { WorkNow } from "#client/react/WorkNow.tsx";
 import { fleetWorkspace, fleetWorkspaceItems } from "#test/fleetWorkspaceFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";
 import { nowFleet } from "#test/nowWork.ts";
@@ -10,7 +11,6 @@ import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTraits.ts";
 import { STORY_NOW } from "#test/storyTime.ts";
 import { workTableScreen } from "#test/workTableScreen.ts";
-import { WorkNow } from "./WorkNow.tsx";
 
 expectNoReactWarnings();
 
