@@ -6,6 +6,8 @@ import type { AppSession, AuthActions } from "./auth.ts";
 import type { ClientConnection } from "./Module.ts";
 import { clientModules } from "./modules.ts";
 
+const defaultConnection: ClientConnection = (session) => clientModules(session);
+
 interface Session {
 	readonly id: string;
 }
@@ -23,7 +25,7 @@ export function SessionApp({
 	session,
 	recheck,
 	auth,
-	connect: connection = clientModules,
+	connect: connection = defaultConnection,
 	history,
 }: {
 	readonly session?: AppSession | null | undefined;
