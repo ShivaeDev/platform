@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import { tableColumns } from "@shivaedev/test-sql/server/tableColumns.ts";
 import { FleetRecord } from "#model.ts";
 import type { FleetStoreOptions } from "#storage/FleetStoreOptions.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
@@ -50,15 +51,7 @@ export function storageMigrationVerbs(tell: (line: string) => void) {
 				Effect.flatMap((sql) => sql<{ readonly child: string | null }>`select to_regclass(${childTable(namespace, path)}) as child`),
 				Effect.map((rows) => rows[0]?.child !== null),
 			),
-		columns: (tableName: string) =>
-			SqlClient.SqlClient.pipe(
-				Effect.flatMap(
-					(sql) => sql<{ readonly name: string; readonly type: string }>`
-						select attname as name, format_type(atttypid, atttypmod) as type from pg_attribute
-						where attrelid = ${tableName}::regclass and attnum > 0 and not attisdropped`,
-				),
-				Effect.map((rows) => rows.toSorted((left, right) => left.name.localeCompare(right.name, "en"))),
-			),
+		columns: (tableName: string) => tableColumns(tableName).pipe(Effect.map((rows) => rows.toSorted(byName))),
 		forbidChildOperation: (namespace: string, path: readonly string[], operationId: string) => {
 			tell(`the ${path.join(".")} child table starts refusing operation ${operationId}`);
 			return SqlClient.SqlClient.pipe(

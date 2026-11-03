@@ -8,7 +8,7 @@ import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertModelColumns } from "#server/assertModelColumns.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
-import type { PostgresColumn } from "#server/migrationUpgrade.ts";
+import { tableColumns } from "#server/tableColumns.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
 import { failureOf } from "./outcome.ts";
@@ -33,9 +33,7 @@ const readRows = Effect.gen(function* () {
 });
 
 const checkColumns = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const columns = yield* sql<PostgresColumn>`select attname as name, format_type(atttypid, atttypmod) as type
-		from pg_attribute where attrelid = 'named_rows'::regclass and attnum > 0 and not attisdropped`.withoutTransform;
+	const columns = yield* tableColumns("named_rows");
 	return yield* assertModelColumns(columns, NamedRow, { id: "integer", runId: "text" }).pipe(
 		Effect.as("matches the model"),
 		Effect.catchTag("ModelColumnMismatch", (mismatch) => Effect.succeed(failureOf(mismatch))),

@@ -1,4 +1,4 @@
-import type { PostgresColumn } from "#server/migrationUpgrade.ts";
+import type { PostgresColumn } from "#server/tableColumns.ts";
 
 interface NameTransforms {
 	readonly transformQueryNames?: ((name: string) => string) | undefined;

@@ -269,6 +269,18 @@ The helper resolves the loader once and uses `migratePostgres` for each step, pr
 
 For test-story, use the same Layer and `around: withIsolatedDatabase`, acquire `migrationSteps(appMigrations)` in the kit's `create`, and let schema and data traits call `migrateTo` and seed native SQL. A verb can yield `migrateToLatest` before the story asserts the backfilled rows.
 
+### Read a table's columns
+
+`tableColumns(table)` reads the current database through its native `SqlClient`, without running or requiring migrations. It returns live column names and PostgreSQL `format_type` strings in column-name order, excluding dropped columns. Names remain as stored, even when the client transforms result names.
+
+```ts
+import { tableColumns } from "@shivaedev/test-sql/server/tableColumns.ts";
+
+const columns = yield* tableColumns("items");
+```
+
+For a schema-qualified or quoted relation, pass PostgreSQL relation syntax, such as `'public."Items"'`.
+
 ### Check upgrades against the current model
 
 A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once and commits only numbered migrations through the existing `upTo` id, without components or a release. It then applies the remaining migrations through `migratePostgres`, including the configured current-schema components and release. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
@@ -315,7 +327,8 @@ Import each name from the module that defines it. The package has no root entry.
 | `@shivaedev/test-sql/server/storyDatabase.ts`        | `storyDatabase({ template? }?)` returning `{ select(template), acquire }`                                                                                                                                                                                   |
 | `@shivaedev/test-sql/server/database.ts`             | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate`                                                                                                                                                       |
 | `@shivaedev/test-sql/server/migrationSteps.ts`       | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }`                                                                                                                                                                            |
-| `@shivaedev/test-sql/server/migrationUpgrade.ts`     | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn`                                                                                                                                                                |
+| `@shivaedev/test-sql/server/migrationUpgrade.ts`     | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`                                                                                                                                                                                  |
+| `@shivaedev/test-sql/server/tableColumns.ts`         | `tableColumns(table)`, `PostgresColumn`                                                                                                                                                                                                                     |
 | `@shivaedev/test-sql/server/assertModelColumns.ts`   | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch`                                                                                                                                                                                          |
 | `@shivaedev/test-sql/server/observeUntil.ts`         | `observeUntil(read, settled, waitingFor, { every?, within?, stableReads? }?)`, `NeverSettled`, `ObserveOptions`                                                                                                                                             |
 

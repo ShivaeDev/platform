@@ -5,7 +5,8 @@ import { expectTypeOf } from "vitest";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { Item, migrations, types } from "#test/migrationUpgrade.ts";
 import { assertModelColumns, type ModelColumnMismatch } from "./assertModelColumns.ts";
-import { migrationUpgrade, type PostgresColumn } from "./migrationUpgrade.ts";
+import { migrationUpgrade } from "./migrationUpgrade.ts";
+import { type PostgresColumn, tableColumns } from "./tableColumns.ts";
 
 const Dependency = defineService({
 	id: "@shivaedev/test-sql/MigrationLoaderDependency",
@@ -31,3 +32,8 @@ expectTypeOf<Effect.Services<typeof assertion>>().toEqualTypeOf<never>();
 assertModelColumns([], Item, { id: "integer", name: "text" });
 // @ts-expect-error JSON-only fields are not database columns.
 assertModelColumns([], Item, { ...types, publicLabel: "text" });
+
+const readout = tableColumns("items");
+expectTypeOf<Effect.Success<typeof readout>>().toEqualTypeOf<readonly PostgresColumn[]>();
+expectTypeOf<Effect.Error<typeof readout>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+expectTypeOf<Effect.Services<typeof readout>>().toEqualTypeOf<SqlClient.SqlClient>();
