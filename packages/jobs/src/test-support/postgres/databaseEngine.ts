@@ -45,6 +45,13 @@ export interface DatabaseEngine {
 	gate: Effect.Success<ReturnType<typeof disconnectProxy>> | undefined;
 	readonly idleReads: ("after the busy work went on" | "while work was busy")[];
 	readonly idleWaits: Map<string, Fiber.Fiber<void, unknown>>;
+	readonly inspectionWatches: Map<
+		string,
+		{
+			readonly revision: number;
+			readonly signal: { readonly revision: Effect.Effect<number>; readonly waitForChange: (after: number) => Effect.Effect<number> };
+		}
+	>;
 	readonly jobs: Map<string, Labelled>;
 	readonly labels: Map<string, string>;
 	readonly logs: {
@@ -93,6 +100,7 @@ export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.Sq
 		gate: undefined,
 		idleReads: [],
 		idleWaits: new Map(),
+		inspectionWatches: new Map(),
 		jobs: new Map(),
 		labels,
 		logs: [],

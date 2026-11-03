@@ -22,7 +22,7 @@ export function countIdleReads(engine: DatabaseEngine, name: string, gate: strin
 		}
 		const executeSql = db.executeSql.bind(db);
 		db.executeSql = (text, values) => {
-			if (text.includes("jobs testing idle")) {
+			if (text.includes("jobs inspection busy")) {
 				engine.idleReads.push(Deferred.isDoneUnsafe(engine.work.gate(gate).opened) ? "after the busy work went on" : "while work was busy");
 			}
 			return executeSql(text, values);

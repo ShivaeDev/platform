@@ -1,10 +1,10 @@
-import { Clock, Effect, Schema } from "effect";
-import type { EngineClient } from "#server/engineClient.ts";
+import { Clock, Effect } from "effect";
 import type { PgBossTestingError } from "#server/error.ts";
-import { quotedSchema } from "#server/internal/storedRows.ts";
-import { testingOperation } from "#server/internal/testingReadout.ts";
+import type { PgBossInspectionService } from "#server/inspection.ts";
+import { testingInspection } from "#server/internal/testingOperation.ts";
 
 export interface TestingBatch {
+	readonly jobs: ReadonlyMap<string, number>;
 	readonly name: string;
 	settled: boolean;
 }
@@ -14,30 +14,12 @@ export interface TestingWork {
 	readonly queues: Set<string>;
 }
 
-const Busy = Schema.Struct({ busy: Schema.Boolean });
-
 export function testingIdle(
-	client: () => EngineClient,
-	schema: () => string,
+	inspection: () => PgBossInspectionService,
 	work: TestingWork,
 	signal: { readonly revision: Effect.Effect<number>; readonly waitForChange: (after: number) => Effect.Effect<number> },
 ): Effect.Effect<void, PgBossTestingError> {
-	const busy = testingOperation("waitForIdle", async () => {
-		const quoted = quotedSchema(schema());
-		const { rows } = await client()
-			.getDb()
-			.executeSql(
-				`/* jobs testing idle */ SELECT EXISTS (
-					SELECT 1 FROM ${quoted}.job
-					WHERE name = ANY($1::text[]) AND (
-						(state < 'active' AND NOT blocked AND start_after <= ${quoted}.job_now())
-						OR state = 'active'
-					)
-				) AS busy`,
-				[[...work.queues]],
-			);
-		return (await Schema.decodeUnknownPromise(Busy)(rows[0])).busy;
-	});
+	const busy = Effect.suspend(() => testingInspection("waitForIdle", inspection().busy([...work.queues].map((name) => ({ name })))));
 	return Effect.gen(function* () {
 		while (true) {
 			const revision = yield* signal.revision;
@@ -46,12 +28,7 @@ export function testingIdle(
 			if (work.queues.size === 0 || !(unsettled || (yield* busy))) {
 				return;
 			}
-			if (unsettled) {
-				yield* signal.waitForChange(revision);
-			} else {
-				// Other clients have no local callback; PostgreSQL remains the source of idle state.
-				yield* Effect.raceFirst(signal.waitForChange(revision), Effect.sleep("50 millis"));
-			}
+			yield* signal.waitForChange(revision);
 		}
 	}).pipe(Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()));
 }

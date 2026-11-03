@@ -27,15 +27,9 @@ export class JobEngine extends Context.Service<
 	}
 >()("@shivaedev/jobs/JobEngine") {}
 
-export interface TestingSettlements {
-	readonly close: Effect.Effect<void>;
-	readonly watch: (name: string) => Effect.Effect<void, PgBossTestingError>;
-}
-
 export class TestingEngine extends Context.Service<
 	TestingEngine,
 	{
 		readonly expireAttempt: (job: JobAttempt, cause?: "expiry" | "heartbeat") => Effect.Effect<void, PgBossTestingError>;
-		readonly observeSettlements: (settled: (name: string) => void) => Effect.Effect<TestingSettlements>;
 	}
 >()("@shivaedev/jobs/TestingEngine") {}

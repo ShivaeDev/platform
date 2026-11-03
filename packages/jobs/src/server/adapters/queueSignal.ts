@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 
-export function testingSignal() {
+export function queueSignal() {
 	let revision = 0;
 	const listeners = new Set<(revision: number) => void>();
 	return {

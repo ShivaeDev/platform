@@ -23,12 +23,13 @@ export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[]
 					return yield* Effect.fail(new JobsQueueUnregistered({ queue }));
 				}
 				const definition = jobsQueue(entry);
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				const job = yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id));
 				if (Option.isNone(job) || job.value.state !== "failed") {
 					return yield* Effect.fail(new JobsNotFailed({ id, queue }));
 				}
-				yield* jobsFailures(jobs.retry(definition, id));
+				yield* jobsFailures(runtime.retry(definition, id));
 			}),
 	});
 }

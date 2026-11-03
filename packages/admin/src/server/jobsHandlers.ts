@@ -35,30 +35,35 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 		"admin.jobs.counts": ({ queue }: { readonly queue: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				return yield* jobsFailures(jobs.counts(definition));
 			}),
 		"admin.jobs.deadLettered": ({ queue, ...options }: { readonly queue: string; readonly limit: number; readonly cursor?: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				return yield* jobsFailures(jobs.deadLetteredJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.failed": ({ queue, ...options }: { readonly queue: string; readonly limit: number; readonly cursor?: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				return yield* jobsFailures(jobs.failedJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.health": () =>
 			Effect.gen(function* () {
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				return yield* jobsFailures(jobs.health(page.queues));
 			}),
 		"admin.jobs.job": ({ id, queue }: { readonly id: string; readonly queue: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const jobs = yield* service;
+				const runtime = yield* service;
+				const jobs = yield* runtime.inspection();
 				const result = yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id));
 				if (Option.isNone(result)) {
 					return Option.none();

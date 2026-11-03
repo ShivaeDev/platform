@@ -15,5 +15,11 @@ export function deferralVerbs(state: SchemaState, tell: (line: string) => void) 
 			};
 			return drops[artifact];
 		},
+		removeInspectionArtifact: (schema: string, artifact: "function" | "trigger") => {
+			tell(`the inspection ${artifact} is removed from ${schema}`);
+			return artifact === "function"
+				? sql`DROP FUNCTION ${sql(schema)}.effect_job_changed() CASCADE`
+				: sql`DROP TRIGGER effect_job_changed ON ${sql(schema)}.job`;
+		},
 	};
 }

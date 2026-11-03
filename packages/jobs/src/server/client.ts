@@ -1,5 +1,6 @@
 import type { ClientDatabase } from "#server/ClientDatabase.ts";
 import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
+import type { EngineSchedule } from "#server/engineClient.ts";
 import type { EnqueueOptions, ScheduleOptions } from "#server/enqueueOptions.ts";
 import type { Job, WorkerJob } from "#server/job.ts";
 import type { QueueOptions } from "#server/queueOptions.ts";
@@ -62,6 +63,7 @@ export interface PgBossClient {
 	readonly getDb?: () => ClientDatabase;
 	readonly getQueue: (name: string) => Promise<ClientQueue | null>;
 	readonly getSchedule?: (name: string, key?: string) => Promise<{ readonly name: string; readonly key: string } | null>;
+	readonly getSchedules?: (name?: string, key?: string) => Promise<EngineSchedule[]>;
 	readonly getWipData?: (options?: { includeInternal?: boolean }) => { id: string; workId: string; name: string; count: number }[];
 	readonly notifyWorker?: (workerId: string) => void;
 	readonly off: (event: "error", listener: (error: Error) => void) => unknown;
@@ -69,6 +71,7 @@ export interface PgBossClient {
 	readonly on: (event: "error", listener: (error: Error) => void) => unknown;
 	readonly retry?: (name: string, id: string | string[], options?: ClientConnectionOptions) => Promise<object>;
 	readonly schedule: (name: string, cron: string, data?: object | null, options?: ScheduleOptions) => Promise<void>;
+	readonly schemaVersion?: () => Promise<number | null>;
 	readonly send: (name: string, data?: object | null, options?: EnqueueOptions) => Promise<string | null>;
 	readonly start: () => Promise<unknown>;
 	readonly stop: (options?: StopOptions) => Promise<void>;

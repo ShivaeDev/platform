@@ -4,9 +4,7 @@ import { testingExpirations } from "#server/adapters/testingExpirations.ts";
 import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBossClient } from "#server/client.ts";
 import type { EngineClient } from "#server/engineClient.ts";
 import type { EnqueueOptions } from "#server/enqueueOptions.ts";
-import { deferralObservers } from "#server/internal/deferral.ts";
 import type { TestingBatch, TestingWork } from "#server/internal/testingIdle.ts";
-import { testingRegistration } from "#server/internal/testingRegistrations.ts";
 import type { WorkerJob } from "#server/job.ts";
 
 export interface TestingControls {
@@ -20,16 +18,7 @@ export interface TestingControls {
 
 export function testingClient(client: EngineClient, schema: string, controls: TestingControls): EngineClient {
 	const engine = testingEngine(client, schema);
-	const settlements = Effect.runSync(
-		engine.observeSettlements((name) => {
-			for (const batch of controls.work.batches) {
-				if (batch.name === name) {
-					batch.settled = true;
-				}
-			}
-			controls.changed();
-		}),
-	);
+
 	const expirations = testingExpirations(client);
 	function update(request: ClientUpdateRequest): Promise<ClientUpdateResult>;
 	function update(name: string, data: object | null | undefined, options?: ClientUpdateOptions): Promise<ClientUpdateResult>;
@@ -45,6 +34,9 @@ export function testingClient(client: EngineClient, schema: string, controls: Te
 			return result;
 		},
 		createQueue: (name, options) => {
+			if (options?.deadLetter !== undefined) {
+				controls.work.queues.add(name);
+			}
 			const { retryDelayMax, ...rest } = options ?? {};
 			return client.createQueue(name, {
 				...rest,
@@ -84,13 +76,6 @@ export function testingClient(client: EngineClient, schema: string, controls: Te
 			controls.changed();
 			return id;
 		},
-		stop: async (options) => {
-			try {
-				await client.stop(options);
-			} finally {
-				await Effect.runPromise(settlements.close);
-			}
-		},
 		update,
 		updateQueue: (name, options) =>
 			client.updateQueue(name, {
@@ -98,10 +83,9 @@ export function testingClient(client: EngineClient, schema: string, controls: Te
 				...controls.retryPolicy,
 				...(controls.retryPolicy.retryBackoff === false ? { retryDelayMax: null } : {}),
 			}),
-		work: async (name, options, handler) => {
-			await Effect.runPromise(settlements.watch(name));
-			return client.work(name, options, async (jobs: readonly WorkerJob<unknown>[]) => {
-				const batch: TestingBatch = { name, settled: false };
+		work: async (name, options, handler) =>
+			client.work(name, options, async (jobs: readonly WorkerJob<unknown>[]) => {
+				const batch: TestingBatch = { jobs: new Map(jobs.map((job) => [job.id, job.retryCount])), name, settled: false };
 				controls.work.batches.add(batch);
 				controls.changed();
 				try {
@@ -121,14 +105,10 @@ export function testingClient(client: EngineClient, schema: string, controls: Te
 					controls.work.batches.delete(batch);
 					controls.changed();
 				}
-			});
-		},
+			}),
 	};
 	const wrapped = new Proxy(client, {
 		get(target, property) {
-			if (property === testingRegistration) {
-				return (name: string) => controls.work.queues.add(name);
-			}
 			if (Object.hasOwn(overrides, property)) {
 				const override: unknown = Reflect.get(overrides, property);
 				return override;
@@ -137,6 +117,5 @@ export function testingClient(client: EngineClient, schema: string, controls: Te
 			return typeof value === "function" ? value.bind(target) : value;
 		},
 	});
-	deferralObservers.set(wrapped, controls.changed);
 	return wrapped;
 }

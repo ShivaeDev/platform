@@ -420,6 +420,16 @@ export const readJobCounts = Effect.gen(function* () {
 
 `health([{ name: "cleanup-mail" }])` reads only the supplied queues, in order, even when another runtime registered them. Omitting the argument keeps the Layer's registered names. Admin pages use this to include worker-only schedules without registering those schedules in the request runtime.
 
+### Inspect stored work
+
+`PgBossInspection` from `@shivaedev/jobs/server/inspection.ts` exposes the shared read service used by admin pages and the testing controller. Provide `PgBossInspection.layer` with your `pgBossLayer`, or obtain the same reads from a configured jobs runtime with `yield* jobs.inspection()`.
+
+`storedJobs(queue, options?)` reads native stored metadata and encoded payloads. `jobs(queue, options?)` decodes stored payloads through the supplied queue Schema and includes native state, `startAfter`, `expireInSeconds`, `startedOn` and `keepUntil`. These reads include unredacted payloads; keep them inside trusted server code. The admin-facing `getJob`, `failedJobs` and `deadLetteredJobs` reads retain their payload redaction. `deferred(queue)` reads stored RetryAt reasons and requested times, while `snapshot(queues)` lists unfinished work with future RetryAt attempts marked `deferred`. `counts`, `health`, `queue`, `schedules`, `schemaVersion` and `busy` serve queue diagnostics and controller readouts.
+
+`changes(queue?)` acquires a scoped PostgreSQL listener and returns `revision` and `waitForChange(after)`. Capture its revision before reading, then wait against that revision to avoid missing a change between the read and the wait. The signal wakes for committed job changes from any client, optionally filtered to one queue. It is a hint to read again, not a durable event log. The caller owns the listener's scope.
+
+Automatic migration and `installPgBossSchema` install the queue-change trigger. Applications using `migrate: false` run `installPgBossSchema` before using change signals. Custom clients need `getDb().listen` to subscribe.
+
 ### Administer queues and schedules
 
 `unschedule(schedule)` removes the registration named by the schedule definition and its `scheduleOptions.key` (the empty key by default). Other keys for that queue stay registered. A missing registration fails with `PgBossNotFoundError`, carrying `operation: "unschedule"`, `queue` and `key`.
@@ -631,7 +641,8 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/jobs/server/ClientDatabase.ts`                | `ClientDatabase`                                                                                                                                                                                                                                                  |
 | `@shivaedev/jobs/server/engineClient.ts`                  | `EngineClient`, `EngineSchedule`                                                                                                                                                                                                                                  |
 | `@shivaedev/jobs/server/client.ts`                        | `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                             |
-| `@shivaedev/jobs/server/testing.ts`                       | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `PgBossTestingWaitOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                     |
+| `@shivaedev/jobs/server/inspection.ts`                    | `PgBossInspection`; `PgBossInspectionService`                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/testing.ts`                       | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `PgBossTestingWaitOptions`                                                                                                                                                       |
 | `@shivaedev/jobs/server/defineSchedule.ts`                | `defineSchedule`                                                                                                                                                                                                                                                  |
 | `@shivaedev/jobs/server/adapters/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                                            |
 
