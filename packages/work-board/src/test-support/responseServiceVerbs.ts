@@ -1,8 +1,10 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { Responses } from "#server/Responses.ts";
 import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 import { incrementalIndex } from "./incrementalIndex.ts";
+import { rejection } from "./liveOutcomes.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function responseServiceVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -33,6 +35,23 @@ export function responseServiceVerbs(engine: BoardEngine, tell: (line: string) =
 				).pipe(Effect.provide(answering));
 				return saved.id;
 			}).pipe(Effect.scoped, Effect.provide(NodeServices.layer));
+		},
+		responseRejection: (kind: "question" | "handoff source", item: string) => {
+			tell(`the reader reviews ${item}'s ${kind} over HTTP RPC`);
+			const { client } = served(engine);
+			return Effect.promise(() =>
+				(kind === "question"
+					? client.run(client.responses.question.run({ item, request: "direction" }))
+					: client.run(client.handoffs.handoffSource.run({ item }))
+				).then(
+					() => "answered",
+					(error: unknown) => ({
+						answer: rejection(error),
+						cause: error instanceof InternalServerError && error.cause !== undefined ? "attached" : "none",
+						secret: JSON.stringify(error).includes("private-value") ? "leaked" : "withheld",
+					}),
+				),
+			);
 		},
 	};
 }

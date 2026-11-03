@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Reading } from "#browser/responses/schema.ts";
 import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
-import type { ResponseRejection } from "#rpc/rejections.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
@@ -22,7 +21,7 @@ const registeredQuestion = Effect.fn("WorkBoard.registeredQuestion")(function* (
 	}
 	return question;
 });
-export function readResponses(snapshot: Effect.Effect<Snapshot, ResponseRejection>) {
+export function readResponses(snapshot: Effect.Effect<Snapshot, ServiceUnavailable>) {
 	return Effect.fn("WorkBoard.read")(function* (id: string) {
 		const current = yield* snapshot;
 		const data = yield* (current.archived?.(id) ?? Effect.succeed(current)).pipe(

@@ -133,6 +133,11 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			yield* sql`create view notes as select * from unavailable_notes()`;
 		}),
 		notesOf: (name: string) => account(engine, name).notes,
+		noteTitleBecomesUnreadable: Effect.fn("AppStory.noteTitleBecomesUnreadable")(function* (note: Pick<Note, "id">) {
+			story.tell("an outside writer leaves the note with an empty title that its schema cannot decode");
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`update notes set title = '' where id = ${note.id}`;
+		}),
 		queueRefusesNextWordCount: Effect.fn("AppStory.queueRefusesNextWordCount")(function* () {
 			story.tell("the queue refuses the next word-count job");
 			yield* runningHost(engine).jobsTesting.failNextSend(CountWords);

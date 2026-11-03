@@ -1,14 +1,12 @@
 import { Effect, type FileSystem } from "effect";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { HandoffPreview } from "#browser/handoffs/schema.ts";
 import { metadataParse } from "#metadata/adapters/parse.ts";
-import type { ResponseRejection } from "#rpc/rejections.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
-export function handoffSource(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ResponseRejection>, fs: FileSystem.FileSystem) {
+export function handoffSource(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ServiceUnavailable>, fs: FileSystem.FileSystem) {
 	return Effect.fn("WorkBoard.handoffSource")(function* (item: string) {
 		const data = yield* snapshot;
 		const matches = data.model.ids.get(item);
@@ -20,12 +18,9 @@ export function handoffSource(root: string, realRoot: string, snapshot: Effect.E
 		if (!real) {
 			return yield* Effect.fail(new ServiceUnavailable({ message: "The handoff source could not be read." }));
 		}
-		const context = yield* fs.readFileString(real).pipe(
-			rpcBoundary(ServiceUnavailable, {
-				message: "The handoff source could not be read.",
-				unexpected: (message) => new ServiceUnavailable({ message }),
-			}),
-		);
+		const context = yield* fs
+			.readFileString(real)
+			.pipe(Effect.mapError((cause) => Object.assign(new ServiceUnavailable({ message: "The handoff source could not be read." }), { cause })));
 		const fields = metadataParse(context).fields;
 		if (fields.id !== item || fields.kind === "question" || fields.response !== undefined || fields.handoff !== undefined) {
 			return yield* Effect.fail(new PreconditionFailed({ message: "Choose a current project item for this handoff." }));

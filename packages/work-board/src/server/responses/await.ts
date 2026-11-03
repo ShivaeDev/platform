@@ -1,10 +1,9 @@
 import { Clock, Effect } from "effect";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import type { Reading } from "#browser/responses/schema.ts";
-import type { ResponseRejection } from "#rpc/rejections.ts";
 import { outcome } from "./outcome.ts";
+import type { readResponses } from "./read.ts";
 
-export function awaitResponse(read: (id: string) => Effect.Effect<Reading, ResponseRejection>) {
+export function awaitResponse(read: ReturnType<typeof readResponses>) {
 	return Effect.fn("WorkBoard.awaitResponse")(function* (input: { readonly question: string; readonly after?: string | undefined }) {
 		const lease = (yield* Clock.currentTimeMillis) + 30_000;
 		while (true) {

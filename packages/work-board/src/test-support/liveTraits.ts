@@ -225,29 +225,31 @@ export const stagingObserved = boardStory.trait("project", "the reader sees the 
 	}));
 });
 
-export const crashableTracedBoard = boardStory.traits(
-	deferredServing,
-	boardStory.trait(
-		"reader",
-		"the board starts with its server spans recorded and storage that can crash with a secret in its defect",
-		function* (engine) {
-			const crashing: CrashingStorage = { crash: false, original: new Error("Unexpected storage failure with token=private-value"), spans: [] };
-			liveState(engine).crashing = crashing;
-			const tracer = Tracer.make({
-				span: (options) => {
-					const span = new Tracer.NativeSpan(options);
-					crashing.spans.push(span);
-					return span;
-				},
-			});
-			yield* startProject(engine, {
-				tracer,
-				wrap: (fs) => ({
-					...fs,
-					readFileString: (path, options) =>
-						crashing.crash && path.endsWith("note.md") ? Effect.die(crashing.original) : fs.readFileString(path, options),
-				}),
-			});
-		},
-	),
-);
+export function crashableTracedBoard(file = "note.md") {
+	return boardStory.traits(
+		deferredServing,
+		boardStory.trait(
+			"reader",
+			"the board starts with its server spans recorded and storage that can crash with a secret in its defect",
+			function* (engine) {
+				const crashing: CrashingStorage = { crash: false, original: new Error("Unexpected storage failure with token=private-value"), spans: [] };
+				liveState(engine).crashing = crashing;
+				const tracer = Tracer.make({
+					span: (options) => {
+						const span = new Tracer.NativeSpan(options);
+						crashing.spans.push(span);
+						return span;
+					},
+				});
+				yield* startProject(engine, {
+					tracer,
+					wrap: (fs) => ({
+						...fs,
+						readFileString: (path, options) =>
+							crashing.crash && path.endsWith(file) ? Effect.die(crashing.original) : fs.readFileString(path, options),
+					}),
+				});
+			},
+		),
+	);
+}

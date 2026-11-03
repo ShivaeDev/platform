@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { Conflict, NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
@@ -46,7 +46,15 @@ export const NotesService = defineService({
 			);
 		}
 		return {
-			canRead: (id: number, userId: string) => Effect.as(get(id, userId), true),
+			canRead: (id: number, userId: string) =>
+				get(id, userId).pipe(
+					Effect.as(true),
+					Effect.mapError((cause) =>
+						cause._tag === "NotFound" || cause._tag === "ServiceUnavailable"
+							? cause
+							: Object.assign(new ServiceUnavailable({ message: "Could not check note access" }), { cause }),
+					),
+				),
 			create,
 			delete: (input: typeof Delete.payload.Type, userId: string) =>
 				Effect.gen(function* () {

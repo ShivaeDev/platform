@@ -40,7 +40,7 @@ export const notesRegistration = {
 	queues: notesWorker.queues,
 	services: Layer.effect(
 		NoteReadAccess,
-		Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
+		Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId)),
 	).pipe(Layer.provideMerge(NotesService.layer)),
 	workers: notesWorker.workers,
 } satisfies AppModule;

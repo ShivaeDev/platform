@@ -1,7 +1,5 @@
 import { Effect, type FileSystem } from "effect";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { ResponseRejection } from "#rpc/rejections.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -9,7 +7,7 @@ import { questionPreview } from "./questionPreview.ts";
 import { requestSource } from "./requestSource.ts";
 import { questionTemplate } from "./template.ts";
 
-export function locate(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ResponseRejection>, fs: FileSystem.FileSystem) {
+export function locate(root: string, realRoot: string, snapshot: Effect.Effect<Snapshot, ServiceUnavailable>, fs: FileSystem.FileSystem) {
 	return Effect.fn("WorkBoard.locate")(function* (item: string, request: string) {
 		const data = yield* snapshot;
 		const entry = requestSource(data, item, request);
@@ -22,9 +20,7 @@ export function locate(root: string, realRoot: string, snapshot: Effect.Effect<S
 		}
 		const source = yield* fs
 			.readFileString(real)
-			.pipe(
-				rpcBoundary(ServiceUnavailable, { message: "The source could not be read.", unexpected: (message) => new ServiceUnavailable({ message }) }),
-			);
+			.pipe(Effect.mapError((cause) => Object.assign(new ServiceUnavailable({ message: "The source could not be read." }), { cause })));
 		if (new TextEncoder().encode(source).length > 256 * 1024) {
 			return yield* Effect.fail(new BadRequest({ message: "Question context is limited to 256 KiB; use a focused source document." }));
 		}

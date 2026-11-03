@@ -105,7 +105,7 @@ export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void
 			return Effect.map(rpcDocument(served(engine).board, `/_board/item/${id}/`), (document) => document.source);
 		},
 		storageCrashes: () => {
-			tell("the board's storage starts crashing on note.md with a secret in the defect");
+			tell("the board's storage starts crashing with a secret in the defect");
 			present(state.crashing, "The story's storage cannot crash; add crashableTracedBoard").crash = true;
 		},
 		stylesheetFonts: () => {
