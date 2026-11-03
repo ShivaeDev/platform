@@ -293,6 +293,70 @@ Read the message at the element's **current** index: in React, `useAtomValue(ans
 
 Without a selector for an array, handler errors fall back to index paths. They remain at that index while its input value matches, even if a different element with the same value moves there. Arrays nested inside an element also use index paths. Use immutable value updates and stable, unique keys for top-level arrays whose errors must follow elements.
 
+### Numeric inputs
+
+```tsx
+import * as Field from "@shivaedev/form/field.ts";
+import { numberInput } from "@shivaedev/form/adapters/numberInput.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
+
+const numbers = form(Schema.Struct({ amount: Field.number({ optional: true, min: 0, max: 100, integer: true }) }), {
+	initialValues: { amount: "" },
+	onSubmit: Effect.succeed,
+});
+
+function Amount() {
+	const amount = useField(numbers, "amount");
+	return (
+		<>
+			<input {...numberInput(amount)} />
+			<span role="alert">{amount.error}</span>
+		</>
+	);
+}
+```
+
+`Field.number` holds a string and decodes to a finite number. `optional: true` decodes empty or whitespace-only input to `null`; encoding `null` gives `""`. Without it, blank input is required. `min` and `max` are inclusive; `integer: true` rejects fractions. Omit `integer` to accept fractions and omit either bound for an open range. Invalid, non-finite and out-of-range values prevent submission.
+
+`numberInput(field)` supplies `name`, `value`, `onInput`, `onBlur`, `type: "text"` and `inputMode: "decimal"` for a string-valued field. A text input preserves invalid text so it can display Schema feedback; a native number input can erase that text before the form receives it. Wording and layout remain application choices.
+
+### Bounded lists
+
+```tsx
+import * as Field from "@shivaedev/form/field.ts";
+import { useList } from "@shivaedev/form/adapters/useList.ts";
+
+const quickAmounts = form(Schema.Struct({ amounts: Field.list(Field.number({ min: 1 }), { max: 5 }) }), {
+	initialValues: { amounts: ["1", "2"] },
+	onSubmit: Effect.succeed,
+});
+
+function QuickAmounts() {
+	const amounts = useList(quickAmounts, "amounts");
+	return (
+		<>
+			{amounts.items.map((item, index) => (
+				<div key={index}>
+					<input {...numberInput({ name: String(index), value: item.value, onChange: item.onChange, onBlur: amounts.onBlur })} />
+					<span role="alert">{item.error}</span>
+					<button type="button" onClick={item.onRemove}>
+						Remove
+					</button>
+				</div>
+			))}
+			<button type="button" onClick={() => amounts.add("")}>
+				Add amount
+			</button>
+			<span role="alert">{amounts.error}</span>
+		</>
+	);
+}
+```
+
+`Field.list(item, { max, min? })` returns a native array schema with a required maximum count and optional minimum count. An omitted minimum permits an empty list. Bounds validate the current array, including direct edits: adding beyond `max` or removing below `min` displays list feedback and prevents submission. The binding keeps the edit available for correction.
+
+`useList(form, name)` edits a top-level array field through the existing form session. `add(encodedItem)` appends an item; each entry of `items` exposes its encoded `value`, `onChange(encodedItem)`, `onRemove()` and `error`. `onBlur()` touches the list. Item errors use `errorAt([name, index])`, and `error` retains the list summary. Schema errors track current positions. For object items, supply stable keys through `arrayKeys` and use the same keys in React; handler rejections then follow the existing keyed-array rules described above. Nested objects remain whole-item edits.
+
 ### Choices and nullable inputs
 
 ```ts
@@ -311,14 +375,17 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module                              | Application-facing exports                                                                |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| `@shivaedev/form/form.ts`           | `form(schema, config)`                                                                    |
-| `@shivaedev/form/shape.ts`          | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
-| `@shivaedev/form/fieldRejection.ts` | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
-| `@shivaedev/form/adapters/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
-| `@shivaedev/form/draftSession.ts`   | `draftSession(id)`                                                                        |
-| `@shivaedev/form/emptyAsNull.ts`    | `emptyAsNull`                                                                             |
+| Module                                    | Application-facing exports                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`                 | `form(schema, config)`                                                                    |
+| `@shivaedev/form/shape.ts`                | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
+| `@shivaedev/form/fieldRejection.ts`       | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
+| `@shivaedev/form/adapters/react.ts`       | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
+| `@shivaedev/form/draftSession.ts`         | `draftSession(id)`                                                                        |
+| `@shivaedev/form/field.ts`                | `number`, `list`, `NumberOptions`, `ListOptions`                                          |
+| `@shivaedev/form/adapters/numberInput.ts` | `numberInput`                                                                             |
+| `@shivaedev/form/adapters/useList.ts`     | `useList`                                                                                 |
+| `@shivaedev/form/emptyAsNull.ts`          | `emptyAsNull`                                                                             |
 
 `form` takes a `Schema.Struct` and this configuration:
 
@@ -371,7 +438,7 @@ pnpm add @effect/atom-react react
 ```
 
 The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.
-- Field names are top-level schema keys. There is no path-addressed field-array API.
+- Field names are top-level schema keys. `useList` edits top-level arrays; nested items remain whole-item edits.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.
 - Decide in the application when to receive normalized rows and how to render general failures. Attach a draft owner when persisted input must end with the session.
