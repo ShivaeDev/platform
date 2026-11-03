@@ -1,11 +1,11 @@
 import { type Context, Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
-import { JobFailure } from "#JobFailure.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
 import { type PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions } from "#server/health.ts";
 import { JobEngine, type Listing } from "#server/internal/engine.ts";
 import { decodeStoredData } from "#server/internal/storedRows.ts";
+import { readJobFailure } from "#server/readJobFailure.ts";
 import type { PgBossService } from "#server/service.ts";
 
 const Cursor = Schema.StringFromBase64Url.pipe(
@@ -29,12 +29,12 @@ const Row = Schema.Struct({
 	cursorAt: Schema.String,
 	data: Schema.Unknown,
 	id: Schema.String,
-	output: Schema.NullOr(JobFailure),
+	output: Schema.Unknown,
 	queue: Schema.String,
 	retryCount: Schema.Number,
 	retryLimit: Schema.Number,
 	sourceId: Schema.OptionFromNullOr(Schema.String),
-	sourceOutput: Schema.NullOr(JobFailure),
+	sourceOutput: Schema.Unknown,
 	startedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromDate),
 	state: Schema.Literals(["created", "retry", "active", "completed", "cancelled", "failed"]),
 });
@@ -72,9 +72,14 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	const page = decodedRows.slice(0, limit);
 	const last = page.at(-1);
 	const next = decodedRows.length > limit && last !== undefined ? Option.some(Schema.encodeSync(Cursor)([last.cursorAt, last.id])) : Option.none();
-	return yield* Effect.forEach(page, ({ cursorAt: _, data, ...row }) =>
-		decodeStoredData(queue, data).pipe(
-			Effect.map((decoded) => ({ ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: redact(decoded) })),
-		),
-	).pipe(Effect.map((jobs) => ({ jobs, next })));
+	const jobs = yield* Effect.forEach(
+		page,
+		Effect.fnUntraced(function* ({ cursorAt: _, data, ...row }) {
+			const decoded = yield* decodeStoredData(queue, data);
+			const output = yield* readJobFailure(queue.name, row.output);
+			const sourceOutput = yield* readJobFailure(queue.name, row.sourceOutput);
+			return { ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: redact(decoded), output, sourceOutput };
+		}),
+	);
+	return { jobs, next };
 });

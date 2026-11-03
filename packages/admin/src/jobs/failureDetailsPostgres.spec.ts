@@ -1,4 +1,5 @@
-import { expect } from "vitest";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { jobsStory, signedInAs } from "#test/jobsStory.ts";
 import { storedSyncFailure } from "#test/storedSyncFailure.ts";
 
@@ -19,7 +20,14 @@ for (const { description, stored, expected } of [
 		stored: { value: { message: "job timed out" } },
 	},
 ]) {
-	jobsStory.it(`an admin reads ${description} in job details`, [signedInAs("admin"), storedSyncFailure(stored)], function* ({ detail }) {
-		expect((yield* detail("failed sync", "sync")).output).toEqual(expected);
-	});
+	jobsStory.it(
+		`an admin reads ${description} in job details and listings`,
+		[signedInAs("admin"), storedSyncFailure(stored)],
+		function* ({ detail, failedEntry }) {
+			yield* outcomes([
+				["job details", () => Effect.map(detail("failed sync", "sync"), (job) => JSON.stringify(job.output)), JSON.stringify(expected)],
+				["failed listing", () => Effect.map(failedEntry("failed sync", "sync"), (job) => JSON.stringify(job.output)), JSON.stringify(expected)],
+			]);
+		},
+	);
 }

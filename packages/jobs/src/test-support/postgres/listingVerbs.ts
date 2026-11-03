@@ -81,6 +81,10 @@ export function listingVerbs(engine: DatabaseEngine, tell: (line: string) => voi
 			Effect.map(page(name, listing, queue, 100, Option.none()), ({ jobs }) => jobs.map((job) => nameOf(engine, job))),
 		listedOutputs: (name: string, listing: Listing, queue: ListedQueue) =>
 			Effect.map(page(name, listing, queue, 100, Option.none()), ({ jobs }) => jobs.map((job) => job.output)),
+		listedSourceOutputs: (name: string, queue: ListedQueue) =>
+			Effect.map(page(name, "dead-lettered", queue, 100, Option.none()), ({ jobs }) =>
+				jobs.map((job) => ("sourceOutput" in job ? job.sourceOutput : "no source")),
+			),
 		remainingPages: () => {
 			tell("the remaining pages are read from the first page's cursor");
 			return remaining;
