@@ -61,6 +61,7 @@ export interface PgBossClient {
 	readonly findJobs?: (name: string, options?: JobReadOptions) => Promise<readonly Job<unknown>[]>;
 	readonly getDb?: () => ClientDatabase;
 	readonly getQueue: (name: string) => Promise<ClientQueue | null>;
+	readonly getSchedule?: (name: string, key?: string) => Promise<{ readonly name: string; readonly key: string } | null>;
 	readonly getWipData?: (options?: { includeInternal?: boolean }) => { id: string; workId: string; name: string; count: number }[];
 	readonly notifyWorker?: (workerId: string) => void;
 	readonly off: (event: "error", listener: (error: Error) => void) => unknown;
@@ -71,6 +72,7 @@ export interface PgBossClient {
 	readonly send: (name: string, data?: object | null, options?: EnqueueOptions) => Promise<string | null>;
 	readonly start: () => Promise<unknown>;
 	readonly stop: (options?: StopOptions) => Promise<void>;
+	readonly supervise?: (name?: string) => Promise<void>;
 	readonly unschedule?: (name: string, key?: string, options?: ClientConnectionOptions) => Promise<void>;
 	readonly update?: {
 		(request: ClientUpdateRequest): Promise<ClientUpdateResult>;

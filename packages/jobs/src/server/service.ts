@@ -1,16 +1,23 @@
-import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope } from "effect";
+import { Context, Effect, Exit, Layer, type Option, type Redacted, type Schema, Scope } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
-import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
 import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
 import { jobEngine } from "#server/adapters/jobEngine.ts";
 import { clientEngine } from "#server/adapters/lifecycle.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
-import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements, ScheduleDefinition } from "#server/definition.ts";
 import type { EnqueueOptions } from "#server/enqueueOptions.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import type {
+	PgBossClientOptionsError,
+	PgBossError,
+	PgBossNotFoundError,
+	PgBossPayloadError,
+	PgBossQueueNamesError,
+	PgBossQueueOptionsError,
+} from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
+import { acquireClient } from "#server/internal/acquireClient.ts";
 import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
 import { JobEngine } from "#server/internal/engine.ts";
 import { ClientEngine } from "#server/internal/lifecycle.ts";
@@ -27,6 +34,7 @@ export interface PgBossService {
 		queue: { readonly name: TName; readonly schema: TPayload },
 		options: JobPageOptions,
 	) => Effect.Effect<JobPage<DeadLetteredJob<unknown>>, PgBossError | PgBossPayloadError | Schema.SchemaError, TPayload["DecodingServices"]>;
+	readonly deleteQueue: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<void, PgBossError | PgBossNotFoundError>;
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
 		queue: QueueDefinition<TName, TPayload> & TQueue,
 		payload: NoInfer<Schema.Schema.Type<TPayload>>,
@@ -41,7 +49,9 @@ export interface PgBossService {
 		id: string,
 	) => Effect.Effect<Option.Option<Job<unknown>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly health: (queues?: readonly Pick<QueueDefinition, "name">[]) => Effect.Effect<JobsHealth, PgBossError>;
+	readonly refreshQueueStats: (queue?: Pick<QueueDefinition, "name">) => Effect.Effect<void, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
+	readonly unschedule: (schedule: Pick<ScheduleDefinition, "name" | "scheduleOptions">) => Effect.Effect<void, PgBossError | PgBossNotFoundError>;
 }
 
 export type PgBossOptions = Omit<ClientOptions, "connectionString"> & {
@@ -54,30 +64,7 @@ export type PgBossOptions = Omit<ClientOptions, "connectionString"> & {
 };
 
 export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossError | PgBossClientOptionsError> {
-	const { connectionString, clientFactory, clientCacheKey, stop, ...settings } = options;
-	const constructorOptions = {
-		...settings,
-		idleTimeoutMillis: settings.idleTimeoutMillis ?? 60_000,
-		maxLifetimeSeconds: settings.maxLifetimeSeconds ?? 600,
-		...(connectionString === undefined ? {} : { connectionString: Redacted.value(connectionString) }),
-	};
-	return Layer.effect(
-		PgBoss,
-		Effect.gen(function* () {
-			const report = yield* clientErrorLogger();
-			const engine = yield* ClientEngine;
-			const acquired = yield* engine.acquire(
-				{
-					clientCacheKey,
-					clientFactory,
-					constructor: constructorOptions,
-				},
-				report,
-				stop,
-			);
-			return { ...acquired, schema: settings.schema, stop };
-		}),
-	).pipe(Layer.provide(Layer.succeed(ClientEngine, clientEngine)));
+	return Layer.effect(PgBoss, acquireClient(options)).pipe(Layer.provide(Layer.succeed(ClientEngine, clientEngine)));
 }
 
 export interface PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> {
@@ -125,11 +112,14 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 			methods: (service) => ({
 				counts: service.counts,
 				deadLetteredJobs: genericMethod(service.deadLetteredJobs),
+				deleteQueue: service.deleteQueue,
 				enqueue: genericMethod(service.enqueue),
 				failedJobs: genericMethod(service.failedJobs),
 				getJob: genericMethod(service.getJob),
 				health: service.health,
+				refreshQueueStats: service.refreshQueueStats,
 				retry: service.retry,
+				unschedule: service.unschedule,
 			}),
 			requires: [PgBoss],
 		});

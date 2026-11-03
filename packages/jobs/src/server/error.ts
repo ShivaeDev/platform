@@ -4,16 +4,31 @@ import { failureOutput } from "#server/internal/failureOutput.ts";
 export type PgBossOperation =
 	| "counts"
 	| "deadLetteredJobs"
+	| "deleteQueue"
 	| "enqueue"
 	| "failedJobs"
 	| "getJob"
 	| "health"
 	| "install"
 	| "register"
+	| "refreshQueueStats"
 	| "retry"
 	| "settle"
 	| "start"
-	| "stop";
+	| "stop"
+	| "unschedule";
+
+export class PgBossNotFoundError extends Data.TaggedError("PgBossNotFoundError")<{
+	readonly operation: "deleteQueue" | "unschedule";
+	readonly queue: string;
+	readonly key?: string;
+}> {
+	override get message(): string {
+		return this.operation === "deleteQueue"
+			? `Queue ${this.queue} does not exist`
+			: `Schedule ${this.queue} with key ${JSON.stringify(this.key ?? "")} does not exist`;
+	}
+}
 
 export class PgBossError extends Data.TaggedError("PgBossError")<{
 	readonly operation: PgBossOperation;
