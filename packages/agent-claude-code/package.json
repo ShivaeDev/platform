@@ -19,7 +19,8 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		}
+		},
+		"#test/*": "./src/test-support/*"
 	},
 	"exports": {
 		"./*.ts": {
@@ -32,17 +33,44 @@
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
-		"ready": "pnpm typecheck && pnpm build",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run --configLoader native",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/agent": "workspace:*"
+	},
 	"devDependencies": {
+		"@anthropic-ai/claude-agent-sdk": "catalog:",
+		"@effect/vitest": "catalog:",
+		"@modelcontextprotocol/sdk": "catalog:",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"typescript": "catalog:"
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@anthropic-ai/claude-agent-sdk": "catalog:",
+		"@modelcontextprotocol/sdk": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@anthropic-ai/claude-agent-sdk": {
+			"optional": true
+		},
+		"@modelcontextprotocol/sdk": {
+			"optional": true
+		}
 	},
 	"engines": {
 		"node": ">=24"
