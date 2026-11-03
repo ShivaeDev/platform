@@ -22,7 +22,7 @@ const runtimes = [
 			{ cron: "23 9 * * 1", name: "weekly-report", timezone: "Europe/Berlin" },
 		],
 		runtime: "runs the schedules",
-		triggered: { answer: "done", runs: ["run 1 of daily-cleanup"] },
+		triggered: { answer: "daily run", runs: ["run 1 of daily-cleanup"] },
 	},
 	{
 		jobs: [DailyQueue],
@@ -49,13 +49,13 @@ for (const { jobs, listed, runtime } of runtimes) {
 
 for (const { jobs, runtime, triggered } of runtimes) {
 	database.it(
-		`triggering the daily schedule in a runtime that ${runtime} answers ${triggered.answer === "done" ? "by running it once" : "with a typed testing error"}`,
+		`triggering the daily schedule in a runtime that ${runtime} answers ${triggered.answer === "daily run" ? "by naming its run and running it once" : "with a typed testing error"}`,
 		[],
-		function* ({ answered, askTesting, attempts, start, untilIdle }) {
+		function* ({ answered, attempts, start, triggerRun, untilIdle }) {
 			yield* start("app", jobs, { controller: "test retries", schedule: false });
 			expect(yield* attempts(Daily)).toEqual([]);
 
-			yield* askTesting("app", "trigger the daily schedule", (testing) => testing.trigger(Daily));
+			yield* triggerRun("app", Daily, "daily run");
 			yield* untilIdle("app");
 
 			expect({ answer: yield* answered(), runs: yield* attempts(Daily) }).toEqual(triggered);

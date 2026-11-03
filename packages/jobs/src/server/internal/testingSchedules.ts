@@ -2,7 +2,7 @@ import type { ScheduleDefinition } from "#server/definition.ts";
 import type { EngineClient } from "#server/engineClient.ts";
 import { testingOperation } from "#server/internal/testingReadout.ts";
 
-export function testingSchedules(client: () => EngineClient, changed: () => void) {
+export function testingSchedules(client: () => EngineClient) {
 	return {
 		schedules: () =>
 			testingOperation("schedules", async () => (await client().getSchedules()).map(({ name, cron, timezone }) => ({ cron, name, timezone }))),
@@ -14,8 +14,8 @@ export function testingSchedules(client: () => EngineClient, changed: () => void
 					if (registered === undefined) {
 						throw new Error("Schedule is not registered");
 					}
-					await client().send(registered.name, registered.data, { ...registered.options, startAfter: 0 });
-					changed();
+					const id = await client().send(registered.name, registered.data, { ...registered.options, startAfter: 0 });
+					return id;
 				},
 				schedule.name,
 			),

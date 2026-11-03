@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Exit, Layer, Option, Predicate, type Queue, Redacted, Schema, Scope } from "effect";
+import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -107,14 +107,7 @@ export const jobsEngine = Effect.gen(function* () {
 		jobs,
 		names: new Map<string, string>(),
 		privateQueue: Private,
-		// The jobs testing kit offers no statistics refresh, so the story runs pg-boss's own on-demand supervision pass.
-		refreshStatistics: Effect.promise(async () => {
-			const client: unknown = boss.client;
-			if (!(Predicate.hasProperty(client, "supervise") && Predicate.isFunction(client.supervise))) {
-				throw new Error("The pg-boss client cannot supervise its queues");
-			}
-			await client.supervise();
-		}),
+		refreshStatistics: testing.refreshQueueStats(),
 		registrationReads: () => readCount() - beforeRegistration,
 		sendInvalidMail: jobs.enqueue(InvalidMail, { invalid: "payload" }, { retryLimit: 0 }).pipe(Effect.map(Option.getOrThrow)),
 		stopJobs: Scope.close(scope, Exit.void),

@@ -18,7 +18,7 @@ export interface TestingControls {
 	readonly work: TestingWork;
 }
 
-export function testingClient(client: EngineClient, schema: string, controls: TestingControls): PgBossClient {
+export function testingClient(client: EngineClient, schema: string, controls: TestingControls): EngineClient {
 	const engine = testingEngine(client, schema);
 	const settlements = Effect.runSync(
 		engine.observeSettlements((name) => {
