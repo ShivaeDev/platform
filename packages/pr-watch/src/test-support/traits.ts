@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { EventKind } from "#events.ts";
 import type { Engine } from "./engine.ts";
 import { type Answer, type Change, github, type Read } from "./github.ts";
-import type { Check } from "./server.ts";
+import type { Check } from "./githubModel.ts";
 import { watch } from "./watch.ts";
 import { pollOnce } from "./watcherVerbs.ts";
 

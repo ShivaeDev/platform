@@ -1,4 +1,4 @@
-import { Context, Effect, Fiber } from "effect";
+import { Context, Deferred, Effect, Fiber, Tracer } from "effect";
 import { gitMainSource, MainSource } from "#host/mainSource.ts";
 import { admissionRepository } from "#test/admissionRepository.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
@@ -26,15 +26,31 @@ export function admissionFetchVerbs(engine: HostStoryEngine, tell: (line: string
 	return {
 		admissionDuringHeldFetch: Effect.fn("AdmissionFetch.admissionDuringHeldFetch")(function* (admit: Effect.Effect<readonly string[], unknown>) {
 			tell("admission starts while another read of main holds its Git fetch");
-			const admission = yield* admit.pipe(Effect.forkChild);
-			// No production signal marks admission reaching the fetch lock, so the held fetch stays open long enough for it to try.
-			yield* Effect.sleep("250 millis");
-			return { result: () => Fiber.join(admission) };
+			const attempted = yield* Deferred.make<void>();
+			const fetchesStarted: string[] = [];
+			const tracer = Tracer.make({
+				span: (options) => {
+					if (options.name === "GitMainSource.latest") {
+						Deferred.doneUnsafe(attempted, Effect.void);
+					}
+					if (options.name === "GitMainSource.fetch") {
+						fetchesStarted.push(options.name);
+					}
+					return new Tracer.NativeSpan(options);
+				},
+			});
+			const admission = yield* admit.pipe(Effect.withTracer(tracer), Effect.forkScoped);
+			return {
+				attempted: Deferred.await(attempted).pipe(Effect.timeout("5 seconds")),
+				fetchesStarted: () => [...fetchesStarted],
+				result: () => Fiber.join(admission),
+			};
 		}),
 		admissionHoldingFetch: Effect.fn("AdmissionFetch.admissionHoldingFetch")(function* (admit: Effect.Effect<readonly string[], unknown>) {
 			tell("admission starts and holds its Git fetch after main is advertised");
 			repository().enable();
-			const admission = yield* admit.pipe(Effect.forkChild);
+			const admission = yield* admit.pipe(Effect.forkScoped);
+			yield* Effect.addFinalizer(() => Effect.sync(() => repository().release()));
 			yield* repository().entered;
 			return { result: () => Fiber.join(admission) };
 		}),
@@ -54,7 +70,8 @@ export function admissionFetchVerbs(engine: HostStoryEngine, tell: (line: string
 		heldMainRead: Effect.fn("AdmissionFetch.heldMainRead")(function* () {
 			tell("another daemon read of main starts and holds its Git fetch");
 			repository().enable();
-			const reading = yield* Context.get(engine.running.context, MainSource).latest.pipe(Effect.forkChild);
+			const reading = yield* Context.get(engine.running.context, MainSource).latest.pipe(Effect.forkScoped);
+			yield* Effect.addFinalizer(() => Effect.sync(() => repository().release()));
 			yield* repository().entered;
 			return { revision: () => Fiber.join(reading).pipe(Effect.map(({ revision }) => revision)) };
 		}),

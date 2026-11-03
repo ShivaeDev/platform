@@ -9,7 +9,9 @@ host.it(
 	function* (daemon) {
 		const reading = yield* daemon.heldMainRead();
 		const admission = yield* daemon.admissionDuringHeldFetch(daemon.admit());
+		yield* admission.attempted;
 		yield* daemon.externalMainFetch();
+		expect(admission.fetchesStarted()).toEqual([]);
 
 		daemon.releaseMainFetch();
 
@@ -18,6 +20,7 @@ host.it(
 			["admission warnings", () => admission.result(), []],
 			["one", () => daemon.get("one"), { preparation: { baseRevision: daemon.pushedMainRevision() }, step: "queued" }],
 		]);
+		expect(admission.fetchesStarted()).toEqual(["GitMainSource.fetch"]);
 		expect(daemon.mainFetchesOverlapped()).toBe(false);
 	},
 );

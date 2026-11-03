@@ -5,9 +5,9 @@ import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 import type { Engine } from "./engine.ts";
+import { GRAPHQL, REPOSITORY } from "./githubModel.ts";
 import { type FileOperation, type Gate, makeGate } from "./io.ts";
 import { clockTime, described, request, snapshotPhrase, transitionLines } from "./readouts.ts";
-import { GRAPHQL, REPOSITORY } from "./server.ts";
 
 export function emitTo(engine: Engine) {
 	return (line: WatchEvent) =>
@@ -27,7 +27,7 @@ export function pollOnce(engine: Engine) {
 	return Effect.gen(function* () {
 		engine.roundStart = engine.github.requests.length;
 		const state = yield* engine.watcher.load(engine.options);
-		yield* engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine));
+		yield* engine.github.observeRound(engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine)));
 		return "polled";
 	}).pipe(
 		Effect.catch((error) =>

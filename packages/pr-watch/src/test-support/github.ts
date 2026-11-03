@@ -2,7 +2,6 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import {
 	type Check,
 	checksRoute,
-	type FakeGitHub,
 	GRAPHQL,
 	OPEN_LIST,
 	type Pull,
@@ -12,7 +11,8 @@ import {
 	REQUIRED_CHECKS,
 	type Reply,
 	statusRoute,
-} from "./server.ts";
+} from "./githubModel.ts";
+import type { FakeGitHub } from "./server.ts";
 
 export interface Change {
 	readonly apply: (github: FakeGitHub) => void;

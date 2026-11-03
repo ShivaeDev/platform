@@ -1,5 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import type { FleetHost } from "#host/config.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
@@ -36,15 +37,13 @@ const holdLock = Effect.fn("FleetFixture.holdLock")(function* (host: FleetHost, 
 	const pid = yield* Deferred.await(held);
 	const blocked = Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		while (true) {
-			const [state] = yield* sql<{ readonly waiting: boolean }>`select exists (
+		return yield* observeUntil(
+			sql<{ readonly waiting: boolean }>`select exists (
 				select 1 from pg_stat_activity where ${pid} = any(pg_blocking_pids(pid))
-			) as waiting`;
-			if (state?.waiting) {
-				return;
-			}
-			yield* Effect.sleep("10 millis");
-		}
-	}).pipe(Effect.timeout("5 seconds"));
+			) as waiting`,
+			(rows) => rows[0]?.waiting === true,
+			"an admission or answer transaction waiting on the held advisory lock",
+		);
+	});
 	return { blocked, release: Deferred.succeed(release, undefined) };
 });
