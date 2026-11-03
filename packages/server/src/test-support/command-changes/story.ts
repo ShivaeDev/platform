@@ -26,7 +26,7 @@ const postgres = makePostgresTestLayer({
 
 export const commandChanges = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const writer = yield* PgClient.make({ maxConnections: 4, url: database.url });

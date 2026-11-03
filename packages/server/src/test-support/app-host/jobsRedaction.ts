@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option, Redacted, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
+import { TestClock } from "effect/testing";
 import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
 import { jobSchema } from "@shivaedev/admin/jobs/schemas.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
@@ -51,7 +52,7 @@ export const registeredJobs = jobsRedaction.trait(
 	function* (state) {
 		const database = yield* PostgresTestDatabase;
 		const sessions = { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } };
-		const testing = makePgBossTesting();
+		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 		const services = Jobs.layer({ jobs: [Mail.handle(() => Effect.fail(new Error("private job failure detail")))] }).pipe(
 			Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url, supervise: false })),
 		);

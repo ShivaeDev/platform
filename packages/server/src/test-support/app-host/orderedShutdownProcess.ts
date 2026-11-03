@@ -1,6 +1,9 @@
+import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Effect, Exit, Layer, Scope, Stream } from "effect";
+import { Clock, Config, Deferred, Effect, Exit, Fiber, Layer, Scope, Stream } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { TestClock } from "effect/testing";
+import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { appDatabase } from "#appDatabase.ts";
 import { appHost } from "#appHost.ts";
 import { otlpTracing } from "#otlpTracing.ts";
@@ -12,9 +15,32 @@ import { HTTP_GRACE_MILLIS, ShutdownApi } from "./orderedShutdownApi.ts";
 NodeRuntime.runMain(
 	Effect.gen(function* () {
 		const readouts = yield* hostProcessReadouts;
+		const stalled = (yield* Config.String("COLLECTOR_STALLED")) === "1";
 		const scope = yield* Scope.make();
+		const exported = yield* Deferred.make<void>();
+		function exportReceived() {
+			Effect.runFork(acknowledgeHostSignal("SIGUSR1").pipe(Effect.andThen(Deferred.succeed(exported, undefined))));
+		}
+		yield* Effect.acquireRelease(
+			Effect.sync(() => process.on("SIGUSR1", exportReceived)),
+			() => Effect.sync(() => process.off("SIGUSR1", exportReceived)),
+		);
 		yield* Effect.addFinalizer(() =>
-			readouts.shutdown(Scope.close(scope, Exit.void)).pipe(Effect.andThen(acknowledgeHostSignal("SIGTERM")), Effect.orDie),
+			readouts
+				.shutdown(
+					Effect.gen(function* () {
+						const closing = yield* Scope.close(scope, Exit.void).pipe(Effect.forkChild);
+						yield* untilTimer(HTTP_GRACE_MILLIS);
+						yield* TestClock.adjust(HTTP_GRACE_MILLIS);
+						if (stalled) {
+							yield* Deferred.await(exported);
+							yield* untilTimer(1000);
+							yield* TestClock.adjust(1000);
+						}
+						yield* Fiber.join(closing);
+					}),
+				)
+				.pipe(Effect.andThen(acknowledgeHostSignal("SIGTERM")), Effect.orDie),
 		);
 		const database = appDatabase({ migrations: { loader: Migrator.fromRecord({}) } });
 		const handlers = ShutdownApi.toLayer({
@@ -48,5 +74,5 @@ NodeRuntime.runMain(
 		);
 		yield* reportHostReady.pipe(Effect.provideContext(context));
 		yield* Effect.never;
-	}).pipe(Effect.scoped),
+	}).pipe(Effect.scoped, Effect.provide(Layer.effect(Clock.Clock, watchedClock).pipe(Layer.provide(TestClock.layer())))),
 );

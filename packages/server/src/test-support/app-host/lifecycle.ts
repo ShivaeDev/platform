@@ -1,4 +1,4 @@
-import { ConfigProvider, Context, Effect, Exit, Layer, Logger, Option, References } from "effect";
+import { Clock, ConfigProvider, Context, Effect, Exit, Layer, Logger, Option, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
@@ -7,44 +7,47 @@ import { runtimeLayer } from "./runtimeLayer.ts";
 import { type HostState, io, recordLog, runtimeOf } from "./state.ts";
 
 export function start(state: HostState) {
-	return io(async () => {
-		const logger = Logger.make((options) =>
-			recordLog(state, {
-				annotations: options.fiber.getRef(References.CurrentLogAnnotations),
-				attempt: state.receiver?.requests.length ?? 0,
-				cause: options.cause,
-				level: options.logLevel,
-				message: options.message,
-				spans: Object.fromEntries(options.fiber.getRef(References.CurrentLogSpans)),
-			}),
-		);
-		const layer = state
-			.build(state)
-			.pipe(
-				Layer.provideMerge(runtimeLayer(state.runtimeLifecycle)),
-				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.env, preserveEmptyStrings: true }))),
-				Layer.provideMerge(Layer.merge(Logger.layer([logger]), Layer.succeed(References.MinimumLogLevel, state.minimumLogLevel))),
+	return Clock.clockWith((clock) =>
+		io(async () => {
+			const logger = Logger.make((options) =>
+				recordLog(state, {
+					annotations: options.fiber.getRef(References.CurrentLogAnnotations),
+					attempt: state.receiver?.requests.length ?? 0,
+					cause: options.cause,
+					level: options.logLevel,
+					message: options.message,
+					spans: Object.fromEntries(options.fiber.getRef(References.CurrentLogSpans)),
+				}),
 			);
-		state.runtime = makePlatformRuntime(layer);
-		const exit = await state.runtime.runPromiseExit(HttpServer.HttpServer);
-		if (Exit.isFailure(exit)) {
-			state.bootFailure = exit.cause;
-			if (!state.expectBootFailure) {
-				throw new Error("App host startup failed", { cause: exit.cause });
+			const layer = state
+				.build(state)
+				.pipe(
+					Layer.provideMerge(runtimeLayer(state.runtimeLifecycle)),
+					Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
+					Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.env, preserveEmptyStrings: true }))),
+					Layer.provideMerge(Layer.merge(Logger.layer([logger]), Layer.succeed(References.MinimumLogLevel, state.minimumLogLevel))),
+				);
+			state.runtime = makePlatformRuntime(layer);
+			const exit = await state.runtime.runPromiseExit(HttpServer.HttpServer);
+			if (Exit.isFailure(exit)) {
+				state.bootFailure = exit.cause;
+				if (!state.expectBootFailure) {
+					throw new Error("App host startup failed", { cause: exit.cause });
+				}
+				return;
 			}
-			return;
-		}
-		if (state.expectBootFailure) {
-			throw new Error("The app host unexpectedly started");
-		}
-		const server = exit.value;
-		state.address = server.address;
-		if (!NetAddress.isInetAddress(server.address)) {
-			throw new Error("Expected TCP address");
-		}
-		state.bindAddress = NetAddress.formatIp(server.address.address);
-		state.url = `http://127.0.0.1:${server.address.port}`;
-	});
+			if (state.expectBootFailure) {
+				throw new Error("The app host unexpectedly started");
+			}
+			const server = exit.value;
+			state.address = server.address;
+			if (!NetAddress.isInetAddress(server.address)) {
+				throw new Error("Expected TCP address");
+			}
+			state.bindAddress = NetAddress.formatIp(server.address.address);
+			state.url = `http://127.0.0.1:${server.address.port}`;
+		}),
+	);
 }
 export function close(state: HostState) {
 	return io(async () => {

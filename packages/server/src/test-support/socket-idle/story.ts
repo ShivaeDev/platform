@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Clock, Deferred, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
+import { Deferred, Duration, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -66,9 +66,8 @@ export const socketIdleStory = storyKit({
 			return yield* Effect.die("Expected a TCP host");
 		}
 		const protocol = yield* Layer.build(
-			RpcClient.layerProtocolSocket().pipe(
+			RpcClient.layerProtocolSocket({ pingInterval: Duration.infinity }).pipe(
 				Layer.provide([layerWebSocket(`ws://127.0.0.1:${address.port}/rpc`), RpcSerialization.layerNdjson]),
-				Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())),
 			),
 		);
 		const client = yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(protocol));

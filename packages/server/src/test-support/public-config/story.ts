@@ -11,7 +11,7 @@ import { configuredHost, PublicConfig } from "./fixture.ts";
 
 export const configuration = storyKit({
 	after: { configured: start },
-	clock: "live",
+	clock: "test",
 	*create() {
 		const state = emptyHost();
 		yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));

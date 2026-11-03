@@ -395,7 +395,7 @@ import { hostProcess } from "@shivaedev/server/testing/hostProcess.ts";
 
 const host = storyKit({
 	name: "application host",
-	clock: "live",
+	clock: "test",
 	stages: [],
 	create: () => hostProcess({ module: new URL("./host.ts", import.meta.url) }),
 	verbs: (process) => ({

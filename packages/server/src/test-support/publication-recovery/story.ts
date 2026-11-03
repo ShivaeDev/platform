@@ -47,7 +47,7 @@ const openHost = Effect.gen(function* () {
 
 export const publicationRecoveryStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		return { local: yield* openHost, remote: yield* openHost };
 	},

@@ -27,7 +27,7 @@ function consumer(state: State) {
 }
 
 export const lowMemoryPostgres = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const state: State = { machine: yield* machine, pointInTimeRecovery: false };
 		return state;

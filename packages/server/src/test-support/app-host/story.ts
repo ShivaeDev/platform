@@ -16,7 +16,7 @@ export function hostOptions() {
 					yield* start(state);
 				}),
 		},
-		clock: "live" as const,
+		clock: "test" as const,
 		*create() {
 			const state = emptyHost();
 			yield* Effect.addFinalizer(() =>

@@ -4,7 +4,7 @@ import { openTab } from "./openTab.ts";
 import { startHost } from "./startHost.ts";
 
 export const restartStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const host = yield* startHost();
 		const tabs = yield* Effect.forEach(

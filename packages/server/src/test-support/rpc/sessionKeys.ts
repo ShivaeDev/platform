@@ -51,7 +51,7 @@ const create = Effect.fnUntraced(function* () {
 
 export const sessionKeys = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create,
 	inspect: (state) => ({ accounts: [state.alice.userId, state.bob.userId], published: state.writer.published }),
 	layer: postgres,

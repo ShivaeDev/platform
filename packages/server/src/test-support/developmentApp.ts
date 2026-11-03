@@ -19,7 +19,7 @@ function recordStartup(ready: Map<string, { pid: number; value: string }>, line:
 }
 
 export const developmentApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "platform-development-" });

@@ -1,4 +1,4 @@
-import { Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
+import { Clock, Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
@@ -8,8 +8,9 @@ import { appHost } from "#appHost.ts";
 const Watching = RpcGroup.make(Rpc.make("watch", { stream: true, success: Schema.String }));
 
 export const shutdownHost = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
+		const clock = yield* Clock.Clock;
 		const lifecycle: string[] = [];
 		const ready = Promise.withResolvers<void>();
 		const clientController = new AbortController();
@@ -17,7 +18,9 @@ export const shutdownHost = storyKit({
 			watch: () => Stream.make("ready").pipe(Stream.concat(Stream.never), Stream.ensuring(Effect.sync(() => lifecycle.push("stream finalized")))),
 		});
 		const runtime = ManagedRuntime.make(
-			appHost({ config: { disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 }, group: Watching, handlers, policy: "loopback" }),
+			appHost({ config: { disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 }, group: Watching, handlers, policy: "loopback" }).pipe(
+				Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
+			),
 		);
 		yield* Effect.addFinalizer(() =>
 			Effect.promise(async () => {
@@ -29,7 +32,7 @@ export const shutdownHost = storyKit({
 		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("The streaming host must listen on TCP");
 		}
-		return { clientController, lifecycle, ready, runtime, url: `http://127.0.0.1:${server.address.port}` };
+		return { clientController, clock, lifecycle, ready, runtime, url: `http://127.0.0.1:${server.address.port}` };
 	},
 	inspect: (state) => ({ lifecycle: state.lifecycle, url: state.url }),
 	name: "streaming host shutdown",
@@ -56,6 +59,7 @@ export const shutdownHost = storyKit({
 					RpcClient.make(Watching).pipe(
 						Effect.flatMap((rpc) => Stream.runForEach(rpc.watch(), () => Effect.sync(() => state.ready.resolve()))),
 						Effect.provide(protocol),
+						Effect.provideService(Clock.Clock, state.clock),
 						Effect.scoped,
 					),
 					{ signal: state.clientController.signal },

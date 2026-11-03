@@ -65,7 +65,6 @@ export function requests(state: HostState, tell: (line: string) => void) {
 			return io(async () => {
 				const response = await fetch(`${state.url}/health`, {
 					headers: { origin: "https://health-monitor.example" },
-					signal: AbortSignal.timeout(5000),
 				});
 				return { body: await response.text(), cacheControl: response.headers.get("cache-control"), status: response.status };
 			});
