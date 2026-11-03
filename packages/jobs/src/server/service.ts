@@ -7,7 +7,7 @@ import { clientEngine } from "#server/adapters/lifecycle.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements, ScheduleDefinition } from "#server/definition.ts";
-import type { EnqueueOptions } from "#server/enqueueOptions.ts";
+import type { QueueEnqueueOptions } from "#server/enqueueOptions.ts";
 import type {
 	PgBossClientOptionsError,
 	PgBossError,
@@ -38,7 +38,7 @@ export interface PgBossService {
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
 		queue: QueueDefinition<TName, TPayload> & TQueue,
 		payload: NoInfer<Schema.Schema.Type<TPayload>>,
-		options?: NoInfer<TQueue["key"] extends undefined ? EnqueueOptions : Omit<EnqueueOptions, "singletonKey"> & { readonly singletonKey?: never }>,
+		options?: NoInfer<QueueEnqueueOptions<TQueue>>,
 	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, TPayload["EncodingServices"]>;
 	readonly failedJobs: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },

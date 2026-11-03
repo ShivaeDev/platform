@@ -11,6 +11,7 @@ import type { Registration } from "#test/workers.ts";
 import { untilWork } from "#test/workers.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, controllerWorking, provided, runningIn, type StartOptions, startRuntime, until } from "./engine.ts";
+import { enqueuePayload } from "./enqueuePayload.ts";
 
 type Tell = (line: string) => void;
 
@@ -53,10 +54,7 @@ export function enqueueAs<const TPayload extends StoryPayload>(
 		const jobs = runningIn(engine, name).jobs;
 		const id = sameIdAs === undefined ? options.id : idOf(engine, sameIdAs).id;
 		const sendOptions = { ...options, ...(id === undefined ? {} : { id }) };
-		const sending =
-			singletonKey === undefined
-				? jobs.enqueue(queue, payload, sendOptions)
-				: jobs.enqueue({ ...queue, key: undefined }, payload, { ...sendOptions, singletonKey });
+		const sending = enqueuePayload(jobs, queue, payload, { ...sendOptions, ...(singletonKey === undefined ? {} : { singletonKey }) });
 		const send = Effect.map(Effect.zip(Clock.currentTimeMillis, sending), ([at, sent]) => {
 			if (Option.isSome(sent)) {
 				engine.enqueuedAt.set(as, at);

@@ -24,8 +24,15 @@ const metadata = webhookEvent(Payload, (payload, delivery) => {
 	return [webhookJob(issueQueue, payload, options)];
 });
 expectTypeOf<Effect.Services<ReturnType<typeof metadata.decode>>>().toEqualTypeOf<never>();
-const keyed = defineQueue({ key: ({ number }) => String(number), name: "keyed", queue: { policy: "singleton" }, schema: Payload });
+const keyed = defineQueue({ key: ["number"], name: "keyed", queue: { policy: "singleton" }, schema: Payload });
 webhookJob(keyed, { number: 42 }, { id: "chosen-id", priority: 1 });
+const identified = defineQueue({ id: ["number"], name: "identified", schema: Payload });
+webhookJob(identified, { number: 42 }, { priority: 1 });
+// @ts-expect-error The queue definition owns its deterministic id, as in jobs.enqueue.
+webhookJob(identified, { number: 42 }, { id: "override" });
+const conflicting: EnqueueOptions = { id: "override" };
+// @ts-expect-error Non-literal options cannot override a definition-owned id.
+webhookJob(identified, { number: 42 }, conflicting);
 // @ts-expect-error The queue definition owns its singleton key, as in jobs.enqueue.
 webhookJob(keyed, { number: 42 }, { singletonKey: "override" });
 // @ts-expect-error Enqueue options must not weaken the queue's payload type.

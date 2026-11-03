@@ -12,7 +12,7 @@ type PullRequestJob = typeof PullRequestJob.Type;
 
 export function singletonQueueOptions(queue?: Omit<Queue, "name" | "deadLetter" | "policy">) {
 	return {
-		key: ({ pullRequestId }: PullRequestJob) => `pr:${pullRequestId.toFixed(0)}`,
+		key: ["pullRequestId"],
 		name: "pull-request",
 		queue: { ...queue, policy: "singleton" },
 		schema: PullRequestJob,

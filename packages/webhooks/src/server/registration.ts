@@ -1,6 +1,6 @@
 import { type Config, Effect, type Option, type Redacted, Schema } from "effect";
 import type { JobPayloadSchema, QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
-import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
+import type { QueueEnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 import { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
@@ -19,7 +19,7 @@ export function webhookJob<
 >(
 	queue: QueueDefinition<TName, TPayload> & TQueue,
 	payload: NoInfer<Schema.Schema.Type<TPayload>>,
-	options?: NoInfer<TQueue["key"] extends undefined ? EnqueueOptions : Omit<EnqueueOptions, "singletonKey"> & { readonly singletonKey?: never }>,
+	options?: NoInfer<QueueEnqueueOptions<TQueue>>,
 ): WebhookJob<TPayload["EncodingServices"]> {
 	return { [enqueue]: Effect.flatMap(WebhookEnqueue, (jobs) => jobs.enqueue(queue, payload, options)) };
 }

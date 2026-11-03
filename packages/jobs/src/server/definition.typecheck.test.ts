@@ -11,11 +11,7 @@ import { PullRequestJob } from "#test/singletonQueueOptions.ts";
 expectTypeOf<QueuePolicy>().toEqualTypeOf<"standard" | "short" | "singleton" | "stately" | "exclusive" | "key_strict_fifo">();
 
 const Queue = defineQueue({
-	key: (payload) => {
-		expectTypeOf(payload.pullRequestId).toEqualTypeOf<number>();
-		expectTypeOf(payload._tag).toEqualTypeOf<"Refresh" | "Reconcile">();
-		return `pr:${payload.pullRequestId.toFixed(0)}`;
-	},
+	key: ["pullRequestId"],
 	name: "pull-request",
 	queue: { policy: "singleton" },
 	schema: PullRequestJob,
@@ -48,8 +44,12 @@ void program;
 defineQueue({ name: "missing-key", queue: { policy: "singleton" }, schema: PullRequestJob });
 // @ts-expect-error Queue policies reject typos.
 defineQueue({ name: "typo", queue: { policy: "singelton" }, schema: PullRequestJob });
-// @ts-expect-error The key must return a string.
-defineQueue({ key: () => 42, name: "numeric-key", queue: { policy: "singleton" }, schema: PullRequestJob });
+// @ts-expect-error Keys name payload parts instead of using callbacks.
+defineQueue({ key: () => "entity", name: "callback-key", queue: { policy: "singleton" }, schema: PullRequestJob });
+// @ts-expect-error A singleton part must exist in every payload variant.
+defineQueue({ key: ["missing"], name: "unknown-key", queue: { policy: "singleton" }, schema: PullRequestJob });
+// @ts-expect-error An id part must exist in the payload schema.
+defineQueue({ id: ["missing"], name: "unknown-id", schema: PullRequestJob });
 
 class Handler extends Context.Service<Handler, number>()("@shivaedev/jobs/test/RegistrationHandler") {}
 class Decoder extends Context.Service<Decoder, number>()("@shivaedev/jobs/test/RegistrationDecoder") {}
@@ -107,3 +107,34 @@ RegistrationJobs.layer({ jobs: [{ _tag: "ScheduledWorker", schedule: Schedule }]
 RegistrationJobs.layer({ jobs: [{ _tag: "ScheduledWorker", effect: Effect.void }] });
 // @ts-expect-error A schedule needs an effect before it can be registered.
 RegistrationJobs.layer({ jobs: [Schedule] });
+
+const Payload = Schema.Struct({ kind: Schema.String, revision: Schema.NumberFromString, tenant: Schema.String });
+const Identified = defineQueue({ id: ["tenant", "revision"], name: "identified", schema: Payload });
+const Both = defineQueue({ id: ["tenant", "revision"], key: ["tenant"], name: "both", queue: { policy: "singleton" }, schema: Payload });
+const IdentityJobs = makePgBoss("@test/IdentityJobs");
+const payload = { kind: "refresh", revision: 42, tenant: "alice" };
+
+const identityProgram = Effect.gen(function* () {
+	const jobs = yield* IdentityJobs;
+	yield* jobs.enqueue(Identified, payload, { priority: 1, singletonKey: "manual" });
+	yield* jobs.enqueue(Both, payload, { priority: 1 });
+	// @ts-expect-error The queue owns its deterministic id.
+	yield* jobs.enqueue(Identified, payload, { id: "override" });
+	// @ts-expect-error An id cannot be overridden when the queue also owns its singleton key.
+	yield* jobs.enqueue(Both, payload, { id: "override" });
+	// @ts-expect-error The queue owns its singleton key.
+	yield* jobs.enqueue(Both, payload, { singletonKey: "override" });
+	const options: EnqueueOptions = { id: "override", singletonKey: "override" };
+	// @ts-expect-error A non-literal options object cannot override either identity.
+	yield* jobs.enqueue(Both, payload, options);
+});
+void identityProgram;
+
+// @ts-expect-error Parts name fields in the decoded schema, without widening it.
+defineQueue({ id: ["missing"], name: "missing", schema: Payload });
+// @ts-expect-error Singleton parts name fields in the decoded schema.
+defineQueue({ key: ["missing"], name: "missing", queue: { policy: "singleton" }, schema: Payload });
+// @ts-expect-error Nested values are not scalar identity parts.
+defineQueue({ id: ["nested"], name: "nested", schema: Schema.Struct({ nested: Schema.Struct({ id: Schema.String }) }) });
+// @ts-expect-error Optional fields are not scalar identity parts.
+defineQueue({ id: ["optional"], name: "optional", schema: Schema.Struct({ optional: Schema.optional(Schema.String) }) });

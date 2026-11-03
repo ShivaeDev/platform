@@ -260,18 +260,36 @@ const PullRequestJobs = defineQueue({
 		Schema.TaggedStruct("Reconcile", { pullRequestId: Schema.NumberFromString }),
 	]),
 	queue: { policy: "singleton" },
-	key: ({ pullRequestId }) => `pr:${pullRequestId.toFixed(0)}`,
+	key: ["pullRequestId"],
 	worker: { batchSize: 1, localConcurrency: 3 },
 });
 
 const refresh = Effect.flatMap(Jobs, (jobs) => jobs.enqueue(PullRequestJobs, { _tag: "Refresh", pullRequestId: 42 }));
 ```
 
-`queue.policy` accepts pg-boss's policy literals and rejects typos. The `singleton` policy requires `key: (payload) => string`. The callback sees the decoded payload, so `pullRequestId` is a number. `enqueue` supplies pg-boss's `singletonKey` automatically; callers cannot supply a conflicting key in send options.
+`queue.policy` accepts pg-boss's policy literals and rejects typos. The `singleton` policy requires `key: ["field", ...]`. Each part names a required scalar field in the decoded payload schema, so `pullRequestId` contributes its numeric value. `enqueue` supplies pg-boss's `singletonKey` automatically; callers cannot supply a conflicting key in send options.
 
 PostgreSQL guarantees one active job per key across workers, including different job kinds in this queue. Different keys can run in parallel when workers have capacity. A job waiting to retry frees its key for another job; exhausting retries sends it to the dead-letter queue and leaves the key available.
 
 Singleton guarantees one active job per key, not order. Ordering stays the application's job. Keep handlers idempotent and write state only when the source is newer than what is stored, so an older event or retry cannot overwrite newer state.
+
+### Deterministic job IDs
+
+Declare the payload fields that identify a job:
+
+```ts
+const Revisions = defineQueue({
+	name: "revisions",
+	schema: Schema.Struct({ tenant: Schema.String, revision: Schema.NumberFromString, note: Schema.String }),
+	id: ["tenant", "revision"],
+	key: ["tenant"],
+	queue: { policy: "singleton" },
+});
+```
+
+`id` derives a deterministic UUID from the queue name and its ordered payload parts. Enqueuing the same parts again returns `None` while pg-boss retains that job, even if other fields change. Different queue names have separate identities. Here, different revisions create separate jobs while sharing the tenant's singleton key. Callers cannot pass an `id` or `singletonKey` that the queue owns.
+
+Both declarations accept fields whose decoded values are strings, numbers, booleans or null. Parts preserve value types and field boundaries, including separators in strings. An empty list gives every payload the same identity within the queue. Omit `id` to keep pg-boss's generated IDs or caller-supplied IDs. Identity is separate from tracing metadata.
 
 ### Size batches against expiry
 
@@ -594,26 +612,26 @@ yield* testing.untilJob(SendEmail, id, "completed", { within: "5 seconds" });
 
 Import the module that defines the name; the package has no root entry.
 
-| Module                                                    | Public names                                                                                                                                                                                                                                      |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/jobs/display.ts`                              | `QueueDisplay`, `SubjectColumn`                                                                                                                                                                                                                   |
-| `@shivaedev/jobs/server/definition.ts`                    | `defineQueue`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
-| `@shivaedev/jobs/server/service.ts`                       | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                           |
-| `@shivaedev/jobs/server/PgBoss.ts`                        | `PgBoss`: the shared client Context service.                                                                                                                                                                                                      |
-| `@shivaedev/jobs/server/schema.ts`                        | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                      |
-| `@shivaedev/jobs/server/health.ts`                        | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                    |
-| `@shivaedev/jobs/server/error.ts`                         | `PgBossError`, `PgBossNotFoundError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `PgBossWaitError`, `toPgBossError`; `PgBossOperation`                           |
-| `@shivaedev/jobs/server/queueOptions.ts`                  | `QueueOptions`, `QueuePolicy`, `RetryOptions`                                                                                                                                                                                                     |
-| `@shivaedev/jobs/server/workerOptions.ts`                 | `WorkerOptions`, `GroupConcurrencyConfig`                                                                                                                                                                                                         |
-| `@shivaedev/jobs/server/enqueueOptions.ts`                | `EnqueueOptions`, `ScheduleOptions`                                                                                                                                                                                                               |
-| `@shivaedev/jobs/server/job.ts`                           | `Job`, `JobState`, `WorkerJob`                                                                                                                                                                                                                    |
-| `@shivaedev/jobs/server/clientOptions.ts`                 | `ClientOptions`, `StopOptions`, `Clock`, `ReindexOptions`, `IndexBloatOptions`                                                                                                                                                                    |
-| `@shivaedev/jobs/server/ClientDatabase.ts`                | `ClientDatabase`                                                                                                                                                                                                                                  |
-| `@shivaedev/jobs/server/engineClient.ts`                  | `EngineClient`, `EngineSchedule`                                                                                                                                                                                                                  |
-| `@shivaedev/jobs/server/client.ts`                        | `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                             |
-| `@shivaedev/jobs/server/testing.ts`                       | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `PgBossTestingWaitOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                     |
-| `@shivaedev/jobs/server/defineSchedule.ts`                | `defineSchedule`                                                                                                                                                                                                                                  |
-| `@shivaedev/jobs/server/adapters/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                            |
+| Module                                                    | Public names                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/jobs/display.ts`                              | `QueueDisplay`, `SubjectColumn`                                                                                                                                                                                                                                   |
+| `@shivaedev/jobs/server/definition.ts`                    | `defineQueue`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `PayloadParts`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/jobs/server/service.ts`                       | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                                           |
+| `@shivaedev/jobs/server/PgBoss.ts`                        | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                      |
+| `@shivaedev/jobs/server/schema.ts`                        | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                      |
+| `@shivaedev/jobs/server/health.ts`                        | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                    |
+| `@shivaedev/jobs/server/error.ts`                         | `PgBossError`, `PgBossNotFoundError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `PgBossWaitError`, `toPgBossError`; `PgBossOperation`                                           |
+| `@shivaedev/jobs/server/queueOptions.ts`                  | `QueueOptions`, `QueuePolicy`, `RetryOptions`                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/workerOptions.ts`                 | `WorkerOptions`, `GroupConcurrencyConfig`                                                                                                                                                                                                                         |
+| `@shivaedev/jobs/server/enqueueOptions.ts`                | `EnqueueOptions`, `QueueEnqueueOptions`, `ScheduleOptions`                                                                                                                                                                                                        |
+| `@shivaedev/jobs/server/job.ts`                           | `Job`, `JobState`, `WorkerJob`                                                                                                                                                                                                                                    |
+| `@shivaedev/jobs/server/clientOptions.ts`                 | `ClientOptions`, `StopOptions`, `Clock`, `ReindexOptions`, `IndexBloatOptions`                                                                                                                                                                                    |
+| `@shivaedev/jobs/server/ClientDatabase.ts`                | `ClientDatabase`                                                                                                                                                                                                                                                  |
+| `@shivaedev/jobs/server/engineClient.ts`                  | `EngineClient`, `EngineSchedule`                                                                                                                                                                                                                                  |
+| `@shivaedev/jobs/server/client.ts`                        | `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                             |
+| `@shivaedev/jobs/server/testing.ts`                       | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `PgBossTestingWaitOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                     |
+| `@shivaedev/jobs/server/defineSchedule.ts`                | `defineSchedule`                                                                                                                                                                                                                                                  |
+| `@shivaedev/jobs/server/adapters/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                                            |
 
 Jobs declares its public types independently of pg-boss. The option fields keep their familiar names: `queue` uses `QueueOptions`, including literal `QueuePolicy` values and `maxDeferrals`; `worker` uses `WorkerOptions`; a schedule's `schedule` uses `ScheduleOptions`; enqueueing uses `EnqueueOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
