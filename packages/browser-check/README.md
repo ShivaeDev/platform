@@ -28,18 +28,10 @@ To sign in as an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHEC
 pnpm browser-check --page /admin --text "Users"
 ```
 
-## Check the starter's live notes
+## Application scenarios
 
-With the starter running, use an existing disposable account:
+Compose application checks with the `Browser` service from `@shivaedev/browser-check/Browser.ts` and provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts`. Open a scoped session, sign in through its HTTP endpoint when needed, and create pages with `session.newPage`. Pages support visits, text checks, screenshots, labelled fields, role locators, navigation counts and WebSocket waits. Each page shares the session's cookies. Scenario code owns application selectors and wire formats.
 
-```sh
-export BROWSER_CHECK_EMAIL=browser@example.com
-export BROWSER_CHECK_PASSWORD=your-test-password
-pnpm browser-check --live-notes
-```
-
-This mode uses the starter's notes UI at `/`. Two Chromium tabs share the signed-in session cookies. It creates a uniquely named note in the first tab and requires a `Changed` hint and a `notes.list` reread on the second tab's `/rpc` WebSocket, plus the rendered note without navigation. It then signs out in the first tab and requires the second tab's original RPC socket to close, its private note to disappear and its sign-in prompt to appear. The first tab must reach the sign-in screen. A failed check exits unsuccessfully.
-
-Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The check leaves its note in the disposable account and revokes the check's session. `--url` also works against the built starter served by `pnpm start`. This smoke check covers Chromium with awake tabs; it does not prove tab sleep, other browsers or deployment infrastructure.
+The starter keeps its two-tab notes check in the application. See its [local browser check](https://github.com/ShivaeDev/platform/tree/main/examples/starter#look-at-the-running-app).
 
 End-to-end browser tests do not belong in an app's CI: they cost CI minutes on private repositories. Prove behavior with stories. Browser check is for looking at the app locally; keep it out of CI and `pnpm ready`/`ci`.

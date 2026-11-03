@@ -18,7 +18,7 @@ application.it(
 		yield* createApp("my-app", "--minimal", "--no-git");
 
 		yield* outcomes([
-			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/"]],
+			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/", "tooling/notes/"]],
 			["only in the minimal app", () => filesMissingFrom("full/my-app"), []],
 			[
 				"different files",

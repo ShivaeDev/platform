@@ -10,6 +10,7 @@
 		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin/run.ts",
 		"baseline": "quality baseline",
 		"browser-check": "browser-check",
+		"browser-check:live-notes": "node --conditions=source --env-file-if-exists=.env.local tooling/notes/browser-check/run.ts",
 		"build": "vite build",
 		"check:published": "env -u NODE_OPTIONS node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"ci": "quality ci",

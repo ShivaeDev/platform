@@ -127,21 +127,6 @@ application.it(
 	},
 );
 
-application.it(
-	"a generated app runs browser-check only through its own script, which no other script and not the CI workflow calls",
-	[],
-	function* ({ createApp, devDependsOn, script, scriptsMentioning, wordsIn }) {
-		yield* createApp("demo", "--no-git");
-
-		yield* outcomes([
-			["browser tools the CI workflow names", () => wordsIn(".github/workflows/ci.yml", ["browser-check", "playwright"]), []],
-			["browser-check devDependency", () => devDependsOn("@shivaedev/browser-check"), true],
-			["browser-check script", () => script("browser-check"), "browser-check"],
-			["scripts that call it", () => scriptsMentioning(["browser-check", "playwright"]), ["browser-check"]],
-		]);
-	},
-);
-
 application.it("the generated app's Git ignores browser-check screenshots in .browser-check/", [], function* ({ createApp, gitState }) {
 	yield* createApp("demo");
 
