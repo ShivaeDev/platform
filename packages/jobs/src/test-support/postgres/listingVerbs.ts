@@ -1,5 +1,5 @@
 import { DateTime, Effect, Option, type Schema } from "effect";
-import type { DeadLetteredJob, JobPage, ListedJob } from "#health.ts";
+import type { DeadLetteredJob, JobPage, ListedJob } from "#server/health.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { errorOf, labelOf, provided, runningIn } from "./engine.ts";
 

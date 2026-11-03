@@ -1,5 +1,5 @@
-import { describeValue } from "#internal/render.ts";
-import { explained } from "#internal/wrap.ts";
+import { describeValue } from "#server/internal/render.ts";
+import { explained } from "#server/internal/wrap.ts";
 
 export function unrouted(hostname: string): Error {
 	return new Error(

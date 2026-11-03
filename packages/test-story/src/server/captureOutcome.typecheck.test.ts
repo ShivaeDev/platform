@@ -1,6 +1,6 @@
 import { expectTypeOf, it } from "@effect/vitest";
 import { Context, Data, Effect } from "effect";
-import { captureOutcome } from "#captureOutcome.ts";
+import { captureOutcome } from "#server/captureOutcome.ts";
 
 class Reader extends Context.Service<Reader, number>()("capture/Reader") {}
 class Denied extends Data.TaggedError("Denied")<{ readonly reason: string }> {}

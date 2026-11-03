@@ -2,7 +2,7 @@ import { Clock, Duration, Effect, Stream } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { storyDatabase } from "#storyDatabase.ts";
+import { storyDatabase } from "#server/storyDatabase.ts";
 import { configured, setup, values } from "./postgres.ts";
 
 export const cloneClock = storyKit({

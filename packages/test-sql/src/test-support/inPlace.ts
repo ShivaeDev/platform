@@ -1,5 +1,5 @@
 import { Effect, type Scope } from "effect";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import type { Services } from "./databaseBlocks.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 

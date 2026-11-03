@@ -2,9 +2,9 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as Scope from "effect/Scope";
-import { domFetch } from "#domFetch.ts";
-import { memberFetch } from "#internal/adapters/memberFetch.ts";
-import { type DomCookie, seedCookies } from "#seedCookies.ts";
+import { domFetch } from "#server/domFetch.ts";
+import { memberFetch } from "#server/internal/adapters/memberFetch.ts";
+import { type DomCookie, seedCookies } from "#server/seedCookies.ts";
 
 export interface MemberScreen {
 	readonly fetch: typeof globalThis.fetch;
@@ -22,7 +22,7 @@ export function memberScreens<E, R, TVerbs>(options: {
 	return {
 		open: Effect.fnUntraced(function* (name: string, cookies: readonly DomCookie[]) {
 			const [{ GlobalWindow }, registryModule, { documentTransport }] = yield* Effect.promise(() =>
-				Promise.all([import("happy-dom"), import("effect/reactivity/AtomRegistry"), import("#internal/documentTransport.ts")]),
+				Promise.all([import("happy-dom"), import("effect/reactivity/AtomRegistry"), import("#server/internal/documentTransport.ts")]),
 			);
 			const browser = yield* Effect.acquireRelease(
 				Effect.sync(() => new GlobalWindow({ url: options.baseUrl })),

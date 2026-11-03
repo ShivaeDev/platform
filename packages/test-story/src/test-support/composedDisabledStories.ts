@@ -1,4 +1,4 @@
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { conditionalKit } from "./conditionalKit.ts";
 import { mill } from "./mill.ts";
 

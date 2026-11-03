@@ -1,8 +1,8 @@
 import { Schema } from "effect";
 import type { Job } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
-import { STATELY_DEFERRAL_POLICY } from "#internal/deferral.ts";
-import { quotedSchema } from "#internal/storedRows.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { STATELY_DEFERRAL_POLICY } from "#server/internal/deferral.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
 
 const Settlement = Schema.Struct({ claimed: Schema.Boolean, deferred: Schema.Boolean });
 

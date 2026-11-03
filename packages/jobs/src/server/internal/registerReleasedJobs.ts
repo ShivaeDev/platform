@@ -1,10 +1,10 @@
 import { type Context, Effect, Option, Scope } from "effect";
 import type { StopOptions } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
-import { retireJobs } from "#adapters/retireJobs.ts";
-import type { PgBossClient } from "#client.ts";
-import type { JobRegistration } from "#definition.ts";
-import { toPgBossError } from "#error.ts";
+import { retireJobs } from "#server/adapters/retireJobs.ts";
+import type { PgBossClient } from "#server/client.ts";
+import type { JobRegistration } from "#server/definition.ts";
+import { toPgBossError } from "#server/error.ts";
 import { registerJobs, registrationName } from "./register.ts";
 
 export const registerReleasedJobs = Effect.fnUntraced(function* <R>(

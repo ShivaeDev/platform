@@ -1,8 +1,8 @@
 import { Clock, Effect, Schema } from "effect";
 import type { PgBoss } from "pg-boss";
-import type { PgBossTestingError } from "#error.ts";
-import { quotedSchema } from "#internal/storedRows.ts";
-import { testingOperation } from "#internal/testingReadout.ts";
+import type { PgBossTestingError } from "#server/error.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
+import { testingOperation } from "#server/internal/testingReadout.ts";
 
 export interface TestingBatch {
 	readonly name: string;

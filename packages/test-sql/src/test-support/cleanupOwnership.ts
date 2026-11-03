@@ -3,7 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Effect, Scope } from "effect";
-import { databaseId } from "#internal/databaseOwner.ts";
+import { databaseId } from "#server/internal/databaseOwner.ts";
 import { cleanup } from "./cleanup.ts";
 import { dropOnStoryEnd } from "./cleanupVerbs.ts";
 import { limitedRole } from "./limitedRole.ts";

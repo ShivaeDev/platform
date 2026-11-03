@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { routeOutbound } from "#routeOutbound.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { routeOutbound } from "#server/routeOutbound.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 import { pendingScreen } from "./pendingScreen.ts";
 

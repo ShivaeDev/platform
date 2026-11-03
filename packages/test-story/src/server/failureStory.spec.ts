@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { guide, LARGE_BAKERY, report, rerun, STORIES } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 

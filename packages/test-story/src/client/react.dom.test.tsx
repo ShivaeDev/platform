@@ -1,5 +1,5 @@
 import { afterAll, expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { isolatedMounts, pendingResultScreen, testing, warningRestoration } from "#test/reactRendering.ts";
 
 afterAll(() => {

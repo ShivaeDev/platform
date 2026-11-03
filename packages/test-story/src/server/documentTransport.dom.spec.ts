@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { documentApp } from "#test/documentApp.ts";
 
 documentApp.it("keeps the seeded HttpOnly session out of document.cookie", [], function* ({ seedsSession, storesPreference, documentCookies }) {

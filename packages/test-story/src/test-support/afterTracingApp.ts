@@ -1,6 +1,6 @@
 import { Effect, Layer, type Tracer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 import { Recording, recording, spanReadouts, tracedAsTheStory } from "#test/spanRecording.ts";
 

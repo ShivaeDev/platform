@@ -2,8 +2,8 @@ import { type Cause, Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import type { ClientActivityState } from "@shivaedev/contract/clientActivity.ts";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 expectNoReactWarnings();
 

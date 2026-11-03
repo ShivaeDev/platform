@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ConstructorOptions } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
-import { PgBossClientOptionsError } from "#error.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { PgBossClientOptionsError } from "#server/error.ts";
 
 interface CachedClient {
 	readonly client: Promise<PgBossClient>;

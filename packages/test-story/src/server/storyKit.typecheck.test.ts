@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { type Story, type StoryKit, type StoryTest, storyKit, type Trait } from "#storyKit.ts";
+import { type Story, type StoryKit, type StoryTest, storyKit, type Trait } from "#server/storyKit.ts";
 
 class Library extends Context.Service<Library, { readonly lend: Effect.Effect<void, Overdue> }>()("@types/Library") {}
 

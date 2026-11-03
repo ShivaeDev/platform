@@ -2,7 +2,7 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import { Effect } from "effect";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { noteLifetime } from "./lifetimeLog.ts";
 
 const hostFetch = fetch;

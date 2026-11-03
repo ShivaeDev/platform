@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { atLeast, atMost, greaterThan, lessThan } from "#adapters/outcomeMatchers.ts";
-import { outcomes } from "#outcomes.ts";
+import { atLeast, atMost, greaterThan, lessThan } from "#server/adapters/outcomeMatchers.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { outcomeTable } from "#test/outcomeTable.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 

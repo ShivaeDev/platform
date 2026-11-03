@@ -1,6 +1,6 @@
 import { DateTime } from "effect";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { clockApp } from "#test/clockApp.ts";
 
 const pinned = { clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") };

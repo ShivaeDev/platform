@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const scoped = storyKit({
 	after: {

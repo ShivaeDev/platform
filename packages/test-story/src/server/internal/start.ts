@@ -3,11 +3,11 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Tracer from "effect/Tracer";
 import type { TestContext } from "vitest";
-import { callSite } from "#internal/callSite.ts";
-import { hooked } from "#internal/hooked.ts";
-import { narrate, narrateCreation } from "#internal/narration.ts";
-import { runUntil } from "#internal/runUntil.ts";
-import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#internal/seed.ts";
+import { callSite } from "#server/internal/callSite.ts";
+import { hooked } from "#server/internal/hooked.ts";
+import { narrate, narrateCreation } from "#server/internal/narration.ts";
+import { runUntil } from "#server/internal/runUntil.ts";
+import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#server/internal/seed.ts";
 
 export const start = Effect.fnUntraced(function* (
 	definition: LooseDefinition,

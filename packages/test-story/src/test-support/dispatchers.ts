@@ -1,6 +1,6 @@
 import { Effect, Exit, Scope } from "effect";
-import { routeOutbound } from "#routeOutbound.ts";
-import { storyKit } from "#storyKit.ts";
+import { routeOutbound } from "#server/routeOutbound.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const hostFetch = fetch;
 

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { OtlpExport, OtlpReceiverOptions, OtlpSpan } from "#otlpReceiver.ts";
+import type { OtlpExport, OtlpReceiverOptions, OtlpSpan } from "#server/otlpReceiver.ts";
 
 export async function receiveOtlp(
 	request: IncomingMessage,
@@ -25,7 +25,7 @@ export async function receiveOtlp(
 			response.writeHead(HttpStatus.fromLiteral("UnsupportedMediaType")).end();
 			return;
 		}
-		const { otlpReadout } = await import("#internal/otlpReadout.ts");
+		const { otlpReadout } = await import("#server/internal/otlpReadout.ts");
 		for (const span of otlpReadout(body, contentType)) {
 			record(span);
 		}

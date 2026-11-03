@@ -1,7 +1,7 @@
 import { Redacted, Schema } from "effect";
 import { RemoteHttpError } from "@shivaedev/http/errors.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { ProviderRejected } from "#test/ProviderRejected.ts";
 import { database } from "#test/postgres/database.ts";
 import { enqueued, running } from "#test/postgres/traits.ts";

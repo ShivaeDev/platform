@@ -1,5 +1,5 @@
-import { atLeast, atMost, greaterThan, lessThan } from "#adapters/outcomeMatchers.ts";
-import { outcomes } from "#outcomes.ts";
+import { atLeast, atMost, greaterThan, lessThan } from "#server/adapters/outcomeMatchers.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { outcomeTable } from "./outcomeTable.ts";
 
 outcomeTable.it("one wrong row", [], function* ({ next }) {

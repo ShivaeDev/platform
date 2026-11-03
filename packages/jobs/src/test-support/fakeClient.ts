@@ -16,7 +16,7 @@ import type {
 	UpdateResponse,
 	WorkOptions,
 } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
+import type { PgBossClient } from "#server/client.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { queueResult } from "#test/runtime/queueResult.ts";
 

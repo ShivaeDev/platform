@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { makePostgresTestLayer } from "#postgres.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
 import { adminUrl } from "./postgres.ts";
 
 export const migrations = {

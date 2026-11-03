@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
-import { genreTags } from "#genreTags.ts";
+import { genreTags } from "#server/genreTags.ts";
 
 const test = testProjects();
 for (const project of test.projects ?? []) {

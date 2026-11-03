@@ -1,10 +1,10 @@
-import type { PgBossClient } from "#client.ts";
-import { countsFor } from "#internal/countsFor.ts";
-import { enqueueFor } from "#internal/enqueueFor.ts";
-import { healthFor } from "#internal/healthFor.ts";
-import { getJobFor, retryFor } from "#internal/jobControl.ts";
-import { deadLetteredJobsFor, failedJobsFor } from "#internal/listJobs.ts";
-import type { PgBossService } from "#service.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { countsFor } from "#server/internal/countsFor.ts";
+import { enqueueFor } from "#server/internal/enqueueFor.ts";
+import { healthFor } from "#server/internal/healthFor.ts";
+import { getJobFor, retryFor } from "#server/internal/jobControl.ts";
+import { deadLetteredJobsFor, failedJobsFor } from "#server/internal/listJobs.ts";
+import type { PgBossService } from "#server/service.ts";
 
 export function makeService(client: PgBossClient, names: readonly string[], schema = "pgboss"): PgBossService {
 	return {

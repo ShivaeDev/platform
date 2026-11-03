@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import type { JobWithMetadata } from "pg-boss";
-import type { QueueDefinition } from "#definition.ts";
-import { deadLetterQueueName } from "#health.ts";
+import type { QueueDefinition } from "#server/definition.ts";
+import { deadLetterQueueName } from "#server/health.ts";
 import { spanTree } from "#test/spanTree.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, anyRuntime, errorOf, labelOf, runningIn } from "./engine.ts";

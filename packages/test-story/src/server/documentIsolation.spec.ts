@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 const DOM = { environment: fileURLToPath(new URL("./domEnvironment.config.ts", import.meta.url)) };

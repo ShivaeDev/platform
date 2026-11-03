@@ -1,11 +1,11 @@
 import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
-import type { PgBossClient } from "#client.ts";
-import { PgBossPayloadError, toPgBossError } from "#error.ts";
-import { deferralOf } from "#internal/deferral.ts";
-import { decodeStoredData } from "#internal/storedRows.ts";
 import { JobFailure } from "#JobFailure.ts";
-import type { PgBossService } from "#service.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { PgBossPayloadError, toPgBossError } from "#server/error.ts";
+import { deferralOf } from "#server/internal/deferral.ts";
+import { decodeStoredData } from "#server/internal/storedRows.ts";
+import type { PgBossService } from "#server/service.ts";
 
 const StoredFailure = Schema.Union([JobFailure, Schema.Struct({ value: JobFailure })]);
 

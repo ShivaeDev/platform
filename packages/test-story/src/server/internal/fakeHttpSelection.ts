@@ -1,4 +1,4 @@
-import type { FakeHttpRequest, FakeHttpScope } from "#fakeHttpService.ts";
+import type { FakeHttpRequest, FakeHttpScope } from "#server/fakeHttpService.ts";
 
 export function fakeHttpSelection(route: string, scope: FakeHttpScope = {}) {
 	const params = Object.entries(scope.params ?? {}).sort(([left], [right]) => left.localeCompare(right));

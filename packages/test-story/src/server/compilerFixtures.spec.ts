@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { compilerStory } from "#test/compilerStory.ts";
 
 const COMPILER_TIMEOUT = 60_000;

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { openDisconnectProxy } from "#adapters/openDisconnectProxy.ts";
+import { openDisconnectProxy } from "#server/adapters/openDisconnectProxy.ts";
 
 export interface DisconnectProxyOptions {
 	readonly dropNotifications?: boolean;

@@ -1,8 +1,8 @@
 import { Effect, Schedule } from "effect";
 import type { Queue } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
-import { PgBossQueueOptionsError } from "#error.ts";
-import { deadLetterQueueName } from "#health.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { PgBossQueueOptionsError } from "#server/error.ts";
+import { deadLetterQueueName } from "#server/health.ts";
 
 const DEADLOCK_DETECTED = "40P01";
 const CREATE_QUEUE_ATTEMPTS = 6;

@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { existingQueue, running, runtime } from "#test/runtime/kit.ts";
 import { queueResult } from "#test/runtime/queueResult.ts";
 import { worker } from "#test/workers.ts";

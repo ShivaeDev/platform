@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect, it } from "vitest";
-import { clientConnection } from "#clientConnection.ts";
+import { clientConnection } from "#server/clientConnection.ts";
 
 for (const password of ["bad%", "bad%GG", "bad%C3%28"]) {
 	it(`refuses malformed password escape ${password}`, () => {

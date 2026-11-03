@@ -1,7 +1,7 @@
 import { isInaccessible } from "dom-accessibility-api";
-import { accessibility, isRendered, targetName } from "#internal/screenAccessibility.ts";
-import { screenText } from "#internal/screenText.ts";
-import type { ScreenTarget } from "#screenDriver.ts";
+import { accessibility, isRendered, targetName } from "#server/internal/screenAccessibility.ts";
+import { screenText } from "#server/internal/screenText.ts";
+import type { ScreenTarget } from "#server/screenDriver.ts";
 import { screenDialogs } from "./screenDialogs.ts";
 
 function matchesText(value: string, expected: string | RegExp) {

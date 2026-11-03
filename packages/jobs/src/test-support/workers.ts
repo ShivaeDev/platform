@@ -1,7 +1,7 @@
 import { Clock, Context, Data, DateTime, Deferred, Duration, Effect } from "effect";
-import type { JobContext, JobPayloadSchema, JobRegistration, QueueDefinition, ScheduleDefinition } from "#definition.ts";
-import { RetryAt } from "#definition.ts";
-import { makePgBoss, type PgBossService } from "#service.ts";
+import type { JobContext, JobPayloadSchema, JobRegistration, QueueDefinition, ScheduleDefinition } from "#server/definition.ts";
+import { RetryAt } from "#server/definition.ts";
+import { makePgBoss, type PgBossService } from "#server/service.ts";
 
 export const Jobs = makePgBoss("@test/Jobs");
 

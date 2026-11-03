@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { pageRequests } from "#test/pageRequests.tsx";
 
 pageRequests.it("an uncaught page action reaches the host's browser error route", [], function* ({ click, settle, reports }) {

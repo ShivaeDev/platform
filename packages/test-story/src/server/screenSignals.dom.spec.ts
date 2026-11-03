@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
-import type { ScreenDriver } from "#screenDriver.ts";
+import { outcomes } from "#server/outcomes.ts";
+import type { ScreenDriver } from "#server/screenDriver.ts";
 import { refusal } from "#test/attempt.ts";
 import { screenApp, styledText } from "#test/screenApp.ts";
 

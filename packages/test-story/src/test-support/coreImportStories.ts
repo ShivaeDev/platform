@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const counter = storyKit({
 	create: () => ({ count: 0 }),

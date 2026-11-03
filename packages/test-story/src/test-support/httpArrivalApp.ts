@@ -1,7 +1,7 @@
 import { type Duration, Effect, Fiber } from "effect";
-import { type FakeHttpRequestRecord, fakeHttpService } from "#fakeHttpService.ts";
-import { storyKit } from "#storyKit.ts";
-import { type SignalNotReceived, until } from "#until.ts";
+import { type FakeHttpRequestRecord, fakeHttpService } from "#server/fakeHttpService.ts";
+import { storyKit } from "#server/storyKit.ts";
+import { type SignalNotReceived, until } from "#server/until.ts";
 import { httpClient } from "./httpClient.ts";
 
 export const httpArrivalApp = storyKit({

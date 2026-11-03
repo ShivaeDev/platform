@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import type { ScreenDriverOptions } from "#screenDriver.ts";
+import type { ScreenDriverOptions } from "#server/screenDriver.ts";
 
 export function screenAct<E>(act: NonNullable<ScreenDriverOptions["act"]>, action: Effect.Effect<void, E>) {
 	return Effect.callback<void, E>((resume, signal) => {

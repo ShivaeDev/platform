@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { deadlock } from "#test/runtime/deadlock.ts";
 import { existingQueue, queueCreationFails, runtime, stopped } from "#test/runtime/kit.ts";
 import { queueResult } from "#test/runtime/queueResult.ts";

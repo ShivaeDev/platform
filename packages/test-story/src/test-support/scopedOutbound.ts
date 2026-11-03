@@ -1,7 +1,7 @@
 import { Effect, Exit, Scope } from "effect";
-import { fakeHttpService } from "#fakeHttpService.ts";
-import { routeOutbound } from "#routeOutbound.ts";
-import { storyKit } from "#storyKit.ts";
+import { fakeHttpService } from "#server/fakeHttpService.ts";
+import { routeOutbound } from "#server/routeOutbound.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 type Provider = "first" | "second";
 

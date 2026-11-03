@@ -1,4 +1,4 @@
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { assetDocument } from "#test/assetDocument.ts";
 
 assetDocument.it(

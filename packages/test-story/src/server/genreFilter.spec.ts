@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { genreTags } from "#genreTags.ts";
+import { genreTags } from "#server/genreTags.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 storyRunner.it("names every story after its kit's genre and tags none when the config declares no genre", [], function* ({ results, run }) {

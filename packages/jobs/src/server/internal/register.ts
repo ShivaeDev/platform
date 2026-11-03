@@ -1,13 +1,13 @@
 import { type Context, Effect, Scope } from "effect";
 import type { StopOptions } from "pg-boss";
-import { registerWorker } from "#adapters/registerWorker.ts";
-import { workerDiagnostics } from "#adapters/workerDiagnostics.ts";
-import type { PgBossClient } from "#client.ts";
-import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
-import { PgBossQueueOptionsError, toPgBossError } from "#error.ts";
-import { ensureQueue } from "#internal/ensureQueue.ts";
-import { runQueueWorker } from "#internal/runQueueWorker.ts";
-import { registerTestingQueue } from "#internal/testingRegistrations.ts";
+import { registerWorker } from "#server/adapters/registerWorker.ts";
+import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
+import type { PgBossClient } from "#server/client.ts";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#server/definition.ts";
+import { PgBossQueueOptionsError, toPgBossError } from "#server/error.ts";
+import { ensureQueue } from "#server/internal/ensureQueue.ts";
+import { runQueueWorker } from "#server/internal/runQueueWorker.ts";
+import { registerTestingQueue } from "#server/internal/testingRegistrations.ts";
 
 function registrationDefinition(registration: JobRegistration): QueueDefinition | ScheduleDefinition {
 	if (registration._tag === "QueueDefinition") {

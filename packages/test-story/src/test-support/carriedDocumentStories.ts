@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { outcomes } from "#outcomes.ts";
-import { storyKit } from "#storyKit.ts";
+import { outcomes } from "#server/outcomes.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const visitor = storyKit({
 	clock: "live",

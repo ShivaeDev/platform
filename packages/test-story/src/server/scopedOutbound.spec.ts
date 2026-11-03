@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { concurrentProviders, overlappingProviders, scopedOutbound, separateProviders } from "#test/scopedOutbound.ts";
 
 scopedOutbound.it("reaches two providers registered in separate scopes", [separateProviders], function* ({ replyFrom }) {

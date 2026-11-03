@@ -1,5 +1,5 @@
 import { Data, Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 export class ReadoutUnavailable extends Data.TaggedError("ReadoutUnavailable")<{ readonly message: string }> {}
 

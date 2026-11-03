@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { schemaKit } from "#test/schema/kit.ts";
 import { enqueuedBy, installed, installedBeforeDeadLetterResolution, installedByPgBoss, ran } from "#test/schema/traits.ts";
 import { worker } from "#test/workers.ts";

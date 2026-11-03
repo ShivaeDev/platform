@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
-import { broken, cannotRun, unfinished } from "#internal/errors.ts";
-import { type AnyEffect, type Hook, hooked } from "#internal/hooked.ts";
-import type { RunUntilOptions } from "#storyKit.ts";
+import { broken, cannotRun, unfinished } from "#server/internal/errors.ts";
+import { type AnyEffect, type Hook, hooked } from "#server/internal/hooked.ts";
+import type { RunUntilOptions } from "#server/storyKit.ts";
 
 export interface LooseRunHooks<TEngine> {
 	readonly diagnose?: Hook<[engine: TEngine], AnyEffect, string>;

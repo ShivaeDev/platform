@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Exit, Fiber, Layer, Option, Redacted, Scope } from "effect";
 import { SqlClient, type SqlConnection } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { disconnectProxy } from "#disconnectProxy.ts";
+import { disconnectProxy } from "#server/disconnectProxy.ts";
 import { adminUrl, configured } from "./postgres.ts";
 
 export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[]) {

@@ -1,5 +1,5 @@
 import { computeAccessibleName, getRole } from "dom-accessibility-api";
-import type { ScreenTarget } from "#screenDriver.ts";
+import type { ScreenTarget } from "#server/screenDriver.ts";
 
 export function accessibility(element: Element) {
 	return { name: computeAccessibleName(element), role: getRole(element) };

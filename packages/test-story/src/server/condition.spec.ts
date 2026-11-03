@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { genreTags } from "#genreTags.ts";
-import { outcomes } from "#outcomes.ts";
+import { genreTags } from "#server/genreTags.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 const BAKERY_TAGS = { tags: genreTags("bakery") };

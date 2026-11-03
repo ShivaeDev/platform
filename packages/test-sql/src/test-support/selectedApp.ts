@@ -2,8 +2,8 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase, type PostgresTestTemplate } from "#database.ts";
-import { storyDatabase } from "#storyDatabase.ts";
+import { PostgresTestDatabase, type PostgresTestTemplate } from "#server/database.ts";
+import { storyDatabase } from "#server/storyDatabase.ts";
 import { configured, secondClient, setup } from "./postgres.ts";
 
 export interface AppObservation {

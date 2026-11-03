@@ -1,13 +1,13 @@
 import type { TestContext } from "@effect/vitest";
 import type { Crypto, Effect, Layer, Scope } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
-import { compose } from "#internal/compose.ts";
-import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#internal/compositionTypes.ts";
-import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
-import type { AfterResults, AfterServices, InferredDefinition } from "#internal/hookInference.ts";
-import type { LooseDefinition } from "#internal/seed.ts";
-import { storyIt } from "#internal/storyIt.ts";
-import { type Parts, trait, traits } from "#internal/traits.ts";
+import { compose } from "#server/internal/compose.ts";
+import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/internal/compositionTypes.ts";
+import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/internal/hooked.ts";
+import type { AfterResults, AfterServices, InferredDefinition } from "#server/internal/hookInference.ts";
+import type { LooseDefinition } from "#server/internal/seed.ts";
+import { storyIt } from "#server/internal/storyIt.ts";
+import { type Parts, trait, traits } from "#server/internal/traits.ts";
 
 export type Trait<TEngine, TStage extends string, R = never> = Parts<TStage, (engine: TEngine) => Effect.Effect<void, unknown, R>>;
 

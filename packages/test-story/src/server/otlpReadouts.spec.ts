@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { otlpReadoutApp } from "#test/otlpReadoutApp.ts";
 
 const buffered = otlpReadoutApp(false);

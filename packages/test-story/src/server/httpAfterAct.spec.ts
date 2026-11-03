@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { scopedHttpApp } from "#test/scopedHttpApp.ts";
 
 const PULL_COMMENTS = "/repos/team/platform/pulls/7/comments";

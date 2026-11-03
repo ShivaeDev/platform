@@ -1,6 +1,6 @@
 import type { Context, Crypto, Layer, Scope } from "effect";
-import type { AnyEffect, HookEffects, HookValue, ServicesOf } from "#internal/hooked.ts";
-import type { StoryKitDefinition } from "#storyKit.ts";
+import type { AnyEffect, HookEffects, HookValue, ServicesOf } from "#server/internal/hooked.ts";
+import type { StoryKitDefinition } from "#server/storyKit.ts";
 
 export type AfterResults<TStage extends string> = {
 	readonly [TKey in TStage]?: unknown;

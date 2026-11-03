@@ -1,7 +1,7 @@
 import type { PgBoss } from "pg-boss";
-import type { QueueDefinition } from "#definition.ts";
-import { quotedSchema } from "#internal/storedRows.ts";
-import { testingOperation } from "#internal/testingReadout.ts";
+import type { QueueDefinition } from "#server/definition.ts";
+import { quotedSchema } from "#server/internal/storedRows.ts";
+import { testingOperation } from "#server/internal/testingReadout.ts";
 
 export function testingDueNow(client: () => PgBoss, schema: () => string, changed: () => void) {
 	function makeDue(queue: Pick<QueueDefinition, "name">, deferredOnly: boolean) {

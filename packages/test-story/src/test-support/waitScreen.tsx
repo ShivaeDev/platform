@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { type ScreenTarget, screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 import { WaitPage } from "./WaitPage.tsx";
 

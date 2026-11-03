@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { createElement, type ReactNode } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 expectNoReactWarnings();
 

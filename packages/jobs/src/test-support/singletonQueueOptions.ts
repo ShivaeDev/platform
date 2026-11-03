@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import type { Queue } from "pg-boss";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { type Attempt, workerBy } from "#test/workers.ts";
 
 const Refresh = Schema.TaggedStruct("Refresh", { pullRequestId: Schema.NumberFromString });

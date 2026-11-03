@@ -1,4 +1,4 @@
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const first = storyKit({
 	create: () => ({ first: 1 }),

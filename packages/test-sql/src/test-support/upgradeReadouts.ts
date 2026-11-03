@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { assertModelColumns } from "#assertModelColumns.ts";
+import { assertModelColumns } from "#server/assertModelColumns.ts";
 import { Item, types } from "./migrationUpgrade.ts";
 import { failureOf, timesOf } from "./outcome.ts";
 import type { UpgradeEngine } from "./upgradeStory.ts";

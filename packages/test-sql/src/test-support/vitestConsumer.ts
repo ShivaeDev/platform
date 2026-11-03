@@ -1,9 +1,9 @@
 import { Effect, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { PostgresTestDatabase } from "#database.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
-import { withTestTransaction } from "#withTestTransaction.ts";
+import { PostgresTestDatabase } from "#server/database.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 import { secondClient, setup } from "./postgres.ts";
 
 function transactionState(open: Option.Option<unknown>): "open" | "none" {

@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 class PgBoss extends Context.Service<PgBoss, number>()("compiler/PgBoss") {}
 

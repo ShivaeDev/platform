@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
-import type { PgBossClient, PgBossClientFactory } from "#client.ts";
-import { defaultClientFactory } from "#defaultClientFactory.ts";
-import { PgBossClientOptionsError, type PgBossError, toPgBossError } from "#error.ts";
-import { jobStorePlans } from "#internal/jobStorePlans.ts";
+import type { PgBossClient, PgBossClientFactory } from "#server/client.ts";
+import { defaultClientFactory } from "#server/defaultClientFactory.ts";
+import { PgBossClientOptionsError, type PgBossError, toPgBossError } from "#server/error.ts";
+import { jobStorePlans } from "#server/internal/jobStorePlans.ts";
 import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
 import { observeClientErrors } from "./clientErrors.ts";
 

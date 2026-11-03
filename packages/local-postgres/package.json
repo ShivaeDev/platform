@@ -17,9 +17,9 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/server/*.ts",
-			"types": "./dist/server/*.d.ts",
-			"default": "./dist/server/*.js"
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
 		}
 	},
 	"exports": {

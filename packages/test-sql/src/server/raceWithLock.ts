@@ -1,8 +1,8 @@
 import { Deferred, type Duration, Effect, Fiber } from "effect";
 import { SqlClient, Statement } from "effect/sql";
 import { transact } from "@shivaedev/sql/transact.ts";
-import { observeUntil } from "#observeUntil.ts";
-import { withTestTransaction } from "#withTestTransaction.ts";
+import { observeUntil } from "#server/observeUntil.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 
 function tagged<A, E, R>(effect: Effect.Effect<A, E, R>, tag: string) {
 	return Effect.provideService(effect, Statement.CurrentTransformer, (statement, sql) =>

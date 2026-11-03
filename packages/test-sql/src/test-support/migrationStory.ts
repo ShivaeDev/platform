@@ -1,8 +1,8 @@
 import { Effect, Exit, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { migrationSteps } from "#migrationSteps.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
+import { migrationSteps } from "#server/migrationSteps.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { layer, migrations, seedContacts } from "./migrationSteps.ts";
 import { configured } from "./postgres.ts";
 import { createSteps, stepsVerbs } from "./stepsVerbs.ts";

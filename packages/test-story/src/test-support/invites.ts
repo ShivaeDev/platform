@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { Crypto } from "effect/Crypto";
 import * as Hex from "effect/encoding/Hex";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const Invites = RpcGroup.make(Rpc.make("createInvite", { success: Schema.String }));
 const handlers = Invites.toLayer({

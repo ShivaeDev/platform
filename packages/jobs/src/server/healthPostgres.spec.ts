@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "#definition.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { holds, running } from "#test/postgres/traits.ts";
 

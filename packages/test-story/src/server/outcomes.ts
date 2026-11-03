@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import { type DeeplyAllowMatchers, expect } from "vitest";
-import type { NumericBound } from "#adapters/outcomeMatchers.ts";
+import type { NumericBound } from "#server/adapters/outcomeMatchers.ts";
 
 type AnyReadout = Effect.Effect<unknown, unknown, unknown>;
 type NativeMatcher = Exclude<DeeplyAllowMatchers<number>, number>;

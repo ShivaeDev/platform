@@ -1,9 +1,9 @@
 import { type Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue } from "#definition.ts";
-import { deadLetterQueueName } from "#health.ts";
-import type { PgBossService } from "#service.ts";
+import { defineQueue } from "#server/definition.ts";
+import { deadLetterQueueName } from "#server/health.ts";
+import type { PgBossService } from "#server/service.ts";
 import { database } from "#test/postgres/database.ts";
 import { clientStoppedUnderneath, deletedOutside, running } from "#test/postgres/traits.ts";
 import { worker } from "#test/workers.ts";

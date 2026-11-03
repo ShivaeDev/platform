@@ -1,7 +1,7 @@
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
-import type { FakeHttpHold, FakeHttpRequest, FakeHttpScope } from "#fakeHttpService.ts";
-import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
+import type { FakeHttpHold, FakeHttpRequest, FakeHttpScope } from "#server/fakeHttpService.ts";
+import { fakeHttpSelection } from "#server/internal/fakeHttpSelection.ts";
 
 export function fakeHttpGates(tell: (line: string) => void, kind: "hold" | "stall") {
 	const gates = new Map<string, { enter: () => Promise<void>; release: () => void; matches: ReturnType<typeof fakeHttpSelection>["matches"] }>();

@@ -1,6 +1,6 @@
 import { Cause, Data, Effect } from "effect";
-import { captureOutcome } from "#captureOutcome.ts";
-import { storyKit } from "#storyKit.ts";
+import { captureOutcome } from "#server/captureOutcome.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 class ReadDenied extends Data.TaggedError("ReadDenied")<{ readonly reason: string }> {}
 

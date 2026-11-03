@@ -1,8 +1,8 @@
 import { type Duration, Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
-import { type OtlpSpan, otlpReceiver } from "#otlpReceiver.ts";
-import { storyKit } from "#storyKit.ts";
+import { type OtlpSpan, otlpReceiver } from "#server/otlpReceiver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
 import { bytesInWords } from "./httpClient.ts";
 

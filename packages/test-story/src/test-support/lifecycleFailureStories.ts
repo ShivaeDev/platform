@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 const unavailable = {
 	name: "unavailable mill",

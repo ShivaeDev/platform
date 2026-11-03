@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
-import { otlpProtobuf } from "#internal/otlpProtobuf.ts";
-import { Attribute } from "#internal/otlpValue.ts";
+import { otlpProtobuf } from "#server/internal/otlpProtobuf.ts";
+import { Attribute } from "#server/internal/otlpValue.ts";
 
 const Attributes = Schema.optionalKey(Schema.Array(Attribute));
 const Span = Schema.Struct({

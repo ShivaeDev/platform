@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { noteLifetime, recordLifetime } from "./lifetimeLog.ts";
 
 export const lifetime = storyKit({

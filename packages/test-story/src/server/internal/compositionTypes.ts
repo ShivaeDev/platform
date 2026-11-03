@@ -1,6 +1,6 @@
-import type { AnyEffect } from "#internal/hooked.ts";
-import type { LooseDefinition } from "#internal/seed.ts";
-import type { StoryKit } from "#storyKit.ts";
+import type { AnyEffect } from "#server/internal/hooked.ts";
+import type { LooseDefinition } from "#server/internal/seed.ts";
+import type { StoryKit } from "#server/storyKit.ts";
 
 export const kitDefinition: unique symbol = Symbol("story kit definition");
 

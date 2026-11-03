@@ -1,11 +1,11 @@
 import { Effect, Fiber, Scope } from "effect";
 import type { Job, StopOptions, WorkOptions } from "pg-boss";
-import type { PgBossClient } from "#client.ts";
-import { toPgBossError } from "#error.ts";
-import { batchHandler } from "#internal/batchHandler.ts";
-import { deferrableAttempt } from "#internal/deferrableAttempt.ts";
-import { retryWake } from "#internal/retryWake.ts";
-import { traceJob } from "#internal/tracing.ts";
+import type { PgBossClient } from "#server/client.ts";
+import { toPgBossError } from "#server/error.ts";
+import { batchHandler } from "#server/internal/batchHandler.ts";
+import { deferrableAttempt } from "#server/internal/deferrableAttempt.ts";
+import { retryWake } from "#server/internal/retryWake.ts";
+import { traceJob } from "#server/internal/tracing.ts";
 
 export const registerWorker = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,

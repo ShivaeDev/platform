@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { outcomes } from "#outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { lifecycle, otlpApp } from "#test/otlpApp.ts";
 
 const MALFORMED = Buffer.from([0x0a, 0xff]);

@@ -1,5 +1,5 @@
 import { Redacted } from "effect";
-import { PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossTestingError } from "#error.ts";
+import { PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossTestingError } from "#server/error.ts";
 
 function originalOf(original: Redacted.Redacted<unknown>): string {
 	const value = Redacted.value(original);

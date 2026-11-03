@@ -1,7 +1,7 @@
 import { Effect, Redacted, Schema } from "effect";
-import type { JobPayloadSchema } from "#definition.ts";
-import { PgBossPayloadError } from "#error.ts";
-import { payloadOf } from "#internal/tracing.ts";
+import type { JobPayloadSchema } from "#server/definition.ts";
+import { PgBossPayloadError } from "#server/error.ts";
+import { payloadOf } from "#server/internal/tracing.ts";
 
 export function quotedSchema(schema: string): string {
 	return `"${schema.replaceAll('"', '""')}"`;

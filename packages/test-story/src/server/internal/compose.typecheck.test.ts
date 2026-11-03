@@ -1,5 +1,5 @@
 import { expectTypeOf } from "vitest";
-import { storyKit } from "#storyKit.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { bakery } from "#test/bakery.ts";
 import { market, village } from "#test/market.ts";
 import { OrderLabel } from "#test/orders.ts";

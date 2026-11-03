@@ -3,8 +3,8 @@ import { act, createElement } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { screenDriver } from "#screenDriver.ts";
-import { storyKit } from "#storyKit.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 import { ActivityPageView, activityPageClient } from "./activityPageView.ts";
 import { readPageHost } from "./readPageHost.ts";
 
