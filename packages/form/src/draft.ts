@@ -1,63 +1,66 @@
-import { Equal } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRef from "effect/reactivity/AtomRef";
-import type { Persistence } from "./persistence.ts";
-
-type Entries = Readonly<Record<string, unknown>>;
-
-interface Draft<TValues> {
-	readonly baseline: TValues;
-	readonly current: TValues;
-	readonly settled: Entries;
-}
-
-const none: Entries = {};
-
-function untouched({ baseline, current, settled }: Draft<Entries>, name: string): boolean {
-	return Equal.equals(current[name], baseline[name]) || (Object.hasOwn(settled, name) && Equal.equals(current[name], settled[name]));
-}
-
-function changed(held: Draft<Entries>): boolean {
-	return Object.keys({ ...held.baseline, ...held.current }).some((name) => !untouched(held, name));
-}
-
-function merged<TValues>(held: Draft<TValues>, incoming: TValues): TValues;
-function merged(held: Draft<Entries>, incoming: Entries): unknown {
-	const result: Record<string, unknown> = {};
-	for (const name of Object.keys({ ...held.current, ...incoming })) {
-		const source = untouched(held, name) ? incoming : held.current;
-		if (Object.hasOwn(source, name)) {
-			result[name] = source[name];
-		}
-	}
-	return result;
-}
-
-function matching(current: Entries, submitted: Entries): Entries {
-	return Object.fromEntries(
-		Object.keys({ ...current, ...submitted })
-			.filter((name) => Equal.equals(current[name], submitted[name]))
-			.map((name) => [name, submitted[name]]),
-	);
-}
+import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, untouched } from "./draftValues.ts";
+import type { Persistence, StoredValues } from "./persistence.ts";
 
 export function draft<TValues extends Entries>(initial: TValues, persistence?: Persistence<TValues>) {
-	const restored = persistence?.read();
-	const loaded = {
-		baseline: restored?.baseline ?? initial,
-		current: restored?.values ?? initial,
-		settled: restored ? Object.fromEntries(Object.entries(restored.values).filter(([name]) => !restored.edited.includes(name))) : none,
-	};
-	const state = AtomRef.make<Draft<TValues>>({
-		baseline: initial,
-		current: restored ? merged(loaded, initial) : initial,
-		settled: none,
+	const none: Entries = {};
+	const state = AtomRef.make<Draft<TValues>>({ baseline: initial, current: initial, settled: none });
+	const local = new Set<string>();
+	let previous = initial;
+	let receiving = false;
+	let refreshing = false;
+	function withoutWriting(run: () => void) {
+		receiving = true;
+		run();
+		receiving = false;
+	}
+	function restore(restored: StoredValues<TValues> | undefined) {
+		const held = state.value;
+		const incoming = restored
+			? merged(
+					{
+						baseline: restored.baseline,
+						current: restored.values,
+						settled: Object.fromEntries(Object.entries(restored.values).filter(([name]) => !restored.edited.includes(name))),
+					},
+					held.baseline,
+				)
+			: held.baseline;
+		withoutWriting(() => state.update((value) => ({ ...value, current: mergeObserved(value.current, incoming, local) })));
+		return local.size === 0;
+	}
+	const mounted = Atom.readable((get) => {
+		if (persistence) {
+			get.addFinalizer(persistence.observe(restore));
+		}
 	});
+	function releaseCleanFields() {
+		for (const name of local) {
+			if (untouched(state.value, name)) {
+				local.delete(name);
+			}
+		}
+	}
+	function store(value: Draft<TValues>, sameInput = refreshing) {
+		const edited = Object.keys({ ...value.baseline, ...value.current }).filter((name) => !untouched(value, name));
+		persistence?.write({ ...value.baseline, ...value.settled }, value.current, edited, sameInput);
+	}
 	if (persistence) {
 		state.subscribe((value) => {
+			const before = previous;
+			previous = value.current;
+			if (receiving) {
+				return;
+			}
+			if (!refreshing) {
+				for (const name of changedFields(before, value.current)) {
+					local.add(name);
+				}
+			}
+			releaseCleanFields();
 			if (changed(value)) {
-				const edited = Object.keys({ ...value.baseline, ...value.current }).filter((name) => !untouched(value, name));
-				persistence.write({ ...value.baseline, ...value.settled }, value.current, edited);
+				store(value);
 			} else {
 				persistence.clear();
 			}
@@ -65,15 +68,20 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 	}
 	return {
 		dirty: Atom.readable((get) => {
+			get(mounted);
 			get.addFinalizer(state.subscribe((value) => get.setSelf(changed(value))));
 			return changed(state.value);
 		}),
+		mounted,
 		receive: (incoming: TValues): void => {
+			refreshing = true;
 			state.update((held) => ({
 				baseline: incoming,
 				current: changed(held) ? merged(held, incoming) : incoming,
 				settled: none,
 			}));
+			refreshing = false;
+			releaseCleanFields();
 		},
 		revert: (): void => {
 			state.update((held) => ({
@@ -84,19 +92,19 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 		},
 		submission: () => {
 			const { baseline, current: submitted } = state.value;
+			const revision = persistence?.revision();
 			return {
 				accept: (incoming?: TValues): void => {
-					state.update((held) => {
-						if (held.baseline !== baseline) {
-							return { ...held, settled: matching(held.current, submitted) };
+					withoutWriting(() => state.update((held) => accepted(held, baseline, submitted, incoming)));
+					releaseCleanFields();
+					if (changed(state.value)) {
+						store(state.value, true);
+					} else {
+						const expected = revision?.();
+						if (expected !== undefined) {
+							persistence?.clear(expected);
 						}
-						return {
-							...held,
-							baseline: incoming ?? submitted,
-							current: incoming === undefined ? held.current : merged({ ...held, baseline: submitted, settled: none }, incoming),
-							settled: none,
-						};
-					});
+					}
 				},
 				values: submitted,
 			};
