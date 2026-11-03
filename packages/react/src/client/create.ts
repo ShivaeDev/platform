@@ -6,7 +6,7 @@ import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import type { AtomServices } from "#AtomServices.ts";
-import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
+import { useSubmissionCallbacks } from "#internal/adapters/useSubmissionCallbacks.ts";
 import type { NoticeFeedback } from "#notices.ts";
 import { type SubmissionConfig, submission } from "#submission.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";

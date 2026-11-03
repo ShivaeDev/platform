@@ -44,10 +44,11 @@ export function CreateSubmitView({ state, slow, rejected }: { readonly state: Su
 	const name = useField(current.form, "name");
 	const submit = useSubmit(current.form);
 	const registry = useContext(RegistryContext);
+	const error = name.error ? <p role="alert">{name.error}</p> : null;
 	return (
 		<section>
 			<input name="name" onChange={(event) => name.onChange(event.target.value)} value={name.value} />
-			{name.error ? <p role="alert">{name.error}</p> : null}
+			{error}
 			<button onClick={submit.run} type="button">
 				Form submit
 			</button>

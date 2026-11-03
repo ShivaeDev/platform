@@ -15,11 +15,13 @@ import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";
 
 function Controls() {
 	const can = useCan();
+	const readNotes = can(ReadNotes) && <button type="button">Read notes</button>;
+	const readAnyNotes = can(ReadNotes.any) && <button type="button">Read anyone's notes</button>;
 	return (
 		<main>
 			<h1>Controls</h1>
-			{can(ReadNotes) && <button type="button">Read notes</button>}
-			{can(ReadNotes.any) && <button type="button">Read anyone's notes</button>}
+			{readNotes}
+			{readAnyNotes}
 		</main>
 	);
 }

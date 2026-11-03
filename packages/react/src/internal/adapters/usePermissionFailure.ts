@@ -1,7 +1,7 @@
 import { Cause, Option } from "effect";
 import { useContext } from "react";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
-import { PermissionContext } from "./PermissionContext.ts";
+import { PermissionContext } from "#internal/PermissionContext.ts";
 
 export function usePermissionFailure<E>(cause: Option.Option<Cause.Cause<E>>): void {
 	const context = useContext(PermissionContext);

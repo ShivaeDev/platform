@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { afterAll, expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { warningScreen } from "#test/warningScreen.tsx";
@@ -73,5 +74,5 @@ warningScreen.it("a caught error that does not match its declaration is recorded
 warningScreen.it.fails("a story that fails after rendering a warning still restores console.error", [], function* ({ openWarningScreen }) {
 	yield* openWarningScreen();
 
-	throw new Error("Story failed after rendering");
+	yield* Effect.die(new Error("Story failed after rendering"));
 });

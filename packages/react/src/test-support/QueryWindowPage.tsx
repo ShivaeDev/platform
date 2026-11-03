@@ -8,7 +8,8 @@ type Query = Atom.Atom<AsyncResult.AsyncResult<number, unknown>>;
 
 export function QueryWindowRead({ atom, name, window }: { readonly atom: Query; readonly name: string; readonly window?: Duration.Input }) {
 	const result = useQuery(atom, { coalesceWindow: window });
-	return <output aria-label={name}>{result.data._tag === "Some" ? result.data.value : "loading"}</output>;
+	const value = result.data._tag === "Some" ? result.data.value : "loading";
+	return <output aria-label={name}>{value}</output>;
 }
 
 export function QueryWindowPage({ dashboard, detail, inherited }: { readonly dashboard: Query; readonly detail: Query; readonly inherited: Query }) {

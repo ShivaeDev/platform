@@ -6,6 +6,7 @@ type AnswerForm = ReturnType<typeof makeAnswerForm>;
 function Answer({ form, id, index }: { readonly form: AnswerForm; readonly id: string; readonly index: number }) {
 	const message = useAtomValue(form.errorAt(["answers", index, "text"]));
 	const field = useField(form, "answers");
+	const alert = message && <p role="alert">{message}</p>;
 	return (
 		<li data-answer={id}>
 			<input
@@ -22,7 +23,7 @@ function Answer({ form, id, index }: { readonly form: AnswerForm; readonly id: s
 			<button onClick={() => field.onChange(field.value.filter((answer) => answer.id !== id))} type="button">
 				Remove {id}
 			</button>
-			{message && <p role="alert">{message}</p>}
+			{alert}
 		</li>
 	);
 }
