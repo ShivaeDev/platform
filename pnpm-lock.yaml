@@ -542,9 +542,6 @@ importers:
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
-      '@shivaedev/react':
-        specifier: workspace:*
-        version: link:../react
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -555,6 +552,9 @@ importers:
       '@shivaedev/rate-limit':
         specifier: workspace:*
         version: link:../rate-limit
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server

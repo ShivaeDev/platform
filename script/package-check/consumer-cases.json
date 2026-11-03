@@ -1,4 +1,22 @@
 {
+	"admin": [
+		{
+			"entries": [
+				"./registry.ts",
+				"./page.ts",
+				"./permissions.ts",
+				"./jobs/page.ts",
+				"./users/page.ts",
+				"./sessions/Page.ts",
+				"./client/adapters/adminPermissionGuard.ts",
+				"./server/adminDocuments.ts",
+				"./server/registerAdmin.ts"
+			],
+			"fixtures": ["core.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["core.ts"]
+		}
+	],
 	"errors": [
 		{
 			"entries": ["./boundary.ts", "./taxonomy.ts"],
