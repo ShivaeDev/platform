@@ -1,7 +1,7 @@
 import { Context, Effect, Option, Queue, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { ClientActivity, ClientActivityState } from "@shivaedev/contract/clientActivity.ts";
+import type { ScreenSignal, ScreenSignalState } from "@shivaedev/test-story/server/screenSignal.ts";
 import { session } from "#client/session.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
@@ -43,16 +43,15 @@ function observed(node: AtomRegistry.Node<unknown>, visited: Set<AtomRegistry.No
 	return node.listeners.size > 0 || [...node.children].some((child) => !visited.has(child) && observed(child, visited));
 }
 
-const idle: ClientActivityState = { liveHints: 0, liveInvalidations: 0, refreshingAtoms: 0, rpcCalls: 0 };
-const busy: ClientActivityState = { ...idle, refreshingAtoms: 1 };
+const idle: ScreenSignalState = { hints: 0, pending: false };
+const busy: ScreenSignalState = { ...idle, pending: true };
 
-// The driver rereads `current` on every turn only for client activity, and the stream wakes it when a read query finishes without changing the DOM.
-export function pendingSignal(engine: ScreenEngine, sample: () => boolean): ClientActivity {
+export function pendingSignal(engine: ScreenEngine, sample: () => boolean): ScreenSignal {
 	const current = Effect.sync(() => (sample() ? busy : idle));
 	return Object.assign(wakes(engine, sample), { current });
 }
 
-function wakes(engine: ScreenEngine, sample: () => boolean): Stream.Stream<ClientActivityState> {
+function wakes(engine: ScreenEngine, sample: () => boolean): Stream.Stream<ScreenSignalState> {
 	return Stream.suspend(() => {
 		const registry = registryOf(engine);
 		let offer: (() => void) | undefined;

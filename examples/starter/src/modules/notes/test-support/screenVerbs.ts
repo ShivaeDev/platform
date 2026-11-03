@@ -1,7 +1,7 @@
 import { Effect, Fiber } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenView } from "#test-support/screenState.ts";
@@ -11,7 +11,7 @@ import { settleQuery } from "./settleQuery.ts";
 
 export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 	function driver() {
-		return screenDriver({ act, pending: clientActivity(engine.client), root: screenView(engine).container, tell });
+		return screenDriver({ act, pending: activityScreenSignal(clientActivity(engine.client)), root: screenView(engine).container, tell });
 	}
 	function afterNextHint<A, E>(action: Effect.Effect<A, E>) {
 		return Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import { isRendered } from "./screenAccessibility.ts";
+import { isRendered } from "#server/adapters/screenAccessibility.ts";
 
 const blockDisplays = new Set(["block", "flow-root", "flex", "grid", "list-item", "table", "table-row", "table-caption"]);
 

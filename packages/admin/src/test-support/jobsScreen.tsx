@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -21,7 +22,7 @@ function screenOf(engine: Engine) {
 }
 
 function driverFor(engine: Engine, tell: (line: string) => void) {
-	return screenDriver({ act, pending: engine.activity, root: () => screenOf(engine), tell });
+	return screenDriver({ act, pending: activityScreenSignal(engine.activity), root: () => screenOf(engine), tell });
 }
 
 export const jobsScreen = storyKit({

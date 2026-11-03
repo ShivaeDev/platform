@@ -2,7 +2,6 @@ import * as Effect from "effect/Effect";
 import * as Queue from "effect/Queue";
 import * as Result from "effect/Result";
 import * as Stream from "effect/Stream";
-import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { screenAct } from "#server/adapters/screenAct.ts";
 import { screenMutations } from "#server/adapters/screenMutations.ts";
 import type { ScreenDriverOptions } from "#server/screenDriver.ts";
@@ -20,7 +19,7 @@ const observePending = Effect.fnUntraced(function* (pending: ScreenDriverOptions
 		return Effect.sync(pending);
 	}
 	let busy = true;
-	const states = "current" in pending ? Stream.map(pending, (state) => !isClientIdle(state)) : pending;
+	const states = "current" in pending ? Stream.map(pending, (state) => state.pending) : pending;
 	yield* states.pipe(
 		Stream.runForEach((value) =>
 			Effect.sync(() => {
@@ -30,7 +29,7 @@ const observePending = Effect.fnUntraced(function* (pending: ScreenDriverOptions
 		),
 		Effect.forkScoped,
 	);
-	return "current" in pending ? Effect.map(pending.current, (state) => !isClientIdle(state)) : Effect.sync(() => busy);
+	return "current" in pending ? Effect.map(pending.current, (state) => state.pending) : Effect.sync(() => busy);
 });
 
 export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, root }: WaitOptions, read: Effect.Effect<A, E>) {

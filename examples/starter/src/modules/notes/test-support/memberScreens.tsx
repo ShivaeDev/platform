@@ -6,7 +6,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { memberScreens } from "@shivaedev/test-story/server/adapters/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { appRouter } from "#client/appRouter.tsx";
@@ -61,7 +61,7 @@ export function notesMemberScreens(baseUrl: string) {
 			if (activity === undefined) {
 				throw new Error(`No client for ${member.name}`);
 			}
-			const driver = screenDriver({ act, pending: activity, root: member.root, tell });
+			const driver = screenDriver({ act, pending: activityScreenSignal(activity), root: member.root, tell });
 			return {
 				addsNote: (title: string) =>
 					Effect.gen(function* () {

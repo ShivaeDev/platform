@@ -1,11 +1,11 @@
 import * as Effect from "effect/Effect";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import type { screenElements } from "#server/adapters/screenElements.ts";
+import { screenLoading } from "#server/adapters/screenLoading.ts";
 import { screenNavigation } from "#server/adapters/screenNavigation.ts";
 import type { ScreenDriverOptions, ScreenTarget } from "#server/screenDriver.ts";
 import { loadingDeadline } from "./loadingDeadline.ts";
-import { targetName } from "./screenAccessibility.ts";
-import { screenLoading } from "./screenLoading.ts";
+import { targetName } from "./targetName.ts";
 import { waitForScreen } from "./waitForScreen.ts";
 
 type Options = Omit<ScreenDriverOptions, "act" | "root" | "timeoutMs" | "pending"> & {
