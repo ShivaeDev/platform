@@ -133,7 +133,7 @@ const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view:
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
 	return Effect.andThen(
 		closeWindow(engine),
-		Effect.forEach(views, (view) => readAfterLastHint(engine, view), { discard: true }),
+		Effect.forEach(views, (view) => Effect.andThen(readAfterLastHint(engine, view), shownOf(engine, view)), { discard: true }),
 	);
 }
 
