@@ -159,3 +159,28 @@ for (const [contents, text, failure] of [
 		},
 	);
 }
+
+watch.it(
+	"PR 1's merge stays unreported and unsaved when its detail request arrives and is reported and saved when the round completes",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ holdReply, merges, printed, roundCompleted, savedSnapshot, startPoll }) {
+		yield* merges(1);
+		const detail = yield* holdReply(reads.detail(1));
+
+		yield* startPoll();
+		yield* detail.arrived;
+
+		yield* outcomes([
+			["printed before the answer", () => printed(), []],
+			["saved snapshot before the answer", () => savedSnapshot(1), "open, auto-merge"],
+		]);
+
+		yield* detail.release();
+		yield* roundCompleted();
+
+		yield* outcomes([
+			["printed after the round", () => printed(), ["PR 1 merged"]],
+			["saved snapshot after the round", () => savedSnapshot(1), "merged, auto-merge"],
+		]);
+	},
+);

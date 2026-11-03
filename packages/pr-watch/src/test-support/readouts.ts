@@ -1,6 +1,6 @@
 import type { Snapshot } from "#model.ts";
 import type { HealthEvent, WatchEvent } from "#outputEvent.ts";
-import type { Received } from "./server.ts";
+import type { Received } from "./githubModel.ts";
 
 export function clockTime(at: string | number) {
 	return new Date(at).toISOString().slice(11, 19);

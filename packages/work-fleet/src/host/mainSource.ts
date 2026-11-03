@@ -52,7 +52,7 @@ export function gitMainSource(host: FleetHost) {
 					}),
 				);
 				return { observedAt: yield* Clock.currentTimeMillis, revision: yield* git(root, ["rev-parse", ref]) };
-			}).pipe(fetchLock.withPermit);
+			}).pipe(Effect.withSpan("GitMainSource.fetch"), fetchLock.withPermit, Effect.withSpan("GitMainSource.latest"));
 			const refresh = Effect.tap(latest, (next) =>
 				Effect.sync(() => {
 					snapshot = next;

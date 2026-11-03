@@ -3,6 +3,7 @@ import { cliVerbs } from "./cliVerbs.ts";
 import { makeEngine, nativeIo } from "./engine.ts";
 import { githubVerbs } from "./githubVerbs.ts";
 import { processVerbs } from "./processVerbs.ts";
+import { roundVerbs } from "./roundVerbs.ts";
 import { watcherVerbs } from "./watcherVerbs.ts";
 
 export const watch = storyKit({
@@ -15,6 +16,7 @@ export const watch = storyKit({
 	verbs: (engine, story) => ({
 		...githubVerbs(engine, story.tell),
 		...watcherVerbs(engine, story.tell),
+		...roundVerbs(engine, story.tell),
 		...processVerbs(engine, story.tell),
 		...cliVerbs(engine, story.tell),
 	}),

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Engine } from "./engine.ts";
 import { type Answer, type Change, github, type Read } from "./github.ts";
-import type { Check } from "./server.ts";
+import type { Check } from "./githubModel.ts";
 
 export function githubVerbs(engine: Engine, tell: (line: string) => void) {
 	function act(change: Change) {

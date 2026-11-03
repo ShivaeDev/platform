@@ -5,7 +5,7 @@ import { Deferred, Effect, Exit, Schema } from "effect";
 import { WatchEvent } from "#outputEvent.ts";
 import { type Engine, programArguments } from "./engine.ts";
 import { described } from "./readouts.ts";
-import { REPOSITORY } from "./server.ts";
+import { REPOSITORY } from "./githubModel.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 
