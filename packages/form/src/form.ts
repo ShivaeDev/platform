@@ -49,7 +49,11 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		return made;
 	}
 
-	const valuesAtom = fromRef(values);
+	const fromValues = fromRef(values);
+	const valuesAtom = Atom.readable((get) => {
+		get(editing.mounted);
+		return get(fromValues);
+	});
 
 	const decoded = runtime.atom((get) =>
 		decode(get(valuesAtom)).pipe(
@@ -77,13 +81,15 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		fail: (path, message) => Effect.fail(new FieldFailure(typeof path === "string" ? { message, path } : { message, path: path[0], segments: path })),
 	};
 
-	const validate = runtime.fn<void>()(() => {
+	const validate = runtime.fn<void>()((_, get) => {
+		get.mount(editing.mounted);
 		status.attempt();
 		return snapshot(values.value);
 	});
 
-	const submit = runtime.fn<void>()(() =>
-		Effect.gen(function* () {
+	const submit = runtime.fn<void>()((_, get) => {
+		get.mount(editing.mounted);
+		return Effect.gen(function* () {
 			status.attempt();
 			const submission = editing.submission();
 			const submitted = submission.values;
@@ -92,8 +98,8 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 				Effect.tapError(noted(submitted)),
 				Effect.tap((saved) => Effect.sync(() => submission.accept(config.savedValues?.(saved)))),
 			);
-		}),
-	);
+		});
+	});
 
 	return {
 		blur: status.touch,

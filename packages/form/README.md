@@ -220,7 +220,11 @@ function OrderEditor({ persistence }: { readonly persistence: Omit<PersistedDraf
 
 Each stored record defaults to at most 256 KiB of UTF-8 JSON and seven days since its last write. Set `maxBytes` and `maxAgeMs` to finite positive limits to change those bounds. Oversized, expired, malformed or incompatible records are dropped when encountered. Persistence requires JSON-compatible encoded input; invalid input such as an empty required string or an unfinished numeric string still persists. Storage access, serialization and quota failures leave the form usable.
 
-Edits and received values update the stored draft. Revert removes it. A successful submit clears accepted input; edits made after the submitted snapshot remain persisted. A failed submit keeps the draft.
+Edits and received values update the stored draft. Revert removes the observed revision. A successful submit clears only the revision associated with its submitted input, including refreshes of its untouched fields; newer edits made locally or in another editor remain persisted. A failed submit keeps the draft.
+
+A custom `DraftStorage` implements `getItem(key)`, `setItem(key, value, expected?)` and `removeItem(key, expected)`. Each operation returns its synchronous result or a native `Effect` with no remaining services; acquire application services when constructing the provider. `expected` is the exact serialized value previously read or written, containing an opaque revision. The storage owner must compare and mutate atomically: remove the key, or replace it when `setItem` supplies `expected`, only if its current value equals `expected`. A `setItem` without `expected` stores a new local edit; a conditional write rebases accepted or refreshed fields without replacing another editor's newer draft. For an Electron bridge, perform these comparisons in the process that owns the shared store. Writes and clears from one form run in order even when storage is asynchronous. Storage failures remain best-effort and do not fail the form's save.
+
+Optional `subscribe(key, listener)` reports the current serialized value, or `null` when cleared, and returns an unsubscribe function. Report changes in storage order. Observation starts while the form's atoms are mounted and ends with their lifetime. Form's React hooks mount that lifetime automatically; direct atom consumers mount `form.dirty` or its validation/submission atoms. An untouched editor follows observed changes. Locally edited fields keep their current input while untouched fields adopt the observed draft. Receiving a storage event does not echo a write. The browser adapter observes other windows through storage events and serializes mutations with Web Locks where available; without Web Locks its compare and remove run synchronously.
 
 Outside React, pass a `session` from `draftSession(id)` in `@shivaedev/form/draftSession.ts` and call its `drop()` when the application replaces that session. Core forms without a session owner use only the application's key. `DraftSessionContext` supplies the owner to React integrations.
 
@@ -351,6 +355,8 @@ The returned form exposes:
 `F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record, and optional `formMessage` for a whole-form refinement.
 
 The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `statusOf.ts` (`statusOf`) modules hold the machinery the form composes; the examples use the form API instead.
+
+For a custom lower-level `Persistence`, `observe(receive)` calls `receive` with decoded stored input (or `undefined` after removal) and returns a cleanup function. The receiver returns `true` only when it adopted the complete incoming input; `false` preserves the local revision when local fields remain. `revision()` captures a revision reader for a submission; `write(..., sameInput)` can keep that captured reader current when only untouched server fields refresh.
 
 ### Install and limits
 

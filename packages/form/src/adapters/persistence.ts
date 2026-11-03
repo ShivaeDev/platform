@@ -1,87 +1,121 @@
-import { Schema, SchemaParser } from "effect";
-import type { PersistedDraftConfig, Persistence } from "#persistence.ts";
+import { Data, Effect, type Schema, Semaphore } from "effect";
+import type { DraftOperation, PersistedDraftConfig, Persistence } from "#persistence.ts";
+import { draftCodec } from "./draftCodec.ts";
+
+class DraftStorageUnavailable extends Data.TaggedError("DraftStorageUnavailable")<{ readonly cause: unknown }> {}
+
+function operation<A>(run: () => DraftOperation<A>): Effect.Effect<A, DraftStorageUnavailable> {
+	return Effect.suspend(() => {
+		const value = run();
+		return Effect.isEffect(value) ? value : Effect.succeed(value);
+	}).pipe(Effect.catchCause((cause) => Effect.fail(new DraftStorageUnavailable({ cause }))));
+}
 
 export function persistence<TSchema extends Schema.Constraint>(schema: TSchema, config: PersistedDraftConfig): Persistence<TSchema["Encoded"]> {
-	const encoded = Schema.toEncoded(schema);
-	const StoredDraft = Schema.Struct({
-		baseline: Schema.Unknown,
-		edited: Schema.Array(Schema.String),
-		session: Schema.String,
-		updatedAt: Schema.Number,
-		values: Schema.Unknown,
-		version: Schema.Literal(1),
-	});
-	const valid = Schema.is(StoredDraft);
-	const decode = SchemaParser.decodeUnknownSync(encoded, { disableChecks: true });
-	const maxAgeMs = config.maxAgeMs ?? 7 * 24 * 60 * 60 * 1000;
-	const maxBytes = config.maxBytes ?? 256 * 1024;
-	function bytes(value: string) {
-		return new TextEncoder().encode(value).byteLength;
-	}
-	const storage = config.storage;
-	const session = config.session?.id ?? "";
+	const codec = draftCodec(schema, config);
+	const serial = Semaphore.makeUnsafe(1);
+	let revision: { value: string | undefined } = { value: undefined };
 	function active() {
 		return config.session?.active !== false;
 	}
-	function attempt<A>(run: () => A, failed?: () => void): A | undefined {
+	function run(effect: Effect.Effect<unknown, DraftStorageUnavailable>) {
+		return Effect.runCallback(serial.withPermit(effect).pipe(Effect.catchTag("DraftStorageUnavailable", () => Effect.void)));
+	}
+	function clear(expected = revision.value) {
+		if (expected !== undefined) {
+			run(operation(() => config.storage().removeItem(config.key, expected)));
+		}
+	}
+	function read(raw: string | null) {
 		try {
-			return run();
+			return { values: raw === null ? undefined : codec.read(raw) };
 		} catch {
-			failed?.();
+			if (raw !== null) {
+				clear(raw);
+			}
 			return undefined;
 		}
 	}
-	function clear() {
-		attempt(() => storage().removeItem(config.key));
-	}
-	config.session?.track(config.key, clear);
+	config.session?.track(config.key, () =>
+		run(
+			Effect.gen(function* () {
+				const storage = yield* operation(config.storage);
+				const raw = yield* operation(() => storage.getItem(config.key));
+				if (raw !== null) {
+					yield* operation(() => codec.read(raw));
+					yield* operation(() => storage.removeItem(config.key, raw));
+				}
+			}),
+		),
+	);
 	return {
-		clear: () => {
+		clear: (expected = revision.value) => {
 			if (active()) {
-				clear();
+				clear(expected);
 			}
 		},
-		read: () =>
-			attempt(() => {
-				if (!active()) {
-					return undefined;
+		observe: (receive) => {
+			let stopped = false;
+			let changes = 0;
+			function changed(raw: string | null, loaded = false) {
+				if (stopped || !active()) {
+					return;
 				}
-				const raw = storage().getItem(config.key);
-				if (raw === null) {
-					return undefined;
+				if (!loaded && revision.value === (raw ?? undefined)) {
+					return;
 				}
-				const value: unknown = bytes(raw) <= maxBytes ? JSON.parse(raw) : undefined;
-				const now = config.now();
-				if (
-					valid(value)
-					&& value.session === session
-					&& Number.isFinite(maxAgeMs)
-					&& Number.isFinite(maxBytes)
-					&& maxAgeMs > 0
-					&& maxBytes > 0
-					&& now - value.updatedAt <= maxAgeMs
-					&& value.updatedAt <= now
-				) {
-					return { baseline: decode(value.baseline), edited: value.edited, values: decode(value.values) };
+				const parsed = read(raw);
+				if (parsed && receive(parsed.values)) {
+					revision = { value: raw ?? undefined };
 				}
-				clear();
-				return undefined;
-			}, clear),
-		write: (baseline, values, edited) => {
+			}
+			let unsubscribe: (() => void) | undefined;
+			const stop = Effect.runCallback(
+				Effect.gen(function* () {
+					if (!active()) {
+						return;
+					}
+					const storage = yield* operation(config.storage);
+					unsubscribe = yield* operation(() =>
+						storage.subscribe?.(config.key, (incoming) => {
+							changes += 1;
+							changed(incoming);
+						}),
+					);
+					const before = changes;
+					const captured = revision;
+					const raw = yield* operation(() => storage.getItem(config.key));
+					if (before === changes && captured === revision) {
+						changed(raw, true);
+					}
+				}).pipe(Effect.catchTag("DraftStorageUnavailable", () => Effect.void)),
+			);
+			return () => {
+				stopped = true;
+				unsubscribe?.();
+				stop();
+			};
+		},
+		revision: () => {
+			const captured = revision;
+			return () => captured.value;
+		},
+		write: (baseline, values, edited, sameInput) => {
 			if (!active()) {
 				return;
 			}
-			attempt(() => {
-				const raw = JSON.stringify({ baseline, edited, session, updatedAt: config.now(), values, version: 1 });
-				const parsed: unknown = JSON.parse(raw);
-				if (!(maxAgeMs > 0 && Number.isFinite(maxAgeMs) && Number.isFinite(maxBytes) && bytes(raw) <= maxBytes && valid(parsed))) {
-					clear();
-					return;
+			try {
+				const expected = sameInput ? revision.value : undefined;
+				const raw = codec.write(baseline, values, edited);
+				if (sameInput) {
+					revision.value = raw;
+				} else {
+					revision = { value: raw };
 				}
-				decode(parsed.baseline);
-				decode(parsed.values);
-				storage().setItem(config.key, raw);
-			}, clear);
+				run(operation(() => (active() ? config.storage().setItem(config.key, raw, expected) : undefined)));
+			} catch {
+				clear();
+			}
 		},
 	};
 }

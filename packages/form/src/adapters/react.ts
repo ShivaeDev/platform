@@ -1,4 +1,4 @@
-import { useAtomRef, useAtomSet, useAtomValue } from "@effect/atom-react";
+import { useAtomMount, useAtomRef, useAtomSet, useAtomValue } from "@effect/atom-react";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import type { DraftSession } from "#draftSession.ts";
@@ -23,6 +23,7 @@ export function useField<TFields extends Fields, A, E, TRuntimeError, TKey exten
 	form: Form<TFields, A, E, TRuntimeError>,
 	name: TKey,
 ): Field<TFields, TKey> {
+	useAtomMount(form.dirty);
 	const value = useAtomRef(form.field(name));
 	const error = useAtomValue(form.error(name));
 	const onChange = useCallback((next: Encoded<TFields>[TKey]) => form.change(name, next), [form, name]);
@@ -38,6 +39,7 @@ export interface Submit<A, E> {
 export function useSubmit<TFields extends Fields, A, E, TRuntimeError>(
 	form: Form<TFields, A, E, TRuntimeError>,
 ): Submit<A, E | TRuntimeError | FieldFailure | Invalid> {
+	useAtomMount(form.dirty);
 	const result = useAtomValue(form.submit);
 	const set = useAtomSet(form.submit);
 	const run = useCallback(() => set(), [set]);
