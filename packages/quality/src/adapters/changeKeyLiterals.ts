@@ -10,8 +10,21 @@ function propertyName(name: ts.PropertyName): string | undefined {
 	return ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined;
 }
 
-function keyObject(node: ts.ObjectLiteralExpression): readonly ts.Node[] {
-	const typed = node.properties.some((property) => ts.isPropertyAssignment(property) && propertyName(property.name) === "_tag");
+function typedKey(node: ts.ObjectLiteralExpression): boolean {
+	return node.properties.some((property) => {
+		if (!ts.isPropertyAssignment(property) || propertyName(property.name) !== "_tag") {
+			return false;
+		}
+		const tag = unwrapped(property.initializer);
+		return ts.isStringLiteralLike(tag) && ["List", "Item", "Bucket"].includes(tag.text);
+	});
+}
+
+function keyObject(node: ts.ObjectLiteralExpression, record: boolean): readonly ts.Node[] {
+	const typed = typedKey(node);
+	if (!(typed || record)) {
+		return [];
+	}
 	return node.properties.flatMap((property) => {
 		if (ts.isShorthandPropertyAssignment(property)) {
 			return [property.name];
@@ -29,19 +42,19 @@ function keyObject(node: ts.ObjectLiteralExpression): readonly ts.Node[] {
 	});
 }
 
-export function changeKeyLiterals(expression: ts.Expression, nameOnly = false): readonly ts.Node[] {
+export function changeKeyLiterals(expression: ts.Expression, nameOnly = false, record = true): readonly ts.Node[] {
 	const value = unwrapped(expression);
 	if (ts.isConditionalExpression(value)) {
-		return [...changeKeyLiterals(value.whenTrue, nameOnly), ...changeKeyLiterals(value.whenFalse, nameOnly)];
+		return [...changeKeyLiterals(value.whenTrue, nameOnly, record), ...changeKeyLiterals(value.whenFalse, nameOnly, record)];
 	}
 	if (nameOnly || ts.isStringLiteralLike(value)) {
 		return literal(value);
 	}
 	if (ts.isArrayLiteralExpression(value)) {
-		return value.elements.flatMap((element) => changeKeyLiterals(element));
+		return value.elements.flatMap((element) => changeKeyLiterals(element, false, false));
 	}
 	if (ts.isObjectLiteralExpression(value)) {
-		return keyObject(value);
+		return keyObject(value, record);
 	}
-	return ts.isSpreadElement(value) ? changeKeyLiterals(value.expression, nameOnly) : [];
+	return ts.isSpreadElement(value) ? changeKeyLiterals(value.expression, nameOnly, record) : [];
 }

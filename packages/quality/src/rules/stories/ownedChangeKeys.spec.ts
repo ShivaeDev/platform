@@ -58,6 +58,10 @@ for (const { name, code } of [
 
 for (const { name, code } of [
 	{
+		code: 'Reactivity.Reactivity.use((r) => r.invalidate([{ topic: "orders" }, { _tag: "Cache", field: "orders" }, 42]));',
+		name: "opaque object and numeric keys without collection names",
+	},
+	{
 		code: 'commit([orders.list, orders.item(1), orders.bucket.owner("alice")]);',
 		name: "imported typed list, item and bucket keys with literal values",
 	},
