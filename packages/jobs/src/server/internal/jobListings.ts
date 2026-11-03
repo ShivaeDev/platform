@@ -1,11 +1,11 @@
-import { Effect, Option, Redacted, Schema } from "effect";
+import { type Context, Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { JobFailure } from "#JobFailure.ts";
-import type { PgBossClient } from "#server/client.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
-import { type PgBossError, PgBossPayloadError, toPgBossError } from "#server/error.ts";
-import { type DeadLetteredJob, deadLetterQueueName, type JobPage, type JobPageOptions } from "#server/health.ts";
-import { decodeStoredData, quotedSchema } from "#server/internal/storedRows.ts";
+import { type PgBossError, PgBossPayloadError } from "#server/error.ts";
+import type { DeadLetteredJob, JobPage, JobPageOptions } from "#server/health.ts";
+import { JobEngine, type Listing } from "#server/internal/engine.ts";
+import { decodeStoredData } from "#server/internal/storedRows.ts";
 import type { PgBossService } from "#server/service.ts";
 
 const Cursor = Schema.StringFromBase64Url.pipe(
@@ -41,25 +41,21 @@ const Row = Schema.Struct({
 
 const Rows = Schema.Array(Row);
 
-type Listing = "deadLetteredJobs" | "failedJobs";
-
-export function failedJobsFor(client: PgBossClient, schema: string): PgBossService["failedJobs"] {
-	return (queue, options) =>
-		listJobs(client, schema, "failedJobs", queue, options).pipe(
+export const jobListings = Effect.gen(function* () {
+	const engine = yield* JobEngine;
+	const failedJobs: PgBossService["failedJobs"] = (queue, options) =>
+		listJobs(engine, "failedJobs", queue, options).pipe(
 			Effect.map(({ jobs, next }) => ({ jobs: jobs.map(({ sourceId: _id, sourceOutput: _output, ...job }) => job), next })),
 		);
-}
-
-export function deadLetteredJobsFor(client: PgBossClient, schema: string): PgBossService["deadLetteredJobs"] {
-	return (queue, options) =>
-		listJobs(client, schema, "deadLetteredJobs", queue, options).pipe(
+	const deadLetteredJobs: PgBossService["deadLetteredJobs"] = (queue, options) =>
+		listJobs(engine, "deadLetteredJobs", queue, options).pipe(
 			Effect.map(({ jobs, next }) => ({ jobs: jobs.map((job) => ({ ...job, sourceQueue: queue.name })), next })),
 		);
-}
+	return { deadLetteredJobs, failedJobs };
+});
 
 const listJobs = Effect.fnUntraced(function* <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
-	client: PgBossClient,
-	schema: string,
+	engine: Context.Service.Shape<typeof JobEngine>,
 	listing: Listing,
 	queue: { readonly name: TName; readonly schema: TPayload },
 	options: JobPageOptions,
@@ -69,39 +65,7 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	TPayload["DecodingServices"]
 > {
 	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(PageOptions)(options);
-	const rows = yield* Effect.tryPromise({
-		catch: (error) => toPgBossError(listing, error, queue.name),
-		try: async () => {
-			if (client.getDb === undefined) {
-				throw new TypeError("This pg-boss client does not support getDb");
-			}
-			const quoted = quotedSchema(schema);
-			const { rows: storedRows } = await client.getDb().executeSql(
-				`SELECT
-					id,
-					name AS queue,
-					state,
-					retry_count AS "retryCount",
-					retry_limit AS "retryLimit",
-					created_on AS "createdOn",
-					started_on AS "startedOn",
-					completed_on AS "completedOn",
-					output,
-					data,
-					source_id AS "sourceId",
-					source_output AS "sourceOutput",
-					to_json(created_on) #>> '{}' AS "cursorAt"
-				FROM ${quoted}.job
-				WHERE name = $1
-					${listing === "failedJobs" ? "AND state = 'failed'" : ""}
-					AND ($2::timestamptz IS NULL OR (created_on, id) < ($2::timestamptz, $3::uuid))
-				ORDER BY created_on DESC, id DESC
-				LIMIT $4`,
-				[listing === "failedJobs" ? queue.name : deadLetterQueueName(queue.name), after?.[0] ?? null, after?.[1] ?? null, limit + 1],
-			);
-			return storedRows;
-		},
-	});
+	const rows = yield* engine.listJobs(listing, queue.name, after, limit);
 	const decodedRows = yield* Schema.decodeUnknownEffect(Rows)(rows).pipe(
 		Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
 	);

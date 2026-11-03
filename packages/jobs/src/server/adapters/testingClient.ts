@@ -1,9 +1,9 @@
+import { Effect } from "effect";
 import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
+import { testingEngine } from "#server/adapters/testingEngine.ts";
 import { testingExpirations } from "#server/adapters/testingExpirations.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { deferralObservers } from "#server/internal/deferral.ts";
-import { expireAttempt } from "#server/internal/expireAttempt.ts";
-import { observeTestingSettlements } from "#server/internal/observeTestingSettlements.ts";
 import type { TestingBatch, TestingWork } from "#server/internal/testingIdle.ts";
 import { testingRegistration } from "#server/internal/testingRegistrations.ts";
 
@@ -17,14 +17,17 @@ export interface TestingControls {
 }
 
 export function testingClient(client: PgBoss, schema: string, controls: TestingControls): PgBossClient {
-	const settlements = observeTestingSettlements(client, (name) => {
-		for (const batch of controls.work.batches) {
-			if (batch.name === name) {
-				batch.settled = true;
+	const engine = testingEngine(client, schema);
+	const settlements = Effect.runSync(
+		engine.observeSettlements((name) => {
+			for (const batch of controls.work.batches) {
+				if (batch.name === name) {
+					batch.settled = true;
+				}
 			}
-		}
-		controls.changed();
-	});
+			controls.changed();
+		}),
+	);
 	const expirations = testingExpirations(client);
 	function update(request: UpdateRequest): Promise<UpdateResponse>;
 	function update(name: string, data: object | null | undefined, options?: UpdateOptions): Promise<UpdateResponse>;
@@ -83,7 +86,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			try {
 				await client.stop(options);
 			} finally {
-				settlements.close();
+				await Effect.runPromise(settlements.close);
 			}
 		},
 		update,
@@ -93,8 +96,8 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 				...controls.retryPolicy,
 				...(controls.retryPolicy.retryBackoff === false ? { retryDelayMax: null } : {}),
 			}),
-		work: (name, options, handler) => {
-			settlements.watch(name);
+		work: async (name, options, handler) => {
+			await Effect.runPromise(settlements.watch(name));
 			return client.work(name, options, async (jobs: Job<unknown>[]) => {
 				const batch: TestingBatch = { name, settled: false };
 				controls.work.batches.add(batch);
@@ -104,7 +107,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 					for (const job of jobs) {
 						const attempts = await expirations.attemptsFor(job);
 						if (attempts !== undefined && job.retryCount + 1 >= attempts) {
-							await expireAttempt(client, schema, job);
+							await Effect.runPromise(engine.expireAttempt(job));
 						} else {
 							ready.push(job);
 						}

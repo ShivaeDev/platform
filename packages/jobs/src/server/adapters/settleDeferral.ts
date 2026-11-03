@@ -1,12 +1,12 @@
 import { Schema } from "effect";
-import type { Job } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
 import { STATELY_DEFERRAL_POLICY } from "#server/internal/deferral.ts";
+import type { JobAttempt } from "#server/internal/engine.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
 
 const Settlement = Schema.Struct({ claimed: Schema.Boolean, deferred: Schema.Boolean });
 
-export async function settleDeferral(client: PgBossClient, schema: string, job: Job<unknown>, at: string, reason: string, maxDeferrals: number) {
+export async function settleDeferral(client: PgBossClient, schema: string, job: JobAttempt, at: string, reason: string, maxDeferrals: number) {
 	if (client.getDb === undefined) {
 		throw new TypeError("This pg-boss client does not support getDb for RetryAt");
 	}

@@ -1,9 +1,9 @@
 import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { JobFailure } from "#JobFailure.ts";
-import type { PgBossClient } from "#server/client.ts";
-import { PgBossPayloadError, toPgBossError } from "#server/error.ts";
+import { PgBossPayloadError } from "#server/error.ts";
 import { deferralOf } from "#server/internal/deferral.ts";
+import { JobEngine } from "#server/internal/engine.ts";
 import { decodeStoredData } from "#server/internal/storedRows.ts";
 import type { PgBossService } from "#server/service.ts";
 
@@ -16,17 +16,10 @@ function decodeFailure(queue: string, output: unknown) {
 	);
 }
 
-export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
-	return (queue, id) =>
-		Effect.tryPromise({
-			catch: (error) => toPgBossError("getJob", error, queue.name),
-			try: async () => {
-				if (client.findJobs === undefined) {
-					throw new TypeError("This pg-boss client does not support findJobs");
-				}
-				return (await client.findJobs(queue.name, { id }))[0];
-			},
-		}).pipe(
+export const jobControl = Effect.gen(function* () {
+	const engine = yield* JobEngine;
+	const getJob: PgBossService["getJob"] = (queue, id) =>
+		engine.getJob(queue.name, id).pipe(
 			Effect.flatMap(
 				Effect.fnUntraced(function* (job) {
 					if (job === undefined) {
@@ -39,24 +32,6 @@ export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 				}),
 			),
 		);
-}
-
-export function retryFor(client: PgBossClient): PgBossService["retry"] {
-	return (queue, id) =>
-		Effect.tryPromise({
-			catch: (error) => toPgBossError("retry", error, queue.name),
-			try: async () => {
-				if (client.findJobs === undefined || client.retry === undefined || client.update === undefined) {
-					throw new TypeError("This pg-boss client does not support findJobs, retry and update");
-				}
-				const job = (await client.findJobs(queue.name, { id }))[0];
-				if (job?.state !== "failed" && job?.state !== "retry") {
-					return;
-				}
-				if (job.state === "failed") {
-					await client.retry(queue.name, id);
-				}
-				await client.update(queue.name, undefined, { id, startAfter: 0 });
-			},
-		});
-}
+	const retry: PgBossService["retry"] = (queue, id) => engine.retry(queue.name, id);
+	return { getJob, retry };
+});
