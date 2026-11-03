@@ -17,6 +17,7 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 			tell("a killed process leaves its startup lock");
 			return abandonedSocketStartup(engine.notes.root);
 		},
+		boardUrl: (path: string) => new URL(path, served(engine).board.url).href,
 		exchange: (path: string, headers: Readonly<Record<string, string>> = {}, method = "GET", body = "") => {
 			const sent = Object.entries(headers).map(([name, value]) => `${name}: ${value}`);
 			tell(`a local HTTP client sends ${method} ${path}${sent.length > 0 ? ` with ${sent.join(", ")}` : ""}`);
@@ -34,6 +35,7 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 			tell("a stopped process leaves an unanswered Unix socket");
 			return Effect.promise(() => staleSocket(join(engine.notes.root, "board.sock")));
 		},
+		localHost: (hostname = "127.0.0.1") => `${hostname}:${served(engine).board.port}`,
 		permissions: (path: string, mode: number) => {
 			tell(`an outside editor changes permissions on ${path}`);
 			chmodSync(join(engine.notes.root, path), mode);

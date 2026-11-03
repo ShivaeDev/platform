@@ -2,8 +2,8 @@ import { expect } from "vitest";
 import { record } from "#test/storage.ts";
 import { isolatedStorage, storage } from "#test/storageStory.ts";
 
-storage.it("a terminal execution frees its execution slot for the next submission", [], function* ({ admission, advance, store }) {
-	const first = yield* store.insert({ ...record("board-a"), step: "submitting" }, { maxExecuting: 1 });
+storage.it("a terminal execution frees its execution slot for the next submission", [], function* ({ admission, advance, insert }) {
+	const first = yield* insert({ ...record("board-a"), step: "submitting" }, { maxExecuting: 1 });
 	expect(yield* admission({ ...record("board-b"), step: "submitting" }, { maxExecuting: 1 })).toBe("execution capacity of 1 is full");
 
 	yield* advance(first, { step: "terminal" });
@@ -14,9 +14,9 @@ storage.it("a terminal execution frees its execution slot for the next submissio
 isolatedStorage.it(
 	"two submissions racing for one remaining quota admit exactly one",
 	[],
-	function* ({ concurrently, store, submitAgainstQuota, workIds }) {
-		const first = yield* store.insert(record("board-a"));
-		const second = yield* store.insert(record("board-b"));
+	function* ({ concurrently, insert, submitAgainstQuota, workIds }) {
+		const first = yield* insert(record("board-a"));
+		const second = yield* insert(record("board-b"));
 		const limits = { maxExecuting: 2, quota: { available: 1, observedAt: 100 } };
 
 		const submissions = yield* concurrently(submitAgainstQuota(first, limits), submitAgainstQuota(second, limits));
@@ -26,12 +26,16 @@ isolatedStorage.it(
 	},
 );
 
-storage.it("a submission rechecks the current foreign backlog and stays queued when it is full", [], function* ({ advance, stepOf, store }) {
-	yield* store.reserveForeign("pr-backlog", { backlog: true, executing: false });
-	const prepared = yield* store.insert(record("board-a"));
+storage.it(
+	"a submission rechecks the current foreign backlog and stays queued when it is full",
+	[],
+	function* ({ advance, stepOf, insert, reserveForeign }) {
+		yield* reserveForeign("pr-backlog", { backlog: true, executing: false });
+		const prepared = yield* insert(record("board-a"));
 
-	const submission = yield* advance(prepared, { step: "submitting" }, { maxBacklog: 1 });
+		const submission = yield* advance(prepared, { step: "submitting" }, { maxBacklog: 1 });
 
-	expect(submission).toBe("backlog capacity of 1 is full");
-	expect(yield* stepOf("board-a")).toBe("queued");
-});
+		expect(submission).toBe("backlog capacity of 1 is full");
+		expect(yield* stepOf("board-a")).toBe("queued");
+	},
+);

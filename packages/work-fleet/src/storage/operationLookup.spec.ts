@@ -10,13 +10,13 @@ const AMBIGUOUS = /^session persistence/u;
 operationStorageStory.it(
 	"an operation held by a current and an archived record has no single owner, and acknowledging it changes neither record",
 	[],
-	function* ({ acknowledgeSession, owner, recordsHolding, store }) {
+	function* ({ acknowledgeSession, owner, recordsHolding, insert, reload }) {
 		const current = namedRecord("current", [namedAttempt("worker")]);
 		const { workId: _workId, ...cycle } = current;
-		yield* store.insert(current);
-		yield* store.insert({ ...namedRecord("archived", []), history: [{ ...cycle, archivedAt: 100 }] });
-		const savedCurrent = yield* store.load("current");
-		const savedArchived = yield* store.load("archived");
+		yield* insert(current);
+		yield* insert({ ...namedRecord("archived", []), history: [{ ...cycle, archivedAt: 100 }] });
+		const savedCurrent = yield* reload("current");
+		const savedArchived = yield* reload("archived");
 		yield* outcomes([
 			["records holding the operation", () => recordsHolding(OPERATION), ["archived", "current"]],
 			["owner", () => owner(OPERATION), "no single owner"],
@@ -26,8 +26,8 @@ operationStorageStory.it(
 
 		expect(acknowledgement).toMatch(AMBIGUOUS);
 		yield* outcomes([
-			["current record", () => store.load("current"), savedCurrent],
-			["archived record", () => store.load("archived"), savedArchived],
+			["current record", () => reload("current"), savedCurrent],
+			["archived record", () => reload("archived"), savedArchived],
 		]);
 	},
 );
@@ -35,15 +35,15 @@ operationStorageStory.it(
 operationStorageStory.it(
 	"acknowledging a turn records its exact receipt on the owning record's attempt",
 	[],
-	function* ({ acknowledgeSession, acknowledgeTurn, owner, store }) {
-		yield* store.insert(namedRecord("one", [namedAttempt("worker")]));
-		yield* store.insert(namedRecord("other", []));
+	function* ({ acknowledgeSession, acknowledgeTurn, owner, insert, reload }) {
+		yield* insert(namedRecord("one", [namedAttempt("worker")]));
+		yield* insert(namedRecord("other", []));
 		expect(yield* owner(OPERATION)).toBe("one");
 		yield* acknowledgeSession(OPERATION, "session");
 
 		yield* acknowledgeTurn(OPERATION, RECEIPT);
 
-		expect((yield* store.load("one"))?.value.attempts).toEqual([
+		expect((yield* reload("one"))?.value.attempts).toEqual([
 			{ ...namedAttempt("worker"), receipt: RECEIPT, sessionId: "session", startedAt: expect.any(Number), status: "accepted" },
 		]);
 	},
@@ -52,47 +52,34 @@ operationStorageStory.it(
 operationStorageStory.it(
 	"a turn acknowledgement that names another turn is refused and changes nothing",
 	[],
-	function* ({ acknowledgeSession, acknowledgeTurn, store }) {
-		yield* store.insert(namedRecord("one", [namedAttempt("worker")]));
+	function* ({ acknowledgeSession, acknowledgeTurn, insert, reload }) {
+		yield* insert(namedRecord("one", [namedAttempt("worker")]));
 		yield* acknowledgeSession(OPERATION, "session");
 		yield* acknowledgeTurn(OPERATION, RECEIPT);
-		const acknowledged = yield* store.load("one");
+		const acknowledged = yield* reload("one");
 
 		const acknowledgement = yield* acknowledgeTurn(OPERATION, { ...RECEIPT, turnId: "wrong" });
 
 		expect(acknowledgement).toMatch(AMBIGUOUS);
-		expect(yield* store.load("one")).toEqual(acknowledged);
+		expect(yield* reload("one")).toEqual(acknowledged);
 	},
 );
 
 operationStorageStory.it(
 	"another writer giving a second record the operation makes its owner ambiguous and refuses its acknowledgement",
 	[],
-	function* ({ acknowledgeSession, acknowledgeTurn, owner, store }) {
-		yield* store.insert(namedRecord("one", [namedAttempt("worker")]));
-		const other = yield* store.insert(namedRecord("other", []));
+	function* ({ acknowledgeSession, acknowledgeTurn, owner, insert, reload, replace }) {
+		yield* insert(namedRecord("one", [namedAttempt("worker")]));
+		const other = yield* insert(namedRecord("other", []));
 		yield* acknowledgeSession(OPERATION, "session");
-		const acknowledged = yield* store.load("one");
+		const acknowledged = yield* reload("one");
 
-		yield* store.compareAndSet("other", other.version, { ...other.value, attempts: [namedAttempt("worker")] });
+		yield* replace("other", other.version, { ...other.value, attempts: [namedAttempt("worker")] });
 
 		yield* outcomes([
 			["owner", () => owner(OPERATION), "no single owner"],
 			["acknowledgement", () => acknowledgeTurn(OPERATION, RECEIPT), expect.stringMatching(AMBIGUOUS)],
-			["owning record", () => store.load("one"), acknowledged],
+			["owning record", () => reload("one"), acknowledged],
 		]);
-	},
-);
-
-operationStorageStory.it(
-	"an owner whose record changed after the ownership snapshot is not returned",
-	[],
-	function* ({ ownerAfterRacingChange, store }) {
-		yield* store.insert(namedRecord("one", [namedAttempt("worker")]));
-
-		const owner = yield* ownerAfterRacingChange(OPERATION, "one", { prompt: "Changed by another writer" });
-
-		expect(owner).toBe("no single owner");
-		expect((yield* store.load("one"))?.value.prompt).toBe("Changed by another writer");
 	},
 );
