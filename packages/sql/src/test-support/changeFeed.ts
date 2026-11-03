@@ -7,6 +7,7 @@ import { changeFeedVerbs, keyOf } from "./changeFeedVerbs.ts";
 import { commandPublicationVerbs } from "./commandPublicationVerbs.ts";
 import { onPostgres } from "./engines.ts";
 import { listenerVerbs, startFeed } from "./listenerVerbs.ts";
+import { rawWriterVerbs } from "./rawWriterVerbs.ts";
 
 export const changeFeed = storyKit({
 	...onPostgres,
@@ -21,6 +22,7 @@ export const changeFeed = storyKit({
 			...changes,
 			...commandPublicationVerbs(engine, story.tell, changes.announced),
 			...listenerVerbs(engine, story.tell),
+			...rawWriterVerbs(engine, story.tell),
 		};
 	},
 });
