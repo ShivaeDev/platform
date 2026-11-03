@@ -41,3 +41,5 @@ export const values = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql<{ value: string }>`select value from items order by id`;
 });
+
+export const ITEMS_KEY = "items";

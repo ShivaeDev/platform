@@ -25,7 +25,7 @@ export const startConsumer = Effect.fnUntraced(function* (url: Redacted.Redacted
 		feed,
 		publishChange: () =>
 			sql`insert into payloads values (0, 'after trim')`.pipe(
-				Effect.andThen(invalidateOnCommit(["payloads"])),
+				Effect.andThen(invalidateOnCommit([payloads.list])),
 				transact({ onSqlError: (error) => error }),
 				Effect.provideContext(context),
 			),

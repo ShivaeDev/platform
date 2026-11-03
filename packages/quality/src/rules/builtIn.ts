@@ -31,6 +31,7 @@ import { storyEngine } from "#rules/stories/engine.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
+import { importedChangeKeys } from "#rules/stories/importedChangeKeys.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noExpect } from "#rules/stories/noExpect.ts";
 import { noLimitImports } from "#rules/stories/noLimitImports.ts";
@@ -107,6 +108,7 @@ export const builtInRules = [
 	globalRetries,
 	storyEngine,
 	queueSql,
+	importedChangeKeys,
 	authSql,
 	noExpect,
 	specHelpers,
