@@ -26,8 +26,9 @@ for (const partition of [false, true]) {
 	database.it(
 		`stately siblings for one key on ${storage} queue both defer without spending a retry`,
 		[siblings, enqueued(Stately, { value: 1 }, { as: "first sibling", singletonKey: "shared-account" }), deferred(Stately, 1)],
-		function* ({ deadLettered, deferrals, enqueue, reported, storedJobs, untilDeferred }) {
+		function* ({ deadLettered, deferrals, enqueue, reported, storedJobs, untilDeferred, pollNow }) {
 			yield* enqueue("app", Stately, { value: 2 }, { as: "second sibling", singletonKey: "shared-account" });
+			yield* pollNow("app", Stately);
 			yield* untilDeferred("app", Stately, 2);
 
 			yield* outcomes([

@@ -1,6 +1,7 @@
-import { Context, Effect, Layer, Redacted, type Schema } from "effect";
+import { Clock, Context, Effect, Layer, Redacted, type Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { getRollbackPlans, PgBoss } from "pg-boss";
+import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import type { QueueDefinition } from "#server/definition.ts";
@@ -23,7 +24,7 @@ export const installedTemplate = schemaKit.trait(
 			}),
 		);
 		state.services = yield* Context.get(template, PostgresTestDatabase).isolated;
-		state.engine = engineFor(state.services);
+		state.engine = engineFor(state.services, yield* Clock.currentTimeMillis);
 	},
 );
 
@@ -96,20 +97,16 @@ export function rolledBackTo(schema: string, version: number) {
 	);
 }
 
-export const snapshotHeld = schemaKit.trait(
-	"afterwards",
-	"an open snapshot holds back concurrent index builds, and lock waits on the database give up after a second",
-	function* (state) {
-		const sql = Context.get(state.services, SqlClient.SqlClient);
-		const connection = yield* sql.reserve;
-		yield* connection.executeRaw("DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET lock_timeout = %L', current_database(), '1s'); END $$", []);
-		yield* connection.executeRaw("BEGIN ISOLATION LEVEL REPEATABLE READ", []);
-		yield* connection.executeRaw("SELECT txid_current()", []);
-		const release = connection.executeRaw("ROLLBACK", []).pipe(Effect.orDie, Effect.asVoid);
-		yield* Effect.addFinalizer(() => release);
-		state.snapshot = release;
-	},
-);
+export const snapshotHeld = schemaKit.trait("afterwards", "an open snapshot holds back concurrent index builds", function* (state) {
+	const snapshotServices = yield* Layer.build(postgresLayer(state.engine.url, { maxConnections: 1 }));
+	const sql = Context.get(snapshotServices, SqlClient.SqlClient);
+	const connection = yield* sql.reserve;
+	yield* connection.executeRaw("BEGIN ISOLATION LEVEL REPEATABLE READ", []);
+	yield* connection.executeRaw("SELECT txid_current()", []);
+	const release = connection.executeRaw("ROLLBACK", []).pipe(Effect.orDie, Effect.asVoid);
+	yield* Effect.addFinalizer(() => release);
+	state.snapshot = release;
+});
 
 export function enqueuedBy<const TPayload extends StoryPayload>(
 	queue: QueueDefinition<string, TPayload>,

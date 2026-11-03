@@ -20,10 +20,12 @@ const heldBack = [
 schemaKit.it(
 	"an upgrade whose concurrent index build gives up records the new version and leaves that index invalid",
 	heldBack,
-	function* ({ answered, indexes, installSchema, releaseSnapshot, schemaVersion }) {
+	function* ({ answered, cancelBlockedIndexBuild, indexes, installationFinishes, startInstallingSchema, releaseSnapshot, schemaVersion }) {
 		expect(yield* schemaVersion("jobs_test")).toBe(TWO_VERSIONS_BEHIND);
 
-		yield* installSchema("jobs_test");
+		yield* startInstallingSchema("jobs_test");
+		yield* cancelBlockedIndexBuild();
+		yield* installationFinishes();
 		yield* releaseSnapshot();
 
 		yield* outcomes([
@@ -41,8 +43,10 @@ schemaKit.it(
 schemaKit.it(
 	"installing again after an index build gave up repairs the invalid and missing indexes",
 	heldBack,
-	function* ({ indexes, installSchema, releaseSnapshot }) {
-		yield* installSchema("jobs_test");
+	function* ({ cancelBlockedIndexBuild, indexes, installationFinishes, installSchema, startInstallingSchema, releaseSnapshot }) {
+		yield* startInstallingSchema("jobs_test");
+		yield* cancelBlockedIndexBuild();
+		yield* installationFinishes();
 		yield* releaseSnapshot();
 		expect(yield* indexes("jobs_test", "^job_common_i13$")).toEqual([expect.objectContaining({ valid: false })]);
 

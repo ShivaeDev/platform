@@ -31,8 +31,9 @@ const deferredOnce = [
 database.it(
 	"a deferred job stays untaken by its worker's next fetch without spending a retry, reporting an error or being dead-lettered",
 	[deferring],
-	function* ({ attempts, deadLettered, deferrals, enqueue, job, reported, untilDeferred, untilFetchesPass }) {
+	function* ({ attempts, deadLettered, deferrals, enqueue, job, reported, untilDeferred, untilFetchesPass, pollNow }) {
 		yield* enqueue("app", Deferring, { id: 42 }, { as: "job 42", singletonKey: "account-42" });
+		yield* pollNow("app", Deferring);
 		yield* untilDeferred("app", Deferring, 1);
 		yield* untilFetchesPass(Deferring, 1);
 
@@ -49,8 +50,9 @@ database.it(
 database.it(
 	"a deferred attempt ends its job span successfully with a job.deferred event",
 	[deferring],
-	function* ({ enqueue, spans, untilDeferred, untilIdle }) {
+	function* ({ enqueue, spans, untilDeferred, untilIdle, pollNow }) {
 		yield* enqueue("app", Deferring, { id: 42 }, { as: "job 42" });
+		yield* pollNow("app", Deferring);
 		yield* untilDeferred("app", Deferring, 1);
 		yield* untilIdle("app");
 
@@ -87,8 +89,11 @@ const Due = defineQueue({
 database.it(
 	"a job deferred for a moment runs again no earlier than the time it asked for",
 	[running("app", [worker(Due, { defers: "Slow down", until: { afterMillis: 1500 } }, "succeeds")], { useListenNotify: true })],
-	function* ({ deferralsKept, enqueue, job, untilJob }) {
+	function* ({ deferralsKept, enqueue, job, timePasses, untilJob, untilWakeScheduled, pollNow }) {
 		yield* enqueue("app", Due, {}, { as: "due job" });
+		yield* pollNow("app", Due);
+		yield* untilWakeScheduled(1501);
+		yield* timePasses(1501);
 		yield* untilJob("due job", "completed");
 
 		yield* outcomes([

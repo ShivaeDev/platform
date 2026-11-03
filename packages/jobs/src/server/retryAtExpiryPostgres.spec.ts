@@ -58,10 +58,11 @@ database.it(
 		deferred(Reused, 1),
 		deletedJob("job"),
 	],
-	function* ({ enqueue, job, untilDeferred }) {
+	function* ({ enqueue, job, untilDeferred, pollNow }) {
 		expect(yield* job("job")).toBe("missing");
 
 		yield* enqueue("app", Reused, {}, { as: "reused job", sameIdAs: "job" });
+		yield* pollNow("app", Reused);
 		yield* untilDeferred("app", Reused, 1);
 
 		expect(yield* job("reused job")).toMatchObject({ retryCount: 0, state: "retry" });

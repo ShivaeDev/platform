@@ -9,8 +9,9 @@ import { serverTlsAbsent } from "./connections.ts";
 import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "./controller.ts";
 import { database } from "./database.ts";
 import type { StoryPayload } from "./databaseEngine.ts";
+import { wakeWorkers } from "./driveWorkers.ts";
 import { admin, runningIn, type StartOptions, startRuntime } from "./engine.ts";
-import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf, waitingVerbs } from "./verbs.ts";
+import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf } from "./verbs.ts";
 
 const started = Effect.fnUntraced(function* (
 	engine: Parameters<typeof startRuntime>[0],
@@ -24,6 +25,8 @@ const started = Effect.fnUntraced(function* (
 		return yield* Effect.die(new Error(`${name} did not start: ${answer}`));
 	}
 });
+
+import { waitingVerbs } from "./waitingVerbs.ts";
 
 export function running(name: string, jobs: readonly Registration[] = [], options?: StartOptions) {
 	return database.trait("runtime", `${name} runs the jobs runtime`, (engine) => started(engine, name, jobs, options));
@@ -51,6 +54,7 @@ export function enqueued<const TPayload extends StoryPayload>(
 ) {
 	return database.trait("jobs", `${name} enqueued ${options.as}`, function* (engine) {
 		yield* enqueueAs(engine, name, queue, payload, options);
+		wakeWorkers(engine, queue.name);
 		if (engine.answered !== options.as) {
 			return yield* Effect.die(new Error(`${options.as} was not enqueued: ${String(engine.answered)}`));
 		}
@@ -73,6 +77,7 @@ export function enqueuedUntil<const TPayload extends StoryPayload>(
 ) {
 	return database.trait("jobs", `${name} enqueued ${options.as}, which has ${state}`, function* (engine) {
 		yield* enqueueAs(engine, name, queue, payload, options);
+		wakeWorkers(engine, queue.name);
 		yield* waitingVerbs(engine, () => undefined).untilJob(options.as, state);
 	});
 }

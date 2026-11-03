@@ -1,4 +1,4 @@
-import { Cause, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
+import { Cause, type Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
@@ -54,8 +54,9 @@ function errorReportState() {
 	};
 }
 
-export function runtimeEngine(): RuntimeEngine {
+export function runtimeEngine(clock: Clock.Clock): RuntimeEngine {
 	const client = new FakeClient();
+	client.now = () => clock.currentTimeMillisUnsafe();
 	return {
 		answered: undefined,
 		applicationLog: [],

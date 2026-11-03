@@ -34,14 +34,14 @@ database.it(
 	},
 );
 
-for (const { clock, schema, wrapped } of [
-	{ clock: "live", schema: "pgboss", wrapped: false },
-	{ clock: "live", schema: "custom_jobs", wrapped: false },
-	{ clock: "test", schema: "pgboss", wrapped: false },
-	{ clock: "live", schema: "pgboss", wrapped: true },
+for (const { schema, wrapped, offset } of [
+	{ offset: 0, schema: "pgboss", wrapped: false },
+	{ offset: 0, schema: "custom_jobs", wrapped: false },
+	{ offset: 1000, schema: "pgboss", wrapped: false },
+	{ offset: 0, schema: "pgboss", wrapped: true },
 ] as const) {
 	database.it(
-		`in ${schema} on the ${clock} clock, a producer${wrapped ? " with a wrapped client" : ""} waits for an active job in a separate worker client without a testing controller`,
+		`in ${schema} with the clock advanced by ${offset}ms, a producer${wrapped ? " with a wrapped client" : ""} waits for an active job in a separate worker client without a testing controller`,
 		[
 			running("producer", [Reports], { schema, ...(wrapped ? { wrapsClient: true } : {}) }),
 			running("worker", [worker(Reports, { waitsFor: "report" })], { controller: "none", schema }),
@@ -49,15 +49,15 @@ for (const { clock, schema, wrapped } of [
 			waiting("report"),
 			idleWaitStarted("producer"),
 		],
-		function* ({ idleWait, open, snapshot, untilIdleWaitSettles }) {
+		function* ({ idleWait, open, snapshot, timePasses, untilIdleWaitSettles }) {
 			expect(yield* idleWait("producer")).toBe("still waiting");
 
+			yield* timePasses(offset);
 			yield* open("report");
 			yield* untilIdleWaitSettles("producer");
 
 			expect(yield* snapshot("producer", [Reports])).toEqual([]);
 		},
-		{ clock },
 	);
 }
 

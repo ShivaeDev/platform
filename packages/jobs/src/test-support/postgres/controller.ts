@@ -1,8 +1,10 @@
 import { Clock, DateTime, Deferred, Duration, Effect, Fiber, type Schema } from "effect";
 import type { FindJobsOptions, JobWithMetadata } from "pg-boss";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import type { QueueDefinition } from "#server/definition.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
+import { driveWorkers } from "./driveWorkers.ts";
 import { labelOf, runningIn } from "./engine.ts";
 import { idOf, testingOf } from "./verbs.ts";
 
@@ -63,6 +65,11 @@ function outcomeOf(fiber: Fiber.Fiber<unknown, unknown> | undefined, done: strin
 
 export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 	return {
+		budgetWaitResult: (name: string) =>
+			Effect.suspend(() => {
+				const fiber = engine.budgetWaits.get(name);
+				return fiber === undefined ? Effect.die(new Error(`${name} started no budget wait`)) : Fiber.join(fiber);
+			}),
 		changeWatch: (name: string) => Effect.sync(() => outcomeOf(engine.changeWatches.get(name), "woke for a later revision")),
 		controllerAwaits: (name: string, as: string, state: JobWithMetadata["state"], within?: Duration.Input) => {
 			tell(
@@ -136,27 +143,45 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 						})),
 				}),
 			),
+		startFetchBudgetWait: (name: string, queue: Pick<QueueDefinition, "name">, count: number, within: Duration.Input) =>
+			Effect.gen(function* () {
+				tell(`the controller of ${name} starts waiting for ${count} ${queue.name} fetches`);
+				const fiber = yield* controllerVerbs(engine, tell).controllerAwaitsFetches(name, queue, count, within).pipe(Effect.forkScoped);
+				engine.budgetWaits.set(name, fiber);
+				yield* untilTimer(within);
+			}),
+		startJobBudgetWait: (name: string, as: string, state: JobWithMetadata["state"], within: Duration.Input) =>
+			Effect.gen(function* () {
+				tell(`the controller of ${name} starts waiting for ${as} to become ${state}`);
+				const fiber = yield* controllerVerbs(engine, tell).controllerAwaits(name, as, state, within).pipe(Effect.forkScoped);
+				engine.budgetWaits.set(name, fiber);
+				yield* untilTimer(within);
+			}),
 		untilChanged: (name: string) => {
 			tell(`wait until the testing controller of ${name} wakes for a change`);
 			return Effect.suspend(() => {
 				const fiber = engine.changeWatches.get(name);
 				return fiber === undefined
 					? Effect.die(new Error(`Nothing watches the testing controller of ${name}`))
-					: Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
+					: driveWorkers(engine, Fiber.join(fiber)).pipe(Effect.timeout("20 seconds"));
 			});
 		},
 		untilFetchWatchPasses: (name: string) => {
 			tell(`wait until the fetch watch of ${name} passes`);
 			return Effect.suspend(() => {
 				const fiber = engine.fetchWatches.get(name);
-				return fiber === undefined ? Effect.die(new Error(`${name} started no fetch watch`)) : Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
+				return fiber === undefined
+					? Effect.die(new Error(`${name} started no fetch watch`))
+					: driveWorkers(engine, Fiber.join(fiber)).pipe(Effect.timeout("20 seconds"));
 			});
 		},
 		untilIdleWaitSettles: (name: string) => {
 			tell(`wait until the idle wait of ${name} settles`);
 			return Effect.suspend(() => {
 				const fiber = engine.idleWaits.get(name);
-				return fiber === undefined ? Effect.die(new Error(`${name} started no idle wait`)) : Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
+				return fiber === undefined
+					? Effect.die(new Error(`${name} started no idle wait`))
+					: driveWorkers(engine, Fiber.join(fiber)).pipe(Effect.timeout("20 seconds"));
 			});
 		},
 		watchForChange: (name: string, since: "now" | "the mark" = "now") => {

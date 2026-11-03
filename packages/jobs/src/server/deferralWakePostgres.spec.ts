@@ -26,7 +26,9 @@ for (const offset of [0, 60_000, -60_000]) {
 				useListenNotify: true,
 			}),
 		],
-		function* ({ applicationLoggedJob, untilJob, wakes }) {
+		function* ({ applicationLoggedJob, timePasses, untilJob, untilWakeScheduled, wakes }) {
+			yield* untilWakeScheduled(1001);
+			yield* timePasses(1001);
 			yield* untilJob("job", "completed");
 
 			yield* outcomes([

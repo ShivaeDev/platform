@@ -3,7 +3,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { declarationFiles } from "./declarationFiles.ts";
 
 export const declarations = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => Effect.succeed({ declarationFiles }),
 	name: "jobs declarations through the TypeScript compiler",
 	stages: [],

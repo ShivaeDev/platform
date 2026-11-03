@@ -21,17 +21,22 @@ database.it(
 	},
 );
 
-for (const clock of ["live", "test"] as const) {
+for (const clock of ["job budget", "job budget after an earlier clock advance"] as const) {
 	database.it(
-		`a controller that waits past its budget of wall time for a job on the story's ${clock} clock fails with PgBossWaitError naming the expected and last seen states`,
+		`a controller that waits past its ${clock} fails with PgBossWaitError naming the expected and last seen states`,
 		[running("app", [Checked], { controller: "test retries" }), enqueued(Checked, { id: 42 }, { as: "check 42" })],
-		function* ({ controllerAwaits }) {
-			expect(yield* controllerAwaits("app", "check 42", "completed", "200 millis")).toEqual({
+		function* ({ budgetWaitResult, startJobBudgetWait, timePasses }) {
+			if (clock === "job budget after an earlier clock advance") {
+				yield* timePasses("1 hour");
+			}
+			yield* startJobBudgetWait("app", "check 42", "completed", "200 millis");
+			yield* timePasses("200 millis");
+
+			expect(yield* budgetWaitResult("app")).toEqual({
 				error: "PgBossWaitError",
 				message: "Gave up after 200ms waiting until job check 42 in checked is completed; last seen: created",
 			});
 		},
-		{ clock },
 	);
 }
 
@@ -59,8 +64,11 @@ database.it(
 database.it(
 	"a controller that waits past its budget for fetches of a queue no worker polls fails with PgBossWaitError naming how many fetches passed",
 	[running("app", [Checked], { controller: "test retries" })],
-	function* ({ controllerAwaitsFetches }) {
-		expect(yield* controllerAwaitsFetches("app", Checked, 1, "200 millis")).toEqual({
+	function* ({ budgetWaitResult, startFetchBudgetWait, timePasses }) {
+		yield* startFetchBudgetWait("app", Checked, 1, "200 millis");
+		yield* timePasses("200 millis");
+
+		expect(yield* budgetWaitResult("app")).toEqual({
 			error: "PgBossWaitError",
 			message: "Gave up after 200ms waiting until 1 checked fetch that began after the wait has finished; last seen: 0 finished",
 		});
@@ -91,13 +99,15 @@ database.it(
 		enqueued(Checked, { id: 3 }, { as: "check 3" }),
 		fetchesWatched("app", Checked, 2),
 	],
-	function* ({ fetchWatch, job, open, untilWaiting, untilFetchWatchPasses }) {
+	function* ({ fetchWatch, job, open, untilWaiting, untilFetchWatchPasses, pollNow }) {
 		yield* open("first");
+		yield* pollNow("app", Checked);
 		yield* untilWaiting("second");
 
 		expect(yield* fetchWatch("app")).toBe("still waiting");
 
 		yield* open("second");
+		yield* pollNow("app", Checked);
 		yield* untilFetchWatchPasses("app");
 
 		expect(yield* job("check 3")).toMatchObject({ state: expect.stringMatching(/^(?:active|completed)$/u) });

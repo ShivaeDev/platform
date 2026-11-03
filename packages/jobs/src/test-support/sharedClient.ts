@@ -1,4 +1,5 @@
 import { Context, Effect, Exit, Layer, Queue, Schema, Scope } from "effect";
+import { TestClock } from "effect/testing";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -15,12 +16,12 @@ const Work = defineQueue({ name: "shared-client", schema: Schema.Struct({ messag
 
 export const sharedClient = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const delivered = yield* Queue.unbounded<string>();
 		const scope = yield* Scope.fork(yield* Scope.Scope);
-		const testing = makePgBossTesting();
+		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 		const lifecycle = { created: 0, stopped: 0 };
 		const app = pgBossLayer({
 			clientFactory: (options) => {
@@ -57,7 +58,7 @@ export const sharedClient = storyKit({
 		lifecycle: () => Effect.sync(() => ({ ...engine.lifecycle })),
 		publish: (message: string) => {
 			story.tell(`the producer publishes ${message}`);
-			return engine.producer.enqueue(Work, { message });
+			return engine.producer.enqueue(Work, { message }).pipe(Effect.tap(() => engine.testing.waitForIdle));
 		},
 		registeredQueues: () => Effect.map(engine.registration.health(), (health) => health.jobs.map(({ name }) => name)),
 	}),

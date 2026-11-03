@@ -5,7 +5,7 @@ import { notifyWork } from "#test/workers.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 
 export function observeWakes(engine: DatabaseEngine, runtime: string, client: PgBossClient): PgBossClient {
-	const notify = client.notifyWorker;
+	const notify = client.notifyWorker?.bind(client);
 	if (notify === undefined) {
 		return client;
 	}
