@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { storyRunner } from "#test/storyRunner.ts";
 
-const DOM = { environment: fileURLToPath(new URL("./domEnvironment.config.ts", import.meta.url)) };
+const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
 
 for (const [title, name, host] of [
 	["refuses host fetch even when the host catches it", "Contained DOM Story: refuses host fetch even when the host catches it", "unrouted-host.test"],

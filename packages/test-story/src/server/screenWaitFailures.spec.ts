@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { storyRunner } from "#test/storyRunner.ts";
 
-const DOM = { environment: fileURLToPath(new URL("./domEnvironment.config.ts", import.meta.url)) };
+const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
 
 for (const [name, failure, narration] of [
 	["names a removal that never happens", "The screen did not lose .notice within 30ms.", "wait for .notice to disappear"],
