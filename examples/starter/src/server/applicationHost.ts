@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
-import { HttpServerRespondable, HttpStaticServer } from "effect/http";
+import { HttpRouter } from "effect/http";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
@@ -11,6 +11,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { hostAssets } from "@shivaedev/server/hostAssets.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
@@ -26,11 +27,10 @@ import type { PoolSizes } from "./PoolSizes.ts";
 const ownerSeed = accountRoleSeed(AppAccess, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
 
 function adminDocumentRoutes(admin: Parameters<typeof adminDocuments>[0]) {
-	return Layer.unwrap(
-		Effect.map(HttpStaticServer.make({ root: "dist", spa: true }), (spa) =>
-			adminDocuments(admin, () => spa.pipe(Effect.catch(HttpServerRespondable.toResponse))),
-		),
+	const handler = HttpRouter.toHttpEffect(hostAssets({ root: "dist", spa: true })).pipe(
+		Effect.provideServiceEffect(Layer.CurrentMemoMap, Layer.makeMemoMap),
 	);
+	return Layer.unwrap(Effect.map(handler, (assets) => adminDocuments(admin, () => assets)));
 }
 
 export function applicationHost<R = never, E = never, TRequirements = never>(config?: {
@@ -83,7 +83,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
-						routes: Layer.mergeAll(routes, authEmailRoutes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
+						routes: Layer.mergeAll(routes, authEmailRoutes, hostAssets({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
 						services: Layer.merge(Layer.succeedContext(serviceContext), betterAuthUserDirectory(AppAccess, authOptions())),
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
