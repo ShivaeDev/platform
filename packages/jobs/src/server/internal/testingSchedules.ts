@@ -1,8 +1,8 @@
-import type { PgBoss } from "pg-boss";
 import type { ScheduleDefinition } from "#server/definition.ts";
+import type { EngineClient } from "#server/engineClient.ts";
 import { testingOperation } from "#server/internal/testingReadout.ts";
 
-export function testingSchedules(client: () => PgBoss, changed: () => void) {
+export function testingSchedules(client: () => EngineClient, changed: () => void) {
 	return {
 		schedules: () =>
 			testingOperation("schedules", async () => (await client().getSchedules()).map(({ name, cron, timezone }) => ({ cron, name, timezone }))),

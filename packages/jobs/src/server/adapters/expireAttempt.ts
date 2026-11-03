@@ -1,8 +1,8 @@
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 import type { JobAttempt } from "#server/internal/engine.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
 
-export async function expireAttempt(client: PgBoss, schema: string, job: JobAttempt, cause: "expiry" | "heartbeat" = "expiry"): Promise<void> {
+export async function expireAttempt(client: EngineClient, schema: string, job: JobAttempt, cause: "expiry" | "heartbeat" = "expiry"): Promise<void> {
 	if ((await client.schemaVersion()) !== 46) {
 		throw new Error("Testing expiry requires pg-boss schema version 46");
 	}

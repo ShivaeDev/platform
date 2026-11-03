@@ -1,10 +1,12 @@
-import type { Job, PgBoss, SendOptions } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
+import type { EnqueueOptions } from "#server/enqueueOptions.ts";
+import type { WorkerJob } from "#server/job.ts";
 
-export function testingExpirations(client: PgBoss) {
+export function testingExpirations(client: EngineClient) {
 	const snapshots = new Map<string, Promise<number | undefined>>();
 	return {
-		attemptsFor: (job: Job<unknown>) => snapshots.get(`${job.name}:${job.id}`),
-		send(name: string, data: object | null | undefined, options: SendOptions, attempts: number | undefined) {
+		attemptsFor: (job: WorkerJob<unknown>) => snapshots.get(`${job.name}:${job.id}`),
+		send(name: string, data: object | null | undefined, options: EnqueueOptions, attempts: number | undefined) {
 			if (attempts === undefined && options.id === undefined) {
 				return client.send(name, data, options);
 			}

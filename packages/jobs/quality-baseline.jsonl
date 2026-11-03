@@ -3,7 +3,6 @@
 {"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/defineSchedule.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/definition.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/internal/batchHandler.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/clientErrors.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/countsFor.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/deadlineOf.ts","rule":"effect/boundary","count":1}

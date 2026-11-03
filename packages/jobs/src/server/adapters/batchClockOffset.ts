@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Schema } from "effect";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
@@ -13,5 +13,8 @@ export const batchClockOffset = Effect.fnUntraced(function* (client: PgBossClien
 			return client.getDb().executeSql(`SELECT EXTRACT(EPOCH FROM ${quotedSchema(schema)}.job_now()) * 1000 AS now`);
 		},
 	});
-	return (yield* Clock.currentTimeMillis) - Number(rows[0].now);
+	const row = yield* Schema.decodeUnknownEffect(Schema.Struct({ now: Schema.Union([Schema.String, Schema.Number]) }))(rows[0]).pipe(
+		Effect.mapError((error) => toPgBossError("settle", error, name)),
+	);
+	return (yield* Clock.currentTimeMillis) - Number(row.now);
 });

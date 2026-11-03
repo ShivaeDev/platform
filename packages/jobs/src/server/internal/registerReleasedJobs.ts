@@ -1,8 +1,8 @@
 import { type Context, Effect, Option, Scope } from "effect";
-import type { StopOptions } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import { retireJobs } from "#server/adapters/retireJobs.ts";
 import type { PgBossClient } from "#server/client.ts";
+import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
 import { registerJobs, registrationName } from "./register.ts";

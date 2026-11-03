@@ -1,5 +1,4 @@
 import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope } from "effect";
-import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
@@ -7,7 +6,9 @@ import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
 import { jobEngine } from "#server/adapters/jobEngine.ts";
 import { clientEngine } from "#server/adapters/lifecycle.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
+import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
+import type { EnqueueOptions } from "#server/enqueueOptions.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
 import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
@@ -17,6 +18,7 @@ import { makeService } from "#server/internal/makeService.ts";
 import { registrationName } from "#server/internal/register.ts";
 import { registerReleasedJobs } from "#server/internal/registerReleasedJobs.ts";
 import { validateQueueNames } from "#server/internal/validateQueueNames.ts";
+import type { Job } from "#server/job.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 
 export interface PgBossService {
@@ -28,7 +30,7 @@ export interface PgBossService {
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
 		queue: QueueDefinition<TName, TPayload> & TQueue,
 		payload: NoInfer<Schema.Schema.Type<TPayload>>,
-		options?: NoInfer<TQueue["key"] extends undefined ? SendOptions : Omit<SendOptions, "singletonKey"> & { readonly singletonKey?: never }>,
+		options?: NoInfer<TQueue["key"] extends undefined ? EnqueueOptions : Omit<EnqueueOptions, "singletonKey"> & { readonly singletonKey?: never }>,
 	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, TPayload["EncodingServices"]>;
 	readonly failedJobs: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },
@@ -37,12 +39,12 @@ export interface PgBossService {
 	readonly getJob: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },
 		id: string,
-	) => Effect.Effect<Option.Option<JobWithMetadata<unknown>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
+	) => Effect.Effect<Option.Option<Job<unknown>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly health: (queues?: readonly Pick<QueueDefinition, "name">[]) => Effect.Effect<JobsHealth, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
 }
 
-export type PgBossOptions = Omit<ConstructorOptions, "connectionString"> & {
+export type PgBossOptions = Omit<ClientOptions, "connectionString"> & {
 	readonly connectionString?: Redacted.Redacted<string>;
 	readonly idleTimeoutMillis?: number;
 	readonly maxLifetimeSeconds?: number;

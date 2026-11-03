@@ -1,10 +1,10 @@
 import { Duration, Effect, Redacted } from "effect";
-import type { PgBoss } from "pg-boss";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import { testingClient } from "#server/adapters/testingClient.ts";
 import { testingDueNow } from "#server/adapters/testingDueNow.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { QueueDefinition } from "#server/definition.ts";
+import type { EngineClient } from "#server/engineClient.ts";
 import { PgBossTestingError } from "#server/error.ts";
 import { type TestingFetches, testingFetches } from "#server/internal/adapters/testingFetches.ts";
 import { testingDeferrals } from "#server/internal/testingDeferrals.ts";
@@ -16,7 +16,7 @@ import { testingSnapshot } from "#server/internal/testingSnapshot.ts";
 import { testingWaits } from "#server/internal/testingWaits.ts";
 import type { PgBossTestingOptions } from "#server/testing.ts";
 export function testingController(options: PgBossTestingOptions = {}) {
-	let current: PgBoss | undefined;
+	let current: EngineClient | undefined;
 	let fetches: TestingFetches | undefined;
 	let schema = "pgboss";
 	const signal = testingSignal();
@@ -29,7 +29,7 @@ export function testingController(options: PgBossTestingOptions = {}) {
 		retryPolicy: options.retryPolicy ?? {},
 		work,
 	};
-	function client(): PgBoss {
+	function client(): EngineClient {
 		if (current === undefined) {
 			throw new Error("Provide the testing clientFactory to a jobs Layer first");
 		}

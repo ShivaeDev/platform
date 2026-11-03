@@ -1,10 +1,10 @@
 import { DateTime } from "effect";
-import type { PgBoss } from "pg-boss";
 import type { QueueDefinition } from "#server/definition.ts";
+import type { EngineClient } from "#server/engineClient.ts";
 import { deferralOf } from "#server/internal/deferral.ts";
 import { testingOperation } from "#server/internal/testingReadout.ts";
 
-export function testingDeferrals(client: () => PgBoss) {
+export function testingDeferrals(client: () => EngineClient) {
 	return {
 		deferred: (queue: Pick<QueueDefinition, "name">) =>
 			testingOperation(

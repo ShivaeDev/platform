@@ -1,15 +1,15 @@
 import { Effect, Redacted, Schema } from "effect";
-import type { Job } from "pg-boss";
 import { deferralCount } from "#server/adapters/deferralCount.ts";
 import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { type JobPayloadSchema, jobContext, type QueueWorker } from "#server/definition.ts";
 import { PgBossPayloadError } from "#server/error.ts";
 import { payloadOf } from "#server/internal/tracing.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 export function runQueueWorker<R>(
 	worker: QueueWorker<JobPayloadSchema & { readonly DecodingServices: R }, R>,
-	job: Job<unknown>,
+	job: WorkerJob<unknown>,
 	deadline: number,
 	client: PgBossClient,
 	schema: string,

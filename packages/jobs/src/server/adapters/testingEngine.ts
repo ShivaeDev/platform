@@ -1,11 +1,11 @@
 import { type Context, Effect, Redacted } from "effect";
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 import { PgBossTestingError } from "#server/error.ts";
 import type { TestingEngine } from "#server/internal/engine.ts";
 import { expireAttempt } from "./expireAttempt.ts";
 import { observeTestingSettlements } from "./observeTestingSettlements.ts";
 
-export function testingEngine(client: PgBoss, schema: string): Context.Service.Shape<typeof TestingEngine> {
+export function testingEngine(client: EngineClient, schema: string): Context.Service.Shape<typeof TestingEngine> {
 	return {
 		expireAttempt: (job, cause) =>
 			Effect.tryPromise({

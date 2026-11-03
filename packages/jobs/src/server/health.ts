@@ -1,6 +1,6 @@
 import type { DateTime, Option } from "effect";
-import type { JobWithMetadata } from "pg-boss";
 import type { JobFailure } from "#JobFailure.ts";
+import type { JobState } from "#server/job.ts";
 
 export interface QueueCounts {
 	readonly activeCount: number;
@@ -42,7 +42,7 @@ export interface ListedJob<TData> {
 	readonly retryCount: number;
 	readonly retryLimit: number;
 	readonly startedOn: Option.Option<DateTime.Utc>;
-	readonly state: JobWithMetadata["state"];
+	readonly state: JobState;
 }
 
 export interface DeadLetteredJob<TData> extends ListedJob<TData> {

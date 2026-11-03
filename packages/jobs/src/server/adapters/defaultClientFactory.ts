@@ -1,7 +1,9 @@
 import { Socket } from "node:net";
-import { type ConstructorOptions, PgBoss } from "pg-boss";
+import { PgBoss } from "pg-boss";
+import type { ClientOptions } from "#server/clientOptions.ts";
+import type { EngineClient } from "#server/engineClient.ts";
 
-export function defaultClientFactory(options: ConstructorOptions) {
+export function defaultClientFactory(options: ClientOptions): EngineClient {
 	const disconnected = new Set<Promise<void>>();
 	const config = {
 		...options,

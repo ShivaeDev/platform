@@ -3,6 +3,7 @@ import { expectTypeOf } from "vitest";
 import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue, type JobContext } from "#server/definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import type { Job } from "#server/job.ts";
 import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#server/service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@shivaedev/jobs/test/HandlerDependency") {}
@@ -36,6 +37,7 @@ const program = Effect.gen(function* () {
 	const jobs = yield* Jobs;
 	yield* jobs.enqueue(Queue, { count: 1, label: "one" });
 	const job = Option.getOrThrow(yield* jobs.getJob(Queue, "job-id"));
+	expectTypeOf(job).toEqualTypeOf<Job<unknown>>();
 	expectTypeOf(job.data).toEqualTypeOf<unknown>();
 	yield* jobs.retry(Queue, "job-id");
 	yield* jobs.counts(Queue);

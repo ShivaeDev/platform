@@ -1,13 +1,13 @@
 import { Effect, Option } from "effect";
-import type { JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "#server/definition.ts";
 import { deadLetterQueueName } from "#server/health.ts";
+import type { Job } from "#server/job.ts";
 import { spanTree } from "#test/spanTree.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, anyRuntime, errorOf, labelOf, runningIn } from "./engine.ts";
 import { deadLetterSources, idOf, lookup } from "./verbs.ts";
 
-function summary(engine: DatabaseEngine, job: JobWithMetadata<unknown>) {
+function summary(engine: DatabaseEngine, job: Job<unknown>) {
 	return {
 		data: job.data,
 		error: errorOf(job.output),

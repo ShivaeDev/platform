@@ -1,5 +1,6 @@
 import { Config, Context, Data, Effect, type Layer, Redacted, Schema } from "effect";
 import { expectTypeOf } from "vitest";
+import type { WorkerOptions } from "@shivaedev/jobs/server/workerOptions.ts";
 import { githubSource } from "#server/github.ts";
 import { webhookEvent, webhookJob } from "#server/registration.ts";
 import { webhookRoute } from "#server/route.ts";
@@ -11,6 +12,7 @@ class OtherService extends Context.Service<OtherService, number>()("@shivaedev/w
 class OtherFailure extends Data.TaggedError("OtherFailure") {}
 
 const Payload = Schema.Struct({ number: Schema.Number });
+expectTypeOf(issueQueue.workerOptions).toEqualTypeOf<WorkerOptions>();
 const pure = webhookEvent(Payload, (payload) => [webhookJob(issueQueue, payload)]);
 const checked = webhookEvent(Payload, (payload) =>
 	Effect.gen(function* () {

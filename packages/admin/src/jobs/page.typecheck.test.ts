@@ -4,6 +4,8 @@ import { expectTypeOf } from "vitest";
 import type { Bound } from "@shivaedev/contract/bind.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
+import type { ListedJob } from "@shivaedev/jobs/server/health.ts";
+import type { JobState } from "@shivaedev/jobs/server/job.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { adminRegistry } from "#registry.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
@@ -33,6 +35,8 @@ expectTypeOf<JobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<never>
 expectTypeOf<JobRpc["successSchema"]["DecodingServices"]>().toEqualTypeOf<never>();
 type Job = JobRpc["successSchema"]["Type"] extends Option.Option<infer A> ? A : never;
 expectTypeOf<Job["data"]>().toEqualTypeOf<unknown>();
+expectTypeOf<Job["state"]>().toEqualTypeOf<JobState>();
+expectTypeOf<Job>().toEqualTypeOf<ListedJob<unknown>>();
 
 expectTypeOf<Job["output"]>().toEqualTypeOf<JobFailure | null>();
 

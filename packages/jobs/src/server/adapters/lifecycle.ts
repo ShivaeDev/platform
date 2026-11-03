@@ -1,6 +1,6 @@
 import { type Context, Effect, Exit, Scope } from "effect";
-import type { StopOptions } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
+import type { StopOptions } from "#server/clientOptions.ts";
 import { PgBossClientOptionsError, toPgBossError } from "#server/error.ts";
 import { observeClientErrors } from "#server/internal/clientErrors.ts";
 import { jobStorePlans } from "#server/internal/jobStorePlans.ts";

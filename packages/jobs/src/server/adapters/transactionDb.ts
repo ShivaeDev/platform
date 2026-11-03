@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
 import { SqlClient } from "effect/sql";
-import type { SendOptions } from "pg-boss";
+import type { EnqueueOptions } from "#server/enqueueOptions.ts";
 
-export const transactionDb: Effect.Effect<SendOptions["db"]> = Effect.gen(function* () {
+export const transactionDb: Effect.Effect<EnqueueOptions["db"]> = Effect.gen(function* () {
 	const sql = yield* Effect.serviceOption(SqlClient.SqlClient);
 	if (Option.isNone(sql)) {
 		return undefined;

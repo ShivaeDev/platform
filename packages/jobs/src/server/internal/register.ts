@@ -1,8 +1,8 @@
 import { type Context, Effect, Scope } from "effect";
-import type { StopOptions } from "pg-boss";
 import { registerWorker } from "#server/adapters/registerWorker.ts";
 import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
 import type { PgBossClient } from "#server/client.ts";
+import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#server/definition.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#server/error.ts";
 import { ensureQueue } from "#server/internal/ensureQueue.ts";
