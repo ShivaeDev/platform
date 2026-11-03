@@ -16,6 +16,8 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 		accessible: driver.accessible,
 		clickControl: driver.click,
 		controlText: driver.text,
+		controlTexts: (selector: string) =>
+			Effect.sync(() => [...screenView(engine).container.querySelectorAll(selector)].map((node) => node.textContent)),
 		enterControl: driver.enter,
 		findControl: driver.find,
 		heading: () => Effect.sync(() => screenView(engine).container.querySelector("h1")?.textContent ?? "no heading"),

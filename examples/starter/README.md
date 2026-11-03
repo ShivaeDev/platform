@@ -21,6 +21,8 @@ readPolicy: ({ id }, viewer) =>
 
 To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its own queues and workers; both application processes compose the same module list.
 
+Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements.
+
 ## Create or run it
 
 Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md). Generated apps already have a git-ignored `.env.local` with a fresh authentication secret and development and test database URLs. In this repository, run `./script/update` at the root, copy `.env.example` to `.env.local` here, and replace the example secret with the output of `openssl rand -base64 32`. Run `pnpm dev` and open `http://127.0.0.1:5173`.

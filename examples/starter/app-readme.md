@@ -10,6 +10,8 @@ The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/s
 
 To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
 
+Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements.
+
 Server registrations satisfy `AppModule` and carry `{ name, migrations, group, handlers, services }`. Use native Layers for services and handlers and a native migration loader in `migrations.loader`; the foundation combines the registered loaders. Optional `admin`, `ports`, `queues` and `workers` stay on that same registration. The server Jobs inventory comes from these queues; `src/admin/foundation.ts` keeps only the browser-safe queue schemas and page declarations.
 
 ## Develop and test
