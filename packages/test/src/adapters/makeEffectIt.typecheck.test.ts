@@ -31,7 +31,7 @@ effectApp(
 	function* () {
 		return yield* Token;
 	},
-	{ clock: "live" },
+	{ clock: "test" },
 );
 
 effectApp.each([{ id: 1 as const }])("retains table case types", function* (item, harness) {
