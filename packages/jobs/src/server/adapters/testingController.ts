@@ -42,12 +42,13 @@ export function testingController(options: PgBossTestingOptions = {}) {
 		schema = clientOptions.schema ?? "pgboss";
 		current = defaultClientFactory({ ...clientOptions, "__test__enableSpies": true });
 		fetches = testingFetches(current.getDb(), signal.changed);
-		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
+		current = testingClient(current, schema, controls);
+		return current;
 	};
 	return {
 		...testingDeferrals(client),
 		...testingDueNow(client, () => schema, signal.changed),
-		...testingSchedules(client, signal.changed),
+		...testingSchedules(client),
 		...testingWaits(client, () => fetches, signal),
 		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
 			testingOperation(
@@ -100,6 +101,8 @@ export function testingController(options: PgBossTestingOptions = {}) {
 			}),
 		failNextSend: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
 		jobs: testingReadout(client),
+		refreshQueueStats: (queue?: Pick<QueueDefinition, "name">) =>
+			testingOperation("refreshQueueStats", () => client().supervise(queue?.name), queue?.name),
 		revision: signal.revision,
 		schemaVersion: testingOperation("schemaVersion", () => client().schemaVersion()),
 		snapshot: testingSnapshot(client, () => schema),

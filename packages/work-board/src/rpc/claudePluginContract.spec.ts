@@ -45,7 +45,7 @@ const aBuildInFlight = fleetReports({
 boardStory.it(
 	"the plugin's board read shows the open decision, the build in flight, the area it holds and the launch goal's progress",
 	[aLaunch, aBuildInFlight],
-	function* ({ board, pluginSection }) {
+	function* ({ boardUrl, pluginSection }) {
 		const flight = {
 			agents: [
 				{ id: "worker", role: "worker", state: "coding", turnMs: NOW - STARTED },
@@ -76,7 +76,7 @@ boardStory.it(
 				"asks",
 				() => pluginSection("asks", NOW),
 				{
-					items: [{ key: "open:task.build", title: "Build the page", url: `${board.url}/_board/item/decision.scope/#answer-card-direction` }],
+					items: [{ key: "open:task.build", title: "Build the page", url: boardUrl("/_board/item/decision.scope/#answer-card-direction") }],
 					problem: null,
 				},
 			],

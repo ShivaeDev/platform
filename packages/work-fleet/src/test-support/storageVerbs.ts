@@ -10,6 +10,7 @@ import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 import { readDecisionRecords } from "#test/readDecisionRecords.ts";
 import { makeTestStore } from "#test/storage.ts";
+import { storageRecordVerbs } from "#test/storageRecordVerbs.ts";
 import { textRecordTables } from "#test/textRecordTables.ts";
 
 function table(sql: SqlClient.SqlClient, namespace: string, suffix: string) {
@@ -80,13 +81,13 @@ export function storageMigrationVerbs(tell: (line: string) => void) {
 				Effect.match({ onFailure: () => "failed", onSuccess: (applied) => (applied.length === 0 ? "nothing to apply" : "applied") }),
 			);
 		},
-		openFleetStore: (options: FleetStoreOptions<FleetRecord>) => {
+		openFleetStorage: (options: FleetStoreOptions<FleetRecord>) => {
 			tell(`open Fleet record store ${options.namespace}`);
-			return makePostgresFleetStore(FleetRecord, options);
+			return makePostgresFleetStore(FleetRecord, options).pipe(Effect.map((store) => storageRecordVerbs(() => store, tell)));
 		},
-		openStore: (namespace: string) => {
+		openStorage: (namespace: string) => {
 			tell(`reopen storage record store ${namespace}`);
-			return makeTestStore(namespace);
+			return makeTestStore(namespace).pipe(Effect.map((store) => storageRecordVerbs(() => store, tell)));
 		},
 		owners: (namespace: string) =>
 			SqlClient.SqlClient.pipe(
@@ -148,7 +149,7 @@ export function storageMigrationVerbs(tell: (line: string) => void) {
 				values (${value.workId}, 3, '[]', ${value.boardRevision}, ${value.cwd}, ${JSON.stringify(value.preparation)}, ${value.prompt}, ${"completed"})`;
 			const store = yield* makePostgresFleetStore(FleetRecord, { namespace });
 			yield* migrateFleet(namespace);
-			return store;
+			return storageRecordVerbs(() => store, tell);
 		}),
 	};
 }

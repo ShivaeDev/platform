@@ -1,10 +1,10 @@
-import type { Context, Effect, Fiber, Redacted } from "effect";
+import type { Context, Effect, Fiber, Redacted, Schema } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { PgBoss } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { PgBossClient } from "#server/client.ts";
-import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
+import type { JobPayloadSchema } from "#server/definition.ts";
 import type { PgBossService } from "#server/service.ts";
 import type { PgBossTesting } from "#server/testing.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
@@ -27,7 +27,7 @@ export interface StoryPayload extends JobPayloadSchema {
 
 export interface Labelled {
 	readonly id: string;
-	readonly queue: Pick<QueueDefinition<string, StoryPayload>, "name" | "schema">;
+	readonly queue: { readonly name: string; readonly schema: StoryPayload | typeof Schema.Null };
 }
 
 export interface Release {

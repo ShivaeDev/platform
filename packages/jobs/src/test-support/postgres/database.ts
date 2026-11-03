@@ -11,6 +11,7 @@ import { postgresConfigured, postgresLayer } from "./layer.ts";
 import { listingVerbs } from "./listingVerbs.ts";
 import { readouts } from "./readouts.ts";
 import { releaseVerbs } from "./releaseVerbs.ts";
+import { scheduleVerbs } from "./scheduleVerbs.ts";
 import { teardownVerbs } from "./teardownVerbs.ts";
 import { traceReadouts } from "./traceReadouts.ts";
 import { runtimeVerbs, waitingVerbs } from "./verbs.ts";
@@ -35,6 +36,7 @@ export const database = storyKit({
 		...deferralVerbs(engine, story.tell),
 		...listingVerbs(engine, story.tell),
 		...releaseVerbs(engine, story.tell),
+		...scheduleVerbs(engine, story.tell),
 		...teardownVerbs(engine, story.tell),
 		...waitingVerbs(engine, story.tell),
 		...readouts(engine),

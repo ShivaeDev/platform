@@ -31,7 +31,7 @@ const ANSWERED = {
 isolatedStorage.it(
 	"the model migration drops only archived cycles without attempts, decisions or responses",
 	[],
-	function* ({ insertPayloads, migrate, namespace, openFleetStore, restoreLegacy }) {
+	function* ({ insertPayloads, migrate, namespace, openFleetStorage, restoreLegacy }) {
 		yield* restoreLegacy(namespace);
 		yield* migrate(namespace, "attention_owner");
 		yield* insertPayloads(
@@ -43,12 +43,12 @@ isolatedStorage.it(
 			].map(legacyVocabulary),
 			() => 7,
 		);
-		const store = yield* openFleetStore({ namespace });
+		const fleet = yield* openFleetStorage({ namespace });
 
 		yield* migrate(namespace);
 
 		function history(workId: string) {
-			return store.load(workId).pipe(Effect.map((entry) => entry?.value.history));
+			return fleet.reload(workId).pipe(Effect.map((entry) => entry?.value.history));
 		}
 		yield* outcomes([
 			["kept cycles", () => history(RECORD.workId), [ATTEMPTED, DECIDED, ANSWERED]],
@@ -61,17 +61,17 @@ isolatedStorage.it(
 isolatedStorage.it(
 	"rerunning the model migration applies nothing and keeps the records",
 	[],
-	function* ({ migrate, migration, namespace, openFleetStore, restoreLegacy, insertPayloads }) {
+	function* ({ migrate, migration, namespace, openFleetStorage, restoreLegacy, insertPayloads }) {
 		yield* restoreLegacy(namespace);
 		yield* migrate(namespace, "attention_owner");
 		yield* insertPayloads(namespace, [legacyVocabulary({ ...RECORD, history: [EMPTY, ATTEMPTED] })], () => 7);
-		const store = yield* openFleetStore({ namespace });
+		const fleet = yield* openFleetStorage({ namespace });
 		yield* migrate(namespace);
-		const migrated = yield* store.list();
+		const migrated = yield* fleet.records();
 
 		const rerun = yield* migration(namespace);
 
 		expect(rerun).toBe("nothing to apply");
-		expect(yield* store.list()).toEqual(migrated);
+		expect(yield* fleet.records()).toEqual(migrated);
 	},
 );

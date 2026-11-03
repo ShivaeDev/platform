@@ -70,12 +70,6 @@ export const boardStory = storyKit({
 			workspaceItemVerbs(engine, story.tell),
 			workspacePageVerbs(engine, story.tell),
 			{
-				get board() {
-					return served(engine).board;
-				},
-				get client() {
-					return served(engine).client;
-				},
 				editFile: (path: string, source: string) => {
 					story.tell(`an outside editor writes ${path}`);
 					engine.notes.write(path, source);

@@ -22,29 +22,54 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      publish: ${{ steps.decide.outputs.publish }}
       head: ${{ steps.release.outputs.head }}
       base: ${{ steps.release.outputs.base }}
     steps:
+      - name: Decide whether this push merged a release PR
+        id: decide
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          publish=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" | jq \
+            --arg repository "$GITHUB_REPOSITORY" --arg main "$GITHUB_SHA" \
+            'any(.[];
+              .merged_at != null
+              and .merge_commit_sha == $main
+              and .base.ref == "main"
+              and .base.repo.full_name == $repository
+              and .head.ref == "release/next"
+              and .head.repo.full_name == $repository
+            )')
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
       - name: Check out repository
+        if: steps.decide.outputs.publish == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
       - uses: ./.github/actions/setup
+        if: steps.decide.outputs.publish == 'true'
       - name: Select and validate the frozen release head
+        if: steps.decide.outputs.publish == 'true'
         id: release
         run: node --conditions=source script/release/preparePublish.ts
         env:
           GH_TOKEN: ${{ github.token }}
           CHANGELOG_BASE_REF: ${{ github.event.before }}
       - uses: ./.github/actions/setup
+        if: steps.decide.outputs.publish == 'true'
       - name: Build packages
+        if: steps.decide.outputs.publish == 'true'
         run: pnpm build
       - name: Check packed consumers and bins
+        if: steps.decide.outputs.publish == 'true'
         run: pnpm test:package
 
   publish:
     needs: verify-packages
+    if: needs.verify-packages.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

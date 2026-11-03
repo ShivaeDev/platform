@@ -68,7 +68,7 @@ isolatedStorage.it(
 	"an existing typed table gains the release reason column and its records load unchanged",
 	[],
 	function* ({ columns, upgradedTypedRecord }) {
-		const store = yield* upgradedTypedRecord(UPGRADE, LEGACY);
+		const fleet = yield* upgradedTypedRecord(UPGRADE, LEGACY);
 
 		yield* outcomes([
 			[
@@ -76,18 +76,18 @@ isolatedStorage.it(
 				() => columns(`${UPGRADE}_records`).pipe(Effect.map((found) => found.some(({ name }) => name === "releaseReason"))),
 				true,
 			],
-			["upgraded record", () => store.load(LEGACY.workId), { value: LEGACY, version: 4 }],
+			["upgraded record", () => fleet.reload(LEGACY.workId), { value: LEGACY, version: 4 }],
 		]);
 	},
 );
 
 isolatedStorage.it("an upgraded record keeps its release reason through a save and a reload", [], function* ({ upgradedTypedRecord }) {
-	const store = yield* upgradedTypedRecord(UPGRADE, LEGACY);
-	const edited = yield* store.compareAndSet(LEGACY.workId, 4, { ...LEGACY, prompt: "Edited legacy work" });
+	const fleet = yield* upgradedTypedRecord(UPGRADE, LEGACY);
+	const edited = yield* fleet.replace(LEGACY.workId, 4, { ...LEGACY, prompt: "Edited legacy work" });
 	const released = { ...edited.value, releaseReason: "Work is no longer approved", stage: "released", step: "released" } satisfies FleetRecord;
 
-	const saved = yield* store.compareAndSet(LEGACY.workId, edited.version, released);
+	const saved = yield* fleet.replace(LEGACY.workId, edited.version, released);
 
 	expect(saved).toEqual({ value: { ...released, stageEnteredAt: expect.any(Number), updatedAt: expect.any(Number) }, version: 6 });
-	expect(yield* store.load(LEGACY.workId)).toEqual(saved);
+	expect(yield* fleet.reload(LEGACY.workId)).toEqual(saved);
 });

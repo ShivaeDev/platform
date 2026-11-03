@@ -1,4 +1,4 @@
-import { Clock, DateTime, Deferred, Duration, Effect, Fiber } from "effect";
+import { Clock, DateTime, Deferred, Duration, Effect, Fiber, type Schema } from "effect";
 import type { FindJobsOptions, JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "#server/definition.ts";
 import { failureOf } from "#test/failureOf.ts";
@@ -86,7 +86,11 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 				Effect.match({ onFailure: (error) => ({ error: error.name, message: failureOf(error) }), onSuccess: () => "passed" }),
 			);
 		},
-		controllerJobs: <const TPayload extends StoryPayload>(name: string, queue: QueueDefinition<string, TPayload>, options?: FindJobsOptions) =>
+		controllerJobs: <const TPayload extends StoryPayload | typeof Schema.Null>(
+			name: string,
+			queue: { readonly name: string; readonly schema: TPayload },
+			options?: FindJobsOptions,
+		) =>
 			Effect.suspend(() => testingOf(engine, name).jobs(queue, options)).pipe(
 				Effect.match({
 					onFailure: failureOf,

@@ -30,13 +30,13 @@ const RECORDS = ["prepared", "executing", "reviewing", "needs-human", "completed
 isolatedStorage.it(
 	"the stage migration renames old stages in current and archived records and keeps a waiting record's owner and blocker",
 	[],
-	function* ({ migrate, openFleetStore, seedTextRecords }) {
+	function* ({ migrate, openFleetStorage, seedTextRecords }) {
 		yield* seedTextRecords(NAMESPACE, RECORDS);
 		yield* migrate(NAMESPACE, "advisory_reviews");
 
 		yield* migrate(NAMESPACE);
 
-		const values = (yield* openFleetStore({ namespace: NAMESPACE })).list().pipe(Effect.map((entries) => entries.map(({ value }) => value)));
+		const values = (yield* openFleetStorage({ namespace: NAMESPACE })).records().pipe(Effect.map((entries) => entries.map(({ value }) => value)));
 		yield* outcomes([
 			[
 				"stages",
