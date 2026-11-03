@@ -12,7 +12,7 @@ interface McpAuth {
 export const mcpBearerToken = Effect.fnUntraced(function* (
 	auth: McpAuth,
 	{ userId, clientId, resource }: { readonly userId: string; readonly clientId: string; readonly resource: string },
-) {
+): Effect.fn.Return<{ readonly grantId: string; readonly headers: Headers; readonly token: string }> {
 	const { adapter } = yield* Effect.promise(() => auth.$context);
 	const { issuer } = yield* Effect.promise(() => auth.api.getOAuthServerConfig());
 	const now = yield* Clock.currentTimeMillis;
