@@ -1,12 +1,11 @@
 import { Duration, Effect } from "effect";
 import type { TestClock } from "effect/testing";
-import type { TestClock as PgBossTestClock } from "pg-boss";
 import type { PgBossTestingError } from "#server/error.ts";
 import { testingOperation } from "#server/internal/testingOperation.ts";
 
 export function testingTime(
 	clock: TestClock.TestClock | undefined,
-	jobs: PgBossTestClock | undefined,
+	jobs: { readonly setTime: (time: number) => Promise<void>; readonly tick: (milliseconds: number) => Promise<void> } | undefined,
 	idle: Effect.Effect<void, PgBossTestingError>,
 ) {
 	return {

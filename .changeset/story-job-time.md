@@ -15,3 +15,7 @@
 
 - `@shivaedev/create-app`: Generated starter worker stories pass lease time through the host verb instead of fixed sleeps.
 - `@shivaedev/server`: Worker-release heartbeat and polling timers use the live lifecycle clock by default, so passing an application day does not replay every heartbeat.
+
+### Breaking
+
+- `@shivaedev/server`: Stories that drive worker-release polling through their application TestClock must now pass that clock as `config.clock` to `appDatabase`, `appHost` or `workerHost`. Use the `hostTime` testing layer and its `timePasses` verb to advance lease timestamps and await release checks.
