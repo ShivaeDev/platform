@@ -34,10 +34,8 @@ export const Admin = mergeAdminRegistries(foundation.admin, ...modules);
 `,
 	"src/client/admin/foundation.ts": legacyImport,
 	"src/client/admin/foundationRegistration.tsx": legacyImport,
-	"src/modules/notes/test-support/admin/client.ts": legacyImport,
 	"src/modules/notes/test-support/admin/group.ts": legacyImport,
 	"src/modules/notes/test-support/admin/host.ts": legacyImport,
-	"src/modules/notes/test-support/admin/screens.tsx": legacyImport,
 	"src/server/admin/foundationRegistration.ts": `import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
@@ -109,10 +107,8 @@ export const unifiedAdminRegistry = starterAt020("derives server admin handlers 
 	"src/admin/modules.ts": null,
 	"src/client/admin/foundation.ts": AS_RELEASED,
 	"src/client/admin/foundationRegistration.tsx": AS_RELEASED,
-	"src/modules/notes/test-support/admin/client.ts": AS_RELEASED,
 	"src/modules/notes/test-support/admin/group.ts": AS_RELEASED,
 	"src/modules/notes/test-support/admin/host.ts": AS_RELEASED,
-	"src/modules/notes/test-support/admin/screens.tsx": AS_RELEASED,
 	"src/server/admin/foundationRegistration.ts": AS_RELEASED,
 	"src/server/modules.ts": AS_RELEASED,
 	"src/server/registration.ts": AS_RELEASED,
