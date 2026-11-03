@@ -1,7 +1,7 @@
 # @shivaedev/agent-codex
 
-This package owns codex integration for Effect applications.
+This package makes local Codex available through the shared agent port. It owns provider process and protocol handling, event mapping and recovery; applications own durable storage, wake scheduling, runner logs and identity.
 
-Keep Codex integration at the adapter boundary. Preserve shared agent execution and lifecycle semantics before provider conveniences.
+Acceptance truth wins over convenience: preserve operation IDs, keep missing evidence uncertain, and never replay an ambiguous mutation. Reads remain passive, steering names the expected turn, and queued delivery waits for the matching turn to drain. Child ownership must survive sparse provider notifications without resuming a child.
 
-Read the [README](README.md) for the public surface and the repository [AGENTS.md](../../AGENTS.md) for development conventions.
+Keep provider details at the adapter boundary and unsupported behavior explicit. The scripted peer drives the real adapter through protocol frames; live validation belongs to adoption. Read the [README](README.md) for usage and the repository [AGENTS.md](../../AGENTS.md) for conventions.
