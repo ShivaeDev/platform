@@ -1,5 +1,5 @@
-import { expect } from "vitest";
-import { transport, trustedProxy } from "#test/rpc/transportStory.ts";
+import { expect, it } from "vitest";
+import { trustedProxyRanges } from "./trustedProxyRanges.ts";
 
 for (const [reason, trust, ranges] of [
 	["no proxy trust", undefined, []],
@@ -20,7 +20,7 @@ for (const [reason, trust, ranges] of [
 	["an IPv6 /95 range that contains the mapped space", "::fffe:0:0/95", ["::fffe:0:0/95", "0.0.0.0/0"]],
 	["a padded list of an IPv6 and an IPv4 range", " 2001:db8::/32, 127.0.0.0/8 ", ["2001:db8::/32", "127.0.0.0/8"]],
 ] as const) {
-	transport.it(`${reason} normalizes to ${JSON.stringify(ranges)}`, [trustedProxy(trust)], function* ({ normalizedTrust }) {
-		expect(yield* normalizedTrust()).toEqual(ranges);
+	it(`${reason} normalizes to ${JSON.stringify(ranges)}`, () => {
+		expect(trustedProxyRanges(trust)).toEqual(ranges);
 	});
 }

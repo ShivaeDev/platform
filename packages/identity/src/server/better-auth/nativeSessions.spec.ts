@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { cookieOnly, type ForgedBearer, nativeSessions, nativeTransport, passwordAccount, signedIn } from "#test/native-sessions/story.ts";
+import type { ForgedBearer } from "#test/native-sessions/callers.ts";
+import { cookieOnly, nativeSessions, nativeTransport, passwordAccount, signedIn } from "#test/native-sessions/story.ts";
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
@@ -92,13 +93,11 @@ nativeSessions.it(
 
 nativeSessions.it(
 	"Alice's browser cookie reads her profile while the session route returns neither a token nor a bearer credential",
-	[passwordAccount("alice")],
-	function* ({ browserSignsIn, profile, sessionTokens }) {
-		yield* browserSignsIn("alice");
-
+	[alice],
+	function* ({ profile, sessionTokens }) {
 		yield* outcomes([
-			["profile", () => profile({ cookie: "alice in the browser" }, "alice"), "alice's profile"],
-			["session", () => sessionTokens({ cookie: "alice in the browser" }), { bearerCredential: "none", sessionToken: "none" }],
+			["profile", () => profile({ cookie: "alice" }, "alice"), "alice's profile"],
+			["session", () => sessionTokens({ cookie: "alice" }), { bearerCredential: "none", sessionToken: "none" }],
 		]);
 	},
 );
@@ -172,10 +171,6 @@ nativeSessions.it(
 		]);
 	},
 );
-
-nativeSessions.it("the default host issues Alice no bearer credential", [cookieOnly, alice], function* ({ issuedCredential }) {
-	expect(yield* issuedCredential("alice")).toBe("none");
-});
 
 for (const [sent, caller] of [
 	["session token", { tokenAsBearer: "alice" }],

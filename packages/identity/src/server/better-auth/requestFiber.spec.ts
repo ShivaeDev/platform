@@ -1,9 +1,9 @@
 import { expect } from "vitest";
-import { allowed, organizationRule, policyWaits, signedIn, signInPolicy } from "#test/sign-in-policy/story.ts";
+import { admittedSession, allowed, organizationRule, policyWaits, signInPolicy } from "#test/sign-in-policy/story.ts";
 
 signInPolicy.it(
 	"the gate's revocation log carries the RPC request's span and annotations",
-	[allowed("alice", "bob"), signedIn("alice")],
+	[allowed("alice", "bob"), admittedSession("alice")],
 	function* ({ gateLogs, remove, request, requestSpans }) {
 		yield* remove("alice");
 
@@ -17,7 +17,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"cancelling a session lookup interrupts its waiting policy check",
-	[organizationRule, signedIn("alice"), policyWaits],
+	[organizationRule, admittedSession("alice"), policyWaits],
 	function* ({ cancelRequest, policyInterrupted, recheckIntervalPasses }) {
 		yield* recheckIntervalPasses();
 

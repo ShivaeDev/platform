@@ -30,6 +30,7 @@ export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hi
 		return yield* Effect.die("The signed-in precondition needs a session cookie");
 	}
 	const state = { readable: true, unavailable: false };
+	const checked = yield* Queue.unbounded<void>();
 	const sessions = provider.sessions.provider;
 	const Api = contract("documents", {
 		queries: [
@@ -60,7 +61,7 @@ export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hi
 					get: (headers) =>
 						Effect.suspend(() =>
 							state.unavailable ? Effect.fail(new AuthUnavailable({ message: "Session store unavailable" })) : sessions.get(headers),
-						),
+						).pipe(Effect.ensuring(Queue.offer(checked, undefined))),
 				},
 				streamRevalidationInterval: "5 seconds",
 			}),
@@ -81,7 +82,7 @@ export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hi
 		answered,
 		Effect.forkScoped,
 	);
-	return { client, cookie, ending: Fiber.join(following), hints, provider, reactivity, session, state };
+	return { checked, client, cookie, ending: Fiber.join(following), hints, provider, reactivity, session, state };
 });
 
 function updateWords(update: QueryUpdate) {

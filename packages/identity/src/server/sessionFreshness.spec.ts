@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { aliceSubscribesTo, anonymousSubscribesToOptional, revalidatesEvery, streamSession } from "#test/rpc/streamSession.ts";
 
-for (const method of ["Identity", "Profile", "Accounts", "Optional"] as const) {
+for (const method of ["identity", "profile", "accounts", "optional"] as const) {
 	streamSession.it(
 		`alice's idle ${method} stream ends as unauthorized at the app's next five-second check after she signs out`,
 		[revalidatesEvery("5 seconds"), aliceSubscribesTo(method)],
@@ -18,7 +18,7 @@ for (const method of ["Identity", "Profile", "Accounts", "Optional"] as const) {
 
 streamSession.it(
 	"without an app interval, alice's stream is checked after 30 seconds and ends once she has signed out",
-	[aliceSubscribesTo("Identity")],
+	[aliceSubscribesTo("identity")],
 	function* ({ aliceSignsOut, revalidationIntervalPasses, streamEnd }) {
 		yield* aliceSignsOut();
 
@@ -39,7 +39,7 @@ streamSession.it(
 	},
 );
 
-for (const method of ["Identity", "Profile", "Accounts", "Optional"] as const) {
+for (const method of ["identity", "profile", "accounts", "optional"] as const) {
 	streamSession.it(
 		`a session-store outage ends alice's idle ${method} stream as auth unavailable at the next check`,
 		[aliceSubscribesTo(method)],

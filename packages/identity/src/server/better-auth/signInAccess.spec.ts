@@ -1,14 +1,13 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import type { MalformedList } from "#test/sign-in-policy/model.ts";
 import {
+	admittedSession,
 	allowed,
 	applicationRefusesNewSessions,
-	type MalformedList,
 	membershipChecksDown,
 	moreThanOnePageOfUnlistedUsers,
 	organizationRule,
-	signedIn,
-	signedInOnTwoDevices,
 	signInPolicy,
 } from "#test/sign-in-policy/story.ts";
 
@@ -39,7 +38,7 @@ signInPolicy.it("dana's email sign-up is refused while an allowed list is set", 
 
 signInPolicy.it(
 	"removing bob from the list refuses his next request and his next sign-in, ends both his sessions, and leaves alice signed in",
-	[allowed("alice", "bob"), signedIn("alice"), signedInOnTwoDevices("bob")],
+	[allowed("alice", "bob"), admittedSession("alice"), admittedSession("bob", ["laptop", "phone"])],
 	function* ({ remove, request, signIn, storedSessions }) {
 		expect(yield* storedSessions("bob")).toEqual(["laptop", "phone"]);
 
@@ -56,7 +55,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"alice keeps her access until the recheck interval passes after she leaves the organization",
-	[organizationRule, signedIn("alice")],
+	[organizationRule, admittedSession("alice")],
 	function* ({ leaveOrganization, recheckIntervalPasses, request }) {
 		yield* leaveOrganization("alice");
 
@@ -70,7 +69,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"once the recheck finds alice outside the organization, her stored session ends and her next sign-in is refused",
-	[organizationRule, signedIn("alice")],
+	[organizationRule, admittedSession("alice")],
 	function* ({ leaveOrganization, recheckIntervalPasses, request, signIn, storedSessions }) {
 		expect(yield* storedSessions("alice")).toEqual(["browser"]);
 
@@ -87,7 +86,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"while GitHub cannot answer membership checks, alice's next request after the recheck interval is answered auth unavailable and her session is kept",
-	[organizationRule, signedIn("alice"), membershipChecksDown],
+	[organizationRule, admittedSession("alice"), membershipChecksDown],
 	function* ({ recheckIntervalPasses, request, storedSessions }) {
 		yield* recheckIntervalPasses();
 
@@ -100,7 +99,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"while GitHub cannot answer membership checks, alice's sign-in after the recheck interval is unavailable and adds no session",
-	[organizationRule, signedIn("alice"), membershipChecksDown],
+	[organizationRule, admittedSession("alice"), membershipChecksDown],
 	function* ({ recheckIntervalPasses, signIn, signInAnswer, storedSessions }) {
 		yield* recheckIntervalPasses();
 
@@ -128,7 +127,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"revoking while GitHub cannot answer membership checks stops with a failed policy check and keeps alice's session",
-	[organizationRule, signedIn("alice"), membershipChecksDown],
+	[organizationRule, admittedSession("alice"), membershipChecksDown],
 	function* ({ recheckIntervalPasses, revocation, revoke, storedSessions }) {
 		yield* recheckIntervalPasses();
 
@@ -143,7 +142,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"revoking after bob and carol leave the list ends their three sessions and keeps alice's",
-	[allowed("alice", "bob", "carol"), signedIn("alice"), signedInOnTwoDevices("bob"), signedIn("carol")],
+	[allowed("alice", "bob", "carol"), admittedSession("alice"), admittedSession("bob", ["laptop", "phone"]), admittedSession("carol")],
 	function* ({ remove, revocation, revoke, storedSessions }) {
 		yield* outcomes([
 			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
@@ -165,7 +164,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"a second revocation after bob leaves the list revokes nothing",
-	[allowed("alice", "bob"), signedIn("bob")],
+	[allowed("alice", "bob"), admittedSession("bob")],
 	function* ({ remove, revocation, revoke }) {
 		yield* remove("bob");
 		yield* revoke();
@@ -179,7 +178,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"revoking reaches unlisted users beyond the first page it reads and keeps alice's session",
-	[allowed("alice"), signedIn("alice"), moreThanOnePageOfUnlistedUsers],
+	[allowed("alice"), admittedSession("alice"), moreThanOnePageOfUnlistedUsers],
 	function* ({ revocation, revoke, sessionHolders }) {
 		yield* revoke();
 
@@ -192,7 +191,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"after the list turns malformed, alice's next request is answered auth unavailable and her session is kept",
-	[allowed("alice"), signedIn("alice")],
+	[allowed("alice"), admittedSession("alice")],
 	function* ({ corruptList, request, storedSessions }) {
 		yield* corruptList("a provider without an account id");
 
@@ -205,7 +204,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"revoking after the list turns malformed stops with a configuration error and keeps alice's session",
-	[allowed("alice"), signedIn("alice")],
+	[allowed("alice"), admittedSession("alice")],
 	function* ({ corruptList, revocation, revoke, storedSessions }) {
 		yield* corruptList("a provider without an account id");
 
@@ -220,7 +219,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"the application's own session hook still refuses alice's next sign-in under an allowed list, so she gets no new session",
-	[allowed("alice"), signedIn("alice"), applicationRefusesNewSessions],
+	[allowed("alice"), admittedSession("alice"), applicationRefusesNewSessions],
 	function* ({ signIn, signInAnswer, storedSessions }) {
 		yield* signIn("alice");
 
@@ -252,7 +251,7 @@ signInPolicy.it(
 
 signInPolicy.it(
 	"without an allowed list or rule, revoking revokes nothing and bob keeps his session",
-	[signedIn("bob")],
+	[admittedSession("bob")],
 	function* ({ revocation, revoke, storedSessions }) {
 		yield* revoke();
 

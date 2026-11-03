@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { type BetterAuthOptions, betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { type Cause, ConfigProvider, Effect, Layer, Schema } from "effect";
@@ -13,12 +13,12 @@ import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { ProviderAccounts, providerAccountHandlers, readProviderAccounts } from "#test/better-auth/providerAccounts.ts";
 import { recorder } from "#test/rpc/harness.ts";
+import { mintSessions } from "./mintSessions.ts";
 import { storedPolicy } from "./stored.ts";
 
 const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
@@ -110,12 +110,7 @@ export const policyHost = Effect.fnUntraced(function* (
 		accountLookups: () => accountLookups,
 		baseUrl,
 		logs: recorded.logs,
-		mintSession: (person: string, accountId: string) =>
-			signedInUser(betterAuth(options), {
-				email: `${person}@github.test`,
-				name: person,
-				providerAccounts: [{ accountId, providerId: "github" }],
-			}),
+		mintSession: (person: string, accountId: string, devices: readonly string[] = ["browser"]) => mintSessions(options, person, accountId, devices),
 		providerAccounts: (cookie: string) =>
 			readProviderAccounts(
 				baseUrl,

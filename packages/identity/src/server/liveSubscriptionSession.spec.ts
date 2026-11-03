@@ -12,6 +12,9 @@ for (const [removal, action] of [
 	] as const) {
 		liveSubscriptionStory.it(`${removal} ends an open WebSocket subscription with Unauthorized after ${trigger}`, [], function* (verbs) {
 			expect(yield* verbs.nextHint()).toBe("resync");
+			if (detect === "revalidationIntervalPasses") {
+				yield* verbs.revalidationIntervalPasses();
+			}
 
 			yield* verbs[action]();
 			yield* verbs[detect]();

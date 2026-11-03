@@ -1,30 +1,15 @@
-import { betterAuth } from "better-auth";
-import { testUtils } from "better-auth/plugins";
-import { Context, DateTime, type Duration, Effect, Fiber, Layer, Option, Queue, Result, Schema, Stream } from "effect";
-import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
+import { Context, DateTime, type Duration, Effect, Fiber, Queue, Result, Stream } from "effect";
 import { TestClock } from "effect/testing";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
-import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
-import { SessionPolicy } from "#server/SessionPolicy.ts";
-import { authenticatedLayer, authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, maybeAuthenticatedLayer } from "#server/session.ts";
 import { makeSocketSession, SocketSession } from "#server/socketSession.ts";
-import { createProvider } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
+import { revalidationClock } from "./revalidationClock.ts";
 import { signOut } from "./sessionLifecycle.ts";
+import { streamSessionEngine } from "./streamSessionEngine.ts";
 
-const Api = RpcGroup.make(Rpc.make("Identity", { stream: true, success: Schema.String }))
-	.middleware(Authenticated)
-	.merge(
-		RpcGroup.make(Rpc.make("Profile", { stream: true, success: Schema.String })).middleware(AuthenticatedUser),
-		RpcGroup.make(Rpc.make("Accounts", { stream: true, success: Schema.String })).middleware(AuthenticatedUserWithProviderAccounts),
-		RpcGroup.make(Rpc.make("Optional", { stream: true, success: Schema.String })).middleware(MaybeAuthenticated),
-	);
-type Method = "Identity" | "Profile" | "Accounts" | "Optional";
+type Method = "identity" | "profile" | "accounts" | "optional";
 
 const DEFAULT_INTERVAL = "30 seconds";
 
@@ -42,63 +27,7 @@ function ending(result: Result.Result<void, unknown>) {
 export const streamSession = storyKit({
 	around: withIsolatedDatabase,
 	clock: Effect.runSync(DateTime.now),
-	*create() {
-		const provider = yield* createProvider();
-		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
-		const session = yield* signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" });
-		const cookie = session.headers.get("cookie");
-		if (cookie === null) {
-			return yield* Effect.die("The minted session did not supply a cookie");
-		}
-		const account = { cookie, userId: session.user.id };
-		const input = yield* Queue.unbounded<string>();
-		const output = yield* Queue.unbounded<string>();
-		const checked = yield* Queue.unbounded<void>();
-		const state: {
-			failures: number;
-			interval?: Duration.Input;
-			shared?: SocketSession["Service"];
-			subscription?: Effect.Effect<string>;
-			subscriptions: Effect.Effect<string>[];
-		} = { failures: 0, subscriptions: [] };
-		const sessions = betterAuthSessions(provider.getSession, async () => []);
-		const policy = {
-			origin: () => true,
-			provider: {
-				get: (headers: Parameters<typeof sessions.get>[0]) =>
-					Effect.suspend(() => {
-						if (state.failures > 0) {
-							state.failures -= 1;
-							return Effect.fail(new AuthUnavailable({ message: "Session store blip" })).pipe(Effect.ensuring(Queue.offer(checked, undefined)));
-						}
-						return sessions.get(headers).pipe(Effect.ensuring(Queue.offer(checked, undefined)));
-					}),
-			},
-			get streamRevalidationInterval() {
-				return state.interval;
-			},
-		};
-		const handlers = Api.toLayer({
-			Accounts: () =>
-				Stream.fromQueue(input).pipe(Stream.mapEffect((value) => Effect.map(SessionUserWithProviderAccounts, (user) => `${user.id}: ${value}`))),
-			Identity: () => Stream.fromQueue(input).pipe(Stream.mapEffect((value) => Effect.map(Identity, (user) => `${user.id}: ${value}`))),
-			Optional: () =>
-				Stream.fromQueue(input).pipe(
-					Stream.mapEffect((value) => Effect.map(OptionalIdentity, (user) => `${Option.getOrUndefined(user)?.id ?? "anonymous"}: ${value}`)),
-				),
-			Profile: () => Stream.fromQueue(input).pipe(Stream.mapEffect((value) => Effect.map(SessionUser, (user) => `${user.id}: ${value}`))),
-		});
-		const services = yield* Layer.build(
-			handlers.pipe(
-				Layer.provideMerge(
-					Layer.mergeAll(authenticatedLayer(), authenticatedUserLayer(), authenticatedUserWithProviderAccountsLayer(), maybeAuthenticatedLayer()),
-				),
-				Layer.provide(Layer.succeed(SessionPolicy, policy)),
-			),
-		);
-		const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
-		return { account, checked, client, input, output, provider, services, state };
-	},
+	create: streamSessionEngine,
 	layer: postgres,
 	name: "stream session",
 	runIf: databaseUrl !== undefined,
@@ -127,11 +56,7 @@ export const streamSession = storyKit({
 				);
 			},
 			lookupCount: () => engine.provider.lookups(),
-			revalidationIntervalPasses: () => {
-				const interval = engine.state.interval ?? DEFAULT_INTERVAL;
-				story.tell(`${interval} pass and the session is checked again`);
-				return TestClock.adjust(interval).pipe(Effect.andThen(Queue.take(engine.checked)));
-			},
+			...revalidationClock(() => engine.state.interval ?? DEFAULT_INTERVAL, engine.checked, story.tell),
 			sessionStoreBlips: () =>
 				Effect.sync(() => {
 					story.tell("the next session lookup cannot reach storage");
@@ -175,7 +100,7 @@ export function aliceSubscribesTo(method: Method) {
 }
 
 export const anonymousSubscribesToOptional = subscription(
-	"Optional",
+	"optional",
 	"an anonymous caller subscribes to Optional and the missing session is checked once",
 	false,
 );
