@@ -15,8 +15,8 @@ export const requestBody = storyKit({
 	after: {
 		*route(state) {
 			const limit = state.limit;
-			const routes = HttpRouter.add("POST", "/body", (incoming) =>
-				readBoundedBody(incoming).pipe(
+			const routes = HttpRouter.add("POST", "/body", () =>
+				readBoundedBody().pipe(
 					Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
 					Effect.tapError((error) => Effect.sync(() => state.failures.push(error))),
 					limit === undefined ? (effect) => effect : Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(limit)),

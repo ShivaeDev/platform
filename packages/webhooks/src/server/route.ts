@@ -1,5 +1,5 @@
 import { Cause, type Config, Context, Effect, Layer, type Redacted } from "effect";
-import { HttpRouter, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
+import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
@@ -18,8 +18,8 @@ export interface WebhookRouteOptions<TJobs, R, E = never> {
 type SourceServices<T> = T extends WebhookSource<infer R, unknown> ? R : never;
 type RouteLayer<TJobs, R> = Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter | TJobs | R | SqlClient.SqlClient>;
 
-function webhookBody(request: HttpServerRequest.HttpServerRequest) {
-	return readBoundedBody(request).pipe(
+function webhookBody() {
+	return readBoundedBody().pipe(
 		Effect.map((body) => new Uint8Array(body)),
 		Effect.catchTag("RequestBodyTooLarge", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") }))),
 	);
@@ -63,7 +63,7 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (source === undefined || key === undefined) {
 						return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") });
 					}
-					const body = yield* webhookBody(request);
+					const body = yield* webhookBody();
 					if (HttpServerResponse.isHttpServerResponse(body)) {
 						return body;
 					}

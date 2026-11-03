@@ -45,15 +45,15 @@ HEAD responses and statuses 204, 205 and 304 read as empty bytes or text, regard
 
 ### Reading request bodies on a native route
 
-For a native Node HTTP route, use `readBoundedBody` from `server/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It returns an `ArrayBuffer` without decoding the bytes:
+For a native Node HTTP route, use `readBoundedBody()` from `server/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It reads the native `HttpServerRequest.HttpServerRequest` from the Effect environment and returns an `ArrayBuffer` without decoding the bytes:
 
 ```ts
 import { ByteSize, Effect } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 
-const routes = HttpRouter.add("POST", "/webhook", (request) =>
-	readBoundedBody(request).pipe(
+const routes = HttpRouter.add("POST", "/webhook", () =>
+	readBoundedBody().pipe(
 		Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
 		Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(64 * 1024)),
 	),
