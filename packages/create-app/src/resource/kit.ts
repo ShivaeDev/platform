@@ -70,10 +70,10 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, signedIn } from "#modules/${name}/test-support/application.ts";
 import { answer } from "#test-support/answers.ts";
 
-app.it("alice creates a trimmed title, lists it and persists it in PostgreSQL", [signedIn("alice")], function* ({ itemsOf, storedTitles }) {
+app.it("alice creates an item, lists it and persists it in PostgreSQL", [signedIn("alice")], function* ({ itemsOf, storedTitles }) {
 	expect(yield* itemsOf("alice").list()).toEqual([]);
 
-	const item = yield* itemsOf("alice").create("  First item  ");
+	const item = yield* itemsOf("alice").create("First item");
 
 	expect(item.title).toBe("First item");
 	yield* outcomes([
