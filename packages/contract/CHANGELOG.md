@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.1 - 2026-11-03
+
+### Fixed
+
+- Consume queued live hints when a held query finishes and starts its pending refresh, preventing a later coalescing timer from issuing a duplicate read.
+
 ## 0.33.0 - 2026-11-03
 
 ### Breaking

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.57.2 - 2026-11-03
+
+### Fixed
+
+- Read service-id prefixes and package ownership from workspace manifests, including nested consumer packages with their own npm scope.
+- Discover service shapes in installed declarations from the consuming repository's package scopes as well as workspace sources.
+
 ## 0.57.1 - 2026-11-03
 
 ### Changed
