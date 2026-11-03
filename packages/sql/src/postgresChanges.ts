@@ -2,10 +2,10 @@ import { Context, type Duration, Effect, Layer, type Queue, type Scope } from "e
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { CommandRecovery } from "#internal/CommandRecovery.ts";
+import { CommandPublication, CommandPublicationError, type CommandPublisher } from "@shivaedev/changes/commandPublication.ts";
 import { listenForChanges } from "./listenForChanges.ts";
 import { encodeKeys, resyncPayload } from "./notifyPayload.ts";
-import { BeforeCommit, CommittedSink } from "./transact.ts";
+import { BeforeCommit, CommittedSink, invalidateOnCommit, transact } from "./transact.ts";
 
 export interface PostgresNotification {
 	readonly payload: string;
@@ -48,10 +48,19 @@ export function postgresChanges(options: PostgresChangesOptions) {
 			}
 			const recover = options.resync.pipe(
 				Effect.andThen(options.client`select pg_notify(${options.channel}, ${resyncPayload})`),
-				Effect.catchCause((cause) => Effect.logError("Committed command Resync broadcast failed; other hosts may remain stale", cause)),
+				Effect.catchCause((cause) => Effect.fail(new CommandPublicationError({ cause }))),
 				Effect.asVoid,
 			);
-			return Context.make(BeforeCommit, notify).pipe(Context.add(CommittedSink, committed), Context.add(CommandRecovery, recover));
+			const publication: CommandPublisher = {
+				publish: (keys) =>
+					invalidateOnCommit(keys).pipe(
+						transact({ onSqlError: (error) => error }),
+						Effect.provideService(SqlClient.SqlClient, options.client),
+						Effect.catchCause((cause) => Effect.fail(new CommandPublicationError({ cause }))),
+					),
+				recover,
+			};
+			return Context.make(BeforeCommit, notify).pipe(Context.add(CommittedSink, committed), Context.add(CommandPublication, publication));
 		}),
 	);
 }

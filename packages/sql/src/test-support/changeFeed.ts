@@ -4,6 +4,7 @@ import { type ChangeFeedEngine, changeFeedEngine, type FeedTiming } from "./chan
 import { instrumentedClient } from "./changeFeedListener.ts";
 import { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "./changeFeedTables.ts";
 import { changeFeedVerbs, keyOf } from "./changeFeedVerbs.ts";
+import { commandPublicationVerbs } from "./commandPublicationVerbs.ts";
 import { onPostgres } from "./engines.ts";
 import { listenerVerbs, startFeed } from "./listenerVerbs.ts";
 
@@ -14,10 +15,14 @@ export const changeFeed = storyKit({
 	inspect: (engine: ChangeFeedEngine) => ({ history: engine.controls.history, logs: engine.logs, payloads: engine.controls.payloads }),
 	name: "PostgreSQL change feed",
 	stages: ["listener", "feed", "tables", "subscribers"],
-	verbs: (engine: ChangeFeedEngine, story: { readonly tell: (line: string) => void }) => ({
-		...changeFeedVerbs(engine, story.tell),
-		...listenerVerbs(engine, story.tell),
-	}),
+	verbs: (engine: ChangeFeedEngine, story: { readonly tell: (line: string) => void }) => {
+		const changes = changeFeedVerbs(engine, story.tell);
+		return {
+			...changes,
+			...commandPublicationVerbs(engine, story.tell, changes.announced),
+			...listenerVerbs(engine, story.tell),
+		};
+	},
 });
 
 export function listenerCleanupStalls() {
