@@ -1,4 +1,5 @@
 import { type Duration, Effect, type Tracer } from "effect";
+import type { TestClock } from "effect/testing";
 import { testingController } from "#server/adapters/testingController.ts";
 
 export function makePgBossTesting(options: PgBossTestingOptions = {}) {
@@ -12,6 +13,7 @@ export interface PgBossTestingWaitOptions {
 export const testRetryPolicy = Object.freeze({ retryBackoff: false, retryDelay: 0 });
 
 export interface PgBossTestingOptions {
+	readonly clock?: TestClock.TestClock;
 	readonly retryPolicy?: typeof testRetryPolicy;
 }
 

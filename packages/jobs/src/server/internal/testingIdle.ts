@@ -18,6 +18,7 @@ export function testingIdle(
 	inspection: () => PgBossInspectionService,
 	work: TestingWork,
 	signal: { readonly revision: Effect.Effect<number>; readonly waitForChange: (after: number) => Effect.Effect<number> },
+	wake: Effect.Effect<void> = Effect.void,
 ): Effect.Effect<void, PgBossTestingError> {
 	const busy = Effect.suspend(() => testingInspection("waitForIdle", inspection().busy([...work.queues].map((name) => ({ name })))));
 	return Effect.gen(function* () {
@@ -28,6 +29,7 @@ export function testingIdle(
 			if (work.queues.size === 0 || !(unsettled || (yield* busy))) {
 				return;
 			}
+			yield* wake;
 			yield* signal.waitForChange(revision);
 		}
 	}).pipe(Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()));

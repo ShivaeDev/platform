@@ -1,7 +1,9 @@
 import { Duration, Effect, Redacted, type Schema } from "effect";
+import { TestClock as PgBossTestClock } from "pg-boss";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import { testingClient } from "#server/adapters/testingClient.ts";
 import { testingDueNow } from "#server/adapters/testingDueNow.ts";
+import { testingTime } from "#server/adapters/testingTime.ts";
 import type { JobReadOptions, PgBossClientFactory } from "#server/client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 import type { EngineClient } from "#server/engineClient.ts";
@@ -16,6 +18,7 @@ import type { PgBossTestingOptions } from "#server/testing.ts";
 import { queueSignal } from "./queueSignal.ts";
 import { testingInspectionClient } from "./testingInspectionClient.ts";
 export function testingController(settings: PgBossTestingOptions = {}) {
+	const clock = settings.clock === undefined ? undefined : new PgBossTestClock(settings.clock.currentTimeMillisUnsafe());
 	let current: EngineClient | undefined;
 	let fetches: TestingFetches | undefined;
 	let schema = "pgboss";
@@ -47,13 +50,21 @@ export function testingController(settings: PgBossTestingOptions = {}) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
 		schema = clientOptions.schema ?? "pgboss";
-		current = defaultClientFactory(clientOptions);
+		current = defaultClientFactory({ ...clientOptions, ...(clock === undefined ? {} : { clock }) });
 		fetches = testingFetches(current.getDb(), signal.changed);
 		current = testingClient(current, schema, controls);
 		return testingInspectionClient(current, schema, work, signal.changed, (reads) => {
 			observed = reads;
 		});
 	};
+	const wake = Effect.sync(() => {
+		if (clock !== undefined) {
+			for (const worker of client().getWipData()) {
+				client().notifyWorker(worker.id);
+			}
+		}
+	});
+	const idle = testingIdle(inspection, work, signal, wake);
 	return {
 		deferred: (queue: Pick<QueueDefinition, "name">) => Effect.suspend(() => testingInspection("deferred", inspection().deferred(queue), queue.name)),
 		...testingDueNow(client, () => schema, signal.changed),
@@ -120,6 +131,7 @@ export function testingController(settings: PgBossTestingOptions = {}) {
 		snapshot: <const TQueues extends readonly SnapshotQueue[]>(queues: TQueues) =>
 			Effect.suspend(() => testingInspection("snapshot", inspection().snapshot(queues))),
 		waitForChange: signal.waitForChange,
-		waitForIdle: testingIdle(inspection, work, signal),
+		waitForIdle: idle,
+		...testingTime(settings.clock, clock, idle),
 	};
 }

@@ -36,7 +36,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	const migrations = options.migrations;
 	const worker =
 		migrations.mode === "wait" && migrations.release !== undefined
-			? Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table))
+			? Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table)).pipe(Layer.provide(clock))
 			: Layer.empty;
 	const base = Layer.merge(pool, live);
 	const changes = options.config?.changes;

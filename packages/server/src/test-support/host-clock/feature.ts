@@ -1,20 +1,28 @@
-import { Clock, Effect, Layer, Schema } from "effect";
+import { Clock, DateTime, Effect, Layer, Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { defineQueue, RetryAt } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import type { PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appHost.ts";
 
 const notes = collection("clock-notes", Schema.Number);
 const Jobs = makePgBoss("test/HostClockJobs");
-const Write = defineQueue({ name: "write-note", schema: Schema.Struct({ title: Schema.String }) });
+const Write = defineQueue({
+	name: "write-note",
+	schema: Schema.Struct({ notBefore: Schema.optional(Schema.Number), title: Schema.String }),
+	worker: { batchSize: 1 },
+});
 export const Api = contract("clock", {
-	commands: [command("write", { invalidates: () => [], payload: { title: Schema.String } })],
+	commands: [
+		command("write", { invalidates: () => [], payload: { title: Schema.String } }),
+		command("defer", { invalidates: () => [], payload: { days: Schema.Number, title: Schema.String } }),
+	],
 	queries: [
 		query("read", {
 			readPolicy: () => Effect.succeed(true),
@@ -26,11 +34,24 @@ export const Api = contract("clock", {
 
 export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 	const database = yield* PostgresTestDatabase;
+	const migrations = {
+		loader: Migrator.fromRecord({
+			"001_notes": SqlClient.SqlClient.use(
+				(sql) => sql`create table notes (id serial primary key, title text not null, written_at double precision not null)`,
+			),
+		}),
+		lockTimeout: "5 seconds" as const,
+		release: "clock-story",
+	};
+	yield* migratePostgres(migrations);
 	const services = Jobs.layer({
 		jobs: [
-			Write.handle(({ title }) =>
+			Write.handle(({ notBefore, title }) =>
 				Effect.gen(function* () {
 					const writtenAt = yield* Clock.currentTimeMillis;
+					if (notBefore !== undefined && writtenAt < notBefore) {
+						return yield* new RetryAt({ at: DateTime.makeUnsafe(notBefore), reason: "Waiting for publication" });
+					}
 					yield* SqlClient.SqlClient.use((sql) => sql`insert into notes (title, written_at) values (${title}, ${writtenAt})`);
 				}).pipe(Effect.andThen(invalidateOnCommit(invalidationKeys([notes.list]))), transact({ onSqlError: (error) => error })),
 			),
@@ -41,6 +62,11 @@ export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 			config: { databaseUrl: database.url, disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 },
 			group: Api,
 			handlers: Api.application.toLayer({
+				"clock.defer": ({ days, title }) =>
+					Effect.gen(function* () {
+						const notBefore = (yield* Clock.currentTimeMillis) + days * 86_400_000;
+						yield* Jobs.use((jobs) => jobs.enqueue(Write, { notBefore, title }));
+					}).pipe(Effect.orDie),
 				"clock.read": () =>
 					Effect.gen(function* () {
 						const rows = yield* SqlClient.SqlClient.use(
@@ -50,13 +76,7 @@ export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 					}),
 				"clock.write": ({ title }) => Jobs.use((jobs) => jobs.enqueue(Write, { title })).pipe(Effect.orDie, Effect.asVoid),
 			}),
-			migrations: {
-				loader: Migrator.fromRecord({
-					"001_notes": SqlClient.SqlClient.use(
-						(sql) => sql`create table notes (id serial primary key, title text not null, written_at double precision not null)`,
-					),
-				}),
-			},
+			migrations: { ...migrations, mode: "wait" },
 			policy: "loopback",
 			services,
 		}),
