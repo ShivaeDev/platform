@@ -4,7 +4,7 @@ import { parseDocument } from "yaml";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { transformMarkdown } from "#adapters/markdownProcessor.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { questionTemplate } from "#server/responses/template.ts";
 import { type DocumentedExample, documentedExample } from "./documentedExamples.ts";
 

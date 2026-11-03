@@ -12,5 +12,5 @@ export function sourceHeader(source: string) {
 	const offset = open[0].length;
 	const end = offset + close.index;
 	const doc = parseDocument(source.slice(offset, end));
-	return isMap(doc.contents) && doc.errors.length === 0 ? { contents: doc.contents, doc, end, offset } : undefined;
+	return isMap(doc.contents) && doc.errors.length === 0 ? { contents: doc.contents, data: doc.toJS(), doc, end, offset } : undefined;
 }

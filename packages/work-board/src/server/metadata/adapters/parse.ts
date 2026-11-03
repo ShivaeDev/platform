@@ -1,7 +1,7 @@
 import { LineCounter, parseDocument } from "yaml";
 import type { Diagnostic, ParsedMetadata } from "#integration/metadata.ts";
-import { metadataFields } from "./fields.ts";
-import { metadataLocations } from "./locations.ts";
+import { metadataLocations } from "#server/metadata/adapters/locations.ts";
+import { metadataFields } from "#server/metadata/fields.ts";
 
 export function metadataParse(source: string): ParsedMetadata {
 	const plain: ParsedMetadata = { body: source, bodyLine: 1, diagnostics: [], fields: {}, lines: {} };

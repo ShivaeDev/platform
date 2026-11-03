@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { identityUrl, referenceTarget } from "./links.ts";
 import { metadataModel } from "./model.ts";
-import { metadataParse } from "./parse.ts";
 
 function document(file: string, yaml: string) {
 	return { file, parsed: metadataParse(`---\n${yaml}\n---\n# Prose`) };

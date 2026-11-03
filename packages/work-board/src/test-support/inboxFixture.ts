@@ -1,5 +1,5 @@
+import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { metadataModel } from "#server/metadata/model.ts";
-import { metadataParse } from "#server/metadata/parse.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
 export const inboxQuestion = `---

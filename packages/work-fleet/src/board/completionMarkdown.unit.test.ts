@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 
 const ACTION = "Done; PR #7 merged.";

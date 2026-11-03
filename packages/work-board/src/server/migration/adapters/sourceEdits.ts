@@ -1,6 +1,6 @@
 import { isScalar, Scalar, stringify } from "yaml";
-import { replacementEdit } from "./replacementEdit.ts";
-import type { sourceHeader } from "./sourceHeader.ts";
+import { replacementEdit } from "#server/migration/adapters/replacementEdit.ts";
+import type { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 
 type Header = NonNullable<ReturnType<typeof sourceHeader>>;
 export function sourceEdits(source: string, header: Header) {

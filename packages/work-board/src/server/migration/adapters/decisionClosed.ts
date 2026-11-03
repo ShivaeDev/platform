@@ -1,5 +1,5 @@
 import { isMap, isSeq } from "yaml";
-import type { sourceHeader } from "./sourceHeader.ts";
+import type { sourceHeader } from "#server/migration/adapters/sourceHeader.ts";
 
 export function decisionClosed(header: NonNullable<ReturnType<typeof sourceHeader>>) {
 	const requests = header.doc.get("attention", true);

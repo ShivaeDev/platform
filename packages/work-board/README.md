@@ -493,6 +493,30 @@ The Board shell renders this data in its internal `DocumentView`, using the Boar
 
 #### Headless addon API
 
+Applications can provide `workspaceLayer` from `server/workspaceLayer.ts` to use `Workspace` from `server/workspace.ts` without starting HTTP, a socket server or browser assets. The Layer starts the watched index in its owning Scope; closing that scope closes the change feed. Writes default to disabled.
+
+```ts
+import { NodeServices } from "@effect/platform-node";
+import { Effect, Layer } from "effect";
+import { Workspace } from "@shivaedev/work-board/server/workspace.ts";
+import { workspaceLayer } from "@shivaedev/work-board/server/workspaceLayer.ts";
+
+const work = Effect.gen(function* () {
+	const workspace = yield* Workspace;
+	const task = yield* workspace.metadata("tasks/search.md");
+	yield* workspace.writeMetadata({
+		file: task.file,
+		source: task.source,
+		fields: { status: "done", "next_action": "Review the result" },
+	});
+	return yield* workspace.document("/tasks/search.md");
+}).pipe(Effect.provide(workspaceLayer({ root: "./notes", fleetPort: null, writable: true }).pipe(Layer.provide(NodeServices.layer))));
+```
+
+`metadata(file)` reads complete source bytes, Board's parsed metadata and raw YAML `values`, including unknown fields. `writeMetadata({ file, source, fields })` patches the named top-level fields, preserves other fields and the Markdown body, and returns the new source and metadata. It also adds frontmatter to plain Markdown. `closeDecision({ file, source, request, nextAction? })` closes the named attention request in a question, preserves its other fields and body, and marks the question done when every request is closed. Both writes require `writable: true`, reject changed source with `PreconditionFailed`, and refresh the watched index. Malformed YAML and missing or ambiguous decision requests fail with `BadRequest`. Source replacement retains the best-effort outside-editor boundary described below.
+
+`document(url)` reads current or settled documents by path or identity URL. `archived(selection)` loads a `Snapshot` with settled documents selected by item ID or source path. `index()` returns the active snapshot; `settings()` exposes the watcher and workspace settings.
+
 Work Fleet uses the server entry points below and the portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
 
 | Entry point                                 | API object                                                                                                  |
@@ -524,7 +548,7 @@ Start `board.watchIndex(root, home?, maintainer?)` once in the owning Effect sco
 
 Other processes read the same listing, parsed metadata, diagnostics and unavailable paths with the `work-board.index` RPC, available over TCP and `board.sock`. Subscribe to that query through the native `work-board.$changes` API and reread on a change or resync. `BoardIndex` from `@shivaedev/work-board/rpc/BoardIndex.ts` describes the RPC result; maps are represented as arrays for transport.
 
-Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attentionProjection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
+Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown, editable directly or through the workspace metadata API. `attentionProjection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
 
 Publish addon-owned text or bytes with `publishOnce({ root, realRoot, path, content })`, providing `Publication.layer`. Here `realRoot` is the canonical workspace root and `path` is workspace-relative, such as `fleet/reports/review.md`. Missing parent directories are created. Publishing the same identity and bytes again succeeds; different bytes fail with `Conflict`.
 
