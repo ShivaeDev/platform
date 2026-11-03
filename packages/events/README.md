@@ -76,9 +76,13 @@ Projection `apply` receives `{ stream, streamVersion, requestId, value }`. `appl
 
 ### Append from a command
 
-Call `append({ stream, requestId, expectedVersion, events })` with a nonempty batch. It returns the resulting stream version. Events, request recognition, projection progress and repository writes share `sql.transact`. A projection failure rolls them all back, including earlier events in the batch. An enclosing transaction must also use `transact`.
+Call `append({ stream, requestId, expectedVersion, events })` with a batch. It returns the resulting stream version. Events, request recognition, projection progress and repository writes share `sql.transact`. A projection failure rolls them all back, including earlier events in the batch. An enclosing transaction must also use `transact`.
+
+When a command decides the state already matches, pass `events: []`. The same transaction checks `expectedVersion` and durably records the request receipt at that version, including version zero for an empty stream. It appends no event, runs no projection (including pending projection work) and publishes no change keys.
 
 Choose a stable request id before retrying a command. It is unique across the store. `AlreadyDone` from `errors.ts` carries the original `stream`, `streamVersion` and `requestId`; handle it as a completed request. It takes precedence over a stale expected version. `StreamConflict` carries `stream`, `expectedVersion` and `actualVersion`; reload the stream and decide the command again. Concurrent PostgreSQL writers use the same checks.
+
+An empty batch has the same request recognition: retrying it returns `AlreadyDone` with its original version even after a newer event changes the stream. Use that version with `read(stream)` to recover the original result from history instead of returning the latest projection. The retry leaves newer events and projections untouched.
 
 ### Read, catch up and rebuild
 
