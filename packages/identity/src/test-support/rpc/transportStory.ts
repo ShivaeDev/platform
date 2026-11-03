@@ -4,7 +4,6 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/adapters/local.ts";
-import { trustedProxyRanges } from "#server/adapters/trustedProxyRanges.ts";
 import { transportHeaders } from "#server/transportHeaders.ts";
 
 const forwarded = {
@@ -71,11 +70,6 @@ export const transport = storyKit({
 					Effect.provideService(HttpServerRequest.HttpServerRequest, pageRequest({})),
 				);
 				return response.status === HttpStatus.fromLiteral("NoContent") ? "served" : "forbidden";
-			}),
-		normalizedTrust: () =>
-			Effect.sync(() => {
-				story.tell("the host normalizes the configured proxy trust");
-				return trustedProxyRanges(state.trust);
 			}),
 		pageCountsAsSameOrigin: (headers: Readonly<Record<string, string>>) =>
 			Effect.sync(() => {

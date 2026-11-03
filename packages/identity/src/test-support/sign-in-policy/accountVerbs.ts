@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import type { PolicyHost } from "./host.ts";
-import type { Person } from "./story.ts";
+import type { Person } from "./model.ts";
 
 export function accountVerbs(host: () => PolicyHost, cookies: ReadonlyMap<Person, string>, tell: (line: string) => void) {
 	return {

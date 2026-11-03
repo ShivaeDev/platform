@@ -113,3 +113,22 @@ it("keeps a compiled guard active with source maps", [withUnitIo(unitIoCases[0].
 	expect(testResults()).toContain("src/double.unit.test.ts passed");
 	expect(testResults()).toContain("src/flow.spec.ts passed");
 });
+
+it(
+	"allows address parsing and in-memory network ranges in a unit file",
+	[
+		withUnitIo(`
+import { BlockList, isIP } from "node:net";
+it("normalizes a proxy range", () => {
+	const range = new BlockList();
+	range.addSubnet("10.0.0.0", 24, "ipv4");
+	range.check("10.0.0.2", "ipv4");
+	isIP("10.0.0.2");
+});`),
+	],
+	function* ({ run, testResults }) {
+		const result = yield* run("--project", "pure");
+		expect(result.status, result.output).toBe(0);
+		expect(testResults()).toContain("src/io.unit.test.ts passed");
+	},
+);

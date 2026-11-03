@@ -1,9 +1,9 @@
 import { betterAuth } from "better-auth";
 import { type Cause, Context, Effect, Exit, Layer, Logger, References, Scope, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -63,27 +63,10 @@ export const createProvider = Effect.fnUntraced(function* () {
 
 export type Provider = Effect.Success<ReturnType<typeof createProvider>>;
 
-export async function signup(provider: Provider, name: string) {
-	const response = await provider.auth.handler(
-		new Request(`${ORIGIN}/api/auth/sign-up/email`, {
-			body: JSON.stringify({ email: `${name}@example.test`, name, password: "example-password-123" }),
-			headers: { "content-type": "application/json", origin: ORIGIN },
-			method: "POST",
-		}),
-	);
-	if (response.status !== HttpStatus.fromLiteral("OK")) {
-		throw new Error(`Better Auth sign-up failed: HTTP ${response.status}`);
-	}
-	const cookie = response.headers
-		.getSetCookie()
-		.map((value) => value.split(";")[0])
-		.join("; ");
-	const session = await provider.auth.api.getSession({ headers: new Headers({ cookie }) });
-	if (session === null) {
-		throw new Error("Better Auth sign-up did not create a session");
-	}
-	return { cookie, token: session.session.token, userId: session.user.id };
-}
+export const mintSession = Effect.fnUntraced(function* (provider: Provider, name: string) {
+	const login = yield* signedInUser(provider.auth, { email: `${name}@example.test`, name });
+	return { cookie: login.headers.get("cookie") ?? "", token: login.session.token, userId: login.user.id };
+});
 
 export function rpcHttp<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {
 	return RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" });

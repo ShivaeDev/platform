@@ -1,5 +1,4 @@
 import { DateTime, Effect, Queue } from "effect";
-import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -7,6 +6,7 @@ import { assignRole } from "#server/better-auth/assignRole.ts";
 import { documents, liveSubscriptionEngine } from "./liveSubscriptionEngine.ts";
 import { DocumentRoles } from "./liveSubscriptionProvider.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
+import { revalidationClock } from "./revalidationClock.ts";
 import { expireSession, signOut } from "./sessionLifecycle.ts";
 
 export function subscriptionStory(delivery: "hints" | "pushed") {
@@ -53,10 +53,7 @@ export function subscriptionStory(delivery: "hints" | "pushed") {
 				story.tell("the server announces a document change");
 				return engine.reactivity.invalidate(invalidationKeys([documents.item("alice")]));
 			},
-			revalidationIntervalPasses: () => {
-				story.tell("Effect's clock advances past the five-second session revalidation interval");
-				return TestClock.adjust("6 seconds");
-			},
+			...revalidationClock(() => "5 seconds", engine.checked, story.tell),
 			revokeAliceRole: () => {
 				story.tell("alice is assigned the guest role without document access");
 				return assignRole(DocumentRoles, engine.session.user.id, "guest");

@@ -38,7 +38,7 @@ function guardModule(name: string): void {
 	const module: Record<string, unknown> = load(name);
 	for (const key of Object.keys(module)) {
 		const original = module[key];
-		if (typeof original !== "function") {
+		if (typeof original !== "function" || (name === "node:net" && (key === "BlockList" || key === "isIP"))) {
 			continue;
 		}
 		const apply: NonNullable<ProxyHandler<typeof original>["apply"]> = (target, receiver, args) => {

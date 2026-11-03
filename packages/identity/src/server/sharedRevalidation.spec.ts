@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { aliceSubscribesTo, revalidatesEvery, sharedConnection, streamSession } from "#test/rpc/streamSession.ts";
 
-const streams = [aliceSubscribesTo("Identity"), aliceSubscribesTo("Profile"), aliceSubscribesTo("Accounts"), aliceSubscribesTo("Optional")];
+const streams = [aliceSubscribesTo("identity"), aliceSubscribesTo("profile"), aliceSubscribesTo("accounts"), aliceSubscribesTo("optional")];
 streamSession.it(
 	"one socket session lookup revalidates all four idle streams at the interval",
 	[revalidatesEvery("5 seconds"), sharedConnection, ...streams],
