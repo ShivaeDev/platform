@@ -1,11 +1,7 @@
 import { Effect, Option } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
-
-export interface PostgresColumn {
-	readonly name: string;
-	readonly type: string;
-}
+import { tableColumns } from "./tableColumns.ts";
 
 export interface MigrationUpgradeOptions<R = never, E = never> {
 	readonly migrations: PostgresMigrationOptions<R, E>;
@@ -41,9 +37,5 @@ export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(funct
 		table: ledger,
 	});
 	yield* migratePostgres({ ...options.migrations, loader: Effect.succeed(resolved) });
-	return yield* sql<PostgresColumn>`
-		select attname as name, format_type(atttypid, atttypmod) as type
-		from pg_attribute
-		where attrelid = ${options.table}::regclass and attnum > 0 and not attisdropped
-		order by attname`.withoutTransform;
+	return yield* tableColumns(options.table);
 });
