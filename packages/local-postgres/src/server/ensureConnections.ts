@@ -1,20 +1,11 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
+import type { docker as localDocker } from "#server/adapters/docker.ts";
+import { POSTGRES_IMAGE } from "#server/adapters/localContainer.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import { POSTGRES_IMAGE } from "#server/localContainer.ts";
-import type { docker as localDocker } from "#server/localDocker.ts";
 import type { PostgresCommandError } from "#server/PostgresCommandError.ts";
+import { PostgresSettingError } from "#server/PostgresSettingError.ts";
 import type { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
-
-export class PostgresSettingError extends Schema.TaggedError<PostgresSettingError>()("PostgresSettingError", {
-	cause: Schema.Unknown,
-	container: Schema.Literal("development-postgres"),
-	setting: Schema.Literal("max_connections"),
-}) {
-	override get message() {
-		return "Could not set max_connections to at least 500 in container development-postgres.";
-	}
-}
 
 type Query = (query: string) => Effect.Effect<string, LocalPostgresError | PostgresCommandError, ChildProcessSpawner.ChildProcessSpawner>;
 

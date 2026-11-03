@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { clientConnection } from "#server/clientConnection.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import type { docker as runDocker } from "#server/localDocker.ts";
 import { PostgresCommandError } from "#server/PostgresCommandError.ts";
-import type { CommandOptions } from "#server/runCommand.ts";
+import { clientConnection } from "./clientConnection.ts";
+import type { docker as runDocker } from "./docker.ts";
+import type { CommandOptions } from "./runCommand.ts";
 
 export const POSTGRES_IMAGE = "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873";
 const CONTAINER = "development-postgres";
