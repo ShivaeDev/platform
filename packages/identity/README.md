@@ -90,6 +90,36 @@ To also accept the transport guard's same-origin requests, pass `sameOrigin: { t
 
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. When the lookup returns Better Auth’s `session.expiresAt` as a `Date`, identity also rejects the session at or after that instant using Effect’s current clock. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
+### Local owners and machine callers
+
+`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect `Crypto` service:
+
+```ts
+import { Layer, Redacted } from "effect";
+import { permission } from "@shivaedev/access/permission.ts";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { localOwner } from "@shivaedev/identity/server/localOwner.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+
+const Manage = permission("app.manage");
+const Read = permission("app.read");
+const roles = roleSet(role("owner", [Read, Manage]), role("reader", [Read]));
+const local = yield* localOwner({
+  owner: { id: "owner", name: "Owner", email: "owner@example.test", role: "owner" },
+  roles,
+});
+const sessions = Layer.succeed(SessionPolicy, local.sessions);
+const bearerToken = Redacted.value(local.token);
+const machine = yield* local.machines.issue({ name: "reader agent", scope: "reader" });
+```
+
+Pass `sessions` to `appHost` and hand `bearerToken` directly from the launching process to its own client. Use the session host with contracts declaring `Authenticated`, `AuthenticatedUser` or permission middleware. The existing `makeClient` option `bearerToken` sends HTTP authorization and the WebSocket's first authentication frame. Native HTTP callers send `Authorization: Bearer <token>`. Credentials are required even on loopback; the policy also requires a loopback Host and peer and the existing same-origin check. Authenticated handlers, query read policies and audit code receive the configured owner's id.
+
+The owner credential lasts for this provider instance. Machine credentials persist in PostgreSQL as SHA-256 digests, and `issue` returns a redacted credential once. A machine acts on behalf of the owner, with `SessionUser.role` and `permissions` resolved solely from its scope through the application's `roleSet`. Use permission middleware for owner-only commands; an owner id alone does not distinguish machine rights. An undeclared scope cannot be issued. `machineTokens` from `server/machineTokens.ts` also exposes this store independently, taking `{ owner, roles }` and returning `issue`, `resolve` and `revoke`; resolved machine sessions include `{ machine: { id, name, scope }, user }`.
+
+Call `local.machines.revoke(machine.id)` from authorized application code. Every machine lookup reads PostgreSQL, so the next request is refused after revocation. Existing live-query revalidation checks the same provider and closes a revoked bearer connection. `streamRevalidationInterval` configures that interval on `localOwner`, with the usual 30-second default. The token store does not authorize its administrative methods; applications decide who may issue and revoke credentials.
+
 ### Mount Better Auth
 
 `betterAuthMount(options)` returns the Better Auth instance and a native route Layer for `/api/auth/*`. It accepts Better Auth options, including application plugins and session policy. Its scoped acquisition waits for the auth context and the provider’s schema check before returning; a provider initialization or schema-check failure logs the redacted cause and fails with `AuthUnavailable`. Building a Layer from this acquisition therefore completes only when authentication is ready. Merge `routes` into the HTTP host and use `auth.api.getSession` with `betterAuthSessions` for the application's RPC session provider.
