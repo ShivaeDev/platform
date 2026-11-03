@@ -5,9 +5,9 @@ import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 import type { Engine } from "./engine.ts";
+import { GRAPHQL, REPOSITORY } from "./githubModel.ts";
 import { type FileOperation, type Gate, makeGate } from "./io.ts";
 import { clockTime, described, request, snapshotPhrase, transitionLines } from "./readouts.ts";
-import { GRAPHQL, REPOSITORY } from "./githubModel.ts";
 
 export function emitTo(engine: Engine) {
 	return (line: WatchEvent) =>

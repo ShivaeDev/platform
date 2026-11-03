@@ -27,14 +27,14 @@ export function admissionFetchVerbs(engine: HostStoryEngine, tell: (line: string
 		admissionDuringHeldFetch: Effect.fn("AdmissionFetch.admissionDuringHeldFetch")(function* (admit: Effect.Effect<readonly string[], unknown>) {
 			tell("admission starts while another read of main holds its Git fetch");
 			const attempted = yield* Deferred.make<void>();
-			let fetchesStarted = 0;
+			const fetchesStarted: string[] = [];
 			const tracer = Tracer.make({
 				span: (options) => {
 					if (options.name === "GitMainSource.latest") {
 						Deferred.doneUnsafe(attempted, Effect.void);
 					}
 					if (options.name === "GitMainSource.fetch") {
-						fetchesStarted += 1;
+						fetchesStarted.push(options.name);
 					}
 					return new Tracer.NativeSpan(options);
 				},
@@ -42,7 +42,7 @@ export function admissionFetchVerbs(engine: HostStoryEngine, tell: (line: string
 			const admission = yield* admit.pipe(Effect.withTracer(tracer), Effect.forkScoped);
 			return {
 				attempted: Deferred.await(attempted).pipe(Effect.timeout("5 seconds")),
-				fetchesStarted: () => fetchesStarted,
+				fetchesStarted: () => [...fetchesStarted],
 				result: () => Fiber.join(admission),
 			};
 		}),

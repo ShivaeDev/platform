@@ -11,7 +11,7 @@ host.it(
 		const admission = yield* daemon.admissionDuringHeldFetch(daemon.admit());
 		yield* admission.attempted;
 		yield* daemon.externalMainFetch();
-		expect(admission.fetchesStarted()).toBe(0);
+		expect(admission.fetchesStarted()).toEqual([]);
 
 		daemon.releaseMainFetch();
 
@@ -20,7 +20,7 @@ host.it(
 			["admission warnings", () => admission.result(), []],
 			["one", () => daemon.get("one"), { preparation: { baseRevision: daemon.pushedMainRevision() }, step: "queued" }],
 		]);
-		expect(admission.fetchesStarted()).toBe(1);
+		expect(admission.fetchesStarted()).toEqual(["GitMainSource.fetch"]);
 		expect(daemon.mainFetchesOverlapped()).toBe(false);
 	},
 );
