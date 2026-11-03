@@ -110,6 +110,8 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 						const active = pending;
 						pending = undefined;
 						if (active()) {
+							get.set(timer, Atom.Interrupt);
+							scheduled = false;
 							reread();
 						}
 						dequeue();

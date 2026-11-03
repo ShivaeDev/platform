@@ -132,7 +132,7 @@ const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view:
 
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
 	return TestClock.adjust(engine.registry.get(engine.client.coalesceWindow)).pipe(
-		Effect.andThen(Effect.forEach(views, (view) => readAfterLastHint(engine, view), { discard: true })),
+		Effect.andThen(Effect.forEach(views, (view) => Effect.andThen(readAfterLastHint(engine, view), shownOf(engine, view)), { discard: true })),
 	);
 }
 

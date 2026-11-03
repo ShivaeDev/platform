@@ -1,12 +1,12 @@
 import { join } from "node:path";
-import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { packArchive } from "#package-check/archive.ts";
 import { workspaceArchives } from "#package-check/archives.ts";
 import { checkConsumers } from "#package-check/consumers.ts";
-import { command, writeJson } from "#package-check/io.ts";
+import { writeJson } from "#package-check/io.ts";
+import { localConsumerWorkspace } from "#package-check/test-support/localConsumerWorkspace.ts";
 
 export const consumers = storyKit({
 	after: {
@@ -25,9 +25,7 @@ export const consumers = storyKit({
 		for (const path of ["packages/probe", "script/package-check/fixtures/probe", "consumers"]) {
 			yield* fs.makeDirectory(join(root, path), { recursive: true });
 		}
-		const workspace = yield* fs.readFileString(join(process.cwd(), "pnpm-workspace.yaml"));
-		const store = (yield* command(process.cwd(), "pnpm", ["store", "path", "--silent"])).trim();
-		yield* fs.writeFileString(join(root, "pnpm-workspace.yaml"), `${workspace}\nstoreDir: ${JSON.stringify(store)}\n`);
+		yield* localConsumerWorkspace(root);
 		yield* writeJson(join(root, "script/package-check/browser-entries.json"), {});
 		yield* writeJson(join(root, "script/package-check/fixture-files.json"), {});
 		yield* writeJson(join(root, "packages/probe/package.json"), {

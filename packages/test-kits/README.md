@@ -27,6 +27,20 @@ Import `inbox`, `emailLink` and the `ReceivedEmail` type from `@shivaedev/test-k
 
 Import `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. They use Better Auth's adapter without requiring its test plugin. `signedInUser(auth, fields)` returns the user, session, headers, cookies and token. Optional `providerAccounts` attach provider identities. `signInAgain(auth, userId)` renews the same user's session on the caller's Effect Clock. `passwordUser` accepts either `password` or `passwordHash`; use an existing hash when password hashing is only a precondition. `storedProviderAccounts` reports credential-presence booleans without returning credential values.
 
+### MCP bearer tokens
+
+Import `mcpBearerToken` from `@shivaedev/test-kits/mcp/adapters/bearerToken.ts`. With the application's mounted Better Auth instance (JWT and MCP provider plugins enabled), an existing signed-in user and OAuth client, mint the token precondition:
+
+```ts
+const access = yield* mcpBearerToken(auth, {
+	userId: alice.user.id,
+	clientId: client.clientId,
+	resource: `${publicUrl}/mcp`,
+});
+```
+
+The verb creates a persisted `mcp` consent grant and signs a bearer token with the app's advertised issuer and JWT key. It includes the subject, client, grant, resource audience, scope, issued-at and one-hour expiry on the Effect Clock. The result contains `token`, bearer `headers` and `grantId`. Use the token with the app's real MCP adapter; revoking the grant refuses it. This mints a precondition and does not exercise browser OAuth consent or code exchange.
+
 ### SQL change coverage
 
 Import `withChangeCoverage`, `expectPublished`, `UnannouncedWrites`, `PublishedKeysMismatch` and the `ChangeCoverage` type from `@shivaedev/test-kits/sql/testing.ts`. `withChangeCoverage(body, { covers }?)` checks PostgreSQL write counters inside `transact` and rolls back writes without declared, recorded keys. `body.pipe(expectPublished(keys))` checks distinct published keys after the body; a mismatch cannot undo a completed commit. The [change guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) explains declarations and publication boundaries. Compose these with [test-sql](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme) for PostgreSQL isolation.
