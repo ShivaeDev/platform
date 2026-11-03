@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { stalledWorker } from "#test/engineStalledTurnTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
@@ -50,7 +51,17 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 				sessionUnusable: true,
 				status: "failed",
 			});
-			expect(yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt))).not.toBe("accepted");
+			const beforeAcknowledgement = yield* fleet.get("one");
+			const late = yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt));
+
+			yield* outcomes([
+				[
+					"late acknowledgement",
+					() => Effect.succeed(late),
+					"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
+				],
+				["execution record", () => fleet.get("one"), beforeAcknowledgement],
+			]);
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "release") {
 				expect(resolved.value.step).toBe("released");

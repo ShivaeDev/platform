@@ -163,7 +163,7 @@ engine.it(
 		}
 		writeBoardWork("one.md", `${source}\nSecond criteria edit.\n`);
 		const denied = yield* refusal(fleet.resolve("one", decision.id, answerReport(decision.published, "retry")));
-		expect(denied).not.toBe("accepted");
+		expect(denied).toBe("conflict: Board context changed");
 		yield* outcomes([
 			["one board context", () => fleet.get("one"), { value: { boardContext: source } }],
 			["one responses", () => fleet.get("one").pipe(Effect.map((current) => current.value.responses)), undefined],

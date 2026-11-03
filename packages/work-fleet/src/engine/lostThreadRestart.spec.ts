@@ -40,7 +40,10 @@ isolatedEngine.it(
 		expect(twoDispatchOutcome).toContain("area fleet/runtime held by one");
 		expect((yield* get("two")).value.attempts).toEqual([]);
 		const lateAcknowledgementOutcome = yield* refusal(acknowledgeProviderTurn("operation-1", { sessionId: "late", turnId: "late" }));
-		expect(lateAcknowledgementOutcome).not.toBe("accepted");
+		expect(lateAcknowledgementOutcome).toBe(
+			"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
+		);
+		expect((yield* get("one")).value).toEqual(queued);
 		advanceTime(30_000);
 		yield* restart();
 		yield* schedule();

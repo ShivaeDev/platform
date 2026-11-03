@@ -101,7 +101,10 @@ export function boardDecisionVerbs(
 		questionPreview: Effect.fn("Story.questionPreview")(function* (decision: BoardDecision) {
 			tell(`a Board reader previews the question for ${decision.request}`);
 			const { client } = yield* boardHttp(root);
-			const preview = yield* Effect.tryPromise(() => client.run(client.responses.question.run({ item: decision.itemId, request: decision.request })));
+			const preview = yield* Effect.tryPromise({
+				catch: (error) => error,
+				try: () => client.run(client.responses.question.run({ item: decision.itemId, request: decision.request })),
+			});
 			return { question: preview.id, revision: preview.reviewedRevision, source: preview.source };
 		}, Effect.scoped),
 		receiptRecords: () => Effect.sync(() => files.receipts().map((file) => metadataParse(files.read(file)).fields.requestReceipt)),

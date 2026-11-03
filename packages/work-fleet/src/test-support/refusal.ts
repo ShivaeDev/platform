@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlError } from "effect/sql/SqlError";
-import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { BoardAcknowledgementStale } from "#board/schema.ts";
 import { HostConfigRejected, HostFailure } from "#host/config.ts";
 import { BoardFailure } from "#policy.ts";
@@ -17,6 +17,7 @@ const phrases = [
 	on(BadRequest, ({ message }) => `bad request: ${message}`),
 	on(Conflict, ({ message }) => `conflict: ${message}`),
 	on(NotFound, ({ message }) => `not found: ${message}`),
+	on(PreconditionFailed, ({ message }) => `precondition failed: ${message}`),
 	on(ServiceUnavailable, ({ message }) => `unavailable: ${message}`),
 	on(BoardFailure, ({ message }) => `Board failure: ${message}`),
 	on(BoardAcknowledgementStale, ({ message }) => `stale acknowledgement: ${message}`),
@@ -32,7 +33,7 @@ const phrases = [
 	on(StorageQuota, ({ reason }) => `quota ${reason}`),
 	on(StorageAdmission, ({ message }) => `admission refused: ${message}`),
 	on(Schema.SchemaError, ({ message }) => `invalid stored data: ${message}`),
-	on(SqlError, ({ message }) => `database failure: ${message}`),
+	on(SqlError, ({ message }) => `unexpected failure: database failure: ${message}`),
 ];
 
 export function described(error: unknown) {

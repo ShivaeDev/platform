@@ -44,7 +44,7 @@ boardReadStory.it(
 		yield* duringOnePass(
 			outcomes([
 				["edited revision matches its metadata", () => revisionMatchesMetadata(edited), true],
-				["removed item", () => refusalOf("item.1"), expect.not.stringMatching(/^accepted$/u)],
+				["removed item", () => refusalOf("item.1"), "Board failure: Board item no longer exists: item.1"],
 				["added item", () => approvalOf("item.new"), "approved"],
 			]),
 		);
@@ -57,7 +57,7 @@ boardReadStory.it("two files claiming one id fail its lookup on the next pass", 
 
 	yield* write("duplicate.md", "item.new");
 
-	expect(yield* duringOnePass(refusalOf("item.new"))).not.toBe("accepted");
+	expect(yield* duringOnePass(refusalOf("item.new"))).toBe("Board failure: Board identity is missing or ambiguous: item.new; ");
 });
 
 boardReadStory.it(

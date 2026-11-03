@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { missingRecordsTable } from "#test/hostDatabaseTraits.ts";
 import { host } from "#test/hostStory.ts";
 import { refusal } from "#test/refusal.ts";
 
@@ -31,8 +32,14 @@ for (const [table, readout] of [
 			[
 				readout,
 				() => (table === "dispatches" ? refusal(daemon.dispatchStatus("one")) : refusal(daemon.readSummaries())),
-				table === "dispatches" ? UNAVAILABLE : expect.stringMatching(/^database failure: /u),
+				table === "dispatches" ? UNAVAILABLE : expect.stringMatching(/^unexpected failure: database failure: /u),
 			],
 		]);
 	});
 }
+
+host.it("a database fault reaches the refusal readout as an unexpected failure", [missingRecordsTable], function* ({ readSummaries }) {
+	const readout = yield* refusal(readSummaries());
+
+	expect(readout).toMatch(/^unexpected failure: database failure: /u);
+});

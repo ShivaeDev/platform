@@ -24,7 +24,9 @@ for (const [boundary, [change, initial, later, evidence, expected]] of (["before
 		`a report restarted ${boundary} after ${change} collects attachments once and republishes its first ${evidence}`,
 		[withReportWork],
 		function* ({ files, report }) {
-			expect(yield* report.publish(initial, boundary)).not.toBe("accepted");
+			expect(yield* report.publish(initial, boundary)).toBe(
+				boundary === "before-publication" ? "Board failure: Publication unavailable" : "Board failure: Lost report publication receipt",
+			);
 
 			const recovered = yield* report.recover(later);
 

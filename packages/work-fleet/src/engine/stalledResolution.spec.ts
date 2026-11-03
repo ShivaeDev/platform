@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { stalledInterruptIsObserved } from "#test/engineStalledTurnTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { refusal } from "#test/refusal.ts";
@@ -52,7 +53,17 @@ for (const scenario of [
 				status: "failed",
 			});
 			expect(providerInterruptions()).toEqual([receipt.turnId]);
-			expect(yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt))).not.toBe("accepted");
+			const beforeAcknowledgement = yield* fleet.get("one");
+			const late = yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt));
+
+			yield* outcomes([
+				[
+					"late acknowledgement",
+					() => Effect.succeed(late),
+					"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
+				],
+				["execution record", () => fleet.get("one"), beforeAcknowledgement],
+			]);
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "retry") {
 				const fresh = yield* afterRestart(fleet.dispatch("one"));

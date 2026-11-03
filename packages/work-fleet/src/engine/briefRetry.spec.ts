@@ -24,7 +24,7 @@ engine.it(
 		writeBoardWork("one.md", current);
 		const responseId = answerReport(decision.published, "retry");
 		const denied = yield* refusal(fleet.resolve("one", decision.id, responseId));
-		expect(denied).not.toBe("accepted");
+		expect(denied).toBe("conflict: Board context changed");
 		const prepared = yield* fleet.get("one");
 		expect(prepared.value.step).toBe("waiting");
 		expect(prepared.value.boardContext).toBe(source);
