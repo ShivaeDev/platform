@@ -1,0 +1,54 @@
+{
+	"name": "@shivaedev/agent-codex",
+	"version": "0.0.0",
+	"description": "Codex integration for Effect applications",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/agent-codex#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/agent-codex"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm build",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}
