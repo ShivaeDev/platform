@@ -33,7 +33,7 @@ export function engineRescanDaemon(state: EngineStory, tell: (line: string) => v
 			Effect.gen(function* () {
 				tell("serve the engine's durable records through the Fleet daemon");
 				const fixture = yield* hostFixture();
-				const board = state.bufferedBoard?.board ?? state.sourceReads?.board;
+				const board = state.sourceReads?.board;
 				if (board === undefined) {
 					return yield* Effect.die("No tracked Board is configured");
 				}

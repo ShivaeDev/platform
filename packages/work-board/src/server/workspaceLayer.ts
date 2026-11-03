@@ -11,11 +11,19 @@ export interface HeadlessWorkspaceOptions extends Omit<WorkspaceOptions, "change
 export function workspaceLayer(options: HeadlessWorkspaceOptions) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			const owner = yield* Effect.context<never>();
 			const home = yield* homeIn(options.root, options.home);
 			const { changes, read } = yield* watchIndex(options.root, home, options.maintainer);
-			yield* read;
 			return Workspace.layer.pipe(
-				Layer.provide(Layer.succeed(WorkspaceConfig, { ...options, changes, home, index: read, writable: options.writable === true })),
+				Layer.provide(
+					Layer.succeed(WorkspaceConfig, {
+						...options,
+						changes,
+						home,
+						index: read.pipe(Effect.updateContext<never, never>(() => owner)),
+						writable: options.writable === true,
+					}),
+				),
 			);
 		}),
 	);

@@ -1,4 +1,4 @@
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 

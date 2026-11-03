@@ -4,6 +4,7 @@ import { answerWork } from "#host/answerWork.ts";
 import { resolveHost } from "#host/config.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import { BoardGateway } from "#policy.ts";
+import { answerSignals } from "#test/answerSignals.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
@@ -39,6 +40,7 @@ export function answerReadbackVerbs(state: EngineStory, tell: (line: string) => 
 				});
 				const host = resolveHost(state.root, { database: syntheticDatabase, provider: "local" });
 				const board = yield* openFleetBoard(state.root);
+				const signals = yield* answerSignals(running(state).fleet);
 				const result = yield* withDecisionResponses(
 					host,
 					answerWork(host, workId, {
@@ -53,6 +55,9 @@ export function answerReadbackVerbs(state: EngineStory, tell: (line: string) => 
 					Effect.forkScoped,
 				);
 				return {
+					applied: signals
+						.wait((event) => event.workId === workId && (event._tag === "Applied" || event._tag === "Refused"))
+						.pipe(Effect.map((event) => (event._tag === "Refused" ? `refused: ${event.reason}` : event._tag.toLowerCase()))),
 					beforePublish: Deferred.await(publishing),
 					publish: Deferred.succeed(publish, undefined),
 					reading: Deferred.await(reading),

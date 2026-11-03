@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { backlinksOf } from "./backlinks.ts";
 import { metadataModel } from "./model.ts";
 

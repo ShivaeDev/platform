@@ -5,7 +5,6 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
 import { type FleetHost, type HostConfig, type HostSettings, resolveHost } from "#host/config.ts";
@@ -13,6 +12,7 @@ import { CONFIG_FILE } from "#host/defaults.ts";
 import { BoardGateway } from "#policy.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 import { unpublishedHostIntegrations } from "#test/unpublishedHostIntegrations.ts";
@@ -40,10 +40,7 @@ export function hostBoard(config?: string) {
 function hostParts(host: FleetHost, provider: EngineProvider["transport"]): HostParts {
 	const boardDir = host.boardDir;
 	return {
-		board: Layer.merge(
-			markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
-			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
-		),
+		board: Layer.merge(liveBoard(boardDir).pipe(Layer.provide(NodeServices.layer)), Layer.succeed(ReportInspection)({ check: () => Effect.void })),
 		github: syntheticGithub().layer,
 		integrations: unpublishedHostIntegrations(host),
 		main: fixedMainSource(),
@@ -120,7 +117,7 @@ export function withHost<A, E, R>(
 
 export function readHostWork(fixture: HostFixture, workId: string) {
 	return Effect.flatMap(BoardGateway, (board) => board.get(workId)).pipe(
-		Effect.provide(markdownBoard(fixture.host.boardDir)),
+		Effect.provide(liveBoard(fixture.host.boardDir)),
 		Effect.provide(NodeServices.layer),
 	);
 }

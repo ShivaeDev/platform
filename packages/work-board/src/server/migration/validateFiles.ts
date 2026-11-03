@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { sourceValue } from "#server/migration/adapters/sourceValue.ts";
 
 export function validateFiles(

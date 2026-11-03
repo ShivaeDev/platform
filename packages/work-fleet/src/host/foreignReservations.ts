@@ -1,8 +1,9 @@
 import { Effect, FileSystem, Result, Schema } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
-import { boardSnapshot } from "#board/documents.ts";
 import { fleetBranch, fleetPullRequest } from "#board/fleetField.ts";
+import { snapshotProblems } from "#board/workPolicy.ts";
+import { boardSnapshot } from "#board/workspace.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubJson } from "#host/github.ts";
@@ -32,7 +33,7 @@ export const reserveForeignPr = Effect.fn("FleetHost.reserveForeignPr")(function
 	}
 	const fs = yield* FileSystem.FileSystem;
 	const snapshot = yield* boardSnapshot(host.boardDir, yield* fs.realPath(host.boardDir));
-	for (const problem of snapshot.problems.values()) {
+	for (const problem of snapshotProblems(snapshot).values()) {
 		return yield* problem;
 	}
 	const matches = snapshot.documents.filter(

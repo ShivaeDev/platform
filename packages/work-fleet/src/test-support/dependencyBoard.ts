@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
 import type { Fleet } from "#fleet.ts";
 import { BoardGateway } from "#policy.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineFixture, withEngine } from "#test/engine.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { scriptedBoard } from "#test/scriptedBoard.ts";
 
 export const dependencySource = `---
@@ -47,7 +47,7 @@ export function withDependencyBoard<A, E>(
 					respond = scripted.respond;
 					const gateway = yield* BoardGateway.pipe(Effect.provide(scripted.layer));
 					return { ...gateway, get: markdown.get };
-				}).pipe(Effect.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer)))),
+				}).pipe(Effect.provide(liveBoard(root).pipe(Layer.provide(NodeServices.layer)))),
 			);
 			for (const id of ["dependent", "two"]) {
 				const relationship = id === "dependent" ? "relationships:\n  - kind: depends_on\n    target: one\n" : "";

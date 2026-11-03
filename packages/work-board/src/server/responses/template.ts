@@ -3,7 +3,7 @@ import type { ContainerDirective } from "mdast-util-directive";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { optionPrompt } from "./optionPrompt.ts";
 import { templateLinks } from "./templateLinks.ts";
 import { isContainer, promptFrom, sliceNode } from "./templateNodes.ts";

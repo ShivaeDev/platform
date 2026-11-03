@@ -1,12 +1,8 @@
 {"path":"packages/work-fleet/src/admit.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/board/answerPublication.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/board/documents.ts","rule":"effect/failure-honesty","count":1}
-{"path":"packages/work-fleet/src/board/documents.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/board/markdown.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/publicationFailure.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/board/readPass.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: pass-isolation stories still assert scan counters; replacing these needs a scan trace in the Board read kit."}
 {"path":"packages/work-fleet/src/board/readPass.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-fleet/src/board/upgradeDecisionClosure.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/abandonStalled.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/admissionOrder.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/admissionRecoveryMatrix.spec.ts","rule":"effect/boundary","count":1}
@@ -175,9 +171,6 @@
 {"path":"packages/work-fleet/src/storage/recordSnapshot.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/storage/recordValue.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The selected local row depends on the declared record model; decoding needs that model schema instead of a second field description (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/schemaColumnsMigration.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/board/closePublishedDecision.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-fleet/src/board/completionFields.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-fleet/src/board/fleetField.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-fleet/src/board/markdown.test.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-fleet/src/board/publish.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-fleet/src/board/publishReport.test.ts","rule":"effect/adapter-imports","count":1}

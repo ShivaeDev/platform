@@ -4,7 +4,6 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, type Context, Effect, Layer, Redacted } from "effect";
 import type { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import { resolveHost } from "#host/config.ts";
 import { FleetIntegrations } from "#policy.ts";
@@ -12,6 +11,7 @@ import { waitForRecord } from "#test/daemonActions.ts";
 import type { daemonClient } from "#test/daemonClient.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";
@@ -47,10 +47,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (state:
 	});
 
 	const parts = {
-		board: Layer.merge(
-			markdownBoard(state.root).pipe(Layer.provide(NodeServices.layer)),
-			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
-		),
+		board: Layer.merge(liveBoard(state.root).pipe(Layer.provide(NodeServices.layer)), Layer.succeed(ReportInspection)({ check: () => Effect.void })),
 		github: syntheticGithub().layer,
 		integrations: Layer.succeed(FleetIntegrations)({
 			checks: (_work, result) => github.checksQuery(result),

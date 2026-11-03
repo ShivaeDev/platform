@@ -1,9 +1,10 @@
 import { Effect } from "effect";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
+import type { Snapshot as BoardSnapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { closePublishedDecision, publishedDecision } from "#board/closePublishedDecision.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import type { BoardSnapshot } from "#board/readPass.ts";
 import type { ClosedDecision } from "#board/schema.ts";
+import { snapshotProblems } from "#board/workPolicy.ts";
 import type { BoardFailure } from "#policy.ts";
 
 // Each closure syncs its file and directory, so a sweep in sequence waits on every sync in turn.
@@ -15,7 +16,7 @@ export interface CloseFinishedOptions {
 	readonly workId?: string;
 }
 
-export function closeFinishedDecisions(root: string, realRoot: string, snapshot: Effect.Effect<BoardSnapshot, BoardFailure>) {
+export function closeFinishedDecisions(realRoot: string, snapshot: Effect.Effect<BoardSnapshot, BoardFailure>) {
 	return Effect.fn("FleetBoard.closeFinishedDecisions")(function* (options: CloseFinishedOptions = {}) {
 		const current = yield* snapshot;
 		const questions = new Map(
@@ -36,7 +37,7 @@ export function closeFinishedDecisions(root: string, realRoot: string, snapshot:
 		const closed = yield* Effect.forEach(
 			candidates,
 			({ decision, document }) =>
-				closePublishedDecision(root, realRoot, document, decision.reason).pipe(Effect.map((updated) => (updated === undefined ? [] : [decision]))),
+				closePublishedDecision(realRoot, document, decision.reason).pipe(Effect.map((updated) => (updated === undefined ? [] : [decision]))),
 			{ concurrency: WRITE_CONCURRENCY },
 		);
 		return closed.flat();
@@ -53,7 +54,7 @@ function finishedDecision(
 	if (
 		decision === undefined
 		|| decision.request.state !== "open"
-		|| snapshot.problems.has(document.file)
+		|| snapshotProblems(snapshot).has(document.file)
 		|| (options.workId !== undefined && decision.workId !== options.workId)
 	) {
 		return;
@@ -70,9 +71,9 @@ function finishedDecision(
 		return;
 	}
 	const matches = snapshot.model.ids.get(decision.workId);
-	const work = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
+	const work = matches?.length === 1 ? matches[0] : undefined;
 	const status = work?.parsed.fields.status;
-	if (work === undefined || snapshot.problems.has(work.file) || !["done", "deferred", "dropped"].includes(status ?? "")) {
+	if (work === undefined || snapshotProblems(snapshot).has(work.file) || !["done", "deferred", "dropped"].includes(status ?? "")) {
 		return;
 	}
 	return { reason: `Closed because Board work ${decision.workId} is ${status}.`, workId: decision.workId };

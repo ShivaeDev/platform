@@ -1,12 +1,13 @@
 import { Effect } from "effect";
-import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import type { Reading } from "@shivaedev/work-board/server/integration/responses.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
-import type { BoardDocument } from "#board/documents.ts";
+import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
+import { metadataProblem } from "#board/workPolicy.ts";
 import { BoardFailure } from "#policy.ts";
 
-const { metadataModel, metadataParse } = board;
 const { currentResponses, questionId, readResponses, questionSourceMatches } = responses;
 
 function currentResponse(reading: Reading): BoardDecisionReading {
@@ -31,16 +32,22 @@ function reviewedQuestion(question: Reading["question"], receipt: BoardDecision,
 	);
 }
 
-export function decisionReading(
-	documents: Effect.Effect<readonly BoardDocument[], BoardFailure>,
-	archivedDocuments?: (item: string) => Effect.Effect<readonly BoardDocument[], BoardFailure>,
-) {
+function selectedSource(snapshot: Snapshot, receipt: BoardDecision) {
+	const matches = snapshot.model.ids.get(receipt.itemId);
+	const document = matches?.length === 1 ? matches[0] : undefined;
+	return document && document.file === receipt.sourcePath && metadataProblem(document) === undefined ? document : undefined;
+}
+
+export function decisionReading(snapshot: Effect.Effect<Snapshot, BoardFailure>, archived?: (item: string) => Effect.Effect<Snapshot, BoardFailure>) {
 	return Effect.fn("FleetBoard.readDecision")(function* (receipt: BoardDecision): Effect.fn.Return<BoardDecisionReading, BoardFailure> {
-		const all = yield* archivedDocuments?.(receipt.itemId) ?? documents;
-		const model = metadataModel(all);
-		const matches = model.ids.get(receipt.itemId);
-		const document = matches?.length === 1 ? all.find((entry) => entry.file === matches[0]?.file) : undefined;
-		if (!document || document.file !== receipt.sourcePath) {
+		const current = yield* archived?.(receipt.itemId) ?? snapshot;
+		if (current.unavailable.length > 0) {
+			return yield* Effect.fail(
+				new BoardFailure({ code: "incomplete-observation", message: `Board sources are unavailable: ${current.unavailable.join(", ")}` }),
+			);
+		}
+		const document = selectedSource(current, receipt);
+		if (document === undefined) {
 			return { _tag: "Stale", reason: "The decision source changed, moved or became ambiguous." };
 		}
 		const requests = document.parsed.fields.attention?.filter((request) => request.id === receipt.request) ?? [];
@@ -52,8 +59,7 @@ export function decisionReading(
 			return { _tag: "Stale", reason: "The exact open decision request is unavailable." };
 		}
 		const closed = requests[0]?.state === "closed";
-		const snapshot = Effect.succeed({ documents: all, entries: [], model, modified: new Map<string, number>(), revision: 0, unavailable: [] });
-		const reading = yield* readResponses(snapshot)(receipt.questionId).pipe(
+		const reading = yield* readResponses(Effect.succeed(current))(receipt.questionId).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Fleet decision response history is incomplete or ambiguous." })),
 		);
 		if (!reviewedQuestion(reading.question, receipt, document, closed)) {

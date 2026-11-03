@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { mermaidEngine } from "./mermaidEngine.ts";

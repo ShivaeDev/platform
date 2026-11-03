@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
 import { reportBoard } from "#host/reportBoard.ts";
 import { BoardFailure, BoardGateway, type BoardWork } from "#policy.ts";
 import type { ReportAttachments } from "#reportAttachments.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { lostReportReceipt } from "#test/report.ts";
 
 export const REPORT_OBSERVATION = {
@@ -25,7 +25,7 @@ export function reportPublicationVerbs(root: string, tell: (line: string) => voi
 						...original,
 						report: () => Effect.fail(new BoardFailure({ message: "Publication unavailable" })),
 					})),
-				).pipe(Layer.provide(markdownBoard(root)));
+				).pipe(Layer.provide(liveBoard(root)));
 				const layer = reportBoard(
 					root,
 					() => Effect.succeed(false),
@@ -54,7 +54,7 @@ export function reportPublicationVerbs(root: string, tell: (line: string) => voi
 						collections += 1;
 						return later === undefined ? Effect.fail(new BoardFailure({ message: "Retrieval now unavailable" })) : Effect.succeed(later);
 					},
-				).pipe(Layer.provide(markdownBoard(root)));
+				).pipe(Layer.provide(liveBoard(root)));
 				return yield* Effect.flatMap(BoardGateway, (board) => board.report(current, REPORT_OBSERVATION)).pipe(Effect.provide(layer));
 			}),
 	};

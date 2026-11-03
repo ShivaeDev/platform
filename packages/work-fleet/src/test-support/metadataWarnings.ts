@@ -25,7 +25,7 @@ export const metadataWarnings = storyKit({
 		},
 		remove: (file: string) => {
 			story.tell(`remove ${file}`);
-			return fs.remove(`${fixture.root}/${file}`, { recursive: true });
+			return fixture.remove(file);
 		},
 		warnings: () =>
 			logs.entries

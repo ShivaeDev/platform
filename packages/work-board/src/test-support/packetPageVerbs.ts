@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import type { OpenPage } from "./browser.ts";
 import { formEvent } from "./formEvent.ts";
 import { type BoardEngine, connected, savedResponseFiles } from "./storyEngine.ts";

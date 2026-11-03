@@ -1,9 +1,8 @@
 import { Effect } from "effect";
-import { parseDocument } from "yaml";
-import { board } from "@shivaedev/work-board/server/integration/board.ts";
-import { Publication, replaceIfUnchanged } from "@shivaedev/work-board/server/publication.ts";
-import type { BoardDocument } from "#board/documents.ts";
-import { recordBoardSource } from "#board/readPass.ts";
+import type { MetadataDocument as BoardDocument } from "@shivaedev/work-board/integration/metadata.ts";
+import { documentSource } from "@shivaedev/work-board/server/metadata/model.ts";
+import { Workspace } from "@shivaedev/work-board/server/workspace.ts";
+import { recordBoardWrite } from "#board/readPass.ts";
 import { BoardFailure } from "#policy.ts";
 
 export function publishedDecision(document: BoardDocument) {
@@ -27,7 +26,6 @@ export function publishedDecision(document: BoardDocument) {
 }
 
 export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecision")(function* (
-	root: string,
 	realRoot: string,
 	document: BoardDocument,
 	reason?: string,
@@ -36,27 +34,19 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 	if (request?.state !== "open") {
 		return;
 	}
-	const header = document.parsed.raw;
-	if (header === undefined) {
-		return;
-	}
-	const metadata = parseDocument(header.replace(/^---\r?\n/u, "").replace(/---\r?\n?$/u, ""));
-	metadata.setIn(["attention", 0, "state"], "closed");
-	metadata.set("status", "done");
-	if (reason !== undefined) {
-		metadata.set("next_action", reason);
-	}
-	const content = `---\n${metadata.toString()}---\n${document.parsed.body}`;
-	const written = yield* replaceIfUnchanged({ content, expectedSource: document.source, path: document.file, realRoot, root }).pipe(
-		Effect.provide(Publication.layer),
-		Effect.as(true),
-		Effect.catchTag("PreconditionFailed", () => Effect.succeed(false)),
+	const input = {
+		file: document.file,
+		request: request.id,
+		source: documentSource(document),
+		...(reason === undefined ? {} : { nextAction: reason }),
+	};
+	const workspace = yield* Workspace;
+	const updated = yield* workspace.closeDecision(input).pipe(
+		Effect.catchTag("PreconditionFailed", () => Effect.succeed(undefined)),
 		Effect.mapError((error) => new BoardFailure({ message: error.message })),
 	);
-	if (!written) {
-		return;
+	if (updated) {
+		yield* recordBoardWrite(realRoot, updated.file);
 	}
-	const parsed = board.metadataParse(content);
-	yield* recordBoardSource(realRoot, document.file, content, parsed);
-	return { file: document.file, parsed, source: content };
+	return updated;
 });

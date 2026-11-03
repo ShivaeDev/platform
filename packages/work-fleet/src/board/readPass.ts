@@ -1,36 +1,18 @@
 import { join } from "node:path";
 import { Context, Effect, type FileSystem, type Path, type Scope } from "effect";
-import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/integration/metadata.ts";
+import type { ParsedMetadata } from "@shivaedev/work-board/integration/metadata.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
-import type { BoardDocument } from "#board/documents.ts";
+import type { Snapshot as BoardSnapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { BoardIndex } from "#board/Index.ts";
-import { sharedRead } from "#board/sharedRead.ts";
-import type { BoardFailure, BoardWork } from "#policy.ts";
-
-const { metadataModel } = boardApi;
-
-export class BoardSnapshot {
-	documents: readonly BoardDocument[];
-	model: MetadataModel;
-	files: ReadonlyMap<string, BoardDocument>;
-	readonly problems: Map<string, BoardFailure>;
-
-	constructor(documents: readonly BoardDocument[], problems: Map<string, BoardFailure> = new Map(), model = metadataModel(documents)) {
-		this.problems = problems;
-		this.documents = documents;
-		this.model = model;
-		this.files = new Map(documents.map((document) => [document.file, document]));
-	}
-
-	record(document: BoardDocument) {
-		this.problems.delete(document.file);
-		this.documents = [...this.documents.filter((entry) => entry.file !== document.file), document];
-		this.model = metadataModel(this.documents);
-		this.files = new Map(this.documents.map((entry) => [entry.file, entry]));
-	}
-}
+import { warnSnapshotProblems } from "#board/warnSnapshotProblems.ts";
+import { BoardFailure, type BoardWork } from "#policy.ts";
 
 type Read = Effect.Effect<BoardSnapshot, BoardFailure>;
+
+function incompleteObservation(root: string, error: { readonly message: string }) {
+	return new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be read: ${root} (${error.message})` });
+}
+
 interface Pass {
 	active: boolean;
 	readonly fresh: boolean;
@@ -70,7 +52,15 @@ export const readSnapshot = Effect.fn("FleetBoard.readSnapshot")(function* (
 ) {
 	const pass = yield* ReadPass;
 	const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
-	const shared = sharedRead(realRoot, read.pipe(Effect.provideContext(services)), pass?.active === true && pass.fresh);
+	const watched = yield* Effect.serviceOption(BoardIndex);
+	const refresh =
+		(pass?.active !== true || pass.fresh) && watched._tag === "Some"
+			? watched.value.index.reconcile.pipe(Effect.mapError((error) => incompleteObservation(realRoot, error)))
+			: Effect.void;
+	const shared = Effect.andThen(refresh, read).pipe(
+		Effect.tap((snapshot) => warnSnapshotProblems(realRoot, snapshot)),
+		Effect.provideContext(services),
+	);
 	if (pass?.active !== true) {
 		return yield* shared;
 	}
@@ -83,24 +73,16 @@ export const readSnapshot = Effect.fn("FleetBoard.readSnapshot")(function* (
 	return yield* cached;
 });
 
-export const recordBoardSource = Effect.fn("FleetBoard.recordBoardSource")(function* (
-	realRoot: string,
-	file: string,
-	source: string,
-	parsed?: ParsedMetadata,
-) {
+export const recordBoardWrite = Effect.fn("FleetBoard.recordBoardWrite")(function* (realRoot: string, file: string) {
 	const watched = yield* Effect.serviceOption(BoardIndex);
 	if (watched._tag === "Some") {
 		yield* watched.value.index.changes.refreshPaths?.([file]) ?? Effect.void;
 	}
 	const pass = yield* ReadPass;
 	const read = pass?.active === true ? pass.reads.get(realRoot) : undefined;
-	if (read !== undefined) {
-		const snapshot = yield* read;
-		const existing = snapshot.files.get(file);
-		if (existing?.source !== source) {
-			snapshot.record({ file, parsed: parsed ?? boardApi.metadataParse(source), source });
-		}
+	if (read !== undefined && watched._tag === "Some") {
+		const next = yield* Effect.cached(watched.value.index.read.pipe(Effect.mapError((error) => new BoardFailure({ message: error.message }))));
+		pass?.reads.set(realRoot, next);
 	}
 });
 
@@ -109,8 +91,12 @@ export const workMetadata = Effect.fn("FleetBoard.workMetadata")(function* (work
 	for (const [root, read] of pass?.active === true ? pass.reads : []) {
 		const snapshot = yield* read;
 		const matches = snapshot.model.ids.get(work.workId);
-		const document = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
-		if (document?.source === work.context && join(root, document.file) === work.sourcePath) {
+		const document = matches?.length === 1 ? snapshot.documents.find((entry) => entry.file === matches[0]?.file) : undefined;
+		if (
+			document !== undefined
+			&& (document.parsed.raw ?? "") + document.parsed.body === work.context
+			&& join(root, document.file) === work.sourcePath
+		) {
 			return document.parsed;
 		}
 	}

@@ -1,5 +1,5 @@
 import type { MetadataDocument } from "#integration/metadata.ts";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 import { questionFrom } from "#server/responses/records.ts";
 
 export function documentBody(document: MetadataDocument): string {

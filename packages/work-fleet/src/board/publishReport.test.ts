@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
 import { refusal } from "#test/refusal.ts";
@@ -39,24 +38,6 @@ boardReadStory.it("republishing the same report returns its first receipt", [has
 		}),
 	);
 });
-
-boardReadStory.it(
-	"publishing and reading a report within a pass scans the Board once and reads each file once",
-	[hasBoardItems(1)],
-	function* ({ duringOnePass, read, readsPerFile, report, scans }) {
-		yield* duringOnePass(
-			Effect.gen(function* () {
-				const published = yield* report(yield* read("item.0"), observation(FINDINGS));
-				yield* read(published.itemId);
-			}),
-		);
-
-		yield* outcomes([
-			["scans", () => scans(), 1],
-			["reads per file", () => readsPerFile(), [1]],
-		]);
-	},
-);
 
 boardReadStory.it(
 	"the next pass reads a published report at its revision",

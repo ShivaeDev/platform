@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { metadataParse } from "#server/metadata/adapters/parse.ts";
+import { metadataParse } from "#metadata/adapters/parse.ts";
 
 it("treats an empty frontmatter header as optional metadata without losing its prose", () => {
 	const source = "---\n---\n# Plain\n";

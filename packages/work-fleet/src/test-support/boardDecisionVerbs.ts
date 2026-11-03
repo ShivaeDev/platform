@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import type { DraftInput } from "@shivaedev/work-board/server/integration/responses.ts";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/adapters/parse.ts";
 import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
 import { questionFrom } from "@shivaedev/work-board/server/responses/records.ts";
 import type { CloseFinishedOptions } from "#board/closeFinishedDecisions.ts";

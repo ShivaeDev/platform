@@ -1,4 +1,4 @@
-import { Clock, Context, Duration, Effect, Result, Stream, SubscriptionRef } from "effect";
+import { Clock, Context, Duration, Effect, Stream, SubscriptionRef } from "effect";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { SchedulerPasses } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
@@ -8,7 +8,6 @@ import type { MainSnapshot } from "#host/mainSource.ts";
 import { admissionFetchVerbs } from "#test/admissionFetch.ts";
 import { answerApplicationRaceVerbs } from "#test/answerApplicationRace.ts";
 import { approvalBackoffVerbs } from "#test/approvalBackoff.ts";
-import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { cloudHostVerbs } from "#test/cloudHost.ts";
 import { cloudNamingVerbs } from "#test/cloudNaming.ts";
 import { codexHostVerbs } from "#test/codexHost.ts";
@@ -38,7 +37,6 @@ import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { missedBoardEventVerbs } from "#test/missedBoardEventVerbs.ts";
 import { preparationReadVerbs } from "#test/preparationRead.ts";
 import { publicationReadouts } from "#test/publishedHostBranch.ts";
-import { described } from "#test/refusal.ts";
 import { restartCloudVerbs } from "#test/restartCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
 import { watchEventVerbs } from "#test/watchEventVerbs.ts";
@@ -94,12 +92,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`explicitly dispatch the approved brief for ${workId}`);
 			return dispatchApproved(engine.fixture.host, workId).pipe(Effect.provideContext(engine.running.context));
 		},
-		briefParseCount: () => {
-			if (engine.briefParseCount === undefined) {
-				throw new Error("Count brief parses before reading them");
-			}
-			return engine.briefParseCount();
-		},
 		cli: (args: readonly string[], options: HostCliOptions = {}) => {
 			tell(`run work-fleet ${args.join(" ")}`);
 			return hostCli(engine, args, options);
@@ -151,7 +143,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`resolve ${workId}'s decision ${decisionId}`);
 			return engine.running.client("fleet.resolve", { decisionId, responseId, workId });
 		},
-		retainedBoardSnapshots: () => retainedBoardSnapshots,
 		schedule: () => {
 			tell("run one host scheduler cycle");
 			return cycle.pipe(Effect.provideContext(engine.running.context), Effect.provide(engine.logs.layer));
@@ -159,13 +150,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		schedulerPass: () => {
 			tell("admit and schedule one Board read pass");
 			return withBoardReadPass(admitApproved(engine.fixture.host).pipe(Effect.andThen(cycle))).pipe(Effect.provideContext(engine.running.context));
-		},
-		schedulerPassDispatches: () => {
-			tell("admit and schedule one Board read pass");
-			return withBoardReadPass(admitApproved(engine.fixture.host).pipe(Effect.andThen(cycle))).pipe(
-				Effect.map(({ dispatched }) => dispatched.map((dispatch) => (Result.isSuccess(dispatch) ? "dispatched" : described(dispatch.failure)))),
-				Effect.provideContext(engine.running.context),
-			);
 		},
 		start: (port = 0) => {
 			tell(`start the daemon on ${port}`);
@@ -178,6 +162,5 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		},
 		waitForRecord: (workId: string, ready: Parameters<typeof waitForRecord>[2]) =>
 			waitForRecord(engine.running.client, workId, ready, engine.running.context),
-		workerContextCount: () => engine.workerContexts?.length ?? 0,
 	};
 }

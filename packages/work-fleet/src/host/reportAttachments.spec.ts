@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { PUBLISHED_REPORT } from "#host/reportBoard.ts";
 import { HEAD } from "#test/githubResult.ts";
 import { attachmentItems, REPORT_FILES } from "#test/reportAttachments.ts";
@@ -58,9 +59,9 @@ for (const attachments of [true, false]) {
 				{ call: "session", operationId: started.value.attempts[0]?.operationId },
 				{ call: "turn", operationId: started.value.attempts[0]?.operationId },
 			]);
-			expect(daemon.readBoard("research.md")).toBe(
-				SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
-			);
+			const completed = metadataParse(daemon.readBoard("research.md"));
+			expect(completed.fields).toMatchObject({ id: "research", nextAction: "Done; report recorded.", status: "done" });
+			expect(completed.body).toBe(metadataParse(SOURCE).body);
 		},
 	);
 }

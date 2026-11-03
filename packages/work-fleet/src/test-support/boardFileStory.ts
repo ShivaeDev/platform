@@ -3,12 +3,12 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer, Ref } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardOf } from "@shivaedev/work-board/server/render/board.ts";
-import { boardDocuments } from "#board/documents.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { publishReportAttachments } from "#board/publishReportAttachments.ts";
 import { reportFileName } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
+import { boardDocuments } from "#board/workspace.ts";
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { Health } from "#engine/health.ts";
@@ -19,6 +19,7 @@ import { BoardGateway } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { completionFolder } from "#test/completionFolder.ts";
 import { healthFolder } from "#test/health.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { refusal } from "#test/refusal.ts";
 import { reportBoard } from "#test/report.ts";
 import { reportPublicationVerbs } from "#test/reportPublicationVerbs.ts";
@@ -40,6 +41,9 @@ export const boardFileStory = storyKit({
 	verbs: (state, story) => {
 		const fs = state.completion.fs;
 		const reportVerbs = reportPublicationVerbs(state.reportRoot, story.tell);
+		const taskSource = fs
+			.readFile(`${state.completion.root}/tasks/one.md`)
+			.pipe(Effect.map((bytes) => new TextDecoder("utf-8", { "ignoreBOM": true }).decode(bytes)));
 		function identity(stat: { readonly ino: number; readonly mtimeMs: number }) {
 			return { inode: stat.ino, modified: stat.mtimeMs };
 		}
@@ -50,7 +54,8 @@ export const boardFileStory = storyKit({
 					story.tell(`complete Board work ${id} from ${file.replace(state.completion.root, "")}`);
 					return refusal(completeWork(state.completion.root, id, file, summary));
 				},
-				taskSource: () => fs.readFileString(`${state.completion.root}/tasks/one.md`),
+				taskMetadata: () => taskSource.pipe(Effect.map(metadataParse)),
+				taskSource: () => taskSource,
 				writeTask: (content: string) => {
 					story.tell("a person rewrites tasks/one.md");
 					return fs.writeFileString(`${state.completion.root}/tasks/one.md`, content);
@@ -85,7 +90,7 @@ export const boardFileStory = storyKit({
 				work: (id: string) =>
 					Effect.gen(function* () {
 						story.tell(`read report work ${id}`);
-						const board = Context.get(yield* Layer.build(markdownBoard(state.reportRoot)), BoardGateway);
+						const board = Context.get(yield* Layer.build(liveBoard(state.reportRoot)), BoardGateway);
 						return yield* board.get(id);
 					}),
 				writePayload: (id: string, content: string) => {
@@ -149,7 +154,7 @@ export const boardFileStory = storyKit({
 	},
 });
 const completeWork = Effect.fn("Story.completeWork")(function* (root: string, id: string, file: string, summary: string) {
-	const board = Context.get(yield* Layer.build(markdownBoard(root)), BoardGateway);
+	const board = Context.get(yield* Layer.build(liveBoard(root)), BoardGateway);
 	if (board.complete === undefined) {
 		return yield* Effect.die("Board completion capability is missing");
 	}

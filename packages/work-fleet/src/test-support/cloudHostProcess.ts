@@ -3,13 +3,13 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer, Stream, SubscriptionRef } from "effect";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { SchedulerPasses } from "#engine/health.ts";
 import { productionParts } from "#host/commands.ts";
 import { loadHost } from "#host/configFile.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { reportBoard } from "#host/reportBoard.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 import { pausePublication } from "#test/pausePublication.ts";
 import { unpublishedHostIntegrations } from "#test/unpublishedHostIntegrations.ts";
@@ -41,7 +41,7 @@ await Effect.runPromise(
 							host.boardDir,
 							() => Effect.succeed(false),
 							() => Effect.succeed({ files: [], unavailable: [] }),
-						).pipe(Layer.provide(markdownBoard(host.boardDir)), Layer.provide(NodeServices.layer)),
+						).pipe(Layer.provide(liveBoard(host.boardDir)), Layer.provide(NodeServices.layer)),
 					}
 				: {}),
 		};
