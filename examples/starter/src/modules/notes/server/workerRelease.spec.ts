@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
+import { emptyDatabase, notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
 	"a worker of a release that has not migrated waits and leaves queued notes uncounted",
-	[releaseMigrated("old"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("old"), webRunning(), signedUp("alice")],
 	function* ({ notesOf, wordCountOf, workerPollPasses, workerStartsWaiting }) {
 		yield* workerStartsWaiting("new");
 
@@ -19,7 +19,7 @@ notesDeployment.it(
 
 notesDeployment.it(
 	"while the old worker drains a held job, the migrated new release leaves queued notes alone past the heartbeat window",
-	[releaseMigrated("old"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("old"), webRunning(), signedUp("alice")],
 	function* ({ heartbeatWindowPasses, migrates, noteIsHeld, notesOf, wordCountBlocks, wordCountOf, workerStarts }) {
 		const draining = yield* notesOf("alice").create("Old release finishes");
 		yield* noteIsHeld(draining);
@@ -41,7 +41,7 @@ notesDeployment.it(
 
 notesDeployment.it(
 	"once the old worker finishes its held job it pauses, and the new release counts the queued notes",
-	[releaseMigrated("old"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("old"), webRunning(), signedUp("alice")],
 	function* ({ heldNoteIsReleased, migrates, noteIsHeld, notesOf, processState, wordCountArrives, wordCountBlocks, workerPauses, workerStarts }) {
 		const draining = yield* notesOf("alice").create("Old release finishes");
 		yield* noteIsHeld(draining);
@@ -65,7 +65,7 @@ notesDeployment.it(
 
 notesDeployment.it(
 	"rolling back to the old release pauses the new worker and resumes the old one, which counts new notes",
-	[releaseMigrated("old"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("old"), webRunning(), signedUp("alice")],
 	function* ({ migrates, notesOf, wordCountArrives, workerPauses, workerResumes, workerStarts }) {
 		yield* workerStarts("old");
 		yield* migrates("new");

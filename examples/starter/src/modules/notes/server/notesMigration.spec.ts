@@ -1,7 +1,7 @@
 import { expect } from "vitest";
-import { existingNotes, migration } from "#modules/notes/test-support/migration.ts";
+import { emptyDatabase, existingNotes, migration } from "#modules/notes/test-support/migration.ts";
 
-migration.it("the notes migration adds the final notes columns to the foundation schema", [], function* ({ addNotes }) {
+migration.it("the notes migration adds the final notes columns to the foundation schema", [emptyDatabase], function* ({ addNotes }) {
 	const columns = yield* addNotes();
 
 	expect(columns).toEqual([
@@ -15,7 +15,7 @@ migration.it("the notes migration adds the final notes columns to the foundation
 
 migration.it(
 	"after the user foreign-key migration, deleting alice deletes her note and keeps the legacy note",
-	[existingNotes],
+	[emptyDatabase, existingNotes],
 	function* ({ addUserReference, aliceIsDeleted, storedNoteTitles }) {
 		yield* addUserReference();
 		expect(yield* storedNoteTitles()).toEqual(["Alice note", "Legacy note"]);

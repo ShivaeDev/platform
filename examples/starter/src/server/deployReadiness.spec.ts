@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { deployment } from "#test-support/deployment.ts";
+import { deployment, emptyDatabase } from "#test-support/deployment.ts";
 
 const WAITING = [expect.stringContaining("Waiting for database migrations")];
 
 deployment.it(
 	"before migrations, the web process refuses to start without reporting a schema mismatch",
-	[],
+	[emptyDatabase],
 	function* ({ logLines, webStartAnswer }) {
 		const started = yield* webStartAnswer();
 
@@ -20,7 +20,7 @@ deployment.it(
 
 deployment.it(
 	"before migrations, a worker waits for them and keeps running",
-	[],
+	[emptyDatabase],
 	function* ({ logLines, migrationLedger, processState, workerStartsWaiting }) {
 		expect(yield* migrationLedger()).toBe("missing");
 
@@ -35,7 +35,7 @@ deployment.it(
 
 deployment.it(
 	"while a migration waits on the schema lock, its ledger exists and the waiting worker keeps waiting",
-	[],
+	[emptyDatabase],
 	function* ({
 		logLines,
 		migrationBlocksOnTheSchemaLock,
@@ -62,7 +62,7 @@ deployment.it(
 
 deployment.it(
 	"once the held migration finishes, the waiting worker becomes ready",
-	[],
+	[emptyDatabase],
 	function* ({
 		logLines,
 		migrationBlocksOnTheSchemaLock,
@@ -99,7 +99,7 @@ deployment.it(
 
 deployment.it(
 	"after migration, the web process starts healthy, signs up alice and loads Node's HTTP server without a Redis client",
-	[],
+	[emptyDatabase],
 	function* ({ health, loadedModules, logLines, migrates, signsUpOverHttp, webStarts }) {
 		yield* migrates("current");
 
@@ -118,7 +118,7 @@ deployment.it(
 
 deployment.it(
 	"a healthy app on the requested port cannot make a web process with a missing schema ready",
-	[],
+	[emptyDatabase],
 	function* ({ anotherAppListens, webStartAnswer }) {
 		const port = yield* anotherAppListens();
 

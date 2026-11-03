@@ -8,7 +8,6 @@ import { deliverWebhook } from "@shivaedev/webhooks/server/testing.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
-import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -20,7 +19,6 @@ export const webhooksStory = storyKit({
 	clock: "live",
 	*create() {
 		const database = yield* PostgresTestDatabase;
-		yield* Effect.scoped(migrateDatabase(database.url));
 		const context = yield* Layer.build(
 			applicationHost({
 				databaseUrl: database.url,

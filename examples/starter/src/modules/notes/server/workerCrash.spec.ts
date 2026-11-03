@@ -1,9 +1,9 @@
 import { expect } from "vitest";
-import { notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
+import { emptyDatabase, notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
 	"a killed worker of the old release holds back the replacement until its heartbeat expires, then the replacement counts queued notes",
-	[releaseMigrated("crashed"), webRunning(), signedUp("alice")],
+	[emptyDatabase, releaseMigrated("crashed"), webRunning(), signedUp("alice")],
 	function* ({
 		heldNoteIsReleased,
 		migrates,

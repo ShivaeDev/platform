@@ -1,6 +1,6 @@
 import { Effect, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Note } from "#modules/notes/notes.ts";
@@ -25,6 +25,7 @@ interface Account {
 
 interface NotesDeploymentEngine extends DeploymentEngine {
 	readonly accounts: Map<string, Account>;
+	readonly database: Effect.Success<ReturnType<typeof storyDatabase>>;
 	held: Effect.Success<ReturnType<typeof holdJob>> | undefined;
 	readonly stopping: Map<string, Fiber.Fiber<unknown, unknown>>;
 	tell: (line: string) => void;
@@ -35,19 +36,23 @@ function wordCountWords(wordCount: number | null) {
 }
 
 export const notesDeployment = storyKit({
-	around: withIsolatedDatabase,
+	after: { database: (engine) => engine.database.acquire },
 	clock: "live",
-	create: (): NotesDeploymentEngine => ({
-		...deploymentEngine(),
-		accounts: new Map(),
-		held: undefined,
-		stopping: new Map(),
-		tell: () => undefined,
-	}),
+	*create() {
+		const engine: NotesDeploymentEngine = {
+			...deploymentEngine(),
+			accounts: new Map(),
+			database: yield* storyDatabase(),
+			held: undefined,
+			stopping: new Map(),
+			tell: () => undefined,
+		};
+		return engine;
+	},
 	inspect: ({ accounts, address, processes }) => ({ accounts: [...accounts.keys()], address, processes: [...processes.keys()] }),
 	layer: postgres,
 	name: "notes deployment",
-	stages: ["release", "web", "accounts"],
+	stages: ["database", "release", "web", "accounts"],
 	verbs: (engine, story) => {
 		engine.tell = story.tell;
 		const { processOf } = deploymentControls(engine);
@@ -184,3 +189,7 @@ export function signedUp(name: string) {
 		});
 	});
 }
+
+export const emptyDatabase = notesDeployment.trait("database", "the story starts before migrations, from an empty database", (engine) => {
+	engine.database.select("empty");
+});
