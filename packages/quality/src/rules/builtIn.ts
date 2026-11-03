@@ -13,6 +13,7 @@ import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
+import { sqlTransact } from "#rules/effect/sqlTransact.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
@@ -69,6 +70,7 @@ export const builtInRules = [
 	serviceIds,
 	serviceParameters,
 	sharedErrorClasses,
+	sqlTransact,
 	jsxConditionals,
 	maxLines,
 	maxDepth,
