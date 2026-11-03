@@ -4,11 +4,11 @@ import { playwright } from "@shivaedev/browser-check/adapters/playwright.ts";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { developmentServer } from "#test-support/developmentServer.ts";
+import { startHost } from "#test-support/host.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import { liveNotes as checkLiveNotes } from "#tooling/notes/browser-check/live.ts";
-import { developmentServer } from "./developmentServer.ts";
-import { startHost } from "./host.ts";
-import { postgres } from "./postgres.ts";
-import { sessionPrecondition } from "./sessionPrecondition.ts";
 
 const credentials = { email: "alice@app.test", password: "alice-current-password" };
 // Precomputed so an existing-account precondition does not hash a password on every run.
@@ -24,7 +24,7 @@ const enabled = Effect.runSync(
 	),
 );
 
-export const liveNotes = storyKit({
+export const liveBrowser = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {

@@ -153,7 +153,7 @@ With those credentials set for a disposable account, run `pnpm browser-check:liv
 To exercise the live check on a disposable PostgreSQL database, set `TEST_DATABASE_URL` to a database whose role can create databases and run:
 
 ```sh
-pnpm test tooling/notes/browser-check/twoTabNotes.slow.spec.ts --project slow
+pnpm test src/modules/notes/liveBrowser.slow.spec.ts --project slow
 ```
 
 The story starts the app host and Vite proxy on ephemeral ports, with an existing test account, and runs the same live check. It skips locally without `TEST_DATABASE_URL`; in CI missing configuration fails. A skipped run supplies no evidence. It covers awake Chromium tabs through the development proxy; production assets, tab sleep and other browsers are outside this check.

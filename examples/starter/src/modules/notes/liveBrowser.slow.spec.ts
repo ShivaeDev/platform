@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { liveNotes } from "#test-support/liveNotes.ts";
+import { liveBrowser } from "#modules/notes/test-support/liveBrowser.ts";
 
-liveNotes.it(
+liveBrowser.it(
 	"alice's live check follows the second-tab hint through reread and render without navigation, signs out both tabs and captures both screens",
 	[],
 	function* ({ check, outcome, screenshots }) {
