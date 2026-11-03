@@ -28,7 +28,7 @@ reconciliation.it("a blocked action reports running and completing it reports wa
 });
 
 reconciliation.it(
-	"a defect fails one reconciler with its cause while another keeps running",
+	"a defect fails one reconciler with its cause while another processes later changes",
 	[],
 	function* ({ start, break: breakWorker, commit, failed, settled, failure, passes, state }) {
 		yield* start("broken");
@@ -39,10 +39,13 @@ reconciliation.it(
 		yield* failed("broken");
 		yield* settled("healthy");
 
+		yield* commit("after failure");
+		yield* settled("healthy");
+
 		yield* outcomes([
 			["failure cause", () => failure("broken"), expect.stringContaining("broken broke")],
 			["failed state", () => state("broken"), { status: "failed" }],
-			["healthy actions", () => passes("healthy"), [["initial"], ["changed"]]],
+			["healthy actions", () => passes("healthy"), [["initial"], ["changed"], ["after failure"]]],
 		]);
 	},
 );
