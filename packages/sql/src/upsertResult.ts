@@ -1,15 +1,16 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 
 export interface UpsertRow<TRow> {
 	readonly inserted: boolean;
 	readonly row: TRow;
 }
 
-export function upsertReturning(sql: SqlClient.SqlClient) {
+export const upsertReturning = Effect.fnUntraced(function* () {
+	const sql = yield* SqlClient.SqlClient;
 	return sql`*, (xmax = 0) as ${sql("effectSqlInserted")}`;
-}
+});
 
 export function makeUpsertDecoder(model: Model.Any) {
 	const decode = Schema.decodeUnknownEffect(model);

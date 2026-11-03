@@ -1,7 +1,7 @@
 import type { Cause } from "effect";
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import { type SqlClient, SqlSchema } from "effect/sql";
+import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { BatchedDelete } from "#batchedDelete.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
@@ -41,9 +41,8 @@ export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>>
 				}
 			: never);
 
-export function makeCompositeCrud(
+export const makeCompositeCrud = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: {
 		readonly columns: readonly string[];
 		readonly tableName: string;
@@ -51,19 +50,20 @@ export function makeCompositeCrud(
 	},
 	changes: RepositoryChanges,
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const { columns, tableName, spanPrefix } = options;
-	const fields = Object.fromEntries(
-		columns.map((column) => {
-			const field = model.fields[column];
-			if (field === undefined) {
-				throw new Error(`Unknown ID column: ${column}`);
-			}
-			return [column, field];
-		}),
-	);
+	const entries: [string, Schema.Constraint][] = [];
+	for (const column of columns) {
+		const field = model.fields[column];
+		if (field === undefined) {
+			return yield* Effect.die(new Error(`Unknown ID column: ${column}`));
+		}
+		entries.push([column, field]);
+	}
+	const fields = Object.fromEntries(entries);
 	const Key = columns.length === 1 ? model.fields[columns[0] ?? ""] : Schema.Struct(fields);
 	if (Key === undefined) {
-		throw new Error("Unknown repository ID column");
+		return yield* Effect.die(new Error("Unknown repository ID column"));
 	}
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	function predicate(input: Readonly<Record<string, unknown>>) {
@@ -80,7 +80,7 @@ export function makeCompositeCrud(
 	});
 
 	return {
-		...repositoryWrites(model, sql, { ...options, idColumns: columns }, changes),
+		...(yield* repositoryWrites(model, { ...options, idColumns: columns }, changes)),
 		findById: (id: unknown) => find(id).pipe(Effect.withSpan(`${spanPrefix}.findById`)),
 	};
-}
+});

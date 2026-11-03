@@ -1,6 +1,6 @@
 import { Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import { type TupleFilter, tuplePredicate } from "#tupleIn.ts";
 
 export type RepositoryFilter<TModel extends Model.Any> = {
@@ -34,7 +34,8 @@ function isOperator(key: string): key is keyof typeof operators {
 	return Object.hasOwn(operators, key);
 }
 
-export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClient.SqlClient, references?: { readonly tableName: string }) {
+export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>(model: TModel, references?: { readonly tableName: string }) {
+	const sql = yield* SqlClient.SqlClient;
 	function fieldAt(key: string) {
 		const field = Object.hasOwn(model.fields, key) ? model.fields[key] : undefined;
 		return field === undefined
@@ -105,7 +106,7 @@ export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClie
 				([key, value]) => predicate(key, value, allowIn, allowComparisons),
 			);
 			if (allowIn) {
-				const tuple = yield* tuplePredicate(input, sql, fieldAt);
+				const tuple = yield* tuplePredicate(input, fieldAt).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 				if (tuple !== undefined) {
 					predicates.push(tuple);
 				}
@@ -114,4 +115,4 @@ export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClie
 		});
 	}
 	return { fieldAt, where };
-}
+});

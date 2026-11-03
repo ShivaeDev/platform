@@ -1,12 +1,11 @@
 import { Array as Arr, Effect, Schema, SchemaAST, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import { makeFilter } from "#repositoryFilter.ts";
 import type { UpsertAssignment } from "#upsertColumns.ts";
 
-export function makeConflictClause(
+export const makeConflictClause = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: {
 		readonly tableName: string;
 		readonly conflictColumns: readonly string[];
@@ -14,9 +13,10 @@ export function makeConflictClause(
 		readonly idColumns: readonly string[];
 	},
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const { conflictColumns, idColumns } = options;
-	const updateFilter = makeFilter(model, sql, options);
-	const filter = makeFilter(model, sql);
+	const updateFilter = yield* makeFilter(model, options);
+	const filter = yield* makeFilter(model);
 	const updateFields = SchemaAST.isObjects(model.update.ast) ? model.update.ast.propertySignatures.map((field) => field.name) : [];
 	const immutable = Object.keys(model.fields).filter((column) => !updateFields.includes(column));
 	function invalid(column: string) {
@@ -95,4 +95,4 @@ export function makeConflictClause(
 		});
 	}
 	return clause;
-}
+});

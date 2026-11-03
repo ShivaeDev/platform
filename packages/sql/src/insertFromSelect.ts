@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
@@ -24,24 +24,24 @@ export interface SelectWrites<TModel extends Model.Any> {
 	readonly insertFromSelect: InsertFromSelect<TModel>;
 }
 
-export function makeInsertFromSelect<TServices = never>(
+export const makeInsertFromSelect = Effect.fnUntraced(function* <TServices = never>(
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
-	prepare: (columns: readonly string[]) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
+	prepare?: (columns: readonly string[]) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices>,
 ) {
+	const sql = yield* SqlClient.SqlClient;
 	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
 	return (source: RepositorySelect<Schema.Struct.Fields, unknown>, columns: Readonly<Record<string, string>>) =>
 		Effect.gen(function* () {
 			const names = Object.keys(columns);
 			const selected = sql.csv(Object.values(columns).map((column) => sql`${sql(column)}`));
 			const target = sql.csv(names.map((column) => sql`${sql(column)}`));
-			const suffix = yield* prepare(names);
+			const suffix = yield* prepare?.(names) ?? Effect.succeed(sql``);
 			const statement = yield* source.statement;
 			const rows =
 				yield* sql`insert into ${sql(options.tableName)} (${target}) select ${selected} from (${statement}) as ${sql("source")} where true ${suffix} returning ${options.changes.returning()}`;
 			yield* options.changes.record(rows);
 			return yield* decode(rows);
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.${operation}`));
-}
+});

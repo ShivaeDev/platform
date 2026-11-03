@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
-import type { SqlClient } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
@@ -53,9 +53,8 @@ export interface ConditionalUpsertMany<TModel extends Model.Any, TOptions, TServ
 	): Effect.Effect<UpsertRow<TModel["Type"]>[], SqlError | Schema.SchemaError, TServices>;
 }
 
-export function makeConditionalUpsert(
+export const makeConditionalUpsert = Effect.fnUntraced(function* (
 	model: Model.Any,
-	sql: SqlClient.SqlClient,
 	options: {
 		readonly tableName: string;
 		readonly spanPrefix: string;
@@ -65,10 +64,12 @@ export function makeConditionalUpsert(
 		readonly idColumns: readonly string[];
 	},
 ) {
+	const sql = yield* SqlClient.SqlClient;
+	const returning = yield* upsertReturning();
 	const encode = Schema.encodeEffect(model.insert);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decode = makeUpsertDecoder(model);
-	const clause = makeConflictClause(model, sql, options);
+	const clause = yield* makeConflictClause(model, options);
 	return (
 		inputs: readonly unknown[],
 		settings: { readonly updateColumns: readonly UpsertAssignment[]; readonly updateWhere: Readonly<Record<string, unknown>> },
@@ -78,7 +79,7 @@ export function makeConditionalUpsert(
 				Effect.gen(function* () {
 					const row = yield* record(yield* encode(input));
 					const suffix = yield* clause(row, settings.updateColumns, settings.updateWhere);
-					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning ${options.changes.returning(upsertReturning(sql))}`;
+					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning ${options.changes.returning(returning)}`;
 				}),
 			);
 			const changedRows: Readonly<Record<string, unknown>>[] = [];
@@ -99,4 +100,4 @@ export function makeConditionalUpsert(
 			yield* options.changes.record(changedRows);
 			return results;
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.conditionalUpsert`));
-}
+});

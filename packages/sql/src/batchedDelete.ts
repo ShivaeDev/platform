@@ -69,7 +69,7 @@ export const makeBatchedDelete = Effect.fnUntraced(function* (
 	changes: RepositoryChanges,
 ) {
 	const sql = yield* SqlClient.SqlClient;
-	const { where } = makeFilter(model, sql);
+	const { where } = yield* makeFilter(model);
 	function deleteBatch(predicate: Fragment, limit: number) {
 		const count = SqlSchema.findOne({
 			execute: (batchLimit) => sql`with removed as (
