@@ -25,7 +25,7 @@ function invalidResponse(cause: unknown): Conflict {
 }
 
 export const Responses = defineService({
-	id: "WorkBoard/Responses",
+	id: "@shivaedev/work-board/Responses",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
 		const saves = yield* FiberSet.make<RecordedResponse, ResponseRejection>();

@@ -26,7 +26,7 @@ function unconfigured(message: string) {
 
 export function hostIntegrations(host: FleetHost) {
 	const HostIntegrations = defineService({
-		id: "Fleet/HostIntegrations",
+		id: "@shivaedev/work-fleet/HostIntegrations",
 		initialize: Effect.all({ github: GithubApi, main: MainSource }),
 		methods: ({ github, main }) => {
 			const repository = reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer));

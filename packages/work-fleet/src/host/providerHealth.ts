@@ -4,9 +4,11 @@ import { capacityRejected, Health } from "#engine/health.ts";
 import type { SessionFailure, SessionObservation } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
 
-class ProviderHealthState extends Context.Service<ProviderHealthState, Option.Option<Health["Service"]>>()("Fleet/ProviderHealthState") {}
+class ProviderHealthState extends Context.Service<ProviderHealthState, Option.Option<Health["Service"]>>()(
+	"@shivaedev/work-fleet/ProviderHealthState",
+) {}
 const ProviderHealth = defineService({
-	id: "Fleet/ProviderHealth",
+	id: "@shivaedev/work-fleet/ProviderHealth",
 	initialize: Effect.gen(function* () {
 		const transport = yield* SessionTransport;
 		const health = yield* ProviderHealthState;

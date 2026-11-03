@@ -21,10 +21,10 @@ export interface WorkspaceSettings extends Omit<WorkspaceOptions, "index"> {
 	readonly realRoot: string;
 }
 
-export class WorkspaceConfig extends Context.Service<WorkspaceConfig, WorkspaceOptions>()("WorkBoard/WorkspaceConfig") {}
+export class WorkspaceConfig extends Context.Service<WorkspaceConfig, WorkspaceOptions>()("@shivaedev/work-board/WorkspaceConfig") {}
 
 export const Workspace = defineService({
-	id: "WorkBoard/Workspace",
+	id: "@shivaedev/work-board/Workspace",
 	initialize: Effect.gen(function* () {
 		return yield* WorkspaceConfig;
 	}),

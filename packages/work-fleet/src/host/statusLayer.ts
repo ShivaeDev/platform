@@ -14,8 +14,8 @@ import { executing, type FleetRecord } from "#model.ts";
 
 const { SourceFailure } = diagnosticsApi;
 
-class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("Fleet/StatusHealth") {}
-class StatusGithub extends Context.Service<StatusGithub, Effect.Effect<readonly GithubObservation[]>>()("Fleet/StatusGithub") {}
+class StatusHealth extends Context.Service<StatusHealth, Option.Option<Health["Service"]>>()("@shivaedev/work-fleet/StatusHealth") {}
+class StatusGithub extends Context.Service<StatusGithub, Effect.Effect<readonly GithubObservation[]>>()("@shivaedev/work-fleet/StatusGithub") {}
 
 export function statusLayer(
 	root: string,
@@ -23,7 +23,7 @@ export function statusLayer(
 	background = false,
 ) {
 	const StatusPublication = defineService({
-		id: "Fleet/StatusPublication",
+		id: "@shivaedev/work-fleet/StatusPublication",
 		initialize: Effect.gen(function* () {
 			const fleet = yield* Fleet;
 			const publicationScope = background ? yield* Effect.scope : undefined;

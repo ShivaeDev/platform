@@ -37,7 +37,7 @@ function refUpdateRace(ref: string, error: FleetError) {
 
 export function gitMainSource(host: FleetHost) {
 	const GitMainSource = defineService({
-		id: "Fleet/GitMainSource",
+		id: "@shivaedev/work-fleet/GitMainSource",
 		initialize: Effect.gen(function* () {
 			const root = yield* git(host.boardDir, ["rev-parse", "--show-toplevel"]);
 			const ref = `${host.repository.remote}/${host.repository.branch}`;

@@ -20,10 +20,10 @@ import { writeCompletion } from "#board/writeCompletion.ts";
 import { BoardFailure, BoardGateway, Priority } from "#policy.ts";
 import { RepositoryPath } from "#preparation/schema.ts";
 
-class BoardRoot extends Context.Service<BoardRoot, string>()("Fleet/BoardRoot") {}
+class BoardRoot extends Context.Service<BoardRoot, string>()("@shivaedev/work-fleet/BoardRoot") {}
 
 const MarkdownBoard = defineService({
-	id: "Fleet/MarkdownBoard",
+	id: "@shivaedev/work-fleet/MarkdownBoard",
 	initialize: Effect.gen(function* () {
 		const root = yield* BoardRoot;
 		const fs = yield* FileSystem.FileSystem;

@@ -54,7 +54,7 @@ function threadStart(config: CodexCloudConfiguration, input: StartSession) {
 }
 
 const CodexCloud = defineService({
-	id: "Fleet/CodexCloud",
+	id: "@shivaedev/work-fleet/CodexCloud",
 	initialize: Effect.gen(function* () {
 		const config = yield* Schema.decodeUnknownEffect(CodexCloudConfiguration)(yield* CodexCloudConfig).pipe(
 			Effect.mapError(() => failure("unavailable", "Codex Cloud configuration needs an environment, workspace cwd and positive timeout")),

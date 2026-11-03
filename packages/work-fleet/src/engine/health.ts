@@ -7,9 +7,11 @@ export interface HealthState {
 	readonly lastCapacityRejection: CapacityRejection | null;
 	readonly lastSchedulerPass: number | null;
 }
-export class Health extends Context.Service<Health, Ref.Ref<HealthState>>()("Fleet/Health") {}
-export class HealthSnapshot extends Context.Service<HealthSnapshot, Effect.Effect<FleetHealth, SourceFailure>>()("Fleet/HealthSnapshot") {}
-export class HealthPublication extends Context.Service<HealthPublication, Effect.Effect<void>>()("Fleet/HealthPublication") {}
+export class Health extends Context.Service<Health, Ref.Ref<HealthState>>()("@shivaedev/work-fleet/Health") {}
+export class HealthSnapshot extends Context.Service<HealthSnapshot, Effect.Effect<FleetHealth, SourceFailure>>()(
+	"@shivaedev/work-fleet/HealthSnapshot",
+) {}
+export class HealthPublication extends Context.Service<HealthPublication, Effect.Effect<void>>()("@shivaedev/work-fleet/HealthPublication") {}
 export class SchedulerPasses extends Context.Service<SchedulerPasses, SubscriptionRef.SubscriptionRef<number>>()(
 	"@shivaedev/work-fleet/SchedulerPasses",
 ) {}
