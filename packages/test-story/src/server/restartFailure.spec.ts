@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { RESTARTED_STORIES } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 storyRunner.it("closes restarted engines and their scoped hooks in reverse acquisition order", [], function* ({ lifetime, runStory }) {
@@ -26,7 +27,7 @@ storyRunner.it("marks a refused mid-story trait after the completed action", [],
 	expect(failure).toContain('the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3');
 	expect(failure).toContain("given  the oven is lit");
 	expect(failure).toContain("1m a loaf comes out of the oven\n✗        the baker has 4 balls of dough");
-	expect(failure).toContain("refused at src/test-support/restartedStories.ts:");
+	expect(failure).toContain(`refused at ${RESTARTED_STORIES}:`);
 });
 
 storyRunner.it("prints both engines when an assertion fails after a restart", [], function* ({ outcome, runStory }) {
