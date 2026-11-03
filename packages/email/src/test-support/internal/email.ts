@@ -1,4 +1,5 @@
 import { Clock, Effect, Layer, Logger, Option, Redacted } from "effect";
+import { TestClock } from "effect/testing";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
@@ -10,11 +11,12 @@ import { configured, Emails, postgres } from "./fixture.ts";
 
 export const email = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
+		const clock = yield* TestClock.testClockWith(Effect.succeed);
 		const database = yield* PostgresTestDatabase;
 		const mail = yield* inbox();
-		const producer = makePgBossTesting();
+		const producer = makePgBossTesting({ clock });
 		const producerContext = yield* Layer.build(
 			Emails.producerLayer.pipe(
 				Layer.provide(
@@ -32,7 +34,7 @@ export const email = storyKit({
 			logs,
 			mail,
 			producerContext,
-			testing: makePgBossTesting(),
+			testing: makePgBossTesting({ clock }),
 			useLog: false,
 		};
 	},
@@ -56,6 +58,10 @@ export const email = storyKit({
 				const jobs = yield* Emails.Jobs.pipe(Effect.provideContext(engine.producerContext));
 				return JSON.stringify(yield* jobs.failedJobs(Emails.queue, { limit: 10 }));
 			}),
+		fallbackRetryDelayPasses: () => {
+			story.tell("the one-second fallback retry delay passes");
+			return engine.testing.timePasses("1 second");
+		},
 		logs: () => Effect.sync(() => JSON.stringify(engine.logs)),
 		nextEmail: () => engine.mail.nextEmail,
 		nextLink: () => Effect.map(engine.mail.nextEmail, emailLink),
