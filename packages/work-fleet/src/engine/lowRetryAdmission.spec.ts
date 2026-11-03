@@ -37,7 +37,10 @@ engine.it(
 			["three step", () => get("three"), { value: { step: "working" } }],
 			["one", () => get("one"), { value: { launchRetry: lowRetry, step: "queued" } }],
 		]);
-		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
+		expect(providerStarts().map(({ prompt }) => prompt)).toEqual([
+			expect.stringContaining("Implement one"),
+			expect.stringContaining("Implement three"),
+		]);
 	},
 );
 
@@ -65,6 +68,9 @@ engine.it(
 			["four", () => get("four"), { value: { attempts: [], step: "queued" } }],
 			["one launch retry", () => get("one"), { value: { launchRetry: lowRetry } }],
 		]);
-		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
+		expect(providerStarts().map(({ prompt }) => prompt)).toEqual([
+			expect.stringContaining("Implement one"),
+			expect.stringContaining("Implement three"),
+		]);
 	},
 );

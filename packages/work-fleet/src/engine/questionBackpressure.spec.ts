@@ -27,7 +27,11 @@ engine.it(
 		setFleetTime(30_100);
 		yield* afterRestart(cycle);
 		const accepted = (yield* fleet.get("one")).value;
-		expect(accepted.attempts.at(-1)).toMatchObject({ prompt: answer.body, receipt: { sessionId: decision.worker?.sessionId }, role: "worker" });
+		expect(accepted.attempts.at(-1)).toMatchObject({
+			prompt: expect.stringContaining(answer.body),
+			receipt: { sessionId: decision.worker?.sessionId },
+			role: "worker",
+		});
 		expect(accepted.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		expect(accepted.history ?? []).toEqual([]);
 		expect(launches()).toEqual(["operation-1"]);
@@ -65,7 +69,12 @@ engine.it(
 		const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
 		expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 		const failed = queued.attempts.at(-1);
-		expect(failed).toMatchObject({ prompt: answer.body, role: "worker", settings: { model: "initial-model" }, status: "failed" });
+		expect(failed).toMatchObject({
+			prompt: expect.stringContaining(answer.body),
+			role: "worker",
+			settings: { model: "initial-model" },
+			status: "failed",
+		});
 		const current = `${source}\nNew approved criteria.\n`;
 		writeBoardWork("one.md", current);
 		changeHostModel("new-host-model");

@@ -15,15 +15,15 @@ isolatedEngine.it("two overlapping tasks cannot retain opposite queue positions 
 	expect(yield* fleet.attemptDispatch("one")).toBe("admission refused: waiting for area server queued ahead by two");
 	yield* fleet.releaseGate("release");
 	yield* Fiber.join(dispatch);
-	expect(fleet.providerStarts()).toMatchObject([{ prompt: "Implement two" }]);
+	expect(fleet.providerStarts()).toMatchObject([{ prompt: expect.stringContaining("Implement two") }]);
 	expect((yield* fleet.get("two")).value.step).toBe("working");
 	yield* fleet.finishWorker("two");
 	yield* fleet.reconcile("two");
 	yield* fleet.schedule();
 	expect((yield* fleet.get("one")).value.step).toBe("working");
 	expect(fleet.providerStarts().filter(({ access }) => access !== "read-only")).toMatchObject([
-		{ prompt: "Implement two" },
-		{ prompt: "Implement one" },
+		{ prompt: expect.stringContaining("Implement two") },
+		{ prompt: expect.stringContaining("Implement one") },
 	]);
 });
 
@@ -60,8 +60,8 @@ isolatedEngine.it("three overlapping waiters make progress when held areas and q
 		expect((yield* fleet.get(next)).value.step).toBe("working");
 	}
 	expect(fleet.providerStarts().filter(({ access }) => access !== "read-only")).toMatchObject([
-		{ prompt: "Implement two" },
-		{ prompt: "Implement three" },
-		{ prompt: "Implement one" },
+		{ prompt: expect.stringContaining("Implement two") },
+		{ prompt: expect.stringContaining("Implement three") },
+		{ prompt: expect.stringContaining("Implement one") },
 	]);
 });

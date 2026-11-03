@@ -13,7 +13,7 @@ engine.it("persists exact worker and reviewer launch inputs, including omitted r
 		workId: "one",
 	});
 	const worker = yield* fleet.dispatch("one");
-	expect(worker.value.attempts[0]).toMatchObject({ prompt: "Implement one", settings });
+	expect(worker.value.attempts[0]).toMatchObject({ prompt: expect.stringContaining("Implement one"), settings });
 	fleet.finishWorkers();
 	const reviewing = yield* fleet.reconcile("one");
 	expect(reviewing.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });

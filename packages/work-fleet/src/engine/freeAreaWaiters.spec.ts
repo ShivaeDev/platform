@@ -37,8 +37,8 @@ for (const areas of [["shared"], ["shared", "other"]]) {
 			yield* fleet.schedule();
 			expect((yield* fleet.get("two")).value.step).toBe("working");
 			expect(fleet.providerStarts().filter(({ access }) => access !== "read-only")).toMatchObject([
-				{ prompt: "Implement one" },
-				{ prompt: "Implement two" },
+				{ prompt: expect.stringContaining("Implement one") },
+				{ prompt: expect.stringContaining("Implement two") },
 			]);
 		});
 	}
@@ -63,9 +63,9 @@ isolatedEngine.it("three free-area launches choose priority before waiting age",
 		expect((yield* fleet.reconcile(id)).value.step).toBe("done");
 	}
 	expect(fleet.providerStarts().filter(({ access }) => access !== "read-only")).toMatchObject([
-		{ prompt: "Implement two" },
-		{ prompt: "Implement three" },
-		{ prompt: "Implement one" },
+		{ prompt: expect.stringContaining("Implement two") },
+		{ prompt: expect.stringContaining("Implement three") },
+		{ prompt: expect.stringContaining("Implement one") },
 	]);
 });
 

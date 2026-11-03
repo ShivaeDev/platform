@@ -6,6 +6,8 @@ export interface CloudStartup {
 export interface WorkerPrompt extends CloudStartup {
 	readonly branch: string;
 	readonly deliverable?: "report" | undefined;
+	readonly repository?: { readonly branch: string; readonly remote: string } | undefined;
+	readonly setupCommand?: string | undefined;
 	readonly task: string;
 	readonly workId: string;
 }
@@ -19,6 +21,24 @@ const QUESTION_INSTRUCTIONS = [
 	"When you need a decision:",
 	`- Stop with \`${QUESTION_MARKER} <question>\` and the context and choices; use \`${MAINTAINER_QUESTION_MARKER} <question>\` only for maintainer authority. Await Fleet's answer in this thread before reporting an outcome.`,
 ].join("\n");
+function resultInstructions(baseBranch: string) {
+	return [
+		"Evidence rules:",
+		"- Follow root and package AGENTS.md and repository skills.",
+		"- Open one PR for human review; do not merge or launch workers. Keep internal identifiers and prompts out of committed content and PR text.",
+		"- After every push, watch required CI checks to completion and repair failures on this branch.",
+		"Only checks required by GitHub branch protection or repository rulesets gate the pull request; optional app checks are information and must not trigger repair, waiting or a question.",
+		`- Merge ${baseBranch} only for a GitHub-reported conflict or a required change there; the merge queue validates current ${baseBranch}.`,
+		"",
+		QUESTION_INSTRUCTIONS,
+		"",
+		"Final report:",
+		"- Give PR URL, head and base, changed paths, validation commands and results, evidence or gaps for each criterion, and exact-head CI (identify failed or pending checks if blocked).",
+		`- Finish with these two lines (full 40-character head SHA; use the checked ${baseBranch} SHA and none for no change):`,
+		"FLEET_HEAD: <sha>",
+		`${PULL_REQUEST_MARKER} <url or none>`,
+	].join("\n");
+}
 const REPORT_INSTRUCTIONS = [
 	"Report deliverable:",
 	"- Leave repository sources unchanged. Commit nothing, push nothing, and open no PR. Do not create a branch or launch other workers.",
@@ -40,45 +60,27 @@ export function cloudStartup({ sharedEnvironment }: CloudStartup, access?: "read
 }
 
 export function workerPrompt(input: WorkerPrompt) {
-	const task = input.task.trim();
-	return [
-		task,
+	const repository = input.repository ?? { branch: "main", remote: "origin" };
+	const checkout = input.deliverable === "report" ? "check out that revision detached" : `create ${input.branch} at that revision`;
+	const startup = [
+		input.task.trim(),
 		"",
 		cloudStartup(input),
-		...(input.deliverable === "report"
-			? [
-					"- Fetch origin/main, check out that revision detached in the supplied checkout, then immediately run `./script/update` with require_escalated. Leave unrelated state alone.",
-				]
-			: [
-					`- Fetch origin/main, create ${input.branch} at that revision in the supplied checkout, then immediately run \`./script/update\` with require_escalated. Leave unrelated state alone.`,
-				]),
-		"",
-		...(input.deliverable === "report"
-			? [reportPrompt("")]
-			: [
-					"Evidence rules:",
-					"- Follow root and package AGENTS.md and repository skills.",
-					"- Open one PR for human review; do not merge or launch workers. Keep internal identifiers and prompts out of committed content and PR text.",
-					"- After every push, watch required CI checks to completion and repair failures on this branch.",
-					"Only checks required by GitHub branch protection or repository rulesets gate the pull request; optional app checks are information and must not trigger repair, waiting or a question.",
-					"- Merge main only for a GitHub-reported conflict or a required change there; the merge queue validates current main.",
-					"",
-					QUESTION_INSTRUCTIONS,
-					"",
-					"Final report:",
-					"- Give PR URL, head and base, changed paths, validation commands and results, evidence or gaps for each criterion, and exact-head CI (identify failed or pending checks if blocked).",
-					"- Finish with these two lines (full 40-character head SHA; use the checked main SHA and none for no change):",
-					"FLEET_HEAD: <sha>",
-					`${PULL_REQUEST_MARKER} <url or none>`,
-				]),
+		`- Fetch ${repository.remote}/${repository.branch}, ${checkout} in the supplied checkout, then immediately run \`${input.setupCommand ?? "./script/update"}\` with require_escalated. Leave unrelated state alone.`,
 	].join("\n");
+	return input.deliverable === "report" ? [startup, "", reportPrompt("")].join("\n") : resultPrompt(startup, repository.branch);
 }
 
-export function reportPrompt(task: string, baseRevision?: string): string {
+export function resultPrompt(task: string, baseBranch = "main"): string {
+	const instructions = resultInstructions(baseBranch);
+	return task.includes(instructions) ? task : [task, "", instructions].join("\n");
+}
+
+export function reportPrompt(task: string, baseRevision?: string, repository = { branch: "main", remote: "origin" }): string {
 	const base =
 		baseRevision === undefined
 			? ""
-			: `Expected research base: ${baseRevision}. Fetch origin/main before research; verify HEAD is this commit or a descendant. If it is older or divergent, stop with a question instead of reporting findings.`;
+			: `Expected research base: ${baseRevision}. Fetch ${repository.remote}/${repository.branch} before research; verify HEAD is this commit or a descendant. If it is older or divergent, stop with a question instead of reporting findings.`;
 	if (task.endsWith(REPORT_INSTRUCTIONS)) {
 		return base && !task.includes(base) ? task.replace(REPORT_INSTRUCTIONS, `${base}\n\n${REPORT_INSTRUCTIONS}`) : task;
 	}

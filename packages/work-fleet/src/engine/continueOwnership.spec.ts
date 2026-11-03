@@ -24,7 +24,7 @@ engine.it(
 		expect(continued.value.result).toEqual(ready.value.result);
 		expect(continued.value.history?.[0]?.review).toEqual(ready.value.review);
 		expect(continued.value.attempts[0]).toMatchObject({
-			prompt: "Change again",
+			prompt: expect.stringContaining("Change again"),
 			receipt: { sessionId: first.value.attempts[0]?.receipt?.sessionId, turnId: "turn-operation-3" },
 		});
 		expect(continued.value.review).toBeUndefined();

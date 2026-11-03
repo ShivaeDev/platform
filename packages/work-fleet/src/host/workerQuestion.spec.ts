@@ -78,7 +78,7 @@ host.it("a Board answer to a worker question continues the same thread with the 
 
 	expect({ resumed, session: resumed.attempts.at(-1)?.receipt?.sessionId }).toMatchObject({
 		resumed: {
-			attempts: [{ operationId: started.attempts[0]?.operationId }, { prompt: BODY, role: "worker" }],
+			attempts: [{ operationId: started.attempts[0]?.operationId }, { prompt: expect.stringContaining(BODY), role: "worker" }],
 			responses: [{ action: "continue", boardAcknowledged: true, responseId: answer.id }],
 			step: "working",
 		},

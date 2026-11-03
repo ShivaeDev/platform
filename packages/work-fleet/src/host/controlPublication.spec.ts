@@ -12,7 +12,9 @@ controlPublication.it("continue confirms and applies once while another launch's
 	yield* daemon.blockLaunchPublication();
 	const continued = yield* daemon.continue(MESSAGE);
 	expect(continued.step).toBe("working");
-	expect(continued.attempts).toMatchObject([{ prompt: MESSAGE, receipt: { sessionId: original.attempts[0]?.receipt?.sessionId } }]);
+	expect(continued.attempts).toMatchObject([
+		{ prompt: expect.stringContaining(MESSAGE), receipt: { sessionId: original.attempts[0]?.receipt?.sessionId } },
+	]);
 	expect(
 		daemon
 			.turns()
@@ -36,7 +38,7 @@ controlPublication.it("repeating continue after a lost acknowledgement reports a
 	yield* daemon.blockLaunchPublication();
 	yield* daemon.loseAcknowledgement(MESSAGE);
 	const recorded = yield* daemon.get();
-	expect(recorded.attempts).toMatchObject([{ prompt: MESSAGE, role: "repair" }]);
+	expect(recorded.attempts).toMatchObject([{ prompt: expect.stringContaining(MESSAGE), role: "repair" }]);
 	const repeated = yield* refusal(daemon.continue(MESSAGE));
 	expect(repeated).toMatch(/^forbidden: /u);
 	yield* daemon.releasePublication();

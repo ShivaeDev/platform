@@ -30,7 +30,7 @@ for (const type of ["clarify", "not_now"] as const) {
 			expect(host.providerLaunches()).toEqual([applied.attempts[0]?.operationId]);
 			expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));
 			if (!release) {
-				expect(applied.attempts.at(-1)?.prompt).toBe(TEXT);
+				expect(applied.attempts.at(-1)?.prompt).toContain(TEXT);
 			}
 		});
 	}

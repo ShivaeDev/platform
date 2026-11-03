@@ -5,6 +5,7 @@ import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import { Fleet } from "#fleet.ts";
 import { type FleetHost, HostFailure } from "#host/config.ts";
 import { type GithubApi, githubApiLayer } from "#host/githubApi.ts";
@@ -16,7 +17,7 @@ import { MainSource } from "#host/mainSource.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { hostQuota } from "#host/quota.ts";
 import { hostReportBoard } from "#host/reportBoard.ts";
-import { type BoardGateway, type FleetConfiguration, type FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { type BoardGateway, type FleetIntegrations, FleetPolicy } from "#policy.ts";
 import { SessionService, type SessionTransport } from "#session/service.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
@@ -56,6 +57,7 @@ export function hostPolicy(host: FleetHost) {
 					readGuidance: (role) => guidance[role].pipe(Effect.mapError((error) => new ServiceUnavailable({ message: error.message }))),
 					readRetryMs: applied.readRetryMs,
 					refreshQuota: refreshQuota(applied),
+					repository: applied.repository,
 					review: applied.review ?? true,
 					stallMinutes: applied.stallMinutes,
 					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),

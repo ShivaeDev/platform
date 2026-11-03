@@ -23,7 +23,7 @@ isolatedEngine.it(
 		expect(intent.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
-		expect(intent.attempts.at(-1)?.prompt).toBe(answer.body);
+		expect(intent.attempts.at(-1)?.prompt).toContain(answer.body);
 		expect(intent.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		yield* afterRestart(
 			Effect.gen(function* () {
@@ -61,7 +61,7 @@ for (const type of ["clarify", "not_now"] as const) {
 			const answer = yield* answerWorker(decision, "response.superseding", "answer", deferred.id);
 			const reconciled = yield* fleet.reconcile("one");
 			expect(reconciled.value.step).toBe("working");
-			expect((yield* fleet.get("one")).value.attempts.at(-1)?.prompt).toBe(answer.body);
+			expect((yield* fleet.get("one")).value.attempts.at(-1)?.prompt).toContain(answer.body);
 			expect(
 				providerCalls()
 					.filter((call) => call.call === "turn")

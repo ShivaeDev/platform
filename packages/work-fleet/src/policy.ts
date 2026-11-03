@@ -5,11 +5,11 @@ import { BoardDecision, BoardReport } from "#board/schema.ts";
 import type { CiHold } from "#CiHold.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
 import type { MergeQueueResult } from "#MergeQueueResult.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
-import { type LaunchSettings, type SessionObservation, SessionReceipt } from "#session/schema.ts";
-import type { OpenPullRequestCurve } from "#storage/model.ts";
+import { type SessionObservation, SessionReceipt } from "#session/schema.ts";
 
 export const Priority = Schema.Literals(["urgent", "high", "normal", "low"]);
 export type Priority = typeof Priority.Type;
@@ -99,27 +99,6 @@ export const Checks = Schema.Struct({
 export type Checks = typeof Checks.Type;
 export const Delivery = Schema.Struct({ head: Schema.String, revision: Schema.String, url: Schema.String });
 export type Delivery = typeof Delivery.Type;
-export interface FleetConfiguration {
-	readonly areaMergeWaitMs?: number;
-	// A host that reloads its settings serves the configuration each scheduler pass and launch should apply.
-	readonly current?: Effect.Effect<FleetConfiguration>;
-	readonly deliveryBacklog?: number;
-	readonly executionConcurrency?: number;
-	readonly launch?: LaunchSettings;
-	readonly localOnlyBoardPath?: string;
-	readonly now: () => number;
-	readonly openPullRequests?: OpenPullRequestCurve;
-	readonly operationId: () => string;
-	readonly quota: { readonly available?: number; readonly observedAt: number; readonly expiresAt: number };
-	readonly readGuidance?: (role: "worker" | "reviewer") => Effect.Effect<string | undefined, FleetError>;
-	readonly readRetryMs?: number;
-	readonly refreshQuota?: () => Effect.Effect<FleetConfiguration["quota"], FleetError>;
-	readonly review?: boolean | "advisory";
-	readonly reviewerGuidance?: string;
-	readonly sharedEnvironment?: string;
-	readonly stallMinutes?: number;
-	readonly workerGuidance?: string;
-}
 export class FleetPolicy extends Context.Service<FleetPolicy, FleetConfiguration>()("@shivaedev/work-fleet/FleetPolicy") {}
 export interface WorkPublication {
 	readonly branch: string;

@@ -28,7 +28,7 @@ isolatedEngine.it(
 				Effect.timeout("5 seconds"),
 			);
 		expect(applied.value.responses).toContainEqual(expect.objectContaining({ action: "continue", decisionId: waiting.decision?.id }));
-		expect(applied.value.attempts.at(-1)?.prompt).toBe("Use the approved scope.");
+		expect(applied.value.attempts.at(-1)?.prompt).toContain("Use the approved scope.");
 	},
 	{ clock: "live" },
 );

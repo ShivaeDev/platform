@@ -1,4 +1,4 @@
-import type { FleetConfiguration } from "#policy.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 
 export function enginePolicy(options: EngineOptions): FleetConfiguration {
