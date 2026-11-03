@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.38.1 - 2026-11-03
+
+### Changed
+
+- Generated starters take test-kits as a development dependency and use its email and signed-in session helpers.
+
+### Fixed
+
+- generated notes handlers apply one group boundary while preserving each operation's declared rejections.
+- Generated starter apps check note read access without an RPC boundary inside the callback. Unreadable stored notes report unavailable access, and missing notes and database outages retain their native failures.
+
 ## 0.38.0 - 2026-11-03
 
 ### Added

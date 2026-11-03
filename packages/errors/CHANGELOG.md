@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-11-03
+
+### Breaking
+
+- `rpcBoundaryHandlers(group, options, handlers)` derives each operation's rejection schema independently. Replace the former `rpcBoundary(schema, options)` second argument with `options`; every operation must declare the fallback returned by `unexpected`. Effect and Stream handlers retain their own rejection types and required services.
+
 ## 0.6.0 - 2026-11-03
 
 ### Added

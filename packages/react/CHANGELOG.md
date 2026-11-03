@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.0 - 2026-11-03
+
+### Breaking
+
+- React hooks under `@shivaedev/react/internal/` now live under `@shivaedev/react/internal/adapters/`. Change imports of `useLatestCallback.ts`, `useNoticePublisher.ts`, `usePermissionFailure.ts`, `useQueryNotice.ts` and `useSubmissionCallbacks.ts` to that directory; their exports and behavior are unchanged.
+
 ## 0.35.0 - 2026-11-03
 
 ### Added
