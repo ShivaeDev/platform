@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0 - 2026-11-03
+
+### Added
+
+- The `draftPersistence` Effect from `@shivaedev/form/adapters/draftPersistence.ts` acquires `DraftStorageProvider` and the Clock for draft storage, timestamps and expiry. Provide `browserDraftStorage` from `@shivaedev/form/adapters/browserDraftStorage.ts` for best-effort localStorage persistence.
+- Form's `validate` atom reveals schema feedback and returns an encoded and decoded snapshot through the configured runtime without calling `onSubmit` or accepting the draft.
+
+### Breaking
+
+- Import React hooks and `DraftSessionContext` from `@shivaedev/form/adapters/react.ts` instead of `@shivaedev/form/client/react.ts`. Import the low-level `persistence` bridge from `@shivaedev/form/adapters/persistence.ts` instead of `@shivaedev/form/persistence.ts`.
+- `usePersistedDraft` requires explicit storage alongside time. Replace `BrowserDraftConfig` with `PersistedDraftConfig` from `@shivaedev/form/persistence.ts`, acquire `persistence` with `yield* draftPersistence.pipe(Effect.provide(browserDraftStorage))` during Effect setup, and pass `persistedDraft: { key, ...persistence }`.
+
 ## 0.12.0 - 2026-11-02
 
 ### Fixed

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.34.0 - 2026-11-03
+
+### Added
+
+- The `postgresChanges` binding implements `CommandPublication` with PostgreSQL publication and recovery through local resynchronization and a Resync broadcast.
+- `keysetPage` supplies native SQL seek and ordering fragments, validates positive integer page sizes, and returns rows with an optional continuation from one row of lookahead. Callers supply a unique tie-breaker, predicates, result decoding and cursor values, including exact PostgreSQL timestamp text for microsecond continuation.
+- `sql`'s `postgresLayer` provides its own Reactivity service alongside `PgPool`, `PgClient` and `SqlClient`.
+- Declare raw SQL writers' table, record and bucket keys once with `changes(covers)` from `@shivaedev/sql/changes.ts`. Record the declaration with `record()` and pass it directly to `withChangeCoverage` to check announcements against PostgreSQL writes.
+- Keep a recording local with the typed `{ publication: "local" }` option on `record()` or `invalidateOnCommit`. Local readers refresh after commit without cross-process publication; rollback discards the recording. Shared recordings in the same transaction still publish.
+- `deleteGroupsBatched` selects an ordered prefix of whole groups within per-batch and total row budgets, then deletes each batch in an independent transaction. Group selection and deletion use native Effects and SQL; repository deletes publish item and bucket refreshes after commit. A failed batch rolls back its deletes and announcements while preserving earlier batches.
+
+### Fixed
+
+- Omit database causes from PostgreSQL change listener outage warnings and reconnect debug logs while preserving reconnection and live-stream resynchronization.
+- Reject a migration ID recorded under a different name with a typed `BadState` migration error before running new migrations, schema components or release publication, matching readiness's ID and name checks.
+- Match partial unique indexes in conflict writes under PostgreSQL generic plans as well as the default plan mode. Encoded conflict-target predicates use PostgreSQL-quoted constants, with one preliminary quoting query per write; full-index targets and bound write values are unchanged.
+- PostgreSQL retention purges refresh item and authorized bucket query results after each committed batch without requiring collection-wide read permission. Batches remain bounded and commit independently, with constant-size refresh hints.
+- Repository writes from workers refresh matching session-scoped queries over the application's change channel. Every subscriber rechecks its own read policy before receiving hints or results, including rerun-and-compare queries. Client caches retain their registry isolation.
+- Refresh matching subscribers when `invalidateOnCommit` receives typed collection keys. List, item and bucket keys use the shared invalidation encoding before commit buffering; arrays may mix typed and raw Reactivity keys, and record-form invalidations retain their behavior.
+
+### Breaking
+
+- Replace `CommandRecovery` from `@shivaedev/sql/internal/CommandRecovery.ts` with `CommandPublication` from `@shivaedev/changes/commandPublication.ts`: yield the port and run its `recover` Effect. Custom providers now supply `{ publish, recover }`; both operations fail with `CommandPublicationError`, so consumers must handle recovery failures. `postgresChanges` provides both operations.
+- Import `MigrationStartedAt` from `@shivaedev/sql/MigrationStartedAt.ts` instead of `@shivaedev/sql/internal/MigrationStartedAt.ts`. Its service identifier is now `@shivaedev/sql/MigrationStartedAt`; provide the exported reference.
+- Import `migrationLock` from `@shivaedev/sql/migrationLock.ts` instead of `@shivaedev/sql/internal/migrationLock.ts`. The SQL `internal` import paths are removed without aliases.
+
 ## 0.33.0 - 2026-11-02
 
 ### Added

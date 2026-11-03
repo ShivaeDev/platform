@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 - 2026-11-03
+
+### Added
+
+- Expose `authenticate` from `betterAuthMcp` so applications can distinguish an `InvalidTokenClaim` failure, with its claim name, from a refused OAuth grant. Missing or malformed required claims produce a claim diagnostic; MCP HTTP requests keep their unauthorized resource challenge.
+
+### Fixed
+
+- Admit a member's MCP client once their temporary ban expires, including before they sign in on the web again.
+- Revoked MCP tokens stay refused after new consent. Removing `mcp` from a live grant’s scopes refuses its tokens on the next request.
+
+### Breaking
+
+- The MCP OAuth session policy refuses requests carrying a Cookie header, including those with a valid bearer token. Send MCP bearer credentials without cookies; keep browser cookies on cookie-authenticated RPC routes.
+- The exported `bearer` verifier now fails with `InvalidTokenClaim` for missing or invalid claims instead of returning `Option.none()`. Consumers of this verifier must handle the typed failure and can read its `claim` field. The session Layer continues to answer these tokens with the unauthorized resource challenge.
+- MCP tokens now carry a `grant_id` that references the exact Better Auth `oauthConsent` row. Tokens issued before this change lack that reference and are refused; clients must authorize again to obtain new access tokens. Existing refresh tokens can obtain grant-bound access tokens while their consent remains live.
+
 ## 0.5.0 - 2026-11-02
 
 ### Breaking

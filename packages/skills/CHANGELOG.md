@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 - 2026-11-03
+
+### Changed
+
+- The story-testing skill permits repository fakes only at `adapters/` boundaries and requires deleting tests whose failures need internal fakes.
+
 ## 0.6.3 - 2026-11-02
 
 ### Changed

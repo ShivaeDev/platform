@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.0 - 2026-11-03
+
+### Added
+
+- Event mappings receive normalized delivery metadata (`id`, `source`, `event`) as their second argument. Existing payload-only mappings remain valid.
+- `webhookJob` accepts native jobs enqueue options, including `id`, so applications can choose a stable job identity across deliveries.
+
+### Changed
+
+- routes use the bounded body reader through the native request's Effect environment, preserving their body limits and HTTP responses.
+
+### Fixed
+
+- Infer webhook route service requirements from registered sources in installed applications, so composing a route into the app host does not add an unknown service requirement.
+
+### Breaking
+
+- `webhookJob` accepts jobs-owned queue definitions. Use `QueueDefinition` from `@shivaedev/jobs/server/definition.ts` and its jobs-owned option types when annotating registered queues.
+- Direct callers of `WebhookEvent.decode` must pass delivery metadata as the second argument: `event.decode(body, { id, source, event })`. Custom decoders can accept the same argument to read the delivery identity.
+- `enqueueWebhookJobs(requests)` and `receive(name, source, key, body, headers)` now read `WebhookEnqueue` from the Effect environment instead of taking a jobs argument. Direct callers import `WebhookEnqueue` from `@shivaedev/webhooks/server/WebhookEnqueue.ts` and provide it with `{ enqueue: jobs.enqueue }` using `Effect.provideService`. `WebhookJob` now holds an enqueue Effect requiring that service. Applications using `webhookRoute({ jobs: Jobs, ... })` keep their existing wiring; the route supplies the narrow service.
+
 ## 0.4.1 - 2026-11-02
 
 ### Fixed

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.32.0 - 2026-11-03
+
+### Added
+
+- `makeClient` accepts `resume` and `resumeWindow` so applications can supply native lifecycle signals and an embedded browser window directly, preserving the client's inferred API, failures and requirements.
+- `composeBindings(client, bindings)` preserves the client's type and declares the bound APIs in one connection. `liveBindings(connection)` reads that composition while retaining support for direct bindings and object properties.
+- Observe bound queries with `querySignals(query)`: a native atom reports completed reads, pending requests, and whether their subscription opened or was refused. Refreshes signal completion even when their result is unchanged.
+- Supply `CommandGuard`, `CommandBoundary`, `guardCommands` and `commandGuardLayer` to evaluate declared command changes for the current viewer independently of authentication and tracing.
+- Export `activityScreenSignal(activity)` from `clientActivity.ts`, projecting client activity into a native stream and current Effect of pending screen work and hint counts.
+- Contract owns `ReadPolicyGuard`, `readPolicyGuardLayer()` and `guardReads(group)` in `@shivaedev/contract/ReadPolicyGuard.ts`. The guard checks each ordinary query's read policy once against the request's `CurrentViewer`.
+- Derive custom subscription handlers with `changesHandlerLayer`, retaining query payloads, declared failures, read-policy services and stream requirements in a native Layer.
+
+### Fixed
+
+- Schedule contract live hints through the Effect runtime's Scheduler, preserving batched changes, resyncs and stream cleanup. Isolate synchronous client identity and activity bridges in adapters and share atom wrapping across bindings.
+- Refresh server-discovered read scopes on each live subscription rerun and replace their registrations, including when a pushed result is unchanged.
+- `LiveServer.subscribe` preserves `SubscriptionHint` deliveries when no query runner is supplied, including an explicit `undefined`. Calls with a query runner keep `QueryUpdate` deliveries and retain the subscription's typed failures and service requirements.
+- Contract groups enforce query read policies automatically in native Effect RPC hosts as well as the application host. A false policy returns `QueryReadDenied` without running the handler. Ordinary queries evaluate their policy once per request.
+
+### Breaking
+
+- Rerun-and-compare subscriptions emit an `Unchanged` update with the query index when a completed read preserves its previous value. Consumers of raw `$changes` streams must handle this update; bound queries handle it automatically. Deploy clients and servers together so both understand the updated stream schema.
+- Calls to `LiveServer.subscribe` that explicitly supply its error and service type arguments and a query runner must also supply the runner type as the third type argument, or omit the type arguments and let TypeScript infer them.
+- Remove `guardReads` from `@shivaedev/contract/ReadPolicyGuard.ts`. Serve the contract group directly with `RpcServer`; remove any explicit read-policy Layer unless you use `readPolicyGuardLayer()` to refuse HTTP `$changes` calls with `WebSocketRequired`. `ReadPolicyGuard` is now a defaulted Context reference rather than a service class and requires no provision. Remove its former service type from Layer annotations.
+- Custom authentication middleware must supply `CurrentViewer` after session validation and stop calling `authorizeReads`; the contract's attached guard performs that check. Keep `authorizeReads` only for direct handler reruns outside RPC dispatch.
+- Ordinary query failures now include `MissingReadPolicy` and `WebSocketRequired` from the attached middleware. `MissingReadPolicy` refuses untyped declarations that omit a policy; `WebSocketRequired` belongs to the optional HTTP subscription restriction. Add these refusals to exhaustive error handlers.
+- `makeLiveServer.stream` and `LiveServer.stream` accept keys only. Their `subscribe` methods now take `(subscription, authorizedRunner?)`; remove the former context argument. `QuerySubscription.globalKeys` is removed because all server keys share the repository namespace; remove it from custom subscription objects.
+
 ## 0.31.0 - 2026-11-02
 
 ### Added
