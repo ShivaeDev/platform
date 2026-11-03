@@ -71,10 +71,11 @@ schemaInbox.it(
 schemaInbox.it(
 	"a host in wait mode waits for the receipts component and starts once it is applied",
 	[jobsSchemaInstalled, hostWaitsForMigrations],
-	function* ({ applyReceipts, host, hostStart }) {
+	function* ({ applyReceipts, host, hostStart, migrationPollIntervalPasses }) {
 		expect(yield* host()).toBe("waiting for webhook-receipts");
 
 		yield* applyReceipts();
+		yield* migrationPollIntervalPasses();
 
 		expect(yield* hostStart()).toBe("started");
 	},
