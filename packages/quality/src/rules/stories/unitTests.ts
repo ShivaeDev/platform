@@ -6,17 +6,20 @@ import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { usesDom } from "#rules/test-names/usesDom.ts";
 import { engineOf } from "./engineOf.ts";
+import { pureNetImport } from "./pureNetImport.ts";
 import { type Stand, standIns } from "./unitSyntax.ts";
 
 const RELATIVE = /^[./#]/u;
 
 const KIT = "Drive the engine through the package's story kit in a story, or, if the code under test is pure,";
 
-function runtimeEdges(graph: ImportGraph): ReadonlyMap<string, readonly ImportEdge[]> {
+function runtimeEdges(graph: ImportGraph, sources: ReadonlyMap<string, SourceFile>): ReadonlyMap<string, readonly ImportEdge[]> {
 	const packages = graph.unresolved
 		.filter((request) => request.missing === undefined && !RELATIVE.test(request.specifier))
 		.map((request) => ({ ...request, to: { kind: "external" as const, package: packageNameOf(request.specifier), specifier: request.specifier } }));
-	return outgoing([...graph.edges, ...packages].filter((edge) => edge.kind === "import" && !edge.type));
+	return outgoing(
+		[...graph.edges, ...packages].filter((edge) => edge.kind === "import" && !edge.type && !pureNetImport(edge, sources.get(edge.from))),
+	);
 }
 
 function repair(path: readonly string[]): string {
@@ -73,8 +76,8 @@ function syntaxFindings(file: string, module: string, trail: Trail, source: Sour
 }
 
 export function unitTests(graph: ImportGraph, sources: readonly SourceFile[]): (file: string) => readonly Finding[] {
-	const edgesFrom = runtimeEdges(graph);
 	const byPath = new Map(sources.map((source) => [source.path, source]));
+	const edgesFrom = runtimeEdges(graph, byPath);
 	return (file) => {
 		const walked = walkFrom(file, edgesFrom, engineOf);
 		const checked = [...walked.visited].filter(([module]) => module === file || isTestSupport(module));
