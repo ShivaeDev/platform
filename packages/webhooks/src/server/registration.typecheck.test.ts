@@ -1,8 +1,10 @@
 import { Config, Context, Data, Effect, type Layer, Redacted, Schema } from "effect";
 import { expectTypeOf } from "vitest";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { WorkerOptions } from "@shivaedev/jobs/server/workerOptions.ts";
 import { githubSource } from "#server/github.ts";
-import { enqueueWebhookJobs, webhookEvent, webhookJob } from "#server/registration.ts";
+import { enqueueWebhookJobs, type WebhookDelivery, webhookEvent, webhookJob } from "#server/registration.ts";
 import { webhookRoute } from "#server/route.ts";
 import type { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 import type { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
@@ -15,6 +17,19 @@ class OtherFailure extends Data.TaggedError("OtherFailure") {}
 const Payload = Schema.Struct({ number: Schema.Number });
 expectTypeOf(issueQueue.workerOptions).toEqualTypeOf<WorkerOptions>();
 const pure = webhookEvent(Payload, (payload) => [webhookJob(issueQueue, payload)]);
+webhookJob<typeof issueQueue.name, typeof issueQueue.schema>(issueQueue, { number: 42 });
+const metadata = webhookEvent(Payload, (payload, delivery) => {
+	expectTypeOf(delivery).toEqualTypeOf<WebhookDelivery>();
+	const options: EnqueueOptions = { id: delivery.id, priority: 1, retryLimit: 3 };
+	return [webhookJob(issueQueue, payload, options)];
+});
+expectTypeOf<Effect.Services<ReturnType<typeof metadata.decode>>>().toEqualTypeOf<never>();
+const keyed = defineQueue({ key: ({ number }) => String(number), name: "keyed", queue: { policy: "singleton" }, schema: Payload });
+webhookJob(keyed, { number: 42 }, { id: "chosen-id", priority: 1 });
+// @ts-expect-error The queue definition owns its singleton key, as in jobs.enqueue.
+webhookJob(keyed, { number: 42 }, { singletonKey: "override" });
+// @ts-expect-error Enqueue options must not weaken the queue's payload type.
+webhookJob(issueQueue, { number: "42" }, { priority: 1 });
 const enqueued = enqueueWebhookJobs([webhookJob(issueQueue, { number: 42 })]);
 expectTypeOf<Effect.Services<typeof enqueued>>().toEqualTypeOf<WebhookEnqueue>();
 const checked = webhookEvent(Payload, (payload) =>

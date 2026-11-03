@@ -87,6 +87,14 @@ The route provides `WebhookEnqueue`, an Effect service exposing only the jobs se
 
 The `webhookEvent` mapping can return an Effect to read application services and the clock before accepting a verified delivery. Return an empty array to ignore it, or fail with a typed error to refuse it. Pure mappings keep the same signature.
 
+The mapping's second argument is `WebhookDelivery`: the normalized delivery `id`, registered `source` name and `event` name. Payload-only mappings can omit it. Pass native jobs `EnqueueOptions` as `webhookJob`'s third argument to choose a job ID:
+
+```ts
+const issues = webhookEvent(IssueEvent, ({ issue }, delivery) => [webhookJob(IndexIssue, { number: issue.number }, { id: delivery.id })]);
+```
+
+Job IDs follow the jobs engine's format and uniqueness rules. When distinct receipts map to the same queue and job ID, the receipt still commits but contains no new job ID for that enqueue. Direct callers of an event's `decode` method supply the same metadata as its second argument: `event.decode(body, { id, source, event })`.
+
 ```ts
 const issues = webhookEvent(IssueEvent, ({ issue }) =>
 	Effect.gen(function* () {

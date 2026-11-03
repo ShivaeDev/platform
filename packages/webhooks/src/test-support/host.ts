@@ -10,6 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import type { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { webhookRoute } from "#server/route.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
+import { deliveryQueue, type HandledDelivery } from "#test/deliveryMetadata.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import { mappingResources, resourceEvent } from "#test/mappingResources.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
@@ -29,6 +30,7 @@ export interface Sent {
 
 export interface InboxState {
 	readonly answers: string[];
+	readonly deliveries: HandledDelivery[];
 	firstReceiptUpdateFails: boolean;
 	readonly handled: HandledJob[];
 	host: Fiber.Fiber<void, unknown> | undefined;
@@ -47,6 +49,7 @@ export interface InboxState {
 export function inboxState(mode: InboxState["mode"]): InboxState {
 	return {
 		answers: [],
+		deliveries: [],
 		firstReceiptUpdateFails: false,
 		handled: [],
 		host: undefined,
@@ -84,12 +87,21 @@ function recordHandled(state: InboxState, queue: string) {
 		});
 }
 
+function recordDelivery(state: InboxState) {
+	return (payload: typeof deliveryQueue.schema.Type, job: { readonly id: string }) =>
+		Effect.sync(() => {
+			state.deliveries.push({ jobId: job.id, payload });
+			state.handled.push({ id: job.id, issue: payload.number, queue: deliveryQueue.name });
+		});
+}
+
 export function hostLayer(state: InboxState) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const { url } = yield* PostgresTestDatabase;
 			const registeredSources = {
 				github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } },
+				mirror: sources.github,
 				timestamped: timestampedSource,
 			};
 			const signingEnvironment = {
@@ -113,7 +125,11 @@ export function hostLayer(state: InboxState) {
 						useListenNotify: true,
 					});
 					const jobs = Jobs.layer({
-						jobs: [issueQueue.handle(recordHandled(state, issueQueue.name)), auditQueue.handle(recordHandled(state, auditQueue.name))],
+						jobs: [
+							issueQueue.handle(recordHandled(state, issueQueue.name)),
+							auditQueue.handle(recordHandled(state, auditQueue.name)),
+							deliveryQueue.handle(recordDelivery(state)),
+						],
 					}).pipe(Layer.provide(clientLayer));
 					return {
 						config: { maxBodySize: MAX_BODY_BYTES, port: 0 },

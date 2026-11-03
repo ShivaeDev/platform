@@ -48,6 +48,7 @@ export const inbox = storyKit({
 			story.tell(`github sends ${delivery}`);
 			return deliver(state, delivery);
 		},
+		deliveryJobs: () => Effect.map(workersIdle(state), () => [...state.deliveries]),
 		errorLogs: () => Effect.sync(() => state.logs.filter(({ level }) => level === "Error")),
 		handledJobs: () => Effect.map(workersIdle(state), () => state.handled.map(jobName).toSorted()),
 		requestOutcomes: () => Effect.sync(() => requestOutcomes(state)),
