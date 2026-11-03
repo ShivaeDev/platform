@@ -14,7 +14,6 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
-import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authEmailRoutes } from "#server/authEmailRoutes.ts";
 import { authEmails } from "#server/authEmails.ts";
 import { authOptions } from "#server/authOptions.ts";
@@ -69,7 +68,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 							roleSeed: ownerSeed,
 							roles: AppAccess,
 						},
-					).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
+					);
 					const sessions = {
 						...authSessions,
 						origin: trustedOrigins({

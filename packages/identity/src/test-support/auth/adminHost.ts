@@ -45,13 +45,10 @@ export const startAdminHost = Effect.gen(function* () {
 	});
 	const {
 		auth,
+		profiles,
 		sessions: authSessions,
 		routes,
 	} = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles }).pipe(Effect.provide(memoryStore));
-	yield* Effect.promise(async () => {
-		const context = await auth.$context;
-		await context.checkSchema?.();
-	});
 	const state: { handlerRequests: string[]; providerUnavailable: boolean } = { handlerRequests: [], providerUnavailable: false };
 	const provider = authSessions.provider;
 	const sessions = {
@@ -84,6 +81,7 @@ export const startAdminHost = Effect.gen(function* () {
 		auth,
 		baseUrl: `http://127.0.0.1:${server.address.port}`,
 		headers: new Headers(),
+		profiles,
 		queries,
 		state,
 		stopStorage: Scope.close(poolScope, Exit.void),

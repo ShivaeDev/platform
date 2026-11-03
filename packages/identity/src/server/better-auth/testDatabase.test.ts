@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { authStorage, mintedAccounts, missingImageColumn } from "#test/better-auth/database.ts";
+import { authStorage, mintedAccounts } from "#test/better-auth/database.ts";
 
 authStorage.it("the test database lists each stored user by id and email only", [mintedAccounts()], function* ({ storedUserRows, userId }) {
 	expect(yield* storedUserRows()).toEqual([
@@ -54,13 +54,5 @@ authStorage.it(
 			["alice's cookie", () => signedInAs("alice"), "signed out"],
 			["bob's cookie", () => signedInAs("bob"), "bob"],
 		]);
-	},
-);
-
-authStorage.it(
-	"when the auth schema lacks the user image column, the mounted provider answers alice's session request as unavailable",
-	[mintedAccounts(), missingImageColumn()],
-	function* ({ signedInAs }) {
-		expect(yield* signedInAs("alice")).toBe("auth unavailable");
 	},
 );

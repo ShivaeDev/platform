@@ -12,6 +12,7 @@ import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUser } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
@@ -37,11 +38,10 @@ export const sessionClock = storyKit({
 			secret: "session-clock-story-secret-with-at-least-32-characters",
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true, expiresIn: 3600 },
 		};
+		yield* migrateBetterAuth(options, { defaultRole: "admin" });
 		const mounted = yield* betterAuthMount(options, { defaultRole: "admin", roles: Roles })
 			.pipe(Effect.provide(memoryStore))
 			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
-		const context = yield* Effect.promise(() => mounted.auth.$context);
-		yield* Effect.promise(() => context.runMigrations());
 		const alice = yield* signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" });
 		const longerLived = betterAuth({ ...mounted.auth.options, session: { ...options.session, expiresIn: 7200 } });
 		const bob = yield* signedInUser(longerLived, { email: "bob@clock.test", name: "bob" });

@@ -1,4 +1,4 @@
-import { type BetterAuthOptions, betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { Config, Effect, Layer, Option, Redacted, type Scope } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
@@ -26,6 +26,7 @@ import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
+import { acquireAuth } from "./acquire.ts";
 import { authRouteHandler } from "./routeHandler.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
@@ -73,7 +74,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const prefix = `/${(options.basePath || "/api/auth").replace(/^\/|\/+$/gu, "")}` as const;
 	const basePath = prefix === "/" ? "" : prefix;
 	const customStorage = yield* rateLimitStorage;
-	const auth = betterAuth({
+	const { auth, profiles } = yield* acquireAuth({
 		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
@@ -128,7 +129,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const revoke = revokeUnadmitted(gate, () => auth.$context);
 	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
 	const sessions = mountedSessions(lookupSession, admit, mount.roles);
-	return { admitsUser, admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
+	return { admitsUser, admittedSessions: admit, auth, profiles, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
 
 type Mounted<TOptions extends BetterAuthOptions, E, R> = ReturnType<typeof mountAuth<TOptions, E, R>>;
