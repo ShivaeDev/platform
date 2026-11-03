@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
+import { fleetHealth } from "#server/adapters/fleetHealth.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { health, syntheticSources } from "#test/diagnostics.ts";
 import { diagnosticsSources, healthBoundary } from "#test/readingTraits.ts";

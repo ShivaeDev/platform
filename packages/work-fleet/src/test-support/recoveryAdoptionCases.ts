@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { BASE, HEAD, MOVED, PR, resultFixture } from "#test/githubResult.ts";
+import { BASE, HEAD, localResultFixture, MOVED, PR, resultFixture } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
@@ -8,7 +8,6 @@ interface AdoptionFault {
 	readonly after?: Readonly<Record<string, unknown>>;
 	readonly before?: Readonly<Record<string, unknown>>;
 	readonly code: RecoveryCase["code"];
-	readonly comparison?: unknown;
 	readonly files?: unknown;
 	readonly invalidJson?: boolean;
 	readonly output?: string;
@@ -38,7 +37,7 @@ const faults: readonly AdoptionFault[] = [
 		reason: "PR base moved during changed-path comparison",
 		verified: { base: { ref: "main", sha: MOVED } },
 	},
-	{ code: "fleet-integration" as const, comparison: {}, files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
+	{ code: "fleet-integration" as const, files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
 	{ code: "fleet-integration" as const, invalidJson: true, reason: "GitHub observation failed or returned invalid data" },
 	{ code: "fleet-invalid" as const, files: [[{ filename: "src/outside.ts" }]], reason: "Result needs evidence and known reserved scope" },
 ];
@@ -54,7 +53,6 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 		const options = {
 			after,
 			before,
-			comparison: fault.comparison,
 			files: fault.files ?? [[{ filename: "src/one.ts" }]],
 			invalidJson: fault.invalidJson ?? false,
 			verified,
@@ -73,7 +71,22 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 			}),
 			name: `adoption: ${fault.reason}`,
 			observe: () => ({ requests: reader.requests.length }),
-			options: { resultQuery: reader.adopt },
+			options: {
+				resultQuery: (work, observation) => {
+					const verification = fault.verified;
+					if (verification === undefined || before.changed_files === after.changed_files) {
+						return reader.adopt(work, observation);
+					}
+					return Effect.gen(function* () {
+						const local = yield* localResultFixture({
+							after: { "changed_files": after.changed_files },
+							before: { "changed_files": before.changed_files },
+							verified: verification,
+						});
+						return yield* local.adopt(work, { ...observation, output: observation.output.replace(HEAD, local.head) });
+					}).pipe(Effect.scoped);
+				},
+			},
 			recovery: staleReport ? "repair-stale-worker-report" : "adopt-worker-result",
 			restore: () =>
 				Effect.sync(() => {

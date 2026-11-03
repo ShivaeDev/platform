@@ -6,7 +6,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { UsersView } from "#client/UsersView.ts";
+import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "./Access.ts";
 import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { Page, usersEngine } from "./usersEngine.ts";

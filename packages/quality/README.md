@@ -201,6 +201,8 @@ export default defineConfig({
 
 ### Story tests
 
+`tests/adapter-only-fakes` reports `vi.mock` and `vi.doMock` of repository modules outside `adapters/`, and replacement implementations on spies of owned exports. It resolves module paths with the repository's TypeScript projects, including aliases. Adapter modules, outside libraries, platform globals, observing spies and quoted fixture source pass. For Layers and `Effect.provideService`, it reports locally constructed replacements of imported owned `defineService` services. Its static analysis does not identify bare Context service keys, factory-produced implementations or service instances passed through parameters and object properties. Review those supplies as well: fake repository code only under `adapters/`, and delete a test whose failure can only be shown by faking internals.
+
 Keep story kits and fixtures in `src/test-support` and keep each spec specific to its story. [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) explains how to build the kit, traits and verbs over a real engine.
 
 Quality's `tests/story-specs` rule reports a test file that declares tests without a kit's `it`, including plain Vitest `it` and `test` declarations mixed with stories. Typecheck tests are exempt, as are only the packages named `@shivaedev/test-story`, `@shivaedev/test` and `@shivaedev/types`, wherever they live in the workspace or at its root. Other dependencies of test-story, including development dependencies, remain checked.

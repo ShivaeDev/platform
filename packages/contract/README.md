@@ -527,6 +527,8 @@ Each stream queues at most 256 hints. Overflow discards the pending hints and re
 
 ### Query policies, record keys and buckets
 
+The application host installs `ReadPolicyGuard` from `@shivaedev/contract/ReadPolicyGuard.ts` and evaluates an ordinary query’s policy once per request, after identity middleware resolves `CurrentViewer`. Custom hosts serve the group returned by `yield* guardReads(group)` and provide `readPolicyGuardLayer()`. `guardReads` places the guard inside the group’s identity middleware on a server-side copy; custom authentication middleware supplies `CurrentViewer` from its validated session. Pass `{ websocket: true }` to `readPolicyGuardLayer` when serving the WebSocket protocol; the default refuses `$changes` calls with `WebSocketRequired`. Subscription delivery and pushed reruns continue to check current access.
+
 A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections`; a failing access check reaches the client as its declared error, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
 
 ```ts

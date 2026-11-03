@@ -9,7 +9,7 @@ import { screenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { UsersView } from "#client/UsersView.ts";
+import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "./Access.ts";
 import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { mappedTables } from "./mappedTables.ts";

@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { type FileHandle, open } from "node:fs/promises";
 import { Effect } from "effect";
-import { directoryPath, validateDirectory } from "@shivaedev/work-board/server/responses/publicationDirectory.ts";
+import { directoryPath, validateDirectory } from "@shivaedev/work-board/server/adapters/publicationDirectory.ts";
 import { reportFileIo, withReportFile } from "#reportFileFailure.ts";
 
 export interface ReportDirectory {

@@ -5,7 +5,6 @@ import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { forbidden } from "@shivaedev/access/refusal.ts";
 import { requirePermission } from "@shivaedev/access/requirePermission.ts";
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
@@ -29,7 +28,7 @@ export function permissionLayer<TMiddleware>(
 				const lookup = Effect.tap(recheckSession(headers, rpc._tag), (session) =>
 					Option.isSome(session) && !hasPermission(session.value.user, permission) ? Effect.fail(forbidden(permission)) : Effect.void,
 				);
-				return Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
+				return commandChanges(effect, rpc, payload).pipe(
 					(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(rpc, id, lookup))),
 					(invocation) =>
 						Effect.andThen(

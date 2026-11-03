@@ -15,7 +15,7 @@ import { MainSource } from "#host/mainSource.ts";
 import { makeReportPublication, reportPublication } from "#host/reportPublication.ts";
 import { FleetIntegrations } from "#policy.ts";
 import { githubCliApi, syntheticGithub } from "#test/githubApi.ts";
-import { resultFixture } from "#test/githubResult.ts";
+import { localResultFixture, resultFixture } from "#test/githubResult.ts";
 import { described } from "#test/refusal.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
@@ -83,6 +83,11 @@ const definition = {
 				Effect.provide(hostIntegrations(host).pipe(Layer.provide([Layer.succeed(MainSource)(fixture.main), syntheticGithub().layer]))),
 			);
 		},
+		localResult: (options: Parameters<typeof resultFixture>[0] = {}) =>
+			Effect.gen(function* () {
+				story.tell("configure the PR observations against a local Git repository");
+				return yield* localResultFixture(options);
+			}),
 		publication: (response: string) => {
 			story.tell("inspect GitHub publication evidence");
 			return makeReportPublication(() => Effect.succeed(response))("example/project", "synthetic/research");
