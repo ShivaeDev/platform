@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { packedWorkspace } from "#adapters/packedWorkspace.ts";
 import { command, writeJson } from "#package-check/io.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { withTarballOverrides } from "#withTarballOverrides.ts";
@@ -36,15 +37,11 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	const generator = join(temporary, minimal ? "generator-minimal" : "generator");
 	yield* fs.makeDirectory(generator);
 	yield* writeJson(join(generator, "package.json"), { dependencies: { "@shivaedev/create-app": `file:${packed}` }, private: true });
-	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), withTarballOverrides("packages: []\n", tarballs));
+	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), withTarballOverrides(packedWorkspace("packages: []\n"), tarballs));
 	yield* command(generator, "pnpm", ["install", "--registry=https://registry.npmjs.org"]);
 	yield* Effect.log(`Generating and installing ${folder} with the packed create-app command.`);
 	const bin = join(generator, "node_modules/.bin/create-app");
-	if (Object.keys(tarballs).length === 0) {
-		yield* command(temporary, bin, args);
-	} else {
-		const path = yield* packedInstaller(root, generator, tarballs);
-		yield* command(temporary, "env", [`PATH=${path}`, bin, ...args]);
-	}
+	const path = yield* packedInstaller(root, generator, tarballs);
+	yield* command(temporary, "env", [`PATH=${path}`, bin, ...args]);
 	return folder;
 });

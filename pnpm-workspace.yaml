@@ -72,8 +72,6 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
-  # Renovate security update: @modelcontextprotocol/sdk@1.32.0
-  - "@modelcontextprotocol/sdk@1.32.0"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade

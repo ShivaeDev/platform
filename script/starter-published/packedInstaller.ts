@@ -19,10 +19,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import process from "node:process";
+import { packedWorkspace } from ${JSON.stringify(join(root, "script/adapters/packedWorkspace.ts"))};
 import { withTarballOverrides } from ${JSON.stringify(join(root, "script/withTarballOverrides.ts"))};
 const workspace = join(process.cwd(), "pnpm-workspace.yaml");
 const tarballs = Object.fromEntries(Object.entries(${JSON.stringify(tarballs)}).map(([name, archive]) => [name, relative(process.cwd(), archive)]));
-writeFileSync(workspace, withTarballOverrides(readFileSync(workspace, "utf8"), tarballs));
+writeFileSync(workspace, withTarballOverrides(packedWorkspace(readFileSync(workspace, "utf8")), tarballs));
 if (existsSync(".git")) {
   const configured = spawnSync("git", ["config", "--local", "core.hooksPath", ".git/hooks"], { stdio: "inherit" });
   if (configured.error) throw configured.error;

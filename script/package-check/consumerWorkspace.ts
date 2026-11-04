@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { packedWorkspace } from "#adapters/packedWorkspace.ts";
 import { command } from "#package-check/io.ts";
 import { bins, decodeVersions, effectPackage, type Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
@@ -37,7 +38,7 @@ export const consumerWorkspace = Effect.fn("Packed.consumerWorkspace")(function*
 			workspace = `${workspace.trimEnd()}\n\noverrides:\n${retained}`;
 		}
 	}
-	return withTarballOverrides(workspace, tarballs);
+	return withTarballOverrides(packedWorkspace(workspace), tarballs);
 });
 
 function effectOverride(selector: string): boolean {
