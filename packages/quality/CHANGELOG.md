@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.61.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+### Fixed
+
+- Recognize the test-kits controller import and its jobs stories when checking story assertions against queue storage; applications and other kits remain checked.
+
 ## 0.61.0 - 2026-11-04
 
 ### Added

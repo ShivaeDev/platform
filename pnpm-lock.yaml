@@ -181,26 +181,26 @@ catalogs:
       specifier: 0.84.4
       version: 0.84.4
     '@effect/atom-react':
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     '@effect/platform-node':
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     '@effect/sql-pg':
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     '@effect/sql-sqlite-node':
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     '@effect/vitest':
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     '@modelcontextprotocol/sdk':
       specifier: 1.32.0
       version: 1.32.0
     '@shivaedev/work-fleet':
-      specifier: 0.35.1
-      version: 0.35.1
+      specifier: 0.35.2
+      version: 0.35.2
     '@tailwindcss/vite':
       specifier: 4.3.3
       version: 4.3.3
@@ -244,8 +244,8 @@ catalogs:
       specifier: 0.7.1
       version: 0.7.1
     effect:
-      specifier: 4.0.6
-      version: 4.0.6
+      specifier: 4.0.7
+      version: 4.0.7
     esbuild:
       specifier: 0.28.2
       version: 0.28.2
@@ -299,7 +299,7 @@ catalogs:
       version: 2.9.1
 
 overrides:
-  '@effect/platform-node-shared': 4.0.6
+  '@effect/platform-node-shared': 4.0.7
 
 patchedDependencies:
   happy-dom@21.0.4: dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7
@@ -313,7 +313,7 @@ importers:
         version: 2.6.3
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/github':
         specifier: workspace:*
         version: link:packages/github
@@ -334,7 +334,7 @@ importers:
         version: link:packages/test-story
       '@shivaedev/work-fleet':
         specifier: 'catalog:'
-        version: 0.35.1(433f78f3369851cb87fd4abcc019addf)
+        version: 0.35.2(157d5c9c4c438c2982ea112217af6a78)
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -346,7 +346,7 @@ importers:
         version: 5.0.5(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: catalog:compiler-api
         version: '@typescript/typescript6@6.0.2'
@@ -361,13 +361,13 @@ importers:
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/deploy':
         specifier: workspace:*
         version: link:../../packages/deploy
@@ -391,7 +391,7 @@ importers:
         version: 0.5.0
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       lucide-react:
         specifier: 'catalog:'
         version: 1.62.0(@types/react@19.3.0)(react@19.3.1)
@@ -404,7 +404,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/browser-check':
         specifier: workspace:*
         version: link:../../packages/browser-check
@@ -477,7 +477,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -508,7 +508,7 @@ importers:
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -544,7 +544,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
@@ -565,7 +565,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -577,7 +577,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -605,7 +605,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -617,7 +617,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -636,10 +636,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.32.0(supports-color@7.2.0)(zod@4.6.5)
@@ -654,7 +654,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -673,7 +673,7 @@ importers:
         version: 0.84.4(@modelcontextprotocol/sdk@1.32.0(supports-color@7.2.0)(zod@4.6.5))(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.5)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -685,7 +685,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -701,10 +701,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -716,7 +716,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -737,7 +737,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -759,10 +759,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
@@ -792,7 +792,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       esbuild:
         specifier: 'catalog:'
         version: 0.28.2
@@ -814,10 +814,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -829,7 +829,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       esbuild:
         specifier: 'catalog:'
         version: 0.28.2
@@ -881,7 +881,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -906,7 +906,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -924,7 +924,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -945,7 +945,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -961,7 +961,7 @@ importers:
     devDependencies:
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
@@ -979,7 +979,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -995,10 +995,10 @@ importers:
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1013,7 +1013,7 @@ importers:
         version: 19.3.0
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -1038,13 +1038,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1062,7 +1062,7 @@ importers:
         version: 2.24.0
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1074,10 +1074,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1089,7 +1089,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1101,7 +1101,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1113,7 +1113,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1150,10 +1150,10 @@ importers:
         version: 1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5))
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/admin':
         specifier: workspace:*
         version: link:../admin
@@ -1180,7 +1180,7 @@ importers:
         version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1220,7 +1220,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -1235,7 +1235,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1247,7 +1247,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1269,10 +1269,10 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1299,7 +1299,7 @@ importers:
         version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1311,16 +1311,16 @@ importers:
     dependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
@@ -1386,7 +1386,7 @@ importers:
         version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -1414,13 +1414,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1432,7 +1432,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1472,13 +1472,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
@@ -1493,7 +1493,7 @@ importers:
         version: typescript@7.0.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -1521,7 +1521,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1549,16 +1549,16 @@ importers:
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
@@ -1600,7 +1600,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
@@ -1640,7 +1640,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1652,13 +1652,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1670,7 +1670,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
@@ -1685,7 +1685,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1697,7 +1697,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1731,13 +1731,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
@@ -1770,7 +1770,7 @@ importers:
         version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -1785,7 +1785,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1800,7 +1800,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1812,13 +1812,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1830,7 +1830,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1852,13 +1852,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -1882,7 +1882,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1894,7 +1894,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1906,7 +1906,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1918,7 +1918,7 @@ importers:
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1930,7 +1930,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1982,7 +1982,7 @@ importers:
         version: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1998,10 +1998,10 @@ importers:
     devDependencies:
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
@@ -2025,7 +2025,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -2053,16 +2053,16 @@ importers:
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -2080,7 +2080,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
@@ -2114,13 +2114,13 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared':
-        specifier: 4.0.6
-        version: 4.0.6(effect@4.0.6)
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@effect/vitest':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -2138,7 +2138,7 @@ importers:
         version: 5.0.5(vitest@5.0.5)
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -2163,7 +2163,7 @@ importers:
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -2184,7 +2184,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: 'catalog:'
-        version: 4.0.6
+        version: 4.0.7
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -2563,40 +2563,40 @@ packages:
     resolution: {integrity: sha512-nPUnwDkLtupPXnZQYrCwPFcuTydCDqTY6ZbFqhsL4S4kVq0AT418kPa/6uXwtaCD+MjBNBltb7ScTYX65yeE1w==}
     engines: {node: '>=22.19.0'}
 
-  '@effect/atom-react@4.0.6':
-    resolution: {integrity: sha512-DpbuEdaJl+2/GW4KkrKtRD8YVPT+I29bh/TFE7JCGkB4YNiHWNE5q69EagDeK/QXi4RlSb+iR+rNGkORJ9qB/A==}
+  '@effect/atom-react@4.0.7':
+    resolution: {integrity: sha512-9jQFhzl4lL79XmhTr4uHHZtDU2/Z9sBe7YpKZwc9/a6bGuO2DbmynJ4i+M97OIgOAqYjZVsiiNAXj2aeVbCSJg==}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
       react: '>=19.0.0 <20.0.0'
       scheduler: '>=0.25.0 <0.29.0'
 
-  '@effect/platform-node-shared@4.0.6':
-    resolution: {integrity: sha512-0PhyC4uG30xGtsajnxjkcBWfTjNRzUh4ZKl1Kvo/MNyCTb+W2O+fBzf7wCRCoqt+nLudiq4V7vX40Q8XIBuMaQ==}
+  '@effect/platform-node-shared@4.0.7':
+    resolution: {integrity: sha512-uCeBJ00hliKQsb7gMfvyEXUL1XmUKQcRzKi1X8ISG0UxTDMAdPRigOyKDnKxUTxE5PoT4kxLHQvOxo6U405FGg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
 
-  '@effect/platform-node@4.0.6':
-    resolution: {integrity: sha512-gXvGHAy0/8PZbWvMMguloDUyeSP+rzYEo3FSEqUuGduxo9ORcGioDxPI+GOLCIFfam7VuNkmSUxBOiRMIrMrBw==}
+  '@effect/platform-node@4.0.7':
+    resolution: {integrity: sha512-YXUh0A4ZjuPAONt/yXb5zBM7zPR6eUPYUBtyj1374zq0P5SUpdcz8Lf54JSavXb8mdrc1glsXWHFVINpJyrlWA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
       redis: '>=5.0.0 <7.0.0'
 
-  '@effect/sql-pg@4.0.6':
-    resolution: {integrity: sha512-mh2Z+Hi1/AWtkoGuzub2PPCHN7ZsMAbY8dlv/YbdJ6PoXVdrVAGsr+FeeoeD6f0rdnln4DQm7PvFjv1htAjY9w==}
+  '@effect/sql-pg@4.0.7':
+    resolution: {integrity: sha512-KANrOvBKm3KUvOAgTQz9cWKOwKJW1oHdkJ0rsIldDeO5zot9S4qzOtsQrhafNelbxY9S/F9k4Z+7oiw//oO6bg==}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
 
-  '@effect/sql-sqlite-node@4.0.6':
-    resolution: {integrity: sha512-mYWr1Ppoz3/XrY+ZBnYfdvZvdcAYJTO6VcWoNetBX5n2c0VKHqg9S8WO6EpgtV5WiR8/yHHmu3qkfAGHJmalcA==}
+  '@effect/sql-sqlite-node@4.0.7':
+    resolution: {integrity: sha512-VMtKDPpYkb6/dt3j4kZ0gw51bY4hbFS6I0vuzxikWBb7pQmaEmV5Tiax9ZrOXxU0fwcuJhLCZm9VhxNUg2cD0w==}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
 
-  '@effect/vitest@4.0.6':
-    resolution: {integrity: sha512-oKNbtyUHK5+0o730CXwojULEu7f3+c235pYFD4U5T//o+hHrJbYbZU4bRkcv936tPr5IOnmujeyQiC/LuJJjHw==}
+  '@effect/vitest@4.0.7':
+    resolution: {integrity: sha512-WdF1w9K65ZyjeDAUfUxDOCBSEgVjUtJfM+G83KAE3mKoZcO6aGgrRoKgwiDKsACAmVWT3zG5hDhwNH3GQg++FQ==}
     peerDependencies:
-      effect: ^4.0.6
+      effect: ^4.0.7
       vitest: '>=5.0.0 <6.0.0'
 
   '@emnapi/core@1.11.2':
@@ -3516,19 +3516,19 @@ packages:
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
 
-  '@shivaedev/access@0.5.0':
-    resolution: {integrity: sha512-ZMshZHfyzIGMNn3OiTKcFy418ku7N3ONDWWc1RcXcaK2zpOO5ZWtum1kiyT9sp6UqFUlZQk7pReXAjc8OvBB+Q==}
+  '@shivaedev/access@0.5.1':
+    resolution: {integrity: sha512-q8cdiQny6FBVxm7zHdqMaR2vSSiD0AXhnpH2XB6BEmfRPkinn6VfiFVovXrzFb7D4OCixDehbKrn15uDrg98KQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/admin@0.20.1':
-    resolution: {integrity: sha512-DIBNfu19vuzd/fAs04QXkcw7GthorQTbt762pprXGR1JGRpuIwCp7N+VuzEG6M5Uv2umLc4HoVlKwUVD/aw77Q==}
+  '@shivaedev/admin@0.20.2':
+    resolution: {integrity: sha512-4nZBIeZXSiCpsrM9CBnanmpfz9yhAoYqc4JAgxH+2ZIGpSt1SJmKY8mpXP8KTmNszyfXrufgaUVcUiA+FgsLJQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/atom-react': 4.0.6
-      '@shivaedev/react': 0.41.0
-      effect: 4.0.6
+      '@effect/atom-react': 4.0.7
+      '@shivaedev/react': 0.41.1
+      effect: 4.0.7
       react: 19.3.1
     peerDependenciesMeta:
       '@effect/atom-react':
@@ -3538,30 +3538,30 @@ packages:
       react:
         optional: true
 
-  '@shivaedev/changes@0.10.0':
-    resolution: {integrity: sha512-tufvLXbzKc1D5ecLhJ78/tuKIo16IxIURcHAFnMpfTc+ihQGaizwBQU9Q8gNgYv9208BYzfL8P+9fSRJlPMP8w==}
+  '@shivaedev/changes@0.10.1':
+    resolution: {integrity: sha512-QJf4zOK8jGaR1YWVbWWPkfhHM+M4LiQo8ACgEKoIZ2T5XIW2jILBHiUvY8WZ2i3kkrCYc55mwP8HuJ6vwAARKw==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/contract@0.36.0':
-    resolution: {integrity: sha512-LVBb//i4/+5xJ7/rXnOs4RJ6tB9Cjt1esV0KxN/2nV5ojvt96XliohKiXiOO1/VgET1FDIJm1HbXj/YMgNGm0Q==}
+  '@shivaedev/contract@0.36.1':
+    resolution: {integrity: sha512-oKgZci4upsRV0SyFJGV+GmBTLQ4gBqVTJyoJ46c8DpPtjONcUGx7kSvbINrjb6ykod07osCYEl7zkp/RxIUk9Q==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/errors@0.9.0':
-    resolution: {integrity: sha512-Ia2DivwoaGWlB20S1d+ni6253c9mj9U760L7WRIHNqaQtYgP4OkFpyQp4ejLcLvOM3ZGallMHZfBg5XPKZLuIQ==}
+  '@shivaedev/errors@0.9.1':
+    resolution: {integrity: sha512-zIjcyeUxXhwVXfX5cBgV5Tcsafh7WM4nspVdeZhaTdcBUOQF37hPowtOY4FCGYDsWQKhhiV43uyH2apS34QKqQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/form@0.17.0':
-    resolution: {integrity: sha512-3TSDYrLrEH56+mLnHYCJeJHjRFscMdKlpwtmP2ypdlubkI6ilvhY26ZhNc5CzrcLy1grGtKoLRtDeUXSnFIM3w==}
+  '@shivaedev/form@0.17.1':
+    resolution: {integrity: sha512-o8Xwdy8euO1wUBm77Z7QxV+KdRaDYm1e/+JG3NemG9jWKD019nFk4Oq4M2FPx5+uILY5wI4EmMJUSQVblqLETg==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/atom-react': 4.0.6
-      effect: 4.0.6
+      '@effect/atom-react': 4.0.7
+      effect: 4.0.7
       react: 19.3.1
     peerDependenciesMeta:
       '@effect/atom-react':
@@ -3569,96 +3569,96 @@ packages:
       react:
         optional: true
 
-  '@shivaedev/github@0.12.0':
-    resolution: {integrity: sha512-u2cZioTLiZm/sRyb5sQTyMaG/K2V86b95g2pAomMBBayc0Wz54HgmrozYFIcmBW5I2SyPfClqxvK8TC8VUXFfQ==}
+  '@shivaedev/github@0.12.1':
+    resolution: {integrity: sha512-byr+wJrx5V4FU01kwZmFq4lv3ZlncsBPI105f3djCoLEtC1DhLUGCx+GsDo9zGBwsx/A8CB9co28IillO21fxA==}
     engines: {node: '>=24'}
     peerDependencies:
       '@zip.js/zip.js': 2.24.0
-      effect: 4.0.6
+      effect: 4.0.7
     peerDependenciesMeta:
       '@zip.js/zip.js':
         optional: true
 
-  '@shivaedev/http@0.6.0':
-    resolution: {integrity: sha512-wHvGxs4qNINzdKTBjfahA1duoOMcMV2x1rCc8kyLHmYC1xG/dHVoSWWlAqMHuROAf6yX+/nrJ/OKvSHe31BoZQ==}
+  '@shivaedev/http@0.6.1':
+    resolution: {integrity: sha512-LZcOLeYdf6711YSAUm8aJd6WE4dXADTf8WHbjC8VMogbxlWyvhkmIOefzVKD0Vx2hd3SrafPX2tAwUgCK7VxPw==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/identity@0.25.0':
-    resolution: {integrity: sha512-mBfnDf8QZDjkljPLLD9DlCXXVjlfAaiwJuUaRbbaiBNfmhS8yd3w+L+SlZY669kxuijmTFPE6LxxmAxLsrdyrw==}
+  '@shivaedev/identity@0.26.0':
+    resolution: {integrity: sha512-2UXhNV3BV1ita4WLOFhrG9VugT53RnoCd8/bvZhRn2iyHwtmXQisisC24BX4W1385G1fKjOW6VZXTzN4VuTGDg==}
     engines: {node: '>=24'}
     peerDependencies:
       '@better-auth/oauth-provider': 1.7.14
       better-auth: 1.7.14
-      effect: 4.0.6
+      effect: 4.0.7
     peerDependenciesMeta:
       '@better-auth/oauth-provider':
         optional: true
       better-auth:
         optional: true
 
-  '@shivaedev/jobs@0.35.1':
-    resolution: {integrity: sha512-h9Nv/lwH9MiiLZjhQM9zNbLgBKtbTvIh39/jkCNMOIElTYc06qVgBKZiI1jK5DepIH7Tl8FS0CuBIfc7UZaqlQ==}
+  '@shivaedev/jobs@0.36.0':
+    resolution: {integrity: sha512-iypShpBNeNNWVr7ud3mrQ+vvbm5d9esuEVEOOKBMeIWlA4bQrJY3f6yaHHV8rxpVgemLtzo9CKSKEn2bz593eg==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
       pg-boss: 12.38.0
 
-  '@shivaedev/local-postgres@0.14.0':
-    resolution: {integrity: sha512-4VoszpjAx36QOo8hNZgIFgeZo1MHyl7qAB0rY9Jnwgi262rh0ZMAm3hs/Xx4sO7cAfK5jHPTH66n7bv8pB56PA==}
+  '@shivaedev/local-postgres@0.14.1':
+    resolution: {integrity: sha512-uaa2SAehOamBt9Cn1yhP2RJdtbG+E8v3ebm94Bm49GXAd9lWUTFpGvLYPMrMr316rDlCiATXjGUxhOqWb4lMpQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/pr-watch@0.10.0':
-    resolution: {integrity: sha512-ldvuw9jPp3XzTd4muouvGtXI2AqMFOFIw6dPzDvymTl9mDUotfCVlGKTOajNGCLqko+Jn8U12EIG8YsdmUEV0Q==}
+  '@shivaedev/pr-watch@0.10.1':
+    resolution: {integrity: sha512-1cmucNlpgIOXHJoHEakRPoXLi9Rd8IYPP9qzd6KeF6maN8wA7q3Wsz87JNLMdKMnP+Ob83onG6mPeykHKVNG2Q==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
-      '@effect/platform-node': 4.0.6
-      '@effect/platform-node-shared': 4.0.6
-      effect: 4.0.6
+      '@effect/platform-node': 4.0.7
+      '@effect/platform-node-shared': 4.0.7
+      effect: 4.0.7
 
-  '@shivaedev/rate-limit@0.5.0':
-    resolution: {integrity: sha512-e64zjfn7panSHPlEStVEeErUGzDCMvQyEWEZHWbdgjGKnHS0zVePuO/ffBbjFPlojnLNwQgp6rIATCg8UFjYWA==}
+  '@shivaedev/rate-limit@0.5.1':
+    resolution: {integrity: sha512-lnXvOeEzbVoMUi8sEZCJNRB9CsiB5Yn51TtS6MtmBtlLjKH6/epPwLda/vYhsbiB6UF90D5q7kFX/KEMY8c9hw==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@shivaedev/sql': 0.38.0
-      effect: 4.0.6
+      '@shivaedev/sql': 0.39.0
+      effect: 4.0.7
     peerDependenciesMeta:
       '@shivaedev/sql':
         optional: true
 
-  '@shivaedev/react@0.41.0':
-    resolution: {integrity: sha512-a8eSy6WXagCPXKywzQLv48CtCPemHTGtSzrl7aFlkDrTPAW6kCTX7ASU8+1GRzbe41Olo2uwJLwVN4obRJo9kg==}
+  '@shivaedev/react@0.41.1':
+    resolution: {integrity: sha512-ITVqD1ta/amzRQySPn84frZ+zCD7kRneoDlznUWs0WIVylW602JBvdWxUxZa+ab0Kmz5Uec6UyKTcSgOoJRZpA==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/atom-react': 4.0.6
+      '@effect/atom-react': 4.0.7
       '@tanstack/react-router': 1.170.46
-      effect: 4.0.6
+      effect: 4.0.7
       react: 19.3.1
     peerDependenciesMeta:
       '@tanstack/react-router':
         optional: true
 
-  '@shivaedev/reconciler@0.2.0':
-    resolution: {integrity: sha512-0vZ5lScWKLreuEupM5OlXBr/qjo97myL9kcL4V50s3KImKh4RDWXu5yRKPZmqueBw6npoCf508wwNMx1CzGtPw==}
+  '@shivaedev/reconciler@0.2.1':
+    resolution: {integrity: sha512-32v1hg0CKGvvZgkxnr5CCjdIOLRmh97TjAxAZzQ4erAgHocFCKfNo7ed5S0z/hHFKeWbDuDxT9tWOYSuMIH9Bg==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/server@0.24.1':
-    resolution: {integrity: sha512-/gGR3Yn7Xk+L8qnUlsa1fE7nD6Q3oDNgd7c6LcDUglBSZJQmEc4zca93oWREnYolGRq8RLEMQa4i4/300YgMMQ==}
+  '@shivaedev/server@0.24.2':
+    resolution: {integrity: sha512-5lcoWtDeYQ3vrtYYFYuqKZ4gatN8NFZM89UMvoZMg+AL83khns2f2MKK4GD6jgnTqCpvC/ZlllJm5aD2CIYYSw==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/platform-node': 4.0.6
-      '@effect/sql-pg': 4.0.6
-      '@effect/vitest': 4.0.6
-      '@shivaedev/admin': 0.20.1
-      '@shivaedev/test-sql': 0.21.0
+      '@effect/platform-node': 4.0.7
+      '@effect/sql-pg': 4.0.7
+      '@effect/vitest': 4.0.7
+      '@shivaedev/admin': 0.20.2
+      '@shivaedev/test-sql': 0.21.1
       better-auth: 1.7.14
-      effect: 4.0.6
+      effect: 4.0.7
     peerDependenciesMeta:
       '@effect/platform-node':
         optional: true
@@ -3673,50 +3673,50 @@ packages:
       better-auth:
         optional: true
 
-  '@shivaedev/service@0.7.0':
-    resolution: {integrity: sha512-b9I4iysUENcTFGnU2+OMO5m+AirUf5TeBb3sKFDaLVE8OPlIVmd6rz70mXtQmxVDOuMttnkcjFuyj6t43du3lg==}
+  '@shivaedev/service@0.7.1':
+    resolution: {integrity: sha512-Jiib5JrNdL6dcRiTpOGNXZiKemAjjyXJsIAuenm0TxzND3ovdBwbnf/e+wmpeNmj+NutTlwgzJjwKSrk+rVwpQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/sql@0.38.0':
-    resolution: {integrity: sha512-FThHqrigtkd+EyZ+lsS/LD6G3Vrt4jZ5fZwbAMDvaAPZ5/whG5aa6aIHOSyfwKhUFyStTPuUSeUWnx2Sn8GLLQ==}
+  '@shivaedev/sql@0.39.0':
+    resolution: {integrity: sha512-wfBCeL3Ky0sKhf4AeeI75QTWSVl2J8eHfzlr4V5/JzGfaA9fUbQN5Lx7hoVlWHGnC1UCE8GzDGTq7DzuXmXkpw==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/sql-pg': 4.0.6
-      effect: 4.0.6
+      '@effect/sql-pg': 4.0.7
+      effect: 4.0.7
     peerDependenciesMeta:
       '@effect/sql-pg':
         optional: true
 
-  '@shivaedev/test-sql@0.21.0':
-    resolution: {integrity: sha512-3mD5o/VZEYq4vW+xsYc4KNQdkaifF0YVKL9CJS6/IvgDRGcKf8JSe19LzuIQ/x2B07k3Gr0352Ttvg4CzLM+6Q==}
+  '@shivaedev/test-sql@0.21.1':
+    resolution: {integrity: sha512-aZiDiHw8770Wrjo1zYyvcvZR8y57I8bD458tIt7G+0tXDEEdM0LWtJyaWhNTLKsoMNUNeEgH1eMF805kyiW9cQ==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@effect/sql-pg': 4.0.6
-      effect: 4.0.6
+      '@effect/sql-pg': 4.0.7
+      effect: 4.0.7
 
   '@shivaedev/types@0.4.0':
     resolution: {integrity: sha512-+PFlKwKyxJ++v5q7sIOn+Z1UtG0SomUYNJgjKDQW6PZxZstZV1Fb4ZlJXyxFnt3SZ8o2RA25EYwVAeW/WcUc5g==}
     engines: {node: '>=24'}
 
-  '@shivaedev/work-board@0.47.1':
-    resolution: {integrity: sha512-kS94/XB7hMtbpA5v0jxYA1v830v/ij84ToE4e2doSmHq+HyRbNfgJZEPOV7TfC68Yr7BINdoQJoF1PgSALBkVA==}
+  '@shivaedev/work-board@0.47.2':
+    resolution: {integrity: sha512-4HnOSVtmfSoovGMnOACnjE+kOmlAKZwkjS0doQwQCMfvxznq6JpImTZCprP6/oswv4w8zJtgKgCNaEs2P+2RAw==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
-      '@effect/platform-node': 4.0.6
-      '@effect/platform-node-shared': 4.0.6
-      effect: 4.0.6
+      '@effect/platform-node': 4.0.7
+      '@effect/platform-node-shared': 4.0.7
+      effect: 4.0.7
 
-  '@shivaedev/work-fleet@0.35.1':
-    resolution: {integrity: sha512-P3jH0GFenUe45lzMyy8e90U2VgnO5iEgpxylLAX4c7V6CXgrIkT47X5hFYgdvfSHeFITqQgCAh1PKgS/SJUq0g==}
+  '@shivaedev/work-fleet@0.35.2':
+    resolution: {integrity: sha512-RLg4t3y26rlWvFJPh8K36aXAHdxMHpf8FE3Sy8oZDF7prOMvS5zUAZJACAW/S4yqcH092vBt+hyBpKctPpVfdw==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
-      '@effect/platform-node': 4.0.6
-      '@effect/platform-node-shared': 4.0.6
-      effect: 4.0.6
+      '@effect/platform-node': 4.0.7
+      '@effect/platform-node-shared': 4.0.7
+      effect: 4.0.7
 
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
@@ -4717,8 +4717,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  effect@4.0.6:
-    resolution: {integrity: sha512-Tc3mkzuLR6t6P9dhLt0D2GrxYtmU5td4XEJEiXCmILz53IRIfJyHsKZWjTA3xEjiwpNTtXBgI4iqYPxMztBDrw==}
+  effect@4.0.7:
+    resolution: {integrity: sha512-47CiUzNAmeLr40pDT9vKMxxtB8o3bdpZEKU4IUM3fVxsK2GYzPsV7fQoZP0I41A308BZd71nMxqJ0KRh3s9u2g==}
 
   elkjs@0.9.3:
     resolution: {integrity: sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==}
@@ -6788,42 +6788,42 @@ snapshots:
       get-east-asian-width: 1.6.0
       marked: 18.0.5
 
-  '@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)':
+  '@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
       react: 19.3.1
       scheduler: 0.28.0
 
-  '@effect/platform-node-shared@4.0.6(effect@4.0.6)':
+  '@effect/platform-node-shared@4.0.7(effect@4.0.7)':
     dependencies:
       '@types/ws': 8.18.2
-      effect: 4.0.6
+      effect: 4.0.7
       ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))':
+  '@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))':
     dependencies:
-      '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
-      effect: 4.0.6
+      '@effect/platform-node-shared': 4.0.7(effect@4.0.7)
+      effect: 4.0.7
       redis: 6.2.1(@opentelemetry/api@1.9.1)
       undici: 8.12.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/sql-pg@4.0.6(effect@4.0.6)':
+  '@effect/sql-pg@4.0.7(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@effect/sql-sqlite-node@4.0.6(effect@4.0.6)':
+  '@effect/sql-sqlite-node@4.0.7(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5)':
+  '@effect/vitest@4.0.7(effect@4.0.7)(vitest@5.0.5)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
       vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   '@emnapi/core@1.11.2':
@@ -7466,23 +7466,23 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.0.2': {}
 
-  '@shivaedev/access@0.5.0(effect@4.0.6)':
+  '@shivaedev/access@0.5.1(effect@4.0.7)':
     dependencies:
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      effect: 4.0.7
 
-  '@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6)':
+  '@shivaedev/admin@0.20.2(3c02f9ccb81226509719761412637fc8)':
     dependencies:
-      '@shivaedev/access': 0.5.0(effect@4.0.6)
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/jobs': 0.35.1(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))
-      effect: 4.0.6
+      '@shivaedev/access': 0.5.1(effect@4.0.7)
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/identity': 0.26.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.7(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      '@shivaedev/jobs': 0.36.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))
+      effect: 4.0.7
     optionalDependencies:
-      '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
-      '@shivaedev/react': 0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
+      '@effect/atom-react': 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
+      '@shivaedev/react': 0.41.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.7(effect@4.0.7))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)(react@19.3.1)
       react: 19.3.1
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
@@ -7491,100 +7491,100 @@ snapshots:
       - pg-boss
     optional: true
 
-  '@shivaedev/changes@0.10.0(effect@4.0.6)':
+  '@shivaedev/changes@0.10.1(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/contract@0.36.0(effect@4.0.6)':
+  '@shivaedev/contract@0.36.1(effect@4.0.7)':
     dependencies:
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
       '@shivaedev/types': 0.4.0
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/errors@0.9.0(effect@4.0.6)':
+  '@shivaedev/errors@0.9.1(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/form@0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)':
+  '@shivaedev/form@0.17.1(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.7)(react@19.3.1)':
     dependencies:
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
-      '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
+      '@effect/atom-react': 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
       react: 19.3.1
 
-  '@shivaedev/github@0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)':
+  '@shivaedev/github@0.12.1(@zip.js/zip.js@2.24.0)(effect@4.0.7)':
     dependencies:
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/http': 0.6.0(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/http': 0.6.1(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
       '@zip.js/zip.js': 2.24.0
 
-  '@shivaedev/http@0.6.0(effect@4.0.6)':
+  '@shivaedev/http@0.6.1(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/identity@0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
+  '@shivaedev/identity@0.26.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.7(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)':
     dependencies:
-      '@shivaedev/access': 0.5.0(effect@4.0.6)
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/rate-limit': 0.5.0(@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/access': 0.5.1(effect@4.0.7)
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/rate-limit': 0.5.1(@shivaedev/sql@0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7))(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
       '@better-auth/oauth-provider': 1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5))
       better-auth: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
     transitivePeerDependencies:
       - '@effect/sql-pg'
 
-  '@shivaedev/jobs@0.35.1(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))':
+  '@shivaedev/jobs@0.36.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))':
     dependencies:
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
+      effect: 4.0.7
       pg-boss: 12.38.0(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@effect/sql-pg'
     optional: true
 
-  '@shivaedev/local-postgres@0.14.0(effect@4.0.6)':
+  '@shivaedev/local-postgres@0.14.1(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/pr-watch@0.10.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)':
+  '@shivaedev/pr-watch@0.10.1(@effect/platform-node-shared@4.0.7(effect@4.0.7))(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.7)':
     dependencies:
-      '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
-      '@shivaedev/github': 0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/http': 0.6.0(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      effect: 4.0.6
+      '@effect/platform-node': 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared': 4.0.7(effect@4.0.7)
+      '@shivaedev/github': 0.12.1(@zip.js/zip.js@2.24.0)(effect@4.0.7)
+      '@shivaedev/http': 0.6.1(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      effect: 4.0.7
     transitivePeerDependencies:
       - '@zip.js/zip.js'
 
-  '@shivaedev/rate-limit@0.5.0(@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/rate-limit@0.5.1(@shivaedev/sql@0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7))(effect@4.0.7)':
     dependencies:
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
 
-  '@shivaedev/react@0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)':
+  '@shivaedev/react@0.41.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.7(effect@4.0.7))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)(react@19.3.1)':
     dependencies:
-      '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
-      '@shivaedev/access': 0.5.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/form': 0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
-      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      effect: 4.0.6
+      '@effect/atom-react': 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
+      '@shivaedev/access': 0.5.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/form': 0.17.1(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.7)(react@19.3.1)
+      '@shivaedev/identity': 0.26.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.7(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      effect: 4.0.7
       react: 19.3.1
     optionalDependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -7593,73 +7593,73 @@ snapshots:
       - '@effect/sql-pg'
       - better-auth
 
-  '@shivaedev/reconciler@0.2.0(effect@4.0.6)':
+  '@shivaedev/reconciler@0.2.1(effect@4.0.7)':
     dependencies:
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      effect: 4.0.7
 
-  '@shivaedev/server@0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
+  '@shivaedev/server@0.24.2(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.7(effect@4.0.7))(@effect/vitest@4.0.7(effect@4.0.7)(vitest@5.0.5))(@shivaedev/admin@0.20.2(3c02f9ccb81226509719761412637fc8))(@shivaedev/test-sql@0.21.1(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)':
     dependencies:
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/http': 0.6.0(effect@4.0.6)
-      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/local-postgres': 0.14.0(effect@4.0.6)
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/http': 0.6.1(effect@4.0.7)
+      '@shivaedev/identity': 0.26.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.7(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      '@shivaedev/local-postgres': 0.14.1(effect@4.0.7)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
-      '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/sql-pg': 4.0.6(effect@4.0.6)
-      '@effect/vitest': 4.0.6(effect@4.0.6)(vitest@5.0.5)
-      '@shivaedev/admin': 0.20.1(ce8d7024d423df57bce89132f08ad2e6)
-      '@shivaedev/test-sql': 0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@effect/platform-node': 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg': 4.0.7(effect@4.0.7)
+      '@effect/vitest': 4.0.7(effect@4.0.7)(vitest@5.0.5)
+      '@shivaedev/admin': 0.20.2(3c02f9ccb81226509719761412637fc8)
+      '@shivaedev/test-sql': 0.21.1(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
       better-auth: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
 
-  '@shivaedev/service@0.7.0(effect@4.0.6)':
+  '@shivaedev/service@0.7.1(effect@4.0.7)':
     dependencies:
-      effect: 4.0.6
+      effect: 4.0.7
 
-  '@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/sql@0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)':
     dependencies:
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      effect: 4.0.6
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      effect: 4.0.7
     optionalDependencies:
-      '@effect/sql-pg': 4.0.6(effect@4.0.6)
+      '@effect/sql-pg': 4.0.7(effect@4.0.7)
 
-  '@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/test-sql@0.21.1(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)':
     dependencies:
-      '@effect/sql-pg': 4.0.6(effect@4.0.6)
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      effect: 4.0.6
+      '@effect/sql-pg': 4.0.7(effect@4.0.7)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
+      effect: 4.0.7
     optional: true
 
   '@shivaedev/types@0.4.0': {}
 
-  '@shivaedev/work-board@0.47.1(d89bb510a2818019a5191e34e2b41f70)':
+  '@shivaedev/work-board@0.47.2(3668c6c8212b4639c5db2d8c40795236)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
-      '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/form': 0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
-      '@shivaedev/github': 0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/react': 0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
-      '@shivaedev/server': 0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
+      '@effect/atom-react': 4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0)
+      '@effect/platform-node': 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared': 4.0.7(effect@4.0.7)
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/form': 0.17.1(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.7)(react@19.3.1)
+      '@shivaedev/github': 0.12.1(@zip.js/zip.js@2.24.0)(effect@4.0.7)
+      '@shivaedev/identity': 0.26.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.7(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      '@shivaedev/react': 0.41.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.7(effect@4.0.7)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.7(effect@4.0.7))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)(react@19.3.1)
+      '@shivaedev/server': 0.24.2(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.7(effect@4.0.7))(@effect/vitest@4.0.7(effect@4.0.7)(vitest@5.0.5))(@shivaedev/admin@0.20.2(3c02f9ccb81226509719761412637fc8))(@shivaedev/test-sql@0.21.1(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/react-table': 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       class-variance-authority: 0.7.1
       cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       cn: 0.5.0
-      effect: 4.0.6
+      effect: 4.0.7
       lucide-react: 1.62.0(@types/react@19.3.0)(react@19.3.1)
       mdast-util-directive: 3.1.1(supports-color@7.2.0)
       mermaid: 12.2.0
@@ -7692,22 +7692,22 @@ snapshots:
       - scheduler
       - supports-color
 
-  '@shivaedev/work-fleet@0.35.1(433f78f3369851cb87fd4abcc019addf)':
+  '@shivaedev/work-fleet@0.35.2(157d5c9c4c438c2982ea112217af6a78)':
     dependencies:
-      '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
-      '@effect/sql-pg': 4.0.6(effect@4.0.6)
-      '@shivaedev/changes': 0.10.0(effect@4.0.6)
-      '@shivaedev/contract': 0.36.0(effect@4.0.6)
-      '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/github': 0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/pr-watch': 0.10.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/reconciler': 0.2.0(effect@4.0.6)
-      '@shivaedev/server': 0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      '@shivaedev/work-board': 0.47.1(d89bb510a2818019a5191e34e2b41f70)
-      effect: 4.0.6
+      '@effect/platform-node': 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared': 4.0.7(effect@4.0.7)
+      '@effect/sql-pg': 4.0.7(effect@4.0.7)
+      '@shivaedev/changes': 0.10.1(effect@4.0.7)
+      '@shivaedev/contract': 0.36.1(effect@4.0.7)
+      '@shivaedev/errors': 0.9.1(effect@4.0.7)
+      '@shivaedev/github': 0.12.1(@zip.js/zip.js@2.24.0)(effect@4.0.7)
+      '@shivaedev/pr-watch': 0.10.1(@effect/platform-node-shared@4.0.7(effect@4.0.7))(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.7)
+      '@shivaedev/reconciler': 0.2.1(effect@4.0.7)
+      '@shivaedev/server': 0.24.2(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.7(effect@4.0.7))(@effect/vitest@4.0.7(effect@4.0.7)(vitest@5.0.5))(@shivaedev/admin@0.20.2(3c02f9ccb81226509719761412637fc8))(@shivaedev/test-sql@0.21.1(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.7)
+      '@shivaedev/service': 0.7.1(effect@4.0.7)
+      '@shivaedev/sql': 0.39.0(@effect/sql-pg@4.0.7(effect@4.0.7))(effect@4.0.7)
+      '@shivaedev/work-board': 0.47.2(3668c6c8212b4639c5db2d8c40795236)
+      effect: 4.0.7
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
       - '@date-fns/tz'
@@ -8627,7 +8627,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect@4.0.6: {}
+  effect@4.0.7: {}
 
   elkjs@0.9.3: {}
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+- Require `@modelcontextprotocol/sdk` 1.32.0 as the optional peer. It fixes the SDK advisories GHSA-6qxp-vccf-f47h, GHSA-6prh-2h8m-c8cw, GHSA-22jm-h49p-29qw and GHSA-rvq5-wwqv-78pq; install 1.32.0 alongside the OpenCode agent.
+
 ## 0.3.0 - 2026-11-04
 
 ### Breaking

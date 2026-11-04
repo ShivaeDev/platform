@@ -14,10 +14,12 @@ export interface GraphqlOptions {
 
 export const decodeGraphqlData = Effect.fn("GitHub.decodeGraphqlData")(function* <TSchema extends Schema.Constraint>(body: unknown, schema: TSchema) {
 	const envelope = yield* Schema.decodeUnknownEffect(Envelope)(body);
-	if (envelope.errors !== undefined && envelope.errors.length > 0) {
-		return yield* new GitHubGraphqlError({ errors: envelope.errors });
+	const errors = envelope.errors ?? [];
+	if (errors.length > 0 && (envelope.data === undefined || envelope.data === null)) {
+		return yield* new GitHubGraphqlError({ errors });
 	}
-	return yield* Schema.decodeUnknownEffect(schema)(envelope.data);
+	const data = yield* Schema.decodeUnknownEffect(schema)(envelope.data);
+	return { data, errors };
 });
 
 export function graphqlRequests(apiUrl: string, client: Representations) {
