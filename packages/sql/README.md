@@ -776,6 +776,43 @@ const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) =>
 
 `advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact` mapper.
 
+### Bounded, resumable PostgreSQL backfills
+
+Use `backfillPostgres` from `@shivaedev/sql/backfillPostgres.ts` for data work that needs separate commits. Run it after schema migrations, outside any transaction. The application owns its checkpoint table, the ordered selection and the row transformation. All runners of the same backfill must use the same advisory lock key.
+
+```ts
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
+import { backfillPostgres } from "@shivaedev/sql/backfillPostgres.ts";
+import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
+
+const capitalizeNames = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* backfillPostgres({
+		batchSize: 100,
+		lock: "items:capitalize_names",
+		loadProgress: Effect.map(
+			sql<{ readonly id: number }>`select last_id as id from backfill_progress where name = 'capitalize_names'`,
+			([row]) => row?.id ?? 0,
+		),
+		select: (after, limit) => sql<{ readonly id: number }>`select id from items where id > ${after} order by id limit ${limit} for update`,
+		process: (row) =>
+			Effect.gen(function* () {
+				yield* sql`update items set name = upper(name) where id = ${row.id}`;
+				yield* invalidateOnCommit([`item:${row.id}`]);
+			}),
+		saveProgress: (last) => sql`insert into backfill_progress (name, last_id) values ('capitalize_names', ${last.id})
+			on conflict (name) do update set last_id = excluded.last_id`,
+	});
+});
+```
+
+Create `items` and `backfill_progress` in numbered migrations; the example's checkpoint table has a text primary key `name` and an integer `last_id`. Each batch takes a transaction-scoped advisory lock before `loadProgress`, passes the checkpoint and `batchSize` to `select`, processes rows sequentially and saves progress from the last selected row in that same `transact`. It processes at most `batchSize` rows even if selection returns more; use SQL `LIMIT` to bound reads and locks too. An empty selection finishes the invocation and its result counts rows processed during that invocation, including rows whose transformation made no change. Progress must advance over every selected row, including unchanged rows.
+
+Use repository writes or record raw writes with `invalidateOnCommit`; each committed batch announces its changes through the existing SQL channel. A failed or interrupted batch rolls back its rows, checkpoint and recorded changes while earlier commits remain. Call the helper again to reload the stored checkpoint and resume. A completed rerun processes zero rows. Callback failures and native SQL errors stay typed; invalid batch sizes fail with `SchemaError`, and an enclosing transaction fails with `BackfillInsideTransaction` before processing. `batchSize` must be a positive safe integer.
+
+The helper adds no ledger entries and does not change `migratePostgres`'s single transaction for pending numbered migrations. Keep checkpoint writes on the provided client and inside `saveProgress`. Choose a stable, uniquely ordered cursor that cannot skip remaining work. The application decides how concurrent inserts or edits relate to that cursor and owns any retry policy. Effects outside PostgreSQL cannot be rolled back with a batch.
+
 ### PostgreSQL migrations: one discovered folder
 
 Application migrations live in `src/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
@@ -867,6 +904,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
 - `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
 - `@shivaedev/sql/migrations.ts`: `migratePostgres(options)` — Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`.
+- `@shivaedev/sql/backfillPostgres.ts`: `backfillPostgres({ batchSize, lock, loadProgress, select, process, saveProgress })` — Bounded transactions with application-owned checkpoints; returns the rows processed in this invocation. `BackfillInsideTransaction` rejects an enclosing transaction.
 - `@shivaedev/sql/assertPostgresMigrations.ts`: `assertPostgresMigrations({ loader, table?, components? })` — Read-only readiness check of required migration IDs and names in the native ledger and registered schema components.
 - `@shivaedev/sql/pendingPostgresMigrations.ts`: `pendingPostgresMigrations({ loader, table?, components? })` — Pending ledger migrations as ID and name, and pending schema components as name and detail.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
