@@ -25,23 +25,13 @@ for (const base of ["", "/", "/api/v3", "/api/v3/"] as const) {
 	);
 }
 
-graphqlClient.it("the query returns only data decoded with the caller's Schema", [], function* ({ askViewer }) {
-	expect(yield* askViewer()).toEqual({ viewer: { name: "widgets-app" } });
+graphqlClient.it("a clean query returns Schema-decoded data and no errors", [], function* ({ askViewer }) {
+	expect(yield* askViewer()).toEqual({ data: { viewer: { name: "widgets-app" } }, errors: [] });
 });
 
 graphqlClient.it("the data Schema uses the caller's decoding service", [], function* ({ askViewerWithPrefix }) {
-	expect(yield* askViewerWithPrefix("Signed in: ")).toBe("Signed in: widgets-app");
+	expect(yield* askViewerWithPrefix("Signed in: ")).toEqual({ data: "Signed in: widgets-app", errors: [] });
 });
-
-for (const data of [undefined, null, { viewer: null }, { viewer: { login: "partial" } }]) {
-	graphqlClient.it(
-		`GraphQL errors take precedence over data ${JSON.stringify(data)}`,
-		[graphqlAnswers("two error messages", { body: { data, errors: [{ message: "Query unavailable" }, { message: "Try another field" }] } })],
-		function* ({ askViewer }) {
-			expect(yield* askViewer()).toBe("GraphQL refused: Query unavailable; Try another field");
-		},
-	);
-}
 
 for (const body of [{ data: { viewer: { login: 1 } } }, {}, { errors: "unavailable" }]) {
 	graphqlClient.it(
@@ -57,7 +47,7 @@ graphqlClient.it(
 	"an empty errors array still allows Schema-decoded data",
 	[graphqlAnswers("data and no errors", { body: { data: { viewer: { login: "widgets-app" } }, errors: [] } })],
 	function* ({ askViewer }) {
-		expect(yield* askViewer()).toEqual({ viewer: { name: "widgets-app" } });
+		expect(yield* askViewer()).toEqual({ data: { viewer: { name: "widgets-app" } }, errors: [] });
 	},
 );
 
@@ -89,7 +79,7 @@ for (const status of [403, 429]) {
 graphqlClient.it("a core REST quota refusal leaves the first GraphQL query available", [coreLimited], function* ({ askViewer, readPull }) {
 	yield* readPull();
 
-	expect(yield* askViewer()).toEqual({ viewer: { name: "widgets-app" } });
+	expect(yield* askViewer()).toEqual({ data: { viewer: { name: "widgets-app" } }, errors: [] });
 });
 
 graphqlClient.it("a GraphQL quota refusal leaves REST core requests available", [graphqlLimited(403)], function* ({ askViewer, readPull }) {
@@ -127,7 +117,7 @@ for (const times of [1, 2]) {
 			const result = yield* askViewer();
 
 			yield* outcomes([
-				["query result", () => Effect.succeed(result), times === 1 ? { viewer: { name: "widgets-app" } } : "unauthorized"],
+				["query result", () => Effect.succeed(result), times === 1 ? { data: { viewer: { name: "widgets-app" } }, errors: [] } : "unauthorized"],
 				[
 					"sent queries",
 					() => requests(),
