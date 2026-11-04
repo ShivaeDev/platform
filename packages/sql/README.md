@@ -386,7 +386,7 @@ const rows = yield* paymentsBySequence([]);
 
 ### Keyset pages over native SQL
 
-`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema:
+`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema. The helper builds native statement fragments without reading `SqlClient`; its service requirements come from your `read` callback:
 
 ```ts
 import { Effect, Schema } from "effect";

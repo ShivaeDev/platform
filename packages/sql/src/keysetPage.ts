@@ -1,17 +1,16 @@
 import { Effect, Option, Schema } from "effect";
-import { SqlClient } from "effect/sql";
-import type { Fragment } from "effect/sql/Statement";
+import * as Statement from "effect/sql/Statement";
 
 export interface KeysetOrder<TCursor> {
-	readonly column: string | Fragment;
+	readonly column: string | Statement.Fragment;
 	readonly direction: "asc" | "desc";
 	readonly value: (cursor: TCursor) => string | number | bigint | boolean;
 }
 
 export interface KeysetPageQuery {
 	readonly limit: number;
-	readonly orderBy: Fragment;
-	readonly seek: Fragment;
+	readonly orderBy: Statement.Fragment;
+	readonly seek: Statement.Fragment;
 }
 
 export interface KeysetPage<TRow, TCursor> {
@@ -28,25 +27,34 @@ export const keysetPage = Effect.fnUntraced(function* <TRow, TCursor, E, R>(opti
 	readonly tieBreaker: KeysetOrder<TCursor>;
 	readonly cursorFor: (row: TRow) => TCursor;
 	readonly read: (query: KeysetPageQuery) => Effect.Effect<readonly TRow[], E, R>;
-}): Effect.fn.Return<KeysetPage<TRow, TCursor>, E | Schema.SchemaError, R | SqlClient.SqlClient> {
+}): Effect.fn.Return<KeysetPage<TRow, TCursor>, E | Schema.SchemaError, R> {
 	const limit = yield* Schema.decodeUnknownEffect(PageSize)(options.limit);
-	const sql = yield* SqlClient.SqlClient;
-	const order = [...options.orderBy, options.tieBreaker];
-	const columns = order.map(({ column }) => (typeof column === "string" ? sql`${sql(column)}` : column));
+	const order = [...options.orderBy, options.tieBreaker].map((part) => ({
+		...part,
+		column: typeof part.column === "string" ? Statement.fragment([Statement.identifier(part.column)]) : part.column,
+	}));
 	const after = options.after;
 	const values = after === undefined ? undefined : order.map(({ value }) => value(after));
-	const seek =
+	const conditions =
 		values === undefined
-			? sql`true`
-			: sql.or(
-					order.map(({ direction }, index) =>
-						sql.and([
-							...columns.slice(0, index).map((column, previous) => sql`${column} = ${values[previous]}`),
-							direction === "asc" ? sql`${columns[index]} > ${values[index]}` : sql`${columns[index]} < ${values[index]}`,
-						]),
-					),
-				);
-	const orderBy = sql.csv(order.map(({ direction }, index) => sql`${columns[index]} ${sql.literal(direction === "asc" ? "asc" : "desc")}`));
+			? []
+			: order.map(({ column, direction }, index) => {
+					const prefix = order
+						.slice(0, index)
+						.map(({ column: previousColumn }, previous) =>
+							Statement.fragment([...previousColumn.segments, Statement.literal(" = "), Statement.parameter(values[previous])]),
+						);
+					const comparison = Statement.fragment([
+						...column.segments,
+						Statement.literal(direction === "asc" ? " > " : " < "),
+						Statement.parameter(values[index]),
+					]);
+					return Statement.and([...prefix, comparison]);
+				});
+	const seek = values === undefined ? Statement.fragment([Statement.literal("true")]) : Statement.or(conditions);
+	const orderBy = Statement.csv(
+		order.map(({ column, direction }) => Statement.fragment([...column.segments, Statement.literal(direction === "asc" ? " asc" : " desc")])),
+	);
 	const found = yield* options.read({ limit: limit + 1, orderBy, seek });
 	const rows = found.slice(0, limit);
 	const last = rows.at(-1);

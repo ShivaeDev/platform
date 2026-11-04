@@ -103,6 +103,9 @@ export function storedTogether<const TPayload extends StoryPayload>(
 	return database.trait("database", `pg-boss already stores ${rows.map(({ as }) => as).join(", ")} in ${queue.name}`, function* (engine) {
 		const client = yield* admin(engine);
 		const ids = yield* Effect.promise(async () => {
+			for (const deadLetter of new Set(rows.flatMap((row) => (row.deadLetter === undefined ? [] : [row.deadLetter])))) {
+				await client.createQueue(deadLetter);
+			}
 			await client.createQueue(queue.name, queue.queueOptions);
 			return client.insert(
 				queue.name,
