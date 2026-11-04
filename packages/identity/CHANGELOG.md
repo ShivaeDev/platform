@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 - 2026-11-04
+
+### Added
+
+- Identity provides `selfSubject`, `accountSubject` and a branded `Subject` service. Services can read the session user independently of the account being acted on; delegated accounts require the permission's `any` grant.
+
 ## 0.22.1 - 2026-11-03
 
 ### Changed

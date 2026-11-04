@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-11-04
+
+### Fixed
+
+- Name the ordinary method and every missing service type in undeclared service requirement diagnostics, excluding declared dependencies and caller scope.
+
 ## 0.6.1 - 2026-11-02
 
 ### Fixed
