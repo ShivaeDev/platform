@@ -17,7 +17,7 @@ const itemValues = Effect.gen(function* () {
 
 export const vitestConsumer = storyKit({
 	around: withTestTransaction,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
 		const harness = yield* itemValues;

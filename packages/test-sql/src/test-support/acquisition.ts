@@ -1,6 +1,7 @@
 import { Cause, Clock, Effect, Exit, Fiber, Option, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { makePostgresTestLayer } from "#server/postgres.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
@@ -21,13 +22,16 @@ const create = Effect.gen(function* () {
 	});
 	return {
 		interrupt: () =>
-			Effect.suspend(() => {
+			Effect.gen(function* () {
 				if (caller === undefined) {
-					return Effect.die(new Error("Start a caller first"));
+					return yield* Effect.die(new Error("Start a caller first"));
 				}
-				return Fiber.interrupt(caller).pipe(
+				const interrupted = yield* Fiber.interrupt(caller).pipe(
 					Effect.andThen(Fiber.await(caller)),
 					Effect.timeoutOption("500 millis"),
+					Effect.forkScoped({ startImmediately: true }),
+				);
+				return yield* passes("500 millis", Fiber.join(interrupted)).pipe(
 					Effect.map(Option.match({ onNone: () => "still waiting", onSome: outcomeOf })),
 				);
 			}),
@@ -40,19 +44,17 @@ const create = Effect.gen(function* () {
 				if (caller === undefined) {
 					return yield* Effect.die(new Error("Start a caller first"));
 				}
-				const exit = yield* Fiber.await(caller).pipe(Effect.timeoutOption("750 millis"));
-				const outcome = Option.match(exit, {
-					onNone: () => "still waiting",
-					onSome: (ended) =>
-						Exit.isFailure(ended) && Option.exists(Cause.findErrorOption(ended.cause), Cause.isTimeoutError) ? "timed out" : outcomeOf(ended),
-				});
+				yield* untilTimer("100 millis");
+				const exit = yield* passes("100 millis", Fiber.await(caller));
+				const outcome =
+					Exit.isFailure(exit) && Option.exists(Cause.findErrorOption(exit.cause), Cause.isTimeoutError) ? "timed out" : outcomeOf(exit);
 				return { elapsed: (yield* Clock.currentTimeMillis) - started, outcome };
 			}),
 	};
 });
 
 export const acquisition = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	layer: makePostgresTestLayer({ ...setup().options, maxConnections: 1 }),
 	name: "occupied PostgreSQL test pool",
@@ -76,7 +78,7 @@ export const acquisition = storyKit({
 			return engine.startTransaction();
 		},
 		waitForCaller: () => {
-			story.tell("the caller is given up to 750 milliseconds to finish while the connection stays reserved");
+			story.tell("the caller's 100 millisecond deadline passes while the connection stays reserved");
 			return engine.wait();
 		},
 	}),

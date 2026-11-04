@@ -2,11 +2,14 @@ import { Clock, Context, Deferred, Effect, Exit, Fiber, Redacted, Scope, type Tr
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { PostgresTestDatabase } from "#server/database.ts";
+import { CleanupClock } from "#server/internal/clocks.ts";
 import { type CleanupEngine, cleanup } from "./cleanup.ts";
 import { cleanupRole, dropOnStoryEnd } from "./cleanupVerbs.ts";
 import { outcomeOf } from "./outcome.ts";
 
-export const runStarted = cleanup.trait("run", "the run has started", (state) => state.engine.lease());
+export const runStarted = cleanup.trait("run", "the run has started", (state) =>
+	state.engine.lease().pipe(Effect.provideService(CleanupClock, state.cleanupClock)),
+);
 
 function openClone(state: CleanupEngine) {
 	return state.engine.run(
