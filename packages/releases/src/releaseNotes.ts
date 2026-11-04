@@ -5,7 +5,7 @@ import { parseChangeset } from "#parser.ts";
 import { renderEntries } from "#sections.ts";
 
 export const collectMigrationNotes = Effect.fn("Changesets.collectMigrationNotes")(function* (plan: ReleasePlan) {
-	const changesets = yield* Effect.forEach(plan.changesets, parseChangeset);
+	const changesets = yield* Effect.forEach(plan.changesets, (source) => Effect.fromResult(parseChangeset(source)));
 	const breaking = plan.releases.flatMap((release) => {
 		const entries = changesets.flatMap((changeset) =>
 			changeset.entries.filter((entry) => entry.package === release.name && entry.section === "Breaking"),

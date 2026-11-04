@@ -63,8 +63,8 @@ import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/lo
 const setup = Effect.gen(function* () {
 	const development = `${LOCAL_SERVER}/example_dev`;
 	const tests = `${LOCAL_SERVER}/example_test`;
-	yield* assertLocalDatabase(development, ["example_dev"]);
-	yield* assertLocalDatabase(tests, ["example_test"]);
+	yield* Effect.fromResult(assertLocalDatabase(development, ["example_dev"]));
+	yield* Effect.fromResult(assertLocalDatabase(tests, ["example_test"]));
 	yield* localPostgres({}).prepareDatabases([development, tests]);
 });
 ```
@@ -102,7 +102,7 @@ Import service preparation from `@shivaedev/local-postgres/server/localPostgres.
 | Export                                                                        | Purpose                                                                                                                                                                                                              |
 | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LOCAL_SERVER`                                                                | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name.                                                                                                                 |
-| `assertLocalDatabase(value: string, names: readonly string[])`                | Return an Effect validating a local database URL against application-owned allowed names.                                                                                                                            |
+| `assertLocalDatabase(value: string, names: readonly string[])`                | Return a synchronous Effect `Result` validating a local database URL against application-owned allowed names.                                                                                                        |
 | `localPostgres(environment: DockerEnvironment, readiness?: ReadinessOptions)` | Create the setup functions using the Docker settings to validate. After starting the container, `startPostgres` checks readiness `attempts` times (default 30), waiting `delayMillis` between checks (default 1000). |
 | `prepareDatabases(values: readonly string[])`                                 | Return an Effect preparing the service and creating absent databases.                                                                                                                                                |
 | `startPostgres(connection?: string)`                                          | Return an Effect preparing the service; the default connection is `LOCAL_SERVER`.                                                                                                                                    |
