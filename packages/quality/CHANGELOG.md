@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.58.0 - 2026-11-04
+
+### Added
+
+- Report native `sql.withTransaction` around repository writes or change announcements with `effect/sql-transact`, directing callers to begin the outer transaction with `transact(effect, { onSqlError })` before the unsupported composition runs. Native read-only and raw SQL transactions remain supported.
+
+### Changed
+
+- Quality fixtures use their own process lock for in-process commands, executable commands and git-hook checks.
+
+### Breaking
+
+- `runQuality` from `testing/adapters/cli.ts` returns an Effect that keeps the caller's clock and lifecycle. Replace `await runQuality(...)` and `Effect.promise(() => runQuality(...))` with `yield* runQuality(...)` inside an Effect. Quality story kits use the controlled test clock.
+
 ## 0.57.2 - 2026-11-03
 
 ### Fixed
