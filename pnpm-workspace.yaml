@@ -74,7 +74,7 @@ catalog:
   "@better-auth/oauth-provider": 1.7.14
   better-auth: 1.7.14
   pg-boss: 12.38.0
-  satteri: 0.11.1
+  satteri: 0.11.5
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
