@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import type { PullRequestComment } from "#stickyComments.ts";
+import type { PullRequestComment } from "#stickyCommentSchemas.ts";
 import { github } from "./github.ts";
 import type { CheckOnGitHub } from "./pullRequestWrites.ts";
 

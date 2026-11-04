@@ -1,6 +1,9 @@
 import { Context, Effect, Schema, SchemaGetter, Stream } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { type GitHub, list, listBounded, listPages } from "#GitHub.ts";
+import type { GitHub } from "#GitHub.ts";
+import { list } from "#list.ts";
+import { listBounded } from "#listBounded.ts";
+import { listPages } from "#listPages.ts";
 import type { ListOptions } from "#pagedLists.ts";
 import { answered } from "./outcome.ts";
 

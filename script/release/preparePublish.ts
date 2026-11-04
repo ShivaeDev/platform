@@ -1,7 +1,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Console, Effect, FileSystem, Path, Schema } from "effect";
-import { read } from "@shivaedev/github/GitHub.ts";
+import { read } from "@shivaedev/github/read.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { git } from "@shivaedev/releases/git.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
