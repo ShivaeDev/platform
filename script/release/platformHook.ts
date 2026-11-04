@@ -6,10 +6,6 @@ import { alignStarterCatalog } from "./starterCatalog.ts";
 import { alignStarterPnpm } from "./starterPnpm.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
-const constants: Readonly<Record<string, string>> = {
-	"@shivaedev/work-board": "packages/work-board/src/server/packageInfo.ts",
-	"@shivaedev/work-fleet": "packages/work-fleet/src/packageInfo.ts",
-};
 
 export const releasePlatformHook: ReleaseHook = Effect.fn("Release.releasePlatformHook")(function* ({ root, plan }) {
 	const fs = yield* FileSystem.FileSystem;
@@ -27,16 +23,6 @@ export const releasePlatformHook: ReleaseHook = Effect.fn("Release.releasePlatfo
 	for (const release of plan.releases) {
 		if (Object.hasOwn(updated, release.name)) {
 			updated[release.name] = release.to;
-		}
-		const constant = constants[release.name];
-		if (constant !== undefined) {
-			const path = join(root, constant);
-			const text = yield* fs.readFileString(path);
-			const expected = `export const VERSION = "${release.from}";`;
-			if (!text.includes(expected)) {
-				return yield* new ChangesetError({ message: `${constant}: restore VERSION to ${release.from} before applying the release hook.` });
-			}
-			yield* fs.writeFileString(path, text.replace(expected, `export const VERSION = "${release.to}";`));
 		}
 	}
 	yield* fs.writeFileString(pinsPath, `${JSON.stringify(updated, null, "\t")}\n`);

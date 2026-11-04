@@ -14,5 +14,3 @@ coverage/
 .claude/worktrees/
 .ci/
 .amp/portals/*
-
-packages/work-board/assets/

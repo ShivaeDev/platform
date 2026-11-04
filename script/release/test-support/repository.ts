@@ -29,8 +29,6 @@ const create = Effect.fn("ReleaseRepository.create")(function* () {
 		yield* write(root, `${directory}/package.json`, JSON.stringify(manifest));
 		yield* write(root, `${directory}/CHANGELOG.md`, `# Changelog\n\n## ${manifest.version}\n\n### Fixed\n\n- Released behavior.\n`);
 	}
-	yield* write(root, "packages/work-board/src/server/packageInfo.ts", 'export const VERSION = "0.4.0";\n');
-	yield* write(root, "packages/work-fleet/src/packageInfo.ts", 'export const VERSION = "0.3.0";\n');
 	yield* write(
 		root,
 		"pnpm-workspace.yaml",

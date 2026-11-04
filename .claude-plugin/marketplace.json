@@ -7,7 +7,7 @@
 			"description": "The Work Board inside Claude Code: what needs you, what is in flight, and goal progress",
 			"name": "workboard",
 			"source": {
-				"command": "checkout=$(mktemp -d) && trap 'rm -rf \"$checkout\"' EXIT && git clone --depth=1 https://github.com/ShivaeDev/platform.git \"$checkout\" >&2 && \"$checkout/packages/work-board-plugin/script/marketplace\"",
+				"command": "checkout=$(mktemp -d) && trap 'rm -rf \"$checkout\"' EXIT && git clone --depth=1 https://github.com/ShivaeDev/work-apps.git \"$checkout\" >&2 && \"$checkout/packages/work-board-plugin/script/marketplace\"",
 				"source": "command",
 				"timeout": 600
 			}

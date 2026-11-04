@@ -8,16 +8,10 @@ const Consumers = Schema.Struct({ timings: Schema.Array(Schema.Struct({ name: Sc
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
 platform.it(
-	"an applied repository release builds and passes packed consumers with aligned pins and binaries",
+	"an applied repository release builds and passes packed consumers with aligned pins",
 	[pending],
 	function* ({ run, read }) {
 		const pins = Schema.decodeUnknownSync(Versions)(yield* read("examples/starter/published-versions.json"));
-		const paths = {
-			"@shivaedev/work-board": "packages/work-board/src/server/packageInfo.ts",
-			"@shivaedev/work-fleet": "packages/work-fleet/src/packageInfo.ts",
-		};
-		const board = yield* read(paths["@shivaedev/work-board"]);
-		const fleet = yield* read(paths["@shivaedev/work-fleet"]);
 		const planned = yield* run("releases", "plan", "--json");
 		expect(planned.status, planned.stderr).toBe(0);
 		const plan = Schema.decodeUnknownSync(Schema.fromJsonString(ReleasePlan))(planned.stdout);
@@ -29,14 +23,6 @@ platform.it(
 			expect(updatedPins[name]).toBe(release?.to ?? version);
 		}
 		expect(updatedPins["@shivaedev/platform"]).not.toBe(pins["@shivaedev/platform"]);
-		for (const [name, path] of Object.entries(paths)) {
-			const release = plan.releases.find((entry) => entry.name === name);
-			if (release === undefined) {
-				throw new Error(`The release plan must include ${name}.`);
-			}
-			const before = name === "@shivaedev/work-board" ? board : fleet;
-			expect(yield* read(path)).toBe(before.replace(`export const VERSION = "${release.from}";`, `export const VERSION = "${release.to}";`));
-		}
 		const checked = yield* run("changelog:check");
 		expect(checked.status, checked.stderr).toBe(0);
 		const built = yield* run("build");
