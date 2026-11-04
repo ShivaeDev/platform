@@ -107,7 +107,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 #### Connections with several modules
 
-Declare all the connection's bound APIs with contract's `composeBindings`. The session boundary mounts each declared binding and applies its `liveCoalesceWindow` to all of them. The client can keep its application modules nested:
+The session boundary finds bound APIs through nested objects and arrays at any depth, including `client.api.notes`, and applies its `liveCoalesceWindow` to them. Shared objects and cycles do not mount a binding twice. Use contract's `composeBindings` to select an explicit list instead of discovering the bindings in that object. The client can keep its application modules nested:
 
 ```ts
 import { composeBindings } from "@shivaedev/contract/composeBindings.ts";

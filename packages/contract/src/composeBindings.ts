@@ -10,18 +10,31 @@ export function composeBindings<TClient extends object>(client: TClient, binding
 	return { ...client, [ComposedBindings]: bindings };
 }
 
+function isLiveBound(client: object): client is LiveBound {
+	return LiveConnection in client;
+}
+
 function isComposition(client: object): client is BindingComposition {
 	return ComposedBindings in client;
 }
 
 export function liveBindings(client: unknown): readonly LiveBound[] {
-	if (typeof client !== "object" || client === null) {
-		return [];
+	const pending = [client];
+	const visited = new Set<object>();
+	const bindings: LiveBound[] = [];
+	for (const value of pending) {
+		if (typeof value !== "object" || value === null || visited.has(value)) {
+			continue;
+		}
+		visited.add(value);
+		if (isComposition(value)) {
+			pending.push(...value[ComposedBindings]);
+		} else {
+			if (isLiveBound(value)) {
+				bindings.push(value);
+			}
+			pending.push(...Object.values(value));
+		}
 	}
-	if (isComposition(client)) {
-		return client[ComposedBindings];
-	}
-	return [client, ...Object.values(client)].filter(
-		(value): value is LiveBound => typeof value === "object" && value !== null && LiveConnection in value,
-	);
+	return bindings;
 }
