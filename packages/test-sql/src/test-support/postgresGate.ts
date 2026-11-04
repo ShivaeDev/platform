@@ -16,7 +16,7 @@ export const postgresGate = storyKit({
 				const result = spawnSync(
 					process.execPath,
 					[
-						"--conditions=source",
+						"--conditions=@shivaedev/source",
 						"--input-type=module",
 						"--eval",
 						`import { postgresTestUrl } from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify(postgresTestUrl("PLATFORM_GATE_TEST_DATABASE_URL")));`,

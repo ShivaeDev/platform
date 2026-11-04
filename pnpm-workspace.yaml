@@ -2,7 +2,7 @@ packages:
   - packages/*
   - examples/*
 
-nodeOptions: --conditions=source
+nodeOptions: --conditions=@shivaedev/source
 
 # Applications depend on @shivaedev/platform alone; hoisting links the pieces it brings so they resolve by their own names.
 publicHoistPattern: [ "@shivaedev/*" ]

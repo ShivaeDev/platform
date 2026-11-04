@@ -64,7 +64,7 @@ export async function runStories({
 			watch: false,
 			...(testNamePattern === undefined ? {} : { testNamePattern }),
 		},
-		{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
+		{ resolve: { conditions: ["@shivaedev/source"] }, ssr: { resolve: { conditions: ["@shivaedev/source"] } } },
 		{ stderr, stdout: new PassThrough() },
 	);
 	try {

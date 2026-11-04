@@ -5,7 +5,7 @@ export function startHost(port = 0, beforeStart = Effect.void) {
 	return hostProcess({
 		args: [String(port)],
 		beforeStart,
-		execArgv: ["--conditions=source"],
+		execArgv: ["--conditions=@shivaedev/source"],
 		module: new URL("./process.ts", import.meta.url),
 	}).pipe(Effect.map((host) => ({ ...host, port: Number(new URL(host.url).port) })));
 }

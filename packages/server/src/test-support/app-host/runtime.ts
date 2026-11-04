@@ -52,7 +52,7 @@ export function runtimeVerbs(state: HostState, tell: (line: string) => void) {
 			return io(async () => {
 				const { stdout } = await promisify(execFile)(
 					process.execPath,
-					["--conditions=source", fileURLToPath(import.meta.resolve("#test/runtimeProduction.ts"))],
+					["--conditions=@shivaedev/source", fileURLToPath(import.meta.resolve("#test/runtimeProduction.ts"))],
 					{ env: { "NODE_ENV": "production" } },
 				);
 				return stdout.trim();

@@ -10,7 +10,7 @@ export const boardCommand = Effect.fn("Story.boardCommand")(function* (engine: B
 	const child = spawn(
 		process.execPath,
 		[
-			"--conditions=source",
+			"--conditions=@shivaedev/source",
 			engine.cliEntry ?? fileURLToPath(new URL("../../dist/server/cli.js", import.meta.url)),
 			engine.notes.root,
 			"--port",

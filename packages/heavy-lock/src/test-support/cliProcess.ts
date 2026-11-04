@@ -28,7 +28,7 @@ export const commands = {
 	exitsWith: (code: number) => shell(`exit ${code}`),
 	holdsUntilReleased: shell("read line"),
 	killsItselfWith: (signal: NodeJS.Signals) => shell(`kill -${signal.slice(3)} $$`),
-	nestedRunOf: (command: CommandLine): CommandLine => [process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", ...command],
+	nestedRunOf: (command: CommandLine): CommandLine => [process.execPath, "--conditions=@shivaedev/source", HEAVY_LOCK_CLI, "--", ...command],
 	printsToStderr: (line: string) => shell(`echo '${line}' >&2`),
 	reportsArguments: (...args: readonly string[]): CommandLine => [...shell('printf "%s\\n" "$@"'), "check", ...args],
 	reportsHolderId: shell(
@@ -79,7 +79,7 @@ function commandNoLongerReads(): undefined {
 }
 
 export function startCli(args: readonly string[], env: Record<string, string>, cwd?: string): CliRun {
-	const child = spawn(process.execPath, ["--conditions=source", HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: "pipe" });
+	const child = spawn(process.execPath, ["--conditions=@shivaedev/source", HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: "pipe" });
 	let status: number | null | undefined;
 	let stdout = "";
 	let stderr = "";

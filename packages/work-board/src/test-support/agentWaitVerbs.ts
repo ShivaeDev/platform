@@ -155,7 +155,7 @@ export function agentWaitVerbs(engine: BoardEngine, tell: (line: string) => void
 		cliWaits: () => {
 			const question = registeredQuestion(engine);
 			tell(`the agent runs the bundled work-board wait ${question.id}`);
-			const args = ["--conditions=source", "src/server/cli.ts", "wait", question.id, "--port", String(served(engine).board.port)];
+			const args = ["--conditions=@shivaedev/source", "src/server/cli.ts", "wait", question.id, "--port", String(served(engine).board.port)];
 			return Effect.promise(() =>
 				execute(process.execPath, args, { cwd: new URL("../../", import.meta.url), timeout: 10_000 }).then(
 					({ stdout, stderr }) => ({ exitCode: 0, printed: stdout === "" ? "nothing" : replyOf(JSON.parse(stdout)), told: stderr.trim() }),

@@ -40,7 +40,7 @@ export const pluginBuilder = Effect.fn("FleetSupervisor.pluginBuilder")(function
 				Effect.gen(function* () {
 					const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 					const child = yield* spawner.spawn(
-						ChildProcess.make(process.execPath, ["--conditions=source", join(root, "script/build-client.ts")], {
+						ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", join(root, "script/build-client.ts")], {
 							cwd: root,
 							stderr: "pipe",
 							stdin: "ignore",

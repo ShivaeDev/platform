@@ -101,7 +101,7 @@ export function workspaceReads(engine: BoardEngine) {
 		return readFileSync(join(engine.notes.root, file), "utf8");
 	}
 	function migrate() {
-		return execFileSync(process.execPath, ["--conditions=source", CLI, "migrate", engine.notes.root], { encoding: "utf8" });
+		return execFileSync(process.execPath, ["--conditions=@shivaedev/source", CLI, "migrate", engine.notes.root], { encoding: "utf8" });
 	}
 	function inbox() {
 		return onDisk((client) => client("work-board.inbox", undefined));

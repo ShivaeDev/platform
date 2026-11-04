@@ -75,7 +75,7 @@ export const runProgram = Effect.fn("VitestRerunSuite.runProgram")(function* (su
 
 export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
-	const child = spawn(process.execPath, ["--conditions=source", CLI, "--output-dir", REPORTS, ...args], {
+	const child = spawn(process.execPath, ["--conditions=@shivaedev/source", CLI, "--output-dir", REPORTS, ...args], {
 		cwd: suite.directory,
 		env: { "GITHUB_STEP_SUMMARY": summaryPath(suite) },
 		stdio: ["ignore", "pipe", "pipe"],

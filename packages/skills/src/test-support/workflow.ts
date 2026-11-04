@@ -55,7 +55,10 @@ export const checkOutPullRequest = Effect.fn("SkillsWorkflow.checkOutPullRequest
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const remote = yield* fs.makeTempDirectoryScoped({ prefix: "skills-remote-" });
-	yield* writeFile("node_modules/.bin/shivaedev-skills", `#!/bin/sh\nexec "${process.execPath}" --conditions=source "${CLI}" "$@"\n`)(repo);
+	yield* writeFile(
+		"node_modules/.bin/shivaedev-skills",
+		`#!/bin/sh\nexec "${process.execPath}" --conditions=@shivaedev/source "${CLI}" "$@"\n`,
+	)(repo);
 	yield* fs.chmod(path.join(repo, "node_modules/.bin/shivaedev-skills"), 0o755);
 	yield* writeFile(".gitignore", "node_modules\n")(repo);
 	git(remote, "init", "--bare", "--quiet");

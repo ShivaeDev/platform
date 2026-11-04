@@ -35,7 +35,7 @@ export function railwayReadouts(target: () => string) {
 				if (!existsSync(join(target(), "node_modules"))) {
 					linkStarterModules(target());
 				}
-				const result = spawnSync("node", ["--conditions=source", "--input-type=module", "--eval", evaluate], {
+				const result = spawnSync("node", ["--conditions=@shivaedev/source", "--input-type=module", "--eval", evaluate], {
 					cwd: target(),
 					encoding: "utf8",
 				});

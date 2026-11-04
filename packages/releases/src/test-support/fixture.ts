@@ -18,7 +18,7 @@ export function changeset(packages: Readonly<Record<string, string>>, body = FEA
 }
 
 export function runCli(root: string, args: readonly string[]) {
-	return runCommand(root, process.execPath, ["--conditions=source", cli, ...args]);
+	return runCommand(root, process.execPath, ["--conditions=@shivaedev/source", cli, ...args]);
 }
 
 export const write = Effect.fn("ReleasesFixture.write")(function* (root: string, file: string, text: string) {

@@ -12,9 +12,13 @@ export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) 
 		archive: () => {
 			tell("run work-board archive on the workspace");
 			return Effect.sync(() =>
-				execFileSync(process.execPath, ["--conditions=source", new URL("../server/cli.ts", import.meta.url).pathname, "archive", engine.notes.root], {
-					encoding: "utf8",
-				}),
+				execFileSync(
+					process.execPath,
+					["--conditions=@shivaedev/source", new URL("../server/cli.ts", import.meta.url).pathname, "archive", engine.notes.root],
+					{
+						encoding: "utf8",
+					},
+				),
 			);
 		},
 		archiveConcurrently: () =>
@@ -23,7 +27,7 @@ export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) 
 				await Promise.all(
 					[1, 2].map(() =>
 						promisify(execFile)(process.execPath, [
-							"--conditions=source",
+							"--conditions=@shivaedev/source",
 							new URL("../server/cli.ts", import.meta.url).pathname,
 							"archive",
 							engine.notes.root,

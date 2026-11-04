@@ -43,35 +43,43 @@ application.it("packing the starter drops its check:published script", [], funct
 });
 
 for (const name of ["dev", "migrate"]) {
-	application.it(`packing the starter drops --conditions=source from its ${name} script`, [], function* ({ pack, packedScript, starterScript }) {
-		const script = yield* starterScript(name);
-		expect(script).toContain("--conditions=source ");
+	application.it(
+		`packing the starter drops --conditions=@shivaedev/source from its ${name} script`,
+		[],
+		function* ({ pack, packedScript, starterScript }) {
+			const script = yield* starterScript(name);
+			expect(script).toContain("--conditions=@shivaedev/source ");
 
-		yield* pack();
+			yield* pack();
 
-		expect(yield* packedScript(name)).toBe(script.replaceAll("--conditions=source ", ""));
-	});
+			expect(yield* packedScript(name)).toBe(script.replaceAll("--conditions=@shivaedev/source ", ""));
+		},
+	);
 }
 
 for (const path of LAUNCHERS) {
-	application.it(`packing the starter drops the --conditions=source argument from ${path}`, [], function* ({ pack, packedFile, starterFile }) {
-		const source = yield* starterFile(path);
-		expect(source).toContain('"--conditions=source", ');
+	application.it(
+		`packing the starter drops the --conditions=@shivaedev/source argument from ${path}`,
+		[],
+		function* ({ pack, packedFile, starterFile }) {
+			const source = yield* starterFile(path);
+			expect(source).toContain('"--conditions=@shivaedev/source", ');
 
-		yield* pack();
+			yield* pack();
 
-		expect(yield* packedFile(path)).toBe(source.replaceAll('"--conditions=source", ', ""));
-	});
+			expect(yield* packedFile(path)).toBe(source.replaceAll('"--conditions=@shivaedev/source", ', ""));
+		},
+	);
 }
 
 for (const path of CONDITION_CONFIGS) {
-	application.it(`packing the starter drops the "source" condition from ${path}`, [], function* ({ pack, packedFile, starterFile }) {
+	application.it(`packing the starter drops the "@shivaedev/source" condition from ${path}`, [], function* ({ pack, packedFile, starterFile }) {
 		const source = yield* starterFile(path);
-		expect(source).toContain('["source"]');
+		expect(source).toContain('["@shivaedev/source"]');
 
 		yield* pack();
 
-		expect(yield* packedFile(path)).toBe(source.replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
+		expect(yield* packedFile(path)).toBe(source.replaceAll('"@shivaedev/source", ', "").replaceAll('["@shivaedev/source"]', "[]"));
 	});
 }
 
