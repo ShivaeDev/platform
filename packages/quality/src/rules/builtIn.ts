@@ -11,6 +11,7 @@ import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
+import { serviceDefinitionAssembly } from "#rules/effect/serviceDefinitionAssembly.ts";
 import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
@@ -69,6 +70,7 @@ export const builtInRules = [
 	effectBoundary,
 	failureHonesty,
 	rpcBoundary,
+	serviceDefinitionAssembly,
 	serviceIds,
 	serviceParameters,
 	sharedErrorClasses,

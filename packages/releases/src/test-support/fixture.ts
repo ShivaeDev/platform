@@ -1,6 +1,6 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect, FileSystem, Path } from "effect";
+import { Clock, Effect, FileSystem, Path } from "effect";
 import { git } from "#git.ts";
 import { runCommand } from "#runCommand.ts";
 
@@ -17,9 +17,11 @@ export function changeset(packages: Readonly<Record<string, string>>, body = FEA
 		.join("\n")}\n---\n\n${body}`;
 }
 
-export function runCli(root: string, args: readonly string[]) {
-	return runCommand(root, process.execPath, ["--conditions=source", cli, ...args]);
-}
+export const runCli = Effect.fn("ReleasesFixture.runCli")(function* (root: string, args: readonly string[]) {
+	const now = yield* Clock.currentTimeMillis;
+	const childClock = `data:text/javascript,Date.now=()=>${now}`;
+	return yield* runCommand(root, process.execPath, ["--conditions=source", "--import", childClock, cli, ...args]);
+});
 
 export const write = Effect.fn("ReleasesFixture.write")(function* (root: string, file: string, text: string) {
 	const fs = yield* FileSystem.FileSystem;

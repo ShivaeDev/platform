@@ -1,3 +1,4 @@
+{"path":"examples/starter/src/modules/notes/server/Service.ts","rule":"effect/service-definition-assembly","count":3}
 {"path":"package.json","rule":"code/unused","count":1}
 {"path":"examples/starter/src/client/Home.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"examples/starter/src/client/LabelledSwitch.tsx","rule":"effect/adapter-imports","count":1}

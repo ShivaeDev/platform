@@ -2,12 +2,13 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Exit, Fiber, Layer, Option, Redacted, Scope } from "effect";
 import { SqlClient, type SqlConnection } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { disconnectProxy } from "#server/disconnectProxy.ts";
 import { adminUrl, configured } from "./postgres.ts";
 
 export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[]) {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		*create() {
 			const scope = yield* Scope.fork(yield* Scope.Scope);
 			const destination = new URL(Redacted.value(adminUrl));
@@ -56,11 +57,12 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 					return Fiber.join(pending());
 				},
 				queryBeforeDeadline: () => {
-					story.tell("the story gives the in-flight query 200 milliseconds to answer");
-					return Fiber.await(pending()).pipe(
-						Effect.timeoutOption("200 millis"),
-						Effect.map((answer) => (Option.isNone(answer) ? "waiting" : "answered")),
-					);
+					story.tell("200 milliseconds pass while the in-flight query awaits an answer");
+					return Effect.gen(function* () {
+						const answer = yield* Fiber.await(pending()).pipe(Effect.timeoutOption("200 millis"), Effect.forkScoped);
+						yield* untilTimer("200 millis");
+						return yield* passes("200 millis", Fiber.join(answer)).pipe(Effect.map((value) => (Option.isNone(value) ? "waiting" : "answered")));
+					});
 				},
 				refuse: () => {
 					story.tell("the proxy refuses new PostgreSQL connections");
@@ -76,7 +78,7 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 				},
 				startQuery: () => {
 					story.tell("the story starts a PostgreSQL query through the proxy");
-					return Effect.map(Effect.forkScoped(query), (fiber) => {
+					return Effect.map(Effect.forkScoped(query, { startImmediately: true }), (fiber) => {
 						connection.query = fiber;
 					});
 				},

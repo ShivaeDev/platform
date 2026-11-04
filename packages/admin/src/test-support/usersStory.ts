@@ -55,7 +55,7 @@ function roleChangeLog(engine: Engine) {
 function usersKit(engineEffect: typeof usersEngine) {
 	return storyKit({
 		around: withIsolatedDatabase,
-		clock: "live",
+		clock: "test",
 		create: () => engineEffect,
 		layer: postgresLayer,
 		name: "admin user permissions",

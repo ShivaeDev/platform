@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { heldBy, liveCli, lockStory, psFails } from "#test/kit.ts";
+import { CLI_TIMEOUT_MS, heldBy, lockStory, psFails } from "#test/kit.ts";
 
 for (const [signal, code] of [
 	["SIGINT", 10],
@@ -17,7 +17,7 @@ for (const [signal, code] of [
 
 			expect(yield* cli.standardOutputOf("check")).toBe(`running\ndescendant received ${signal}\n`);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 
 	lockStory.it(
@@ -34,7 +34,7 @@ for (const [signal, code] of [
 				["lock holder", () => lock.holder(), "nobody"],
 			]);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }
 
@@ -42,14 +42,14 @@ lockStory.it(
 	"when the forwarded SIGINT kills check's command, the CLI exits 130",
 	[],
 	function* ({ cli }) {
-		yield* cli.starts("check", cli.commands.sleeps);
+		yield* cli.starts("check", cli.commands.holdsUntilReleased);
 
 		yield* cli.receives("check", "SIGINT");
 
 		const exitCode = yield* cli.exitCodeOf("check");
 		expect(exitCode).toBe(130);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -61,7 +61,7 @@ lockStory.it(
 		const exitCode = yield* cli.exitCodeOf("check");
 		expect(exitCode).toBe(137);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -79,7 +79,7 @@ lockStory.it(
 			["second's exit code", () => cli.exitCodeOf("second"), 143],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 for (const [how, message] of [
@@ -98,6 +98,6 @@ for (const [how, message] of [
 				["printed by check", () => cli.printedBy("check"), [`heavy-lock: ${message}`]],
 			]);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }

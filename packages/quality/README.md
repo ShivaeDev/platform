@@ -92,6 +92,12 @@ When an upgrade expands these checks, inspect the new findings, repair the small
 
 Import and local aliases, string literals and templates without substitutions are checked, including in adapters and tests. Computed ids, files without a named workspace owner and files outside `packages/` are left alone. This rule refuses config exceptions and inline suppressions.
 
+### Service assemblies
+
+`effect/service-definition-assembly` keeps top-level `defineService` declarations as operation inventories. List `id`, `requires`, `initialize` and `methods` directly. Import a named initializer Effect or use `Effect.void`; the methods arrow returns a literal record of imported named operations or calls to imported state factories. `genericMethod` can wrap either form. Keep implementation bodies in focused files outside the assembly. Quality's existing Biome checks own `Effect.fn` span names.
+
+The rule reports hidden configurations and method records, configuration and operation spreads, computed members, local implementations and inline bodies, including in adapters and tests. It takes no config exceptions or inline suppressions. See the [service guide](https://github.com/ShivaeDev/platform/tree/main/packages/service#1-assemble-the-service-from-focused-files) for the shape.
+
 ### Outside library imports
 
 `effect/adapter-imports` reports value imports of non-Effect dependencies, peers and optional dependencies, and Node builtins, at the import site. It includes side-effect imports, value re-exports, literal dynamic imports and `require` calls. Each package is checked against its own manifest; dev-only tools and workspace modules are accepted. Type-only imports and re-exports are accepted, including inline `type` specifiers when every binding is a type.
