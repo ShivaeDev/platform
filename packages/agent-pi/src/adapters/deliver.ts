@@ -3,8 +3,10 @@ import { Effect } from "effect";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
 import { protocolFailure, rejected } from "#adapters/failure.ts";
 
-export function deliver(session: AgentSession, text: string, delivery: "followUp" | "steer") {
-	return Effect.callback<Parameters<NonNullable<PromptOptions["preflightResult"]>>[0], BackendFailure>((resume) => {
+type PromptDisposition = Parameters<NonNullable<PromptOptions["preflightResult"]>>[0];
+
+export function deliver(session: AgentSession, text: string, delivery: "followUp" | "steer"): Effect.Effect<PromptDisposition, BackendFailure> {
+	return Effect.callback<PromptDisposition, BackendFailure>((resume) => {
 		let accepted = false;
 		session
 			.prompt(text, {
