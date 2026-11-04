@@ -6,10 +6,10 @@ import { SessionPolicy } from "./SessionPolicy.ts";
 import type { SessionShape } from "./session.ts";
 import { revalidateSession } from "./socketSession.ts";
 
-export function revalidateStream<TSession extends SessionShape, TLookupRequirements>(
+export function revalidateStream<TSession extends SessionShape, TLookupRequirements, TLookupError = AuthUnavailable | Forbidden>(
 	rpc: Rpc.AnyWithProps,
 	id: string,
-	lookup: Effect.Effect<Option.Option<TSession>, AuthUnavailable | Forbidden, TLookupRequirements>,
+	lookup: Effect.Effect<Option.Option<TSession>, TLookupError, TLookupRequirements>,
 ) {
 	return <A, E, R>(effect: Effect.Effect<A, E, R>) => {
 		if (!RpcSchema.isStreamSchema(rpc.successSchema)) {

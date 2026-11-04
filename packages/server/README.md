@@ -83,6 +83,8 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 The `sessions` Layer provides one identity `SessionPolicy` to handler middleware, sockets, change subscriptions and application routes. Construct it with `Layer.succeed(SessionPolicy, { origin, provider, roles })`; policy readers take no policy argument.
 
+A session host also installs identity's subject resolver for contracts with `subject: selfSubject` or `subject: accountSubject(...)`. It resolves the session account or authorizes the delegated `x-platform-subject` transport header before the handler runs, supplies the branded `Subject` plus the actor's `Identity` and `SessionUser` to the request, and returns the declared typed refusal when delegation is denied. Business payloads do not carry an owner id. See [declared request subjects](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for declarations and session profile requirements.
+
 Omit `services` when the app has no service Layer of its own. The host uses `Layer.empty`; handler requirements remain explicit, and a migrated host still provides its database services to handlers. Annotated options that declare service outputs, errors or requirements must supply a `services` Layer.
 
 Pass application HTTP endpoints through `routes`, including routes that read app services. Use `handlers` for RPC implementations and their middleware Layers. `routes` accepts native HTTP router Layers; the host supplies `services` during route construction and request handling, preserves route Layer build errors and leaves missing services in the host’s requirement type.

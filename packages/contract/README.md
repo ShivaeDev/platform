@@ -88,6 +88,23 @@ The collection's ID schema gives `item` its ID type. Here, `notes.item` takes a 
 
 Operation names must differ within a contract, including across queries, commands and streams. Literal duplicate declarations fail compilation. If the compiler cannot see the names in an array, contract construction checks them and throws with the duplicated names.
 
+The native RPC mapping types `OperationRpc` and `Tag` are exported from `@shivaedev/contract/operationRpc.ts`.
+
+### Whose account a request acts on
+
+Set `subject` on a contract to a browser-safe declaration from `@shivaedev/identity/subject.ts`: `selfSubject` selects the session account; `accountSubject({ permission, refusal, deny })` permits another account only with the permission's `any` grant. The declaration applies to the application RPCs and their changes stream. Native middleware carries its typed failures and supplies the branded `Subject` service to handlers and the application services they call. Business payloads need no owner id.
+
+```ts
+import { contract } from "@shivaedev/contract/contract.ts";
+import { command } from "@shivaedev/contract/operation.ts";
+import { selfSubject } from "@shivaedev/identity/subject.ts";
+
+const Save = command("save", { invalidates: () => [] });
+const Account = contract("account", { commands: [Save], subject: selfSubject });
+```
+
+The client calls `account.save` without an account id. The session host installs the resolver; handlers read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
+
 ### Expected failures
 
 Import the shared expected failures from `@shivaedev/errors/taxonomy.ts`: `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a tagged error schema with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. Declare only the failures an operation can return:
