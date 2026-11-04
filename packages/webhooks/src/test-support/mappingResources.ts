@@ -9,7 +9,11 @@ interface MappingResources {
 	readonly lifecycle: string[];
 	readonly permit: Deferred.Deferred<void>;
 	refused: boolean;
+	releaseBlocked: boolean;
+	readonly releasePermit: Deferred.Deferred<void>;
+	readonly releasing: Deferred.Deferred<void>;
 	request: Fiber.Fiber<string> | undefined;
+	retry: Fiber.Fiber<string> | undefined;
 	readonly scopes: Scope.Scope[];
 	readonly waiting: Deferred.Deferred<void>;
 }
@@ -20,7 +24,11 @@ export function mappingResources(): MappingResources {
 		lifecycle: [],
 		permit: Deferred.makeUnsafe<void>(),
 		refused: false,
+		releaseBlocked: false,
+		releasePermit: Deferred.makeUnsafe<void>(),
+		releasing: Deferred.makeUnsafe<void>(),
 		request: undefined,
+		retry: undefined,
 		scopes: [],
 		waiting: Deferred.makeUnsafe<void>(),
 	};
@@ -35,7 +43,15 @@ export function resourceEvent(state: ReturnType<typeof mappingResources>) {
 					state.scopes.push(scope);
 					state.lifecycle.push(`opened for issue ${issue.number}`);
 				}),
-				() => Effect.sync(() => state.lifecycle.push(`closed for issue ${issue.number}`)),
+				() =>
+					Effect.gen(function* () {
+						if (state.releaseBlocked) {
+							state.releaseBlocked = false;
+							yield* Deferred.succeed(state.releasing, undefined);
+							yield* Deferred.await(state.releasePermit);
+						}
+						state.lifecycle.push(`closed for issue ${issue.number}`);
+					}),
 			);
 			if (state.blocked) {
 				yield* Effect.acquireRelease(

@@ -68,10 +68,7 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (HttpServerResponse.isHttpServerResponse(body)) {
 						return body;
 					}
-					return yield* receive(name, source, key, body, request.headers, options.receiptsSchema).pipe(
-						Effect.scoped,
-						Effect.provideContext(receiving),
-					);
+					return yield* receive(name, source, key, body, request.headers, options.receiptsSchema).pipe(Effect.provideContext(receiving));
 				}).pipe(Effect.catch(receiptFailure)),
 			);
 		}),
