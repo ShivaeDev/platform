@@ -42,6 +42,7 @@ function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, e
 export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly denied: boolean;
 	readonly refresh: () => void;
+	readonly refusal: Option.Option<Exclude<E, { readonly _tag: "RpcClientError" }>>;
 }
 export interface QueryOptions<E = unknown> {
 	readonly coalesceWindow?: Duration.Input | undefined;
@@ -79,6 +80,12 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 		...state(result, data),
 		denied: Option.exists(AsyncResult.cause(result), (cause) => Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))),
 		refresh,
+		refusal: Option.flatMap(AsyncResult.cause(result), (cause) =>
+			Option.filter(
+				Cause.findErrorOption(cause),
+				(error): error is Exclude<E, { readonly _tag: "RpcClientError" }> => !Predicate.isTagged(error, "RpcClientError"),
+			),
+		),
 	};
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {

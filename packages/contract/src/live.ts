@@ -1,4 +1,4 @@
-import { Cause, Duration, Effect, Option, Schema, type Stream } from "effect";
+import { Cause, Duration, Effect, Option, Queue, Schema, type Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -27,6 +27,7 @@ export interface LiveOptions<E, R> {
 	readonly coalesceWindow?: Duration.Input;
 	readonly initialResync?: boolean;
 	readonly keyContext?: KeyContext | undefined;
+	readonly reopenOnResume?: boolean;
 	readonly resume?: Atom.Atom<unknown>;
 	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
@@ -44,6 +45,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 		.atom((get) =>
 			Effect.gen(function* () {
 				get.mount(status);
+				const resumed = yield* Queue.unbounded<void>();
 				const reactivity = yield* Reactivity.Reactivity;
 				const retryKeys = options.retryKeys ?? (typeof options.resyncKeys === "function" ? options.resyncKeys(get.registry) : options.resyncKeys);
 				yield* retryOnChange(status, clientReadKeys(retryKeys, options.keyContext), () => get.refreshSelf());
@@ -101,10 +103,20 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						resync();
 					}
 				});
+				function resume() {
+					const current = get.once(status).connection;
+					if (current === "failed") {
+						return;
+					}
+					resync();
+					if (options.reopenOnResume === true || current === "reconnecting") {
+						Queue.offerUnsafe(resumed, undefined);
+					}
+				}
 				if (options.resume !== undefined) {
 					// A subscription alone does not initialize a derived signal's dependencies.
 					get.once(options.resume);
-					get.subscribe(options.resume, resync);
+					get.subscribe(options.resume, resume);
 				}
 				const attempt = liveAttempt(options.stream, {
 					changed,
@@ -129,6 +141,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						update({ connection: retry ? "reconnecting" : "failed", failure, needsResync: true });
 					},
 					options.retryDelay,
+					resumed,
 				);
 			}),
 		)

@@ -29,7 +29,8 @@ const retryEngine = Effect.gen(function* () {
 			return Stream.concat(Stream.succeed<LiveHint>({ _tag: "Resync" }), Stream.drain(Stream.fromEffect(Deferred.await(state.dropped))));
 		}),
 	);
-	const subscription = live(runtime, { resyncKeys: [], stream });
+	const resume = Atom.make(0);
+	const subscription = live(runtime, { resume, resyncKeys: [], stream });
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
@@ -41,7 +42,7 @@ const retryEngine = Effect.gen(function* () {
 		});
 	}
 	yield* waitForConnection("live");
-	return { attempts, registry, state, subscription, waitForConnection };
+	return { attempts, registry, resume, state, subscription, waitForConnection };
 });
 export const liveRetryStory = storyKit({
 	clock: "test",
@@ -65,6 +66,11 @@ export const liveRetryStory = storyKit({
 				engine.state.dropped = yield* Deferred.make<never, RpcClientError>();
 				engine.state.mode = "online";
 			}),
+		resume: () => {
+			story.tell("the app resumes while the retry is sleeping");
+			engine.registry.update(engine.resume, (count) => count + 1);
+			return engine.waitForConnection("live");
+		},
 		retryIntervals: () => Effect.sync(() => engine.attempts.slice(1).map((at, index) => at - (engine.attempts[index] ?? at))),
 		secondsPass: (seconds: number) => {
 			story.tell(`${seconds} seconds pass with the page open`);
