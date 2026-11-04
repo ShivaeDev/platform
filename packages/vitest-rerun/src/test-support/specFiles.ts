@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 const vitest = JSON.stringify(fileURLToPath(import.meta.resolve("vitest")));
+const compileCache = fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"));
 
 export const RAN = "ran.txt";
 export const FLAKY = "checkout > recovers only in a fresh process";
@@ -25,7 +26,7 @@ export function vitestConfig(root: string, { coverage, execArgv, globalSetup, pr
 		? `, coverage: { enabled: true, provider: 'v8', include: ['covered.ts'], reporter: ['lcov'], reportOnFailure: true, reportsDirectory: 'coverage'${thresholds} }`
 		: "";
 	const setup = globalSetup === undefined ? "" : `, globalSetup: ${JSON.stringify(globalSetup)}`;
-	const workerArguments = execArgv === undefined ? "" : `, execArgv: ${JSON.stringify(execArgv)}`;
+	const workerArguments = `, execArgv: ${JSON.stringify(["--import", compileCache, ...(execArgv ?? [])])}`;
 	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments} } };\n`;
 }
 
