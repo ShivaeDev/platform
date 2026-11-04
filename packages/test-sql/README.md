@@ -179,6 +179,19 @@ expect(results.filter(Result.isFailure).map((result) => result.failure)).toEqual
 
 ### Wait for PostgreSQL state that sends no notification
 
+Use `waitForHeldLock` to wait for a named advisory lock, including one taken by a separately launched process. Names use `hashtextextended(key, 0)`, matching sql's string advisory keys. Pass `applicationName` to restrict the holder to the PostgreSQL application name assigned to that process. Use `waitForBlockedSessions` with a holder's PostgreSQL backend PID to wait for another session directly blocked behind it; this also works for row and table locks:
+
+```ts
+import { waitForHeldLock } from "@shivaedev/test-sql/server/waitForHeldLock.ts";
+import { waitForBlockedSessions } from "@shivaedev/test-sql/server/waitForBlockedSessions.ts";
+
+for (const holder of yield* waitForHeldLock("notes:migrate", { applicationName: "migration" })) {
+	yield* waitForBlockedSessions(holder.pid);
+}
+```
+
+Both observations return the matching sessions as `{ pid: number }` rows and restrict matches to the current database. They accept the `observeUntil` timing options below and fail with `NeverSettled` when the state does not arrive. A queued advisory lock request does not count as a held lock.
+
 PostgreSQL announces no change to its catalog views: a session leaving `pg_stat_activity` or a backend starting to wait on a lock happens without a signal. `observeUntil` is the one poll for such state. It repeats one read, returns the value once `settled` holds for `stableReads` reads in a row, and uses live time by default. Set `clock: "test"` to advance the controlled story clock by `every` between reads and measure `within` on that clock. Each read still queries PostgreSQL; clock advancement never substitutes for the required catalog state:
 
 ```ts
