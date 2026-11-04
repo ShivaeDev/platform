@@ -7,12 +7,11 @@ export function webhookDelivery(sign: (body: Uint8Array) => string) {
 		const response = yield* client.execute(
 			HttpClientRequest.post(url).pipe(
 				HttpClientRequest.setHeaders({
-					"content-type": "application/json",
 					"x-github-delivery": delivery.deliveryId,
 					"x-github-event": delivery.event,
 					"x-hub-signature-256": sign(delivery.body),
 				}),
-				HttpClientRequest.bodyUint8Array(delivery.body),
+				HttpClientRequest.bodyUint8Array(delivery.body, "application/json"),
 			),
 		);
 		yield* response.text;

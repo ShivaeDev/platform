@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { githubConsumer, QUERY } from "#test/githubConsumer.ts";
 
 githubConsumer.it(
-	"an application exchanges an installation token, reads GitHub, posts a comment and verifies a signed delivery",
+	"an application exchanges an installation token, reads GitHub, posts a comment and verifies a signed JSON delivery",
 	[],
 	function* ({ readIssue, readRepository, postComment, deliverIssue, verifiedDelivery, requests }) {
 		const issue = yield* readIssue();
@@ -15,7 +15,12 @@ githubConsumer.it(
 		const status = yield* deliverIssue(3);
 		expect(status).toBe(HttpStatus.fromLiteral("Accepted"));
 
-		expect(yield* verifiedDelivery()).toEqual({ deliveryId: "issue-delivery", event: "issues", payload: { action: "opened", issue: { number: 3 } } });
+		expect(yield* verifiedDelivery()).toEqual({
+			contentType: "application/json",
+			deliveryId: "issue-delivery",
+			event: "issues",
+			payload: { action: "opened", issue: { number: 3 } },
+		});
 		const sent = yield* requests();
 		expect(sent).toEqual([
 			{ authorization: expect.stringMatching(/^Bearer ey/u), body: "{}", method: "POST", path: "/app/installations/7/access_tokens" },

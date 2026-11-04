@@ -50,6 +50,10 @@ export const githubConsumer = storyKit({
 		const receiver = yield* fakeHttpService({ routes: { delivery: { method: "POST", path: "/hooks/github", reply: () => ({ status: 202 }) } } });
 		return { context, provider, receiver };
 	},
+	inspect: ({ provider, receiver }) => ({
+		github: provider.server.requests.map(({ method, path, status }) => ({ method, path, status })),
+		webhooks: receiver.requests.map(({ method, path, status }) => ({ method, path, status })),
+	}),
 	name: "application GitHub integration",
 	stages: ["github"],
 	verbs: ({ provider, context, receiver }, story) => {
@@ -109,7 +113,12 @@ export const githubConsumer = storyKit({
 						Redacted.make(provider.credentials.webhookSecret),
 						Delivery,
 					);
-					return { deliveryId: request.headers["x-github-delivery"], event: request.headers["x-github-event"], payload };
+					return {
+						contentType: request.headers["content-type"],
+						deliveryId: request.headers["x-github-delivery"],
+						event: request.headers["x-github-event"],
+						payload,
+					};
 				}),
 		};
 	},
