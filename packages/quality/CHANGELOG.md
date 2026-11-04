@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.62.0 - 2026-11-04
+
+### Added
+
+- Require exact external dependency pins and pnpm catalog references when catalogs are declared, including exact catalog entries.
+- Check repository paths in Markdown backticks and require CLAUDE.md links to the sibling AGENTS.md.
+- Check services/<name>/service.ts for a single exported defineService declaration.
+- Check selected text files for non-ASCII bytes with files/ascii options.files.
+
+### Fixed
+
+- Accept nested package folders when their path below the workspace package root joins with hyphens to the unscoped package name, such as `packages/glass/client` for `@antumbra/glass-client`. Folder-name findings explain both accepted forms.
+
 ## 0.61.1 - 2026-11-04
 
 ### Changed

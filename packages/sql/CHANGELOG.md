@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.0 - 2026-11-04
+
+### Added
+
+- `keysetPage` builds native statement fragments without requiring a `SqlClient` service; its read callback retains its own service requirements.
+
 ## 0.39.0 - 2026-11-04
 
 ### Added

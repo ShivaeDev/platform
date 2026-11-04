@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.39.0 - 2026-11-04
+
+### Breaking
+
+- `@shivaedev/work-board`, `@shivaedev/work-fleet` and the Work Board plugin (`@shivaedev/work-board-plugin`) moved to [ShivaeDev/work-apps](https://github.com/ShivaeDev/work-apps), which maintains them under the same npm names, executables and import paths. Their consumers keep their dependencies and change no code; report issues and send changes to that repository. Plugin installs through `--marketplace ShivaeDev/platform` keep working and build the plugin from that repository.
+
 ## 0.38.11 - 2026-11-04
 
 ### Changed
