@@ -64,9 +64,25 @@ ruleStory.it(
 );
 ```
 
-Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, and `gateReport()` reads its output. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/quality/testing/adapters/cli.ts` to spawn a fresh command after changing a config.
+Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, `gateReport()` reads its output, and `gateReports(prefix)` reads the finding sections whose rule starts with that prefix. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/quality/testing/adapters/cli.ts` to spawn a fresh command after changing a config.
 
 For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. Yield `runQuality(root, "lint")` as an Effect in the kit so it uses the story's controlled clock. These helpers use the same engine as the rule story kit.
+
+### Folders that are not Effect code
+
+Declare deliberately non-Effect subsystems, such as a game engine or simulation, once in `quality.config.ts`:
+
+```ts
+import { defineConfig } from "@shivaedev/quality/config.ts";
+
+export default defineConfig({
+	nonEffectFolders: ["src/game/engine", "src/game/simulation"],
+});
+```
+
+`nonEffectFolders` names explicit folders relative to the config directory, without glob patterns or parent traversal. A declaration covers every descendant and does not cover similarly named siblings. A leading `./` or trailing slash is accepted. Inside these folders, every `effect/*` rule and the Effect-specific Biome plugins (ambient runtime, Effect functions and test bodies, Schema naming and keys, and service Layers) are off. Every other rule remains on, including formatting, comments, naming, imports and suppression checks.
+
+The declaration describes code, not imports: an Effect module importing a non-Effect subsystem stays checked, including service types imported from that subsystem. The full inventory and import graph remain available to every rule. Declare the folders in config instead of recording their Effect findings as permanent debt.
 
 ### Effect boundaries and services
 
@@ -76,11 +92,11 @@ It also reports synchronous calls imported from `node:fs` and `node:child_proces
 
 `Effect.run*` references in core are reported even without Clock, Config or Random. Yield the computation so it uses the caller's runtime. Runners are accepted in `cli.ts`, `main.ts(x)`, `entry.ts(x)`, `*-cli.ts`, tool configs and tests, modules that call `runMain`, and modules with the `fileURLToPath(import.meta.url) === process.argv[1]` entry guard. Browser bootstraps use the `main` or `entry` filename convention; the starter uses `src/client/main.tsx`. These entry-point conventions accept runners only; the other boundary checks still apply.
 
-Only folders named `adapters/` or `test-support/`, at any depth, are exempt from this boundary rule. An `adapters/` folder bridges an outside library and hands the rest of the application Effect values. The name is fixed by convention, with no config or copied Biome plugin globs. Code that cannot be Effect belongs in that bridge or calls for a better Effect primitive. Adapter code still follows `effect/service-parameters` and the ambient time, randomness, console and environment bans.
+Within Effect code, folders named `adapters/` or `test-support/`, at any depth, are exempt from this boundary rule. An `adapters/` folder bridges an outside library and hands the rest of the application Effect values. The name is fixed by convention, with no config or copied Biome plugin globs. Adapter code still follows `effect/service-parameters` and the ambient time, randomness, console and environment bans.
 
 The `ambient-runtime` Biome plugin also reports `Effect.run*` calls whose computation contains `Clock`, `Config` or `Random`, `currentTimeMillisUnsafe`, crypto UUIDs and bytes, `performance.now`, process arguments, working directory and exit state, `globalThis.process.env`, timeouts and microtasks. Yield service computations in the caller's Effect so its environment controls them. These additional checks apply to core TypeScript code. They accept `cli.ts`, `main.ts(x)`, `entry.ts(x)`, `*-cli.ts`, modules that call `runMain`, use `NodeRuntime.runMain` or guard execution with `fileURLToPath(import.meta.url) === process.argv[1]`, tool configs, tests, `adapters/` and `test-support/`. The existing `Date.now()`, `new Date()`, `Math.random()`, console and direct `process.env` bans still apply there.
 
-`effect/service-parameters` reports parameters carrying a service in exported functions and public methods, including returned factories. It follows service classes and tags, non-empty Contexts and service implementation shapes through aliases, interfaces, generic constraints, inferred parameters and destructuring. Read services from Effect's environment instead. An Effect or Stream requiring a service is a computation and is accepted. Methods implementing a service and functions constructing Layers may take services as parameters. Only `test-support/` folders are exempt from this rule; `adapters/` folders are checked. Installed implementation shapes are discovered in the consuming repository's package scopes, alongside the framework service package's scope.
+`effect/service-parameters` reports parameters carrying a service in exported functions and public methods, including returned factories. It follows service classes and tags, non-empty Contexts and service implementation shapes through aliases, interfaces, generic constraints, inferred parameters and destructuring. Read services from Effect's environment instead. An Effect or Stream requiring a service is a computation and is accepted. Methods implementing a service and functions constructing Layers may take services as parameters. Within Effect code, `test-support/` folders are exempt from this rule; `adapters/` folders are checked. Installed implementation shapes are discovered in the consuming repository's package scopes, alongside the framework service package's scope.
 
 Both rules refuse config exceptions and inline suppressions. Record existing debt with `quality baseline write --rule effect/boundary --file src/legacy.ts` and `quality baseline write --rule effect/service-parameters --file src/legacy.ts`; the normal report and baseline burn-down apply.
 
@@ -475,15 +491,16 @@ Import names from their defining module; there is no root entry. The package's `
 
 #### Config
 
-| Key          | Default                                                      | Meaning                                                                                                               |
-| ------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `sources`    | `["."]`                                                      | Directories or files the source rules check, relative to the repository root.                                         |
-| `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions.                                                                                                    |
-| `baseline`   | `quality-baseline.jsonl`                                     | Root shard for paths outside packages; package shards use `packages/<package>/quality-baseline.jsonl`.                |
-| `exceptions` | `[]`                                                         | Permanent exceptions as `{ files, rules, reason, subject? }`.                                                         |
-| `registry`   | `quality/registry.json`                                      | Legacy input for upgrades; run `quality exceptions migrate`.                                                          |
-| `local`      | `[]`                                                         | Exposed extension API for rules made with `defineRule`; not required for adoption.                                    |
-| `rules`      | Every rule at `error`                                        | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
+| Key                | Default                                                      | Meaning                                                                                                               |
+| ------------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `sources`          | `["."]`                                                      | Directories or files the source rules check, relative to the repository root.                                         |
+| `nonEffectFolders` | `[]`                                                         | Explicit folders whose descendants are not Effect code; other quality rules still apply.                              |
+| `extensions`       | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions.                                                                                                    |
+| `baseline`         | `quality-baseline.jsonl`                                     | Root shard for paths outside packages; package shards use `packages/<package>/quality-baseline.jsonl`.                |
+| `exceptions`       | `[]`                                                         | Permanent exceptions as `{ files, rules, reason, subject? }`.                                                         |
+| `registry`         | `quality/registry.json`                                      | Legacy input for upgrades; run `quality exceptions migrate`.                                                          |
+| `local`            | `[]`                                                         | Exposed extension API for rules made with `defineRule`; not required for adoption.                                    |
+| `rules`            | Every rule at `error`                                        | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
 
 #### Local rules
 

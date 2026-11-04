@@ -19,6 +19,7 @@ export interface QualityConfig<TLocal extends readonly RegisteredRule<unknown>[]
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;
+	readonly nonEffectFolders?: readonly string[];
 	readonly registry?: string;
 	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...TLocal]>;
 	readonly sources?: readonly string[];

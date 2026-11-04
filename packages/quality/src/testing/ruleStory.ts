@@ -90,6 +90,13 @@ export function makeRuleStory() {
 			}),
 			gateOutcome: () => Effect.map(answered(engine), outcomeOf),
 			gateReport: () => Effect.map(answered(engine), (answer) => answer.stdout + answer.stderr),
+			gateReports: (prefix: string) =>
+				Effect.map(answered(engine), (answer) =>
+					answer.stdout
+						.split("\n\n")
+						.filter((section) => section.startsWith(`error ${prefix}`))
+						.join("\n\n"),
+				),
 			locations: () => Effect.map(checked(engine), (findings) => findings.map(locationOf)),
 			messages: () => Effect.map(checked(engine), (findings) => findings.map((finding) => finding.message)),
 			optionIssues: Effect.fn("RuleStory.optionIssues")(function* (rule: RegisteredRule, options: unknown) {
