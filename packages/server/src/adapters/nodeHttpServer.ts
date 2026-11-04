@@ -29,6 +29,9 @@ export function nodeHttpServer(
 				return yield* NodeHttpServer.make(createServer, { ...options, host, port });
 			}
 			const listeners = yield* Scope.fork(yield* Scope.Scope, "parallel");
+			const socketScope = yield* Scope.fork(listeners, "sequential");
+			const unix = yield* unixHttpServer(socketPath, options).pipe(Scope.provide(socketScope));
+			// Socket preparation emits filesystem events; keep TCP closed until it finishes.
 			const tcpScope = yield* Scope.fork(listeners, "sequential");
 			const tcp =
 				config?.port === undefined
@@ -38,8 +41,6 @@ export function nodeHttpServer(
 							host,
 							port: config.port,
 						}).pipe(Scope.provide(tcpScope));
-			const socketScope = yield* Scope.fork(listeners, "sequential");
-			const unix = yield* unixHttpServer(socketPath, options).pipe(Scope.provide(socketScope));
 			return HttpServer.make({
 				address: tcp?.address ?? unix.address,
 				serve: (handler, middleware) =>
