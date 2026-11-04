@@ -19,7 +19,7 @@ overrides:
 
 catalog:
   "@earendil-works/pi-coding-agent": 0.84.4
-  "@modelcontextprotocol/sdk": 1.30.0
+  "@modelcontextprotocol/sdk": 1.32.0
   "@zip.js/zip.js": 2.24.0
   resend: 6.35.0
   playwright: 1.64.1
@@ -89,6 +89,8 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
+  # Renovate security update: @modelcontextprotocol/sdk@1.32.0
+  - "@modelcontextprotocol/sdk@1.32.0"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
