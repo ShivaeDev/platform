@@ -5,7 +5,7 @@
 
 ### Added
 
-- `@shivaedev/github`: GitHub GraphQL queries share REST authentication, quota observations, bounded responses and installation-token refresh. `graphql(query, variables, schema, options?)` decodes `data` with the caller's Schema and fails with `GitHubGraphqlError` when GitHub returns errors, including with partial data. `decodeGraphqlData` applies the same envelope decoding to responses supplied by an application's transport adapter.
+- `@shivaedev/github`: GitHub GraphQL queries share REST authentication, quota observations, bounded responses and installation-token refresh. `graphql(query, variables, schema, options?)` from `@shivaedev/github/graphql.ts` decodes `data` with the caller's Schema and fails with `GitHubGraphqlError` when GitHub returns errors, including with partial data. `decodeGraphqlData` applies the same envelope decoding to responses supplied by an application's transport adapter.
 
 ### Changed
 

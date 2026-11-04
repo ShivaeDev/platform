@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { decodeGraphqlData } from "@shivaedev/github/graphql.ts";
+import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "#model.ts";
 

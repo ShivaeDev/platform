@@ -2,7 +2,8 @@ import { Context, Effect, Schema, SchemaGetter, Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateCheckRun } from "#checkRuns.ts";
-import { GitHub, graphql, list, listBounded, listPages, read, write } from "#GitHub.ts";
+import { GitHub, list, listBounded, listPages, read, write } from "#GitHub.ts";
+import { graphql } from "#graphql.ts";
 
 const deleted = write("DELETE", "/repos/acme/widgets/issues/comments/7");
 const changed = write("PUT", "/repos/acme/widgets/issues/1/labels", { labels: ["ready"] }, Schema.Array(Schema.Struct({ name: Schema.String })));
