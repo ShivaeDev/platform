@@ -1,0 +1,31 @@
+import assert from "node:assert/strict"
+import { createRequire } from "node:module"
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
+import { Context, Effect, Layer, Schema } from "effect"
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http"
+import * as NetAddress from "effect/net/NetAddress"
+import { Rpc, RpcGroup } from "effect/rpc"
+import { appHost } from "@shivaedev/server/appHost.ts"
+
+const requireFromServer = createRequire(import.meta.resolve("@shivaedev/server/package.json"))
+assert.throws(() => requireFromServer.resolve("@effect/sql-pg/PgClient"), { code: "MODULE_NOT_FOUND" })
+
+const Api = RpcGroup.make(Rpc.make("ping", { success: Schema.String }))
+const routes = HttpRouter.add("GET", "/greeting", HttpServerResponse.text("Hello without PostgreSQL"))
+const config = { host: "127.0.0.1", port: 0 }
+const hosts = [
+  appHost({ config, routes }),
+  appHost({ config, routes, group: Api, handlers: Api.toLayer({ ping: () => Effect.succeed("pong") }), policy: "loopback" }),
+]
+
+NodeRuntime.runMain(Effect.forEach(hosts, (host) => Effect.gen(function* () {
+  const context = yield* Layer.build(host)
+  const { address } = Context.get(context, HttpServer.HttpServer)
+  if (!NetAddress.isInetAddress(address)) {
+    throw new Error("The packed host did not listen on TCP")
+  }
+  const response = yield* Effect.promise(() => fetch(`http://127.0.0.1:${address.port}/greeting`))
+  const body = yield* Effect.promise(() => response.text())
+  assert.equal(response.status, 200)
+  assert.equal(body, "Hello without PostgreSQL")
+}).pipe(Effect.scoped)))
