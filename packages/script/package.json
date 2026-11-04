@@ -14,6 +14,14 @@
 	"license": "MIT",
 	"sideEffects": false,
 	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
 	"exports": {
 		"./*.ts": {
 			"source": "./src/*.ts",
@@ -25,18 +33,30 @@
 	"files": [
 		"dist",
 		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
-		"ready": "pnpm typecheck && pnpm build",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run --configLoader native",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"typescript": "catalog:"
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"effect": "catalog:"
 	},
 	"engines": {
 		"node": ">=24"
@@ -44,5 +64,8 @@
 	"publishConfig": {
 		"access": "public",
 		"provenance": true
+	},
+	"quality": {
+		"runtime": "server"
 	}
 }

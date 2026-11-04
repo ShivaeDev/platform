@@ -1,7 +1,7 @@
 # @shivaedev/script
 
-This package is for scripts for Effect applications. Keep it focused on that job so applications can compose it with the rest of Platform.
+This package lets a development script stay a short Effect program. It owns the Node entry point, argument parsing and the scope around the work; serving applications belongs to server.
 
-Prefer native Effect data, services and scoped lifecycles, then a small public surface. Add behavior only when a concrete application needs it.
+Keep native Effect arguments, Config, logging and services visible. Prefer correct scope closure and interruption, then native composition, then a small public surface. The script supplies its application Layers inside its run effect; do not grow a second service or configuration model here.
 
-The package has no API yet. See [README.md](./README.md) for its consumer contract and the repository [AGENTS.md](../../AGENTS.md) for shared engineering rules.
+See [README.md](./README.md) for the entry point and its consumer contract, and the repository [AGENTS.md](../../AGENTS.md) for shared engineering rules.
