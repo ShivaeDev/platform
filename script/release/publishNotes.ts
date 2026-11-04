@@ -1,7 +1,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect, FileSystem, Path, Schema } from "effect";
-import { write } from "@shivaedev/github/GitHub.ts";
+import { write } from "@shivaedev/github/write.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { type Entry, parseBody, renderEntries } from "@shivaedev/releases/sections.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";

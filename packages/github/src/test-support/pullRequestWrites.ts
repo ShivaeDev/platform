@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import type { PullRequestComment } from "#stickyComments.ts";
+import type { PullRequestComment } from "#stickyCommentSchemas.ts";
 
 export const BOT = "coverage[bot]";
 

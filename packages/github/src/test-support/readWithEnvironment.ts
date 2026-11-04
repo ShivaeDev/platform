@@ -1,8 +1,9 @@
 import { ConfigProvider, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub, read } from "#GitHub.ts";
+import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { read } from "#read.ts";
 import { PullRequest } from "./fixtures.ts";
 
 export type TokenVariable = "GH_TOKEN" | "GITHUB_TOKEN";
