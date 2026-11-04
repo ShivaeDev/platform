@@ -13,10 +13,10 @@ type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = 
 
 export interface AppHostFactory {
 	<
-		TRpcs extends Rpc.Any,
-		THandlers,
-		THandlerError,
-		THandlerRequirements,
+		TRpcs extends Rpc.Any = never,
+		THandlers = never,
+		THandlerError = never,
+		THandlerRequirements = never,
 		TServices = never,
 		TServiceError = never,
 		TServiceRequirements = never,
@@ -72,10 +72,10 @@ export interface AppHostFactory {
 	>;
 
 	<
-		TRpcs extends Rpc.Any,
-		THandlers,
-		THandlerError,
-		THandlerRequirements,
+		TRpcs extends Rpc.Any = never,
+		THandlers = never,
+		THandlerError = never,
+		THandlerRequirements = never,
 		TServices = never,
 		TServiceError = never,
 		TServiceRequirements = never,
