@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0 - 2026-11-04
+
+### Added
+
+- Session hosts resolve and authorize declared subjects before handlers run. Self commands take no account id; delegated requests select an account with the `x-platform-subject` transport header and receive the contract's typed refusal when unauthorized.
+- Host process test fixtures can load a replacement before stopping the current host, using `beforeStart` with the child's `awaitHostStart` handshake.
+
+### Breaking
+
+- `appHost` startup failures carry every conflicting field in `SensitiveFieldConflict.conflicts`. Iterate over these entries instead of reading the top-level `field`, `publicSchema` and `sensitiveSchema`; the message lists all entries.
+
 ## 0.21.0 - 2026-11-03
 
 ### Added

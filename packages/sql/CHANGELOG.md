@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.1 - 2026-11-04
+
+### Fixed
+
+- Document the Quality check and the supported `transact` repair for repository writes inside native transactions.
+
 ## 0.36.0 - 2026-11-03
 
 ### Added

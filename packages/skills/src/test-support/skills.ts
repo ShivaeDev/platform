@@ -100,7 +100,7 @@ function verbs(engine: Fixture, tell: (line: string) => void) {
 }
 
 export const skills = storyKit({
-	clock: "live",
+	clock: "test",
 	create: makeFixture,
 	inspect: ({ installed, repo, selection }) => ({ installed, repo, selection }),
 	layer: NodeServices.layer,

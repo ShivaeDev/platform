@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.4 - 2026-11-04
+
+### Fixed
+
+- Generated resource stories use a controlled clock seeded at the current date so minted sessions remain valid for Better Auth. Generator and starter-update stories also use the controlled clock and observe child-process completion.
+
 ## 0.38.3 - 2026-11-03
 
 ### Fixed

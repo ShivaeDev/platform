@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-11-04
+
+### Breaking
+
+- `SensitiveFieldConflict` reports all conflicting field names in one failure across an RPC group. Replace reads of the top-level `field`, `publicSchema` and `sensitiveSchema` with iteration over `error.conflicts`, whose entries contain those properties. When constructing the error, pass `{ conflicts }`; its message is derived from the entries.
+
 ## 0.7.0 - 2026-11-03
 
 ### Breaking
