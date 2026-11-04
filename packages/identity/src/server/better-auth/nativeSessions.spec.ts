@@ -129,10 +129,11 @@ nativeSessions.it(
 nativeSessions.it(
 	"signing out revokes Alice's bearer and ends her open socket subscription as unauthorized",
 	[alice],
-	function* ({ profile, signsOut, subscribes, subscriptionEnding }) {
+	function* ({ profile, revalidationIntervalPasses, signsOut, subscribes, subscriptionEnding }) {
 		yield* subscribes("alice");
 
 		yield* signsOut({ bearer: "alice" });
+		yield* revalidationIntervalPasses();
 
 		yield* outcomes([
 			["profile", () => profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
@@ -144,10 +145,11 @@ nativeSessions.it(
 nativeSessions.it(
 	"signing in again revokes Alice's old bearer and subscription while the replacement bearer reads her profile",
 	[passwordAccount("alice")],
-	function* ({ profile, signsInAgain, subscribes, subscriptionEnding }) {
+	function* ({ profile, revalidationIntervalPasses, signsInAgain, subscribes, subscriptionEnding }) {
 		yield* subscribes("alice");
 
 		yield* signsInAgain("alice");
+		yield* revalidationIntervalPasses();
 
 		yield* outcomes([
 			["old bearer", () => profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],

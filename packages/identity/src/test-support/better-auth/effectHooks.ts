@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { hookApplication } from "./hookApplication.ts";
 import { credentials, type HookHost, hookHost } from "./hookHost.ts";
 
@@ -42,8 +42,8 @@ export const effectHooks = storyKit({
 			engine.host = yield* hookHost(engine.application);
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: () => Effect.map(hookApplication, (application): Engine => ({ application, cookie: "" })),
 	layer: postgres,
 	name: "application Better Auth Effects",

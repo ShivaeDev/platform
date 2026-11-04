@@ -19,6 +19,8 @@ import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/per
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 import { countQueries } from "./countQueries.ts";
 
+export const REVALIDATION_INTERVAL = Duration.millis(100);
+
 export const startAdminHost = Effect.gen(function* () {
 	const poolScope = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(poolScope, Exit.void));
@@ -60,7 +62,7 @@ export const startAdminHost = Effect.gen(function* () {
 					state.providerUnavailable ? Effect.fail(new AuthUnavailable({ message: "Session provider unavailable" })) : provider.get(headers),
 				),
 		},
-		streamRevalidationInterval: Duration.millis(100),
+		streamRevalidationInterval: REVALIDATION_INTERVAL,
 	};
 	const context = yield* Layer.build(
 		appHost({

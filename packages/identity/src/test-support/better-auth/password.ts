@@ -5,10 +5,10 @@ import { Migrator, SqlClient } from "effect/sql";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { PASSWORD_HASH } from "#test/passwordCredential.ts";
 
 const ORIGIN = "http://localhost:3000";
@@ -22,8 +22,8 @@ const postgres = makePostgresTestLayer({
 });
 
 export const passwordAuth = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const options = {
 			"baseURL": ORIGIN,

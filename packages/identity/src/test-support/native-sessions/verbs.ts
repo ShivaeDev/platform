@@ -1,15 +1,19 @@
 import { Effect, Fiber, Queue, Stream } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import type { Caller } from "./callers.ts";
 import { callers } from "./callers.ts";
 import type { Host } from "./host.ts";
-import { NATIVE_ORIGIN } from "./host.ts";
+import { NATIVE_ORIGIN, REVALIDATION_INTERVAL } from "./host.ts";
 import { type Account, authRequest, client, login } from "./requests.ts";
 
 export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (line: string) => void) {
 	const { account, headersOf, callerWords } = callers(accounts);
 	let subscription: Fiber.Fiber<unknown, unknown> | undefined;
+	function ending() {
+		return subscription === undefined ? Effect.succeed("no subscription") : answered(Fiber.join(subscription));
+	}
 	return {
 		browserSignsIn: (name: string) => {
 			tell(`${name} signs in from the browser`);
@@ -33,6 +37,10 @@ export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (
 				}
 				return credential?.includes(".") ? "signed" : "unsigned";
 			}),
+		revalidationIntervalPasses: () => {
+			tell("one socket revalidation interval passes");
+			return untilTimer(REVALIDATION_INTERVAL).pipe(Effect.andThen(passes(REVALIDATION_INTERVAL, ending())), Effect.asVoid);
+		},
 		sessionExpires: () => {
 			tell("every stored session expires");
 			return Effect.flatMap(authTestDatabase, (storage) => storage.expireSessions());
@@ -73,6 +81,6 @@ export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (
 				);
 				yield* Queue.take(events);
 			}),
-		subscriptionEnding: () => (subscription === undefined ? Effect.succeed("no subscription") : answered(Fiber.join(subscription))),
+		subscriptionEnding: ending,
 	};
 }

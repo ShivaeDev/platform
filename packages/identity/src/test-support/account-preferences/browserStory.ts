@@ -1,18 +1,18 @@
 import { createAuthClient } from "better-auth/client";
-import { DateTime, Effect } from "effect";
+import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { vi } from "vitest";
 import { passwordUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { preferencesClient } from "#server/better-auth/adapters/preferencesClient.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
 import { ORIGIN, preferencesHost } from "./host.ts";
 
 export const browserPreferences = storyKit({
-	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		vi.stubEnv("TZ", "America/New_York");
 		yield* Effect.addFinalizer(() => Effect.sync(() => vi.unstubAllEnvs()));

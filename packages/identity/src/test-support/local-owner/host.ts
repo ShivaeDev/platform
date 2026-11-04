@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Duration, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/server/appHost.ts";
@@ -8,8 +8,10 @@ import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { Access, Api, handlers, OwnerOnly, owner } from "./api.ts";
 
+export const REVALIDATION_INTERVAL = Duration.millis(50);
+
 export const ownerHost = Effect.fnUntraced(function* () {
-	const local = yield* localOwner({ owner, roles: Access, streamRevalidationInterval: "50 millis" });
+	const local = yield* localOwner({ owner, roles: Access, streamRevalidationInterval: REVALIDATION_INTERVAL });
 	const audit: string[] = [];
 	const context = yield* Layer.build(
 		appHost({
