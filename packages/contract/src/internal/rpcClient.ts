@@ -14,7 +14,7 @@ export interface RpcSource {
 }
 
 export function rpcClient(name: string, source: RpcSource, options: ClientOptions) {
-	const activity = makeActivity();
+	const activity = makeActivity(options.runtime ?? Atom.runtime);
 	const group = RpcGroup.make(...source.requests.values()).annotateMerge(source.annotations);
 	function sharedProtocol(identity?: string) {
 		return socketProtocol({
