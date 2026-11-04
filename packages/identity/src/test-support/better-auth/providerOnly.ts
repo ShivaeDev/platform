@@ -1,12 +1,12 @@
 import { Effect, Schema } from "effect";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { fakeOauthProvider } from "@shivaedev/test-kits/identity/oauth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
-import { oauthProvider } from "./oauthProvider.ts";
 import { providerOnlyHost } from "./providerOnlyHost.ts";
 
 interface Engine {
@@ -30,8 +30,8 @@ const Users = Schema.Struct({ users: Schema.Array(Schema.Struct({ name: Schema.S
 export const providerOnly = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (engine: Engine) {
-			const provider = yield* oauthProvider({ idToken: "story-id-token", refreshToken: "story-refresh-token" });
-			yield* routeOutbound({ "api.github.com": provider.url, "github.com": provider.url });
+			const provider = yield* fakeOauthProvider();
+			yield* routeOutbound({ "api.github.com": provider.server.url, "github.com": provider.server.url });
 			engine.host = yield* providerOnlyHost(engine.enabledPaths, engine.disabledPaths, engine.preset);
 		}),
 	},

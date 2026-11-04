@@ -27,6 +27,22 @@ Import `inbox`, `emailLink` and the `ReceivedEmail` type from `@shivaedev/test-k
 
 Import `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. They use Better Auth's adapter without requiring its test plugin. `signedInUser(auth, fields)` returns the user, session, headers, cookies and token. Optional `providerAccounts` attach provider identities. `signInAgain(auth, userId)` renews the same user's session on the caller's Effect Clock. `passwordUser` accepts either `password` or `passwordHash`; use an existing hash when password hashing is only a precondition. `storedProviderAccounts` reports credential-presence booleans without returning credential values.
 
+### Social sign-in
+
+Import `fakeOauthProvider` from `@shivaedev/test-kits/identity/oauth.ts` and acquire it in the story's scope. It runs a loopback OAuth 2.0 / OpenID Connect provider; the application's real Better Auth mount handles the redirects, code exchange and session creation.
+
+```ts
+const provider = yield* fakeOauthProvider({
+	profile: { sub: "123", email: "alice@example.test", name: "Alice" },
+});
+```
+
+Use `provider.credentials.clientId` and `clientSecret` in Better Auth. For OIDC, configure its `genericOAuth` plugin with `discoveryUrl: provider.discoveryUrl`, scopes `openid`, `profile`, `email` and `requireIdTokenVerification: true`. Drive `signIn.social` with that provider's ID. The provider publishes RS256 signing keys through JWKS and returns signed ID tokens. For GitHub, use `routeOutbound` from `@shivaedev/test-story/server/routeOutbound.ts` to route `github.com` and `api.github.com` to `provider.server.url` while retaining the real GitHub client.
+
+Consent is accepted by default; yield `provider.refuseConsent()` before visiting the authorization URL to return `access_denied` with the original state. Codes are single-use, bound to the client and redirect URI, and expire after one minute on the acquiring Effect Clock. Set `codeLifetime` to an Effect duration to change that interval. Advance the story clock between the provider redirect and the app callback to exercise expiry. S256 PKCE is checked when the client supplies a challenge. Token exchanges accept client credentials in POST fields or HTTP Basic authentication; issued bearer tokens grant profile access for one hour.
+
+`profile` accepts a subject, email, name and optional `emailVerified` (default true), or a function of the authorization request for multi-user stories. `routes` adds provider-specific HTTP endpoints, such as organization membership. `provider.server` exposes test-story's request observations, holds and fault controls. Keep that composition in the application's story kit. This provider covers authorization-code sign-in; refresh grants, provider logout and a browser consent screen are outside its scope.
+
 ### Discord bots
 
 Import `fakeDiscord` from `@shivaedev/test-kits/discord/fake.ts` and acquire it in a scope. Its loopback `server` retains messages across creation, editing, history reads and deletion, and supports the standard fake HTTP fault controls. Use the token `story-discord-token` with the real Discord REST client and set its API URL to `server.url`. Provide `gateway.transport` as the real gateway client's `GatewayTransport`; it speaks identify, heartbeat and resume frames, retains sessions and replays dispatches emitted during a dropped connection. `gateway.dispatch(type, data)`, `drop(code?)` and `invalidate(resumable)` change the provider, while `frames` and `urls` expose outbound observations. Drive reconnect and rate-limit time through the story kit's controlled clock.

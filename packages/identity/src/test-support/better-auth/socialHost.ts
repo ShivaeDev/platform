@@ -1,5 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
+import { genericOAuth } from "better-auth/plugins";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -12,11 +13,25 @@ import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
-export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
+export const socialHost = Effect.fn("SocialStory.socialHost")(function* (discoveryUrl: string) {
 	const pool = yield* betterAuthDatabase();
 	const storage = yield* authTestDatabase;
 	const options = {
 		database: pool,
+		plugins: [
+			genericOAuth({
+				config: [
+					{
+						clientId: "story-client",
+						clientSecret: "story-secret",
+						discoveryUrl,
+						providerId: "oidc",
+						requireIdTokenVerification: true,
+						scopes: ["openid", "profile", "email"],
+					},
+				],
+			}),
+		],
 		secret: "social-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
@@ -49,8 +64,9 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
 			},
 		),
 	};
-	const routes = Layer.merge(
+	const routes = Layer.mergeAll(
 		mounted.routes,
+		HttpRouter.add("GET", "/refused", HttpServerResponse.html("<main><h1>Sign-in refused</h1></main>")),
 		HttpRouter.add("GET", "/signed-in", (request) =>
 			Effect.gen(function* () {
 				const session = yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
