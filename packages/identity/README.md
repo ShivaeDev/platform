@@ -150,6 +150,8 @@ const authentication = Effect.gen(function* () {
 
 `betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. The mount does not run migrations or require identity's migration history. Use frozen numbered auth migrations as described below, or keep an existing migrator during the transition described in [Auth tables owned by another migrator](#auth-tables-owned-by-another-migrator). The application SQL Layer owns shutdown.
 
+`betterAuthMount` enables Better Auth's native database joins by default. Session lookups through the Effect provider and mounted HTTP routes cancel their PostgreSQL queries quietly when interrupted, including when the user table is locked. This avoids Better Auth's fallback join error output and account ids in the console. An explicit `advanced.database.joins` option overrides the default.
+
 The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
 
 ```ts
