@@ -10,7 +10,7 @@ import { scriptedProcess } from "#test/scriptedProcess.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";
 
 export const dockerEndpoint = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const daemon = yield* fakeHttpService({
 			routes: {

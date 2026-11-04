@@ -24,7 +24,7 @@ export const createConnectionEngine = Effect.fn("ConnectionEngine.createConnecti
 	function docker(args: readonly string[], options?: CommandOptions) {
 		return direct(redirected(args), options);
 	}
-	const manager = localPostgres({ "DOCKER_HOST": "unix:///var/run/docker.sock" }, { attempts: 60, delayMillis: 100 });
+	const manager = localPostgres({ "DOCKER_HOST": "unix:///var/run/docker.sock" });
 	function sql(query: string) {
 		return manager.sql(`${LOCAL_SERVER}/postgres`, query).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner));
 	}

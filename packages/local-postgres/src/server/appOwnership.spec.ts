@@ -9,6 +9,7 @@ app.it(
 		start,
 		startFromPath,
 		migrate,
+		aSecondPasses,
 		storedValue,
 		backupContents,
 		socketPermissions,
@@ -21,6 +22,7 @@ app.it(
 		yield* migrate("original");
 		expect(yield* storedValue()).toBe("original");
 
+		yield* aSecondPasses();
 		yield* migrate("saved");
 
 		yield* outcomes([
@@ -48,11 +50,13 @@ app.it(
 app.it(
 	"migrations back up the previous data and retain only the newest configured dumps",
 	[],
-	function* ({ start, migrate, backupContents }) {
+	function* ({ start, migrate, backupContents, aSecondPasses }) {
 		yield* start();
 		yield* migrate("one");
+		yield* aSecondPasses();
 		yield* migrate("two");
 
+		yield* aSecondPasses();
 		yield* migrate("three");
 
 		expect(yield* backupContents()).toEqual([expect.stringContaining("\none\n"), expect.stringContaining("\ntwo\n")]);

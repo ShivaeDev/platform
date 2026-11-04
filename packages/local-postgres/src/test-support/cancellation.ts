@@ -8,7 +8,7 @@ import { LOCAL_SERVER, localPostgres } from "#server/localPostgres.ts";
 import type { PostgresCommandError } from "#server/PostgresCommandError.ts";
 
 export const cancellation = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const started = yield* Deferred.make<void>();
@@ -17,9 +17,7 @@ export const cancellation = storyKit({
 		// A real process stands in for a psql command that has started but has not exited.
 		const paused = ChildProcessSpawner.make(
 			Effect.fn("Cancellation.spawn")(function* () {
-				const handle = yield* spawner.spawn(
-					ChildProcess.make(process.execPath, ["-e", "process.stdout.write('ready'); setInterval(() => {}, 1000)"]),
-				);
+				const handle = yield* spawner.spawn(ChildProcess.make(process.execPath, ["-e", "process.stdin.resume(); process.stdout.write('ready')"]));
 				yield* Deferred.succeed(child, handle);
 				return { ...handle, stdout: handle.stdout.pipe(Stream.tap(() => Deferred.succeed(started, undefined))) };
 			}),
