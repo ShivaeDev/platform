@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Fiber, Option, Scope, Semaphore } from "effect";
+import { Cause, Effect, Exit, Fiber, Scope, Semaphore } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeChannel, type TransactionBoundary } from "#channel.ts";
 import { Current, makeDatabase } from "./fakeDatabase.ts";
@@ -34,16 +34,7 @@ const create = Effect.gen(function* () {
 				if (caller === undefined) {
 					return Effect.die(new Error("Start a caller first"));
 				}
-				return Fiber.interrupt(caller).pipe(
-					Effect.andThen(Fiber.await(caller)),
-					Effect.timeoutOption("500 millis"),
-					Effect.map(
-						Option.match({
-							onNone: () => "still waiting",
-							onSome: outcomeOf,
-						}),
-					),
-				);
+				return Fiber.interrupt(caller).pipe(Effect.andThen(Fiber.await(caller)), Effect.map(outcomeOf));
 			}),
 		pending: () => Effect.sync(() => caller !== undefined && caller.pollUnsafe() === undefined),
 		start: Effect.gen(function* () {
@@ -56,7 +47,6 @@ const create = Effect.gen(function* () {
 });
 
 export const acquisition = storyKit({
-	clock: "live",
 	create: () => create,
 	name: "change channel connection acquisition",
 	stages: [],
