@@ -1,4 +1,4 @@
-import { Effect, Layer, Logger, Option, References, Schema, Tracer } from "effect";
+import { Clock, Effect, Layer, Logger, Option, References, Schema, Tracer } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
@@ -28,6 +28,7 @@ export interface LogRecord {
 }
 
 export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOptions = {}) {
+	const clock = yield* Clock.Clock;
 	const sql = yield* SqlClient.SqlClient;
 	const pool = yield* betterAuthDatabase();
 	const authOptions = {
@@ -94,7 +95,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 		return Effect.gen(function* () {
 			const app = HttpRouter.toWebHandler(
 				RpcServer.layerHttp({ group: registration.group, path: "/rpc", protocol: "http" }).pipe(
-					Layer.provide([handlers, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer)]),
+					Layer.provide([handlers, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer), Layer.succeed(Clock.Clock, clock)]),
 					Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access })),
 				),
 				{ disableLogger: true },

@@ -16,6 +16,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "./Access.ts";
+import { clientRuntime } from "./clientRuntime.ts";
 import { collectionPage, Workspace, workspaces } from "./collectionPage.ts";
 
 const migrations = {
@@ -53,10 +54,12 @@ export const collectionEngine = Effect.gen(function* () {
 		Layer.provide(Layer.succeed(SessionPolicy, policy)),
 		Layer.provide(Layer.succeedContext(services)),
 	);
+	const runtime = yield* clientRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/AdminCollectionClient", {
 		group: registration.group,
 		makeEffect: RpcTest.makeClient(registration.group, { flatten: true }),
 		protocol,
+		runtime,
 	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),

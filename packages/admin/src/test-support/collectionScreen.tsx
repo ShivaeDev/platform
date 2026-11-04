@@ -31,7 +31,7 @@ const openScreen = Effect.fnUntraced(function* (engine: Engine) {
 
 export const collectionScreen = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create(): Generator<typeof collectionEngine, Engine, never> {
 		return { ...(yield* collectionEngine), screen: undefined };
 	},
