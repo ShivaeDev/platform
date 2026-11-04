@@ -1,4 +1,4 @@
-import { Clock, DateTime, Effect, Schema } from "effect";
+import { Clock, DateTime, Deferred, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -115,6 +115,13 @@ export const senderPreferencesGone = inbox.trait("inbox", "the sender preference
 export const mappingWaitsForResource = inbox.trait("inbox", "the mapping must wait for a resource", (state) => {
 	state.resources.blocked = true;
 });
+
+export const resourceReleaseWaits = inbox.trait("inbox", "the acquired resource waits for permission to finish releasing", (state) =>
+	Effect.gen(function* () {
+		state.resources.releaseBlocked = true;
+		yield* Effect.addFinalizer(() => Deferred.succeed(state.resources.releasePermit, undefined));
+	}),
+);
 
 export const mappingRefusesDelivery = inbox.trait("inbox", "the mapping refuses the delivery after acquiring a resource", (state) => {
 	state.resources.refused = true;
