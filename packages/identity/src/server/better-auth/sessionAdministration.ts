@@ -2,6 +2,7 @@ import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { requirePermission } from "@shivaedev/access/requirePermission.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
 import { SessionUser } from "#identity.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
 import { type SessionListInput, SignedInSession } from "#sessions.ts";
@@ -14,24 +15,24 @@ export const listSessions = Effect.fn("Identity.listSessions")(function* (input:
 	yield* requirePermission(yield* SessionUser, ManageSessions);
 	const sql = yield* SqlClient.SqlClient;
 	const now = DateTime.toDateUtc(yield* DateTime.now);
-	const cursor = input.cursor;
-	const before = cursor === undefined ? sql`true` : sql`(s."updatedAt", s.id) < (${DateTime.toDateUtc(cursor.lastActivityAt)}, ${cursor.id})`;
-	const read = SqlSchema.findAll({
-		execute: () => sql`select s.id, s."createdAt" as "startedAt", s."updatedAt" as "lastActivityAt", s."expiresAt",
-			json_build_object('id', u.id, 'name', u.name, 'email', u.email) as "user"
-			from "session" s join "user" u on u.id = s."userId"
-			where s."expiresAt" > ${now} and ${before}
-			order by s."updatedAt" desc, s.id desc limit ${input.limit + 1}`,
-		Request: Schema.Void,
-		Result: SignedInSession,
-	});
-	const rows = yield* read(undefined).pipe(Effect.mapError(unavailable));
-	const sessions = rows.slice(0, input.limit);
-	const next = Option.fromUndefinedOr(sessions.at(-1)).pipe(
-		Option.filter(() => rows.length > input.limit),
-		Option.map(({ id, lastActivityAt }) => ({ id, lastActivityAt })),
-	);
-	return { next, sessions };
+	const page = yield* keysetPage({
+		after: input.cursor,
+		cursorFor: ({ id, lastActivityAt }: typeof SignedInSession.Type) => ({ id, lastActivityAt }),
+		limit: input.limit,
+		orderBy: [{ column: sql`s."updatedAt"`, direction: "desc", value: (cursor) => DateTime.formatIso(cursor.lastActivityAt) }],
+		read: ({ limit, orderBy, seek }) =>
+			SqlSchema.findAll({
+				execute: () => sql`select s.id, s."createdAt" as "startedAt", s."updatedAt" as "lastActivityAt", s."expiresAt",
+					json_build_object('id', u.id, 'name', u.name, 'email', u.email) as "user"
+					from "session" s join "user" u on u.id = s."userId"
+					where s."expiresAt" > ${now} and ${seek}
+					order by ${orderBy} limit ${limit}`,
+				Request: Schema.Void,
+				Result: SignedInSession,
+			})(undefined),
+		tieBreaker: { column: sql`s.id`, direction: "desc", value: (cursor) => cursor.id },
+	}).pipe(Effect.mapError(unavailable));
+	return { next: page.next, sessions: page.rows };
 });
 
 export const revokeSession = Effect.fn("Identity.revokeSession")(function* (id: string) {

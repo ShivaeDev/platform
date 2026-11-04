@@ -1281,6 +1281,9 @@ importers:
         specifier: workspace:*
         version: link:../sql
     devDependencies:
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/http':
         specifier: workspace:*
         version: link:../http
