@@ -28,6 +28,8 @@ export interface FindMany<TModel extends Model.Any, TKey extends Key<TModel>> {
 	readonly where?: FindManyFilter<TModel>;
 }
 
+export type FindOne<TModel extends Model.Any, TKey extends Key<TModel>> = Omit<FindMany<TModel, TKey>, "limit">;
+
 export interface LatestPerGroup<TModel extends Model.Any> {
 	readonly limit: number;
 	readonly orderBy: readonly [OrderBy<TModel>, ...OrderBy<TModel>[]];

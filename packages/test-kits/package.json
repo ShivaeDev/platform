@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-kits",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Reusable story building blocks for Platform applications",
 	"keywords": [
 		"effect"
@@ -44,7 +44,8 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
-		"ready": "pnpm typecheck && pnpm build",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -65,9 +66,11 @@
 		"@shivaedev/discord": "workspace:*",
 		"@shivaedev/email": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"better-auth": "catalog:",
-		"effect": "catalog:"
+		"effect": "catalog:",
+		"pg-boss": "catalog:"
 	},
 	"engines": {
 		"node": ">=24"

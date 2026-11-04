@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.20.0 to 0.20.1.
+- Update `@shivaedev/identity` from 0.24.0 to 0.25.0.
+- Update `@shivaedev/local-postgres` from 0.13.0 to 0.14.0.
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+- Update `@shivaedev/test-sql` from 0.20.0 to 0.21.0.
+
 ## 0.24.0 - 2026-11-04
 
 ### Added

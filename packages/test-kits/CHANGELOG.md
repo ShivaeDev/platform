@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/email` from 0.4.0 to 0.4.1.
+- Update `@shivaedev/identity` from 0.24.0 to 0.25.0.
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+- Update `@shivaedev/test-sql` from 0.20.0 to 0.21.0.
+- Update `@shivaedev/test-story` from 0.38.0 to 0.39.0.
+
 ## 0.3.0 - 2026-11-04
 
 ### Added

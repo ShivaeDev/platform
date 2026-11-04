@@ -1,8 +1,32 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { cashEntry, changeKeys, ledgerTable, ownedDraft, ownedRowsTable } from "#test/changeKeys.ts";
+import { cashEntry, changeKeys, ledgerTable, ownedDraft, ownedRowsTable, watchesCashEntry, watchesOwnedDraft } from "#test/changeKeys.ts";
 
 const OWNED_ROW_KEYS = ['record ["1","2"]', "the table"];
+
+changeKeys.it(
+	"a subscriber using decoded NumberFromString fields refreshes for the stored composite key after the repository commits an update",
+	[ownedRowsTable(), ownedDraft(), watchesOwnedDraft()],
+	function* ({ woken, writeOwned }) {
+		expect(yield* woken()).toEqual([]);
+
+		yield* writeOwned("update");
+
+		expect(yield* woken()).toEqual(['record ["1","2"]']);
+	},
+);
+
+changeKeys.it(
+	"a subscriber using a decoded bigint beyond Number precision refreshes for the stored composite key after the repository commits an update",
+	[ledgerTable(), cashEntry(), watchesCashEntry()],
+	function* ({ woken, writeLedger }) {
+		expect(yield* woken()).toEqual([]);
+
+		yield* writeLedger("update");
+
+		expect(yield* woken()).toEqual(['record ["cash","9007199254740993"]']);
+	},
+);
 
 const ownedWrites = [
 	{ given: [ownedRowsTable()], operation: "insertVoid" },
