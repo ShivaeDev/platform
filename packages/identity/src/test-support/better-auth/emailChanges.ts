@@ -18,7 +18,7 @@ export const emailChanges = storyKit({
 		approvalMessages: () => Effect.sync(() => messages.filter((message) => message._tag === "ApproveEmailChange")),
 		changeEmail: (password = CURRENT_PASSWORD) => {
 			story.tell("alice requests an email change through identity's typed client call using her signed bearer session");
-			return changeEmail(client)({ newEmail: "alice-new@example.test", password });
+			return changeEmail(client)({ "callbackURL": "/email-changed", newEmail: "alice-new@example.test", password });
 		},
 		followApprovalLink: () =>
 			Effect.promise(async () => {

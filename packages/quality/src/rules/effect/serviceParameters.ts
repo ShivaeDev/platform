@@ -25,7 +25,7 @@ export const serviceParameters = defineRule({
 		return [...groups.values()].flatMap((sources) => checkServices({ ...inputs, sources }, names));
 	}),
 	description:
-		"Exported functions and public methods take services from Effect's environment, including aliases, constraints, inferred/destructured parameters and factory returns. Service keys/classes, non-empty Contexts and implementation shapes are services; Effect/Stream requirements are computations. Service implementation methods and Layer constructors are accepted. Only test-support/ folders are exempt. The fixed adapters/ convention bridges outside libraries to Effect values; adapters still follow this rule and ambient runtime bans. No config exceptions or inline suppressions; baseline existing debt.",
+		"Exported functions and public methods take services from Effect's environment, including aliases, constraints, inferred/destructured parameters and factory returns. Service keys/classes, non-empty Contexts and implementation shapes are services; Effect/Stream requirements are computations. Service implementation methods and Layer constructors are accepted. Within Effect code, test-support/ folders are exempt. The fixed adapters/ convention bridges outside libraries to Effect values; adapters still follow this rule and ambient runtime bans. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/service-parameters",
 	registrable: false,
 });

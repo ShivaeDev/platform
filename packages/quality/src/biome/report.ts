@@ -41,9 +41,10 @@ const reportFor = Effect.fn("Biome.reportFor")(function* (
 	args: readonly string[],
 	paths: readonly string[],
 	exceptions: readonly ExceptionDeclaration[],
+	nonEffectFolders: readonly string[],
 ) {
 	const command = [...args, "--reporter=json", "--max-diagnostics=none", ...paths];
-	const run = yield* runBiome(root, command, exceptions);
+	const run = yield* runBiome(root, command, exceptions, nonEffectFolders);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
 		return yield* Effect.fail(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
@@ -64,10 +65,11 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
 	files: readonly string[] = ["."],
+	nonEffectFolders: readonly string[] = [],
 ) {
 	const { relative, sep } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
-	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions), ignoredTrackedPaths(root)], {
+	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions, nonEffectFolders), ignoredTrackedPaths(root)], {
 		concurrency: "unbounded",
 	});
 	const paths = tracked
@@ -75,7 +77,7 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 		.filter((path) => files.includes(".") || files.includes(path))
 		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
 	const extraArgs = [...args, "--vcs-enabled=false", ...(args.includes("--no-errors-on-unmatched") ? [] : ["--no-errors-on-unmatched"])];
-	const extra = paths.length === 0 ? undefined : yield* reportFor(root, extraArgs, paths, exceptions);
+	const extra = paths.length === 0 ? undefined : yield* reportFor(root, extraArgs, paths, exceptions, nonEffectFolders);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {

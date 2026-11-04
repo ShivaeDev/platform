@@ -67,8 +67,8 @@
 {"path":"script/ci/TestSequencer.ts","rule":"effect/boundary","count":6}
 {"path":"script/ci/mainShardPlan.ts","rule":"effect/boundary","count":5}
 {"path":"script/ci/mainTimingRun.ts","rule":"effect/boundary","count":3}
-{"path":"script/ci/mergeConsumerTimings.ts","rule":"effect/boundary","count":9}
-{"path":"script/ci/mergeTestTimings.ts","rule":"effect/boundary","count":10}
+{"path":"script/ci/mergeConsumerTimings.ts","rule":"effect/boundary","count":7}
+{"path":"script/ci/mergeTestTimings.ts","rule":"effect/boundary","count":9}
 {"path":"script/ci/shard.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/shardCount.ts","rule":"effect/boundary","count":5}
 {"path":"script/ci/summary.ts","rule":"effect/boundary","count":3}
@@ -112,6 +112,5 @@
 {"path":"script/starter-published/imports.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"script/starter-published/packedInstaller.test.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"script/starter-published/run.test.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"script/test-harness/environment.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"script/test/vitest.config.ts","rule":"code/unused","count":1}
 {"path":"script/test/vitest.config.ts","rule":"effect/boundary","count":3}

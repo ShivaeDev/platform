@@ -12,12 +12,29 @@ Use the models' `.fields` schemas for the read result, including their storage c
 
 ## Own the query in the dashboard service
 
-This is the [dashboard service](../../packages/sql/src/test-support/cross-table/dashboard.ts), quoted exactly. The table names are application configuration; the fixture supplies isolated names. Both repositories and this service use the same native `SqlClient`.
+The [dashboard service](../../packages/sql/src/test-support/cross-table/Dashboard.ts) declares its operations and dependencies. Table names are application configuration supplied through `DashboardConfig`; the fixture supplies isolated names. Both repositories and this service use the same native `SqlClient`.
 
 ```ts
-import { Effect, Schema } from "effect";
-import { SqlClient, SqlSchema } from "effect/sql";
+import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import { DashboardConfig } from "./DashboardConfig.ts";
+import { findReport } from "./findReport.ts";
+import { initializeDashboard } from "./initializeDashboard.ts";
+import { listPullRequests } from "./listPullRequests.ts";
+import { listReports } from "./listReports.ts";
+
+export const Dashboard = defineService({
+	id: "@shivaedev/sql/dashboard/Service",
+	initialize: initializeDashboard,
+	methods: (state) => ({ findReport: findReport(state), listPullRequests: listPullRequests(state), listReports: listReports(state) }),
+	requires: [SqlClient.SqlClient, DashboardConfig],
+});
+```
+
+The [initializer](../../packages/sql/src/test-support/cross-table/initializeDashboard.ts) reads the SQL client and table configuration once. Each operation gets that private state. The [result schemas](../../packages/sql/src/test-support/cross-table/dashboardRows.ts) compose the models' fields:
+
+```ts
+import { Schema } from "effect";
 import { PullRequest } from "./pullRequests.ts";
 import { Report } from "./reports.ts";
 
@@ -35,49 +52,28 @@ export const PullRequestWithOptionalReport = Schema.Struct({
 	score: Schema.NullOr(Report.fields.score),
 });
 
-const Since = Schema.Struct({ since: PullRequest.fields.updated_at });
+export const Since = Schema.Struct({ since: PullRequest.fields.updated_at });
+```
 
-export function dashboardService(tables: { pullRequests: string; reports: string }) {
-	return defineService({
-		id: "dashboard/Service",
-		initialize: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			const listReports = SqlSchema.findAll({
-				execute: ({ since }) => sql`
-					select p.id as "pullRequestId", p.title, p.updated_at as "updatedAt",
-					       r.id as "reportId", r.score
-					from ${sql(tables.pullRequests)} p
-					inner join ${sql(tables.reports)} r on r.pull_request_id = p.id
-					where p.updated_at >= ${since}
-					order by p.id`,
-				Request: Since,
-				Result: ReportedPullRequest,
-			});
-			const listPullRequests = SqlSchema.findAll({
-				execute: ({ since }) => sql`
-					select p.id as "pullRequestId", p.title, p.updated_at as "updatedAt",
-					       r.id as "reportId", r.score
-					from ${sql(tables.pullRequests)} p
-					left join ${sql(tables.reports)} r on r.pull_request_id = p.id
-					where p.updated_at >= ${since}
-					order by p.id`,
-				Request: Since,
-				Result: PullRequestWithOptionalReport,
-			});
-			const findReport = SqlSchema.findOneOption({
-				execute: (id) => sql`
-					select p.id as "pullRequestId", p.title, p.updated_at as "updatedAt",
-					       r.id as "reportId", r.score
-					from ${sql(tables.pullRequests)} p
-					inner join ${sql(tables.reports)} r on r.pull_request_id = p.id
-					where p.id = ${id}`,
-				Request: PullRequest.fields.id,
-				Result: ReportedPullRequest,
-			});
-			return { findReport, listPullRequests, listReports };
-		}),
-		methods: (reads) => reads,
-		requires: [SqlClient.SqlClient],
+The [reported pull-request operation](../../packages/sql/src/test-support/cross-table/listReports.ts) owns its query:
+
+```ts
+import type { Effect } from "effect";
+import { SqlSchema } from "effect/sql";
+import { ReportedPullRequest, Since } from "./dashboardRows.ts";
+import type { initializeDashboard } from "./initializeDashboard.ts";
+
+export function listReports({ sql, tables }: Effect.Success<typeof initializeDashboard>) {
+	return SqlSchema.findAll({
+		execute: ({ since }) => sql`
+			select p.id as "pullRequestId", p.title, p.updated_at as "updatedAt",
+			       r.id as "reportId", r.score
+			from ${sql(tables.pullRequests)} p
+			inner join ${sql(tables.reports)} r on r.pull_request_id = p.id
+			where p.updated_at >= ${since}
+			order by p.id`,
+		Request: Since,
+		Result: ReportedPullRequest,
 	});
 }
 ```
@@ -91,13 +87,13 @@ export function dashboardService(tables: { pullRequests: string; reports: string
 Provide the service's layer from the application database layer, then call it from the dashboard module:
 
 ```ts
-const Dashboard = dashboardService({ pullRequests: "pull_requests", reports: "reports" });
-const recentReports = Dashboard.use((dashboard) => dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") })).pipe(
-	Effect.provide(Dashboard.layer),
-);
+const recentReports = Effect.gen(function* () {
+	const dashboard = yield* Dashboard;
+	return yield* dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") });
+}).pipe(Effect.provide(Dashboard.layer), Effect.provideService(DashboardConfig, { pullRequests: "pull_requests", reports: "reports" }));
 ```
 
-This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`. Authorization and any caller-specific filters belong in this application service.
+This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`, and `Dashboard` and `DashboardConfig` from their defining modules. Authorization and any caller-specific filters belong in this application service.
 
 ## Keep the boundary explicit
 

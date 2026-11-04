@@ -280,6 +280,33 @@ const authentication = (options: BetterAuthOptions) =>
 
 The native `emailAndPassword.onPasswordReset` callback runs first. An Effect failure with `BetterAuthHookError` fields reaches the caller as HTTP 403 with its code and message. This callback follows Better Auth's post-reset lifecycle; a failure does not undo the password change.
 
+### Seed local demo users
+
+`defineSeed` builds the PostgreSQL and Better Auth layers from `DATABASE_URL`, finds or creates each persona by email, assigns its role through `assignRole`, then evaluates `run` with that user's `Identity`, `SessionUser` and query viewer. The database must already be migrated. Only PostgreSQL URLs on `localhost`, `127.0.0.1` or `[::1]` are accepted; connection host overrides are refused before connecting.
+
+```ts
+import { Effect, Redacted } from "effect";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { defineSeed } from "@shivaedev/identity/server/better-auth/adapters/defineSeed.ts";
+
+const roles = roleSet(role("member", []));
+const seed = defineSeed({
+	defaultRole: "member",
+	roles,
+	users: [{ email: "alice@demo.test", name: "alice", password: Redacted.make("local-demo-password"), role: "member" }],
+	run: Effect.gen(function* () {
+		const user = yield* SessionUser;
+		yield* Effect.logInfo(`Seed application data for ${user.email}`);
+	}),
+});
+```
+
+Pass the application's Better Auth settings as `auth` when it customizes user tables or authentication options. Existing emails reuse the same user ID, profile and password; each seed run assigns the declared role and runs the application Effect again, so application data seeding should itself be repeatable. New users receive password credentials and can sign in with the declared password.
+
+For provisioning outside a seed, provide `betterAuthUserProvisioning(auth)` from `@shivaedev/identity/server/better-auth/adapters/userProvisioning.ts` and call `(yield* UserProvisioning).findOrCreateUser({ email, name, password })`, importing `UserProvisioning` from `@shivaedev/identity/server/UserProvisioning.ts`. This shares the seed's email-based reuse behavior without the seed's local database restriction.
+
 ### User directory
 
 Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. Setting `authOptions.user.modelName` to `"users"` directs directory reads to that table, including the admin Users view and its pagination. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
@@ -952,15 +979,16 @@ const mounted = yield* betterAuthMount(options, {
     },
     deliver: (message) => mailer.deliver(message),
     window: "1 minute",
+    windows: { ConfirmAccount: "2 minutes", ResetPassword: "5 minutes" },
   },
 });
 ```
 
-`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. The `url` and every `token` are `Redacted<string>` so delivered messages keep their links and tokens hidden in logs and traces. Read them with `Redacted.value(message.url)` or `Redacted.value(message.token)` only when rendering the email or submitting the token. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
+`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. The `url` and every `token` are `Redacted<string>` so delivered messages keep their links and tokens hidden in logs and traces. Read them with `Redacted.value(message.url)` or `Redacted.value(message.token)` only when rendering the email or submitting the token. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. When Better Auth supplies a continuation in its email link, identity copies it into `callbackURL` on the app link, replacing a configured `callbackURL` only when the continuation resolves to that app route's origin. Relative and absolute same-origin continuations are accepted; off-origin continuations are omitted even when Better Auth trusts that origin. Duplicate sign-up emails read `callbackURL` from the sign-up request supplied by Better Auth; server-side calls without a request keep their configured sign-in route. A confirmation page forwards both `token` and `callbackURL` to Better Auth's verification API so verification continues to the requested page, such as an invitation. A reset page submits the token with the new password to the reset API and uses the continuation after success.
 
 The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
 
-Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
+Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input and remains the default for every kind. The optional `windows` map overrides that duration by `AuthEmail["_tag"]`; omitted kinds still use `window`, or one minute when it is absent. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
 
 ### Sweep expired sessions in a worker
 

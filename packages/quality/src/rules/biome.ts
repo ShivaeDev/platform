@@ -26,9 +26,9 @@ const presetFinding = Effect.fn("Biome.presetFinding")(function* (inputs: Pick<R
 });
 
 const bridge = defineRule({
-	check: ({ exceptions, readText, root }) =>
+	check: ({ exceptions, nonEffectFolders, readText, root }) =>
 		Effect.gen(function* () {
-			const [preset, report] = yield* Effect.all([presetFinding({ readText }), biomeReport(root, ["check"], exceptions)], {
+			const [preset, report] = yield* Effect.all([presetFinding({ readText }), biomeReport(root, ["check"], exceptions, ["."], nonEffectFolders)], {
 				concurrency: "unbounded",
 			});
 			const failing = report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity));

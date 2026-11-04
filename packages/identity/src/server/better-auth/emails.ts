@@ -23,4 +23,5 @@ export interface BetterAuthEmails<R = never> {
 	readonly deliver: (message: AuthEmail) => Effect.Effect<void, BetterAuthHookError, R>;
 	readonly routes: Readonly<Record<AuthEmail["_tag"], string>>;
 	readonly window?: Duration.Input;
+	readonly windows?: Readonly<Partial<Record<AuthEmail["_tag"], Duration.Input>>>;
 }
