@@ -1,12 +1,12 @@
 import type { BetterAuthClientPlugin } from "better-auth/client";
 
-export function preferencesClient() {
+export function preferencesClient(): Pick<BetterAuthClientPlugin, "id" | "fetchPlugins"> {
 	return {
 		fetchPlugins: [
 			{
 				hooks: {
 					onRequest(context) {
-						if (typeof window === "undefined") {
+						if (!("window" in globalThis)) {
 							return context;
 						}
 						const { locale, timeZone } = new Intl.DateTimeFormat().resolvedOptions();
@@ -21,5 +21,5 @@ export function preferencesClient() {
 			},
 		],
 		id: "identity-account-preferences",
-	} satisfies BetterAuthClientPlugin;
+	};
 }

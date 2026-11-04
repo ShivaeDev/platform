@@ -29,7 +29,7 @@ const invalidFixtures = {
 } as const;
 
 compilerStory.it(
-	"the valid contract, binding and handlers compile cleanly and declare the notes.rename RPC",
+	"valid contracts including declared subjects, bindings and handlers emit declarations with the notes.rename RPC",
 	[],
 	function* ({ compileValid }) {
 		expect(yield* compileValid()).toBe('compiled cleanly, declaring Rpc<"notes.rename"');

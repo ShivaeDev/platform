@@ -1,10 +1,10 @@
-import { Effect, Layer, Schema, Stream } from "effect";
+import { Context, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcClient, type RpcMiddleware, RpcSerialization } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
@@ -67,4 +67,16 @@ export const handlers = Notes.of({
 	"notes.get": ({ id }) => (id > 0 ? Effect.succeed({ body: "", id, title: "" }) : Get.reject.NoteMissing({ id })),
 	"notes.list": () => Effect.succeed([]),
 	"notes.rename": ({ id, title }) => Effect.succeed({ body: "", id, title }),
+});
+
+export class FixtureAccount extends Context.Service<FixtureAccount, { readonly id: string }>()("@shivaedev/contract/FixtureAccount") {}
+
+export const SubjectNotes = contract("subjectNotes", {
+	commands: [command("touch", { invalidates: () => [] })],
+	subject: {
+		error: Schema.Never,
+		middleware: Effect.succeed<RpcMiddleware.RpcMiddleware<FixtureAccount, never, never>>((effect) =>
+			Effect.provideService(effect, FixtureAccount, { id: "alice" }),
+		),
+	},
 });

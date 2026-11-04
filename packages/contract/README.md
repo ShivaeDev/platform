@@ -100,10 +100,10 @@ import { command } from "@shivaedev/contract/operation.ts";
 import { selfSubject } from "@shivaedev/identity/subject.ts";
 
 const Save = command("save", { invalidates: () => [] });
-const Account = contract("account", { commands: [Save], subject: selfSubject });
+export const Account = contract("account", { commands: [Save], subject: selfSubject });
 ```
 
-The client calls `account.save` without an account id. The session host installs the resolver; handlers read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
+Contracts with declared subjects can be exported from published packages with TypeScript declaration output. The client calls `account.save` without an account id. The session host installs the resolver; handlers read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
 
 ### Expected failures
 
