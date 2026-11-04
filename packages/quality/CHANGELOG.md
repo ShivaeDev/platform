@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.62.1 - 2026-11-04
+
+### Fixed
+
+- Accept source-only file-preserving wildcard exports for packages with `"private": true`. Published packages still require source, types and dist mappings, and every package must keep `#test/*` rooted at `./src/test-support/*`.
+
 ## 0.62.0 - 2026-11-04
 
 ### Added
