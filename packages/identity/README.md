@@ -838,6 +838,36 @@ export default Effect.gen(function* () {
 
 Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` to delete owned rows with their user, or a nullable `user_id` and `ON DELETE SET NULL` to retain rows without an owner. `userReference` describes the default PostgreSQL mapping, so an application that customizes Better Auth's user table or id column must use its own mapping. Account reads and writes still go through identity; the foreign key grants no access to auth data. Quality's `boundaries/auth-sql` accepts these references while rejecting other auth SQL outside the configured owners.
 
+### Register user data exports
+
+Each domain supplies a `UserDataExport` from `server/userDataExport.ts`: the schema-qualified tables it owns and an `export(userId)` Effect that reads that user's rows. Keep filtering and the choice of exported fields in the domain. Compose the registrations once in the application's account module:
+
+```ts
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
+import { accountExport } from "@shivaedev/identity/server/accountExport.ts";
+import { betterAuthUserDataExport } from "@shivaedev/identity/server/better-auth/adapters/userDataExport.ts";
+
+const notesExport = {
+	tables: [{ schema: "public", table: "notes" }],
+	export: Effect.fn(function* (userId: string) {
+		const sql = yield* SqlClient.SqlClient;
+		return yield* sql<{ title: string }>`select title from notes where user_id = ${userId} order by title`;
+	}),
+};
+
+const exports = accountExport({ account: betterAuthUserDataExport(), notes: notesExport });
+
+const checkExportCoverage = exports.check;
+const exportUser = exports.exportUser;
+```
+
+`exportUser(userId)` checks coverage, enumerates every registration and returns one object keyed by domain, preserving each domain's result type, Effect dependencies and failures. Empty domain results remain in the export. The account handler supplies the authorized user's id; this server API does not authenticate callers. Application-owned tables with no foreign key need explicit registration too: PostgreSQL cannot discover their ownership.
+
+Run `check` against the migrated application database in a startup check or PostgreSQL story. It reads PostgreSQL's foreign-key catalog and fails with `UnregisteredUserExportTables` from `server/account-export/check.ts` when any table referencing the user id lacks a registration. The error's `tables` names each missing `{ schema, table }` once, including references from other schemas. A registration covers its named table; the domain remains responsible for exporting the right rows and fields, which its stories should prove. An export runs the same check before reading domain data, so a newly added foreign key cannot silently leave a table out.
+
+The default reference is `public.user(id)`. For a customized auth mapping, pass `{ schema, table, column }` as the second argument to `accountExport`. Pass the same Better Auth options to `betterAuthUserDataExport(options)`; its optional second argument selects the PostgreSQL schema. The built-in registration exports profile fields, linked-account identifiers and session metadata for that user, with timestamps as native Effect UTC values. Passwords, access tokens, refresh tokens and session tokens are excluded by explicit field selection. Add registrations for application fields and plugin-owned tables that the built-in registration does not cover.
+
 ### Signed-in story preconditions
 
 Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance with the host's database, secret and cookie policy. Keep the plugin out of production auth options.
