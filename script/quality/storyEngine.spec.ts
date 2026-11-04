@@ -25,7 +25,7 @@ for (const [name, registration] of [
 	["calls a verb", 'orders.it("places an order", [], function* ({ place }) { yield* place(); });'],
 	["uses a trait", 'orders.it("places an order", [configured], () => { expect(add(1, 2)).toBe(3); });'],
 	["uses only its test context", 'orders.it("has a context", [], function* (_, context) { expect(context.task.name).toBe("has a context"); });'],
-	["reads its story", 'orders.it("reads the engine", [], function* ({ story }) { expect(story.engine).toBeDefined(); });'],
+	["tells its story", 'orders.it("tells an action", [], function* ({ story }) { story.tell("an action happens"); });'],
 	["reads its verbs object", 'orders.it("places an order", [], function* (verbs) { yield* verbs.place(); });'],
 	["renames a destructured verb", 'orders.it("places an order", [], function* ({ place: submit }) { yield* submit(); });'],
 	["uses a verb in a nested callback", 'orders.it("places an order", [], ({ place }) => { return run(() => place()); });'],

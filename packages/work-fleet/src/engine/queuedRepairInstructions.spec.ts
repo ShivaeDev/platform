@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
 import { repairRecord } from "#test/repairRecord.ts";
@@ -21,7 +20,7 @@ for (const kind of ["review", "checks"] as const) {
 			const repairPrompt = kind === "review" ? "Fix the missing empty state found in review." : "Fix the failing database check.";
 			yield* replaceStoredRecord(repairRecord(ready.value, kind, repairPrompt));
 			yield* fleet.queueAnswer("one", GUIDANCE);
-			const next = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
+			const next = yield* afterRestart((resumed) => resumed.reconcile("one"));
 			const attempt = next.value.attempts.at(-1);
 			if (attempt?.receipt === undefined) {
 				return yield* Effect.die("Expected the next repair receipt");

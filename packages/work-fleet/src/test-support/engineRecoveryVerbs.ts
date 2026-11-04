@@ -11,8 +11,12 @@ import { workerReportReply } from "#test/workerReportReply.ts";
 export function engineRecoveryVerbs(state: EngineStory, tell: (line: string) => void) {
 	const fixture = running(state).fixture;
 	return {
-		afterRestart: <A, E>(effect: Effect.Effect<A, E, typeof Fleet.Identifier>, configure?: (policy: FleetConfiguration) => FleetConfiguration) => {
+		afterRestart: <A, E>(
+			action: Effect.Effect<A, E, typeof Fleet.Identifier> | ((fleet: typeof Fleet.Service) => Effect.Effect<A, E>),
+			configure?: (policy: FleetConfiguration) => FleetConfiguration,
+		) => {
 			tell("restart Fleet and observe its next action");
+			const effect = typeof action === "function" ? Effect.flatMap(Fleet, action) : action;
 			return fixture.restart(effect, configure);
 		},
 		answerWorker: (...args: Parameters<typeof answerWorker> extends [string, ...infer TRest] ? TRest : never) => answerWorker(state.root, ...args),

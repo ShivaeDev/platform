@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { decisionPublicationFailsOnce } from "#test/engineLaunchTraits.ts";
 import { workerAnswerAcknowledgementLost } from "#test/engineLifecycleTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
@@ -27,9 +26,8 @@ isolatedEngine.it(
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.prompt).toContain(answer.body);
 		expect(intent.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
-		yield* afterRestart(
+		yield* afterRestart((restarted) =>
 			Effect.gen(function* () {
-				const restarted = yield* Fleet;
 				const recovered = yield* restarted.reconcile("one");
 				expect(recovered.value.step).toBe("working");
 				expect(recovered.value.attempts.map((entry) => entry.operationId)).toEqual(operations);
@@ -110,9 +108,8 @@ isolatedEngine.it(
 		expect(failed.value.decisionPublished).toBe(false);
 		expect(failed.value.decision?.reason).toBe(QUESTION);
 		expect(failed.value.decision?.worker).toEqual(failed.value.attempts[0]?.receipt);
-		yield* afterRestart(
+		yield* afterRestart((restarted) =>
 			Effect.gen(function* () {
-				const restarted = yield* Fleet;
 				const recovered = yield* restarted.reconcile("one");
 				expect(recovered.value.step).toBe("waiting");
 				expect(recovered.value.decisionPublished).toBe(true);

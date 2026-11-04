@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
-import { Fleet } from "#fleet.ts";
 import { availableQuota } from "#test/engineLaunchTraits.ts";
 import { executionLimit } from "#test/engineLifecycleTraits.ts";
 import { heldAction } from "#test/engineRaceTraits.ts";
@@ -23,9 +22,8 @@ isolatedEngine.it(
 		expect(intent.attempts.at(-1)?.prompt).toContain(answer.body);
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
-		yield* afterRestart(
+		yield* afterRestart((restarted) =>
 			Effect.gen(function* () {
-				const restarted = yield* Fleet;
 				const uncertain = yield* restarted.reconcile("one");
 				expect(uncertain.value.step).toBe("waiting");
 				expect(uncertain.value.decision?.reason).toBe("No authoritative operation receipt");

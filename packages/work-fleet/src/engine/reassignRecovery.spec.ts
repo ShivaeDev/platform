@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { boardAcknowledgementFailsOnce } from "#test/engineLifecycleTraits.ts";
 import { simultaneousDecisionWrites } from "#test/engineRaceTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
@@ -20,9 +19,8 @@ isolatedEngine.it(
 		expect(changed.value.supersededDecisions?.[0]?.boardAcknowledged).toBeUndefined();
 		const id = changed.value.decision?.id ?? "missing";
 
-		yield* afterRestart(
+		yield* afterRestart((restarted) =>
 			Effect.gen(function* () {
-				const restarted = yield* Fleet;
 				const retried = yield* restarted.reassign("one", old.decision.id, "maintainer");
 				expect(retried.value.decision?.id).toBe(id);
 				const recovered = yield* restarted.reconcile("one");
