@@ -5,26 +5,26 @@ import { cashEntry, changeKeys, ledgerTable, ownedDraft, ownedRowsTable, watches
 const OWNED_ROW_KEYS = ['record ["1","2"]', "the table"];
 
 changeKeys.it(
-	"a subscriber using decoded NumberFromString key fields refreshes after the repository commits an update",
+	"a subscriber using decoded NumberFromString fields refreshes for the stored composite key after the repository commits an update",
 	[ownedRowsTable(), ownedDraft(), watchesOwnedDraft()],
 	function* ({ woken, writeOwned }) {
 		expect(yield* woken()).toEqual([]);
 
 		yield* writeOwned("update");
 
-		expect(yield* woken()).toEqual(["owned row 1/2"]);
+		expect(yield* woken()).toEqual(['record ["1","2"]']);
 	},
 );
 
 changeKeys.it(
-	"a subscriber using a decoded bigint key beyond Number precision refreshes after the repository commits an update",
+	"a subscriber using a decoded bigint beyond Number precision refreshes for the stored composite key after the repository commits an update",
 	[ledgerTable(), cashEntry(), watchesCashEntry()],
 	function* ({ woken, writeLedger }) {
 		expect(yield* woken()).toEqual([]);
 
 		yield* writeLedger("update");
 
-		expect(yield* woken()).toEqual(["cash entry"]);
+		expect(yield* woken()).toEqual(['record ["cash","9007199254740993"]']);
 	},
 );
 

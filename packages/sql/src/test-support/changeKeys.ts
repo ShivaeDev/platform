@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { compositeRecordKey } from "#compositeRecordKey.ts";
-import { type ChangeKeysEngine, changeKeysEngine } from "./changeKeysEngine.ts";
+import { type ChangeKeysEngine, changeKeysEngine, keyWords } from "./changeKeysEngine.ts";
 import { changeKeysVerbs, ID_BEYOND_NUMBER } from "./changeKeysVerbs.ts";
 import { compositeLedger, LedgerEntry } from "./compositeLedger.ts";
 import { onPostgres } from "./engines.ts";
@@ -90,7 +90,7 @@ export function watchesOwnedDraft() {
 		}
 		const row = yield* owned.rows.findById({ id: 1, ownerId: 2 });
 		const key = yield* compositeRecordKey(OwnedRow, { idColumn: ["id", "ownerId"], tableName: owned.tableName }, row);
-		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push("owned row 1/2"));
+		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push(keyWords(engine, key)));
 		yield* Effect.addFinalizer(() => Effect.sync(stop));
 	});
 }
@@ -103,7 +103,7 @@ export function watchesCashEntry() {
 		}
 		const row = yield* ledger.entries.findById({ account: "cash", sequence: ID_BEYOND_NUMBER });
 		const key = yield* compositeRecordKey(LedgerEntry, { idColumn: ["account", "sequence"], tableName: ledger.tableName }, row);
-		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push("cash entry"));
+		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push(keyWords(engine, key)));
 		yield* Effect.addFinalizer(() => Effect.sync(stop));
 	});
 }
