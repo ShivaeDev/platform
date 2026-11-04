@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { BetterAuthHardeningOptions } from "#server/better-auth/adapters/hardening.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
 import { authRequest, type HardeningHost, startHardeningHost } from "./hardeningHost.ts";
 
@@ -29,8 +29,8 @@ export const hardening = storyKit({
 			engine.host = yield* startHardeningHost(engine.hardening, engine.revokeSessions);
 		}),
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): Engine => ({ hardening: {}, headers: new Headers() }),
 	layer: postgres,
 	name: "Better Auth account hardening",

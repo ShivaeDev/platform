@@ -3,15 +3,15 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import * as TestClock from "effect/testing/TestClock";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AccountPreferenceValues } from "#accountPreferences.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { preferencesHost } from "./host.ts";
 
 export const preferences = storyKit({
-	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const host = yield* preferencesHost().pipe(Effect.provide(Reactivity.layer));
 		const alice = yield* signedInUser(host.auth, { email: "alice@preferences.test", name: "alice" });

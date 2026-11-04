@@ -1,8 +1,8 @@
-import { DateTime, Effect, Queue } from "effect";
+import { Effect, Queue } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { documents, liveSubscriptionEngine } from "./liveSubscriptionEngine.ts";
 import { DocumentRoles } from "./liveSubscriptionProvider.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
@@ -11,8 +11,8 @@ import { expireSession, signOut } from "./sessionLifecycle.ts";
 
 export function subscriptionStory(delivery: "hints" | "pushed") {
 	return storyKit({
-		around: withIsolatedDatabase,
-		clock: Effect.runSync(DateTime.now),
+		around: withIdentityDatabase,
+		clock: storyClock,
 		create: () => liveSubscriptionEngine(delivery),
 		layer: postgres,
 		name: `live subscription session (${delivery})`,

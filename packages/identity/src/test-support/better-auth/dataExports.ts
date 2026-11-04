@@ -5,13 +5,13 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { accountExport } from "#server/accountExport.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthUserDataExport } from "#server/better-auth/adapters/userDataExport.ts";
 import { mappedExportUser, storedExportAccount } from "#server/better-auth/test-support/exportAccounts.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 
 function domainExport(table: string) {
 	return {
@@ -24,8 +24,8 @@ function domainExport(table: string) {
 }
 
 export const dataExports = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const pool = yield* betterAuthDatabase();
 		const options = { database: pool, logger: { disabled: true }, secret: "user-export-story-secret-at-least-32-characters" };

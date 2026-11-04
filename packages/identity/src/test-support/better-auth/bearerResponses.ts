@@ -5,7 +5,7 @@ import { emptyMount, startMountHost } from "./mountHost.ts";
 
 export const bearerResponses = storyKit({
 	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provide(memoryStore)) },
-	clock: "live",
+	clock: "test",
 	create: () => ({ ...emptyMount(), bearerSessions: { origins: ["capacitor://localhost"] } }),
 	name: "browser responses behind bearer sessions",
 	stages: ["configured"],

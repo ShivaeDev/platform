@@ -2,10 +2,10 @@ import { Effect, Fiber, Queue, Redacted, Stream } from "effect";
 import { Migrator } from "effect/sql";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { machineTokenMigration } from "#server/adapters/machineTokenMigration.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { httpClient, socketClient } from "./clients.ts";
 import { ownerHost } from "./host.ts";
 
@@ -15,8 +15,8 @@ const postgres = makePostgresTestLayer({
 });
 
 export const ownerStory = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const host = yield* ownerHost();
 		const machine = yield* host.local.machines.issue({ name: "reader agent", scope: "reader" });

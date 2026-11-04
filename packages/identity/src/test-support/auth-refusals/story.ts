@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authCall } from "#client/adapters/authCall.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { ApplicationCode, type Refusals, refusalHost } from "./host.ts";
 
 export const authRefusalsStory = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const refusals: Refusals = { delivery: false, hook: false, policy: undefined, seed: false };
 		return { ...(yield* refusalHost(refusals)), refusals };

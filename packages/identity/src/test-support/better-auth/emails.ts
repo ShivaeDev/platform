@@ -3,9 +3,9 @@ import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigrat
 import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { emailHost } from "./emailHost.ts";
 
 interface Engine {
@@ -54,8 +54,8 @@ export const emails = storyKit({
 			engine.host = yield* emailHost(engine.window);
 		}),
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		yield* postgresMigration;
 		const engine: Engine = { headers: new Headers() };

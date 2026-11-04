@@ -3,8 +3,8 @@ import { Migrator, SqlClient } from "effect/sql";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { type AuthCall, sqlInterruptHost } from "./sqlInterruptHost.ts";
 
 const postgres = makePostgresTestLayer({
@@ -14,8 +14,8 @@ const postgres = makePostgresTestLayer({
 });
 
 export const authSql = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
 		return {
@@ -47,7 +47,7 @@ export const authSql = storyKit({
 			},
 			pendingQueries: (count: number) => {
 				story.tell(`PostgreSQL settles at ${count} auth queries waiting on the table lock`);
-				return observeUntil(waiting, (rows) => rows.length === count, `${count} pending auth queries`).pipe(
+				return observeUntil(waiting, (rows) => rows.length === count, `${count} pending auth queries`, { clock: "test" }).pipe(
 					Effect.map((rows) => rows.map((row) => row.waiting)),
 				);
 			},

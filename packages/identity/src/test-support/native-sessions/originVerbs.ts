@@ -72,7 +72,7 @@ export function originVerbs(host: Host, tell: (line: string) => void) {
 	});
 	function send(path: string, init: RequestInit) {
 		return Effect.promise(async () => {
-			const response = await fetch(`${host.baseUrl}${path}`, { ...init, credentials: "omit", signal: AbortSignal.timeout(5000) });
+			const response = await fetch(`${host.baseUrl}${path}`, { ...init, credentials: "omit" });
 			last = { body: await response.text(), headers: response.headers, status: response.status };
 			return last;
 		});

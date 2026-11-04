@@ -5,7 +5,6 @@ import { HttpRouter } from "effect/http";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -16,13 +15,14 @@ import {
 	removeForeignAuthTable,
 	storedForeignSchema,
 } from "#server/better-auth/test-support/foreignSchema.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 
 const ORIGIN = "http://localhost:3000";
 const Session = Schema.Struct({ user: Schema.Struct({ email: Schema.String, name: Schema.String }) });
 
 export const foreignMigrations = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const options = {
 			account: { modelName: "Account" },

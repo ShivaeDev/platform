@@ -3,9 +3,9 @@ import type { Observation } from "@shivaedev/changes/observe.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { directoryHost } from "./directoryHost.ts";
 import { mappedTables, pluginMappedTables } from "./mappedTables.ts";
 
@@ -20,8 +20,8 @@ function recordPublished(published: unknown[]) {
 
 function directoryKit(mapping: AuthTableOptions = {}, standalone = false) {
 	return storyKit({
-		around: withIsolatedDatabase,
-		clock: "live",
+		around: withIdentityDatabase,
+		clock: storyClock,
 		create: () => directoryHost(mapping, standalone),
 		layer: postgres,
 		name: "identity user directory",

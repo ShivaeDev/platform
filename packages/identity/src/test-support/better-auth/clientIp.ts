@@ -2,9 +2,9 @@ import { request } from "node:http";
 import { Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {
@@ -18,8 +18,8 @@ export const clientIp = storyKit({
 			engine.host = yield* clientIpHost(engine.env).pipe(Effect.provide(memoryStore));
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): Engine => ({ env: { "TRUSTED_PROXY": "127.0.0.1" } }),
 	inspect: (engine) => ({ env: engine.env, url: engine.host?.baseUrl }),
 	layer: postgres,
