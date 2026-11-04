@@ -12,6 +12,5 @@
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/retryWake.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/internal/testingOperation.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/schema.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/jobs/src/test-support/workers.ts","rule":"tests/wait-on-events","count":1}

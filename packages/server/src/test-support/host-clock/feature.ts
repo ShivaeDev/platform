@@ -5,9 +5,9 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { defineQueue, RetryAt } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import type { PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
+import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appHost.ts";
 
