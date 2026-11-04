@@ -1,5 +1,6 @@
 import { type Context, Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
+import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
 import { type PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions } from "#server/health.ts";
@@ -65,15 +66,25 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	TPayload["DecodingServices"]
 > {
 	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(PageOptions)(options);
-	const rows = yield* engine.listJobs(listing, queue.name, after, limit);
-	const decodedRows = yield* Schema.decodeUnknownEffect(Rows)(rows).pipe(
-		Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
-	);
-	const page = decodedRows.slice(0, limit);
-	const last = page.at(-1);
-	const next = decodedRows.length > limit && last !== undefined ? Option.some(Schema.encodeSync(Cursor)([last.cursorAt, last.id])) : Option.none();
+	const page = yield* keysetPage({
+		after,
+		cursorFor: (row: typeof Row.Type) => [row.cursorAt, row.id] as const,
+		limit,
+		orderBy: [{ column: "created_on", direction: "desc", value: (cursor) => cursor[0] }],
+		read: (query) =>
+			engine
+				.listJobs(listing, queue.name, query)
+				.pipe(
+					Effect.flatMap((rows) =>
+						Schema.decodeUnknownEffect(Rows)(rows).pipe(
+							Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
+						),
+					),
+				),
+		tieBreaker: { column: "id", direction: "desc", value: (cursor) => cursor[1] },
+	});
 	const jobs = yield* Effect.forEach(
-		page,
+		page.rows,
 		Effect.fnUntraced(function* ({ cursorAt: _, data, ...row }) {
 			const decoded = yield* decodeStoredData(queue, data);
 			const output = yield* readJobFailure(queue.name, row.output);
@@ -81,5 +92,5 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 			return { ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: redact(decoded), output, sourceOutput };
 		}),
 	);
-	return { jobs, next };
+	return { jobs, next: Option.map(page.next, Schema.encodeSync(Cursor)) };
 });

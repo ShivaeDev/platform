@@ -51,8 +51,6 @@ const github = yield* fakeGitHubApp({
 
 `server.requests` records method, path, headers and raw body; `server.scriptFault`, `hold` and the other fake HTTP controls drive rate limits and delayed or refused exchanges. Return rate-limit headers on routes or script a 403/429 reply with `retry-after` to exercise the real client's typed rate-limit handling. The kit does not simulate a GitHub database or interpret GraphQL queries: route replies describe the outside provider's data.
 
-For token-free scripted REST scenarios, `fakeGitHub` from `@shivaedev/test-kits/github/adapters/rest.ts` adds `reply(endpoint, body, { headers?, status? })`, ETag revalidation, a mutable core `budget` and recorded `requests`. Acquire its `serve` Effect and point the real client at the returned server. It uses the same provider as the App kit.
-
 `deliverWebhook(url, { body, event, deliveryId })` sends the exact body bytes over HTTP with GitHub event, delivery and HMAC signature headers, consumes the receiver's response and returns its status. Configure the receiver with `credentials.webhookSecret`; `credentials.webhookSignature(body)` is available for signature-specific stories. Drive token expiry and rate-limit time through the story clock. No client implementation is replaced.
 
 ### MCP bearer tokens

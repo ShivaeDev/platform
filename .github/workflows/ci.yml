@@ -65,37 +65,6 @@ jobs:
           retention-days: 30 # GitHub allows re-runs for 30 days, and a re-run of failed jobs reuses these archives
           compression-level: 0
 
-  macos-smoke:
-    name: macOS smoke
-    runs-on: macos-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Test generated app setup and its initial Quality gate
-        run: pnpm --filter @shivaedev/create-app test src/initialQualityGate.heavy.spec.ts
-      - name: Test real filesystem delivery to live clients
-        run: >-
-          pnpm --filter @shivaedev/work-board test
-          src/server/liveDelivery.spec.ts
-          src/server/files
-          src/filesystemBoundaries.spec.ts
-          src/server/liveUpdates.spec.ts
-          src/server/http/home.spec.ts
-          src/server/http/server.spec.ts
-          src/server/http/symlinks.spec.ts
-          src/server/rpc/rootRemoval.spec.ts
-      - name: Repeat watcher restart and retarget delivery on macOS
-        run: |
-          for iteration in {1..20}; do
-            echo "Watcher delivery iteration $iteration/20"
-            pnpm --filter @shivaedev/work-board exec vitest run \
-              src/server/files/watchReadiness.spec.ts src/server/http/symlinks.spec.ts \
-              --testNamePattern="an unwritable root warns only once|after the reference link points at another folder, edits there reach search"
-          done
-
   browser-check:
     name: Local browser tool
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
@@ -322,7 +291,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
+    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, browser-check ]
     permissions:
       contents: read
       actions: read

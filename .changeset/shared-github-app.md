@@ -4,4 +4,4 @@
 
 ### Added
 
-- Publish a scoped fake GitHub App with real HTTP installation-token exchanges, configurable REST and GraphQL routes, provider fault controls and signed webhook delivery for application stories, plus the scripted REST response and quota helper used by Fleet.
+- Publish a scoped fake GitHub App with real HTTP installation-token exchanges, configurable REST and GraphQL routes, provider fault controls and signed webhook delivery for application stories.

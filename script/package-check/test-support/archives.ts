@@ -6,7 +6,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkServer } from "#package-check/adapters/server.ts";
 import { checkPackedArchive } from "#package-check/archive.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";
-import cases from "#package-check/bin-cases.json" with { type: "json" };
 import { blockedEntries, exportEntries, packedFiles } from "#package-check/exports.ts";
 import { command } from "#package-check/io.ts";
 
@@ -49,9 +48,9 @@ export const archives = storyKit({
 			const fs = yield* FileSystem.FileSystem;
 			const unpacked = yield* fs.makeTempDirectoryScoped({ prefix: "packed-server-story-" });
 			yield* command(unpacked, "tar", ["-xzf", join(directory, "board.tgz")]);
-			return yield* checkServer(unpacked, process.execPath, ["package/server.js"], {
-				"/_board/react.js": cases["work-board"].pages["/_board/react.js"],
-			}).pipe(Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined }));
+			return yield* checkServer(unpacked, process.execPath, ["package/server.js"], { "/client.js": "data-client-root" }).pipe(
+				Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined }),
+			);
 		}),
 		verify: Effect.fn("PackageCheckStory.verify")(function* () {
 			return yield* verifyArchives(yield* workspaceArchives(root, directory), directory).pipe(
