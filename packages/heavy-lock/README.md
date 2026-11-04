@@ -16,7 +16,7 @@ The command that gets the lock runs. The next waits, names the holder, and runs 
 
 ### How to think about it
 
-A **holder** is the process that takes the lock and waits for its command. The lock file records that process's PID, its process start time, a fresh hold ID, the command, the working directory and when the hold began. PID and process start time together distinguish a live holder from a PID the operating system reused.
+A **holder** is the process that takes the lock and waits for its command. The lock file records that process's PID, its process start time, a fresh hold ID, the command, the working directory, its Git branch when available and when the hold began. PID and process start time together distinguish a live holder from a PID the operating system reused.
 
 A **hold** lasts until the owner's scope closes. Another caller using the same lock path waits while the holder is live. A dead holder, a mismatched process start time or an invalid holder file can be reclaimed. Release checks the hold ID before removing the file, so a caller cannot release a different holder's lock.
 
@@ -51,11 +51,12 @@ The wrapper waits for the lock, starts the command with inherited standard input
 A waiter prints to stderr when it starts waiting and reminds you every minute. After it acquires the lock, it prints how long it waited:
 
 ```text
-heavy-process lock: waiting for pid 41235 running `pnpm test` in /repo since 14:02:10 (1m 5s)
+heavy-process lock: waiting for pid 41235 running `pnpm test` in /repo on branch feature/users since 14:02:10 (1m 5s)
+heavy-process lock: waiting for pid 41235 running `pnpm test` in /repo on branch feature/users since 14:02:10 (15m 5s); holder may be hung
 heavy-process lock: acquired after 2m 0s
 ```
 
-The waiting line identifies the holder's PID, command and directory. The time is local; the duration in that line is the age of the hold. The acquired line measures this caller's wait.
+The waiting line identifies the holder's PID, command, directory and Git branch recorded when acquisition began. If Git is unavailable, the holder is outside a Git repository, HEAD is detached or an older participant supplies no branch, the branch is omitted. The time is local; the duration in that line is the age of the hold. Once the hold reaches 15 minutes, the line adds `holder may be hung`. The Effect API's `hungAfter` option changes that threshold. The warning appears at the next poll, even before a minute reminder, and repeats with subsequent reminders. It does not preempt the holder. The acquired line measures this caller's wait.
 
 | Exit code             | Meaning                                                                                   |
 | --------------------- | ----------------------------------------------------------------------------------------- |
@@ -142,11 +143,12 @@ Import the module that defines each name; there is no root entry.
 
 `HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID and selected lock path for children, including when an explicit `lockPath` overrides `HEAVY_PROCESS_LOCK`, and is empty when CI skips acquisition. Pass `held.env` to child processes so nested runs join the same hold. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
 
-| Option         | Meaning                                   | Default                                                            |
-| -------------- | ----------------------------------------- | ------------------------------------------------------------------ |
-| `command`      | Command description recorded for waiters. | This process's arguments after the executable, joined with spaces. |
-| `lockPath`     | File every participating caller shares.   | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`.       |
-| `pollInterval` | Delay between waiting attempts.           | One second.                                                        |
+| Option         | Meaning                                                                              | Default                                                            |
+| -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `command`      | Command description recorded for waiters.                                            | This process's arguments after the executable, joined with spaces. |
+| `lockPath`     | File every participating caller shares.                                              | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`.       |
+| `pollInterval` | Delay between waiting attempts.                                                      | One second.                                                        |
+| `hungAfter`    | Hold age before warning that the holder may be hung; accepts Effect duration inputs. | Fifteen minutes.                                                   |
 
 The package also exposes the modules that implement the shared protocol, such as `@shivaedev/heavy-lock/lockFile.ts`; the [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping: the lower-level `tryAcquire` registers no release finalizer, so its caller must release an acquired hold.
 
