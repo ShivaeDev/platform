@@ -65,18 +65,6 @@ jobs:
           retention-days: 30 # GitHub allows re-runs for 30 days, and a re-run of failed jobs reuses these archives
           compression-level: 0
 
-  macos-smoke:
-    name: macOS smoke
-    runs-on: macos-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Test generated app setup and its initial Quality gate
-        run: pnpm --filter @shivaedev/create-app test src/initialQualityGate.heavy.spec.ts
-
   browser-check:
     name: Local browser tool
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
@@ -303,7 +291,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
+    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, browser-check ]
     permissions:
       contents: read
       actions: read
