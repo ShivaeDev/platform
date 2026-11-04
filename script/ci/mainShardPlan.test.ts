@@ -28,6 +28,19 @@ planning.it("keeps the independent test plan when consumer timings are missing",
 });
 
 planning.it(
+	"retains older timings when the latest run could not collect final jobs",
+	[measuredQueue("empty newest snapshots")],
+	function* ({ planMain }) {
+		const plan = yield* planMain();
+
+		expect(plan).toEqual({
+			consumers: { artifactId: "4200", count: 5, runId: "42" },
+			tests: { artifactId: "4200", count: 4, runId: "42" },
+		});
+	},
+);
+
+planning.it(
 	"uses 25 test shards and eight consumer shards before the queue publishes snapshots",
 	[measuredQueue("missing snapshots")],
 	function* ({ planMain }) {
