@@ -1,10 +1,13 @@
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -45,6 +48,20 @@ export const adminSetup = storyKit({
 				story.tell(ownerAccounts === undefined ? "the app starts" : `the app starts with ${ownerAccounts} configured as owner`);
 				engine.host = yield* startHost(ownerAccounts === undefined ? {} : { ownerAccounts });
 			}),
+			seedCommandRuns: () =>
+				Effect.gen(function* () {
+					story.tell("the app runs pnpm db:seed");
+					const database = yield* PostgresTestDatabase;
+					const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+					return yield* spawner.exitCode(
+						ChildProcess.make("pnpm", ["db:seed"], {
+							env: { "BETTER_AUTH_SECRET": Redacted.value(secret), "DATABASE_URL": Redacted.value(database.url) },
+							extendEnv: true,
+							stderr: "inherit",
+							stdout: "inherit",
+						}),
+					);
+				}).pipe(Effect.provide(NodeServices.layer)),
 			signedInAccount: () => signedInAccount(host().baseUrl, engine.cookie),
 			signsIn: Effect.fn("AdminSetup.signsIn")(function* (email: string, password: string) {
 				story.tell(`${email} signs in with a password`);
