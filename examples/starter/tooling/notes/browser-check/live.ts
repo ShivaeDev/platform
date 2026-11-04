@@ -8,6 +8,7 @@ export const liveNotes = Effect.fn("Notes.liveNotes")(function* (
 	url: string,
 	folder: string,
 	credentials: { readonly email: string; readonly password: string },
+	afterSignOut: Effect.Effect<void> = Effect.void,
 ) {
 	const browser = yield* Browser;
 	const session = yield* browser.open;
@@ -41,9 +42,17 @@ export const liveNotes = Effect.fn("Notes.liveNotes")(function* (
 		return yield* new BrowserCheckError({ message: "The second tab navigated instead of updating its open notes list." });
 	}
 	yield* observer.screenshot(`${folder}/live-notes.png`);
-	// A quiet host revalidates the session every 30 seconds.
-	yield* Effect.all([rpcSocket.closed(35_000), writer.click({ name: "Sign out", role: "button" })], { concurrency: "unbounded" });
-	yield* writer.waitFor({ name: "Sign in", role: "heading" });
+	yield* Effect.all(
+		[
+			rpcSocket.closed(35_000),
+			Effect.gen(function* () {
+				yield* writer.click({ name: "Sign out", role: "button" });
+				yield* writer.waitFor({ name: "Sign in", role: "heading" });
+				yield* afterSignOut;
+			}),
+		],
+		{ concurrency: "unbounded" },
+	);
 	yield* observer.waitFor({ name: "Sign in", role: "heading" });
 	yield* observer.waitFor({ name: title, role: "link" }, "hidden");
 	yield* observer.screenshot(`${folder}/signed-out.png`);

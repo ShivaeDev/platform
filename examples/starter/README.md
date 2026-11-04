@@ -156,7 +156,7 @@ To exercise the live check on a disposable PostgreSQL database, set `TEST_DATABA
 pnpm test src/modules/notes/liveBrowser.slow.spec.ts --project slow
 ```
 
-The story starts the app host and Vite proxy on ephemeral ports, with an existing test account, and runs the same live check. It skips locally without `TEST_DATABASE_URL`; in CI missing configuration fails. A skipped run supplies no evidence. It covers awake Chromium tabs through the development proxy; production assets, tab sleep and other browsers are outside this check.
+The story starts the app host and Vite proxy on ephemeral ports, with an existing test account, and runs the same live check. After sign-out completes, it advances the host's controlled clock through the session revalidation interval. It skips locally without `TEST_DATABASE_URL`; in CI missing configuration fails. A skipped run supplies no evidence. It covers awake Chromium tabs through the development proxy; production assets, tab sleep and other browsers are outside this check.
 
 The slow project is opt-in and excluded from the app's normal tests and `pnpm ready`/`ci`. Platform's framework CI runs it in the browser-tool job; generated apps do not need a browser suite in CI.
 

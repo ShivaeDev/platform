@@ -1,9 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Effect, FileSystem, Layer, Result } from "effect";
+import { Config, DateTime, Effect, FileSystem, Layer, Result } from "effect";
 import { playwright } from "@shivaedev/browser-check/adapters/playwright.ts";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes } from "@shivaedev/test-story/server/watchedClock.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -26,7 +27,7 @@ const enabled = Effect.runSync(
 
 export const liveBrowser = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const auth = yield* sessionPrecondition(host);
@@ -44,7 +45,11 @@ export const liveBrowser = storyKit({
 	verbs: (engine, story) => ({
 		check: Effect.fn("LiveNotesStory.check")(function* () {
 			story.tell("alice runs the live-notes browser check against the app with her existing account");
-			const result = yield* checkLiveNotes(engine.url, engine.folder, credentials).pipe(Effect.scoped, Effect.result);
+			const revalidationIntervalPasses = Effect.suspend(() => {
+				story.tell("after alice signs out, the host's 30-second session revalidation interval passes on the controlled clock");
+				return passes("30 seconds", Effect.void);
+			});
+			const result = yield* checkLiveNotes(engine.url, engine.folder, credentials, revalidationIntervalPasses).pipe(Effect.scoped, Effect.result);
 			engine.outcome = Result.isFailure(result) ? result.failure.message : "passed";
 		}),
 		outcome: () => Effect.sync(() => engine.outcome),
