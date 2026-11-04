@@ -1,6 +1,13 @@
 import type { AgentSessionEvent, CreateAgentSessionOptions, PromptOptions } from "@earendil-works/pi-coding-agent";
 
-export function scriptedSession(options: CreateAgentSessionOptions, refusal: "preflight" | "unknown" | undefined, abortFails: boolean) {
+interface SessionScript {
+	readonly abortFails: boolean;
+	readonly held: boolean;
+	readonly persisted: boolean;
+	readonly prompted: () => void;
+	readonly refusal: "preflight" | "unknown" | undefined;
+}
+export function scriptedSession(options: CreateAgentSessionOptions, script: SessionScript) {
 	if (options.sessionManager === undefined) {
 		throw new Error("adapter supplied no session manager");
 	}
@@ -8,6 +15,7 @@ export function scriptedSession(options: CreateAgentSessionOptions, refusal: "pr
 	const listeners = new Set<(event: AgentSessionEvent) => void>();
 	const prompts: { delivery: string | undefined; text: string }[] = [];
 	const completions: (() => void)[] = [];
+	const acceptances: (() => void)[] = [];
 	const lifecycle: string[] = [];
 	const history = manager.buildSessionContext().messages;
 	function emit(event: AgentSessionEvent) {
@@ -19,6 +27,11 @@ export function scriptedSession(options: CreateAgentSessionOptions, refusal: "pr
 		}
 	}
 	return {
+		accept: () => {
+			for (const accept of acceptances.splice(0)) {
+				accept();
+			}
+		},
 		emit,
 		history,
 		lifecycle,
@@ -27,7 +40,7 @@ export function scriptedSession(options: CreateAgentSessionOptions, refusal: "pr
 		session: {
 			abort: () => {
 				lifecycle.push("abort");
-				return abortFails ? Promise.reject(new Error("scripted abort failure")) : Promise.resolve();
+				return script.abortFails ? Promise.reject(new Error("scripted abort failure")) : Promise.resolve();
 			},
 			dispose: () => {
 				lifecycle.push("dispose");
@@ -37,19 +50,27 @@ export function scriptedSession(options: CreateAgentSessionOptions, refusal: "pr
 			},
 			prompt: (text: string, promptOptions?: PromptOptions) => {
 				prompts.push({ delivery: promptOptions?.streamingBehavior, text });
-				if (refusal !== undefined) {
-					if (refusal === "preflight") {
+				script.prompted();
+				if (script.refusal !== undefined) {
+					if (script.refusal === "preflight") {
 						promptOptions?.preflightResult?.(false);
 					}
 					return Promise.reject(new Error("provider refused text"));
 				}
-				promptOptions?.preflightResult?.(true);
-				emit({ type: "agent_start" });
+				function accept() {
+					promptOptions?.preflightResult?.(true);
+					emit({ type: "agent_start" });
+				}
+				if (script.held) {
+					acceptances.push(accept);
+				} else {
+					accept();
+				}
 				return new Promise<void>((resolve) => {
 					completions.push(resolve);
 				});
 			},
-			sessionFile: manager.getSessionFile(),
+			sessionFile: script.persisted ? manager.getSessionFile() : undefined,
 			sessionId: manager.getSessionId(),
 			subscribe: (listener: (event: AgentSessionEvent) => void) => {
 				listeners.add(listener);

@@ -1,4 +1,4 @@
-import { Effect, Exit, Scope } from "effect";
+import { Effect, Exit, Fiber, Queue, Scope } from "effect";
 import { requireFeatures } from "@shivaedev/agent/agent.ts";
 import { Backend } from "@shivaedev/agent/backend.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -12,6 +12,27 @@ export const piAgent = storyKit({
 	stages: ["peer"],
 	verbs: (state, story) => ({
 		...piVerbs(state, story.tell),
+		accept: (name: string) =>
+			Effect.sync(() => {
+				const session = state.heldSessions.get(name);
+				if (session === undefined) {
+					throw new Error(`no pending Pi session for ${name}`);
+				}
+				session.accept();
+			}),
+		begin: (name: string, text: string) =>
+			Effect.gen(function* () {
+				const fiber = yield* state.connection.value.agent
+					.start({ cwd: state.directory, input: { parts: [{ text, type: "text" }] }, operationId: name })
+					.pipe(Effect.provideService(Scope.Scope, state.scope), Effect.forkScoped({ startImmediately: true }));
+				state.pendingStarts.set(name, fiber);
+				yield* Queue.take(state.peer.prompted);
+				const opened = state.peer.sessions.at(-1);
+				if (opened === undefined) {
+					return yield* Effect.die("no pending Pi session");
+				}
+				state.heldSessions.set(name, opened);
+			}),
 		close: () => Scope.close(state.scope, Exit.void),
 		closeResult: () => Scope.close(state.scope, Exit.void).pipe(Effect.matchCause({ onFailure: () => "close failed", onSuccess: () => "closed" })),
 		connect: () =>
@@ -22,6 +43,11 @@ export const piAgent = storyKit({
 					}),
 				),
 			),
+		join: (name: string) =>
+			Effect.suspend(() => {
+				const fiber = state.pendingStarts.get(name);
+				return fiber === undefined ? Effect.die(`no pending submission for ${name}`) : Fiber.join(fiber);
+			}),
 		models: () => state.connection.value.agent.models.list,
 		negotiate: (feature: "imageInput" | "transcript") =>
 			requireFeatures([feature]).pipe(
@@ -59,4 +85,11 @@ export const constrained = piAgent.trait("peer", "the application supplies a con
 
 export const abortFailure = piAgent.trait("peer", "Pi's abort fails", ({ peer }) => {
 	peer.abortFails = true;
+});
+
+export const heldPreflight = piAgent.trait("peer", "Pi holds preflight acceptance", ({ peer }) => {
+	peer.held = true;
+});
+export const noSessionFile = piAgent.trait("peer", "Pi returns no persistent session file", ({ peer }) => {
+	peer.noSessionFile = true;
 });

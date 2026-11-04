@@ -1,9 +1,10 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Effect, Exit, Layer, Scope } from "effect";
+import { Effect, Exit, type Fiber, Layer, Queue, Scope } from "effect";
 import { requireFeatures } from "@shivaedev/agent/agent.ts";
 import { Backend } from "@shivaedev/agent/backend.ts";
+import type { BackendFailure } from "@shivaedev/agent/failures.ts";
 import type { Receipt } from "@shivaedev/agent/run.ts";
 import type { PiOptions } from "#PiOptions.ts";
 import { pi } from "#pi.ts";
@@ -15,7 +16,7 @@ export const piState = Effect.fnUntraced(function* () {
 		(path) => Effect.promise(() => rm(path, { force: true, recursive: true })),
 	);
 	const scope = yield* Effect.acquireRelease(Scope.make(), (owned) => Scope.close(owned, Exit.void));
-	const peer = makePeer(directory);
+	const peer = makePeer(directory, yield* Queue.unbounded<void>());
 	installPeer(peer);
 	const options: { value: PiOptions } = { value: { skills: [join(directory, "skills")] } };
 	function connect() {
@@ -27,5 +28,16 @@ export const piState = Effect.fnUntraced(function* () {
 		});
 	}
 	const connection = { value: yield* connect() };
-	return { connect, connection, directory, options, peer, receipts: new Map<string, Receipt>(), results: new Map<string, string>(), scope };
+	return {
+		connect,
+		connection,
+		directory,
+		heldSessions: new Map<string, (typeof peer.sessions)[number]>(),
+		options,
+		peer,
+		pendingStarts: new Map<string, Fiber.Fiber<Receipt, BackendFailure>>(),
+		receipts: new Map<string, Receipt>(),
+		results: new Map<string, string>(),
+		scope,
+	};
 });

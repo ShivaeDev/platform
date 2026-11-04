@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { CreateAgentSessionOptions, DefaultResourceLoader, ModelRuntime } from "@earendil-works/pi-coding-agent";
+import { Queue } from "effect";
 import { vi } from "vitest";
 import { scriptedSession } from "#test/scriptedSession.ts";
 
@@ -8,15 +9,19 @@ type CatalogModel = Awaited<ReturnType<ModelRuntime["getAvailable"]>>[number];
 interface Peer {
 	abortFails: boolean;
 	directory: string;
+	held: boolean;
 	models: CatalogModel[];
+	noSessionFile: boolean;
+	prompted: Queue.Queue<void>;
 	refusal: "preflight" | "unknown" | undefined;
 	resources: { options: DefaultResourceLoaderOptions; reloaded: boolean }[];
 	sessions: ReturnType<typeof scriptedSession>[];
 }
-export function makePeer(directory: string): Peer {
+export function makePeer(directory: string, prompted: Queue.Queue<void>): Peer {
 	return {
 		abortFails: false,
 		directory,
+		held: false,
 		models: [
 			{
 				api: "anthropic-messages",
@@ -31,6 +36,8 @@ export function makePeer(directory: string): Peer {
 				reasoning: true,
 			} satisfies CatalogModel,
 		],
+		noSessionFile: false,
+		prompted,
 		refusal: undefined,
 		resources: [],
 		sessions: [],
@@ -52,7 +59,16 @@ vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => {
 	return {
 		...sdk,
 		createAgentSession: (options: CreateAgentSessionOptions) => {
-			const opened = scriptedSession(options, current().refusal, current().abortFails);
+			const peer = current();
+			const opened = scriptedSession(options, {
+				abortFails: peer.abortFails,
+				held: peer.held,
+				persisted: !peer.noSessionFile,
+				prompted: () => {
+					Queue.offerUnsafe(peer.prompted, undefined);
+				},
+				refusal: peer.refusal,
+			});
 			current().sessions.push(opened);
 			return Promise.resolve({ session: opened.session });
 		},

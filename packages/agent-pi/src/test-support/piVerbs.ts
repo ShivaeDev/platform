@@ -91,6 +91,7 @@ export function piVerbs(state: Effect.Success<ReturnType<typeof piState>>, tell:
 				return "accepted";
 			}).pipe(
 				Effect.catchTags({
+					"BackendUnavailable": (error) => Effect.succeed(`unavailable: ${error.message}`),
 					"ProtocolFailure": (error) => Effect.succeed(`protocol: ${error.message}`),
 					"Rejected": (error) => Effect.succeed(`rejected: ${error.message}`),
 					"UnknownAcceptance": (error) => Effect.succeed(`uncertain: ${error.operationId}`),

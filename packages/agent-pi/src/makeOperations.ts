@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Effect, Exit, Scope, Stream } from "effect";
 import { UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { Receipt, Reconciliation, StartRequest } from "@shivaedev/agent/run.ts";
 import { protocolFailure } from "#adapters/failure.ts";
@@ -17,11 +17,7 @@ export const makeOperations = Effect.fnUntraced(function* (options: PiOptions) {
 				: Effect.fail(protocolFailure("run is not open in this backend scope"));
 		});
 	}
-	const open = Effect.fnUntraced(function* (request: StartRequest, resume: string | undefined) {
-		if (evidence.has(request.operationId)) {
-			return yield* Effect.fail(protocolFailure("operation already attempted; reconcile instead"));
-		}
-		evidence.set(request.operationId, { operationId: request.operationId, reason: "submission has no acceptance evidence yet", type: "uncertain" });
+	const submit = Effect.fnUntraced(function* (request: StartRequest, resume: string | undefined) {
 		const run = yield* openSession(options, request, resume);
 		yield* run.prompt(textOf(request.input), "steer").pipe(
 			Effect.mapError((error) => {
@@ -41,6 +37,17 @@ export const makeOperations = Effect.fnUntraced(function* (options: PiOptions) {
 			}),
 		);
 		return run.receipt;
+	});
+	const open = Effect.fnUntraced(function* (request: StartRequest, resume: string | undefined) {
+		if (evidence.has(request.operationId)) {
+			return yield* Effect.fail(protocolFailure("operation already attempted; reconcile instead"));
+		}
+		evidence.set(request.operationId, { operationId: request.operationId, reason: "submission has no acceptance evidence yet", type: "uncertain" });
+		const runScope = yield* Scope.fork(yield* Effect.scope);
+		return yield* submit(request, resume).pipe(
+			Effect.provideService(Scope.Scope, runScope),
+			Effect.onError((cause) => Scope.close(runScope, Exit.failCause(cause))),
+		);
 	});
 	return {
 		events: (receipt: Receipt) => Stream.unwrap(lookup(receipt).pipe(Effect.map((run) => run.events))),

@@ -18,6 +18,7 @@
 		}
 	],
 	"agent-opencode": [{ "entries": ["./opencode.ts", "./tools.ts"], "fixtures": ["core.ts.txt"], "omitOptionalPeers": true, "run": ["core.ts"] }],
+	"agent-pi": [{ "entries": ["./pi.ts", "./PiOptions.ts"], "fixtures": ["core.ts.txt"], "omitOptionalPeers": true, "run": ["core.ts"] }],
 	"errors": [
 		{
 			"entries": ["./boundary.ts", "./taxonomy.ts"],

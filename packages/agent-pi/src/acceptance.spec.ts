@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { piAgent, refused, unknownAcceptance } from "#test/piStory.ts";
+import { heldPreflight, noSessionFile, piAgent, refused, unknownAcceptance } from "#test/piStory.ts";
 
 piAgent.it(
 	"successful preflight returns a receipt and matching acknowledgement before completion",
@@ -59,3 +59,26 @@ piAgent.it("missing recovery evidence stays uncertain without provider work", []
 		["provider requests", () => requests(), []],
 	]);
 });
+
+piAgent.it("held preflight stays uncertain until Pi accepts the submission", [heldPreflight], function* ({ begin, reconcile, accept, join }) {
+	yield* begin("alice", "work");
+	expect(yield* reconcile("alice")).toMatchObject({ type: "uncertain" });
+
+	yield* accept("alice");
+
+	expect(yield* join("alice")).toMatchObject({ backend: "pi", operationId: "alice" });
+});
+
+piAgent.it(
+	"an unpersisted SDK session is refused and released before start returns",
+	[noSessionFile],
+	function* ({ start, result, lifecycle, requests }) {
+		yield* start("alice", "work");
+
+		yield* outcomes([
+			["submission", () => result("alice"), "unavailable: Pi opened a session without a persisted file reference"],
+			["runtime release", () => lifecycle(), [["abort", "dispose"]]],
+			["prompt delivery", () => requests(), [{ prompts: [] }]],
+		]);
+	},
+);
