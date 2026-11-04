@@ -9,6 +9,14 @@ function exported(statement: ts.Statement): boolean {
 	return ts.canHaveModifiers(statement) && (ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false);
 }
 
+function runtimeReexport(node: ts.Node): boolean {
+	if (!ts.isExportDeclaration(node) || node.isTypeOnly) {
+		return false;
+	}
+	const clause = node.exportClause;
+	return clause === undefined || !ts.isNamedExports(clause) || clause.elements.length === 0 || clause.elements.some((item) => !item.isTypeOnly);
+}
+
 function serviceShape(file: SourceFile): readonly Finding[] {
 	const source = parse(file);
 	if (source === undefined) {
@@ -30,7 +38,7 @@ function serviceShape(file: SourceFile): readonly Finding[] {
 		&& declaration?.initializer !== undefined
 		&& ts.isIdentifier(declaration.name)
 		&& definitions[0] === unwrapExpression(declaration.initializer)
-		&& !source.statements.some((node) => ts.isExportAssignment(node) || (ts.isExportDeclaration(node) && !node.isTypeOnly));
+		&& !source.statements.some((node) => ts.isExportAssignment(node) || runtimeReexport(node));
 	return valid
 		? []
 		: [

@@ -44,6 +44,8 @@ A generated app includes a GitHub Actions workflow that runs `pnpm run ci` again
 
 Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup and CI command, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
 
+Published framework pins live in the generated workspace’s `framework` catalog; manifests reference them with `catalog:framework`. Review that catalog when upgrading framework versions, then run `pnpm install`. A template without a catalog keeps literal exact pins.
+
 ### Work in the app
 
 Run `pnpm run setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.

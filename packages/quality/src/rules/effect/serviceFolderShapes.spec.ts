@@ -34,6 +34,18 @@ ruleStory.it(
 	},
 );
 
+for (const exported of ['export type { Name } from "./name.ts";', 'export { type Name } from "./name.ts";']) {
+	ruleStory.it(
+		`service folders accepts the type-only re-export ${exported}`,
+		[repositoryHas(serviceFolderFile(`export const Mail = service({ id: "app/Mail" }); ${exported}`))],
+		function* ({ check }) {
+			const findings = yield* check(serviceFolders);
+
+			expect(findings).toEqual([]);
+		},
+	);
+}
+
 for (const [name, code] of [
 	["a hidden service", 'const Mail = service({ id: "app/Mail" });'],
 	["a default export", 'export default service({ id: "app/Mail" });'],
@@ -42,6 +54,7 @@ for (const [name, code] of [
 	["an additional runtime export", 'export const Mail = service({ id: "app/Mail" }); export const other = 1;'],
 	["two services", 'export const Mail = service({ id: "app/Mail" }); const Other = service({ id: "app/Other" });'],
 	["a runtime re-export", 'export const Mail = service({ id: "app/Mail" }); export { send } from "./send.ts";'],
+	["a mixed re-export", 'export const Mail = service({ id: "app/Mail" }); export { type Name, send } from "./send.ts";'],
 ] as const) {
 	ruleStory.it(`service folders reports ${name}`, [repositoryHas(serviceFolderFile(code))], function* ({ check }) {
 		const findings = yield* check(serviceFolders);

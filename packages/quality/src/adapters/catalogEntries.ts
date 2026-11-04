@@ -22,7 +22,7 @@ const MEMBER = /^(?<indent> +)(?:"(?<double>[^"]+)"|'(?<single>[^']+)'|(?<plain>
 
 function scalar(text: string): string {
 	return text
-		.replace(/\s+#.*$/u, "")
+		.replace(/(?:^|\s+)#.*$/u, "")
 		.trim()
 		.replace(/^["']|["']$/gu, "");
 }

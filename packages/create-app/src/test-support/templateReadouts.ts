@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
+import { catalogEntries } from "@shivaedev/quality/adapters/catalogEntries.ts";
 import { decodeTemplate } from "#template.ts";
 import type { Engine } from "./generate.ts";
 
@@ -35,6 +36,17 @@ export function templateReadouts(engine: Engine) {
 		packedBytes: (path: string) => Effect.sync(() => packed().get(path) ?? "not packed"),
 		packedFile: (path: string) => Effect.sync(() => packedText(path)),
 		packedFiles: () => Effect.sync(() => Object.fromEntries([...packed()].map(([path, content]) => [path, content.toString()]))),
+		packedFrameworkPins: (names: readonly string[]) =>
+			Effect.sync(() =>
+				pick(
+					Object.fromEntries(
+						catalogEntries(packedText("pnpm-workspace.yaml"))
+							.entries.filter((entry) => entry.catalog === "framework")
+							.map((entry) => [entry.name, entry.version]),
+					),
+					names,
+				),
+			),
 		packedManifest: () => Effect.sync(() => decodeManifest(packedText("package.json"))),
 		packedRanges: (names: readonly string[]) => Effect.sync(() => pick(rangesOf(packedText("package.json")), names)),
 		packedScript: (name: string) => Effect.sync(() => decodeManifest(packedText("package.json")).scripts?.[name] ?? "no such script"),

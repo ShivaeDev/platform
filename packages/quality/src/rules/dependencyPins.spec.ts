@@ -158,3 +158,18 @@ ruleStory.it(
 		expect(findings).toEqual([]);
 	},
 );
+
+ruleStory.it(
+	"dependency pins accepts quoted and commented catalog headings",
+	[
+		repositoryHas(dependencyManifest("dependencies", "catalog:runtime"), {
+			content: '"catalog": # default versions\n  unused: 1.0.0\n"catalogs": # named versions\n  runtime:\n    effect: 4.0.6\n',
+			path: "pnpm-workspace.yaml",
+		}),
+	],
+	function* ({ check }) {
+		const findings = yield* check(manifestsDependencyPins);
+
+		expect(findings).toEqual([]);
+	},
+);

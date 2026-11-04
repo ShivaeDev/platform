@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import { Schema } from "effect";
+import { frameworkCatalog, frameworkDependencies } from "#adapters/frameworkCatalog.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
@@ -87,16 +88,20 @@ export function registryDependencies(dependencies: Readonly<Record<string, strin
 	);
 }
 
-export function prepareManifest(source: string, versions: Readonly<Record<string, string>>, minimal = false) {
+export function prepareManifest(source: string, versions: Readonly<Record<string, string>>, minimal = false, cataloged = false) {
 	const manifest = decodeManifest(source);
 	const { "check:published": _check, ...scripts } = manifest.scripts;
 	const prepared = {
 		...manifest,
-		dependencies: registryDependencies(
-			Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !minimal || name !== "@tanstack/react-table")),
-			versions,
+		dependencies: frameworkDependencies(
+			manifest.dependencies,
+			registryDependencies(
+				Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !minimal || name !== "@tanstack/react-table")),
+				versions,
+			),
+			cataloged,
 		),
-		devDependencies: registryDependencies(manifest.devDependencies, versions),
+		devDependencies: frameworkDependencies(manifest.devDependencies, registryDependencies(manifest.devDependencies, versions), cataloged),
 		scripts: Object.fromEntries(
 			Object.entries(scripts)
 				.filter(([name]) => !minimal || name !== "browser-check:live-notes")
@@ -106,12 +111,15 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 	return manifestJson(prepared);
 }
 
-export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
+export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>, cataloged = false) {
 	if (["src/test-support/admin/command.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"--conditions=@shivaedev/source", ', ""));
 	}
 	if (path === "package.json") {
-		return Buffer.from(prepareManifest(content.toString(), versions));
+		return Buffer.from(prepareManifest(content.toString(), versions, false, cataloged));
+	}
+	if (path === "pnpm-workspace.copy.yaml" && cataloged) {
+		return Buffer.from(frameworkCatalog(content.toString(), versions));
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('["@shivaedev/source"]', "[]"));

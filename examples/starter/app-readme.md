@@ -1,12 +1,12 @@
 # {{appName}}
 
-A notes application built on the ShivaeDev framework, with PostgreSQL persistence, authenticated RPC, React forms and a background word-count worker. Each account sees its own notes.
+An application built on the ShivaeDev framework, with PostgreSQL persistence, authenticated RPC and React forms. The notes example includes a background word-count worker and private per-account notes. Apps generated with `--minimal` start without that example.
 
 ```tsx
 const query = useQuery(client.api.list.query());
 ```
 
-The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
+A module’s shared contract lives beside its implementation, such as `<module>/notes.ts` in the notes example. Server code lives in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
 To remove the example, delete `src/modules/notes` and `tooling/notes` and remove the module’s imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, remove the `browser-check:live-notes` script from `package.json`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
 
@@ -35,6 +35,8 @@ pnpm ready
 Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The foundation’s story kits live in `src/test-support`; the notes module’s kits live in `src/modules/notes/test-support` and cover its PostgreSQL, HTTP, schema and happy-dom behavior. Extend those kits for new features. Pass a `replacements` Layer to `applicationHost` or `applicationWorker` to supply fake services over the real ones, for example `Layer.succeed(JobsClientFactory, testing.clientFactory)` for the queue client factory. `pnpm ready` runs the same peer, lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
 
 The app depends on [`@shivaedev/platform`](https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme), which brings every runtime piece of the framework, and on `@shivaedev/test-story`, `@shivaedev/test-kits` and `@shivaedev/quality` for development. Import each piece by its own name, such as `@shivaedev/sql/repository.ts`, without listing it in `package.json`; `publicHoistPattern` in `pnpm-workspace.yaml` makes the pieces resolvable, and `pnpm lint` rejects a piece listed beside the entry point that brings it.
+
+Published framework versions are pinned in the `framework` catalog of `pnpm-workspace.yaml`; `package.json` refers to them with `catalog:framework`. Keep dependency pins in their catalogs when upgrading.
 
 The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file <path>` only to record findings for a new rule added by a Quality upgrade. Select only files changed since `HEAD`, staging new files first. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app. Never raise a baseline to make a check pass.
 
@@ -92,7 +94,7 @@ The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NA
 
 An `admin/` path segment marks admin-only code. Put a wholly admin-only feature under `src/modules/admin/<name>`. Admin tools for a member feature stay in that module: browser-safe declarations in `admin/`, reads and handlers in `server/admin/`, and bindings and views in `client/admin/`. Each module reads only its own tables; compose its exposed operations when another module needs its data. Permissions enforce access.
 
-To add a page, follow the note-statistics example: author its `adminPage` contract in `src/modules/notes/admin/pages.ts`, pair handlers with `registerAdmin` in `src/modules/notes/server/admin/registration.ts`, attach that result as the server module’s `admin` field and add its React route in `src/modules/notes/client/admin/registration.tsx`. The all-user read stays in `src/modules/notes/server/admin/readStatistics.ts`, inside the module that owns the notes table. Views live outside the stock shadcn folder and upgrade through create-app's three-way updater. Retry is opt-in: register `jobsPageWithRetry` and `jobsHandlersWithRetry`, bind that contract, and pass a runtime action for `retry.run` to `JobsView`.
+To add a page, follow the note-statistics pattern (included with the notes example): author its `adminPage` contract in `<module>/admin/pages.ts`, pair handlers with `registerAdmin` in `<module>/server/admin/registration.ts`, attach that result as the server module’s `admin` field and add its React route in `<module>/client/admin/registration.tsx`. The all-user read stays in `<module>/server/admin/readStatistics.ts`, inside the module that owns the notes table. Views live outside the stock shadcn folder and upgrade through create-app's three-way updater. Retry is opt-in: register `jobsPageWithRetry` and `jobsHandlersWithRetry`, bind that contract, and pass a runtime action for `retry.run` to `JobsView`.
 
 `/admin/users` lists names, email addresses, roles and sign-up times for callers with `users.read`. Callers with `roles.assign` choose each user's single role from the code-defined role set; the server refuses to remove its final role assigner. The bootstrap command creates an `owner` with all admin domain permissions. Existing apps receive the route wiring through the create-app updater; migrate stored comma-separated roles to one declared role string before starting the new app. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. This app disables Better Auth's browser endpoints for setting roles, updating users and creating users so role writes use the guarded native contract; the server-side bootstrap API remains available.
 
