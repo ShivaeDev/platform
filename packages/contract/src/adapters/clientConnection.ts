@@ -11,14 +11,27 @@ export function clientConnection(factory: Atom.RuntimeFactory, publish: (status:
 		(values): ConnectionStatus =>
 			[...values.values()].some(({ connection }) => connection === "connecting" || connection === "reconnecting") ? "reconnecting" : "live",
 	);
-	const debounced = factory(Layer.empty).atom((get) =>
-		get.stream(current).pipe(
-			Stream.changes,
-			Stream.debounce("300 millis"),
-			Stream.tap((value) => Effect.sync(() => publish(value))),
-			Stream.ensuring(Effect.sync(() => publish("live"))),
-		),
-	);
-	const status = Atom.map(debounced, (result) => Option.getOrElse(AsyncResult.value(result), (): ConnectionStatus => "live"));
+	const runtime = factory(Layer.empty);
+	const status = Atom.make((get): ConnectionStatus => {
+		const context = AsyncResult.value(get(runtime));
+		if (Option.isNone(context)) {
+			return "live";
+		}
+		const cancel = Effect.runCallbackWith(context.value)(
+			get.stream(current).pipe(
+				Stream.changes,
+				Stream.debounce("300 millis"),
+				Stream.runForEach((value) =>
+					Effect.sync(() => {
+						publish(value);
+						get.setSelf(value);
+					}),
+				),
+				Effect.ensuring(Effect.sync(() => publish("live"))),
+			),
+		);
+		get.addFinalizer(cancel);
+		return "live";
+	});
 	return { status, statuses };
 }
