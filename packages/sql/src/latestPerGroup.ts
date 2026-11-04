@@ -2,9 +2,12 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { Fragment } from "effect/sql/Statement";
+import { groupColumns } from "#adapters/groupColumns.ts";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import { pinnedGroups } from "#pinnedGroups.ts";
 import type { LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import { tupleUnnest } from "#tupleUnnest.ts";
 
 function groupMasks(input: readonly (readonly unknown[])[]) {
@@ -20,6 +23,7 @@ function groupMasks(input: readonly (readonly unknown[])[]) {
 
 export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tableName: string) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const { fieldAt, where } = yield* makeFilter(model);
 	function groupSource(groups: readonly (readonly unknown[])[], partitionBy: readonly string[], fromTuple: boolean) {
 		const partitions = sql.csv(partitionBy.map((key) => sql`${sql(key)}`));
@@ -37,7 +41,7 @@ export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tab
 		const predicate = yield* where(query.where, true);
 		const partitions = sql.csv(query.partitionBy.map((key) => sql`${sql(key)}`));
 		const keys = Object.keys(model.fields);
-		const columns = sql.csv(keys.map((key) => sql`${sql(key)}`));
+		const columns = sql.csv(groupColumns(model.fields, keys).map(({ column }) => sql`${sql(column)}`));
 		const pinned = yield* pinnedGroups(model, query.partitionBy, query.where).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 		if (pinned !== undefined && pinned.groups.length === 0) {
 			return [];
@@ -70,7 +74,7 @@ export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tab
 			const ordering = sql.csv(query.orderBy.map(({ field, direction }) => sql`${sql(field)} ${sql.literal(direction === "desc" ? "desc" : "asc")}`));
 			const rows =
 				yield* sql`${tupleSource} select ${columns} from (${sql.join(" union all ")(branches)}) as ${sql("__effect_sql_pinned")} order by ${partitions}, ${ordering}`;
-			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(model.fields)))(rows);
+			return yield* Schema.decodeUnknownEffect(Schema.Array(storageSchema(Schema.Struct(model.fields), model.fields, nameTransforms)))(rows);
 		}
 		let rankColumn = "__effect_sql_rank";
 		while (Object.hasOwn(model.fields, rankColumn)) {
@@ -81,6 +85,6 @@ export const latestPerGroup = Effect.fnUntraced(function* (model: Model.Any, tab
 			from ${sql(tableName)} where ${predicate}
 		) as ${sql("__effect_sql_ranked")} where ${sql(rankColumn)} <= ${rowLimit}
 		order by ${partitions}, ${sql(rankColumn)}`;
-		return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(model.fields)))(rows);
+		return yield* Schema.decodeUnknownEffect(Schema.Array(storageSchema(Schema.Struct(model.fields), model.fields, nameTransforms)))(rows);
 	});
 });

@@ -10,7 +10,8 @@ import { repositoryChanges } from "#repositoryChanges.ts";
 import { type BucketRegistrationError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
-import { type IdColumn, makeVersionedWrites, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
+import type { VersionedRepositoryShape } from "#VersionedRepositoryShape.ts";
+import { type IdColumn, makeVersionedWrites, type VersionColumn } from "#versionedRepository.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
@@ -41,39 +42,37 @@ export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConc
 	readonly reason: "missing" | "stale";
 }> {}
 
-type VersionedRepository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = Omit<
-	Repository<TModel, TId>,
-	keyof VersionedWrites<TModel, TId>
-> &
-	VersionedWrites<TModel, TId> &
-	Queries<TModel>;
-
 export function makeRepository<
 	TModel extends Model.Any,
 	const TId extends PrimaryKey<TModel>,
 	const TConflict extends ConflictColumns<TModel>,
 	const TWhere extends keyof RepositoryFilter<TModel> = never,
+	const TVersion extends VersionColumn<TModel, TId> = VersionColumn<TModel, TId>,
 >(
 	model: TModel,
 	options: RepositoryOptions<TId> & {
-		readonly versionColumn: VersionColumn<TModel, TId>;
+		readonly versionColumn: TVersion;
 		readonly conflictColumns: TConflict;
 		readonly conflictWhere?: Pick<RepositoryFilter<TModel>, TWhere>;
 	},
 ): Effect.Effect<
-	VersionedRepository<TModel, TId> &
+	VersionedRepositoryShape<TModel, TId, TVersion> &
 		Pick<ConflictWrites<TModel, never, TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]>, "insertOrIgnore">,
 	BucketRegistrationError,
 	SqlClient.SqlClient
 >;
-export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
+export function makeRepository<
+	TModel extends Model.Any,
+	const TId extends PrimaryKey<TModel>,
+	const TVersion extends VersionColumn<TModel, TId> = VersionColumn<TModel, TId>,
+>(
 	model: TModel,
 	options: RepositoryOptions<TId> & {
-		readonly versionColumn: VersionColumn<TModel, TId>;
+		readonly versionColumn: TVersion;
 		readonly conflictColumns?: never;
 		readonly conflictWhere?: never;
 	},
-): Effect.Effect<VersionedRepository<TModel, TId>, BucketRegistrationError, SqlClient.SqlClient>;
+): Effect.Effect<VersionedRepositoryShape<TModel, TId, TVersion>, BucketRegistrationError, SqlClient.SqlClient>;
 export function makeRepository<
 	TModel extends Model.Any,
 	const TId extends PrimaryKey<TModel>,

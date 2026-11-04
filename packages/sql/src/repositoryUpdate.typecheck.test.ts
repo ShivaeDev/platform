@@ -18,6 +18,7 @@ class Row extends Model.Class<Row>("Row")({
 	name: Name,
 	note: Schema.optionalKey(Schema.String),
 	owner: Schema.String,
+	sequence: Model.Field({ select: Schema.Int, update: Schema.Int }),
 	updatedAt: Model.DateTimeUpdateFromDate,
 	version: Model.Field({ select: Schema.Int, update: Schema.Int }),
 }) {}
@@ -65,8 +66,12 @@ const program = Effect.gen(function* () {
 	const versioned = yield* makeRepository(Row, { ...options, versionColumn: "version" });
 	versioned.update(row);
 	versioned.updateVoid(row);
-	// @ts-expect-error Column selection cannot bypass optimistic concurrency.
-	versioned.update(row, { columns: ["name"] });
+	versioned.update({ id: 1, name: "Published", version: 0 }, { columns: ["name"] });
+	versioned.updateVoid({ id: 1, name: "Published", version: 0 }, { columns: ["name"] });
+	// @ts-expect-error Chosen-column versioned writes require an expected version.
+	versioned.update({ id: 1, name: "Published" }, { columns: ["name"] });
+	// @ts-expect-error Version is a predicate, never an assignment.
+	versioned.update(row, { columns: ["version"] });
 });
 
 it("repository update inputs retain model fields and services", () => {
