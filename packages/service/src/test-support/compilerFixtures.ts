@@ -73,7 +73,7 @@ function compileInvalidFixture(fixture: InvalidFixture): Compilation {
 		"Bundler",
 		"--allowImportingTsExtensions",
 		"--customConditions",
-		"source",
+		"@shivaedev/source",
 		`src/test-support/fixtures/invalid/${fixture}.ts`,
 	]);
 	return { declaration: "", errors };
