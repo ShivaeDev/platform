@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-04
+
+### Added
+
+- Expose the existing Vitest runner `open` operation and its `RunOptions` type from `/adapters/open.ts`.
+
 ## 0.5.1 - 2026-11-04
 
 ### Changed
