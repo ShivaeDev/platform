@@ -5,11 +5,11 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceAccount, approvalRequested, bobAccount, deliveryHeld, emails, twoMinuteWindow, twoMounts } from "#test/better-auth/emails.ts";
 
 for (const [kind, path] of [
-	["ConfirmAccount", "/confirm-account"],
+	["ConfirmAccount", "/confirm-account?callbackURL=%2F"],
 	["ResetPassword", "/reset-password?from=email"],
 	["AccountAlreadyExists", "/sign-in?from=email"],
-	["ApproveEmailChange", "/approve-email-change"],
-	["ConfirmNewAddress", "/confirm-new-address"],
+	["ApproveEmailChange", "/approve-email-change?callbackURL=%2F"],
+	["ConfirmNewAddress", "/confirm-new-address?callbackURL=%2F"],
 ] as const) {
 	const change = kind === "ApproveEmailChange" || kind === "ConfirmNewAddress";
 	const traits = [aliceAccount(change), ...(kind === "ConfirmNewAddress" ? [approvalRequested] : [])];
