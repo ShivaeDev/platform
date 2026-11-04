@@ -74,7 +74,6 @@ catalog:
   "@better-auth/oauth-provider": 1.7.14
   better-auth: 1.7.14
   pg-boss: 12.38.0
-  satteri: 0.11.5
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
@@ -89,8 +88,6 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
-  # Renovate security update: @modelcontextprotocol/sdk@1.32.0
-  - "@modelcontextprotocol/sdk@1.32.0"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
