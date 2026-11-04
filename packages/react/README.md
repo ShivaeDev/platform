@@ -934,6 +934,41 @@ const minutesAgo = Math.floor((now - savedAt) / 60_000);
 
 Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
 
+#### Ids, time and promises in callbacks
+
+`useNewId(runtime?)` from `@shivaedev/react/client/adapters/useNewId.ts` returns a UUIDv4 generator. `useClock(runtime?)` from `@shivaedev/react/client/adapters/useClock.ts` returns a `now()` callback that reads epoch milliseconds when called. Both read services from the supplied atom runtime in the current registry and can be used in state initializers and event handlers:
+
+```tsx
+import { useState } from "react";
+import { useClock } from "@shivaedev/react/client/adapters/useClock.ts";
+import { useNewId } from "@shivaedev/react/client/adapters/useNewId.ts";
+
+const newId = useNewId(client.runtime);
+const now = useClock(client.runtime);
+const [id] = useState(newId);
+const [createdAt] = useState(now);
+const stamp = () => ({ id: newId(), at: now() });
+```
+
+These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded Crypto. The hooks use native atom suspense while the runtime builds. The supplied Crypto's UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto`, a Web Crypto Layer from `@shivaedev/react/client/adapters/crypto.ts`. Provide that Layer to an application's runtime when it needs browser Crypto; it uses `crypto.getRandomValues` and `crypto.subtle.digest`.
+
+`usePromiseAction(() => promise, options?)` from `@shivaedev/react/client/adapters/usePromiseAction.ts` returns the same state as `useAction`, with `dispatch()` taking no input. It runs the callback on dispatch, keeps its atom across rerenders and calls the latest committed callback. A promise rejection or synchronous throw becomes `Cause.UnknownError` by default. Supply `catch` to map the unknown cause into an application's typed failure:
+
+```tsx
+import { usePromiseAction } from "@shivaedev/react/client/adapters/usePromiseAction.ts";
+
+const copy = usePromiseAction(() => navigator.clipboard.writeText(text), {
+	catch: (cause) => new ClipboardDenied({ reason: String(cause) }),
+});
+const button = (
+	<button disabled={copy.pending} onClick={() => copy.dispatch()}>
+		Copy
+	</button>
+);
+```
+
+These lines belong inside a component; `text` and `ClipboardDenied` belong to the application. Read the success from `copy.data` and the typed failure from `copy.cause` or `copy.result`. The helper runs through a native action atom and adds no promise cancellation adapter.
+
 #### Render tests in happy-dom
 
 Use `@shivaedev/test-story/client/adapters/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
