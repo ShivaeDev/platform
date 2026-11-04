@@ -5,6 +5,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Config, Console, Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
+import { frozenPasses } from "#release/adapters/frozenPasses.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
 import { git as releaseGit } from "./git.ts";
@@ -21,7 +22,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 		yield* (yield* FileSystem.FileSystem).writeFileString(join(root, ".changeset/release-base"), `${yield* git("rev-parse", "HEAD")}\n`);
 	});
 	const { pull, head, hold } = yield* github.snapshot();
-	if (hold !== undefined) {
+	if (hold !== undefined && (yield* frozenPasses(root, head))) {
 		return `held: ${hold}`;
 	}
 	yield* git("switch", "-C", "release/next", "origin/main");

@@ -75,6 +75,10 @@ export default defineConfig({
 		"boundaries/http-status": {
 			options: {
 				edge: [
+					{
+						glob: "packages/discord/src/adapters/restStatus.ts",
+						reason: "Discord's REST adapter classifies provider rate limits before reading their retry delay.",
+					},
 					{ glob: "packages/github/src/status.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
 					{ glob: "packages/identity/src/server/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
 					{

@@ -10,6 +10,7 @@ import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
+import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
 import { serviceDefinitionAssembly } from "#rules/effect/serviceDefinitionAssembly.ts";
 import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
@@ -39,6 +40,7 @@ import { importedChangeKeys } from "#rules/stories/importedChangeKeys.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noExpect } from "#rules/stories/noExpect.ts";
 import { noLimitImports } from "#rules/stories/noLimitImports.ts";
+import { positiveRefusals } from "#rules/stories/positiveRefusals.ts";
 import { queueReadouts } from "#rules/stories/queueReadouts.ts";
 import { queueSql } from "#rules/stories/queueSql.ts";
 import { storySetup } from "#rules/stories/setup.ts";
@@ -68,6 +70,7 @@ export const builtInRules = [
 	adapterImports,
 	effectBoundary,
 	failureHonesty,
+	rpcBoundary,
 	serviceDefinitionAssembly,
 	serviceIds,
 	serviceParameters,
@@ -126,6 +129,7 @@ export const builtInRules = [
 	namedValues,
 	noLimitImports,
 	domainOutcomes,
+	positiveRefusals,
 	groupedOutcomes,
 	waitOnEvents,
 ] as const;

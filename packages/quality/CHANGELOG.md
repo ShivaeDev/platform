@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.59.0 - 2026-11-04
+
+### Added
+
+- `appViteConfig` accepts `{ webPort, apiPort }` as its fourth argument. Omitted ports read `VITE_PORT` and `PORT` respectively, falling back to 5173 and 3000.
+- `tests/positive-refusals` reports negative-only `toBe` and `toEqual` checks on outcome readouts. Pair them with a positive domain reason or public response on the same outcome in the same story, including an `outcomes` row.
+- Report `rpcBoundary` and `rpcBoundaryHandlers` outside modules that build native RPC handlers, keeping service failures typed until the handler edge.
+- Enforce service definitions as operation inventories with imported initializers, operations and state factories, including marked generic methods.
+
+### Breaking
+
+- Import `ImportAnalysisFailure` from `@shivaedev/quality/adapters/ImportAnalysisFailure.ts` instead of `@shivaedev/quality/adapters/ImportCompiler.ts`.
+
 ## 0.58.0 - 2026-11-04
 
 ### Added

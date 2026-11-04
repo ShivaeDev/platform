@@ -1,5 +1,7 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import { type GitHub, read, write } from "#GitHub.ts";
+import type { GitHub } from "#GitHub.ts";
+import { read } from "#read.ts";
+import { write } from "#write.ts";
 import { PullRequest } from "./fixtures.ts";
 
 class TitlePrefix extends Context.Service<TitlePrefix, string>()("@shivaedev/github/test/ResponseTitlePrefix") {}

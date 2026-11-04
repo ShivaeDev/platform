@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { decisionPublicationFailsOnce, workerAcknowledgementLost } from "#test/engineLaunchTraits.ts";
 import { checksRequestRepair, noChangeChecksFailOnce } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
@@ -16,9 +15,8 @@ describe("Fleet recovery", () => {
 			const intent = yield* fleet.dispatch("one");
 			expect(intent.value.step).toBe("working");
 			expect(intent.value.attempts[0]?.receipt).toBeUndefined();
-			yield* afterRestart(
+			yield* afterRestart((restarted) =>
 				Effect.gen(function* () {
-					const restarted = yield* Fleet;
 					const adopted = yield* restarted.reconcile("one");
 					expect(adopted.value.attempts[0]?.receipt?.turnId).toBe("turn-operation-1");
 				}),

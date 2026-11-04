@@ -1,6 +1,6 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Console, Effect, Schema } from "effect";
-import { read } from "@shivaedev/github/GitHub.ts";
+import { read } from "@shivaedev/github/read.ts";
 import { JobTiming, jobTiming } from "#ci/adapters/jobTiming.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
 

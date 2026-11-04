@@ -1,90 +1,23 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { checkFailures } from "#checkFailures.ts";
-import { confirmQueue } from "./confirmQueue.ts";
-import { GitHubHttp } from "./GitHubHttp.ts";
-import { type Options, type Snapshot, WatchError } from "./model.ts";
+import { confirmQueue } from "#GitHub/confirmQueue.ts";
+import { delay } from "#GitHub/delay.ts";
+import { discover } from "#GitHub/discover.ts";
+import { pacing } from "#GitHub/pacing.ts";
+import { queue } from "#GitHub/queue.ts";
+import { snapshot } from "#GitHub/snapshot.ts";
+import { GitHubHttp } from "#GitHubHttp.ts";
 
-type QueueConfirmation = Effect.Effect<
-	Snapshot | undefined,
-	Effect.Error<ReturnType<typeof confirmQueue>>,
-	Effect.Services<ReturnType<typeof confirmQueue>>
->;
-
-const Pull = Schema.Struct({
-	autoMerge: Schema.NullOr(Schema.Struct({ mergeMethod: Schema.String }).pipe(Schema.encodeKeys({ mergeMethod: "merge_method" }))),
-	head: Schema.Struct({ ref: Schema.String, sha: Schema.String }),
-	mergeable: Schema.NullOr(Schema.Boolean),
-	mergeableState: Schema.String,
-	merged: Schema.Boolean,
-	number: Schema.Int,
-	state: Schema.Literals(["open", "closed"]),
-	title: Schema.String,
-}).pipe(Schema.encodeKeys({ autoMerge: "auto_merge", mergeableState: "mergeable_state" }));
-const Ref = Schema.Struct({ ref: Schema.String });
-const ListedPull = Schema.Struct({ number: Schema.Int });
 export const GitHub = defineService({
 	id: "@shivaedev/pr-watch/GitHub",
-	initialize: GitHubHttp,
-	methods: (http) => {
-		function decode<TSchema extends Schema.Top>(schema: TSchema, body: unknown) {
-			return Schema.decodeUnknownEffect(schema)(body).pipe(
-				Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub response", reason: "response" }, { cause })),
-			);
-		}
-		function pages(options: Options, path: string) {
-			return http.list(`${options.apiUrl}/repos/${options.repository}${path}`);
-		}
-		return {
-			confirmQueue: (options: Options, snapshot: Snapshot): QueueConfirmation => confirmQueue(options, snapshot),
-			delay: http.delay,
-			discover: (options: Options) =>
-				Effect.gen(function* () {
-					const bodies = yield* pages(options, "/pulls?state=open&per_page=100");
-					const lists = yield* Effect.forEach(bodies, (body) => decode(Schema.Array(ListedPull), body));
-					return lists.flat().map((pr) => pr.number);
-				}),
-			pacing: http.pacing,
-			queue: (options: Options) =>
-				Effect.gen(function* () {
-					const bodies = yield* pages(options, "/git/matching-refs/heads/gh-readonly-queue/");
-					const lists = yield* Effect.forEach(bodies, (body) => decode(Schema.Array(Ref), body));
-					return new Set(
-						lists.flat().flatMap(({ ref }) => {
-							const number = ref.match(/\/pr-(?<number>\d+)-/u)?.groups?.number;
-							return number === undefined ? [] : [Number(number)];
-						}),
-					);
-				}),
-			snapshot: (options: Options, number: number, queued: ReadonlySet<number>) =>
-				Effect.gen(function* () {
-					const response = yield* http.get(`${options.apiUrl}/repos/${options.repository}/pulls/${number}`);
-					const pr = yield* decode(Pull, response);
-					if (pr.number !== number) {
-						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR", reason: "response" }));
-					}
-					const open = pr.state === "open" && !pr.merged;
-					if (open && (pr.mergeable === null || pr.mergeableState === "unknown")) {
-						return undefined;
-					}
-					const failed = open ? yield* checkFailures(options, number, pr.head.sha) : false;
-					if (failed === undefined) {
-						return undefined;
-					}
-					return {
-						autoMerge: pr.autoMerge !== null,
-						branch: pr.head.ref,
-						dirty: pr.mergeableState === "dirty",
-						failed,
-						head: pr.head.sha,
-						merged: pr.merged,
-						number,
-						queued: queued.has(number),
-						state: pr.state,
-						title: pr.title,
-					} satisfies Snapshot;
-				}),
-		};
-	},
+	initialize: Effect.void,
+	methods: () => ({
+		confirmQueue,
+		delay,
+		discover,
+		pacing,
+		queue,
+		snapshot,
+	}),
 	requires: [GitHubHttp],
 });

@@ -1,85 +1,23 @@
-import { Clock, Effect, Schema, Stream } from "effect";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { WatchError } from "#model.ts";
-import { pollPacing, quotaMessage, quotaRetryAt } from "#quota.ts";
-import { requestFailure } from "#requestFailure.ts";
+import { delay } from "#GitHubHttp/delay.ts";
+import { get } from "#GitHubHttp/get.ts";
+import { graphql } from "#GitHubHttp/graphql.ts";
+import { initializeGitHubHttp } from "#GitHubHttp/initialize.ts";
+import { list } from "#GitHubHttp/list.ts";
+import { pacing } from "#GitHubHttp/pacing.ts";
+import { post } from "#GitHubHttp/post.ts";
 
 export const GitHubHttp = defineService({
 	id: "@shivaedev/pr-watch/GitHubHttp",
-	initialize: Effect.gen(function* () {
-		return { github: yield* GitHub, requests: 0, retryAt: 0 };
+	initialize: initializeGitHubHttp,
+	methods: (state) => ({
+		delay: delay(state),
+		get: get(state),
+		graphql: graphql(state),
+		list: list(state),
+		pacing: pacing(state),
+		post: post(state),
 	}),
-	methods: (state) => {
-		function beforeRequest() {
-			return Effect.gen(function* () {
-				const now = yield* Clock.currentTimeMillis;
-				const observations = yield* state.github.observations();
-				const retryAt = quotaRetryAt(observations, state.retryAt);
-				if (retryAt > now) {
-					const budget = observations.find((entry) => entry.remaining === 0 && quotaRetryAt([entry]) === retryAt);
-					return yield* new WatchError({
-						message: budget === undefined ? "GitHub retry-after cooldown" : `GitHub quota cooldown (${quotaMessage(budget)})`,
-						reason: "cooldown",
-						retryAt,
-					});
-				}
-			});
-		}
-		function request<T, E, R>(operation: Effect.Effect<T, E, R>) {
-			return beforeRequest().pipe(
-				Effect.andThen(operation),
-				Effect.scoped,
-				Effect.timeout("30 seconds"),
-				Effect.tapError((error) =>
-					Effect.sync(() => {
-						const { retryAt } = requestFailure(error);
-						if (retryAt !== undefined) {
-							state.retryAt = retryAt;
-						}
-					}),
-				),
-			);
-		}
-		function counted<T, E, R>(operation: Effect.Effect<T, E, R>) {
-			return Effect.suspend(() => {
-				state.requests += 1;
-				return operation;
-			});
-		}
-		function pacing(interval: number) {
-			return Effect.gen(function* () {
-				const now = yield* Clock.currentTimeMillis;
-				const observations = yield* state.github.observations();
-				const result = pollPacing(observations, interval, Math.max(1, state.requests), now, state.retryAt);
-				state.requests = 0;
-				return result;
-			});
-		}
-		function post(url: string, body: unknown) {
-			return request(counted(state.github.write("POST", url, body)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown))));
-		}
-		return {
-			delay: (interval: number) => pacing(interval).pipe(Effect.map((result) => result.delay)),
-			get: (url: string) => request(counted(state.github.read(url)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
-			graphql: (apiUrl: string, query: string, variables: unknown) => {
-				const url = new URL(apiUrl);
-				url.pathname = url.pathname.replace(/\/api\/v3\/?$/u, "/api/graphql");
-				if (!url.pathname.endsWith("/api/graphql")) {
-					url.pathname = `${url.pathname.replace(/\/$/u, "")}/graphql`;
-				}
-				return post(url.href, { query, variables });
-			},
-			list: (url: string) =>
-				request(
-					Stream.unwrap(state.github.list(url, beforeRequest)).pipe(
-						Stream.mapEffect((response) => counted(response.decode(Schema.Unknown))),
-						Stream.runCollect,
-					),
-				),
-			pacing,
-			post,
-		};
-	},
 	requires: [GitHub],
 });

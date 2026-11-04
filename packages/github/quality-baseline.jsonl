@@ -1,3 +1,1 @@
 {"path":"packages/github/package.json","rule":"code/unused","count":1}
-{"path":"packages/github/src/GitHub.ts","rule":"effect/service-definition-assembly","count":10}
-{"path":"packages/github/src/installationClients.ts","rule":"effect/service-definition-assembly","count":6}

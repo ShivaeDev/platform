@@ -147,6 +147,33 @@ const connect = () => bind(Notes, Client, { resume });
 
 `Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
 
+#### Detect a deployment and activate a staged update
+
+Configure the host's `config.buildVersion` with the deployed build ID and embed that same ID in the browser bundle. Create one `deployUpdate` from `@shivaedev/react/client/deployUpdate.ts` per registry owner. Pass the same connection options as the application's contract clients so version announcements share their live socket. `useDeployUpdate` from `@shivaedev/react/client/adapters/useDeployUpdate.ts` mounts the controller and exposes `version`, `available`, `blocked`, the native `activation` result and `reload`.
+
+```tsx
+import { Effect } from "effect";
+import { deployUpdate } from "@shivaedev/react/client/deployUpdate.ts";
+import { useDeployUpdate, useUpdateBlocker } from "@shivaedev/react/client/adapters/useDeployUpdate.ts";
+
+const update = deployUpdate({
+	url: `${location.origin}/rpc`,
+	loadedVersion: BUILD_VERSION,
+	activate: Effect.promise(() => stagedUpdate.activate()),
+	reload: () => location.reload(),
+});
+
+function UpdateNotice({ saving, sheetOpen }: { saving: boolean; sheetOpen: boolean }) {
+	useUpdateBlocker(update, saving || sheetOpen);
+	const state = useDeployUpdate(update);
+	return state.available ? <button onClick={state.reload}>Reload application</button> : null;
+}
+```
+
+`BUILD_VERSION` and `stagedUpdate` are supplied by the application. Build IDs are opaque strings: a differing host ID means the loaded bundle has been superseded, including after a rollback. A host restart announces its ID through RPC after reconnect; there is no health polling. While visible or blocked, the controller leaves activation to the reload action. When hidden with no registered blockers, it runs the application's activation Effect once for that version. A successful activation clears `available`; a typed activation failure keeps reload available. Omit `activate` when the application has no staged-update mechanism; reload stays available even while hidden. UI wording and confirmation belong to the application.
+
+Each `useUpdateBlocker(update, true)` holds its own blocker until it becomes false or unmounts. Code outside React can run `update.block` with the same `AtomRegistry` service; it returns a release function. Hold it around pending work and call that function when the work ends. All blockers must release before hidden activation proceeds.
+
 #### Mount the notice host
 
 Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.

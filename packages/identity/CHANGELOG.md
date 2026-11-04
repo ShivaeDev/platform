@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.1 - 2026-11-04
+
+### Changed
+
+- Support externally migrated Better Auth tables as a transition to identity's frozen auth migrations. Run `assertBetterAuthSchema` before `betterAuthMount` at startup to refuse schema drift with typed diagnostics naming missing tables or columns.
+
 ## 0.23.0 - 2026-11-04
 
 ### Added

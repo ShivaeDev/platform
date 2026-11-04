@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.46.0 - 2026-11-04
+
+### Changed
+
+- serve `board.sock` through the application host, sharing its routes, request limits and live-query transport. Existing Board plugin and MCP clients keep using the same socket path.
+
+### Breaking
+
+- remove `server/boardSocket.ts`. Direct callers should configure `appHost` from `@shivaedev/server/appHost.ts` with `config.socketPath`, their RPC group and handlers. `serveBoard` continues to publish `board.sock` for Board plugin and MCP clients.
+
 ## 0.45.0 - 2026-11-04
 
 ### Breaking
