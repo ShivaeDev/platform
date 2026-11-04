@@ -4,7 +4,7 @@ import type { SeedFile } from "./tree.ts";
 export const LIBRARY_MANIFEST = "modules/library/package.json";
 
 export const FILE_PATH_EXPORTS = {
-	"./*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" },
+	"./*.ts": { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" },
 	"./package.json": "./package.json",
 };
 
@@ -14,10 +14,13 @@ export const exportsWorkspace: SeedFile = {
 };
 
 function sourceFirst(_key: string, value: unknown): unknown {
-	if (typeof value !== "object" || value === null || !("source" in value)) {
+	if (typeof value !== "object" || value === null || !("@shivaedev/source" in value)) {
 		return value;
 	}
-	return Object.fromEntries([["source", value.source], ...Object.entries(value).filter(([key]) => key !== "source")]);
+	return Object.fromEntries([
+		["@shivaedev/source", value["@shivaedev/source"]],
+		...Object.entries(value).filter(([key]) => key !== "@shivaedev/source"),
+	]);
 }
 
 export function packageExports(exports: unknown, path = LIBRARY_MANIFEST): SeedFile {

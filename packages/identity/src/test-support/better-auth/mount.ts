@@ -112,7 +112,7 @@ export const mount = storyKit({
 				story.tell("a visitor requests auth on a production host without a proxy");
 				const { stdout } = await promisify(execFile)(
 					process.execPath,
-					["--conditions=source", fileURLToPath(import.meta.resolve("#test/better-auth/mountProduction.ts"))],
+					["--conditions=@shivaedev/source", fileURLToPath(import.meta.resolve("#test/better-auth/mountProduction.ts"))],
 					{ env: { "NODE_ENV": "production" } },
 				);
 				const { address, logs, status } = JSON.parse(stdout);

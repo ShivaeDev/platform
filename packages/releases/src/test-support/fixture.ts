@@ -20,7 +20,7 @@ export function changeset(packages: Readonly<Record<string, string>>, body = FEA
 export const runCli = Effect.fn("ReleasesFixture.runCli")(function* (root: string, args: readonly string[]) {
 	const now = yield* Clock.currentTimeMillis;
 	const childClock = `data:text/javascript,Date.now=()=>${now}`;
-	return yield* runCommand(root, process.execPath, ["--conditions=source", "--import", childClock, cli, ...args]);
+	return yield* runCommand(root, process.execPath, ["--conditions=@shivaedev/source", "--import", childClock, cli, ...args]);
 });
 
 export const write = Effect.fn("ReleasesFixture.write")(function* (root: string, file: string, text: string) {

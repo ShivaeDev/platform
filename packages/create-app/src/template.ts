@@ -100,7 +100,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 		scripts: Object.fromEntries(
 			Object.entries(scripts)
 				.filter(([name]) => !minimal || name !== "browser-check:live-notes")
-				.map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")]),
+				.map(([name, script]) => [name, script.replaceAll("--conditions=@shivaedev/source ", "")]),
 		),
 	};
 	return manifestJson(prepared);
@@ -108,13 +108,13 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 
 export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
 	if (["src/test-support/admin/command.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"].includes(path)) {
-		return Buffer.from(content.toString().replaceAll('"--conditions=source", ', ""));
+		return Buffer.from(content.toString().replaceAll('"--conditions=@shivaedev/source", ', ""));
 	}
 	if (path === "package.json") {
 		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)) {
-		return Buffer.from(content.toString().replaceAll('["source"]', "[]"));
+		return Buffer.from(content.toString().replaceAll('["@shivaedev/source"]', "[]"));
 	}
 	return content;
 }

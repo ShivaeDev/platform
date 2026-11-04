@@ -24,7 +24,7 @@ export const vendorDeclarations = storyKit({
 			const program = ts.createProgram(
 				files.filter((file) => file.endsWith(".ts")).map((file) => join(directory, "src", file)),
 				{
-					customConditions: ["source"],
+					customConditions: ["@shivaedev/source"],
 					declaration: true,
 					module: ts.ModuleKind.NodeNext,
 					outDir: join(directory, "dist"),
@@ -56,7 +56,7 @@ export const vendorDeclarations = storyKit({
 			devDependencies: { "@types/dev-data": "1.0.0", "dev-engine": "1.0.0", "peer-engine": "1.0.0" },
 			exports: { ".": { types: "./dist/library.d.ts" } },
 			files: ["dist", "src"],
-			imports: { "#*.ts": { source: "./src/*.ts", types: "./dist/*.d.ts" } },
+			imports: { "#*.ts": { "@shivaedev/source": "./src/*.ts", types: "./dist/*.d.ts" } },
 			name: "declaration-probe",
 			optionalDependencies: { "optional-engine": "1.0.0" },
 			peerDependencies: { "@shivaedev/service": "1.0.0", "effect": "1.0.0", "peer-engine": "1.0.0" },
@@ -126,7 +126,7 @@ export const wildcardDeclarations = vendorDeclarations.trait("source", "wildcard
 	yield* writeJson(join(directory, "package.json"), {
 		...manifest,
 		exports: {
-			"./*.ts": { source: "./src/*.ts", types: "./dist/*.d.ts" },
+			"./*.ts": { "@shivaedev/source": "./src/*.ts", types: "./dist/*.d.ts" },
 			"./internal/*.ts": null,
 		},
 	});

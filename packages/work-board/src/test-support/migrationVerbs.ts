@@ -8,7 +8,7 @@ export function migrationVerbs(engine: BoardEngine, tell: (line: string) => void
 			tell("run work-board migrate on the Board directory");
 			return execFileSync(
 				process.execPath,
-				["--conditions=source", new URL("../server/cli.ts", import.meta.url).pathname, "migrate", engine.notes.root],
+				["--conditions=@shivaedev/source", new URL("../server/cli.ts", import.meta.url).pathname, "migrate", engine.notes.root],
 				{ encoding: "utf8" },
 			);
 		},

@@ -7,7 +7,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 export const runMigrationChanges = Effect.fnUntraced(function* (url: Redacted.Redacted, table: string, mode: "migrate" | "rollback") {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("./process.ts", import.meta.url))], {
+		ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(new URL("./process.ts", import.meta.url))], {
 			env: { "DATABASE_URL": Redacted.value(url), "MIGRATION_MODE": mode, "MIGRATION_NOTES_TABLE": table },
 			extendEnv: true,
 			stderr: "inherit",

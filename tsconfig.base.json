@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"customConditions": ["source"],
+		"customConditions": ["@shivaedev/source"],
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"types": ["node"]
 	},

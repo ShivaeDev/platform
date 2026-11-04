@@ -37,7 +37,7 @@ export const socketStartup = Effect.fn("Test.socketStartup")(function* (
 ) {
 	const child = yield* Effect.acquireRelease(
 		Effect.sync(() =>
-			spawn(process.execPath, ["--conditions=source", fileURLToPath(entry), root, phase], {
+			spawn(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(entry), root, phase], {
 				stdio: ["ignore", "ignore", "pipe", "ipc"],
 			}),
 		),

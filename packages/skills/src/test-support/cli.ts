@@ -16,5 +16,5 @@ export function exec(command: string, args: readonly string[], cwd: string): Pro
 }
 
 export function runCli(repo: string, args: readonly string[]): ProcessRun {
-	return exec(process.execPath, ["--conditions=source", CLI, ...args], repo);
+	return exec(process.execPath, ["--conditions=@shivaedev/source", CLI, ...args], repo);
 }

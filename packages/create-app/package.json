@@ -16,7 +16,7 @@
 	"type": "module",
 	"imports": {
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -24,7 +24,7 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -44,8 +44,8 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && esbuild src/cli.ts --bundle --platform=node --format=esm --conditions=source --target=node24 --minify --outfile=dist/cli.js && node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist/cli.js.map', { force: true }))\"",
-		"prepack": "node --conditions=source src/pack.ts",
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json && esbuild src/cli.ts --bundle --platform=node --format=esm --conditions=@shivaedev/source --target=node24 --minify --outfile=dist/cli.js && node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist/cli.js.map', { force: true }))\"",
+		"prepack": "node --conditions=@shivaedev/source src/pack.ts",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},

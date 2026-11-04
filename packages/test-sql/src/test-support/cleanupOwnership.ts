@@ -46,7 +46,7 @@ export const crashedRun = cleanup.trait(
 	"a worker on this host exited without closing its run, leaving its databases",
 	function* (state) {
 		const { stdout } = yield* Effect.promise(() =>
-			run(process.execPath, ["--conditions=source", fileURLToPath(new URL("./crashedDatabase.ts", import.meta.url))]),
+			run(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(new URL("./crashedDatabase.ts", import.meta.url))]),
 		);
 		const admin = state.engine.admin;
 		const owner = stdout.slice(0, stdout.lastIndexOf("_") + 1);

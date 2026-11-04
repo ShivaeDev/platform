@@ -3,19 +3,18 @@ import { manifestEntry, manifestFiles } from "#adapters/manifestInventory.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { itemsOf, type Json, member, parseJsonc } from "#rules/suppressions/biome/json.ts";
 
-const CONDITION = "source";
-
 function misplaced(path: string, field: string, value: unknown, node: Json | undefined): readonly Finding[] {
 	const conditions = typeof value === "object" && value !== null && !Array.isArray(value) ? Object.entries(value) : [];
 	const first = conditions[0]?.[0];
+	const condition = ["@shivaedev/source", "source"].find((name) => conditions.some(([key]) => key === name));
 	const own: readonly Finding[] =
-		first === CONDITION || !conditions.some(([key]) => key === CONDITION)
+		condition === undefined || first === condition
 			? []
 			: [
 					{
 						file: path,
 						line: node?.line,
-						message: `Lists the "${CONDITION}" condition after "${first}" in ${field}. TypeScript takes the first condition that matches, so once built output exists it reads that instead of the sources the "${CONDITION}" condition names. Move "${CONDITION}" to the top of this condition block.`,
+						message: `Lists the "${condition}" condition after "${first}" in ${field}. TypeScript takes the first condition that matches, so once built output exists it reads that instead of the sources the "${condition}" condition names. Move "${condition}" to the top of this condition block.`,
 						subject: field,
 					},
 				];
@@ -47,7 +46,7 @@ export const manifestsSourceFirst = defineRule({
 			return findings.flat();
 		}),
 	description:
-		'Every package.json condition block that names the "source" condition lists it first in exports and imports, so TypeScript reads the sources whether or not built output exists.',
+		'Every package.json condition block that names a "@shivaedev/source" or "source" condition lists it first in exports and imports, so TypeScript reads the sources whether or not built output exists.',
 	id: "manifests/source-first",
 	registrable: false,
 });

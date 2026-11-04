@@ -29,7 +29,11 @@ const start = Effect.fnUntraced(function* (protocol: typeof McpProtocol.v2025_11
 		Effect.provideServiceEffect(
 			McpClient.Transport,
 			McpClient.stdio({
-				command: ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("./process.ts", import.meta.url)), file]),
+				command: ChildProcess.make(process.execPath, [
+					"--conditions=@shivaedev/source",
+					fileURLToPath(new URL("./process.ts", import.meta.url)),
+					file,
+				]),
 				protocol,
 			}),
 		),

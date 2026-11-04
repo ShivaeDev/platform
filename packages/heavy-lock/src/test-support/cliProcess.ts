@@ -3,7 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 export const CLI_ARGUMENTS = [
-	"--conditions=source",
+	"--conditions=@shivaedev/source",
 	"--import",
 	fileURLToPath(new URL("./cliClock.ts", import.meta.url)),
 	fileURLToPath(new URL("../cli.ts", import.meta.url)),

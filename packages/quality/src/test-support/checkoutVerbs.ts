@@ -111,7 +111,7 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 					throw new Error("Declare qualityFileAt(path) before running the repository's own quality");
 				}
 				tell(`the author runs the repository's own quality file with ${args.join(" ")}`);
-				const run = spawnSync("node", ["--conditions=source", engine.ownQuality, ...args], {
+				const run = spawnSync("node", ["--conditions=@shivaedev/source", engine.ownQuality, ...args], {
 					cwd: engine.root,
 					encoding: "utf8",
 					env: isolatedEnvironment(engine.root),

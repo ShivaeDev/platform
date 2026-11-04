@@ -113,7 +113,7 @@ checkoutStory.it(
 				[
 					"hook",
 					() => hookLines(),
-					expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=source "$quality" hooks pre-commit || status=$?']),
+					expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=@shivaedev/source "$quality" hooks pre-commit || status=$?']),
 				],
 			]),
 		);

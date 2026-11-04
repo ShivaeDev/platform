@@ -27,7 +27,7 @@ export function standingPolicyAnswer(engine: BoardEngine) {
 export function runArchive(engine: BoardEngine) {
 	return execFileSync(
 		process.execPath,
-		["--conditions=source", new URL("../server/cli.ts", import.meta.url).pathname, "archive", engine.notes.root],
+		["--conditions=@shivaedev/source", new URL("../server/cli.ts", import.meta.url).pathname, "archive", engine.notes.root],
 		{
 			encoding: "utf8",
 		},

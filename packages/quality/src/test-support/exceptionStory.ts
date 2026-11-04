@@ -46,7 +46,7 @@ function textsIn(root: string, folder = root): Readonly<Record<string, string>> 
 
 // Node imports the config in a fresh process, as the quality executable does, and prints the object it exports.
 function exportedConfig(root: string, file: string): unknown {
-	const run = spawnSync("node", ["--conditions=source", "--input-type=module", "-e", PRINT_CONFIG, join(root, file)], {
+	const run = spawnSync("node", ["--conditions=@shivaedev/source", "--input-type=module", "-e", PRINT_CONFIG, join(root, file)], {
 		cwd: root,
 		encoding: "utf8",
 	});

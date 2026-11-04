@@ -42,7 +42,7 @@ function run(root: string, args: readonly string[]) {
 	const result = spawnSync(
 		"env",
 		[
-			"NODE_OPTIONS=--conditions=source",
+			"NODE_OPTIONS=--conditions=@shivaedev/source",
 			process.execPath,
 			join(vitestRoot, "vitest.mjs"),
 			"run",

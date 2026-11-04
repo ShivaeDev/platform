@@ -28,7 +28,7 @@ export const developmentApp = storyKit({
 		}
 		yield* fs.symlink(fileURLToPath(new URL("../../../../node_modules", import.meta.url)), join(root, "node_modules"));
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-		const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=source", "runner.mjs"], { cwd: root }));
+		const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", "runner.mjs"], { cwd: root }));
 		const stderr: string[] = [];
 		yield* child.stderr.pipe(
 			Stream.decodeText(),

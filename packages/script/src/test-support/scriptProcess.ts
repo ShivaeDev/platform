@@ -33,7 +33,7 @@ export const scriptProcess = Effect.fn("ScriptStory.scriptProcess")(function* (g
 			}),
 		start: (args: readonly string[]) =>
 			Effect.sync(() => {
-				child = spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./example.ts", import.meta.url)), ...args], {
+				child = spawn(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(new URL("./example.ts", import.meta.url)), ...args], {
 					env: { "SCRIPT_GREETING": greeting },
 					stdio: ["ignore", "pipe", "pipe"],
 				});

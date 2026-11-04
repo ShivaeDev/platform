@@ -39,7 +39,7 @@ export const ASSEMBLY_INVENTORY =
 export const assemblyFiles: readonly SeedFile[] = [
 	{
 		content:
-			'{"name":"@demo/inventory","type":"module","imports":{"#*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"exports":{"./*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@shivaedev/service":"*","effect":"*"}}',
+			'{"name":"@demo/inventory","type":"module","imports":{"#*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@shivaedev/service":"*","effect":"*"}}',
 		path: "package.json",
 	},
 	{ content: 'import { Ref } from "effect"; export const initialize = Ref.make(0);', path: "src/initialize.ts" },

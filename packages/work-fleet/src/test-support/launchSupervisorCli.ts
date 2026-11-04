@@ -5,7 +5,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 export const launchSupervisorCli = Effect.fn("SupervisorStory.launchSupervisorCli")(function* (entry: string, args: readonly string[], cwd: string) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", entry, ...args], {
+		ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", entry, ...args], {
 			cwd,
 			env: { "GH_TOKEN": "synthetic-supervisor-token" },
 			extendEnv: true,

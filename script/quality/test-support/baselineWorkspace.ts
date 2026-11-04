@@ -28,7 +28,7 @@ function repository(): string {
 		})),
 		{ content: source(1), path: "packages/clean/src/idle.ts" },
 	]);
-	writes(root, "node_modules/.bin/quality", `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`);
+	writes(root, "node_modules/.bin/quality", `#!/bin/sh\nexec node --conditions=@shivaedev/source ${join(packageRoot, "src", "cli.ts")} "$@"\n`);
 	chmodSync(join(root, "node_modules/.bin/quality"), 0o755);
 	git(root, "init", "--quiet");
 	return root;

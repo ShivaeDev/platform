@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"customConditions": ["source"]
+		"customConditions": ["@shivaedev/source"]
 	},
 	"extends": "@shivaedev/quality/tsconfig/app.json",
 	"include": ["src", "tooling", ".railway", "vite.config.ts", "vitest.config.ts"]
