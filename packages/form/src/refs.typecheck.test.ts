@@ -27,3 +27,14 @@ expectTypeOf(score).toEqualTypeOf<AtomRef.AtomRef<number>>();
 expectTypeOf(score.value).toEqualTypeOf<number>();
 // @ts-expect-error Array element refs keep their numeric value type.
 score.set("2");
+
+const nestedCount = fields.fieldAt(["profile", "details", "count"]);
+expectTypeOf(nestedCount).toEqualTypeOf<AtomRef.AtomRef<string>>();
+fields.changeAt(["profile", "details", "count"], "2");
+fields.changeAt(["teams", 0, "scores", 0], 2);
+// @ts-expect-error Nested path edits accept encoded input values.
+fields.changeAt(["profile", "details", "count"], 2);
+// @ts-expect-error Nested paths must name a real member.
+fields.fieldAt(["profile", "missing"]);
+// @ts-expect-error Array path edits retain the element type.
+fields.changeAt(["teams", 0, "scores", 0], "2");

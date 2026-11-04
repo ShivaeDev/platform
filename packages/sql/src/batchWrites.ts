@@ -3,7 +3,9 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 
 export type InsertMany<TModel extends Model.Any, TServices = never> = (
@@ -22,11 +24,12 @@ export const makeInsertMany = Effect.fnUntraced(function* <TServices = never>(
 	upsert = false,
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const prepareRow = prepare ?? (() => Effect.succeed(sql``));
-	const encode = Schema.encodeEffect(model.insert);
+	const encode = Schema.encodeEffect(storageSchema(model.insert, model.fields, nameTransforms));
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
-	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
-	const decodeUpsert = makeUpsertDecoder(model);
+	const decode = Schema.decodeUnknownEffect(Schema.Array(storageSchema(model, model.fields, nameTransforms)));
+	const decodeUpsert = makeUpsertDecoder(model, nameTransforms);
 	const returning = options.changes.returning(upsert ? yield* upsertReturning() : sql`*`);
 	return (inputs: readonly unknown[]) =>
 		Effect.gen(function* () {

@@ -1,9 +1,11 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { selectedUpdate } from "#repositoryUpdate.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 
 export const repositoryWrites = Effect.fnUntraced(function* (
 	model: Model.Any,
@@ -11,6 +13,7 @@ export const repositoryWrites = Effect.fnUntraced(function* (
 	changes: RepositoryChanges,
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const { idColumns, tableName, spanPrefix } = options;
 	const { where } = yield* makeFilter(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
@@ -33,17 +36,29 @@ export const repositoryWrites = Effect.fnUntraced(function* (
 			),
 		);
 	}
-	const insertRow = SqlSchema.findOne({ execute: insert, Request: model.insert, Result: model });
-	const insertVoid = SqlSchema.void({ execute: insert, Request: model.insert });
-	const updateRow = SqlSchema.findOne({ execute: update, Request: model.update, Result: model });
-	const updateVoid = SqlSchema.void({ execute: update, Request: model.update });
+	const insertRow = SqlSchema.findOne({
+		execute: insert,
+		Request: storageSchema(model.insert, model.fields, nameTransforms),
+		Result: storageSchema(model, model.fields, nameTransforms),
+	});
+	const insertVoid = SqlSchema.void({ execute: insert, Request: storageSchema(model.insert, model.fields, nameTransforms) });
+	const updateRow = SqlSchema.findOne({
+		execute: update,
+		Request: storageSchema(model.update, model.fields, nameTransforms),
+		Result: storageSchema(model, model.fields, nameTransforms),
+	});
+	const updateVoid = SqlSchema.void({ execute: update, Request: storageSchema(model.update, model.fields, nameTransforms) });
 	function selected(input: unknown, columns: readonly string[], returning: boolean) {
 		return Effect.gen(function* () {
 			const row = yield* record(input);
 			const Request = yield* selectedUpdate(model, columns, idColumns, row);
 			return yield* returning
-				? SqlSchema.findOne({ execute: update, Request, Result: model })(row)
-				: SqlSchema.void({ execute: update, Request })(row);
+				? SqlSchema.findOne({
+						execute: update,
+						Request: storageSchema(Request, model.fields, nameTransforms),
+						Result: storageSchema(model, model.fields, nameTransforms),
+					})(row)
+				: SqlSchema.void({ execute: update, Request: storageSchema(Request, model.fields, nameTransforms) })(row);
 		});
 	}
 	const idColumn = idColumns[0] ?? "";
