@@ -9,7 +9,7 @@ githubConsumer.it(
 		const issue = yield* readIssue();
 		expect(issue).toEqual({ title: "Ship widgets" });
 		const repository = yield* readRepository();
-		expect(repository).toEqual({ repository: { name: "widgets" } });
+		expect(repository).toEqual({ data: { repository: { name: "widgets" } }, errors: [] });
 		const comment = yield* postComment("Ready to ship");
 		expect(comment).toEqual({ body: "Ready to ship", id: 9 });
 		const status = yield* deliverIssue(3);
