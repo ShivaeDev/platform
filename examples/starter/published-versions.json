@@ -5,6 +5,7 @@
 	"@shivaedev/changes": "0.9.0",
 	"@shivaedev/contract": "0.34.0",
 	"@shivaedev/deploy": "0.2.0",
+	"@shivaedev/discord": "0.1.0",
 	"@shivaedev/email": "0.3.2",
 	"@shivaedev/errors": "0.8.0",
 	"@shivaedev/form": "0.15.0",
