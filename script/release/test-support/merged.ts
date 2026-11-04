@@ -6,7 +6,6 @@ export const merged = releasePullRequest.trait("main", "a frozen release has mer
 	yield* pushMain(".changeset/draft.md", '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n');
 	yield* maintainPullRequest(root, github).pipe(Effect.provide(context));
 	const head = git("rev-parse", "origin/release/next");
-	git("push", "origin", `${head}:refs/pull/1/head`);
 	git("switch", "main");
 	git("merge", "--squash", "origin/release/next");
 	git("commit", "-m", "Release approved versions");

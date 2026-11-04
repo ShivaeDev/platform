@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 const Publication = Schema.fromJsonString(
 	Schema.Struct({
@@ -14,9 +14,23 @@ const Publication = Schema.fromJsonString(
 
 export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
+	const published = new Map<string, string[]>([
+		["@shivaedev/platform", ["0.15.0"]],
+		["@shivaedev/create-app", ["0.9.0"]],
+	]);
+	function lookup({ path }: FakeHttpRequest) {
+		const name = decodeURIComponent(path.slice(1));
+		const versions = published.get(name);
+		if (versions === undefined) {
+			return { body: { error: "Not found" }, status: HttpStatus.fromLiteral("NotFound") };
+		}
+		return {
+			body: { "dist-tags": { latest: versions.at(-1) }, name, versions: Object.fromEntries(versions.map((version) => [version, { name, version }])) },
+		};
+	}
 	const server = yield* fakeHttpService({
 		routes: {
-			lookup: { path: "/:path*", reply: () => ({ body: { error: "Not found" }, status: HttpStatus.fromLiteral("NotFound") }) },
+			lookup: { path: "/:path*", reply: lookup },
 			publish: { method: "PUT", path: "/:path*", reply: () => ({ body: { ok: true } }) },
 		},
 	});
@@ -27,6 +41,7 @@ export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(func
 	);
 	yield* fs.writeFileString(join(root, ".git/info/exclude"), ".npmrc\n", { flag: "a" });
 	return {
+		alreadyPublished: (name: string, version: string) => published.set(name, [...(published.get(name) ?? []), version]),
 		file: Effect.fn("ReleaseRegistry.file")(function* (name: string, path: string) {
 			for (const request of server.requests.filter(({ method }) => method === "PUT")) {
 				const publication = Schema.decodeUnknownSync(Publication)(request.body.toString());

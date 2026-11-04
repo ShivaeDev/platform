@@ -52,8 +52,6 @@
 {"path":"script/release/maintainPullRequest.ts","rule":"effect/adapter-imports","count":2}
 {"path":"script/release/planPullRequest.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/release/platformHook.ts","rule":"effect/adapter-imports","count":1}
-{"path":"script/release/publishNotes.ts","rule":"effect/adapter-imports","count":1}
-{"path":"script/release/publishPackages.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/release/starterCatalog.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/release/starterPnpm.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/starter-published.ts","rule":"effect/adapter-imports","count":3}

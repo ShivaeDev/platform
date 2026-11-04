@@ -57,6 +57,10 @@ export const releasePullRequest = storyKit({
 			);
 		});
 		return {
+			alreadyPublished: (name: string, version: string) =>
+				Effect.sync(() => {
+					registry.alreadyPublished(name, version);
+				}),
 			blockCommit: hook.blockCommit,
 			check: (base = "origin/main") => checkPlatform(root, base),
 			close: () => github.close(1).pipe(Effect.provide(context)),
@@ -74,12 +78,21 @@ export const releasePullRequest = storyKit({
 			publish: (before: string) =>
 				Effect.gen(function* () {
 					const { base, head } = yield* preparePublish(root, "example/workspace", git("rev-parse", "HEAD"), before);
-					yield* publishPackages(root, base);
-					yield* publishNotes(root, "example/workspace", base, head);
+					const published = yield* publishPackages(root, base);
+					yield* publishNotes(root, "example/workspace", published, head);
 				}).pipe(Effect.provide(context), Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined })),
 			publishedFile: (name: string, path: string) => registry.file(name, path),
 			publishedPackages: () => Effect.sync(registry.publications),
-			publishNotes: (base: string) => publishNotes(root, "example/workspace", base, git("rev-parse", "HEAD")).pipe(Effect.provide(context)),
+			publishNotes: (base: string) =>
+				Effect.gen(function* () {
+					const plan = yield* checkPlatform(root, base);
+					yield* publishNotes(
+						root,
+						"example/workspace",
+						plan.releases.map(({ name, to }) => ({ name, version: to })),
+						git("rev-parse", "HEAD"),
+					);
+				}).pipe(Effect.provide(context)),
 			pushMain,
 			queue: () =>
 				Effect.sync(() => {
