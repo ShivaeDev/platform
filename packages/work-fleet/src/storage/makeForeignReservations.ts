@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { fleetRecords } from "#fleetRecords.ts";
+import { fleetRecords, fleetScheduling } from "#fleetRecords.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { ForeignReservationRow } from "#storage/model.ts";
@@ -25,7 +25,7 @@ export const makeForeignReservations = Effect.fn("FleetStore.makeForeignReservat
 				return;
 			}
 			yield* commit(
-				(deleted) => (deleted ? [fleetRecords.list] : []),
+				(deleted) => (deleted ? [fleetRecords.list, fleetScheduling.list] : []),
 				Effect.gen(function* () {
 					yield* lock;
 					if (!(yield* exists(owner))) {
@@ -42,7 +42,7 @@ export const makeForeignReservations = Effect.fn("FleetStore.makeForeignReservat
 			areas: readonly string[] = [],
 		) =>
 			commit(
-				[fleetRecords.list],
+				[fleetRecords.list, fleetScheduling.list],
 				Effect.gen(function* () {
 					yield* lock;
 					const existing = yield* reservations.findMany({ where: { owner } });

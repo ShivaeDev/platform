@@ -1,6 +1,7 @@
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import { callSite } from "#server/adapters/callSite.ts";
+import { engineSummary } from "#server/adapters/engineSummary.ts";
 import { creationReport, failureReport } from "#server/adapters/failureReport.ts";
 import { type FailureContext, reportOnFailure } from "#server/adapters/storyFailure.ts";
 import { hooked } from "#server/internal/hooked.ts";
@@ -49,7 +50,7 @@ export const narrate = Effect.fnUntraced(function* <TEngine>(subject: Subject<TE
 		},
 	};
 	function captureFailure(stack: string | undefined) {
-		return hooked(() => (subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine))).pipe(
+		const snapshotReport = hooked(() => (subject.inspect === undefined ? engineSummary(subject.engine) : subject.inspect(subject.engine))).pipe(
 			Effect.matchCause({
 				onFailure: (cause) => ({ threw: Cause.squash(cause) }),
 				onSuccess: (value) => ({ value }),
@@ -63,8 +64,9 @@ export const narrate = Effect.fnUntraced(function* <TEngine>(subject: Subject<TE
 				}),
 			),
 		);
+		return Effect.suspend(() => (captured === undefined ? snapshotReport : Effect.succeed(captured)));
 	}
-	yield* reportOnFailure(context, (test) => (captured === undefined ? captureFailure(test.stack) : Effect.succeed(captured)));
+	yield* reportOnFailure(context, (test) => captureFailure(test.stack));
 	return { captureFailure, narration };
 });
 

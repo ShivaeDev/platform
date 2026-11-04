@@ -4,6 +4,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { boardReadCounts } from "#test/boardReadCounts.ts";
+import { waitForRecord } from "#test/daemonActions.ts";
 import { type HostFixture, hostFixture, readHostWork, task } from "#test/fleetHost.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
@@ -29,7 +30,12 @@ export const boardReadDaemonStory = storyKit({
 		).pipe(withBoardReadPass);
 		yield* storeRecords(fixture.host, records).pipe(Effect.provide(hostDatabase(fixture.host, "fleet-read-seed", 1)));
 		const running: { current?: Effect.Success<ReturnType<typeof startHostDaemon>> } = {};
-		return { counts: boardReadCounts(), fixture, running };
+		return {
+			counts: boardReadCounts(),
+			fixture,
+			reconciled: records.filter((record) => record.step === "done" || record.step === "working"),
+			running,
+		};
 	},
 	inspect: ({ counts }) => counts.snapshot(),
 	layer,
@@ -37,13 +43,21 @@ export const boardReadDaemonStory = storyKit({
 	runIf: postgresEnabled,
 	stages: [],
 	verbs: (engine, story) => ({
-		awaitCycles: (count: number) => {
-			story.tell(`wait for ${count} admission cycles and done reconciliation`);
-			return Effect.whileLoop({
-				body: () => Effect.sleep("10 millis"),
-				step: () => undefined,
-				while: () => engine.counts.snapshot().cycles < count || engine.counts.snapshot().reconciles < 35,
-			}).pipe(Effect.timeout("15 seconds"));
+		approveWork: (workId: string) => {
+			story.tell(`approve ${workId} in its Board source`);
+			engine.fixture.write(`${workId}.md`, task(workId, "approved"));
+		},
+		awaitReconciliation: () => {
+			story.tell("wait for startup admission and reconciliation of the durable work");
+			return engine.counts.awaitReconciliation(engine.reconciled.length).pipe(Effect.timeout("15 seconds"));
+		},
+		awaitWorking: (workId: string) => {
+			story.tell(`wait until ${workId} launches through the daemon`);
+			const running = engine.running.current;
+			if (running === undefined) {
+				throw new Error("Start the daemon first");
+			}
+			return waitForRecord(running.client, workId, (record) => record.step === "working", running.context).pipe(Effect.timeout("15 seconds"));
 		},
 		counts: () => engine.counts.snapshot(),
 		peakPasses: () => engine.counts.peakPasses(),

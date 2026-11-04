@@ -698,7 +698,7 @@ The transaction rules follow the database owner:
 - Keys belong to the `SqlClient` in the recording Effect's context. Entering another client's transaction does not move an existing client's keys. Re-entering a still-open transaction on the original client joins its own savepoint.
 - Recording from a fiber after its transaction finishes dies. Record every changed key before the body returns.
 
-Begin the outermost changed transaction with `transact`. Both `transact` and `invalidateOnCommit` refuse a native outer `sql.withTransaction` they do not own, because they cannot observe its commit. Outside a transaction, `invalidateOnCommit` publishes immediately.
+Begin the outermost changed transaction with `transact`. Quality's `effect/sql-transact` rule reports native `sql.withTransaction` calls around repository writes, `transact` or `invalidateOnCommit`, and names `transact` in the repair. It follows direct calls, pipes, local aliases and source helpers; native read-only and raw SQL transactions remain supported. Both `transact` and `invalidateOnCommit` also refuse an unowned native outer transaction at runtime. Outside a transaction, `invalidateOnCommit` publishes immediately.
 
 PostgreSQL commit visibility decides publication even when a caller is interrupted while `COMMIT` is in flight: if the database commits, keys publish and the caller remains interrupted. If invalidation itself fails after commit, the failure is logged and the committed result stands. Do not treat a notification failure as evidence that the write can be retried safely.
 

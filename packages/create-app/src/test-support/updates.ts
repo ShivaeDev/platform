@@ -15,7 +15,6 @@ import { updateProcesses, updateTypecheck } from "./updateProcesses.ts";
 const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
 
 export const updates = storyKit({
-	clock: "live",
 	*create() {
 		const engine = yield* createEngine();
 		const original = engine.source.starter;

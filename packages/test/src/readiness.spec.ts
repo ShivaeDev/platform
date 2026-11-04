@@ -1,6 +1,15 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { assertionCapturedUntil, assertionThrowsUntil, interruptsItself, neverReady, readiness, readyFrom, readyOnAttempt } from "#test/readiness.ts";
+import {
+	assertionCapturedUntil,
+	assertionThrowsUntil,
+	interruptsItself,
+	neverReady,
+	readiness,
+	readyFrom,
+	readyOnAttempt,
+	withoutTestClock,
+} from "#test/readiness.ts";
 
 readiness.it(
 	"under the test clock, eventually advances the clock by each 7 ms interval until the check is ready at 56 ms",
@@ -22,15 +31,14 @@ readiness.it("without an interval, eventually waits 10 ms between attempts", [re
 });
 
 readiness.it(
-	"under the live clock, eventually sleeps the 10 ms interval between attempts",
-	[readyOnAttempt(3)],
-	function* ({ shortestWait, waitsUntilReady }) {
+	"without TestClock's controls, eventually sleeps the 10 ms interval between attempts",
+	[withoutTestClock, readyOnAttempt(3)],
+	function* ({ attemptTimes, shortestWait, waitsUntilReady }) {
 		yield* waitsUntilReady();
 
-		// Node may fire a 10 ms timer when the millisecond clock has moved only 9 ms.
 		expect(yield* shortestWait()).toBeGreaterThanOrEqual(9);
+		expect(yield* attemptTimes()).toEqual([0, 10, 20]);
 	},
-	{ clock: "live" },
 );
 
 readiness.it("a 20 ms timeout ends the retries with the last typed failure", [neverReady()], function* ({ answer, waitsUntilReady }) {

@@ -1,3 +1,4 @@
+import { engineSummary } from "#server/adapters/engineSummary.ts";
 import type { FailedTest } from "#server/adapters/failureReport.ts";
 import { writeSnapshot } from "#server/adapters/writeSnapshot.ts";
 import type { Subject } from "#server/internal/narration.ts";
@@ -13,7 +14,7 @@ function snapshot<TEngine>(subject: Subject<TEngine>): Snapshot {
 		return subject.snapshot;
 	}
 	try {
-		return { value: subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine) };
+		return { value: subject.inspect === undefined ? engineSummary(subject.engine) : subject.inspect(subject.engine) };
 	} catch (threw) {
 		return { threw };
 	}
@@ -24,6 +25,9 @@ export function engineSnapshot<TEngine>(subject: Subject<TEngine>, test: FailedT
 	const taken = snapshot(subject);
 	if ("threw" in taken) {
 		return wrap(`${heading} is unknown: its inspect hook threw ${describeValue(taken.threw)}`);
+	}
+	if (subject.inspect === undefined) {
+		return [`${heading}:`, String(taken.value), ...wrap("help: define an inspect hook in the story kit to print the engine state you need.")];
 	}
 	const json = toJson(taken.value);
 	if (json.length <= INLINE_CHARACTERS) {

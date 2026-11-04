@@ -19,13 +19,17 @@ export interface RunUntilOptions {
 	readonly maxSteps?: number | undefined;
 }
 
-export interface Story<TEngine, TRun extends AnyEffect = never> {
+export interface Story<TEngine, TRun extends AnyEffect = never, TStage extends string = never, TVerbs = object> {
+	readonly apply: <R = never>(given: readonly Trait<TEngine, TStage, R>[]) => Effect.Effect<void, unknown, R>;
 	readonly engine: TEngine;
 	readonly lines: readonly string[];
+	readonly restart: <R = never>(
+		given: readonly Trait<TEngine, TStage, R>[],
+	) => Effect.Effect<Told<TEngine, TVerbs, TRun, TStage>, unknown, R | Scope.Scope>;
 	readonly runUntil: <TUntil extends AnyEffect = never>(
 		until: Hook<[engine: TEngine], TUntil, boolean>,
 		options?: RunUntilOptions,
-	) => Effect.Effect<void, ErrorOf<TRun | TUntil>, ServicesOf<TRun | TUntil>>;
+	) => Effect.Effect<void, ErrorOf<TRun> | ErrorOf<TUntil>, ServicesOf<TRun> | ServicesOf<TUntil>>;
 	readonly tell: (line: string) => void;
 }
 
@@ -59,13 +63,15 @@ export interface StoryKitDefinition<
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
 	readonly runIf?: boolean;
 	readonly stages: readonly TStage[];
-	readonly verbs: (engine: TEngine, story: Story<TEngine, TStep | TFailed | TDiagnose>) => TVerbs;
+	readonly verbs: (engine: TEngine, story: Story<TEngine, TStep | TFailed | TDiagnose, TStage>) => TVerbs;
 }
 
-export type Told<TEngine, TVerbs, TRun extends AnyEffect> = TVerbs & { readonly story: Story<TEngine, TRun> };
+export type Told<TEngine, TVerbs, TRun extends AnyEffect, TStage extends string = never> = TVerbs & {
+	readonly story: Story<TEngine, TRun, TStage, TVerbs>;
+};
 
-export type StoryBody<TEngine, TVerbs, TRun extends AnyEffect, TEffect extends AnyEffect> = (
-	told: Told<TEngine, TVerbs, TRun>,
+export type StoryBody<TEngine, TVerbs, TRun extends AnyEffect, TEffect extends AnyEffect, TStage extends string = never> = (
+	told: Told<TEngine, TVerbs, TRun, TStage>,
 	context: TestContext,
 ) => Generator<TEffect, unknown, never> | undefined;
 
@@ -74,7 +80,7 @@ export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEf
 >(
 	name: string,
 	given: readonly Trait<TEngine, TStage, TProvided | Crypto.Crypto | Scope.Scope>[],
-	body?: StoryBody<TEngine, TVerbs, TRun, TEffect>,
+	body?: StoryBody<TEngine, TVerbs, TRun, TEffect, TStage>,
 	options?: number | EffectTestOptions,
 ) => void;
 

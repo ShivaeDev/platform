@@ -15,5 +15,6 @@ export interface FleetStoreOptions<A> {
 	readonly executing?: (record: A) => boolean;
 	readonly namespace?: string;
 	readonly requeue?: (record: A, previous: A) => boolean;
+	readonly schedulingChanged?: (record: A, previous: A) => boolean;
 	readonly submissions?: (record: A, since: number) => number;
 }

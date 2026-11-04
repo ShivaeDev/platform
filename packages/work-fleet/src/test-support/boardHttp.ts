@@ -5,7 +5,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
-import { storedBoardSource } from "#test/storedBoard.ts";
+import { storedBoardResponses, storedBoardSource } from "#test/storedBoard.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {
 	const runtime = ManagedRuntime.make(
@@ -38,11 +38,9 @@ export function boardHttpFiles(root: string) {
 		renameSync(join(root, from), join(root, to));
 	}
 	function receipts() {
-		return ["responses", ".board-settled"].flatMap((directory) =>
-			(existsSync(join(root, directory)) ? readdirSync(join(root, directory)) : [])
-				.filter((file) => file.startsWith("request-receipt.") && file.endsWith(".md"))
-				.map((file) => `${directory}/${file}`),
-		);
+		return storedBoardResponses(root)
+			.filter((file) => file.startsWith("request-receipt."))
+			.map((file) => `responses/${file}`);
 	}
 	return { move, read, receiptRecords: () => receipts().map((file) => metadataParse(read(file)).fields.requestReceipt), receipts, write };
 }
@@ -57,6 +55,6 @@ export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (ro
 	);
 });
 
-import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NetAddress from "effect/net/NetAddress";

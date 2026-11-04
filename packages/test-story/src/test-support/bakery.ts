@@ -75,6 +75,7 @@ export const bakery = storyKit({
 		},
 	},
 	create: emptyBakery,
+	inspect: (state) => state,
 	layer: Supplier.layer,
 	name: "bakery",
 	run: {

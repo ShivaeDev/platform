@@ -2,9 +2,9 @@ import { Clock, Duration, Effect } from "effect";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { run } from "#engine/scheduler.ts";
+import { run } from "#engine/runScheduler.ts";
 import { Fleet } from "#fleet.ts";
-import { schedulerPause } from "#host/commands.ts";
+import { schedulerCadence } from "#host/commands.ts";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { pace } from "#host/githubRateLimit.ts";
@@ -57,7 +57,7 @@ export const providerRead = storyKit({
 				const clock = yield* Clock.Clock;
 				const reset = clock.currentTimeMillisUnsafe() + 3_600_000;
 				const github = pacedGithub(clock, reset);
-				return yield* Effect.scoped(run(schedulerPause)).pipe(
+				return yield* Effect.scoped(run(schedulerCadence)).pipe(
 					Effect.provideService(Clock.Clock, timerClock(clock, state.schedulerTimers)),
 					Effect.provideService(Fleet, running(state).fleet),
 					Effect.provideService(GithubApi, github),

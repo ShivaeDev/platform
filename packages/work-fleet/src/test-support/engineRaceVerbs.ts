@@ -1,6 +1,9 @@
-import { Deferred, Effect } from "effect";
-import { run } from "#engine/scheduler.ts";
+import { Deferred, Effect, Stream } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { readKeys } from "@shivaedev/changes/keys.ts";
+import { run } from "#engine/runScheduler.ts";
 import { Fleet } from "#fleet.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { schedulerSnapshot } from "#test/schedulerSnapshot.ts";
 
@@ -20,16 +23,18 @@ export function engineRaceVerbs(state: EngineStory, tell: (line: string) => void
 			tell("both decision writes reach their commit");
 			state.recovery.barrier.arm();
 		},
-		awaitRecordedReceipt: Effect.fnUntraced(function* (id: string) {
-			while ((yield* running(state).fleet.get(id)).value.attempts[0]?.receipt === undefined) {
-				yield* Effect.yieldNow;
-			}
-		}),
-		awaitRecordedStage: Effect.fnUntraced(function* (id: string, step: string) {
-			while ((yield* running(state).fleet.get(id)).value.step !== step) {
-				yield* Effect.yieldNow;
-			}
-		}),
+		awaitRecordedReceipt: (id: string) =>
+			Reactivity.stream(running(state).fleet.get(id), readKeys([fleetRecords.item(id)])).pipe(
+				Stream.filter(({ value }) => value.attempts[0]?.receipt !== undefined),
+				Stream.take(1),
+				Stream.runDrain,
+			),
+		awaitRecordedStage: (id: string, step: string) =>
+			Reactivity.stream(running(state).fleet.get(id), readKeys([fleetRecords.item(id)])).pipe(
+				Stream.filter(({ value }) => value.step === step),
+				Stream.take(1),
+				Stream.runDrain,
+			),
 		failStalledProvider: () => {
 			if (state.recovery.faultyProvider === undefined) {
 				throw new Error("No stalled provider is configured");
@@ -51,7 +56,10 @@ export function engineRaceVerbs(state: EngineStory, tell: (line: string) => void
 		},
 		startScheduler: () => {
 			tell("start the autonomous Fleet scheduler");
-			return Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.provideService(Fleet, running(state).fleet), Effect.forkChild);
+			return Effect.scoped(run(Effect.succeed({ github: 5, provider: 5 }))).pipe(
+				Effect.provideService(Fleet, running(state).fleet),
+				Effect.forkChild,
+			);
 		},
 		waitForGate: (name: string) => {
 			tell(`wait for ${name}`);

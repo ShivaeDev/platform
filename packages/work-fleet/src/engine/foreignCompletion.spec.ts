@@ -33,7 +33,7 @@ isolatedEngine.it(
 		expect(closed.value).toMatchObject({ decision: { code: "pr-closed" }, step: "waiting" });
 		expect(closed.value.outcome).toBeUndefined();
 		expect(fleet.commitBatches()[beforeClose]?.toSorted(Order.mapInput(Order.String, String))).toEqual(
-			["fleet", RESERVATIONS, `${RESERVATIONS}:${PR}`].toSorted(Order.String),
+			["fleet", "fleet-scheduling", RESERVATIONS, `${RESERVATIONS}:${PR}`].toSorted(Order.String),
 		);
 		const commits = fleet.commitBatches().length;
 		expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
