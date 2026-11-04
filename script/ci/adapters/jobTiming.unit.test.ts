@@ -6,11 +6,17 @@ import { staleJobTiming } from "#ci/test-support/staleJobTiming.ts";
 
 const encode = Schema.encodeSync(JobTiming);
 
-it("collects a successful shard's wall time when the job fields lag behind its completed steps", () => {
-	const job = encode(jobTiming(staleJobTiming));
+for (const { completedAt, conclusion, duration, missing } of [
+	{ completedAt: null, conclusion: null, duration: 300_000, missing: "completion and conclusion" },
+	{ completedAt: null, conclusion: "success", duration: 300_000, missing: "completion" },
+	{ completedAt: "2026-01-01T00:05:10Z", conclusion: null, duration: 310_000, missing: "conclusion" },
+]) {
+	it(`collects a successful shard's wall time when its ${missing} fields lag behind completed steps`, () => {
+		const job = encode(jobTiming({ ...staleJobTiming, completedAt, conclusion }));
 
-	expect(jobDurations({ jobs: [job] }, /^tests \(\d+\)$/u, 1)).toEqual([300_000]);
-});
+		expect(jobDurations({ jobs: [job] }, /^tests \(\d+\)$/u, 1)).toEqual([duration]);
+	});
+}
 
 for (const step of [
 	{ completedAt: "2026-01-01T00:04:50Z", conclusion: "failure", name: "Test workspace shard", status: "completed" },

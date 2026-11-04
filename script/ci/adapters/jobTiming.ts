@@ -16,7 +16,7 @@ export const JobTiming = Schema.Struct({
 }).pipe(Schema.encodeKeys({ completedAt: "completed_at", startedAt: "started_at" }));
 
 export function jobTiming(job: typeof JobTiming.Type): typeof JobTiming.Type {
-	if (job.completedAt !== null || job.conclusion !== null) {
+	if (job.conclusion !== null && job.conclusion !== "success") {
 		return job;
 	}
 	const last = job.steps.at(-1);
@@ -28,5 +28,5 @@ export function jobTiming(job: typeof JobTiming.Type): typeof JobTiming.Type {
 	) {
 		return job;
 	}
-	return { ...job, completedAt: last.completedAt, conclusion: "success" };
+	return { ...job, completedAt: job.completedAt ?? last.completedAt, conclusion: "success" };
 }
