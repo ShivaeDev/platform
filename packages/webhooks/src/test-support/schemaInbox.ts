@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Receipt } from "#server/internal/Receipt.ts";
 import createReceipts from "#server/migrations/0001_create_receipts.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
@@ -19,7 +20,7 @@ function startup(exit: Exit.Exit<unknown, unknown>) {
 
 export const schemaInbox = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => inboxState("check"),
 	layer: postgresLayer,
 	name: "webhook receipt migrations",
@@ -43,6 +44,10 @@ export const schemaInbox = storyKit({
 				}
 				return startup(yield* Fiber.await(state.host));
 			}),
+		migrationPollIntervalPasses: () => {
+			story.tell("one migration poll interval passes");
+			return untilTimer("10 millis").pipe(Effect.andThen(passes("10 millis", Effect.void)));
+		},
 		pending: () => Effect.map(webhookReceipts({ schema: state.receiptsSchema }).pending, (pending) => pending ?? "nothing pending"),
 		receiptJobIdsType: () => SqlClient.SqlClient.use((sql) => sql`select pg_typeof(job_ids)::text as type from webhook_receipts limit 1`),
 		receipts: () =>

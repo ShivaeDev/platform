@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Clock, DateTime, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -32,7 +32,7 @@ function receiptJobName(state: InboxState, id: string) {
 export const inbox = storyKit({
 	after: { host: startHost },
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-10-01T12:00:00Z"),
 	create: () => inboxState(undefined),
 	inspect: ({ answers, handled }) => ({ answers, handled }),
 	layer: postgresLayer,
@@ -102,8 +102,9 @@ export const firstReceiptUpdateFails = inbox.trait("inbox", "the first copy to u
 export function senderOptIn(expiry: "future" | "past") {
 	return inbox.trait("inbox", `the sender's opt-in expires in the ${expiry}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const now = yield* Clock.currentTimeMillis;
 		yield* sql`create table webhook_senders (sender text primary key, allowed_until timestamptz not null)`;
-		yield* sql`insert into webhook_senders values ('alice', now() + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
+		yield* sql`insert into webhook_senders values ('alice', to_timestamp(${now} / 1000.0) + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
 	});
 }
 
