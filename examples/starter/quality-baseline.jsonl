@@ -14,4 +14,5 @@
 {"path":"src/modules/notes/client/Table.tsx","rule":"effect/adapter-imports","count":2}
 {"path":"src/modules/notes/client/admin/registration.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"src/modules/notes/client/registration.tsx","rule":"effect/adapter-imports","count":1}
+{"path":"src/modules/notes/server/Service.ts","rule":"effect/service-definition-assembly","count":3}
 {"path":"src/modules/notes/server/registration.ts","rule":"effect/adapter-imports","count":1}

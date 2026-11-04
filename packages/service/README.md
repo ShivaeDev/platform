@@ -7,13 +7,16 @@ Declare an Effect service's dependencies once, initialize its private state, and
 A service should explain what it needs and what callers can do with it. When every method binds dependencies separately, that explanation is scattered across setup and application code. Put the dependency list, private initialization and public methods in one definition:
 
 ```ts
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { greet } from "#greetings/greet.ts";
+import { initializeGreetings } from "#greetings/initialize.ts";
+import { Prefix } from "#Prefix.ts";
+
 const Greetings = defineService({
 	id: "app/Greetings",
 	requires: [Prefix],
-	initialize: Effect.succeed({ punctuation: "!" }),
-	methods: (state) => ({
-		greet: Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`)),
-	}),
+	initialize: initializeGreetings,
+	methods: (state) => ({ greet: greet(state) }),
 });
 ```
 
@@ -36,22 +39,51 @@ The work has three parts:
 2. Once per service, define its dependency list, private state and methods.
 3. In application code, yield the service and call its methods.
 
-### 1. Define a service and provide its dependencies
+### 1. Assemble the service from focused files
+
+A service file is an inventory: a top-level `defineService` call lists `id`, `requires`, `initialize` and `methods` directly. Keep each initializer and operation in its own focused file and import its named export. Use `Effect.void` when there is no initialization state. The methods arrow returns the operation record directly. Each entry names an imported operation or calls an imported state factory; `genericMethod` may wrap either form.
+
+Quality enforces this with `effect/service-definition-assembly`, including adapters and tests. It rejects a configuration hidden behind a variable, spreads or computed configuration members, hidden method records, inline operations, local implementation references and implementation bodies beside the assembly. Keep setup inside the imported initializer or operation factory. Existing Quality span checks apply to the implementations: use names such as `Greetings.greet`, with an operation matching its binding. No second span convention applies to service assemblies.
+
+The initializer module exports its Effect:
 
 ```ts
-import { Context, Effect, Layer } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { Effect } from "effect";
 
-class Prefix extends Context.Service<Prefix, string>()("app/Prefix") {}
+export const initializeGreetings = Effect.succeed({ punctuation: "!" });
+```
+
+The operation module exports a state factory; its returned function is the public method:
+
+```ts
+import { Effect } from "effect";
+import { Prefix } from "#Prefix.ts";
+
+export function greet(state: { readonly punctuation: string }) {
+	return Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`));
+}
+```
+
+The service module imports those exports. `Prefix` is a separate native Context service:
+
+```ts
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { greet } from "#greetings/greet.ts";
+import { initializeGreetings } from "#greetings/initialize.ts";
+import { Prefix } from "#Prefix.ts";
 
 const Greetings = defineService({
 	id: "app/Greetings",
 	requires: [Prefix],
-	initialize: Effect.succeed({ punctuation: "!" }),
-	methods: (state) => ({
-		greet: Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`)),
-	}),
+	initialize: initializeGreetings,
+	methods: (state) => ({ greet: greet(state) }),
 });
+```
+
+Application code composes its Layer and calls the service:
+
+```ts
+import { Effect, Layer } from "effect";
 
 const live = Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "Hello ")));
 
@@ -75,7 +107,6 @@ For an explicitly annotated `Effect.fn` generator, `ServiceRequirements` express
 
 ```ts
 import { Context, Effect, type Scope } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
 import type { ServiceRequirements } from "@shivaedev/service/ServiceRequirements.ts";
 
 class Declared extends Context.Service<Declared, { readonly identity: object }>()("app/Declared") {}
@@ -89,20 +120,11 @@ type Requirements<Success, Failure = never, CallerScope extends Scope.Scope = ne
 	CallerScope
 >;
 
-const Identity = defineService({
-	id: "app/Identity",
-	requires: requirements,
-	initialize: Effect.fn("Identity.initialize")(function* (): Requirements<{
-		readonly identity: object;
-	}> {
-		return { identity: (yield* Declared).identity };
-	})(),
-	methods: (state) => ({
-		sameIdentity: Effect.fn("Identity.sameIdentity")(function* (): Requirements<boolean> {
-			return (yield* Declared).identity === state.identity;
-		}),
-	}),
-});
+export const initializeIdentity = Effect.fn("Identity.initializeIdentity")(function* (): Requirements<{
+	readonly identity: object;
+}> {
+	return { identity: (yield* Declared).identity };
+})();
 ```
 
 The alias is `Effect.fn.Return<Success, Failure, declared services | CallerScope>`. The last parameter can be `Scope.Scope` when the generator acquires a scoped resource; it cannot add another undeclared service. The annotation describes the implementation's requirements. `defineService` removes declared dependencies from the public methods' requirements.
@@ -111,18 +133,15 @@ The alias is `Effect.fn.Return<Success, Failure, declared services | CallerScope
 
 ```ts
 import { Effect, Ref } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
 
-const Resources = defineService({
-	id: "app/Resources",
-	requires: [],
-	initialize: Ref.make(0),
-	methods: (released) => ({
-		open: Effect.fn("Resources.open")(() => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (count) => count + 1))),
-		released: Effect.fn("Resources.released")(() => Ref.get(released)),
-	}),
-});
+export function open(released: Ref.Ref<number>) {
+	return Effect.fn("Resources.open")(() => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (count) => count + 1)));
+}
+```
 
+The assembly imports `open`, a `released` state factory and an initializer that returns `Ref.make(0)`. Its methods inventory is `(state) => ({ open: open(state), released: released(state) })`. A caller can then use:
+
+```ts
 const useResource = Effect.gen(function* () {
 	const resources = yield* Resources;
 	yield* Effect.scoped(resources.open());
@@ -149,17 +168,24 @@ The replacement provides the public method interface, rather than private initia
 Ordinary methods have one concrete signature. `genericMethod` marks a generic function so its success, failure and caller requirements remain related at each call:
 
 ```ts
-import { Context, Effect } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
-import { genericMethod } from "@shivaedev/service/genericMethod.ts";
+import { Effect } from "effect";
 
-class Caller extends Context.Service<Caller, { readonly value: number }>()("app/Caller") {}
-
-const preserve = Effect.fn("Generic.preserve")(
+export const preserve = Effect.fn("Generic.preserve")(
 	<Success, Failure, Requirements>(
 		effect: Effect.Effect<Success, Failure, Requirements>,
 	): Effect.Effect<{ readonly value: Success }, Failure, Requirements> => Effect.map(effect, (value) => ({ value })),
 );
+```
+
+The assembly imports the generic operation and marks it in the inventory:
+
+```ts
+import { Context, Effect } from "effect";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { genericMethod } from "@shivaedev/service/genericMethod.ts";
+import { preserve } from "#preserve.ts";
+
+class Caller extends Context.Service<Caller, { readonly value: number }>()("app/Caller") {}
 
 const Generic = defineService({
 	id: "app/Generic",
@@ -167,7 +193,11 @@ const Generic = defineService({
 	initialize: Effect.void,
 	methods: () => ({ preserve: genericMethod(preserve) }),
 });
+```
 
+A caller keeps the generic operation's requirements:
+
+```ts
 const preserved = Effect.gen(function* () {
 	const service = yield* Generic;
 	return yield* service.preserve(Effect.map(Caller, ({ value }) => value));
