@@ -32,7 +32,7 @@ export const publishNotes = Effect.fn("Release.publishNotes")(function* (
 		}
 		const notes = section.slice(section.indexOf("\n") + 1).trim();
 		packages.push(`## ${name} ${version}\n\n${notes}`);
-		const entries = yield* parseBody(`${name}@${version}`, notes);
+		const entries = yield* Effect.fromResult(parseBody(`${name}@${version}`, notes));
 		const migrations = entries.filter((entry) => entry.section === "Breaking");
 		if (migrations.length > 0) {
 			breaking.push(`### ${name}\n\n${renderEntries(migrations, false)}`);

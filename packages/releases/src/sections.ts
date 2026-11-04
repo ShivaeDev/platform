@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Result } from "effect";
 import { ChangesetError } from "#error.ts";
 
 export const sections = ["Added", "Changed", "Fixed", "Breaking", "Quality rules"] as const;
@@ -8,50 +8,50 @@ export interface Entry {
 	readonly text: string;
 }
 
-export const parseBody = Effect.fn("Changesets.parseBody")(function* (name: string, body: string) {
-	const entries: Entry[] = [];
-	let section: Section | undefined;
-	let blankLines = "";
-	for (const line of body.split("\n")) {
-		if (line.startsWith("### ")) {
-			blankLines = "";
-			section = sections.find((value) => line === `### ${value}`);
-			if (section === undefined) {
-				return yield* new ChangesetError({ message: `${name}: use ### Added, ### Changed, ### Fixed, ### Breaking or ### Quality rules.` });
+export function parseBody(name: string, body: string) {
+	return Result.gen(function* () {
+		const entries: Entry[] = [];
+		let section: Section | undefined;
+		let blankLines = "";
+		for (const line of body.split("\n")) {
+			if (line.startsWith("### ")) {
+				blankLines = "";
+				section = sections.find((value) => line === `### ${value}`);
+				if (section === undefined) {
+					return yield* Result.fail(
+						new ChangesetError({ message: `${name}: use ### Added, ### Changed, ### Fixed, ### Breaking or ### Quality rules.` }),
+					);
+				}
+			} else if (line.trim() === "") {
+				blankLines += `\n${line}`;
+			} else {
+				yield* appendEntry(name, line, section, entries, blankLines);
+				blankLines = "";
 			}
-		} else if (line.trim() === "") {
-			blankLines += `\n${line}`;
-		} else {
-			yield* appendEntry(name, line, section, entries, blankLines);
-			blankLines = "";
 		}
-	}
-	if (entries.length === 0) {
-		return yield* new ChangesetError({ message: `${name}: add at least one release-note entry under a ### section heading.` });
-	}
-	return entries;
-});
+		if (entries.length === 0) {
+			return yield* Result.fail(new ChangesetError({ message: `${name}: add at least one release-note entry under a ### section heading.` }));
+		}
+		return entries;
+	});
+}
 
-const appendEntry = Effect.fn("Changesets.appendEntry")(function* (
-	name: string,
-	line: string,
-	section: Section | undefined,
-	entries: Entry[],
-	blankLines: string,
-) {
-	if (line.startsWith("- ") && section !== undefined) {
-		if (line.slice(2).trim() === "") {
-			return yield* new ChangesetError({ message: `${name}: write text after '- '.` });
+function appendEntry(name: string, line: string, section: Section | undefined, entries: Entry[], blankLines: string) {
+	return Result.gen(function* () {
+		if (line.startsWith("- ") && section !== undefined) {
+			if (line.slice(2).trim() === "") {
+				return yield* Result.fail(new ChangesetError({ message: `${name}: write text after '- '.` }));
+			}
+			entries.push({ section, text: line });
+			return;
 		}
-		entries.push({ section, text: line });
-		return;
-	}
-	const previous = entries.at(-1);
-	if (previous === undefined || previous.section !== section || !/^\s+\S/u.test(line)) {
-		return yield* new ChangesetError({ message: `${name}: start each entry with '- ' under a ### section heading.` });
-	}
-	entries[entries.length - 1] = { ...previous, text: `${previous.text}${blankLines}\n${line}` };
-});
+		const previous = entries.at(-1);
+		if (previous === undefined || previous.section !== section || !/^\s+\S/u.test(line)) {
+			return yield* Result.fail(new ChangesetError({ message: `${name}: start each entry with '- ' under a ### section heading.` }));
+		}
+		entries[entries.length - 1] = { ...previous, text: `${previous.text}${blankLines}\n${line}` };
+	});
+}
 
 export function renderEntries(entries: readonly Entry[], sectionHeadings = true): string {
 	return sections

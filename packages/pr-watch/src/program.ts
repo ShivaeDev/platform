@@ -26,11 +26,13 @@ export function watchCommand<E, R, TDiagnosticError, TDiagnosticRequirements>(
 		},
 		(input) =>
 			Effect.gen(function* () {
-				const parsed = yield* optionsFor({
-					...input,
-					events: Option.getOrUndefined(input.events),
-					stateFile: Option.getOrUndefined(input.stateFile),
-				}).pipe(
+				const parsed = yield* Effect.fromResult(
+					optionsFor({
+						...input,
+						events: Option.getOrUndefined(input.events),
+						stateFile: Option.getOrUndefined(input.stateFile),
+					}),
+				).pipe(
 					Effect.tapError((error) =>
 						health(emit, { errorTag: error instanceof Error ? error.name : "UnknownFailure", event: "error", message: error.message }).pipe(
 							Effect.andThen(health(emit, { event: "stopped", reason: "failed" })),

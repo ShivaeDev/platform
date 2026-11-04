@@ -26,7 +26,7 @@ const nextVersion = Effect.fn("Changesets.nextVersion")(function* (name: string,
 const requestedBumps = Effect.fn("Changesets.requestedBumps")(function* (packages: readonly WorkspacePackage[], sources: readonly Source[]) {
 	const bumps = new Map<string, Bump>();
 	for (const source of sources) {
-		const changeset = yield* parseChangeset(source);
+		const changeset = yield* Effect.fromResult(parseChangeset(source));
 		for (const [name, bump] of Object.entries(changeset.packages)) {
 			yield* validateRequest(packages, name, bump, changeset);
 			const previous = bumps.get(name);

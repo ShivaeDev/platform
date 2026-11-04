@@ -1,6 +1,5 @@
-import { expect } from "@effect/vitest";
-import { Effect, Schema, SchemaParser } from "effect";
-import { it } from "@shivaedev/test/adapters/it.ts";
+import { Result, Schema, SchemaParser } from "effect";
+import { expect, it } from "vitest";
 import { messagesByField } from "#messages.ts";
 
 const Fields = Schema.Struct({
@@ -8,12 +7,14 @@ const Fields = Schema.Struct({
 	role: Schema.NonEmptyString,
 });
 
-it.effect("an empty required field reads as Required while an explicit schema message takes precedence", function* () {
-	const issue = yield* Effect.flip(
-		SchemaParser.decodeUnknownEffect(Fields, { errors: "all" })({
-			berth: "",
-			role: "",
-		}),
+it("an empty required field reads as Required while an explicit schema message takes precedence", () => {
+	const issue = Result.getOrThrow(
+		Result.flip(
+			SchemaParser.decodeUnknownResult(Fields, { errors: "all" })({
+				berth: "",
+				role: "",
+			}),
+		),
 	);
 	expect(messagesByField(issue)).toEqual({
 		berth: "Enter a berth",
@@ -21,16 +22,16 @@ it.effect("an empty required field reads as Required while an explicit schema me
 	});
 });
 
-it.effect("a form-level refinement does not invent a field for its error", function* () {
+it("a form-level refinement does not invent a field for its error", () => {
 	const Validation = Schema.Struct({ confirmation: Schema.String, password: Schema.String }).check(
 		Schema.makeFilter((value) => value.password === value.confirmation, { message: "Passwords must match" }),
 	);
-	const issue = yield* Effect.flip(SchemaParser.decodeUnknownEffect(Validation)({ confirmation: "second", password: "first" }));
+	const issue = Result.getOrThrow(Result.flip(SchemaParser.decodeUnknownResult(Validation)({ confirmation: "second", password: "first" })));
 	expect(messagesByField(issue)).toEqual({});
 });
 
-it.effect("multiple nested failures keep the first message for their top-level field", function* () {
+it("multiple nested failures keep the first message for their top-level field", () => {
 	const Validation = Schema.Struct({ profile: Fields });
-	const issue = yield* Effect.flip(SchemaParser.decodeUnknownEffect(Validation, { errors: "all" })({ profile: { berth: "", role: "" } }));
+	const issue = Result.getOrThrow(Result.flip(SchemaParser.decodeUnknownResult(Validation, { errors: "all" })({ profile: { berth: "", role: "" } })));
 	expect(messagesByField(issue)).toEqual({ profile: "Enter a berth" });
 });
