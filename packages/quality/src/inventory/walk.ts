@@ -79,7 +79,7 @@ const walkEntry = Effect.fnUntraced(function* (
 	tracked: ReadonlySet<string>,
 ): Effect.fn.Return<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
 	const fs = yield* FileSystem.FileSystem;
-	const info = yield* orWhenAbsent<FileSystem.File.Info | undefined>(path, fs.stat(path), undefined);
+	const info = yield* orWhenAbsent<FileSystem.File.Info | undefined>(path, path.endsWith("/CLAUDE.md") ? fs.lstat(path) : fs.stat(path), undefined);
 	if (info === undefined) {
 		return [];
 	}

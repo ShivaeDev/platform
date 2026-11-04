@@ -103,7 +103,11 @@ export function withScripts(root: string, scripts: Readonly<Record<string, strin
 
 export function withQualityAt(repository: HookRepository, path: string): string {
 	writes(repository.root, path, 'import "@shivaedev/quality/cli.ts";\n');
-	writes(repository.root, "package.json", manifest({ bin: { quality: `./${path}` }, devDependencies: { "@shivaedev/quality": "*" } }));
+	writes(
+		repository.root,
+		"package.json",
+		manifest({ bin: { quality: `./${path}` }, devDependencies: { "@shivaedev/quality": "file:./node_modules/@shivaedev/quality" } }),
+	);
 	formatTree(repository.root);
 	return join(repository.root, path);
 }

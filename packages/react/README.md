@@ -296,7 +296,7 @@ An action's `dispatch(input)` returns `void`. Read the atom's latest result from
 
 #### An editor and a create form
 
-The next module assumes `./invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md) describes that binding.
+The next module assumes a sibling `invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md) describes that binding.
 
 ```tsx
 import { useCreate } from "@shivaedev/react/client/create.ts";

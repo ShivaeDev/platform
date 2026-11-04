@@ -48,7 +48,7 @@ Run `pnpm run setup` after cloning the generated repository to install dependenc
 
 `pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
 
-The app selects `story-testing` from `@shivaedev/skills`. Setup syncs the installed instructions to `.agents/skills/story-testing/`, and `AGENTS.md` links to that local copy. `pnpm lint` rejects edits to managed skills. After changing the skills dependency, run `pnpm skills:sync` and commit the copies and manifest.
+The app selects `story-testing` from `@shivaedev/skills`. Setup syncs the installed instructions to `<app>/.agents/skills/story-testing/`, and `AGENTS.md` links to that local copy. `pnpm lint` rejects edits to managed skills. After changing the skills dependency, run `pnpm skills:sync` and commit the copies and manifest.
 
 ### Add a resource
 
