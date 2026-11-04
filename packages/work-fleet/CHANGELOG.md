@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.35.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.34.0 - 2026-11-04
+
+### Added
+
+- Export `fleetFailure` from `operations.ts` for handler registrations' shared error mapping and redacted fallback.
+
+### Fixed
+
+- Keep automatic admission from renewing released work until its recorded Board answer is acknowledged, so daemon recovery preserves the release receipt before preparing another cycle.
+
+### Breaking
+
+- `exposeFailure` maps typed errors and preserves defects. Import `fleetFailure` from `operations.ts` for the previous handler-edge behavior, or apply `rpcBoundary(FleetError, options)` after `exposeFailure` in the handler module. Fleet and daemon handler registrations retain their existing fallback behavior.
+- `daemonHandlers` reads UUIDs through Effect's `Crypto` service. Provide `NodeCrypto.layer` or an application `Crypto` implementation when constructing it; the Fleet runtime already supplies this service.
+
+## 0.33.0 - 2026-11-04
+
+### Changed
+
+- Fleet uses the reconciler to wake admission, dispatch and record reconciliation on committed changes and retry deadlines. Idle Fleet sleeps between observations; GitHub and provider observations retain their own cadence.
+- Observation timestamps and progress still reach readers without waking another scheduling pass.
+
+### Fixed
+
+- Pending answers survive concurrent reconciliation while their acceptance is recorded.
+
+### Breaking
+
+- Import the scheduler's `run` from `@shivaedev/work-fleet/engine/runScheduler.ts` and replace its pause Effect with an Effect returning `{ github, provider }` observation intervals in milliseconds. Provide the same native Reactivity to the store and scheduler; the app database layer already supplies it. The host's `schedulerPause` is replaced by `schedulerCadence` in `host/commands.ts`.
+- The polling `host/providerReadPause.ts` module is removed. Let `run` schedule provider observations and persisted read-retry deadlines.
+
 ## 0.32.3 - 2026-11-03
 
 ### Changed

@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.24.0 - 2026-11-04
+
+### Added
+
+- Announce the host's configured build version over native live RPC so loaded tabs detect a deploy without polling health.
+- Record development spans and correlated logs in a local SQLite store without an OpenTelemetry collector, using the host redaction policy. Configure indexed attributes and compose `localTracing` directly with scoped flushing and run retention.
+
+### Changed
+
+- Start development server and worker processes with `NODE_ENV=development`. Hosts without an OTLP endpoint record locally in this mode.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.23.0 - 2026-11-04
+
+### Added
+
+- Allow `appHost` to omit both the native RPC `group` and `handlers` while serving an existing HTTP API through `routes`, as a migration step towards native RPC. Host services, migrations, body-limit configuration, proxy trust, health and tracing retain their existing behavior; the existing API owns authentication and CORS. No native RPC endpoint or RPC preflight policy is installed without a group.
+- `appHost` accepts `config.socketPath` for Unix HTTP and WebSocket RPC, alone or beside an explicit TCP `port`. Socket files are published with mode `0600`, stale sockets are reclaimed at startup, and shutdown removes the socket.
+
+### Breaking
+
+- Host option types include the HTTP-only shape. Consumers that inspect native RPC options must narrow with `options.group !== undefined` before reading the group or handlers. Existing native `appHost` calls retain their options.
+
+## 0.22.0 - 2026-11-04
+
+### Added
+
+- Session hosts resolve and authorize declared subjects before handlers run. Self commands take no account id; delegated requests select an account with the `x-platform-subject` transport header and receive the contract's typed refusal when unauthorized.
+- Host process test fixtures can load a replacement before stopping the current host, using `beforeStart` with the child's `awaitHostStart` handshake.
+
+### Breaking
+
+- `appHost` startup failures carry every conflicting field in `SensitiveFieldConflict.conflicts`. Iterate over these entries instead of reading the top-level `field`, `publicSchema` and `sensitiveSchema`; the message lists all entries.
+
 ## 0.21.0 - 2026-11-03
 
 ### Added

@@ -46,21 +46,3 @@ repositoryStory.it(
 	},
 	CLI_TIMEOUT,
 );
-
-for (const rules of [[], ["--rule", "structure/max-lines"]]) {
-	repositoryStory.it(
-		`first adoption refuses ${rules.length === 0 ? "an unnamed rule" : "a rule that permits exceptions"}`,
-		[qualityInstalled(), repositoryHas({ content: "export const work = 1;\n", path: "src/work.ts" })],
-		function* ({ outcome, runs, stderr }) {
-			yield* runs("baseline", "write", "--first-adoption", ...rules);
-
-			yield* withMatchers((expect) =>
-				outcomes([
-					["exit", () => outcome(), "invalid"],
-					["reason", () => stderr(), expect.stringContaining("--first-adoption requires explicit --rule ids that refuse config exceptions")],
-				]),
-			);
-		},
-		CLI_TIMEOUT,
-	);
-}

@@ -11,7 +11,7 @@ interface Run {
 }
 
 export const selectedDatabaseRunner = storyKit({
-	clock: "live",
+	clock: "test",
 	create: (): Run => ({}),
 	inspect: (run) => run.result,
 	layer: PgClient.layer({ url: adminUrl }),

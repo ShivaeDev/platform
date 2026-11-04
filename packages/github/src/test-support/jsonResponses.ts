@@ -2,9 +2,12 @@ import { type Context, Effect, Layer, Option, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub, list, read, write } from "#GitHub.ts";
+import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { list } from "#list.ts";
+import { read } from "#read.ts";
+import { write } from "#write.ts";
 import { answered } from "./outcome.ts";
 
 const MEBIBYTE = 1024 * 1024;

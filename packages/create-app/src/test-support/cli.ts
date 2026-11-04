@@ -95,7 +95,7 @@ export function runCli(root: string, cli: string, gitAvailable: boolean, args: r
 						"GIT_CONFIG_GLOBAL=/dev/null",
 						...environment,
 						process.execPath,
-						"--conditions=source",
+						"--conditions=@shivaedev/source",
 						cli,
 						...args,
 					],

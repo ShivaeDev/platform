@@ -1,4 +1,4 @@
-import { Effect, Exit, Fiber, Layer, Option, Scope } from "effect";
+import { Effect, Exit, Fiber, Layer, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -20,11 +20,7 @@ const create = Effect.gen(function* () {
 				if (caller === undefined) {
 					return Effect.die(new Error("Start a transaction first"));
 				}
-				return Fiber.interrupt(caller).pipe(
-					Effect.andThen(Fiber.await(caller)),
-					Effect.timeoutOption("500 millis"),
-					Effect.map(Option.match({ onNone: () => "still waiting", onSome: outcomeOf })),
-				);
+				return Fiber.interrupt(caller).pipe(Effect.andThen(Fiber.await(caller)), Effect.map(outcomeOf));
 			}),
 		pending: () => Effect.sync(() => caller !== undefined && caller.pollUnsafe() === undefined),
 		start: Effect.gen(function* () {
@@ -35,7 +31,7 @@ const create = Effect.gen(function* () {
 });
 
 export const acquisition = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	layer: postgresLayer(postgresOptions.url, { maxConnections: 1 }).pipe(Layer.provideMerge(Reactivity.layer)),
 	name: "PostgreSQL transaction acquisition",

@@ -1,16 +1,17 @@
 import type { BetterAuthOptions } from "better-auth";
-import { Config, Effect, Layer, Option, Redacted, type Scope } from "effect";
+import { Effect, Layer, type Scope } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
+import { AccountPreferencesStore } from "#server/AccountPreferencesStore.ts";
 import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
-import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
 import { closeRoleEndpoints } from "#server/better-auth/adapters/closeRoleEndpoints.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
 import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import { mountedSessions } from "#server/better-auth/adapters/mountedSessions.ts";
+import { mountSettings } from "#server/better-auth/adapters/mountSettings.ts";
 import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
 import { providerOnlyOptions } from "#server/better-auth/adapters/providerOnlyOptions.ts";
 import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
@@ -26,11 +27,14 @@ import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
+import { accountPreferenceOptions } from "./accountPreferenceOptions.ts";
 import { acquireAuth } from "./acquire.ts";
 import { authRouteHandler } from "./routeHandler.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
+	readonly accountPreferences?: boolean;
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
+	readonly clientIp?: "railway";
 	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
 	readonly emails?: BetterAuthEmails<R> | undefined;
 	readonly enabledPaths?: readonly string[];
@@ -50,19 +54,16 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	if (mount.roles !== undefined) {
 		yield* mount.roles.resolve(mount.defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: mount.defaultRole })));
 	}
-	const secret = options.secret ?? Redacted.value(yield* Config.Redacted("BETTER_AUTH_SECRET"));
-	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
-	const origin = Option.map(publicUrl, (url) => url.origin);
-	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
-	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
-	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
+	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options, mount.clientIp);
 	const policy = mount.signIn ?? {};
 	if (policy.accounts !== undefined) {
 		yield* policy.accounts;
 	}
 	const gate = yield* signInGate(policy);
 	const runtime = yield* hookRuntime<R>();
-	const reset = passwordResetOptions(options, mount.onPasswordReset, runtime);
+	const preferences =
+		mount.accountPreferences === true ? yield* accountPreferenceOptions(options).pipe(Effect.provide(AccountPreferencesStore.layer)) : options;
+	const reset = passwordResetOptions(preferences, mount.onPasswordReset, runtime);
 	const hooked = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), mount.databaseHooks, runtime);
 	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
@@ -76,29 +77,12 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const customStorage = yield* rateLimitStorage;
 	const { auth, profiles } = yield* acquireAuth({
 		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
-		advanced: {
-			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
-			...options.advanced,
-			ipAddress: {
-				...options.advanced?.ipAddress,
-				ipAddressHeaders: [PEER_IP_HEADER],
-				trustedProxies: [],
-			},
-		},
-		"baseURL":
-			options.baseURL
-			?? Option.getOrElse(origin, () => ({
-				allowedHosts: ["127.0.0.1:*", "localhost:*"],
-				protocol: "http" as const,
-			})),
+		...authOptions,
 		rateLimit: {
 			...rateLimit,
 			customStorage,
 			enabled: rateLimitEnabled,
 		},
-		secret,
-		trustedOrigins:
-			options.trustedOrigins ?? Option.match(origin, { onNone: () => ["http://127.0.0.1:*", "http://localhost:*"], onSome: (url) => [url] }),
 		user: gate.active ? gated.user : configured.user,
 	});
 	const authRoutes = mountRoutes.pipe(

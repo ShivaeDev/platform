@@ -1,10 +1,15 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { availableJobDurations } from "#ci/adapters/availableJobDurations.ts";
 import { type MainTimingRun, mainTimingRun } from "./mainTimingRun.ts";
-import { jobDurations, wallTimeShardCount } from "./shardCount.ts";
+import { wallTimeShardCount } from "./shardCount.ts";
 import { decodeJunitTimingReport, decodeTimingSnapshot } from "./timings.ts";
 
 export function mergeTestTimings(reports: readonly string[], run: MainTimingRun) {
+	const durations = availableJobDurations(run.jobs, /^tests \(\d+\)$/u, run.count);
+	if (durations === undefined) {
+		return { runId: run.runId, sha: run.sha, timings: [] };
+	}
 	if (reports.length !== run.count || run.count < 1) {
 		throw new Error("Test timing reports must cover every shard");
 	}
@@ -15,7 +20,7 @@ export function mergeTestTimings(reports: readonly string[], run: MainTimingRun)
 	return decodeTimingSnapshot({
 		runId: run.runId,
 		sha: run.sha,
-		shardCount: wallTimeShardCount(jobDurations(run.jobs, /^tests \(\d+\)$/u, run.count), run.targetMs),
+		shardCount: wallTimeShardCount(durations, run.targetMs),
 		timings: timings.sort((a, b) => a.name.localeCompare(b.name, "en")),
 	});
 }

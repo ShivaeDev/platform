@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-story",
-	"version": "0.36.1",
+	"version": "0.38.0",
 	"description": "Tests that read like stories over the real engine: a story kit per engine with its own it, traits per feature, and a failure that prints the story, where it stopped and the engine's state",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

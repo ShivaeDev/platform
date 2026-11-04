@@ -1,5 +1,6 @@
 import { Cause, Clock, Deferred, type Duration, Effect, Exit, Option } from "effect";
 import { Migrator } from "effect/sql";
+import * as TestClock from "effect/testing/TestClock";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
@@ -48,6 +49,7 @@ export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => 
 	}
 	function run(migrations: readonly Migration[], options: RunOptions, pauseLoader = false) {
 		return Effect.gen(function* () {
+			yield* TestClock.adjust("1 millis");
 			engine.firstRunStarted.at ??= yield* Clock.currentTimeMillis;
 			const configured = optionsOf(migrations, options);
 			const loader = pauseLoader

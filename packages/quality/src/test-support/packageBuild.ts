@@ -73,7 +73,7 @@ export function packageExtendsQualityConfig() {
 			writeAll(engine.root, [
 				{
 					content: JSON.stringify({
-						imports: { "#*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" } },
+						imports: { "#*.ts": { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" } },
 						name: "@demo/build",
 						type: "module",
 					}),
@@ -81,7 +81,7 @@ export function packageExtendsQualityConfig() {
 				},
 				{
 					content: JSON.stringify({
-						compilerOptions: { customConditions: ["source"], outDir: "dist", rootDir: "src", types: [] },
+						compilerOptions: { customConditions: ["@shivaedev/source"], outDir: "dist", rootDir: "src", types: [] },
 						extends: "@shivaedev/quality/tsconfig/package.json",
 						include: ["src"],
 					}),

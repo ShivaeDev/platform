@@ -1,6 +1,4 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { workerReportsChangedPaths } from "#test/engineAdoptionTraits.ts";
 import { launchDefaults } from "#test/engineLaunchTraits.ts";
 import { boardAcknowledgementFailsOnce, workerGuidance } from "#test/engineLifecycleTraits.ts";
@@ -41,7 +39,7 @@ describe("worker report correction through PostgreSQL", () => {
 				expect(followUp.value.attempts[0]?.output).toBe(malformed);
 				expect(githubRequests()).toHaveLength(0);
 				yield* workerReportReply(followUp, REPORT);
-				const reviewing = yield* afterRestart(Effect.flatMap(Fleet, (resumed) => resumed.reconcile("one")));
+				const reviewing = yield* afterRestart((resumed) => resumed.reconcile("one"));
 				expect(reviewing.value.step).toBe("reviewing");
 				expect(reviewing.value.result).toMatchObject({ head: HEAD, kind: "change", pr: PR });
 				expect(reviewedHeads()).toEqual([HEAD]);
@@ -59,7 +57,7 @@ describe("worker report correction through PostgreSQL", () => {
 			const followUp = yield* fleet.reconcile("one");
 			yield* workerReportReply(followUp, `FLEET_PR: ${PR}`);
 
-			const blocked = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
+			const blocked = yield* afterRestart((restarted) => restarted.reconcile("one"));
 			expect(blocked.value.step).toBe("waiting");
 			expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
 			expect(blocked.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
@@ -76,7 +74,7 @@ describe("worker report correction through PostgreSQL", () => {
 			expect(retry.value.attempts.at(-1)?.prompt).toBe(followUp.value.attempts.at(-1)?.prompt);
 			expect(retry.value.attempts.at(-1)?.receipt?.sessionId).toBe(original.sessionId);
 			expect(retry.value.attempts.at(-1)?.receipt?.turnId).not.toBe(followUp.value.attempts.at(-1)?.receipt?.turnId);
-			const repeated = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.resolve("one", decisionId, responseId)));
+			const repeated = yield* afterRestart((restarted) => restarted.resolve("one", decisionId, responseId));
 			expect(repeated.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 			expect(repeated.value.responses?.[0]?.boardAcknowledged).toBe(true);
 			expect(acknowledgements()).toMatchObject([{ decision: blocked.value.decision?.published, disposition: "applied" }]);

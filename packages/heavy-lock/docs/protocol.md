@@ -27,6 +27,9 @@ The same bytes are in [the reference fixture](https://github.com/ShivaeDev/platf
 | `command`          | The command description; the CLI joins the executable and arguments with single spaces.                       |
 | `cwd`              | The holder's working directory.                                                                               |
 | `startedAtMs`      | Acquisition time in milliseconds since the epoch.                                                             |
+| `branch`           | Optional Git branch recorded when acquisition begins; written after `startedAtMs` when available.             |
+
+Participants accept holder files without `branch`. Branch metadata does not affect ownership or liveness.
 
 The PID alone is insufficient. The holder is live only when `ps` succeeds, prints a nonempty start time and that time equals `processStartedAt`. A dead process or a reused PID with a different start time does not protect the lock. An undecodable holder file does not identify a live holder.
 
@@ -57,4 +60,4 @@ A child receives `HEAVY_PROCESS_LOCK_ID=<id>` and `HEAVY_PROCESS_LOCK=<selected 
 
 A nonempty `CI` value skips acquisition. The API returns an empty held environment; the CLI supplies no new hold ID to the child. The child still inherits its surrounding environment, so this does not clear an ID that was already inherited. Settings resolve a usable lock path before applying the CI bypass.
 
-A waiter prints through Effect's `Console.error`, which the CLI sends to stderr, when it first sees a holder, when the holder's ID changes and every minute. The waiting line names the PID, command, directory, local acquisition time and age of the hold. After waiting, acquisition prints the caller's elapsed wait. Elapsed durations use seconds under a minute and minutes plus seconds from a minute onward. The [README](../README.md) shows the output.
+A waiter prints through Effect's `Console.error`, which the CLI sends to stderr, when it first sees a holder, when the holder's ID changes and every minute. The waiting line names the PID, command, directory, optional branch, local acquisition time and age of the hold. At the next poll after the hold reaches `hungAfter` (15 minutes by default), it adds `holder may be hung`, including when a new waiter first encounters an old hold. Subsequent reminders retain the warning while that holder remains old enough; a new holder is evaluated using its own acquisition time. The warning leaves the holder's lock alone. After waiting, acquisition prints the caller's elapsed wait. Elapsed durations use seconds under a minute and minutes plus seconds from a minute onward. The [README](../README.md) shows the output.

@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import manifest from "@shivaedev/heavy-lock/package.json" with { type: "json" };
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { heldBy, liveCli, lockStory } from "#test/kit.ts";
+import { CLI_TIMEOUT_MS, heldBy, lockStory } from "#test/kit.ts";
 
 lockStory.it(
 	"version prints the package version and exits successfully while build keeps the lock",
@@ -15,7 +15,7 @@ lockStory.it(
 			["lock holder", () => lock.holder(), "build"],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -29,7 +29,7 @@ lockStory.it(
 			["output", () => cli.standardOutputOf("check"), "running\n"],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 for (const separators of [["--"], ["--", "--"]]) {
@@ -44,7 +44,7 @@ for (const separators of [["--"], ["--", "--"]]) {
 				["holder id", () => cli.holderIdGivenTo("check"), "check's holder id"],
 			]);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }
 
@@ -61,7 +61,7 @@ for (const args of [[], ["--"], ["--", "--"]]) {
 				["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
 			]);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }
 
@@ -78,7 +78,7 @@ lockStory.it(
 			["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -93,7 +93,7 @@ lockStory.it(
 			["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 for (const separators of [["--"], ["--", "--"]]) {
@@ -105,6 +105,6 @@ for (const separators of [["--"], ["--", "--"]]) {
 
 			expect(yield* cli.standardOutputOf("check")).toBe("running\n--help\n--unknown\n\ntwo words\n--\n");
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }

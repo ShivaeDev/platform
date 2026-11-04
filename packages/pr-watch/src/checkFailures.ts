@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { type Options, WatchError } from "#model.ts";
 
@@ -11,16 +12,13 @@ const Context = Schema.Union([
 	Schema.Struct({ __typename: Schema.Literal("CheckRun"), id: Schema.String, isRequired: Schema.Boolean }),
 	Schema.Struct({ __typename: Schema.Literal("StatusContext"), context: Schema.String, isRequired: Schema.Boolean }),
 ]);
-const Errors = Schema.Struct({ errors: Schema.optionalKey(Schema.Array(Schema.Struct({ message: Schema.String }))) });
 const Required = Schema.Struct({
-	data: Schema.Struct({
-		repository: Schema.Struct({
-			object: Schema.Struct({
-				statusCheckRollup: Schema.Struct({
-					contexts: Schema.Struct({
-						nodes: Schema.Array(Context),
-						pageInfo: Schema.Struct({ endCursor: Schema.NullOr(Schema.String), hasNextPage: Schema.Boolean }),
-					}),
+	repository: Schema.Struct({
+		object: Schema.Struct({
+			statusCheckRollup: Schema.Struct({
+				contexts: Schema.Struct({
+					nodes: Schema.Array(Context),
+					pageInfo: Schema.Struct({ endCursor: Schema.NullOr(Schema.String), hasNextPage: Schema.Boolean }),
 				}),
 			}),
 		}),
@@ -70,16 +68,16 @@ const requiredFailures = Effect.fn("GitHub.requiredFailures")(function* (
 	let after: string | null = null;
 	let failed = false;
 	do {
-		const response: unknown = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha });
-		const { errors } = yield* decode(Errors, response);
-		if (errors !== undefined && errors.length > 0) {
-			return yield* new WatchError(
-				{ message: `GitHub required checks: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
-				{ cause: errors },
-			);
-		}
-		const body = yield* decode(Required, response);
-		const { nodes, pageInfo } = body.data.repository.object.statusCheckRollup.contexts;
+		const body: typeof Required.Type = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha }).pipe(
+			Effect.flatMap((response) => decodeGraphqlData(response, Required)),
+			Effect.catchTag("GitHubGraphqlError", (cause) =>
+				Effect.fail(new WatchError({ message: `GitHub required checks: ${cause.message}`, reason: "response" }, { cause })),
+			),
+			Effect.catchTag("SchemaError", (cause) =>
+				Effect.fail(new WatchError({ message: "Invalid GitHub checks response", reason: "response" }, { cause })),
+			),
+		);
+		const { nodes, pageInfo } = body.repository.object.statusCheckRollup.contexts;
 		const requiredFailed = matchRequiredFailures(nodes, failedChecks, failedStatuses);
 		failed ||= requiredFailed;
 		if (pageInfo.hasNextPage && pageInfo.endCursor === null) {

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.47.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.46.0 - 2026-11-04
+
+### Changed
+
+- serve `board.sock` through the application host, sharing its routes, request limits and live-query transport. Existing Board plugin and MCP clients keep using the same socket path.
+
+### Breaking
+
+- remove `server/boardSocket.ts`. Direct callers should configure `appHost` from `@shivaedev/server/appHost.ts` with `config.socketPath`, their RPC group and handlers. `serveBoard` continues to publish `board.sock` for Board plugin and MCP clients.
+
+## 0.45.0 - 2026-11-04
+
+### Breaking
+
+- `boardLayer` startup failures carry every conflicting field in `SensitiveFieldConflict.conflicts`. Iterate over these entries instead of reading the top-level `field`, `publicSchema` and `sensitiveSchema`; the message lists all entries.
+
 ## 0.44.2 - 2026-11-03
 
 ### Changed

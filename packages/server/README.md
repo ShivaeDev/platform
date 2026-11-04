@@ -29,6 +29,39 @@ The RPC host composes contract's `CommandGuard` with `publishCommand` and the `C
 
 The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, and `node-http/` combines subscription cancellation sources. Choose the modules that match the application rather than adopting every integration.
 
+### Adopt the host before replacing an existing API
+
+For an app migrating from tRPC or another HTTP API, omit both `group` and `handlers` and mount the existing API through `routes`. This is a supported migration step towards native RPC; new apps use native contracts and handlers. Without a group the host installs no native RPC endpoint or RPC preflight policy, so an existing API can keep `/rpc`. The existing API continues to own its authentication and CORS policy. Supply `sessions` only if application routes or browser error reporting need the host's session policy.
+
+```ts
+import { Effect } from "effect";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { handleRequest } from "./existing-api.ts";
+
+const Routes = HttpRouter.add("POST", "/api/trpc/*", () =>
+	Effect.gen(function* () {
+		const body = yield* readBoundedBody();
+		const request = yield* HttpServerRequest.HttpServerRequest;
+		const web = yield* HttpServerRequest.toWeb(request);
+		const response = yield* Effect.promise(() => handleRequest(new Request(web, { body })));
+		return HttpServerResponse.fromWeb(response);
+	}),
+);
+
+const Server = appHost({
+	routes: Routes,
+	config: { host: "0.0.0.0", trustedProxy: "127.0.0.1", maxBodySize: 1024 * 1024 },
+});
+```
+
+`handleRequest` is the app's existing `(request: Request) => Promise<Response>`. Use `readBoundedBody` when forwarding bodies; `routes` receives the host's `MAX_BODY_SIZE` or `config.maxBodySize`, and that reader returns 413 on overflow. Merely converting a request to a Web request does not bound its body. Configure the actual proxy peer in `trustedProxy`; the host still requires trust when binding publicly and applies it at its own transport boundaries, including browser error reports. This setting does not install authentication or an Origin guard around application routes.
+
+The same host composition provides scoped `services`, migration ordering (including deferred `application` construction), `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. Health still returns 503 without SQL and 200 with reachable PostgreSQL. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
+
+Host option types include this HTTP-only shape. A wrapper that reads native RPC options first narrows with `options.group !== undefined` before reading `group` or `handlers`. Existing native `appHost` calls keep their options.
+
 ### Prepare local development
 
 `setupDatabases()` from `@shivaedev/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; setup command failures retain their local-postgres error tags. Provide `ChildProcessSpawner` at the setup entry point, for example with `Effect.provide(NodeServices.layer)` before `NodeRuntime.runMain`. Migrations remain the application's responsibility.
@@ -128,11 +161,15 @@ Static layers mounted manually through `routes` keep Effect's native behavior. T
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` and `listenDatabaseUrl` (Effect `Redacted<string>` values), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
+Set `config.socketPath` to serve the application over a Unix socket instead of the default TCP listener. Also set `config.port` to serve the same routes on both listeners; `HttpServer.address` then reports the TCP address. With only `socketPath`, `PORT` does not enable TCP and `HttpServer.address` reports the public socket path. The parent directory must exist. The host publishes the socket with mode `0600`, replaces an unanswered stale socket at startup, refuses an already running listener, and removes its socket on shutdown. Startup uses a private staging directory and a sibling `.<socket-name>.starting` lock. If a process is forcibly killed during startup, remove that lock before restarting, after confirming no startup is still running.
+
+Unix clients can call HTTP RPC and subscribe through WebSocket RPC over the same socket path. Unix requests use filesystem access for transport admission; session middleware and query read policies still apply. TCP keeps its loopback, origin and proxy checks. Work Board uses this listener at its existing `board.sock` path for the Board plugin and `work-board mcp`.
+
 RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body, fixed-length or chunked, returns a 4xx before any RPC handler runs. The same byte limit applies to each WebSocket RPC message, including binary messages and the combined payload of continuation frames. An oversized message closes the connection with code 1009 before any RPC in that message runs; native Effect socket clients receive a typed `SocketError` with a `SocketCloseError` reason. The limit includes bearer authentication frames, and zero refuses every nonempty message. This limit applies to the host's RPC route.
 
 For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
-Ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/adapters/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. Session middleware revalidates authenticated streams at `streamRevalidationInterval` and ends revoked subscriptions with typed `Unauthorized`. Cookie-authenticated sockets remain open; later protected calls use the same session checks. Automatic live subscriptions reload the session before each hint and use its current roles and grants for the query policy and any pushed query result. A policy denial keeps an established subscription open; delivery resumes on the next authorized hint. POST RPC refuses `$changes` subscriptions with the contract’s typed `WebSocketRequired` error and a message saying they need the WebSocket protocol. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer()` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+On TCP, ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/adapters/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. Session middleware revalidates authenticated streams at `streamRevalidationInterval` and ends revoked subscriptions with typed `Unauthorized`. Cookie-authenticated sockets remain open; later protected calls use the same session checks. Automatic live subscriptions reload the session before each hint and use its current roles and grants for the query policy and any pushed query result. A policy denial keeps an established subscription open; delivery resumes on the next authorized hint. POST RPC refuses `$changes` subscriptions with the contract’s typed `WebSocketRequired` error and a message saying they need the WebSocket protocol. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer()` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 Native clients that cannot set upgrade headers use `makeClient`'s `bearerToken` option from `@shivaedev/contract/bind.ts`. On session hosts, `GET /rpc?auth=frame` requires a first text frame shaped as `{"_tag":"Authenticate","token":"<credential>"}` within five seconds, with at most 8192 characters. The host consumes that frame before starting native RPC and supplies its bearer as the socket's transport Authorization header. The existing session provider, identity middleware, Origin policy and query read policies apply to every call and live read. RPC message headers cannot replace the authenticated credential. Configure bearer admission on the session provider and the WebView Origin through `nativeOrigins`. A long-lived bearer is never placed in a URL.
 
@@ -140,9 +177,11 @@ Invalid, expired, malformed, oversized or missing first-frame credentials close 
 
 Every response from the host's native RPC endpoint carries `Cache-Control: private, no-store`, including mixed public and authenticated batches, typed failures, transport rejections, body-read failures and streams. The host sets this at the outer response boundary without inspecting batch contents.
 
-For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
+For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same TCP guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
 Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
+
+Set `config.buildVersion` to the deployed build ID to announce it over the host's native RPC socket. `platform.hostVersion.watch` sends that opaque string when subscribed and stays open; a reconnected subscriber receives the replacement host's ID. Omitting the option leaves the stream silent. Embed the same ID in the browser bundle and use React's `deployUpdate` controller to expose a superseded bundle without polling health. The application supplies staged-update activation, blockers, reload wording and confirmation.
 
 `appHost` serves unauthenticated `GET /health`. It queries its SQL client on each request and returns `200` only when the query succeeds within two seconds; a missing SQL client, query failure or timeout returns `503`. Both responses have an empty body and `Cache-Control: no-store`. This route also works when the SQL client comes from the application’s `services` Layer. Use it for database readiness checks.
 
@@ -172,7 +211,7 @@ const host = appHost({
 
 Construct Better Auth inside `application`, since its constructor starts schema validation. Keep validation enabled so a current migration ledger with missing auth columns still reports drift. The starter uses this form after its pre-deploy migrations.
 
-Railway tracing is the default error and trace destination. The starter enables tracing for both services in `.railway/railway.ts`; Railway injects the endpoint, authentication headers and service identity. `appHost` exports through the redacting Effect OTLP/HTTP pipeline. Leave exporter endpoints unset on Railway so its injected configuration takes effect. Without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
+Railway tracing is the default error and trace destination. The starter enables tracing for both services in `.railway/railway.ts`; Railway injects the endpoint, authentication headers and service identity. `appHost` exports through the redacting Effect OTLP/HTTP pipeline. Leave exporter endpoints unset on Railway so its injected configuration takes effect. Outside development mode, without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
 
 The supported tracing variables and defaults are:
 
@@ -201,25 +240,17 @@ For existing Railway services, enable manual tracing per service and environment
 Set `browserErrors: { log: true, includeUserId: true, requireSession: true }` on `appHost` for the recommended signed-in application setting. `log` writes one Error log with the masked message and stack per accepted report, including when OTLP export is off. `includeUserId` resolves the session and adds `user.id` to the HTTP span and error report when signed in. `requireSession` rejects signed-out reports with 401; a session-provider outage returns 503. Session lookups use the host's session and origin policy. With no session policy, requiring a session rejects reports. All three options default to false, preserving reports before sign-in without session lookups or an extra log line. `browserErrorRoute(trustedProxy?, options?)` accepts the same options when composed directly.
 
 
-For local traces, run an OpenTelemetry Collector on loopback with an OTLP HTTP receiver and its `debug` exporter. Set `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318` for the app and worker; the collector's console shows the redacted spans, diagnostic events and reported errors. A minimal collector configuration is:
+With `NODE_ENV=development` and no OTLP endpoint, `appHost` and `otlpTracing` record to `.platform/traces.db` using Node's SQLite support. `runDevelopment` sets this mode for its child processes. Add `.platform/` to the application's ignore file. Set `PLATFORM_TRACE_STORE` to choose another file and `PLATFORM_TRACE_INDEXED_ATTRIBUTES=orderId,projectId` to index application attributes. Indexed values use the same redaction as the stored spans. An explicit OTLP endpoint takes precedence; other modes without an endpoint keep export disabled.
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      http:
-        endpoint: 127.0.0.1:4318
-exporters:
-  debug:
-    verbosity: detailed
-service:
-  pipelines:
-    traces:
-      receivers: [ otlp ]
-      exporters: [ debug ]
+Records flush every second on a live maintenance clock and when their scope closes. Application clock jumps do not replay flush intervals. The store retains the latest five completed recorder runs, deleting older spans, logs and attribute indexes when a recorder closes. Active recorders remain writable until their scopes close. Logs use the existing `effect.log` diagnostic spans; the `logs` view exposes their parent span ID and trace ID. Open the file with any SQLite viewer, or inspect it directly:
+
+```sh
+sqlite3 .platform/traces.db "SELECT name, trace_id, span_id, data FROM spans ORDER BY started_at_millis DESC LIMIT 20"
+sqlite3 .platform/traces.db "SELECT trace_id, span_id, data FROM logs ORDER BY at_millis DESC LIMIT 20"
+sqlite3 .platform/traces.db "SELECT span_id FROM span_attributes WHERE key = 'orderId' AND value = 'order-42'"
 ```
 
-Save the configuration as `otelcol.local.yaml` and run `otelcol --config=otelcol.local.yaml`. Start the web and worker processes with `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318`, then read the collector console. Without an endpoint, local development and tests start with export disabled. Console logging remains available. Railway is the production sink; do not add another error service.
+For explicit composition, provide `localTracing({ path, indexedAttributes, retainedRuns, flushInterval, clock })` from `@shivaedev/server/localTracing.ts` to the application's Layer. All options are optional; `flushInterval` is milliseconds, and `retainedRuns` is a positive integer. Supply a native `clock` to control flush timing in stories; span timestamps still follow the application clock. It uses `RedactionPolicy`, including host schema sensitivity, and preserves the application's installed tracer and console loggers. Local recording and OTLP export are alternative sinks; compose one per application scope.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. `appHost` continues incoming W3C `traceparent` context in RPC handling, including one sent by an edge proxy, whether or not an exporter is configured.
 
@@ -234,6 +265,8 @@ Database pool maintenance, worker-release coordination and change-listener heart
 To pass worker-release time in a story, build `hostTime()` from `@shivaedev/server/testing/hostTime.ts` under a native `TestClock`, then provide its `layer` to the worker host. `timePasses(duration)` advances that clock, writes the worker's lease heartbeat at the new time and waits for its release check. Production leases retain PostgreSQL's wall clock. Give separate worker processes the same starting timestamp. When an old worker drains a deliberately held job, advance it with `{ poll: false }` to write its heartbeat without waiting for the drain, then advance the replacement normally. After killing a worker, advance only the replacement; the crashed lease then expires on story time.
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. A session host bound to a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error from `@shivaedev/server/TrustedProxyRequired.ts` naming both settings and how to supply proxy peer addresses or CIDR ranges. Local loopback hosts keep working without proxy trust; `policy: "loopback"` does not use proxy trust. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. The starter's Railway deployment works out of the box: its web configuration supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip`, so matching peers supply forwarded client IPs for auth and the HTTPS authority for RPC origin checks. Set `PUBLIC_URL` to the app's HTTPS URL for secure session cookies. NDJSON and the application's session Origin policy still apply. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
+
+When mounting Better Auth routes yourself on Railway, use `betterAuthMount(authOptions, { clientIp: "railway" })` from `@shivaedev/identity/server/better-auth/adapters/mount.ts` with `TRUSTED_PROXY=100.64.0.0/10`. The `clientIp` preset selects `X-Real-IP` for auth and ignores spoofed `X-Forwarded-For`, overriding `AUTH_CLIENT_IP_HEADER`. Untrusted peers and requests without `X-Real-IP` use the connection address.
 
 Build application handlers with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
 
@@ -460,6 +493,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `setupDatabases.ts`                                                             | `setupDatabases()`: prepare the local development and test databases.                                                                                           |
 | `development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                       |
 | `rpc-server/publicConfigLayer.ts`                                               | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                 |
+| `localTracing.ts`                                                               | `localTracing(options?)`: scoped local SQLite spans and correlated logs with configurable attribute indexes and run retention.                                  |
 | `otlpTracing.ts`                                                                | `otlpTracing`: redacting Railway OTLP export for worker spans, logs and error reports.                                                                          |
 | `RedactionPolicy.ts`                                                            | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |

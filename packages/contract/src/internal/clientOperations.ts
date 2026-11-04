@@ -10,10 +10,11 @@ import { clientId } from "#adapters/clientId.ts";
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions } from "#bind.ts";
 import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
+import { clientActivities } from "#internal/clientActivity.ts";
+import { commandPayload } from "#internal/commandPayload.ts";
+import { queryReactivity } from "#internal/queryReactivity.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
-import { clientActivities } from "./clientActivity.ts";
-import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
@@ -74,7 +75,16 @@ function boundCommand(service: ErasedClient, tag: string, command: CommandShape,
 	}
 	return {
 		run: (payload: unknown) =>
-			run(service, service.use((client) => client(tag, payload)).pipe(Effect.tap((result) => invalidate(payload, result))), owner),
+			run(
+				service,
+				service.use((client) =>
+					commandPayload(command, payload).pipe(
+						Effect.flatMap((validated) => client(tag, validated)),
+						Effect.tap((result) => invalidate(payload, result)),
+					),
+				),
+				owner,
+			),
 	};
 }
 

@@ -45,14 +45,21 @@ function changedBy(
 	root: string,
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[],
+	nonEffectFolders: readonly string[],
 ): Effect.Effect<number, SetupFailure, RuleServices> {
 	return Effect.map(
-		biomeReport(root, args, exceptions).pipe(Effect.mapError((cause) => new SetupFailure({ cause, message: cause.message }))),
+		biomeReport(root, args, exceptions, ["."], nonEffectFolders).pipe(
+			Effect.mapError((cause) => new SetupFailure({ cause, message: cause.message })),
+		),
 		(report) => report.summary.changed,
 	);
 }
 
-function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]): readonly Pass<SetupFailure, RuleServices>[] {
+function biomePasses(
+	root: string,
+	exceptions: readonly ExceptionDeclaration[],
+	nonEffectFolders: readonly string[],
+): readonly Pass<SetupFailure, RuleServices>[] {
 	return [
 		{
 			label: "with fixes",
@@ -60,9 +67,10 @@ function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]):
 				root,
 				["check", "--write", "--unsafe", "--skip=assist/source/useSortedKeys", "--skip=lint/suspicious/noDuplicateObjectKeys"],
 				exceptions,
+				nonEffectFolders,
 			),
 		},
-		{ label: "with the format pass", run: changedBy(root, ["format", "--write"], exceptions) },
+		{ label: "with the format pass", run: changedBy(root, ["format", "--write"], exceptions, nonEffectFolders) },
 	];
 }
 
@@ -124,8 +132,8 @@ export const settle = Effect.fn("Cli.settle")(function* <TFailure, TRequirements
 });
 
 export const fix = Effect.fn("Cli.fix")(function* (cwd: string, config: string | undefined): Effect.fn.Return<void, SetupFailure, RuleServices> {
-	const { root, exceptions } = yield* loadConfig(cwd, config);
+	const { root, exceptions, nonEffectFolders } = yield* loadConfig(cwd, config);
 	const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ cause: failure, message: failure.message }));
 	yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
-	yield* settle({ passes: biomePasses(root, exceptions), snapshot: snapshotOf(root) });
+	yield* settle({ passes: biomePasses(root, exceptions, nonEffectFolders), snapshot: snapshotOf(root) });
 });

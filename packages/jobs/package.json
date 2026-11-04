@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/jobs",
-	"version": "0.33.0",
+	"version": "0.35.0",
 	"description": "Effect-native jobs and lifecycle management for pg-boss",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -56,7 +56,6 @@
 	"devDependencies": {
 		"@shivaedev/http": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

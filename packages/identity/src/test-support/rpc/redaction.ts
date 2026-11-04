@@ -32,7 +32,7 @@ function secretsIn(value: unknown) {
 }
 
 export const redaction = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => {
 		const reported: Cause.Cause<unknown>[] = [];
 		const exits: Exit.Exit<void, unknown>[] = [];

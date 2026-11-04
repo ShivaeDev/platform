@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import { readdir } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { Effect } from "effect";
+import { requireFeatures } from "@shivaedev/agent/agent.ts";
+import { pi } from "@shivaedev/agent-pi/pi.ts";
+
+const require = createRequire(import.meta.url);
+const packageRequire = createRequire(require.resolve("@shivaedev/agent-pi/pi.ts"));
+const installed = await readdir(new URL("./node_modules/.pnpm/", import.meta.url));
+for (const sdk of ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai", "@anthropic-ai/claude-agent-sdk", "@anthropic-ai/sdk", "@openai/codex-sdk", "@mariozechner/pi-coding-agent", "@mariozechner/pi-ai", "@opencode-ai/sdk", "openai"]) {
+	assert.throws(() => packageRequire.resolve(sdk), { code: "MODULE_NOT_FOUND" });
+	assert.equal(installed.some((entry) => entry.startsWith(`${sdk.replaceAll("/", "+")}@`)), false, `${sdk} is installed`);
+}
+await Effect.runPromise(Effect.gen(function* () {
+	const agent = yield* requireFeatures(["models"]);
+	const outcome = yield* agent.models.list.pipe(
+		Effect.as("unexpectedly listed models"),
+		Effect.catchTag("BackendUnavailable", () => Effect.succeed("SDK unavailable")),
+	);
+	assert.equal(outcome, "SDK unavailable");
+}).pipe(Effect.provide(pi()), Effect.scoped));

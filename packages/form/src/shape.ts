@@ -3,6 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
 import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/reactivity/Reactivity";
+import type { FieldPath, ValueAt } from "./fieldPath.ts";
 import type { FieldMessages } from "./messages.ts";
 import type { PersistedDraftConfig } from "./persistence.ts";
 
@@ -68,11 +69,18 @@ export interface Snapshot<TFields extends Fields> {
 export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly blur: (name: Name<TFields>) => void;
 	readonly change: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => void;
+	readonly changeAt: <const TPath extends Path<Name<TFields>> & FieldPath<Encoded<TFields>>>(
+		path: TPath,
+		value: ValueAt<Encoded<TFields>, TPath>,
+	) => void;
 	readonly choices: <TKey extends Name<TFields>>(name: TKey) => readonly Encoded<TFields>[TKey][] | undefined;
 	readonly dirty: Atom.Atom<boolean>;
 	readonly error: (name: Name<TFields>) => Atom.Atom<string | undefined>;
 	readonly errorAt: (path: Path<Name<TFields>> | readonly []) => Atom.Atom<string | undefined>;
 	readonly field: <TKey extends Name<TFields>>(name: TKey) => AtomRef.AtomRef<Encoded<TFields>[TKey]>;
+	readonly fieldAt: <const TPath extends Path<Name<TFields>> & FieldPath<Encoded<TFields>>>(
+		path: TPath,
+	) => AtomRef.AtomRef<ValueAt<Encoded<TFields>, TPath>>;
 	readonly receive: (values: Encoded<TFields>) => void;
 	readonly revert: () => void;
 	readonly submit: Atom.AtomResultFn<void, A, E | TRuntimeError | FieldFailure | Invalid>;

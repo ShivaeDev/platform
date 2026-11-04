@@ -1,5 +1,6 @@
 import { Effect, Fiber, Queue } from "effect";
 import * as TestClock from "effect/testing/TestClock";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import type { BatchedDeleteOptions } from "#batchedDelete.ts";
 import { ChangeObserver, transact } from "#transact.ts";
 import { failureOf } from "./outcome.ts";
@@ -21,6 +22,9 @@ export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 	}
 	function active() {
 		return engine.fiber === undefined ? Effect.die(new Error("Start a purge first")) : Effect.succeed(engine.fiber);
+	}
+	function drivePauses<A, E, R>(effect: Effect.Effect<A, E, R>, options: BatchedDeleteOptions<typeof RetainedRow>) {
+		return Effect.raceFirst(effect, Effect.forever(untilTimer(options.pause).pipe(Effect.andThen(passes(options.pause, Effect.void)))));
 	}
 	function hintName(key: unknown) {
 		switch (key) {
@@ -61,15 +65,15 @@ export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 			}),
 		purge: (options: BatchedDeleteOptions<typeof RetainedRow>) =>
 			Effect.suspend(() => {
-				tell(`retention deletes at most ${options.maxRows} rows in batches of ${options.batchSize}`);
-				return purge(options);
+				tell(`retention deletes at most ${options.maxRows} rows in batches of ${options.batchSize}, driving each ${String(options.pause)} pause`);
+				return drivePauses(purge(options), options);
 			}),
 		purgeFailure: (options: BatchedDeleteOptions<typeof RetainedRow>, inTransaction: false | "native" | "transact" = false) =>
 			Effect.gen(function* () {
 				tell(`retention attempts a purge${inTransaction ? " inside a transaction" : ""}`);
 				const owned = inTransaction === "transact" ? transact(purge(options), { onSqlError: (error) => error }) : purge(options);
 				const run = inTransaction === "native" ? sql.withTransaction(owned) : owned;
-				return yield* run.pipe(
+				return yield* drivePauses(run, options).pipe(
 					Effect.as("succeeded"),
 					Effect.catchTag("BatchedDeleteUnavailable", (error) => Effect.succeed(`purge unavailable: ${error.reason}`)),
 					Effect.catchTag("SchemaError", () => Effect.succeed("a schema error")),

@@ -2,10 +2,11 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { makeAuth } from "#client/auth.ts";
-import { startHost } from "#test-support/host.ts";
+import { type RunningHost, startHost } from "#test-support/host.ts";
 
-export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(function* () {
-	const { baseUrl } = yield* startHost();
+export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(function* (existing?: RunningHost) {
+	const host = existing ?? (yield* startHost());
+	const { baseUrl } = host;
 	const previousLocation = window.location.href;
 	const fetch = domFetch(baseUrl);
 	yield* Effect.addFinalizer(() =>
@@ -21,5 +22,5 @@ export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(functi
 			}
 		}).pipe(Effect.timeout("5 seconds"), Effect.orDie),
 	);
-	return { auth: makeAuth({ baseUrl, fetchOptions: { customFetchImpl: fetch } }), baseUrl, fetch };
+	return { ...host, auth: makeAuth({ baseUrl, fetchOptions: { customFetchImpl: fetch } }), fetch };
 });

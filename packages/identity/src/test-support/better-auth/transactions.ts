@@ -4,10 +4,10 @@ import { Data, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 
 class Cancelled extends Data.TaggedError("Cancelled")<{ readonly createdName: string }> {}
 const options = { secret: "shared-transaction-story-secret-at-least-32-characters" };
@@ -34,8 +34,8 @@ const createAuthUser = Effect.fn("AuthTransactionStory.createAuthUser")(function
 });
 
 export const authTransactions = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const database = yield* betterAuthDatabase();
 		yield* Effect.promise(async () => (await getMigrations({ ...options, database })).runMigrations());

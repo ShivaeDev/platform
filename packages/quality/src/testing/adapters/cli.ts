@@ -15,7 +15,7 @@ export interface Run {
 
 const SOURCE = import.meta.url.endsWith(".ts");
 const CLI = fileURLToPath(new URL(SOURCE ? "../../cli.ts" : "../../cli.js", import.meta.url));
-const OPTIONS = SOURCE ? ["--conditions=source"] : [];
+const OPTIONS = SOURCE ? ["--conditions=@shivaedev/source"] : [];
 
 export const CLI_TIMEOUT = 60_000;
 

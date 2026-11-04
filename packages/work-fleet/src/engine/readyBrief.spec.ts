@@ -1,8 +1,6 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
-import { Fleet } from "#fleet.ts";
 import { changedReadyBrief } from "#test/changedReadyBrief.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired, markdownWork } from "#test/engineTraits.ts";
@@ -34,7 +32,7 @@ for (const field of ["criteria", "body"]) {
 			const requests = boardResponseFiles();
 			const current = field === "criteria" ? original.replace("Original behavior.", "Changed behavior.") : `${original}\nChanged scope.\n`;
 			writeBoardWork("one.md", current);
-			const continued = yield* afterRestart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
+			const continued = yield* afterRestart((restarted) => restarted.reconcile("one"));
 			expect(continued.value.step).toBe("working");
 			expect(continued.value.boardContext).toBe(current);
 			expect(continued.value.boardRevision).toBe(briefRevision(metadataParse(current)));
@@ -88,7 +86,7 @@ for (const change of ["unapproved", "owner", "done", "dropped", "deferred"]) {
 			const edited = `${original}\nChanged scope.\n`;
 			const current = changedReadyBrief(edited, change);
 			writeBoardWork("one.md", current);
-			const held = yield* afterRestart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
+			const held = yield* afterRestart((restarted) => restarted.reconcile("one"));
 			expect(held.value.step).toBe(["unapproved", "owner"].includes(change) ? "waiting" : "released");
 			if (held.value.step === "waiting") {
 				expect(held.value.decision?.reason).toBe("Board context changed");

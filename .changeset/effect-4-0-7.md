@@ -4,10 +4,12 @@
 "@shivaedev/agent": patch
 "@shivaedev/agent-codex": patch
 "@shivaedev/agent-opencode": patch
+"@shivaedev/agent-pi": patch
 "@shivaedev/browser-check": patch
 "@shivaedev/changes": patch
 "@shivaedev/contract": patch
 "@shivaedev/create-app": patch
+"@shivaedev/discord": patch
 "@shivaedev/email": patch
 "@shivaedev/errors": patch
 "@shivaedev/events": patch
@@ -26,6 +28,7 @@
 "@shivaedev/react": patch
 "@shivaedev/reconciler": patch
 "@shivaedev/releases": patch
+"@shivaedev/script": patch
 "@shivaedev/server": patch
 "@shivaedev/service": patch
 "@shivaedev/skills": patch
@@ -48,10 +51,12 @@
 - `@shivaedev/agent`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/agent-codex`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/agent-opencode`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+- `@shivaedev/agent-pi`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/browser-check`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/changes`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/contract`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/create-app`: Generated apps pin the Effect stack to 4.0.7. Install the 4.0.7 Effect stack together.
+- `@shivaedev/discord`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/email`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/errors`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/events`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
@@ -70,6 +75,7 @@
 - `@shivaedev/react`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/reconciler`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/releases`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+- `@shivaedev/script`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/server`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/service`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
 - `@shivaedev/skills`: Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.

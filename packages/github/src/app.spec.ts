@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { appGithub, clockReadsTwoMinutes, exchangeRefused, holdsInstallationToken } from "#test/appGithub.ts";
+import { appGithub, clockReadsTwoMinutes, exchangeRefused } from "#test/appGithub.ts";
+import { holdsInstallationToken } from "#test/holdsInstallationToken.ts";
 
 const APP_JWT = { algorithm: "RS256", expiresIn: 600, issuedAgo: 60, issuer: "123456", signedBy: "the App's key", type: "JWT" };
 

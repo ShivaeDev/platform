@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { rejectsNext } from "#test/appFailureTraits.ts";
-import { appGithub, holdsInstallationToken } from "#test/appGithub.ts";
+import { appGithub } from "#test/appGithub.ts";
+import { holdsInstallationToken } from "#test/holdsInstallationToken.ts";
 
 appGithub.it(
 	"an archive download GitHub rejects for installation token 1 exchanges installation token 2 and retries once with it",

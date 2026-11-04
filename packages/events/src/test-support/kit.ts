@@ -24,7 +24,7 @@ const create = Effect.gen(function* () {
 
 export const events = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	layer: database,
 	name: "Event history",

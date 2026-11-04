@@ -11,7 +11,7 @@ const openFeed = Effect.fn("Story.openFeed")(function* (root: string, since?: st
 		Effect.sync(() =>
 			spawn(
 				process.execPath,
-				["--conditions=source", "src/server/cli.ts", "responses", "--follow", root, ...(since === undefined ? [] : ["--since", since])],
+				["--conditions=@shivaedev/source", "src/server/cli.ts", "responses", "--follow", root, ...(since === undefined ? [] : ["--since", since])],
 				{ cwd: new URL("../../", import.meta.url), stdio: "pipe" },
 			),
 		),

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { eventually } from "@shivaedev/test/eventually.ts";
+import { waitForBlockedSessions } from "@shivaedev/test-sql/server/waitForBlockedSessions.ts";
 
 // The shutdown story sends SIGTERM and asserts the worker remains alive while its job is blocked.
 export const holdJob = Effect.fn("DeploymentStory.holdJob")(function* (noteId: number) {
@@ -13,10 +13,7 @@ export const holdJob = Effect.fn("DeploymentStory.holdJob")(function* (noteId: n
 		return yield* Effect.die(new Error("Missing note lock holder"));
 	}
 	return {
-		blocked: eventually(
-			sql`select pid from pg_stat_activity where datname = current_database()
-			and ${holder.pid} = any(pg_blocking_pids(pid))`.pipe(Effect.filterOrFail((rows) => rows.length > 0)),
-		).pipe(Effect.timeout("15 seconds")),
+		blocked: waitForBlockedSessions(holder.pid, { within: "15 seconds" }),
 		release: connection.executeRaw("ROLLBACK", []).pipe(Effect.asVoid),
 	};
 });

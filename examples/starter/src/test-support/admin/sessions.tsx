@@ -1,20 +1,15 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect, Predicate } from "effect";
 import { act } from "react";
-import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenDriver, screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { App } from "#client/App.tsx";
-import { makeFoundationClient } from "#client/admin/foundation.ts";
-import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
-import { makeAuth } from "#client/auth.ts";
-import { clientModules } from "#client/modules.ts";
+import type { AppAccess } from "#AppAccess.ts";
+import { appScreen } from "#test-support/appScreen.tsx";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
-import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const warnings = expectNoReactWarnings();
@@ -22,7 +17,7 @@ const warnings = expectNoReactWarnings();
 interface Engine extends ScreenSurface {
 	driver?: ScreenDriver;
 	readonly host: Effect.Success<ReturnType<typeof startHost>>;
-	role: string;
+	role: typeof AppAccess.Role.Type;
 }
 
 export const adminSessions = storyKit({
@@ -72,39 +67,22 @@ export const adminSessionsOpen = adminSessions.trait(
 	"screen",
 	"alice and bob are signed in and alice opens the Sessions page on the real app host",
 	function* (engine) {
-		const alice = yield* mintUser(engine.host, "alice", engine.role);
 		yield* mintUser(engine.host, "bob");
-		const headers = { cookie: alice.headers.get("cookie") ?? "", origin: engine.host.origin };
-		const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, { headers, live: false, webSocketConstructor: layerWebSocketConstructorWS });
-		let authRequests = 0;
-		const auth = makeAuth({
-			baseUrl: engine.host.baseUrl,
-			fetchOptions: {
-				customFetchImpl: async (input, init) => {
-					authRequests += 1;
-					try {
-						return await fetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init?.headers)), ...headers } });
-					} finally {
-						authRequests -= 1;
-					}
-				},
-			},
+		const screen = yield* appScreen({
+			account: { name: "alice", role: engine.role },
+			host: engine.host,
+			renderOptions: engine.role === "admin" ? {} : { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
+			route: "/admin/sessions",
 		});
-		const history = createMemoryHistory({ initialEntries: ["/admin/sessions"] });
-		const view = yield* acquireScreen(
-			engine,
-			engine.role === "admin" ? undefined : { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
-		);
+		Object.assign(engine, screen);
 		engine.driver = screenDriver({
 			act,
-			pending: () =>
-				!isClientIdle(Effect.runSync(client.activity.current)) || authRequests > 0 || view.container.querySelector('[role="status"]') !== null,
-			root: view.container,
+			activity: activityScreenSignal(screen.foundationClient.activity),
+			pending: screen.pending,
+			root: screen.view.container,
 			tell: () => undefined,
+			transport: screen.fetch.pending,
 		});
-		yield* Effect.promise(() =>
-			view.render(<App auth={auth} connect={(session) => clientModules(session, [foundationRegistration(client)])} history={history} />),
-		);
 		yield* engine.driver.settle();
 	},
 );

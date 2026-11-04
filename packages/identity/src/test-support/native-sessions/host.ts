@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { admin } from "better-auth/plugins";
-import { ConfigProvider, Effect, Exit, Layer, Logger, Scope } from "effect";
+import { ConfigProvider, Duration, Effect, Exit, Layer, Logger, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -17,6 +17,7 @@ import { Api, diagnostic, handlers } from "./api.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";
 export const ANDROID_ORIGIN = "https://localhost";
+export const REVALIDATION_INTERVAL = Duration.millis(50);
 export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	enabled: boolean,
 	nativeOrigins?: readonly string[],
@@ -50,7 +51,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 			},
 			(headers) => mounted.auth.api.listUserAccounts({ headers }),
 		),
-		streamRevalidationInterval: "50 millis" as const,
+		streamRevalidationInterval: REVALIDATION_INTERVAL,
 	};
 	const logs: unknown[] = [];
 	const changes = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));

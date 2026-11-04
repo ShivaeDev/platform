@@ -16,6 +16,7 @@ export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly biomeDeclarations: readonly Declaration[];
 	readonly exceptions: readonly ExceptionDeclaration[];
 	readonly file: string;
+	readonly nonEffectFolders: readonly string[];
 	readonly registry: string;
 	readonly root: string;
 }
@@ -36,6 +37,7 @@ function resolved(root: string, file: string, config: ConfigInput, rules: Resolv
 		exclude: [],
 		extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 		file,
+		nonEffectFolders: config.nonEffectFolders ?? [],
 		registry: config.registry ?? "quality/registry.json",
 		root,
 		sources: config.sources ?? ["."],

@@ -1,9 +1,9 @@
-import { Context, DateTime, type Duration, Effect, Fiber, Queue, Result, Stream } from "effect";
+import { Context, type Duration, Effect, Fiber, Queue, Result, Stream } from "effect";
 import { TestClock } from "effect/testing";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeSocketSession, SocketSession } from "#server/socketSession.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 import { revalidationClock } from "./revalidationClock.ts";
 import { signOut } from "./sessionLifecycle.ts";
@@ -25,8 +25,8 @@ function ending(result: Result.Result<void, unknown>) {
 }
 
 export const streamSession = storyKit({
-	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: streamSessionEngine,
 	layer: postgres,
 	name: "stream session",

@@ -1,9 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Fiber, Layer, Redacted, Stream } from "effect";
+import { Context, Crypto, Effect, Fiber, Layer, Redacted, Stream } from "effect";
 import { SqlClient } from "effect/sql";
 import { Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { databaseAddress } from "@shivaedev/sql/databaseAddress.ts";
-import { exposeFailure } from "#exposeFailure.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
@@ -22,6 +21,7 @@ import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
 import { settleFinishedDecisions } from "#host/settleFinishedDecisions.ts";
 import { watchBoardAnswers } from "#host/watchBoardAnswers.ts";
+import { fleetFailure } from "#operations.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
@@ -41,7 +41,8 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	}
 	const follow = yield* read(daemonSnapshots(host));
 	const watchSnapshots = yield* read(daemonSnapshots(host, true));
-	const epoch = crypto.randomUUID();
+	const crypto = yield* Crypto.Crypto;
+	const epoch = yield* crypto.randomUUIDv4();
 	const boardAnswers = yield* watchBoardAnswers(host.boardDir).pipe(
 		Stream.map((snapshot) => ({ ...snapshot, epoch })),
 		Stream.mapError((error) => new ServiceUnavailable({ message: error.message })),
@@ -97,17 +98,17 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		ClientContract.application.toLayer(
 			Effect.succeed(
 				ClientContract.application.of({
-					"daemon.answer": ({ workId, text, release }) => exposeFailure(settle(answers(workId, text, release))),
-					"daemon.check-stuck": ({ workId }) => exposeFailure(checkStuck(workId)),
-					"daemon.close-finished-decisions": ({ dryRun }) => exposeFailure(settle(settleFinishedDecisions(host.namespace, dryRun))),
-					"daemon.dispatch": ({ workId, now, ignoreAreas }) => exposeFailure(dispatch.accept(workId, { ignoreAreas, now })),
-					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),
+					"daemon.answer": ({ workId, text, release }) => fleetFailure(settle(answers(workId, text, release))),
+					"daemon.check-stuck": ({ workId }) => fleetFailure(checkStuck(workId)),
+					"daemon.close-finished-decisions": ({ dryRun }) => fleetFailure(settle(settleFinishedDecisions(host.namespace, dryRun))),
+					"daemon.dispatch": ({ workId, now, ignoreAreas }) => fleetFailure(dispatch.accept(workId, { ignoreAreas, now })),
+					"daemon.dispatch-status": ({ workId }) => fleetFailure(dispatch.get(workId)),
 					"daemon.follow": ({ workIds, follow: continuous }) => follow(workIds, continuous),
-					"daemon.name-threads": () => exposeFailure(nameStoredThreads(host)),
-					"daemon.release": ({ workIds }) => exposeFailure(settle(Effect.forEach(workIds, acceptRelease))),
-					"daemon.reserve-pr": ({ areas, pr }) => exposeFailure(settle(reserveForeignPr(host, pr, areas))),
-					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
-					"daemon.stop": ({ workId }) => exposeFailure(settle(withResponses(dispatch.stop(workId)))),
+					"daemon.name-threads": () => fleetFailure(nameStoredThreads(host)),
+					"daemon.release": ({ workIds }) => fleetFailure(settle(Effect.forEach(workIds, acceptRelease))),
+					"daemon.reserve-pr": ({ areas, pr }) => fleetFailure(settle(reserveForeignPr(host, pr, areas))),
+					"daemon.status": ({ workId }) => fleetFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
+					"daemon.stop": ({ workId }) => fleetFailure(settle(withResponses(dispatch.stop(workId)))),
 					"daemon.watch": ({ workIds }) => watch(workIds),
 				}),
 			),

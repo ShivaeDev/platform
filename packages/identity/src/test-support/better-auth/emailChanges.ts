@@ -1,14 +1,14 @@
 import { Effect, Redacted } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeEmail } from "#client/adapters/changeEmail.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
 import { emailChangeHost } from "./emailChangeHost.ts";
 
 export const emailChanges = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: emailChangeHost,
 	layer: postgres,
 	name: "typed email changes behind bearer sessions for alice's verified password account",
@@ -18,7 +18,7 @@ export const emailChanges = storyKit({
 		approvalMessages: () => Effect.sync(() => messages.filter((message) => message._tag === "ApproveEmailChange")),
 		changeEmail: (password = CURRENT_PASSWORD) => {
 			story.tell("alice requests an email change through identity's typed client call using her signed bearer session");
-			return changeEmail(client)({ newEmail: "alice-new@example.test", password });
+			return changeEmail(client)({ "callbackURL": "/email-changed", newEmail: "alice-new@example.test", password });
 		},
 		followApprovalLink: () =>
 			Effect.promise(async () => {

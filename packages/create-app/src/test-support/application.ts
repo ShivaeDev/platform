@@ -66,7 +66,9 @@ export const application = storyKit({
 				return createAppIn(engine, ["--help"]).pipe(Effect.map(() => engine.printed.split("\n").map((line) => line.trim().replaceAll(/\s+/gu, " "))));
 			},
 			migrate: () =>
-				script("the app applies its registered migrations", () => appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=source"])),
+				script("the app applies its registered migrations", () =>
+					appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]),
+				),
 			pack: () =>
 				Effect.suspend(() => {
 					story.tell("the template source is packed");
@@ -82,7 +84,13 @@ export const application = storyKit({
 					const started = performance.now();
 					const result = spawnSync(
 						"env",
-						["NODE_OPTIONS=--conditions=source", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, "pnpm", ...args],
+						[
+							"NODE_OPTIONS=--conditions=@shivaedev/source",
+							`PATH=${join(engine.root, "bin")}:${commandPath}`,
+							...engine.environment,
+							"pnpm",
+							...args,
+						],
 						{
 							cwd: target(),
 							encoding: "utf8",

@@ -14,6 +14,7 @@ import {
 	GitHubArtifactError,
 	GitHubArtifactTooLarge,
 	GitHubConversationLocked,
+	GitHubGraphqlError,
 	GitHubPermissionDenied,
 	GitHubRateLimited,
 	GitHubTokenError,
@@ -36,6 +37,7 @@ function on<T>(type: abstract new (...args: never[]) => T, phrase: (error: T) =>
 }
 
 const phrases = [
+	on(GitHubGraphqlError, ({ message }) => `GraphQL refused: ${message}`),
 	on(GitHubArtifactPathTraversal, ({ path }) => `unsafe archive path: ${path}`),
 	on(GitHubArtifactSymlink, ({ path }) => `archive symlink: ${path}`),
 	on(GitHubArtifactDuplicateEntry, ({ path }) => `duplicate archive entry: ${path}`),

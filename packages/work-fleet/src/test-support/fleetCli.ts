@@ -21,7 +21,7 @@ export function cliProcess(
 						"bash",
 						[
 							"-c",
-							`fleet_test_node=$1\nfleet_test_guard=$2\nfleet_test_cli=$3\nwork-fleet() { exec "$fleet_test_node" --conditions=source --import "$fleet_test_guard" "$fleet_test_cli" "$@"; }\n${args}`,
+							`fleet_test_node=$1\nfleet_test_guard=$2\nfleet_test_cli=$3\nwork-fleet() { exec "$fleet_test_node" --conditions=@shivaedev/source --import "$fleet_test_guard" "$fleet_test_cli" "$@"; }\n${args}`,
 							"fleet-answer-hint",
 							process.execPath,
 							DATABASE_GUARD,
@@ -29,7 +29,7 @@ export function cliProcess(
 						],
 						{ stdio: "pipe" },
 					)
-				: spawn(process.execPath, ["--conditions=source", "--import", DATABASE_GUARD, CLI, ...args], { stdio: "pipe" });
+				: spawn(process.execPath, ["--conditions=@shivaedev/source", "--import", DATABASE_GUARD, CLI, ...args], { stdio: "pipe" });
 		let stdout = "";
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();

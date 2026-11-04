@@ -18,17 +18,21 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	const commands = yield* Queue.unbounded<Uint8Array>();
 	const passed = yield* Queue.unbounded<void>();
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind], {
-			additionalFds: { fd3: { type: "output" } },
-			cwd,
-			env: {
-				"DATABASE_URL": target.toString(),
-				...env,
-				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
+		ChildProcess.make(
+			process.execPath,
+			["--conditions=@shivaedev/source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind],
+			{
+				additionalFds: { fd3: { type: "output" } },
+				cwd,
+				env: {
+					"DATABASE_URL": target.toString(),
+					...env,
+					...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
+				},
+				extendEnv: false,
+				stdin: Stream.fromQueue(commands),
 			},
-			extendEnv: false,
-			stdin: Stream.fromQueue(commands),
-		}),
+		),
 	);
 	const started = yield* Deferred.make<string, Error>();
 	const waitingForSchema = yield* Deferred.make<void, Error>();

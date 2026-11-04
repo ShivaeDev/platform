@@ -14,7 +14,7 @@ const setup = Effect.gen(function* () {
 	const environment = yield* dockerEnvironment;
 	const development = yield* Config.String("DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/platform_dev`));
 	const tests = yield* postgresTestEnvironment;
-	yield* assertLocalDatabase(development, ["platform_dev"]);
+	yield* Effect.fromResult(assertLocalDatabase(development, ["platform_dev"]));
 	yield* localPostgres(environment).prepareDatabases([development, ...Object.values(tests)]);
 	yield* Effect.log("Local development and integration databases are ready.");
 });

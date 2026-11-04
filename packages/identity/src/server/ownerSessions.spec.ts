@@ -42,10 +42,11 @@ ownerStory.it("a revoked machine credential fails on its next HTTP request while
 ownerStory.it(
 	"revocation closes an open first-frame-authenticated live query on revalidation",
 	[],
-	function* ({ openLiveQuery, revoke, subscriptionClosed, subscriptionUpdate }) {
+	function* ({ openLiveQuery, revalidationIntervalPasses, revoke, subscriptionClosed, subscriptionUpdate }) {
 		yield* openLiveQuery();
 		expect(yield* subscriptionUpdate()).toBe("Resync");
 		yield* revoke();
+		yield* revalidationIntervalPasses();
 		expect(yield* subscriptionClosed()).toEqual({ code: 1008, reason: "Authentication required" });
 	},
 );

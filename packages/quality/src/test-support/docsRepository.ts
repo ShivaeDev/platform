@@ -5,7 +5,7 @@ export const docsWorkspace: readonly SeedFile[] = [
 	{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
 	{
 		content: JSON.stringify({
-			exports: { "./*.ts": { default: "./dist/*.js", source: "./src/*.ts" }, "./internal/*": null },
+			exports: { "./*.ts": { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js" }, "./internal/*": null },
 			name: "@acme/lib",
 		}),
 		path: "packages/lib/package.json",

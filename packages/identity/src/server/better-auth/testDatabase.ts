@@ -13,9 +13,10 @@ export const authTestDatabase = Effect.gen(function* () {
 	});
 	return {
 		expireSessions: (userId?: string) =>
-			sql`update "session" set "expiresAt" = now() - interval '1 second' ${userId === undefined ? sql.literal("") : sql`where "userId" = ${userId}`}`.pipe(
-				Effect.asVoid,
-			),
+			Effect.gen(function* () {
+				const expiredAt = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { seconds: 1 }));
+				yield* sql`update "session" set "expiresAt" = ${expiredAt} ${userId === undefined ? sql.literal("") : sql`where "userId" = ${userId}`}`;
+			}),
 		migrate: migrateBetterAuth,
 		omitImageColumn: sql`alter table "user" drop column image`.pipe(Effect.asVoid),
 		omitRole: (userId: string) =>

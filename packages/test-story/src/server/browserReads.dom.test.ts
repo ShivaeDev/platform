@@ -56,3 +56,22 @@ readPage.it("buffers a browser hint independently for each watcher", [], functio
 	expect(yield* second.next).toEqual(expected);
 	expect(hints()).toEqual([{ _tag: "Resync" }, expected]);
 });
+
+readPage.it(
+	"keeps every heard key across session sockets and never records an unrelated key",
+	[],
+	function* ({ heardKeys, write, nextResult, signIn }) {
+		yield* write(1, "Before sign-in");
+		yield* nextResult();
+		yield* signIn();
+		yield* write(2, "Unrelated page");
+		yield* write(1, "After sign-in");
+		yield* nextResult();
+
+		expect(heardKeys()).toEqual([
+			{ _tag: "Item", collection: "pages", id: 1 },
+			{ _tag: "Item", collection: "pages", id: 1 },
+		]);
+		expect(heardKeys()).not.toContainEqual({ _tag: "Item", collection: "pages", id: 2 });
+	},
+);

@@ -10,15 +10,15 @@ const NOT_SUBPATH_MAPS = [
 ] as const;
 
 const UNPRESERVED_WILDCARDS = [
-	["a key without a relative prefix", "*.ts", { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" }],
-	["a non-TypeScript wildcard", "./*.js", { default: "./dist/*.js", source: "./src/*.js", types: "./dist/*.d.ts" }],
-	["multiple stars in one pattern", "./**/*.ts", { default: "./dist/**/*.js", source: "./src/**/*.ts", types: "./dist/**/*.d.ts" }],
+	["a key without a relative prefix", "*.ts", { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" }],
+	["a non-TypeScript wildcard", "./*.js", { "@shivaedev/source": "./src/*.js", default: "./dist/*.js", types: "./dist/*.d.ts" }],
+	["multiple stars in one pattern", "./**/*.ts", { "@shivaedev/source": "./src/**/*.ts", default: "./dist/**/*.js", types: "./dist/**/*.d.ts" }],
 	["a wildcard without conditions", "./*.ts", "./src/*.ts"],
-	["an extra condition", "./*.ts", { default: "./dist/*.js", node: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" }],
-	["a missing condition", "./*.ts", { default: "./dist/*.js", source: "./src/*.ts" }],
-	["a flattened source target", "./*.ts", { default: "./dist/*.js", source: "./src/server/*.ts", types: "./dist/*.d.ts" }],
-	["a flattened declaration target", "./*.ts", { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/server/*.d.ts" }],
-	["a flattened runtime target", "./*.ts", { default: "./dist/server/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" }],
+	["an extra condition", "./*.ts", { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", node: "./dist/*.js", types: "./dist/*.d.ts" }],
+	["a missing condition", "./*.ts", { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js" }],
+	["a flattened source target", "./*.ts", { "@shivaedev/source": "./src/server/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" }],
+	["a flattened declaration target", "./*.ts", { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/server/*.d.ts" }],
+	["a flattened runtime target", "./*.ts", { "@shivaedev/source": "./src/*.ts", default: "./dist/server/*.js", types: "./dist/*.d.ts" }],
 ] as const;
 
 const UNPRESERVED_ENTRIES = [
@@ -29,7 +29,11 @@ const UNPRESERVED_ENTRIES = [
 	[
 		"a named alias of a module",
 		"./better-auth.ts",
-		{ default: "./dist/server/better-auth/mount.js", source: "./src/server/better-auth/mount.ts", types: "./dist/server/better-auth/mount.d.ts" },
+		{
+			"@shivaedev/source": "./src/server/better-auth/mount.ts",
+			default: "./dist/server/better-auth/mount.js",
+			types: "./dist/server/better-auth/mount.d.ts",
+		},
 	],
 ] as const;
 

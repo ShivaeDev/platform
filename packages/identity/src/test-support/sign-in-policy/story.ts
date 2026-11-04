@@ -1,10 +1,9 @@
-import { Clock, DateTime, Effect } from "effect";
-import { TestClock } from "effect/testing";
+import { Clock, Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { policyHost } from "./host.ts";
 import { type Engine, entriesOf, host, membershipRule, type Person, people, RECHECK_INTERVAL, UNLISTED_USERS } from "./model.ts";
@@ -17,8 +16,8 @@ export const signInPolicy = storyKit({
 			engine.host.current = yield* policyHost(engine.env, engine.policy, engine.app);
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const accounts = new Map<string, GitHubAccount>(Object.entries(people).map(([login, id]) => [id, { id, login, member: true }]));
 		const github = yield* fakeGitHub(accounts);
@@ -90,10 +89,7 @@ export function admittedSession(person: Person, devices: readonly string[] = ["b
 export const moreThanOnePageOfUnlistedUsers = signInPolicy.trait(
 	"sessions",
 	`${UNLISTED_USERS} unlisted GitHub users already hold a session each, more than the 100 users a revocation reads per page`,
-	(engine) =>
-		Effect.flatMap(TestClock.withLive(Clock.currentTimeMillis), (now) =>
-			Effect.promise(() => host(engine).seedGitHubUsers(UNLISTED_USERS, new Date(now))),
-		),
+	(engine) => Effect.flatMap(Clock.currentTimeMillis, (now) => Effect.promise(() => host(engine).seedGitHubUsers(UNLISTED_USERS, new Date(now)))),
 );
 
 export const membershipChecksDown = signInPolicy.trait("conditions", "GitHub stops answering organization membership checks", (engine) =>

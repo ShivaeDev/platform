@@ -98,7 +98,7 @@ function datedVerbs({ records: { returned }, rows, sql, tableName }: DatedEngine
 
 function namesKit(name: string, column: string, options: object) {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		create: datedEngine(column),
 		layer: postgresLayer(postgresOptions.url, { ...postgresOptions, ...options }),
 		name,

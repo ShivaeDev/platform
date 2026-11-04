@@ -1,4 +1,6 @@
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
+import type { Effect } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
 import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
@@ -24,6 +26,7 @@ export function SessionApp({
 	userId,
 	session,
 	recheck,
+	sessionCheck,
 	auth,
 	connect: connection = defaultConnection,
 	history,
@@ -31,6 +34,7 @@ export function SessionApp({
 	readonly session?: AppSession | null | undefined;
 	readonly userId: string | undefined;
 	readonly recheck: () => void;
+	readonly sessionCheck?: Effect.Effect<unknown, unknown, AtomRegistry.AtomRegistry> | undefined;
 	readonly auth: AuthActions;
 	readonly connect?: ClientConnection | undefined;
 	readonly history?: RouterHistory | undefined;
@@ -42,10 +46,11 @@ export function SessionApp({
 			connect={connection}
 			identify={identify}
 			navigate={history === undefined ? undefined : (href) => history.replace(href)}
-			recheck={recheck}
+			recheck={sessionCheck ?? recheck}
 			redirectTo={redirectTo}
 			session={userId === undefined ? undefined : { id: userId }}
 			signedOut={<SignedOutApp auth={auth} connection={connection} history={history} recheck={recheck} />}
+			signOut={auth.signOut}
 		>
 			{(client) => <RoutedApp auth={auth} client={client} history={history} recheck={recheck} session={session} />}
 		</SessionConnectionBoundary>

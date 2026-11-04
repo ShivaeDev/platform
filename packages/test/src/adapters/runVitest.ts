@@ -32,7 +32,7 @@ export function runVitest({ allowOnly = false, env = {}, hookTimeout, include, r
 					watch: false,
 					...(tests === undefined ? {} : { testNamePattern: exactly(tests) }),
 				},
-				{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
+				{ resolve: { conditions: ["@shivaedev/source"] }, ssr: { resolve: { conditions: ["@shivaedev/source"] } } },
 				{ stderr: new PassThrough(), stdout: new PassThrough() },
 			),
 		),

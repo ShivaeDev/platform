@@ -25,7 +25,7 @@ const CHECKS_LOG = "checks.log";
 
 const SOURCE_EXPORTS = {
 	"./*.ts": Object.fromEntries([
-		["source", "./src/*.ts"],
+		["@shivaedev/source", "./src/*.ts"],
 		["types", "./dist/*.d.ts"],
 		["default", "./dist/*.js"],
 	]),

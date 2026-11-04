@@ -35,7 +35,7 @@ export const tracing = storyKit({
 			state.connection.current = yield* openTracing(state.options, state);
 		},
 	},
-	clock: "live",
+	clock: "test",
 	create: () => {
 		const connection: { current?: Effect.Success<ReturnType<typeof openTracing>> } = {};
 		const options: RequestTracingOptions = {};

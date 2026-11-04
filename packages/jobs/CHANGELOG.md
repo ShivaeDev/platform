@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.35.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.34.0 - 2026-11-04
+
+### Breaking
+
+- Testing controller wait budgets now use the caller's Effect clock. Stories on TestClock must fork waits and advance their clock to test a timeout; applications using the default clock keep wall-time budgets.
+
 ## 0.33.0 - 2026-11-03
 
 ### Added

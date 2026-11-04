@@ -12,7 +12,7 @@ export function workspaceCoverage(testFile: string) {
 	const result = spawnSync(
 		"env",
 		[
-			"NODE_OPTIONS=--conditions=source",
+			"NODE_OPTIONS=--conditions=@shivaedev/source",
 			process.execPath,
 			join(root, "node_modules/vitest/vitest.mjs"),
 			"run",

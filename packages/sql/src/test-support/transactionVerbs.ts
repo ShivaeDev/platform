@@ -1,5 +1,6 @@
-import { Deferred, Effect, Exit, Fiber, Queue, Schedule } from "effect";
+import { Deferred, Effect, Exit, Fiber, Queue } from "effect";
 import { SqlClient } from "effect/sql";
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { type InvalidationKeys, invalidateOnCommit, transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
 import { attempt, outcomeOf } from "./outcome.ts";
@@ -77,10 +78,11 @@ export function transactionVerbs(engine: TransactionEngine, tell: (line: string)
 			Effect.gen(function* () {
 				const committing = engine.committing;
 				if (committing === undefined) {
-					return yield* Effect.die(new Error("Start a slow commit before interrupting it"));
+					return yield* Effect.die(new Error("Start a held commit before interrupting it"));
 				}
 				tell("the caller interrupts the transaction while its COMMIT is in flight");
-				yield* Fiber.interrupt(committing.fiber);
+				yield* Effect.sync(() => committing.fiber.interruptUnsafe());
+				yield* engine.commitGate?.release ?? Effect.die(new Error("Hold COMMIT on a lock first"));
 				return ended(yield* Fiber.await(committing.fiber));
 			}),
 		interruptTransactionAfter: <TStep extends Step, A>(body: Body<TStep, A>) =>
@@ -144,10 +146,10 @@ export function transactionVerbs(engine: TransactionEngine, tell: (line: string)
 				tell(`order ${id} is saved to the other client`);
 				return other`insert into ${other(tables.others)} (id) values (${id})`;
 			}),
-		startSlowCommit: <TStep extends Step, A>(body: Body<TStep, A>) =>
+		startHeldCommit: <TStep extends Step, A>(body: Body<TStep, A>) =>
 			Effect.gen(function* () {
 				yield* postgresOnly();
-				tell("the main client begins a transaction whose COMMIT takes a second");
+				tell("the main client begins a transaction whose COMMIT waits on the kit's advisory lock");
 				const backend = yield* Deferred.make<number>();
 				const pid = Effect.flatMap(main<{ readonly pid: number }>`select pg_backend_pid() as pid`, ([row]) =>
 					Deferred.succeed(backend, row?.pid ?? -1),
@@ -155,9 +157,11 @@ export function transactionVerbs(engine: TransactionEngine, tell: (line: string)
 				const fiber = yield* Effect.forkChild(transactOn(main, Effect.andThen(Effect.gen(body), pid)));
 				const committing = other<{ readonly committing: boolean }>`select exists (
 					select 1 from pg_stat_activity where pid = ${yield* Deferred.await(backend)} and state = 'active' and query = 'COMMIT'
+					and cardinality(pg_blocking_pids(pid)) > 0
 				) as committing`;
-				// PostgreSQL signals nothing when a session starts its COMMIT, so the kit polls the other pool's activity view.
-				yield* committing.pipe(Effect.repeat({ schedule: Schedule.spaced("5 millis"), while: ([row]) => row?.committing !== true }), Effect.orDie);
+				yield* observeUntil(committing, ([row]) => row?.committing === true, "COMMIT to block in the deferred trigger", { clock: "test" }).pipe(
+					Effect.orDie,
+				);
 				engine.committing = { fiber };
 			}),
 		stragglerAnnounces: () =>

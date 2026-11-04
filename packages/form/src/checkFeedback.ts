@@ -1,4 +1,4 @@
-import { type Duration, Effect, Equal } from "effect";
+import { Duration, Effect, Equal } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
@@ -17,7 +17,7 @@ export function checkFeedback<TFields extends Fields, R, E>(
 			return Atom.make((): string | undefined => undefined);
 		}
 		const current = fromRef(refFor(name));
-		const settled = Atom.debounce(current, debounce);
+		const settled = Duration.isZero(Duration.fromInputUnsafe(debounce)) ? current : Atom.debounce(current, debounce);
 		const answered = runtime.atom((get) => {
 			const input = get(settled);
 			return Effect.map(check(input), (message) => ({

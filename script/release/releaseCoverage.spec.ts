@@ -28,12 +28,12 @@ releasePullRequest.it(
 		yield* pushMain("packages/platform/index.js", 'export const feature = "frozen";\n');
 		yield* pushMain(".changeset/draft.md", PENDING);
 		yield* run();
-		yield* setCiRun("in_progress");
+		yield* setCiRun("completed", "success");
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain("packages/platform/index.js", 'export const feature = "later";\n');
 		yield* pushMain(".changeset/later.md", LATER);
 		yield* outcomes([
-			["maintainer", () => run(), "held: approved CI in_progress"],
+			["maintainer", () => run(), "held: CI succeeded"],
 			["frozen head", () => git("rev-parse", "origin/release/next"), head],
 		]);
 		const base = yield* git("rev-parse", "origin/main");
@@ -98,5 +98,41 @@ releasePullRequest.it(
 		]);
 		expect(pull.open).toBe(true);
 		expect(yield* git("show", "origin/release/next:packages/create-app/CHANGELOG.md")).toContain("Choose an app name.");
+	},
+);
+
+releasePullRequest.it(
+	"a later dependency regenerates an invalid frozen release on the same PR and merges after fresh approval",
+	[],
+	function* ({ pushMain, run, git, setCiRun, check, readGitHub }) {
+		yield* pushMain("packages/agent-opencode/package.json", '{"name":"@shivaedev/agent-opencode","version":"0.1.0"}\n');
+		yield* pushMain(".changeset/draft.md", PENDING);
+		yield* run();
+		yield* setCiRun("completed", "success");
+		const frozen = yield* git("rev-parse", "origin/release/next");
+		yield* pushMain(
+			"packages/agent-opencode/package.json",
+			'{"name":"@shivaedev/agent-opencode","version":"0.1.0","dependencies":{"@shivaedev/platform":"workspace:*"}}\n',
+		);
+		yield* pushMain(".changeset/opencode.md", '---\n"@shivaedev/agent-opencode": minor\n---\n\n### Added\n\n- Run the OpenCode provider.\n');
+
+		expect(yield* run()).toBe("updated");
+		yield* outcomes([
+			["replacement head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(frozen)],
+			["same open PR", () => readGitHub(), { created: 1, open: true }],
+			["fresh approval required", () => run(), "unchanged"],
+		]);
+		yield* setCiRun("completed", "success");
+		expect(yield* run()).toBe("held: CI succeeded");
+		const base = yield* git("rev-parse", "origin/main");
+		yield* git("switch", "--detach", base);
+		yield* git("merge", "--no-commit", "--no-ff", "origin/release/next");
+
+		const plan = yield* check(base);
+		expect(plan.releases.map(({ name, to }) => [name, to])).toEqual([
+			["@shivaedev/agent-opencode", "0.2.0"],
+			["@shivaedev/create-app", "0.9.1"],
+			["@shivaedev/platform", "0.15.1"],
+		]);
 	},
 );

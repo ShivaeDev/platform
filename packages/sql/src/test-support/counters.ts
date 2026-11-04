@@ -44,6 +44,7 @@ export const counters = storyKit({
 					story.tell(`separate connections add ${increments.join(", ")} while another adds ${lockedIncrement} and holds the row lock until commit`);
 					const input = { id: 1, label: null, note: "concurrent" };
 					const results = yield* raceWithLock({
+						clock: "test",
 						effects: increments.map((count) => rows.upsert({ ...input, count }, counterSettings)),
 						lock: rows.upsert({ ...input, count: lockedIncrement }, counterSettings),
 						release: "commit",

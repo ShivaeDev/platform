@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { NATIVE_ORIGIN, PASSWORD, type RouteState, routeHost } from "./routeHost.ts";
 import { routeVerbs } from "./routeVerbs.ts";
 
@@ -12,8 +12,8 @@ export const routes = storyKit({
 			state.host = yield* routeHost(state.basePath);
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): RouteState => ({ basePath: undefined, credentials: new Map() }),
 	inspect: (state) => ({ basePath: state.basePath, credentials: [...state.credentials.keys()] }),
 	layer: postgres,

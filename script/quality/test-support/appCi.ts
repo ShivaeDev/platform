@@ -22,7 +22,7 @@ export const appCi = storyKit({
 					scripts: Object.fromEntries(
 						["lint", "typecheck", "build", "test"].map((name) => [
 							name,
-							`node -e "require('fs').appendFileSync('checks.log', '${name}\\n');${name === "build" && engine.failingBuild ? "process.exit(3);" : ""}"${name === "test" && engine.testing ? " && node --conditions=source node_modules/vitest/vitest.mjs run --configLoader native" : ""}`,
+							`node -e "require('fs').appendFileSync('checks.log', '${name}\\n');${name === "build" && engine.failingBuild ? "process.exit(3);" : ""}"${name === "test" && engine.testing ? " && node --conditions=@shivaedev/source node_modules/vitest/vitest.mjs run --configLoader native" : ""}`,
 						]),
 					),
 					type: "module",

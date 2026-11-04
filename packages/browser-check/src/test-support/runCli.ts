@@ -19,15 +19,19 @@ export const runCli = Effect.fn("BrowserStory.runCli")(function* (
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("../cli.ts", import.meta.url)), "--url", url, ...args], {
-			cwd: root,
-			env: {
-				"BROWSER_CHECK_EMAIL": credentials?.email,
-				"BROWSER_CHECK_PASSWORD": credentials?.password,
-				...(browserCache === undefined ? {} : { "PLAYWRIGHT_BROWSERS_PATH": browserCache }),
+		ChildProcess.make(
+			process.execPath,
+			["--conditions=@shivaedev/source", fileURLToPath(new URL("../cli.ts", import.meta.url)), "--url", url, ...args],
+			{
+				cwd: root,
+				env: {
+					"BROWSER_CHECK_EMAIL": credentials?.email,
+					"BROWSER_CHECK_PASSWORD": credentials?.password,
+					...(browserCache === undefined ? {} : { "PLAYWRIGHT_BROWSERS_PATH": browserCache }),
+				},
+				extendEnv: true,
 			},
-			extendEnv: true,
-		}),
+		),
 	);
 	const [stdout, stderr, code] = yield* Effect.all(
 		[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],

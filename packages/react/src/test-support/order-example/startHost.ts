@@ -5,8 +5,9 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { Orders } from "./contract.ts";
 import { migrations } from "./postgres.ts";
+import { makeOrdersRepository, OrdersRepository } from "./repository.ts";
 import { type OrderServerOptions, orderHandlers } from "./runtime.ts";
-import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
+import { OrderService } from "./Service.ts";
 
 export const ORDER_CHANGES = "order_changes";
 

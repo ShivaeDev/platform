@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, DateTime, type Duration, Effect, Layer, Option } from "effect";
+import { Clock, ConfigProvider, type Duration, Effect, Layer, Option } from "effect";
 import { Headers as HttpHeaders } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { role } from "@shivaedev/access/role.ts";
@@ -8,7 +8,6 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUser } from "#identity.ts";
@@ -21,13 +20,15 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 
 type Person = "alice" | "bob";
 const Roles = roleSet(role("admin", [ManageSessions]));
 
 export const sessionClock = storyKit({
-	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
+	// Keep provider time at sign-in so identity's expiry check leaves cleanup to the worker sweep.
+	around: (effect) => Effect.flatMap(Clock.currentTimeMillis, (now) => withIdentityDatabase(effect, () => now)),
+	clock: storyClock,
 	*create() {
 		const database = yield* betterAuthDatabase();
 		const options = {

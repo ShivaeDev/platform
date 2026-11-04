@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { ci, heldBy, inheritsHolderIdOf, liveCli, locale, lockStory, workingDirectory } from "#test/kit.ts";
+import { CLI_TIMEOUT_MS, ci, heldBy, inheritsHolderIdOf, locale, lockStory, workingDirectory } from "#test/kit.ts";
 
 lockStory.it(
 	"when check's command leaves the lock path unreadable, the CLI reports the release failure and exits 1",
@@ -13,7 +13,7 @@ lockStory.it(
 			["printed by check", () => cli.printedBy("check"), [expect.stringContaining("heavy-lock: Could not release the heavy-process lock")]],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -24,7 +24,7 @@ lockStory.it(
 
 		expect(yield* cli.holderIdGivenTo("check")).toBe("check's holder id");
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -36,7 +36,7 @@ lockStory.it(
 		const exitCode = yield* cli.exitCodeOf("check");
 		expect(exitCode).toBe(3);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -47,7 +47,7 @@ lockStory.it(
 
 		expect(yield* cli.printedBy("check")).toEqual([]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -58,7 +58,7 @@ lockStory.it(
 
 		expect(yield* cli.printedBy("check")).toEqual(["compiling"]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -69,7 +69,7 @@ lockStory.it(
 
 		expect(yield* cli.ledItsProcessGroup("check")).toBe(true);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -83,7 +83,7 @@ lockStory.it(
 
 		expect(yield* lock.holder()).toBe("nobody");
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -94,7 +94,7 @@ lockStory.it(
 
 		expect(yield* cli.holderIdGivenTo("outer")).toBe("outer's holder id");
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -107,6 +107,7 @@ lockStory.it(
 		const first = yield* cli.pidOf("first");
 
 		yield* cli.releases("first");
+		yield* cli.pollIntervalPasses("second");
 
 		yield* outcomes([
 			[
@@ -120,7 +121,7 @@ lockStory.it(
 			["second ran its command", () => cli.ranItsCommand("second"), true],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -138,7 +139,7 @@ lockStory.it(
 			startedAtMs: expect.any(Number),
 		});
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -152,7 +153,7 @@ lockStory.it(
 			["lock holder", () => lock.holder(), "typecheck"],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -163,7 +164,7 @@ lockStory.it(
 
 		expect(yield* cli.holderIdGivenTo("check")).toBe("build's holder id");
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
 
 lockStory.it(
@@ -177,5 +178,5 @@ lockStory.it(
 			["printed by check", () => cli.printedBy("check"), [expect.stringMatching(/^no-such-command-anywhere: /u)]],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );

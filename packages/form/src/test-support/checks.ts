@@ -1,12 +1,10 @@
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { debouncePasses } from "./debounceClock.ts";
 import { formStories } from "./formStories.ts";
 
 export const TAKEN_NAME = "taken";
 export const TAKEN_MESSAGE = "Name is taken";
 export const BROKEN_NAME = "broken";
-const DEBOUNCE = "5 millis";
 
 interface Call {
 	readonly answered: Deferred.Deferred<void>;
@@ -59,7 +57,7 @@ function nameCheck(checks: NameChecks) {
 export const checkedNames = formStories(() => Schema.Struct({ name: Schema.String }), {
 	config: (checks) => ({
 		checks: { name: (value) => Effect.flatMap(NameCheck, (service) => service.check(value)) },
-		debounce: DEBOUNCE,
+		debounce: 0,
 		initialValues: { name: "" },
 		onSubmit: Effect.succeed,
 		runtime: Atom.runtime(Layer.succeed(NameCheck)(nameCheck(checks))),
@@ -76,11 +74,11 @@ export const checkedNames = formStories(() => Schema.Struct({ name: Schema.Strin
 		},
 		checkedNamesSoFar: () => Effect.sync(() => [...checks.checked]),
 		enterName: (name: string) => {
-			tell(`enter ${JSON.stringify(name)} as the name and advance the debounce clock until its check ${checks.held ? "starts" : "answers"}`);
+			tell(`enter ${JSON.stringify(name)} as the name and wait until its check ${checks.held ? "starts" : "answers"}`);
 			return Effect.suspend(() => {
 				driver.current().change("name", name);
 				const call = callFor(checks, name);
-				return debouncePasses(DEBOUNCE).pipe(Effect.andThen(Deferred.await(checks.held ? call.started : call.answered)));
+				return Deferred.await(checks.held ? call.started : call.answered);
 			});
 		},
 	}),
@@ -93,14 +91,11 @@ export function checksWaitForAnswers() {
 }
 
 export function nameChecked(name: string) {
-	return checkedNames.step(
-		`${JSON.stringify(name)} is entered as the name and the debounce interval passes before its check starts or answers`,
-		(driver, engine) => {
-			driver.current().change("name", name);
-			const call = callFor(engine.support, name);
-			return debouncePasses(DEBOUNCE).pipe(Effect.andThen(Deferred.await(engine.support.held ? call.started : call.answered)));
-		},
-	);
+	return checkedNames.step(`${JSON.stringify(name)} is entered as the name and its check starts or answers`, (driver, engine) => {
+		driver.current().change("name", name);
+		const call = callFor(engine.support, name);
+		return Deferred.await(engine.support.held ? call.started : call.answered);
+	});
 }
 
 export function checkAnswered(name: string, message: string) {

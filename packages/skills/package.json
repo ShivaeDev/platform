@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/skills",
-	"version": "0.6.4",
+	"version": "0.7.0",
 	"description": "Shared agent skills that a repository selects in package.json, syncs into .agents/skills and checks in CI",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/skills#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

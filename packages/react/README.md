@@ -24,9 +24,11 @@ const editor = useEditor({
 
 State belongs to an **atom in a registry**. A query hook reads that atom's native `AsyncResult`; an action hook reads and dispatches a native action atom. Two readers of the same query share its execution. Changing the query atom resets displayed data by default. An application can use `useQuery(atom, { keepPreviousData: true })` to keep the last successful value while a changed payload loads or fails. This retained display belongs to the hook and clears when its registry changes; native atoms still own execution and caching. Editors keep the default reset so a new record starts a new form.
 
-`useQuery` and `useAction` turn native results into `data`, `cause`, `pending` and `refreshing`. A query's same-identity refresh always keeps the last successful value, including after a typed failure, so a component can show data and an error together. An action uses the native result's retained success. Keep the atom's identity stable for the same work: declare it outside render or use the native family's identity, such as `AtomRpc.Service.query(...)`.
+`useQuery` and `useAction` turn native results into `data`, `cause`, `pending` and `refreshing`. Queries also expose `refusal`, the typed error excluding RPC transport failures; use it for per-query error text during a connection interruption. `cause` and `result` retain the native transport failure for diagnostics. `QueryView` renders its failure slot for refusals and throws defects, while retained data stays visible during transport recovery. A query's same-identity refresh always keeps the last successful value, including after a typed failure, so a component can show data and an error together. An action uses the native result's retained success. Keep the atom's identity stable for the same work: declare it outside render or use the native family's identity, such as `AtomRpc.Service.query(...)`.
 
 An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
+
+Use `useConnectionStatus(client)` from `@shivaedev/react/client/adapters/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting"` value across mounted queries from every binding on that client's `Client` service. Status changes debounce for 300 ms on the client runtime's Clock. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and the default shared WebSocket client; the application needs no subscribe handler or `live()` call. Live changed hints coalesce over 20 ms by default. Set `liveCoalesceWindow` on `SessionBoundary` to a native Duration to choose the window for that session, or `0` for immediate per-hint refreshes. A bound query can override that default with `useQuery(atom, { coalesceWindow: "2 seconds" })`. Changing this option applies to subsequent windows without reconnecting or refetching any query; a window already started keeps its deadline. A refetch in flight runs once more after settling when further hints arrive. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
@@ -82,7 +84,7 @@ export function App({ session, recheck }: { readonly session: Session | undefine
 
 Pass the signed-out router as `signedOut` and the requested continuation address as `redirectTo` (for example, the sign-in route's `returnTo` search value). On successful sign-in, the auth owner supplies the new `session`; the boundary unmounts the signed-out tree before replacing the URL, then mounts the signed-in tree at that address. The sign-in screen requests a session recheck after success; it leaves navigation to the boundary. Off-site, non-HTTP and malformed targets fall back to `/`. A same-origin destination keeps its path, query and fragment. The default replacement uses browser history. Supply `navigate={(href) => history.replace(href)}` for a router history such as TanStack's memory history; the callback receives only the checked local path. Navigation happens once when entering a generation, so a same-user session rotation does not navigate again.
 
-A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live socket failure also asks the auth owner to recheck, since the host closes revoked sessions. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live reconnect requests a check only for a typed `Unauthorized` authentication refusal; dropped sockets and unreachable servers leave the session alone. Pass the auth owner’s session-refresh Effect as `recheck` (for example, `recheck={auth.session.refresh}`). The boundary shares an in-flight check, retries failures after 1, 2, 4 seconds and so on up to 30 seconds, and retries immediately on visible `online` or `visibilitychange` events while a check is pending, restarting an in-flight check too. Session replacement and unmount cancel retries. Existing void callbacks remain supported; they keep their own check and retry policy. Keep retained session data on screen when a refresh exposes a failure, and pass `session={undefined}` only after a definite signed-out answer. The auth owner decides whether the session ends. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 #### Session-scoped bindings
 
@@ -107,7 +109,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 #### Connections with several modules
 
-Declare all the connection's bound APIs with contract's `composeBindings`. The session boundary mounts each declared binding and applies its `liveCoalesceWindow` to all of them. The client can keep its application modules nested:
+The session boundary finds bound APIs through nested objects and arrays at any depth, including `client.api.notes`, and applies its `liveCoalesceWindow` to them. Shared objects and cycles do not mount a binding twice. Use contract's `composeBindings` to select an explicit list instead of discovering the bindings in that object. The client can keep its application modules nested:
 
 ```ts
 import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
@@ -144,6 +146,33 @@ const connect = () => bind(Notes, Client, { resume });
 ```
 
 `Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
+
+#### Detect a deployment and activate a staged update
+
+Configure the host's `config.buildVersion` with the deployed build ID and embed that same ID in the browser bundle. Create one `deployUpdate` from `@shivaedev/react/client/deployUpdate.ts` per registry owner. Pass the same connection options as the application's contract clients so version announcements share their live socket. `useDeployUpdate` from `@shivaedev/react/client/adapters/useDeployUpdate.ts` mounts the controller and exposes `version`, `available`, `blocked`, the native `activation` result and `reload`.
+
+```tsx
+import { Effect } from "effect";
+import { deployUpdate } from "@shivaedev/react/client/deployUpdate.ts";
+import { useDeployUpdate, useUpdateBlocker } from "@shivaedev/react/client/adapters/useDeployUpdate.ts";
+
+const update = deployUpdate({
+	url: `${location.origin}/rpc`,
+	loadedVersion: BUILD_VERSION,
+	activate: Effect.promise(() => stagedUpdate.activate()),
+	reload: () => location.reload(),
+});
+
+function UpdateNotice({ saving, sheetOpen }: { saving: boolean; sheetOpen: boolean }) {
+	useUpdateBlocker(update, saving || sheetOpen);
+	const state = useDeployUpdate(update);
+	return state.available ? <button onClick={state.reload}>Reload application</button> : null;
+}
+```
+
+`BUILD_VERSION` and `stagedUpdate` are supplied by the application. Build IDs are opaque strings: a differing host ID means the loaded bundle has been superseded, including after a rollback. A host restart announces its ID through RPC after reconnect; there is no health polling. While visible or blocked, the controller leaves activation to the reload action. When hidden with no registered blockers, it runs the application's activation Effect once for that version. A successful activation clears `available`; a typed activation failure keeps reload available. Omit `activate` when the application has no staged-update mechanism; reload stays available even while hidden. UI wording and confirmation belong to the application.
+
+Each `useUpdateBlocker(update, true)` holds its own blocker until it becomes false or unmounts. Code outside React can run `update.block` with the same `AtomRegistry` service; it returns a release function. Hold it around pending work and call that function when the work ends. All blockers must release before hidden activation proceeds.
 
 #### Mount the notice host
 
@@ -535,6 +564,42 @@ A newer dispatch interrupts the earlier command by default. Interrupted work pro
 
 A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
 
+#### Remove with a version-guarded Undo
+
+Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Supply the bound command's `run`, its native `runtime`, and the application's `deployUpdate` as `update`:
+
+```tsx
+import { Option } from "effect";
+import { useUndoableChange } from "@shivaedev/react/client/adapters/useUndoableChange.ts";
+
+function RemoveNote({ note }: { readonly note: { id: string; version: number } }) {
+	const change = useUndoableChange({ ...api.change, runtime: NotesClient.runtime, update }, { describe: (saved) => `Removed ${saved.id}` });
+	const notice = Option.getOrUndefined(change.notice);
+	return (
+		<>
+			<button
+				disabled={change.pending}
+				onClick={() => change.remove({ id: note.id, expectedVersion: note.version, removed: true }, { id: note.id, removed: false })}
+			>
+				Remove
+			</button>
+			{notice && (
+				<p>
+					{notice.message}
+					<button disabled={change.undoing} onClick={change.undo}>
+						Undo
+					</button>
+				</p>
+			)}
+		</>
+	);
+}
+```
+
+`api`, `NotesClient`, the soft-removal payload and `update` belong to the application. `remove(input, inverse)` captures the inverse domain fields. `undo()` sends those fields through the same command with `expectedVersion` set to the successful removal's returned `version`. The server must enforce that version and declare its typed conflict; a later edit then refuses Undo without overwriting the row. `removeResult` and `undoResult` preserve the native `AsyncResult`, including typed failures. Successful Undo clears its notice; a failed Undo leaves it available.
+
+`notice` is a native `Option` containing `message`, the submitted `input` and returned `value`. Only the most recently dispatched removal can publish it, even when replies arrive in reverse order. An older Undo cannot clear a newer notice. `removing` and `undoing` describe the two writes, and `pending` includes either. Each invocation holds `update.block` for its whole Effect lifetime, so overlapping writes hold deployment activation until all finish. The hook keeps UI wording and inverse domain data in the app; no `NoticeHost` is needed.
+
 #### Commands with a pending display value
 
 Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
@@ -876,7 +941,9 @@ The example uses `Option` from `effect` and the application's Better Auth client
 
 For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Pass an input-to-Effect function, such as the result of `authQuery` from `@shivaedev/identity/client/adapters/authQuery.ts`, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+Pass the auth owner’s sign-out atom to `SessionBoundary` as `signOut={signOut}`. The boundary mounts it in the auth owner’s registry and unmounts the signed-in tree while sign-out is pending, including the following session refetch. A successful action keeps the tree held until the session clears; a failed action releases the hold. Supply an atom for the sign-out request itself, and give `recheck` the auth owner’s session refresh. After the request succeeds, the boundary starts that check and retries failures while holding the tree. A failed session check never releases a successful sign-out’s hold.
+
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. A refused request clears that intent, including when the boundary remounts its route. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### 3. Every day
 
@@ -931,6 +998,41 @@ const minutesAgo = Math.floor((now - savedAt) / 60_000);
 ```
 
 Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
+
+#### Ids, time and promises in callbacks
+
+`useNewId(runtime?)` from `@shivaedev/react/client/adapters/useNewId.ts` returns a UUIDv4 generator. `useClock(runtime?)` from `@shivaedev/react/client/adapters/useClock.ts` returns a `now()` callback that reads epoch milliseconds when called. Both read services from the supplied atom runtime in the current registry and can be used in state initializers and event handlers:
+
+```tsx
+import { useState } from "react";
+import { useClock } from "@shivaedev/react/client/adapters/useClock.ts";
+import { useNewId } from "@shivaedev/react/client/adapters/useNewId.ts";
+
+const newId = useNewId(client.runtime);
+const now = useClock(client.runtime);
+const [id] = useState(newId);
+const [createdAt] = useState(now);
+const stamp = () => ({ id: newId(), at: now() });
+```
+
+These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded Crypto. The hooks use native atom suspense while the runtime builds. The supplied Crypto's UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto`, a Web Crypto Layer from `@shivaedev/react/client/adapters/crypto.ts`. Provide that Layer to an application's runtime when it needs browser Crypto; it uses `crypto.getRandomValues` and `crypto.subtle.digest`.
+
+`usePromiseAction(() => promise, options?)` from `@shivaedev/react/client/adapters/usePromiseAction.ts` returns the same state as `useAction`, with `dispatch()` taking no input. It runs the callback on dispatch, keeps its atom across rerenders and calls the latest committed callback. A promise rejection or synchronous throw becomes `Cause.UnknownError` by default. Supply `catch` to map the unknown cause into an application's typed failure:
+
+```tsx
+import { usePromiseAction } from "@shivaedev/react/client/adapters/usePromiseAction.ts";
+
+const copy = usePromiseAction(() => navigator.clipboard.writeText(text), {
+	catch: (cause) => new ClipboardDenied({ reason: String(cause) }),
+});
+const button = (
+	<button disabled={copy.pending} onClick={() => copy.dispatch()}>
+		Copy
+	</button>
+);
+```
+
+These lines belong inside a component; `text` and `ClipboardDenied` belong to the application. Read the success from `copy.data` and the typed failure from `copy.cause` or `copy.result`. The helper runs through a native action atom and adds no promise cancellation adapter.
 
 #### Render tests in happy-dom
 
@@ -1088,7 +1190,7 @@ const screen = screenDriver({ act, pending, root: view.container, tell: story.te
 
 `useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
 
-Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
+Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` requests the boundary’s shared session check.
 
 Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. Field-rejection mapping types and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
 

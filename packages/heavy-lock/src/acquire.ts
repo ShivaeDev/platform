@@ -1,6 +1,7 @@
 import { Crypto, Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import { currentProcess } from "#adapters/currentProcess.ts";
+import { currentBranch } from "./currentBranch.ts";
 import { failWith, HeavyLockError } from "./error.ts";
 import { HeldLock, type HeldLockShape } from "./HeldLock.ts";
 import { HOLDER_ID_ENV } from "./holder.ts";
@@ -11,6 +12,7 @@ import { waitForLock } from "./wait.ts";
 
 export interface HeavyLockOptions {
 	readonly command?: string | undefined;
+	readonly hungAfter?: Duration.Input | undefined;
 	readonly lockPath?: string | undefined;
 	readonly pollInterval?: Duration.Input | undefined;
 }
@@ -40,19 +42,21 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 		return heldBy(inherited.value, settings.lock);
 	}
 	const self = yield* currentProcess;
+	const branch = yield* currentBranch.pipe(Effect.mapError(failWith("Could not read this process's Git branch.")));
 	const processStartedAt = yield* ownStartTime(self.pid);
 	const crypto = yield* Crypto.Crypto;
 	const holderId = yield* crypto.randomUUIDv4().pipe(Effect.mapError(failWith("Could not create the heavy-process lock id.")));
 	const holder = yield* waitForLock(
 		settings.lock,
 		{
+			...(branch === undefined ? {} : { branch }),
 			command: options.command ?? self.command,
 			cwd: self.cwd,
 			id: holderId,
 			pid: self.pid,
 			processStartedAt,
 		},
-		{ pollInterval: options.pollInterval ?? Duration.seconds(1), remindEvery: REMIND_EVERY },
+		{ hungAfter: options.hungAfter ?? Duration.minutes(15), pollInterval: options.pollInterval ?? Duration.seconds(1), remindEvery: REMIND_EVERY },
 	).pipe(Effect.mapError(failWith(`Could not take the heavy-process lock at ${settings.lock}.`)));
 	return heldBy(holder.id, settings.lock);
 });

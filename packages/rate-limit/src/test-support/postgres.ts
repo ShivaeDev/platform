@@ -30,7 +30,6 @@ const database = makePostgresTestLayer({
 
 export const postgres = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const local = yield* Layer.build(Layer.fresh(postgresStore));
 		const clone = yield* PostgresTestDatabase;
@@ -45,7 +44,7 @@ export const postgres = storyKit({
 	verbs: ({ limiter, local, remote, sql, storage }) => ({
 		attempt: limiter.attempt,
 		burst: limiter.burst,
-		expireWindows: () => storage.expireWindows,
+		expireWindows: () => limiter.passTime(limit.window).pipe(Effect.andThen(storage.expireWindows)),
 		race: () =>
 			Effect.gen(function* () {
 				const options = { ...limit, per: 1 };

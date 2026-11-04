@@ -14,7 +14,7 @@ const program = Effect.gen(function* () {
 	const vitest = ["--config", `${process.cwd()}/script/test/vitest.config.ts`, "--configLoader", "native"];
 	let command = workspace ? ["exec", "vitest", "run", ...vitest] : ["--recursive", "--workspace-concurrency=1", "--if-present", "test"];
 	if (ciShard) {
-		command = ["node", "--conditions=source", "packages/vitest-rerun/src/cli.ts", "--output-dir", ".ci", "--reruns", "1", "--", ...vitest];
+		command = ["node", "--conditions=@shivaedev/source", "packages/vitest-rerun/src/cli.ts", "--output-dir", ".ci", "--reruns", "1", "--", ...vitest];
 	}
 	if (workspace) {
 		const prepared = yield* spawner.exitCode(
@@ -32,7 +32,7 @@ const program = Effect.gen(function* () {
 		ChildProcess.make(
 			"node",
 			[
-				"--conditions=source",
+				"--conditions=@shivaedev/source",
 				"packages/heavy-lock/src/cli.ts",
 				"--",
 				"pnpm",

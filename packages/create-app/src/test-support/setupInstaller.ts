@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 function sourceBin(cli: string) {
 	return `#!/usr/bin/env node
 import("node:child_process").then(({ spawnSync }) => {
-  const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
+  const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);
 });
@@ -49,7 +49,7 @@ if (args[0] === "install") {
   manifest.devDependencies["@shivaedev/quality"] = "link:" + qualityPackage;
   fs.writeFileSync("package.json", JSON.stringify(manifest, null, "\\t") + "\\n");
   const compiler = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
-  compiler.compilerOptions.customConditions = ["source"];
+  compiler.compilerOptions.customConditions = ["@shivaedev/source"];
   fs.writeFileSync("tsconfig.json", JSON.stringify(compiler, null, "\\t") + "\\n");
   fs.writeFileSync("pnpm-lock.yaml", "lockfileVersion: 9.0\\n");
   const modules = ${JSON.stringify(modules)};
@@ -83,7 +83,7 @@ if (args[0] === "install") {
     }));
   }
   if (${scriptsOnly}) {
-    const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(skills)}, "sync"], { stdio: "inherit" });
+    const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(skills)}, "sync"], { stdio: "inherit" });
     if (result.error) throw result.error;
     process.exit(result.status ?? 1);
   }

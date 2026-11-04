@@ -15,7 +15,7 @@ export function QueryView<A, E>({ query, loading, content, failure }: QueryViewP
 		if (Result.isSuccess(defect)) {
 			throw defect.success;
 		}
-		return Cause.findErrorOption(cause);
+		return query.refusal;
 	});
 	return createElement(
 		Fragment,

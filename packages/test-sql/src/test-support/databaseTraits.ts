@@ -5,10 +5,10 @@ import { Migrator, SqlClient } from "effect/sql";
 import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
 import { database } from "./database.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
-import { writeItem } from "./databaseVerbs.ts";
 import { inPlace } from "./inPlace.ts";
 import { limitedRole } from "./limitedRole.ts";
 import { ITEMS_KEY } from "./postgres.ts";
+import { writeItem } from "./writeItem.ts";
 
 export function poolLimit(maxConnections: number) {
 	return database.trait("configuration", `pools allow ${maxConnections} connections`, (engine) => {
