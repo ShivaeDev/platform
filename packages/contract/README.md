@@ -123,6 +123,8 @@ export const Rename = Rpc.make("Rename", {
 
 A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme) also exports `rejectedField`, which reads the field and message of a rejection on the client.
 
+For a bound command declaring `BadRequest`, payload construction or encoding failures become that declared rejection in the Effect error channel. Its `message` contains the schema's validation details, including struct-level checks. The invalid payload does not reach the handler. Commands without a declared `BadRequest` keep native RPC's failure behavior.
+
 `rejections: { NoteMissing }` reuses the class. The object's key must equal the class's `_tag`. Sharing a class lets a service and several operations use the same expected failure.
 
 `rejections: { Invalid: fieldRejection(Draft) }` generates a tagged error class for that operation. `fieldRejection` derives the allowed field names from the struct; an explicit field list narrows them. `Rename` permits only `"title"`, while `Create` permits `"body"` or `"title"`. Their generated `Invalid` classes are distinct.
@@ -366,7 +368,7 @@ import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "@shivae
 
 ### Compose feature bindings
 
-Use `composeBindings(client, bindings)` when a connection contains several feature modules. The returned object keeps the client's fields and types and carries an explicit list of bound APIs. `liveBindings(connection)` reads this list; it also accepts a binding directly or an object with bound APIs as its own properties.
+Use `composeBindings(client, bindings)` when a connection contains several feature modules. The returned object keeps the client's fields and types and carries an explicit list of bound APIs. `liveBindings(connection)` reads this list; without an explicit list it finds bindings through nested object properties and arrays at any depth. It visits shared objects once and handles cycles. Explicit lists remain authoritative at each composition.
 
 ```ts
 import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
@@ -384,7 +386,7 @@ const connection = composeBindings(
 
 The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries. Bindings on the same client runtime share this pause state.
 
-Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary mounts the bindings declared with `composeBindings`, or finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary mounts the bindings declared with `composeBindings`, or finds bound APIs returned directly by `connect` or nested in properties such as `client.api.notes`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
 Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
 
