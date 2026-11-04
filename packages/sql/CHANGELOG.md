@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.39.0 - 2026-11-04
+
+### Added
+
+- Repositories expose `findOne` with model-derived filters, ordering and projections, returning `Option` for a matching decoded row.
+- `compositeRecordKey` encodes decoded model key fields into the record key published by repository writes, including `NumberFromString` and bigint keys.
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. A PostgreSQL connection the server terminates now fails with the server's error, such as `terminating connection due to administrator command`, instead of a generic `Connection closed`, following `@effect/sql-pg` 4.0.7.
+
 ## 0.38.0 - 2026-11-04
 
 ### Added

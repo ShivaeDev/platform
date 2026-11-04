@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.1 - 2026-11-04
+
+### Changed
+
+- Generated apps pin the Effect stack to 4.0.7. Install the 4.0.7 Effect stack together.
+
 ## 0.40.0 - 2026-11-04
 
 ### Added

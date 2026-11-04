@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+### Fixed
+
+- Release mapping resources before the receipt transaction finishes, so a retry of a cancelled delivery cannot acquire its resource before the cancelled mapping releases it.
+
 ## 0.8.1 - 2026-11-04
 
 ### Changed
