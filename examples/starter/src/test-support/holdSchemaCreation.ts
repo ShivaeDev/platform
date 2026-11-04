@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { eventually } from "@shivaedev/test/eventually.ts";
+import { waitForBlockedSessions } from "@shivaedev/test-sql/server/waitForBlockedSessions.ts";
 
 // This deployment story asserts worker readiness and ledger state while schema creation remains blocked.
 export const holdSchemaCreation = Effect.gen(function* () {
@@ -13,11 +13,7 @@ export const holdSchemaCreation = Effect.gen(function* () {
 		return yield* Effect.fail(new Error("Missing schema lock holder"));
 	}
 	return {
-		migrationBlocked: eventually(
-			sql`select pid from pg_stat_activity where datname = current_database() and ${holder.pid} = any(pg_blocking_pids(pid))`.pipe(
-				Effect.flatMap((rows) => (rows.length > 0 ? Effect.void : Effect.fail(new Error("Deployment migration has not reached the schema lock")))),
-			),
-		),
+		migrationBlocked: waitForBlockedSessions(holder.pid),
 		release: connection.executeRaw("ROLLBACK", []).pipe(Effect.orDie),
 	};
 });
