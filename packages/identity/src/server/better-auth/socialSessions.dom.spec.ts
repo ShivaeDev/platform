@@ -118,3 +118,51 @@ socialApp.it(
 		expect(yield* providerAccounts()).toBe("failed with unauthorized");
 	},
 );
+
+socialApp.it(
+	"OIDC sign-in through discovery and verified ID tokens creates Alice's session",
+	[],
+	function* ({ aliceSignsInWithOidc, sessionEmail, providerAccounts, pageHeading }) {
+		yield* aliceSignsInWithOidc();
+
+		yield* outcomes([
+			["session email", () => sessionEmail(), "alice@social.test"],
+			["heading", () => pageHeading(), "Signed in as alice@social.test"],
+			["provider accounts", () => providerAccounts(), [{ accountId: "123", providerId: "oidc" }]],
+		]);
+	},
+);
+
+socialApp.it(
+	"refused GitHub consent returns access_denied without signing Alice in",
+	[],
+	function* ({ refuseConsent, aliceSignsInWithGitHub, sessionEmail, signInError, pagePath }) {
+		yield* refuseConsent();
+
+		yield* aliceSignsInWithGitHub();
+
+		yield* outcomes([
+			["error", () => signInError(), "access_denied"],
+			["path", () => pagePath(), "/refused"],
+			["session", () => sessionEmail(), "signed out"],
+		]);
+	},
+);
+
+socialApp.it(
+	"an expired GitHub code fails the exchange without signing Alice in",
+	[],
+	function* ({ aliceStartsGitHubSignIn, aliceConsents, codeLifetimePasses, returnToApp, sessionEmail, signInError, pagePath }) {
+		yield* aliceStartsGitHubSignIn();
+		yield* aliceConsents();
+		yield* codeLifetimePasses();
+
+		yield* returnToApp();
+
+		yield* outcomes([
+			["error", () => signInError(), "invalid_code"],
+			["path", () => pagePath(), "/refused"],
+			["session", () => sessionEmail(), "signed out"],
+		]);
+	},
+);
