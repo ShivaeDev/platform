@@ -1,9 +1,9 @@
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
-import { generateStarter } from "#starter-published/generate.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
+import { phase } from "#starter-published/phase.ts";
+import { restoreStarter } from "#starter-published/restore.ts";
 
-const PREVIOUS_VERSION = "0.35.0";
 const decodeReport = Schema.decodeUnknownSync(
 	Schema.fromJsonString(Schema.Struct({ numPassedTests: Schema.Number, numPendingTests: Schema.Number, numTotalTests: Schema.Number })),
 );
@@ -11,6 +11,7 @@ const decodeReport = Schema.decodeUnknownSync(
 export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 	root: string,
 	temporary: string,
+	app: string,
 	current: string,
 	tarballs: Readonly<Record<string, string>>,
 	database: string,
@@ -19,32 +20,16 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 	const fs = yield* FileSystem.FileSystem;
 	const paths = yield* Path.Path;
 	const directory = paths.join(temporary, minimal ? "upgrade-minimal" : "upgrade-full");
-	yield* fs.makeDirectory(directory);
-	const archive = (yield* command(directory, "npm", [
-		"pack",
-		`@shivaedev/create-app@${PREVIOUS_VERSION}`,
-		"--ignore-scripts",
-		"--loglevel=error",
-	])).trim();
-	const folder = yield* generateStarter(root, directory, paths.join(directory, archive), {}, undefined, minimal);
-	const app = paths.join(directory, folder);
+	const generation = yield* fs.readFileString(paths.join(app, ".create-app.json"));
+	yield* phase(`${minimal ? "minimal" : "full"} upgrade prepare`, restoreStarter(app, directory, minimal));
 	const home = paths.join(app, "src/client/Home.tsx");
-	const original = yield* fs.readFileString(home);
-	yield* requireThat(original.includes("Your app"), "The previous starter must have a home-page heading to customize.");
-	yield* fs.writeFileString(home, original.replace("Your app", "Our customized app"));
-	yield* command(app, "git", ["add", "src/client/Home.tsx"]);
-	yield* command(app, "git", [
-		"-c",
-		"user.name=Starter Consumer",
-		"-c",
-		"user.email=starter@example.test",
-		"commit",
-		"-m",
-		"Customize the home page",
-	]);
 	const path = yield* packedInstaller(root, directory, tarballs);
-	yield* Effect.log(`Upgrading ${folder} from packed create-app ${PREVIOUS_VERSION} with a committed customization.`);
-	yield* Effect.log(yield* command(app, "env", [`PATH=${path}`, current, "update"]));
+	yield* Effect.log("Upgrading the reused historical app with a committed customization.");
+	yield* Effect.log(yield* phase("upgrade install and typecheck", command(app, "env", [`PATH=${path}`, current, "update"])));
+	yield* requireThat(
+		(yield* fs.readFileString(paths.join(app, ".create-app.json"))) === generation,
+		"The upgrade did not restore the current generation record.",
+	);
 	yield* requireThat((yield* fs.readFileString(home)).includes("Our customized app"), "The upgrade lost the committed home-page customization.");
 	yield* Effect.log(
 		yield* command(app, "env", [
