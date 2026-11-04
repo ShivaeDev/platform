@@ -12,11 +12,17 @@ function isMap(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function standardPattern(key: string, value: unknown): boolean {
-	if (!(key.startsWith("./") && key.endsWith(".ts")) || key.split("*").length !== 2 || !isMap(value)) {
+function standardPattern(key: string, value: unknown, sourceOnly = false): boolean {
+	if (!(key.startsWith("./") && key.endsWith(".ts")) || key.split("*").length !== 2) {
 		return false;
 	}
 	const subpath = key.slice("./".length);
+	if (sourceOnly && value === `./src/${subpath}`) {
+		return true;
+	}
+	if (!isMap(value)) {
+		return false;
+	}
 	const stem = subpath.slice(0, -".ts".length);
 	const source = "@shivaedev/source" in value ? "@shivaedev/source" : "source";
 	const conditions = { default: `./dist/${stem}.js`, [source]: `./src/${subpath}`, types: `./dist/${stem}.d.ts` };
@@ -31,20 +37,21 @@ function exactAsset(key: string, value: unknown): boolean {
 	return key.startsWith("./") && !key.includes("*") && value === key && extension !== "" && !CODE_EXTENSIONS.has(extension);
 }
 
-function finding(file: string, subject: string, reason: string): Finding {
+function finding(file: string, subject: string, reason: string, isPrivate: boolean): Finding {
+	const sourceOnly = isPrivate ? ' For a private package, mapping "./*.ts" directly to "./src/*.ts" is also accepted.' : "";
 	return {
 		file,
-		message: `${reason} Import the module at its file path through the single "${PATTERN}" wildcard (for example, "./server/better-auth/mount.ts" for "./src/server/better-auth/mount.ts"). Map it to source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js"; remove aliases and per-file module exports. Non-code assets must use their exact file paths.`,
+		message: `${reason} Import the module at its file path through the single "${PATTERN}" wildcard (for example, "./server/better-auth/mount.ts" for "./src/server/better-auth/mount.ts"). Map it to source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js"; remove aliases and per-file module exports. Non-code assets must use their exact file paths.${sourceOnly}`,
 		subject,
 	};
 }
 
-function findingsIn(file: string, exports: unknown): readonly Finding[] {
+function findingsIn(file: string, exports: unknown, isPrivate: boolean): readonly Finding[] {
 	if (exports === undefined) {
 		return [];
 	}
 	if (!isMap(exports)) {
-		return [finding(file, "exports", "The exports field must be a subpath map.")];
+		return [finding(file, "exports", "The exports field must be a subpath map.", isPrivate)];
 	}
 	const entries = Object.entries(exports);
 	const patterns = entries.filter(([key, value]) => key.includes("*") && value !== null);
@@ -52,16 +59,18 @@ function findingsIn(file: string, exports: unknown): readonly Finding[] {
 	const count =
 		patterns.length === 1 || (patterns.length === 0 && !exportsModules)
 			? []
-			: [finding(file, "exports", `The exports field needs exactly one non-null wildcard; found ${patterns.length}.`)];
+			: [finding(file, "exports", `The exports field needs exactly one non-null wildcard; found ${patterns.length}.`, isPrivate)];
 	return [
 		...count,
 		...entries.flatMap(([key, value]) => {
 			if (value === null) {
-				return [finding(file, key, `Export "${key}" blocks module imports with null. Remove the null entry so callers can import each module.`)];
+				return [
+					finding(file, key, `Export "${key}" blocks module imports with null. Remove the null entry so callers can import each module.`, isPrivate),
+				];
 			}
-			return key === "." || exactAsset(key, value) || standardPattern(key, value)
+			return key === "." || exactAsset(key, value) || standardPattern(key, value, isPrivate)
 				? []
-				: [finding(file, key, `Export "${key}" does not preserve the module's file path.`)];
+				: [finding(file, key, `Export "${key}" does not preserve the module's file path.`, isPrivate)];
 		}),
 	];
 }
@@ -104,7 +113,7 @@ export const manifestsExportsShape = defineRule({
 						if (file === "package.json" && manifest === undefined) {
 							return [];
 						}
-						return [...findingsIn(file, manifest?.exports), ...importFindings(file, manifest?.imports)];
+						return [...findingsIn(file, manifest?.exports, manifest?.private === true), ...importFindings(file, manifest?.imports)];
 					}),
 				{ concurrency: "unbounded" },
 			);
