@@ -73,6 +73,39 @@ Pass `subject: delegated` to the contract. A delegated request selects the accou
 
 `appHost` installs `subjectResolverLayer()` from `@shivaedev/identity/server/subjectResolverLayer.ts` for session hosts. Custom native RPC hosts provide that Layer with their `SessionPolicy` and install `subjectLayers(group)` from `@shivaedev/contract/subjectLayers.ts` when building the native RPC server. The subject declaration includes authentication failures in the client's error type; it needs no separate authentication middleware.
 
+### Account preferences and logical days
+
+`AccountPreferences` from `@shivaedev/identity/accountPreferences.ts` exposes authenticated `get`, `set` and `capture` operations for the caller's timezone, locale and units (`metric` or `imperial`). `set` replaces all three values. `capture` only creates a missing record, preserving saved preferences on subsequent sign-ins. An account without a record reads `UTC`, `en` and `metric`. The contract uses `selfSubject`, so a caller cannot select another account with a transport header.
+
+Apply `accountPreferencesMigration` from `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts` as a numbered migration through `migratePostgres`. Provide `AccountPreferencesStore.layer` from `@shivaedev/identity/server/AccountPreferencesStore.ts` with the application's `SqlClient`, merge `AccountPreferences` into the RPC group, and install `accountPreferencesHandlers` from `@shivaedev/identity/server/accountPreferencesHandlers.ts`. The host supplies subject middleware as for other subject contracts.
+
+To capture browser defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the optional Better Auth client plugin:
+
+```ts
+import { createAuthClient } from "better-auth/client";
+import { preferencesClient } from "@shivaedev/identity/server/better-auth/adapters/preferencesClient.ts";
+
+export const auth = createAuthClient({ plugins: [preferencesClient()] });
+```
+
+The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
+
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439.
+
+```ts
+import { DateTime, Effect, Layer } from "effect";
+import { AccountClock, AccountDayStart } from "@shivaedev/identity/server/AccountClock.ts";
+
+const clockLayer = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)));
+const today = Effect.gen(function* () {
+	const clock = yield* AccountClock;
+	const day = yield* clock.logicalDay(yield* DateTime.now);
+	return yield* clock.dayRange(day);
+}).pipe(Effect.provide(clockLayer));
+```
+
+`logicalDay(instant)` returns an ISO calendar date; omitting the instant uses Effect's current clock. `dayRange(day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
+
 ### Once per application: contracts and session policy
 
 Declare authentication middleware for actor-only boundaries. When a request acts on an account's data, declare its subject on the contract instead of accepting an owner id and checking it in each handler.

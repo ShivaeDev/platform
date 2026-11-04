@@ -1143,6 +1143,9 @@ importers:
       '@shivaedev/rate-limit':
         specifier: workspace:*
         version: link:../rate-limit
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
