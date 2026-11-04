@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { Effect, Order, Schema } from "effect";
 import { type IgnoreMatcher, ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { routeFiles } from "#inventory/routeFiles.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
 import { KEBAB, PASCAL } from "#naming/words.ts";
@@ -52,14 +53,14 @@ function groupMessage(name: string): string | undefined {
 interface Context {
 	readonly content: IgnoreMatcher;
 	readonly names: ReadonlyMap<string, string>;
-	readonly native: ReadonlySet<string>;
+	readonly owned: ReadonlySet<string>;
 	readonly stems: ReadonlySet<string>;
 	readonly toolOwned: IgnoreMatcher;
 }
 
 function messageFor(folder: string, context: Context): string | undefined {
 	const name = posix.basename(folder);
-	if (context.native.has(folder) || context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
+	if (context.owned.has(folder) || context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
 		return undefined;
 	}
 	const packageName = context.names.get(folder);
@@ -73,13 +74,14 @@ function messageFor(folder: string, context: Context): string | undefined {
 }
 
 export const folderNames = defineRule({
-	check: ({ files, options, readText }) =>
+	check: ({ files, options, readText, root }) =>
 		Effect.gen(function* () {
 			const layout = yield* packageLayout({ files, readText });
+			const routes = yield* routeFiles(root);
 			const context: Context = {
 				content: ignorePatterns([...globPatterns(options.content)]),
 				names: layout.names,
-				native: nativeNames(files).folders,
+				owned: new Set([...nativeNames(files).folders, ...routes.folders]),
 				stems: stemsIn(files),
 				toolOwned: ignorePatterns([...globPatterns(options.toolOwned)]),
 			};
@@ -89,7 +91,7 @@ export const folderNames = defineRule({
 			});
 		}),
 	description:
-		"A package folder is named after its package, a module folder after its main file, a content folder in snake_case and every other folder in kebab-case.",
+		"A package folder is named after its package, a module folder after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
 	id: "files/folder-names",
 	options: Schema.toStandardSchemaV1(FolderNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,

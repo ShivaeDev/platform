@@ -2,6 +2,7 @@ import { HttpClient } from "effect/http";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { graphqlRequests } from "#graphqlRequests.ts";
 import { initializeGitHub } from "#initializeGitHub.ts";
 import { bytes } from "#operations/bytes.ts";
 import { compareCommits } from "#operations/compareCommits.ts";
@@ -40,6 +41,7 @@ export const GitHub = defineService({
 		getIssue: getIssue(state.client),
 		getTree: getTree(state.client),
 		getUser: getUser(state.client),
+		graphql: graphqlRequests(state.apiUrl, state.client),
 		list: genericMethod(list(state)),
 		listCommits: genericMethod(listCommits(state.client)),
 		listIssues: genericMethod(listIssues(state.client)),

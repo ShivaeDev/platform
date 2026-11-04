@@ -1,26 +1,24 @@
 import { Effect, Schema } from "effect";
-import { GitHubHttp } from "./GitHubHttp.ts";
-import { type Options, type Snapshot, WatchError } from "./model.ts";
+import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
+import { GitHubHttp } from "#GitHubHttp.ts";
+import { type Options, type Snapshot, WatchError } from "#model.ts";
 
-const QueueResponse = Schema.Struct({
-	data: Schema.NullOr(
-		Schema.Struct({
-			repository: Schema.NullOr(
-				Schema.Struct({
-					pullRequest: Schema.NullOr(
-						Schema.Struct({
-							autoMergeRequest: Schema.NullOr(Schema.Struct({ enabledAt: Schema.String })),
-							mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
-							state: Schema.Literals(["OPEN", "CLOSED", "MERGED"]),
-							timelineItems: Schema.optionalKey(Schema.Struct({ nodes: Schema.Array(Schema.Struct({ reason: Schema.String })) })),
-						}),
-					),
-				}),
-			),
-		}),
-	),
-});
-const QueueErrors = Schema.Struct({ errors: Schema.optionalKey(Schema.Array(Schema.Struct({ message: Schema.String }))) });
+const QueueResponse = Schema.NullOr(
+	Schema.Struct({
+		repository: Schema.NullOr(
+			Schema.Struct({
+				pullRequest: Schema.NullOr(
+					Schema.Struct({
+						autoMergeRequest: Schema.NullOr(Schema.Struct({ enabledAt: Schema.String })),
+						mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
+						state: Schema.Literals(["OPEN", "CLOSED", "MERGED"]),
+						timelineItems: Schema.optionalKey(Schema.Struct({ nodes: Schema.Array(Schema.Struct({ reason: Schema.String })) })),
+					}),
+				),
+			}),
+		),
+	}),
+);
 const query = `query QueueEntry($owner: String!, $name: String!, $number: Int!) {
 	repository(owner: $owner, name: $name) {
 		pullRequest(number: $number) {
@@ -34,22 +32,16 @@ const query = `query QueueEntry($owner: String!, $name: String!, $number: Int!) 
 export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (options: Options, snapshot: Snapshot) {
 	const http = yield* GitHubHttp;
 	const [owner, name] = options.repository.split("/");
-	const response = yield* http.graphql(options.apiUrl, query, { name, number: snapshot.number, owner });
-	const { errors } = yield* Schema.decodeUnknownEffect(QueueErrors)(response).pipe(
-		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub queue confirmation", reason: "response" }, { cause })),
+	const body = yield* http.graphql(options.apiUrl, query, { name, number: snapshot.number, owner }).pipe(
+		Effect.flatMap((response) => decodeGraphqlData(response, QueueResponse)),
+		Effect.catchTag("GitHubGraphqlError", (cause) =>
+			Effect.fail(new WatchError({ message: `GitHub queue confirmation: ${cause.message}`, reason: "response" }, { cause })),
+		),
+		Effect.catchTag("SchemaError", (cause) =>
+			Effect.fail(new WatchError({ message: "Invalid GitHub queue confirmation", reason: "response" }, { cause })),
+		),
 	);
-	if (errors !== undefined && errors.length > 0) {
-		return yield* Effect.fail(
-			new WatchError(
-				{ message: `GitHub queue confirmation: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
-				{ cause: errors },
-			),
-		);
-	}
-	const body = yield* Schema.decodeUnknownEffect(QueueResponse)(response).pipe(
-		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub queue confirmation", reason: "response" }, { cause })),
-	);
-	const pr = body.data?.repository?.pullRequest;
+	const pr = body?.repository?.pullRequest;
 	if (pr === undefined || pr === null || pr.state !== "OPEN") {
 		return yield* Effect.fail(new WatchError({ message: `Queue confirmation unavailable for PR #${snapshot.number}`, reason: "response" }));
 	}

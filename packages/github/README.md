@@ -1,6 +1,6 @@
 # @shivaedev/github
 
-GitHub integrations should share one client instead of repeating token headers, page loops and quota handling in every application. This package turns GitHub REST responses into Schema-decoded Effects and streams while keeping rate limits typed.
+GitHub integrations should share one client instead of repeating token headers, page loops and quota handling in every application. This package turns GitHub REST and GraphQL responses into Schema-decoded Effects and streams while keeping rate limits typed.
 
 ## Read GitHub with less application code
 
@@ -46,6 +46,17 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 `GitHubToken.fromEnvOrCli` uses the same environment precedence, then runs `gh auth token` through Effect `ChildProcessSpawner` when neither variable is set. Provide the spawner with this Layer. Authentication failure is a typed `GitHubTokenError` with a string `reason` (`config`, `command` or `refused`) and a non-enumerable `cause`.
 
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
+
+`graphql(query, variables, schema, options?)` from `@shivaedev/github/graphql.ts` returns Schema-decoded `data`. It shares REST authentication, quota observations, bounded responses and the single installation-token refresh. The configured API base selects `/graphql`, or `/api/graphql` for an Enterprise `/api/v3` base, with either trailing-slash form supported. A non-empty GitHub `errors` array fails with `GitHubGraphqlError` from `errors.ts`, even when partial `data` is present; its `errors` carry the messages and its `message` joins them with semicolons. Invalid data fails with `Schema.SchemaError`, and decoding services stay in the caller's requirements.
+
+```ts
+import { graphql } from "@shivaedev/github/graphql.ts";
+
+const Viewer = Schema.Struct({ viewer: Schema.Struct({ login: Schema.String }) });
+const viewer = graphql("query { viewer { login } }", {}, Viewer);
+```
+
+The service's `graphql(query, variables, options?)` returns a representation with `decode(dataSchema)`, matching `read` and `write`. The Schema describes `data` directly, without the envelope. `GraphqlOptions` from `graphqlRequests.ts` accepts `responseByteLimit` for a per-request cap and `apiUrl` to override the configured REST base for that call. GraphQL and REST core quotas stay separate. The representation also exposes the raw JSON `body` for transport adapters. `decodeGraphqlData(body, dataSchema)` from `graphqlRequests.ts` applies the same typed error-envelope handling and data decoding to an adapter-supplied response.
 
 `read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST`, `PATCH`, `PUT` or `DELETE` and decodes its response. Pass `undefined` for a bodyless request. For a 204 response, omit the schema to receive `void`, or pass `Schema.Void` explicitly; the service representation also supports `decode(Schema.Void)`. These mutations share authentication, quota observations and the single installation-token refresh. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
 

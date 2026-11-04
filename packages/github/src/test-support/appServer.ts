@@ -23,6 +23,12 @@ export const appServerAt = Effect.fnUntraced(function* (prefix: string) {
 	const archive = artifactFixture(() => server.url);
 	const viewer = viewerFixture((request) => tokens.get(request.headers.authorization ?? ""));
 	const routes = {
+		graphql: {
+			guard: installationToken,
+			method: "POST",
+			path: prefix === "/api/v3" ? "/api/graphql" : "/graphql",
+			reply: () => ({ body: { data: { viewer: { login: "widgets-app" } } } }),
+		},
 		...viewer.routes,
 		...archive.routes,
 		...mutationRoutes,
@@ -63,7 +69,10 @@ export const appServerAt = Effect.fnUntraced(function* (prefix: string) {
 	} satisfies Record<string, FakeHttpRoute>;
 	const server = yield* fakeHttpService({
 		routes: Object.fromEntries(
-			Object.entries(routes).map(([name, route]) => [name, { ...route, path: name === "archive" ? route.path : `${prefix}${route.path}` }]),
+			Object.entries(routes).map(([name, route]) => [
+				name,
+				{ ...route, path: name === "archive" || name === "graphql" ? route.path : `${prefix}${route.path}` },
+			]),
 		),
 	});
 	return { server, state, viewer: viewer.state };

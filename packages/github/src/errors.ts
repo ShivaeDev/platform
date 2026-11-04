@@ -1,5 +1,13 @@
 import { Schema } from "effect";
 
+export class GitHubGraphqlError extends Schema.TaggedError<GitHubGraphqlError>()("GitHubGraphqlError", {
+	errors: Schema.Array(Schema.Struct({ message: Schema.String })),
+}) {
+	override get message() {
+		return this.errors.map((error) => error.message).join("; ");
+	}
+}
+
 export class GitHubAddressInvalid extends Schema.TaggedError<GitHubAddressInvalid>()("GitHubAddressInvalid", {}) {}
 
 export class MarkdownBudgetTooSmall extends Schema.TaggedError<MarkdownBudgetTooSmall>()("MarkdownBudgetTooSmall", {
