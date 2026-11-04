@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Bump, PackageManifest, Release, ReleasePlan, Source, WorkspacePackage } from "#model.ts";
+import { nextVersion } from "#nextVersion.ts";
 import { type Changeset, parseChangeset } from "#parser.ts";
 import { readHistory } from "#readHistory.ts";
 import { readWorkspace } from "#workspace.ts";
@@ -10,19 +11,6 @@ const rank = { major: 2, minor: 1, patch: 0 };
 export function publishedDependencies(manifest: PackageManifest): readonly string[] {
 	return Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies, ...manifest.peerDependencies });
 }
-const nextVersion = Effect.fn("Changesets.nextVersion")(function* (name: string, version: string, bump: Bump) {
-	const match = /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)$/u.exec(version);
-	if (match === null) {
-		return yield* new ChangesetError({ message: `${name}: use a stable major.minor.patch version before planning a release; found ${version}.` });
-	}
-	const major = Number(match.groups?.major);
-	const minor = Number(match.groups?.minor);
-	const patch = Number(match.groups?.patch);
-	if (bump === "major") {
-		return `${major + 1}.0.0`;
-	}
-	return bump === "minor" ? `${major}.${minor + 1}.0` : `${major}.${minor}.${patch + 1}`;
-});
 const requestedBumps = Effect.fn("Changesets.requestedBumps")(function* (packages: readonly WorkspacePackage[], sources: readonly Source[]) {
 	const bumps = new Map<string, Bump>();
 	for (const source of sources) {
@@ -87,6 +75,7 @@ export const computePlan = Effect.fn("Changesets.computePlan")(function* (
 	packages: readonly WorkspacePackage[],
 	sources: readonly Source[],
 	previousPackages: readonly WorkspacePackage[] = [],
+	config: ChangesetConfig = {},
 ) {
 	yield* validateDependencies(packages, previousPackages);
 	const bumps = yield* requestedBumps(packages, sources);
@@ -106,7 +95,13 @@ export const computePlan = Effect.fn("Changesets.computePlan")(function* (
 		if (pkg === undefined) {
 			return yield* new ChangesetError({ message: `Package ${name} disappeared while planning.` });
 		}
-		releases.push({ bump, directory: pkg.directory, from: pkg.manifest.version, name, to: yield* nextVersion(name, pkg.manifest.version, bump) });
+		releases.push({
+			bump,
+			directory: pkg.directory,
+			from: pkg.manifest.version,
+			name,
+			to: yield* nextVersion(name, pkg.manifest.version, bump, config.versionFloors?.[name]),
+		});
 	}
 	return { changesets: [...sources].sort((left, right) => left.name.localeCompare(right.name)), releases } satisfies ReleasePlan;
 });
@@ -118,5 +113,5 @@ export function summarizePlan(plan: ReleasePlan): string {
 export const planRelease = Effect.fn("Changesets.planRelease")(function* (root: string, config: ChangesetConfig = {}) {
 	const workspace = yield* readWorkspace(root, config);
 	const before = yield* readHistory(root, config);
-	return yield* computePlan(workspace.packages, workspace.changesets, before.packages);
+	return yield* computePlan(workspace.packages, workspace.changesets, before.packages, config);
 });

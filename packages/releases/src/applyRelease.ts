@@ -24,7 +24,7 @@ export const applyRelease = Effect.fn("Changesets.applyRelease")(function* (root
 	const fs = yield* FileSystem.FileSystem;
 	const workspace = yield* readWorkspace(root, config);
 	const before = yield* readHistory(root, config);
-	const plan = yield* computePlan(workspace.packages, workspace.changesets, before.packages);
+	const plan = yield* computePlan(workspace.packages, workspace.changesets, before.packages, config);
 	if (plan.releases.length === 0) {
 		return plan;
 	}

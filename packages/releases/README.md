@@ -77,6 +77,22 @@ export default defineConfig({
 });
 ```
 
+### Continue a moved package's version line
+
+When a package already has published versions from another repository, declare its latest published stable version in `versionFloors`:
+
+```ts
+import { defineConfig } from "@shivaedev/releases/config.ts";
+
+export default defineConfig({
+	versionFloors: {
+		"@acme/core": "0.47.9",
+	},
+});
+```
+
+For each requested or dependent release, the planner applies its bump to the higher of the manifest version and its floor. A manifest at `0.44.2` with floor `0.47.9` and a minor changeset releases `0.48.0`. Lower or equal floors leave the normal bump unchanged. A floor alone does not request a release. Floors use stable `major.minor.patch` versions, just like manifests. `apply` writes the planned version and `check` validates it through the same planner; hand-edited versions still fail. Planning uses the configured floors without querying npm.
+
 ### Plan, apply and check
 
 ```sh
@@ -104,6 +120,6 @@ Import `planRelease(root, config?)` and `summarizePlan(plan)` from `@shivaedev/r
 
 Install with `pnpm add -D @shivaedev/releases effect @effect/platform-node @effect/platform-node-shared`. Node.js 24 or later runs the CLI and TypeScript config. Publishing remains the repository's job.
 
-For Git-free snapshot planning, call `computePlan(packages, sources, previousPackages?)`. Pass the base packages as the third argument so removed dependencies are checked regardless of their version range; without them, only missing `workspace:` targets can be identified.
+For Git-free snapshot planning, call `computePlan(packages, sources, previousPackages?, config?)`. Pass the base packages as the third argument so removed dependencies are checked regardless of their version range; without them, only missing `workspace:` targets can be identified. Pass `versionFloors` in the fourth argument to use floors. `planDiff(before, after, config?)` and `validateDiff(before, after, config?)` accept the same config when composing diff checks.
 
 Repositories composing their own diff validation can call `checkReleaseCoverage(root, plan, pending, baseRef?)` from `/checkReleaseCoverage.ts` after validating their release plan. It checks remaining pending changesets against the recorded release base and checked main revision, using Git history to name uncovered inputs. Provide `FileSystem.FileSystem` and `ChildProcessSpawner.ChildProcessSpawner`; the optional reference uses the same default as `checkRepository`.
