@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import ts from "typescript";
+import { storyProgram } from "#adapters/storyProgram.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 import { iterationOrigin, type Origin } from "./collectionOrigins.ts";
 import { importFrom, importOrigin } from "./importOrigin.ts";
-import { storyProgram } from "./program.ts";
 import { returnValues } from "./returnValues.ts";
 import { memberName } from "./syntax.ts";
 

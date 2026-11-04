@@ -3,7 +3,8 @@ import ts from "typescript";
 import { isTestSupport, testName } from "#naming/testName.ts";
 import { engineOf } from "#rules/stories/engineOf.ts";
 import { memberName, unwrapped } from "#rules/stories/syntax.ts";
-import { type BodyReference, bodyReferences, storyBody } from "./bodyReferences.ts";
+import type { BodyReference } from "./bodyReference.ts";
+import { bodyReferences, storyBody } from "./bodyReferences.ts";
 import { serviceAccess } from "./serviceAccess.ts";
 
 export interface EngineEscape {
