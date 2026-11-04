@@ -5,10 +5,10 @@ import { notes } from "#modules/notes/notes.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
+import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { appScreen } from "./appScreen.tsx";
-import { postgres } from "./postgres.ts";
-import { mintUser } from "./sessionPrecondition.ts";
-import { uiScreenVerbs } from "./uiScreenVerbs.ts";
 
 export const signedInApp = storyKit({
 	around: withIsolatedDatabase,

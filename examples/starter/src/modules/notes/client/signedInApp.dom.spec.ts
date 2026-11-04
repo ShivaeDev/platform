@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { signedInApp } from "#test-support/signedInApp.ts";
+import { signedInApp } from "#modules/notes/test-support/signedInApp.ts";
 
 signedInApp.it("alice opens her notes signed in with the app's cookie session", [], function* ({ heading, settle, shownNotes }) {
 	yield* settle();

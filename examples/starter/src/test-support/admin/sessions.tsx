@@ -1,6 +1,6 @@
 import { Effect, Predicate } from "effect";
 import { act } from "react";
-import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenDriver, screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -77,7 +77,7 @@ export const adminSessionsOpen = adminSessions.trait(
 		Object.assign(engine, screen);
 		engine.driver = screenDriver({
 			act,
-			activity: activityScreenSignal(clientActivity(screen.client)),
+			activity: activityScreenSignal(screen.foundationClient.activity),
 			pending: screen.pending,
 			root: screen.view.container,
 			tell: () => undefined,
