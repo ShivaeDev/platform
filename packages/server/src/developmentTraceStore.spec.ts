@@ -1,5 +1,18 @@
+import { Data } from "effect";
 import { expect } from "vitest";
 import { localTraces } from "#test/localTraces.ts";
+
+localTraces.it("native error data with an absent message remains a recorded failure", [], function* ({ nativeFailure, open, read }) {
+	const error = new Data.Error({ message: undefined, password: "hidden-data" });
+	const recorder = yield* open();
+	yield* recorder.reject(error);
+	yield* recorder.close();
+	const observed = yield* nativeFailure();
+	const stored = yield* read();
+	expect(observed).toBe(error);
+	expect(stored.spans[0]?.data).toContain('"status":"failure"');
+	expect(JSON.stringify(stored)).not.toContain("hidden-data");
+});
 
 localTraces.it("child spans use their parent RPC's redaction policy in the local store", [], function* ({ open, read }) {
 	const recorder = yield* open();

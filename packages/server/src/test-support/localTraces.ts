@@ -77,7 +77,7 @@ export const localTraces = storyKit({
 						yield* Effect.logInfo("password=hidden-log").pipe(Effect.annotateLogs({ orderId: "order-42", privateField: "hidden-annotation" }));
 					}).pipe(Effect.withSpan(name, { sampled }), Effect.provide(context));
 				},
-				reject: (error: Error) => Effect.fail(error).pipe(Effect.withSpan("failed"), Effect.exit, Effect.provide(context)),
+				reject: (error: unknown) => Effect.fail(error).pipe(Effect.withSpan("failed"), Effect.exit, Effect.provide(context)),
 			};
 		},
 		read: () => Effect.sync(() => readLocalTraces(path)),

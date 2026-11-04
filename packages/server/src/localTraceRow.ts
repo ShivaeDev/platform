@@ -1,7 +1,7 @@
 import { Cause, Exit, Option, type Tracer } from "effect";
 import { redactRecord } from "@shivaedev/errors/redact.ts";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
-import { redactText } from "@shivaedev/errors/sensitive.ts";
+import { redactText, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { type HostRedactionPolicy, redactionForRpc } from "#RedactionPolicy.ts";
 
 export type LocalTraceEvent = readonly [name: string, time: bigint, attributes: Record<string, unknown>];
@@ -10,6 +10,12 @@ function rpcMethod(span: Tracer.Span): unknown {
 	const method = span.attributes.get("rpc.method");
 	const parent = Option.getOrUndefined(span.parent);
 	return method ?? (parent?._tag === "Span" ? rpcMethod(parent) : undefined);
+}
+
+function traceError(cause: Cause.Cause<unknown>, sensitive: SensitiveKey): string {
+	return Cause.prettyErrors(cause)
+		.map((error) => Cause.pretty(redactDiagnosticCause(Cause.fail(error), sensitive)))
+		.join("\n");
 }
 
 export function localTraceRow(span: Tracer.Span, events: readonly LocalTraceEvent[], policy: HostRedactionPolicy) {
@@ -24,7 +30,7 @@ export function localTraceRow(span: Tracer.Span, events: readonly LocalTraceEven
 		attributes,
 		durationNanos: String(endTime - startTime),
 		endedAtMillis: Number.parseInt(String(endTime / 1_000_000n), 10),
-		error: Exit.isFailure(exit) ? redactText(Cause.pretty(redactDiagnosticCause(exit.cause, sensitive)), sensitive) : null,
+		error: Exit.isFailure(exit) ? redactText(traceError(exit.cause, sensitive), sensitive) : null,
 		events: events.map(([name, time, values]) => ({
 			attributes: redactRecord(values, sensitive),
 			name: redactText(name, sensitive),
