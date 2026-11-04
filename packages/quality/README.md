@@ -110,6 +110,10 @@ The rule refuses config exceptions and inline suppressions. For existing debt, r
 
 `effect/shared-error-classes` reports a tagged error class that reuses a tag exported by `@shivaedev/errors`. Import the shared class from the module named in the finding instead. The rule reads exported class types, including source and declaration exports, and compares literal `_tag` values rather than class names. It uses the repository's installed errors package, or Quality's dependency when the repository does not yet depend on errors. It checks adapters and tests too. Subclasses retaining a shared tag are separate classes and are reported; shared declarations and imports, distinct tags and non-error classes are accepted.
 
+### RPC handler boundaries
+
+`effect/rpc-boundary` reports calls to `rpcBoundary` or `rpcBoundaryHandlers` outside modules that build native RPC handlers with a group's `toLayer`, `toLayerHandler`, `toHandlers` or `of`. Move the boundary to the handler module so services preserve their typed failures. Imported and local aliases are checked; unrelated functions and methods with the same names are accepted. Test-support kits and the implementation of `rpcBoundaryHandlers` are accepted. The rule refuses config exceptions and inline suppressions.
+
 ### Failure honesty
 
 `effect/failure-honesty` checks TypeScript and JavaScript throughout the inventory, including adapters and tests. It reports four failure-hiding shapes:

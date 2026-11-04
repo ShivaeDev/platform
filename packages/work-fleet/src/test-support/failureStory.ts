@@ -5,6 +5,7 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import { FleetError } from "#errors.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 import { daemonError } from "#host/daemonClient.ts";
+import { fleetFailure } from "#operations.ts";
 import { refusal } from "#test/refusal.ts";
 
 const failures = RpcGroup.make(Rpc.make("fail", { error: FleetError, success: Schema.Void }));
@@ -13,7 +14,7 @@ export const failureStory = storyKit({
 		const state: { effect: Effect.Effect<void, unknown>; mapped: unknown } = { effect: Effect.void, mapped: undefined };
 		const handlers = failures.toLayer({
 			fail: () =>
-				exposeFailure(state.effect).pipe(
+				fleetFailure(state.effect).pipe(
 					Effect.tapError((error) =>
 						Effect.sync(() => {
 							state.mapped = error;
@@ -40,7 +41,7 @@ export const failureStory = storyKit({
 			daemonErrorOf: (error: unknown) => Effect.sync(() => (daemonError(error, 12_345) === error ? "the original error" : "a replacement error")),
 			interruptBoundary: () => {
 				story.tell("interrupt the Fleet error boundary");
-				return exposeFailure(Effect.interrupt).pipe(
+				return fleetFailure(Effect.interrupt).pipe(
 					Effect.exit,
 					Effect.map((exit) => (Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause) ? "interrupted" : "not interrupted")),
 				);
@@ -50,6 +51,15 @@ export const failureStory = storyKit({
 			requestOutcome: (effect: Effect.Effect<void, unknown>) => refusal(request(effect)),
 			serializedOwner: (error: unknown) =>
 				Effect.sync(() => (JSON.stringify(error).includes("attentionOwner") ? "attention owner exposed" : "attention owner hidden")),
+			serviceDefect: (defect: Error) =>
+				exposeFailure(Effect.die(defect)).pipe(
+					Effect.exit,
+					Effect.map((exit) =>
+						Exit.isFailure(exit) && Cause.hasDies(exit.cause) && Cause.squash(exit.cause) === defect
+							? "the original defect"
+							: "a replacement failure",
+					),
+				),
 		};
 	},
 });
