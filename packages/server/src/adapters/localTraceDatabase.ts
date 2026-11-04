@@ -29,9 +29,9 @@ export function localTraceDatabase(path: string, retainedRuns: number, indexedAt
 		`);
 		const runId = randomUUID();
 		db.prepare("INSERT INTO runs(id, started_at_millis) VALUES (?, ?)").run(runId, startedAtMillis);
-		const complete = db.prepare("UPDATE runs SET completed = 1 WHERE id = ?");
+		const complete = db.prepare("UPDATE runs SET completed = (SELECT coalesce(max(completed), 0) + 1 FROM runs) WHERE id = ?");
 		const prune = db.prepare(
-			"DELETE FROM runs WHERE completed = 1 AND id NOT IN (SELECT id FROM runs WHERE completed = 1 ORDER BY rowid DESC LIMIT ?)",
+			"DELETE FROM runs WHERE completed > 0 AND id NOT IN (SELECT id FROM runs WHERE completed > 0 ORDER BY completed DESC LIMIT ?)",
 		);
 		const insert = db.prepare("INSERT INTO spans VALUES (?, ?, ?, ?, ?, ?, ?)");
 		const index = db.prepare("INSERT INTO span_attributes VALUES (?, ?, ?)");

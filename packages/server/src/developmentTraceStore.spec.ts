@@ -69,7 +69,7 @@ localTraces.it("retention leaves an active recorder able to flush until its scop
 	yield* secondPasses();
 	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "middle", "effect.log", "latest", "effect.log", "active"]);
 	yield* active.close();
-	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "middle", "effect.log", "latest"]);
+	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "latest", "effect.log", "active"]);
 });
 
 localTraces.it("local recording preserves the application's installed native tracer", [], function* ({ nativeSpanNames, open }) {
