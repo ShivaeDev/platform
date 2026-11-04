@@ -69,7 +69,7 @@ boardStory.it(
 		yield* workerStarts("the loser");
 
 		expect(yield* workerReports("the loser")).toBe(
-			"rejected: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+			"rejected: A listener is already running at the project folder/board.sock. Stop it before starting another. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 		);
 	},
 );
@@ -83,7 +83,7 @@ boardStory.it(
 		expect(yield* workerReports("the winner")).toBe("paused at reclaim");
 		yield* workerStarts("the loser");
 		expect(yield* workerReports("the loser")).toBe(
-			"rejected: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+			"rejected: A listener is already running at the project folder/board.sock. Stop it before starting another. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 		);
 		yield* workerContinues("the winner");
 		expect(yield* workerReports("the winner")).toBe("ready");
@@ -134,7 +134,7 @@ boardStory.it(
 			[
 				"the start",
 				() => startAttempt(),
-				"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+				"refused: A listener is already running at the project folder/board.sock. Stop it before starting another. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 			],
 		]);
 	},
@@ -143,7 +143,7 @@ boardStory.it(
 boardStory.it("once the abandoned startup lock is removed, the board starts", project, function* ({ abandonStartup, removeFile, startAttempt }) {
 	abandonStartup();
 	expect(yield* startAttempt()).toEqual(
-		"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+		"refused: A listener is already running at the project folder/board.sock. Stop it before starting another. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 	);
 
 	removeFile(".board.sock.starting");

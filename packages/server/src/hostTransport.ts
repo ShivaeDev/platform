@@ -5,7 +5,13 @@ import { NativeOrigins } from "#nativeClientOrigins.ts";
 import { TrustedProxyRequired } from "#TrustedProxyRequired.ts";
 
 interface Options {
-	readonly config?: { readonly host?: string; readonly maxBodySize?: number; readonly trustedProxy?: string };
+	readonly config?: {
+		readonly host?: string;
+		readonly port?: number;
+		readonly socketPath?: string;
+		readonly maxBodySize?: number;
+		readonly trustedProxy?: string;
+	};
 	readonly nativeOrigins?: readonly string[];
 	readonly policy?: "loopback" | undefined;
 }
@@ -21,6 +27,7 @@ export const hostTransport = Effect.fn("Platform.hostTransport")(function* (opti
 	if (trustedProxy !== undefined) {
 		yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
 	}
+	const socketOnly = options.config?.socketPath !== undefined && options.config.port === undefined;
 	const host = options.config?.host ?? (yield* Config.String("HOST").pipe(Config.withDefault("127.0.0.1")));
 	const loopback =
 		host.toLowerCase() === "localhost"
@@ -28,7 +35,7 @@ export const hostTransport = Effect.fn("Platform.hostTransport")(function* (opti
 			onFailure: () => false,
 			onSuccess: (address) => NetAddress.isLoopback(NetAddress.toCanonical(address)),
 		});
-	if (options.policy !== "loopback" && !loopback && trustedProxy === undefined) {
+	if (!socketOnly && options.policy !== "loopback" && !loopback && trustedProxy === undefined) {
 		return yield* Effect.fail(new TrustedProxyRequired());
 	}
 	const nativeOrigins = yield* Schema.decodeUnknownEffect(NativeOrigins)(options.nativeOrigins ?? []).pipe(

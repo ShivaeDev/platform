@@ -4,6 +4,7 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { clientRuntime } from "./clientRuntime.ts";
 import type { pages } from "./jobsPages.ts";
 
 type Registry = ReturnType<typeof pages>;
@@ -12,7 +13,8 @@ export const jobsClient = Effect.fnUntraced(function* (
 	group: Registry["group"],
 	protocol: Layer.Layer<RpcClient.Protocol>,
 ) {
-	const transport = makeClient(page.contract, { group, live: false, protocol, url: "http://localhost/rpc" });
+	const runtime = yield* clientRuntime;
+	const transport = makeClient(page.contract, { group, live: false, protocol, runtime, url: "http://localhost/rpc" });
 	const { api, Client } = transport;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),

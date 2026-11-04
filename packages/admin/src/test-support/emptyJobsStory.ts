@@ -1,8 +1,10 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { RpcTest } from "effect/rpc";
+import { TestClock } from "effect/testing";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
+import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -17,7 +19,11 @@ import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 const Jobs = makePgBoss("test/EmptyAdminJobs");
 const emptyJobsEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const context = yield* Layer.build(Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ connectionString: database.url }))));
+	const clock = yield* TestClock.testClockWith(Effect.succeed);
+	const testing = makePgBossTesting({ clock });
+	const context = yield* Layer.build(
+		Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
+	);
 	const page = jobsPage();
 	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
@@ -32,7 +38,7 @@ const emptyJobsEngine = Effect.gen(function* () {
 
 export const emptyJobsStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => emptyJobsEngine,
 	layer: postgresLayer,
 	name: "admin jobs without queues",

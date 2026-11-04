@@ -11,6 +11,7 @@ function tagged<A, E, R>(effect: Effect.Effect<A, E, R>, tag: string) {
 }
 
 export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
+	readonly clock?: "live" | "test";
 	readonly lock: Effect.Effect<unknown, TLockError, TLockServices>;
 	readonly effects: readonly Effect.Effect<A, E, R>[];
 	readonly timeout?: Duration.Input;
@@ -41,7 +42,7 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 					where ${everyBlockedSession ? sql`true` : sql`starts_with(activity.query, ${`/* ${race}`})`}`),
 					Effect.map(([row]) => row?.waiting ?? 0),
 				);
-				yield* observeUntil(waiting, (count) => count >= options.effects.length, contenders, { within: timeout });
+				yield* observeUntil(waiting, (count) => count >= options.effects.length, contenders, { clock: options.clock ?? "live", within: timeout });
 			});
 			const holder = yield* (
 				options.release === "commit" ? transact(Effect.scoped(hold), { onSqlError: (error) => error }) : withTestTransaction(hold)

@@ -8,6 +8,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { aggregateLiveStatus } from "#internal/aggregateLiveStatus.ts";
 import { automaticQuery } from "#internal/automaticQuery.ts";
+import { clientActivities } from "#internal/clientActivity.ts";
 import { queryDelivery } from "#internal/queryDelivery.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
 import { queryProgress } from "#internal/querySignals.ts";
@@ -86,6 +87,7 @@ export function automaticLive(
 		const subscription = live(service.runtime, {
 			initialResync: false,
 			keyContext: owner?.context,
+			reopenOnResume: decode !== undefined,
 			resume: signal,
 			resyncKeys: decode === undefined ? localQueryKeys(keys) : [],
 			retryKeys: keys,
@@ -97,12 +99,12 @@ export function automaticLive(
 		const gated = automaticQuery({
 			assertOwner,
 			atom,
+			clientStatuses: clientActivities.get(service)?.statuses,
 			coalesceWindow,
 			equivalent,
 			paused,
 			pushed: decode !== undefined,
 			ready,
-			signal,
 			signals,
 			source,
 			statuses,

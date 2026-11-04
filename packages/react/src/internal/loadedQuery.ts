@@ -6,6 +6,7 @@ interface QuerySnapshot<A, E> {
 	readonly denied: boolean;
 	readonly pending: boolean;
 	readonly refresh: () => void;
+	readonly refusal: Option.Option<Exclude<E, { readonly _tag: "RpcClientError" }>>;
 }
 
 export function loadedQuery<A, E>(query: QuerySnapshot<A, E>, loaded: A) {
@@ -16,5 +17,6 @@ export function loadedQuery<A, E>(query: QuerySnapshot<A, E>, loaded: A) {
 		pending: query.pending,
 		refresh: query.refresh,
 		refreshing: query.pending,
+		refusal: query.refusal,
 	};
 }

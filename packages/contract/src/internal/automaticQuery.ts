@@ -12,12 +12,12 @@ import type { QuerySignals } from "#querySignals.ts";
 interface GateOptions<A, E> {
 	readonly assertOwner: (get: Atom.AtomContext) => void;
 	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
+	readonly clientStatuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>> | undefined;
 	readonly coalesceWindow: Atom.Writable<Duration.Input>;
 	readonly equivalent: (left: A, right: A) => boolean;
 	readonly paused: Atom.Writable<boolean>;
 	readonly pushed: boolean;
 	readonly ready: Atom.Writable<boolean>;
-	readonly signal: Atom.Atom<unknown>;
 	readonly signals: Atom.Writable<QuerySignals>;
 	readonly source: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
 	readonly statuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>>;
@@ -27,11 +27,11 @@ export function automaticQuery<A, E>({
 	atom,
 	assertOwner,
 	coalesceWindow,
+	clientStatuses,
 	equivalent,
 	paused,
 	pushed,
 	ready,
-	signal,
 	signals,
 	source,
 	statuses,
@@ -56,7 +56,9 @@ export function automaticQuery<A, E>({
 				get.set(signals, recordSubscription(get.once(signals), value));
 				dispatcher.scheduleTask(() => {
 					if (active) {
-						registry.update(statuses, (current) => new Map([...current, [token, value]]));
+						for (const state of clientStatuses === undefined ? [statuses] : [statuses, clientStatuses]) {
+							registry.update(state, (current) => new Map([...current, [token, value]]));
+						}
 					}
 				}, 0);
 				if (value.connection === "live") {
@@ -66,12 +68,14 @@ export function automaticQuery<A, E>({
 			}
 			get.addFinalizer(() => {
 				active = false;
-				if (registry.getNodes().has(statuses)) {
-					registry.update(statuses, (current) => {
-						const next = new Map(current);
-						next.delete(token);
-						return next;
-					});
+				for (const state of clientStatuses === undefined ? [statuses] : [statuses, clientStatuses]) {
+					if (registry.getNodes().has(state)) {
+						registry.update(state, (current) => {
+							const next = new Map(current);
+							next.delete(token);
+							return next;
+						});
+					}
 				}
 			});
 			get.addFinalizer(registry.subscribe(subscription.status, observe, { immediate: true }));
@@ -122,8 +126,6 @@ export function automaticQuery<A, E>({
 				}
 			}
 			if (pushed) {
-				get.once(signal);
-				get.subscribe(signal, resume);
 				get.subscribe(paused, (value) => {
 					if (!value) {
 						resume();

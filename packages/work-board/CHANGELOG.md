@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.45.0 - 2026-11-04
+
+### Breaking
+
+- `boardLayer` startup failures carry every conflicting field in `SensitiveFieldConflict.conflicts`. Iterate over these entries instead of reading the top-level `field`, `publicSchema` and `sensitiveSchema`; the message lists all entries.
+
 ## 0.44.2 - 2026-11-03
 
 ### Changed

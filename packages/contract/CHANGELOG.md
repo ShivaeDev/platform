@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.34.0 - 2026-11-04
+
+### Added
+
+- `makeClient` accepts a native Atom runtime factory so application and test clocks can govern live query coalescing and reconnection.
+- Contracts accept a subject declaration that supplies request context through native RPC middleware and includes its typed refusals in the client's error channel.
+
+### Breaking
+
+- Import the `OperationRpc` and `Tag` helper types from `@shivaedev/contract/operationRpc.ts` instead of `@shivaedev/contract/contract.ts`.
+
 ## 0.33.1 - 2026-11-03
 
 ### Fixed

@@ -5,12 +5,12 @@ import { inBoardReadPass } from "#board/readPass.ts";
 import { snapshotProblems } from "#board/workPolicy.ts";
 import { boardDocuments, boardSnapshot } from "#board/workspace.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
-import { STOP_REASON } from "#engine/stopCommand.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { refreshForeignReservations } from "#host/foreignReservations.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
+import { releasedForAdmission } from "#host/releasedForAdmission.ts";
 import { taskLaunch } from "#host/taskLaunch.ts";
 import { launchPrompt } from "#host/workerBrief.ts";
 import { type DispatchNow, executing, type FleetRecord } from "#model.ts";
@@ -83,8 +83,7 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
 	const reapproved = record !== undefined && approval === "explicit" && (record.step === "released" || briefChanged(record, work));
-	const released =
-		record?.step === "released" && record.result?.kind !== "change" && !record.releaseReason?.startsWith(STOP_REASON) && !sweepMerged(record);
+	const released = releasedForAdmission(record);
 	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}

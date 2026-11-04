@@ -8,6 +8,7 @@ import { resolveSession } from "@shivaedev/identity/server/session.ts";
 import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";
 import { bearerSocketRpc } from "#bearerSocketRpc.ts";
 import type { HostPolicy } from "#hostOptions.ts";
+import { UnixSocketRequest } from "#UnixSocketRequest.ts";
 
 export function socketRpc(
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
@@ -29,7 +30,7 @@ export function socketRpc(
 ) {
 	return Effect.gen(function* () {
 		const request = yield* HttpServerRequest.HttpServerRequest;
-		if (!localTransport(trustedProxy, nativeOrigins)(request)) {
+		if (!((yield* UnixSocketRequest) || localTransport(trustedProxy, nativeOrigins)(request))) {
 			return HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 		}
 		if (policy.policy !== "loopback") {
