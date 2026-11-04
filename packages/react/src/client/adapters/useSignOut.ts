@@ -1,6 +1,6 @@
 import { RegistryContext, useAtomMount } from "@effect/atom-react";
 import { useRouter } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useMemo } from "react";
@@ -46,6 +46,11 @@ export function useSignOut<A, E>(action: Atom.AtomResultFn<void, A, E>, options:
 	useAtomMount(followUp);
 	useEffect(() => () => local.set(followUp, Atom.Interrupt), [local, followUp]);
 	const state = useAction(source);
+	useEffect(() => {
+		if (router && Option.isSome(state.cause) && !state.pending && router.history.location.state.__platformSignOut) {
+			router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: false });
+		}
+	}, [router, state.cause, state.pending]);
 	return {
 		...state,
 		dispatch: () => {
