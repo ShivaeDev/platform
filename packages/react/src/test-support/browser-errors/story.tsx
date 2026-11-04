@@ -12,7 +12,7 @@ function browserEvent(kind: "error" | "unhandledrejection", reason: Error | stri
 }
 
 export const browserErrorsStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const received = yield* Queue.unbounded<void>();
 		const server = yield* fakeHttpService({

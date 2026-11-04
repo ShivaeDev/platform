@@ -2,6 +2,7 @@ import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Option, Redacted } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { TestClock } from "effect/testing";
 import { act, createElement } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -11,6 +12,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 import { Api, migrations } from "./feature.ts";
 import { Note } from "./Note.tsx";
 import { openHost } from "./openHost.ts";
@@ -22,7 +25,8 @@ type Mode = "get" | "compared";
 const create = Effect.gen(function* () {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	const host = yield* openHost((yield* PostgresTestDatabase).url);
-	return { host, screens: new Map<string, Effect.Success<ReturnType<typeof openScreen>>>() };
+	const run = Effect.runPromiseWith(yield* Effect.context());
+	return { host, run, screens: new Map<string, Effect.Success<ReturnType<typeof openScreen>>>() };
 });
 
 const openScreen = Effect.fnUntraced(function* (address: string, account: string, mode: Mode) {
@@ -33,6 +37,7 @@ const openScreen = Effect.fnUntraced(function* (address: string, account: string
 	const client = makeClient(Api, {
 		headers: { authorization: `Bearer ${account}-session` },
 		registry: screen.registry,
+		runtime: yield* storyRuntime,
 		url: address,
 		webSocketConstructor: layerWebSocketConstructorWS,
 	});
@@ -54,14 +59,14 @@ function awaitAnswer(account: string, current: Effect.Success<ReturnType<typeof 
 
 export const sessionRepository = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	inspect: ({ host, screens }) => ({ reads: host.reads, screens: [...screens].map(([name, { screen }]) => [name, screen.container.textContent]) }),
 	layer,
 	name: "session repository queries over authenticated PostgreSQL WebSocket",
 	runIf: configured,
 	stages: ["screens"],
-	verbs: ({ host, screens }, story) => ({
+	verbs: ({ host, run, screens }, story) => ({
 		denyBob: () =>
 			Effect.sync(() => {
 				story.tell("bob loses permission to read the row");
@@ -74,7 +79,11 @@ export const sessionRepository = storyKit({
 			return Effect.promise(() =>
 				act(async () => {
 					await Effect.runPromise(host.write(title));
-					await Promise.all([...screens].map(([account, current]) => awaitAnswer(account, current, title)));
+					const answers = Promise.all([...screens].map(([account, current]) => awaitAnswer(account, current, title)));
+					const completed = Effect.promise(() => answers);
+					await run(
+						Effect.raceFirst(completed, untilTimer("20 millis").pipe(Effect.andThen(TestClock.adjust("20 millis")), Effect.andThen(completed))),
+					);
 				}),
 			);
 		},

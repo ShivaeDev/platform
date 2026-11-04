@@ -19,12 +19,12 @@ for (const [ending, name] of [
 	);
 }
 
-lifetime.it("runs a live kit's story on the live clock", [], function* ({ clock }) {
-	expect(yield* clock()).toBe("the live clock");
+lifetime.it("runs a pinned kit's story on the pinned clock", [], function* ({ clock }) {
+	expect(yield* clock()).toBe("the pinned clock");
 });
 
 lifetime.it(
-	"runs a live kit's story on the test clock when the story asks for it",
+	"runs a pinned kit's story on the test clock when the story asks for it",
 	[],
 	function* ({ clock }) {
 		expect(yield* clock()).toBe("the test clock at zero");

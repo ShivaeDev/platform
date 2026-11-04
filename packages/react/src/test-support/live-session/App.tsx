@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Cause, Option } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
@@ -22,6 +23,7 @@ export function Note({ client }: { readonly client: ReturnType<typeof connect> }
 
 export function App({
 	url,
+	runtime,
 	session,
 	rechecked,
 	signIn,
@@ -29,6 +31,7 @@ export function App({
 }: {
 	readonly connected: (registry: AtomRegistry.AtomRegistry, client: ReturnType<typeof connect>) => void;
 	readonly url: string;
+	readonly runtime: Atom.RuntimeFactory;
 	readonly session: () => string | undefined;
 	readonly rechecked: () => void;
 	readonly signIn: () => void;
@@ -37,7 +40,7 @@ export function App({
 	return (
 		<SessionBoundary
 			connect={(_, registry) => {
-				const client = connect(url, registry);
+				const client = connect(url, registry, runtime);
 				connected(registry, client);
 				const connection = { api: { notes: client, sameNotes: client } };
 				return Object.assign(connection, { parent: connection });

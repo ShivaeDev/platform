@@ -4,12 +4,14 @@ import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adap
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
+import { drivenScreen } from "./drivenScreen.ts";
 import { WaitPage } from "./WaitPage.tsx";
 
 expectNoReactWarnings();
 
 export const waitScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const previous = window.location.href;
@@ -23,20 +25,23 @@ export const waitScreen = storyKit({
 			Effect.promise(() => render(<WaitPage />)),
 			(mounted) => Effect.promise(mounted.unmount),
 		);
-		return { reportsPending: false, view };
+		return { clock: yield* drivenClock, reportsPending: false, view };
 	},
 	inspect: ({ view }) => ({ location: window.location.href, screen: view.container.ownerDocument.body.innerHTML }),
 	name: "screen waits",
 	stages: ["screen"],
-	verbs: ({ reportsPending, view }, story) => {
-		const driver = screenDriver({
-			act: async (action) => {
-				await act(action);
-			},
-			...(reportsPending ? { pending: () => false } : {}),
-			root: view.container,
-			tell: story.tell,
-		});
+	verbs: ({ clock, reportsPending, view }, story) => {
+		const driver = drivenScreen(
+			clock,
+			screenDriver({
+				act: async (action) => {
+					await act(action);
+				},
+				...(reportsPending ? { pending: () => false } : {}),
+				root: view.container,
+				tell: story.tell,
+			}),
+		);
 		const waits = background();
 		return {
 			...driver,

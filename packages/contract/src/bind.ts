@@ -10,10 +10,11 @@ import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
 import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
 import type { ClientOptions, MadeClient } from "#clientOptions.ts";
-import type { Contract, Declared, Tag } from "#contract.ts";
+import type { Contract, Declared } from "#contract.ts";
 import { clientOperations } from "#internal/clientOperations.ts";
 import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { Tag } from "#operationRpc.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =

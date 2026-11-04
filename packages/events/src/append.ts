@@ -38,7 +38,9 @@ export const append = Effect.fn("Events.append")(function* <A, E, TUpcastError>(
 				yield* sql`insert into events_log (store, stream, stream_version, request_id, event_version, payload)
 					values (${options.name}, ${command.stream}, ${command.expectedVersion + index + 1}, ${command.requestId}, ${options.version}, ${JSON.stringify(payload)}::jsonb)`;
 			}
-			yield* projectStream(options, command.stream);
+			if (command.events.length > 0) {
+				yield* projectStream(options, command.stream);
+			}
 			return version;
 		}),
 		{ onSqlError: (error) => error },

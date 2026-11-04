@@ -4,6 +4,7 @@ import { type Duration, Effect, Exit, Scope } from "effect";
 import { lineSignals } from "#server/lineSignals.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
 
 const childProgram = `
 const readline = require("node:readline");
@@ -30,15 +31,19 @@ export const processSignals = storyKit({
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		const stdout = yield* lineSignals(child.stdout).pipe(Effect.provideService(Scope.Scope, scope));
 		const stderr = yield* lineSignals(child.stderr).pipe(Effect.provideService(Scope.Scope, scope));
-		return { child, scope, stderr, stdout };
+		return { child, clock: yield* drivenClock, scope, stderr, stdout };
 	},
 	name: "process signals",
 	stages: ["ready"],
-	verbs: ({ child, scope, stderr, stdout }, story) => {
+	verbs: ({ clock, child, scope, stderr, stdout }, story) => {
 		const running = background();
-		function waitsForLine(text: string, channel: "stdout" | "stderr" = "stdout", timeout: Duration.Input = "5 seconds") {
+		function waitsForLine(text: string, channel: "stdout" | "stderr" = "stdout", timeout?: Duration.Input) {
 			story.tell(`wait for ${channel} line "${text}"`);
-			return { stderr, stdout }[channel].untilLine((line) => line === text, { name: `${channel} line "${text}"`, timeout });
+			const wait = { stderr, stdout }[channel].untilLine((line) => line === text, {
+				name: `${channel} line "${text}"`,
+				timeout: timeout ?? "5 seconds",
+			});
+			return timeout === undefined ? clock.run(wait) : clock.drive(wait);
 		}
 		return {
 			closesReaders: () => {

@@ -1,4 +1,4 @@
-import { Effect, Layer, ManagedRuntime, Option, Stream } from "effect";
+import { Clock, Effect, Layer, ManagedRuntime, Option, Stream } from "effect";
 import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -10,7 +10,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { Notes, notes, ReadAccess } from "./notes.ts";
 
-export async function openHost() {
+export async function openHost(clock: Clock.Clock) {
 	const state: { active: string[]; allowed: boolean; lookups: number; reads: number; session: string | undefined; title: string } = {
 		active: [],
 		allowed: true,
@@ -82,7 +82,7 @@ export async function openHost() {
 				provider: { get: resolveSession },
 				streamRevalidationInterval: "100 millis",
 			}),
-		}),
+		}).pipe(Layer.provide(Layer.succeed(Clock.Clock, clock))),
 	);
 	try {
 		const server = await runtime.runPromise(HttpServer.HttpServer);

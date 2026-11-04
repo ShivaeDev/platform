@@ -40,7 +40,7 @@ function NameScreen({ model }: { readonly model: ReturnType<typeof makeNameForm>
 }
 
 export const rejectedNameScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(async () => {

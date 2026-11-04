@@ -52,7 +52,7 @@ export const atomStory = storyKit({
 				yield* Deferred.await(engine.firstSeen);
 			},
 			failure: (value: string) =>
-				waitFor(value, { name: `atom holding ${value}`, timeout: "30 millis" }).pipe(
+				waitFor(value, { name: `atom holding ${value}`, timeout: "0 millis" }).pipe(
 					Effect.map((answer) => `received ${answer}`),
 					Effect.catchTag("SignalNotReceived", (error) => Effect.succeed(error.message)),
 				),

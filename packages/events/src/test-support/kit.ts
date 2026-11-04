@@ -8,6 +8,7 @@ import type { AlreadyDone, StreamConflict, UnsupportedEventVersion } from "#erro
 import { holdEarlyCommit, outcome, raceRebuildAndCatchUp, writersRace } from "./concurrency.ts";
 import { configured, database } from "./database.ts";
 import { noteEngine, notes } from "./notes.ts";
+import { receiptVerbs } from "./receiptVerbs.ts";
 
 const create = Effect.gen(function* () {
 	const engine = yield* noteEngine;
@@ -30,10 +31,11 @@ export const events = storyKit({
 	runIf: configured,
 	stages: ["history"],
 	verbs: (engine) => ({
-		append: (requestId: string, names: readonly [string, ...string[]], expectedVersion = 0, stream = "alice") =>
-			outcome(
-				engine.store.append({ events: [{ name: names[0] }, ...names.slice(1).map((name) => ({ name }))], expectedVersion, requestId, stream }),
-			).pipe(Effect.catchTag("ProjectionRejected", () => Effect.succeed("projection rejected"))),
+		...receiptVerbs(engine),
+		append: (requestId: string, names: readonly string[], expectedVersion = 0, stream = "alice") =>
+			outcome(engine.store.append({ events: names.map((name) => ({ name })), expectedVersion, requestId, stream })).pipe(
+				Effect.catchTag("ProjectionRejected", () => Effect.succeed("projection rejected")),
+			),
 		appendCount: (count: bigint) => engine.counts.append({ events: [{ count }], expectedVersion: 0, requestId: "count", stream: "counter" }),
 		appendWithAudit: () =>
 			engine.combined.append({ events: [{ name: "Draft" }, { name: "Published" }], expectedVersion: 0, requestId: "batch", stream: "alice" }),

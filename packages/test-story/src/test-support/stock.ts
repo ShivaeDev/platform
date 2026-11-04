@@ -1,4 +1,4 @@
-import { Clock, Context, Effect, Layer } from "effect";
+import { Clock, Context, DateTime, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
@@ -13,7 +13,7 @@ export const stock = storyKit({
 			yield* recordLifetime("stock around");
 			return yield* effect;
 		}),
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z"),
 	*create() {
 		yield* recordLifetime("stock create");
 		const service = yield* fakeHttpService({ routes: { stock: { path: "/stock", reply: () => ({ status: HttpStatus.fromLiteral("NotFound") }) } } });
@@ -24,7 +24,7 @@ export const stock = storyKit({
 	stages: ["stocked"],
 	verbs: (engine, story) => ({
 		stock: {
-			clock: () => Clock.currentTimeMillis.pipe(Effect.map((millis) => (millis === 0 ? "the test clock at zero" : "the live clock"))),
+			clock: () => Clock.currentTimeMillis.pipe(Effect.map((millis) => (millis === 0 ? "the test clock at zero" : "the pinned clock"))),
 			read: () =>
 				Effect.tryPromise(async () => {
 					story.tell("read the stock");

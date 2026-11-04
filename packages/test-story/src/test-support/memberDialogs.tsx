@@ -26,7 +26,7 @@ const mount = Effect.fnUntraced(function* (member: MemberScreen, kind: DialogKin
 });
 
 export const memberDialogs = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => ({ screens: new Map<string, HTMLElement>() }),
 	inspect: ({ screens }) => Object.fromEntries([...screens].map(([name, root]) => [name, root.parentElement?.innerHTML])),
 	name: "member dialogs",

@@ -24,7 +24,7 @@ function PasswordScreen({ passwords }: { readonly passwords: ReturnType<typeof m
 	);
 }
 export const refinementScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(() => render(createElement(PasswordScreen, { passwords: makePasswords() }))),

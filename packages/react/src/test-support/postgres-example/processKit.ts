@@ -9,7 +9,7 @@ import { processVerbs } from "./processVerbs.ts";
 
 export const processes = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => createProcesses,
 	inspect: (engine) => ({
 		hints: Object.fromEntries([...engine.clients].map(([name, client]) => [name, client.hints.items])),

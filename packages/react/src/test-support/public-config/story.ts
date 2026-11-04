@@ -24,7 +24,7 @@ function opened(state: State) {
 }
 
 export const publicConfigStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: (): State => ({ screen: new Screen(() => undefined) }),
 	inspect: ({ screen }) => screen.inspect(),
 	name: "public configuration screen",

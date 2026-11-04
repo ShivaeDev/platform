@@ -9,7 +9,7 @@ import { BrokenScreen } from "./BrokenScreen.tsx";
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 export const warningScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => captureReactWarnings,
 	inspect: (warnings) => warnings.read(),
 	name: "React warning screen",

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { containerReady } from "#test/containerReady.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 
 export function connectionBoundary(name: string, real: ChildProcessSpawner.ChildProcessSpawner["Service"]) {
@@ -34,7 +35,16 @@ export function connectionBoundary(name: string, real: ChildProcessSpawner.Child
 			faults.restarted = true;
 		}
 		if (command.command !== "psql") {
-			return real.spawn(ChildProcess.make(command.command, redirected(command.args), command.options));
+			return Effect.map(real.spawn(ChildProcess.make(command.command, redirected(command.args), command.options)), (handle) => ({
+				...handle,
+				exitCode: handle.exitCode.pipe(
+					Effect.tap((code) =>
+						code === 0 && command.command === "docker" && ["run", "start", "restart"].includes(command.args[0] ?? "")
+							? containerReady(name).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, real), Effect.orDie)
+							: Effect.void,
+					),
+				),
+			}));
 		}
 		if (faults.at === "confirmation" && faults.restarted && command.args.includes("SHOW max_connections")) {
 			return Effect.succeed(scriptedProcess(new Error("PostgreSQL refused the connection-limit check")));

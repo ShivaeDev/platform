@@ -31,7 +31,7 @@ function makeRequiredForm() {
 }
 
 export const requiredScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(() => render(createElement(RequiredScreen, { order: makeRequiredForm() }))),

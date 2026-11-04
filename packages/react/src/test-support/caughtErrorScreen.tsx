@@ -32,7 +32,7 @@ function failureRouter(failure: Error | null, warning: boolean) {
 }
 
 export const caughtErrorScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	create: (): { roots: Rendered[] } => ({ roots: [] }),
 	inspect: ({ roots }) => roots.map(({ container }) => container.innerHTML),
 	name: "caught error screen",

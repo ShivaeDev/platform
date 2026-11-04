@@ -56,7 +56,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 export const testing = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => Effect.map(Deferred.make<string>(), (gate): State => ({ acquired: 0, gate, released: 0 })),
 	inspect: (state) => ({ screens: [state.first, state.second].map((view) => view?.container.innerHTML) }),
 	name: "React render helper",
