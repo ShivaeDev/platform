@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { foreignPullRequest } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
@@ -23,9 +22,7 @@ describe("stable decision codes", () => {
 			}
 			expect(decision.code).toBe("reviewed-pr-ready");
 			yield* replaceStoredRecord({ ...stopped.value, decision: { ...decision, reason: "A human can merge this reviewed change now." } });
-			const repaired = yield* afterRestart(
-				Fleet.pipe(Effect.flatMap((current) => current.resolve("one", decision.id, respond(decision.id, "retry")))),
-			);
+			const repaired = yield* afterRestart((current) => current.resolve("one", decision.id, respond(decision.id, "retry")));
 			expect(repaired.value.step).toBe("repairing");
 			expect(repaired.value.prompt).toContain("Requested changes to the existing PR:");
 			expect(repaired.value.result).toEqual(stopped.value.result);
@@ -49,11 +46,9 @@ describe("stable decision codes", () => {
 			expect(decision.code).toBe("foreign-pr");
 			const reworded = { ...decision, reason: "This pull request belongs to another repository." };
 			yield* replaceStoredRecord({ ...stopped.value, decision: reworded });
-			const resumed = yield* afterRestart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
+			const resumed = yield* afterRestart((current) => current.reconcile("one"));
 			expect(resumed.value.decision).toEqual(reworded);
-			const failure = yield* afterRestart(
-				refusal(Fleet.pipe(Effect.flatMap((current) => current.resolve("one", decision.id, respond(decision.id, "retry"))))),
-			);
+			const failure = yield* afterRestart((current) => refusal(current.resolve("one", decision.id, respond(decision.id, "retry"))));
 			expect(failure).toBe("bad request: This decision only permits release; choose release to stop and hand back");
 		},
 	);

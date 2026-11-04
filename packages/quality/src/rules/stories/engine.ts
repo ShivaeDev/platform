@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
+import { engineEscapes } from "#adapters/engineEscapes.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
@@ -40,18 +41,33 @@ export const storyEngine = defineRule({
 			if (source === undefined) {
 				return [];
 			}
-			const stories = nodesWhere(
-				source,
-				(node) => ts.isCallExpression(node) && origins.origin(node.expression) === "story" && ignoresEngine(node, origins.checker),
+			const stories = nodesWhere(source, (node) => ts.isCallExpression(node) && origins.origin(node.expression) === "story").filter(
+				ts.isCallExpression,
 			);
-			return stories.map((story) => ({
-				file: file.path,
-				line: source.getLineAndCharacterOfPosition(story.getStart(source)).line + 1,
-				message: `Declares a story without traits whose body never references its verbs, its story or its test context. Drive the engine through one of the kit's verbs or traits. If the code under test is pure, move the test to ${name.stem}.unit.${name.kind}${name.extension}, which reaches no engine and mocks nothing. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.`,
-			}));
+			return stories.flatMap((story) => {
+				const body = story.arguments[2];
+				const checked = body === undefined ? { drivesSubject: false, escapes: [] } : engineEscapes(body, origins.checker, file.path);
+				if (checked.escapes.length > 0) {
+					return checked.escapes.map(({ node, reason }) => ({
+						file: file.path,
+						line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+						message: `${reason} in a spec body. Move engine access and wiring into the story kit's verbs or traits in test-support/. Keep expectations in the spec. Constructor tests may call the constructor in their colocated module; native SQL transaction blocks may wrap kit verbs. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.`,
+					}));
+				}
+				if (checked.drivesSubject || !ignoresEngine(story, origins.checker)) {
+					return [];
+				}
+				return [
+					{
+						file: file.path,
+						line: source.getLineAndCharacterOfPosition(story.getStart(source)).line + 1,
+						message: `Declares a story without traits whose body never references its verbs, its story or its test context. Drive the engine through one of the kit's verbs or traits. If the code under test is pure, move the test to ${name.stem}.unit.${name.kind}${name.extension}, which reaches no engine and mocks nothing. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.`,
+					},
+				];
+			});
 		});
 	}),
 	description:
-		"A story without traits references its kit's verbs, its story or its test context; pure tests belong in .unit files that reach no engine and mock nothing.",
+		"Story bodies use their kit instead of raw services, story.engine or production wiring; constructor subjects and native transaction blocks remain explicit.",
 	id: "tests/story-engine",
 });
