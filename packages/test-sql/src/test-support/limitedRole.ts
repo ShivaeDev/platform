@@ -7,7 +7,7 @@ export const limitedRole = Effect.fn("ConnectionBudget.limitedRole")(function* (
 	const admin = yield* SqlClient.SqlClient;
 	const role = `budget_${yield* databaseId}`;
 	yield* Effect.acquireRelease(
-		admin`create role ${admin(role)} login createdb connection limit ${admin.literal(String(limit))} password 'budget-test'`,
+		admin`create role ${admin(role)} login createdb in role pg_signal_backend connection limit ${admin.literal(String(limit))} password 'budget-test'`,
 		() => Effect.orDie(admin`drop role ${admin(role)}`),
 	);
 	const url = new URL(Redacted.value(adminUrl));
