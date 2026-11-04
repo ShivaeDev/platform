@@ -52,6 +52,11 @@ export const loadConfig = Effect.fn("Changesets.loadConfig")(function* (root: st
 	) {
 		return yield* new ChangesetError({ message: ".changeset/changesets.config.ts: packages must be directory paths or parent/* patterns." });
 	}
+	if (module.default.versionFloors !== undefined && !Schema.is(Schema.Record(Schema.String, Schema.String))(module.default.versionFloors)) {
+		return yield* new ChangesetError({
+			message: ".changeset/changesets.config.ts: versionFloors must map package names to stable major.minor.patch versions.",
+		});
+	}
 	return module.default;
 });
 const directories = Effect.fn("Changesets.directories")(function* (root: string, pattern: string) {

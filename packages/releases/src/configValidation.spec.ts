@@ -4,6 +4,11 @@ import { changeset, configured, directoryInstructions, extraModule, renamed } fr
 import { workspace } from "#test/workspace.ts";
 
 for (const { config, description, refusal } of [
+	{
+		config: '{ versionFloors: { "@test/core": 47 } }',
+		description: "uses a numeric version floor",
+		refusal: ".changeset/changesets.config.ts: versionFloors must map package names to stable major.minor.patch versions.",
+	},
 	{ config: "null", description: "exports null", refusal: ".changeset/changesets.config.ts: export a config object with defineConfig." },
 	{
 		config: '{ packages: "packages/*" }',

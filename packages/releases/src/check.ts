@@ -33,7 +33,7 @@ const parseDeclarations = Effect.fn("Changesets.parseDeclarations")(function* (b
 	);
 });
 
-export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Workspace, after: Workspace) {
+export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Workspace, after: Workspace, config: ChangesetConfig = {}) {
 	const declarations = yield* parseDeclarations(before, after);
 	const packages = after.packages.map((pkg) => ({
 		...pkg,
@@ -43,12 +43,13 @@ export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Work
 		packages,
 		before.changesets.filter((source) => !after.changesets.some((pending) => pending.name === source.name)),
 		before.packages,
+		config,
 	);
 });
 
-export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (before: Workspace, after: Workspace) {
+export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (before: Workspace, after: Workspace, config: ChangesetConfig = {}) {
 	yield* checkPackageFiles(after.packages);
-	const plan = yield* planDiff(before, after);
+	const plan = yield* planDiff(before, after, config);
 	const declarations = yield* parseDeclarations(before, after);
 	for (const old of before.packages) {
 		const replacement = after.packages.find((pkg) => pkg.directory === old.directory);
@@ -95,8 +96,8 @@ export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (befo
 
 export const checkRepository = Effect.fn("Changesets.checkRepository")(function* (root: string, config: ChangesetConfig = {}, reference?: string) {
 	const after = yield* readWorkspace(root, config);
-	yield* computePlan(after.packages, after.changesets);
+	yield* computePlan(after.packages, after.changesets, [], config);
 	const before = yield* readHistory(root, config, reference);
-	yield* validateDiff(before, after);
-	yield* checkReleaseCoverage(root, yield* planDiff(before, after), after.changesets, reference);
+	yield* validateDiff(before, after, config);
+	yield* checkReleaseCoverage(root, yield* planDiff(before, after, config), after.changesets, reference);
 });

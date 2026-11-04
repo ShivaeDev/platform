@@ -10,6 +10,7 @@ export type ReleaseHook = (context: HookContext) => Effect.Effect<void, Changese
 export interface ChangesetConfig {
 	readonly hooks?: readonly ReleaseHook[];
 	readonly packages?: readonly string[];
+	readonly versionFloors?: Readonly<Record<string, string>>;
 }
 export function defineConfig(config: ChangesetConfig): ChangesetConfig {
 	return config;
