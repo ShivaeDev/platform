@@ -48,7 +48,7 @@ function mount(member: MemberScreen, pending: Set<string>) {
 }
 
 export const sharedLists = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const baseUrl = yield* sharedListHost;
 		const pending = new Set<string>();

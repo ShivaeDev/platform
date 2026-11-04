@@ -12,7 +12,7 @@ import { readPageHost } from "./readPageHost.ts";
 expectNoReactWarnings();
 
 export const activityPage = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* readPageHost;

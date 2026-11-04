@@ -416,7 +416,7 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
+`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. HTTP stories use the kit’s controlled clock and wait for request or response signals; the same clock controls the fake’s reply time.
 
 Use the controls through kit verbs after acquiring the service. `scriptFault(route, { kind: "status", reply })` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
@@ -817,7 +817,7 @@ When traits choose an empty or migrated starting database, use test-sql's [`stor
 
 For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/test-sql/server/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/test-sql/README.md) for template preparation and both wrappers.
 
-React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events; the screen driver's `settle()` waits on the application's pending signal and flushes React before readouts. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
+React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events; the screen driver's `settle()` waits on the application's pending signal and flushes React before readouts. Keep the kit’s controlled clock for HTTP and DOM stories too; advance timers through verbs and observe completion signals. `runUntil` is for engines with a meaningful step hook. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
 
 For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. An `inspect` hook may read engine state through an Effect or generator, using the kit’s layer before the story’s Scope closes.
 
@@ -848,7 +848,7 @@ import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 
 const cookieApp = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const { baseUrl } = yield* startHost();
 		const fetch = domFetch(baseUrl);

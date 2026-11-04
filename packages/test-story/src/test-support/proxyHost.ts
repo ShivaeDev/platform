@@ -49,7 +49,7 @@ function hostRequest(engine: Proxy): HostRequest {
 }
 
 export const proxyHost = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const scope = yield* Scope.Scope;
 		const hostScope = yield* Scope.fork(scope);

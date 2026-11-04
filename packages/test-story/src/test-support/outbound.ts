@@ -81,7 +81,7 @@ export const outboundKit = storyKit({
 		built: () => notesRouting("after hook"),
 	},
 	around: (effect) => notesRouting("around").pipe(Effect.andThen(effect)),
-	clock: "live",
+	clock: "test",
 	*create() {
 		yield* notesRouting("create");
 		yield* Effect.addFinalizer(() => notesRouting("create finalizer"));
