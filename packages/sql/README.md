@@ -69,7 +69,7 @@ const backend = Effect.gen(function* () {
 }).pipe(Effect.scoped, Effect.provide(database));
 ```
 
-The Layer owns the pool and waits for every socket to close during shutdown. A reserved connection sees committed writes from client transactions in the same database; it does not implicitly join a client's open transaction. `appDatabase` from `@shivaedev/server/appDatabase.ts` and database-backed `appHost` from `@shivaedev/server/appHost.ts` compose this Layer and expose the pool to application services.
+The Layer owns the pool and waits for every socket to close during shutdown. A reserved connection sees committed writes from client transactions in the same database; it does not implicitly join a client's open transaction. `appDatabase` from `@shivaedev/server/appDatabase.ts` and database-backed `appHost` from `@shivaedev/server/appDatabase.ts` compose this Layer and expose the pool to application services.
 
 ### SQL names: configure the client once
 
@@ -87,7 +87,7 @@ const database = PgClient.layer(
 
 `clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
 
-To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appHost.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
+To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appDatabase.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
 ### Grouped values in flat columns
 
@@ -246,6 +246,18 @@ const listInvoiceLines = (name: string | undefined) =>
 		});
 	});
 ```
+
+For a filtered single-row read, use `findOne`:
+
+```ts
+const found = yield* lines.findOne({
+	where: { amount: 52, note: null },
+	select: ["name", "amount"],
+	orderBy: { field: "name", direction: "asc" },
+});
+```
+
+It returns `Option.some` of the selected decoded fields, or `Option.none` when no row matches. It accepts the same filters, projections and ordering as `findMany`, with a fixed SQL limit of one. Supply ordering when several rows can match and the choice matters. SQL and schema failures remain in the error channel.
 
 Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
 
@@ -444,7 +456,19 @@ const ingest = Effect.gen(function* () {
 });
 ```
 
-The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures. Writes announce a composite row as the table name, a colon and a JSON array of the returned key values in `idColumn` order, such as `readings:["meter","1"]`; a PostgreSQL `bigint` key value appears as its decimal string. Build matching subscription ids with `compositeId` from `@shivaedev/changes/keys.ts`, using stored values in that same column order: `collection("readings", Schema.String).item(compositeId(["meter", "1"]))`. Manual invalidations use the same id: `invalidateOnCommit({ readings: [compositeId(["meter", "1"])] })`.
+The application creates `readings` with `PRIMARY KEY (source, sequence)`; `sequence` and `amount` are text columns for these codecs. Composite keys contain at least two model fields. `findById` and `delete` take an object containing every key field and encode each through its field schema. `update` and `updateVoid` use the full key from the model's update input and leave the key columns unchanged. Missing key fields fail with `SchemaError` before SQL runs. A scalar `idColumn` keeps native CRUD signatures. Writes announce a composite row as the table name, a colon and a JSON array of the returned key values in `idColumn` order, such as `readings:["meter","1"]`; a PostgreSQL `bigint` key value appears as its decimal string. Use `compositeRecordKey` to derive a matching subscription key from a decoded row:
+
+```ts
+import { compositeRecordKey } from "@shivaedev/sql/compositeRecordKey.ts";
+
+const key = yield* compositeRecordKey(
+	Reading,
+	{ tableName: "readings", idColumn: ["source", "sequence"] },
+	{ source: "meter", sequence: 1 },
+);
+```
+
+Pass `[key]` to native Reactivity subscriptions or `invalidateOnCommit`. The helper encodes only the named key fields through the model's select schemas, in `idColumn` order, so decoded `NumberFromString` fields and bigint ids match the writer's stored key values. Codec encoding services remain in the Effect environment, and encoding failures are typed `SchemaError`. It also unwraps native PostgreSQL parameters such as `int8`. The low-level `compositeId` from `@shivaedev/changes/keys.ts` continues to accept stored values in that same column order.
 
 `conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds these methods:
 
@@ -892,6 +916,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/keysetPage.ts`: `keysetPage(options)`, `KeysetOrder`, `KeysetPageQuery`, `KeysetPage` — Native seek and order fragments with a required unique tie-breaker, validated page size and one-row lookahead; predicates, result schemas and cursor formats stay with the caller.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
+- `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/reconciler",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Change-driven background reconciliation with scoped supervision for Effect applications",
 	"keywords": [
 		"effect"

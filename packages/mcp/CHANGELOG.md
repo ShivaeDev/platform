@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.8.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.24.0 to 0.25.0.
+
 ## 0.8.0 - 2026-11-04
 
 ### Breaking

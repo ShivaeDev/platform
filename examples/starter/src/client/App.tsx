@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import { useCallback } from "react";
 import { useBrowserErrors } from "@shivaedev/react/client/adapters/useBrowserErrors.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Auth } from "./auth.ts";
@@ -20,9 +19,7 @@ export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect
 
 function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
 	const session = useQuery(auth.session.atom);
-	const recheck = useCallback(() => {
-		session.refresh();
-	}, [session.refresh]);
+	const current = Option.getOrNull(session.data);
 	if (Option.isNone(session.data) && session.pending) {
 		return (
 			<p className="p-8" role="status">
@@ -30,7 +27,7 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			</p>
 		);
 	}
-	if (Option.isSome(session.cause)) {
+	if (current === null && Option.isSome(session.cause)) {
 		return (
 			<main className="space-y-4 p-8">
 				<p role="alert">Could not check your session.</p>
@@ -40,6 +37,15 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			</main>
 		);
 	}
-	const current = Option.getOrNull(session.data);
-	return <SessionApp auth={auth.actions} connect={connect} history={history} recheck={recheck} session={current} userId={current?.user.id} />;
+	return (
+		<SessionApp
+			auth={auth.actions}
+			connect={connect}
+			history={history}
+			recheck={session.refresh}
+			session={current}
+			sessionCheck={auth.session.refresh}
+			userId={current?.user.id}
+		/>
+	);
 }

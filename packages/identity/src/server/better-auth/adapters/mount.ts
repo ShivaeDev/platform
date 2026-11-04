@@ -34,6 +34,7 @@ import { authRouteHandler } from "./routeHandler.ts";
 export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly accountPreferences?: boolean;
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
+	readonly clientIp?: "railway";
 	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
 	readonly emails?: BetterAuthEmails<R> | undefined;
 	readonly enabledPaths?: readonly string[];
@@ -53,7 +54,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	if (mount.roles !== undefined) {
 		yield* mount.roles.resolve(mount.defaultRole).pipe(Effect.mapError(() => new UndeclaredDefaultRole({ role: mount.defaultRole })));
 	}
-	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options);
+	const { authOptions, clientIpHeader, rateLimitEnabled, trustedProxy } = yield* mountSettings(options, mount.clientIp);
 	const policy = mount.signIn ?? {};
 	if (policy.accounts !== undefined) {
 		yield* policy.accounts;

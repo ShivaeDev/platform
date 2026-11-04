@@ -18,7 +18,9 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
-  "@modelcontextprotocol/sdk": 1.30.0
+  "@anthropic-ai/claude-agent-sdk": 0.3.225
+  "@earendil-works/pi-coding-agent": 0.84.4
+  "@modelcontextprotocol/sdk": 1.32.0
   "@zip.js/zip.js": 2.24.0
   resend: 6.35.0
   playwright: 1.64.1
@@ -40,12 +42,12 @@ catalog:
   class-variance-authority: 0.7.1
   lucide-react: 1.62.0
   "@biomejs/biome": 2.6.3
-  "@effect/vitest": 4.0.6
-  "@effect/atom-react": 4.0.6
-  "@effect/platform-node": 4.0.6
-  "@effect/platform-node-shared": 4.0.6
-  "@effect/sql-sqlite-node": 4.0.6
-  "@effect/sql-pg": 4.0.6
+  "@effect/vitest": 4.0.7
+  "@effect/atom-react": 4.0.7
+  "@effect/platform-node": 4.0.7
+  "@effect/platform-node-shared": 4.0.7
+  "@effect/sql-sqlite-node": 4.0.7
+  "@effect/sql-pg": 4.0.7
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   react: 19.3.1
@@ -68,12 +70,12 @@ catalog:
   "@types/mdast": 4.0.4
   "@types/node": 24.19.2
   "@typescript/native": npm:typescript@7.0.2
-  effect: 4.0.6
+  effect: 4.0.7
   esbuild: 0.28.2
   "@better-auth/oauth-provider": 1.7.14
   better-auth: 1.7.14
   pg-boss: 12.38.0
-  satteri: 0.11.1
+  satteri: 0.11.5
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
@@ -81,6 +83,8 @@ catalog:
   "@vitest/coverage-v8": 5.0.5
 
 catalogs:
+  claude-code:
+    "@modelcontextprotocol/sdk": 1.30.0
   compiler-api:
     typescript: npm:@typescript/typescript6@6.0.2
 
@@ -88,6 +92,8 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
+  # Renovate security update: @modelcontextprotocol/sdk@1.32.0
+  - "@modelcontextprotocol/sdk@1.32.0"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
@@ -101,6 +107,8 @@ trustLockfile: true
 blockExoticSubdeps: true
 strictDepBuilds: true
 allowBuilds:
+  "@google/genai": false
+  protobufjs: false
   esbuild: true
   msgpackr-extract: false
 patchedDependencies:

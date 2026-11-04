@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.47.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.47.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/form` from 0.16.0 to 0.17.0.
+- Update `@shivaedev/identity` from 0.24.0 to 0.25.0.
+- Update `@shivaedev/react` from 0.40.0 to 0.41.0.
+- Update `@shivaedev/server` from 0.24.0 to 0.24.1.
+
 ## 0.47.0 - 2026-11-04
 
 ### Breaking

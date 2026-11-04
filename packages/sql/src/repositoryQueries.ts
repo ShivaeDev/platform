@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Array as Arr, Effect, type Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
@@ -9,7 +9,7 @@ import type { Aggregate } from "#aggregateQuery.ts";
 import { latestPerGroup as makeLatestPerGroup } from "#latestPerGroup.ts";
 import { makeAggregate } from "#makeAggregate.ts";
 import { makeQueryClauses } from "#makeQueryClauses.ts";
-import type { FindMany, LatestPerGroup } from "#repository.ts";
+import type { FindMany, FindOne, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 
@@ -32,6 +32,13 @@ export interface Queries<TModel extends Model.Any> {
 		query?: FindMany<TModel, TKey>,
 	) => Effect.Effect<
 		Pick<Row<TModel>, TKey>[],
+		SqlError | Schema.SchemaError,
+		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
+	>;
+	findOne: <TKey extends Key<TModel> = Key<TModel>>(
+		query?: FindOne<TModel, TKey>,
+	) => Effect.Effect<
+		Option.Option<Pick<Row<TModel>, TKey>>,
 		SqlError | Schema.SchemaError,
 		TModel["fields"][Key<TModel>]["EncodingServices"] | TModel["fields"][TKey]["DecodingServices"]
 	>;
@@ -108,6 +115,8 @@ export function makeQueries<TModel extends Model.Any>(
 				return yield* readLatest(query, order, rowLimit);
 			}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
 		}
-		return { aggregate, count, findMany, latestPerGroup, select };
+		const findOne: Queries<TModel>["findOne"] = (query = {}) =>
+			findMany({ ...query, limit: 1 }).pipe(Effect.map(Arr.head), Effect.withSpan(`${options.spanPrefix}.findOne`));
+		return { aggregate, count, findMany, findOne, latestPerGroup, select };
 	})();
 }

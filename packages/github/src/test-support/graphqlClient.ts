@@ -13,6 +13,9 @@ import { answered } from "./outcome.ts";
 type Base = "" | "/" | "/api/v3" | "/api/v3/";
 class Prefix extends Context.Service<Prefix, string>()("@shivaedev/github/test/GraphQLPrefix") {}
 const Viewer = Schema.Struct({ viewer: Schema.Struct({ name: Schema.String }).pipe(Schema.encodeKeys({ name: "login" })) });
+const Nodes = Schema.Struct({
+	nodes: Schema.Array(Schema.NullOr(Schema.Struct({ name: Schema.String }).pipe(Schema.encodeKeys({ name: "login" })))),
+});
 const Prefixed = Viewer.pipe(
 	Schema.decodeTo(Schema.String, {
 		decode: SchemaGetter.transformEffect((data: typeof Viewer.Type) => Effect.map(Prefix, (prefix) => prefix + data.viewer.name)),
@@ -47,6 +50,12 @@ export const graphqlClient = storyKit({
 		root.server.narrate(story.tell);
 		enterprise.server.narrate(story.tell);
 		return {
+			askNodes: () => {
+				story.tell("the client queries a batch of user nodes");
+				return graphql("query Nodes($ids: [ID!]!) { nodes(ids: $ids) { ... on User { login } } }", { ids: ["user-1", "user-2"] }, Nodes).pipe(
+					Effect.provide(contexts[""]),
+				);
+			},
 			askViewer: (base: Base = "", responseByteLimit?: number) => {
 				story.tell(`the client at ${base || "the origin"} queries the viewer`);
 				return answered(

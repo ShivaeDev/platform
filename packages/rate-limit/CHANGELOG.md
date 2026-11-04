@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.5.0 - 2026-11-04
+
+### Added
+
+- The PostgreSQL story fixture exposes `elapseWindows(duration)` to age stored reservations without waiting on wall time.
+
 ## 0.4.0 - 2026-11-04
 
 ### Breaking

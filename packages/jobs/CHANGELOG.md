@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.36.0 - 2026-11-04
+
+### Added
+
+- Advance inspection change revisions immediately after local deferral settlement, before workers continue their batch.
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+### Breaking
+
+- Move `makePgBossTesting`, `testRetryPolicy`, `linkedWorkerSpans` and their types from `@shivaedev/jobs/server/testing.ts` to `@shivaedev/test-kits/jobs/testing.ts`. Import `PgBossTestingError` and `PgBossWaitError` from `@shivaedev/test-kits/jobs/error.ts` instead of jobs’ error module. Add test-kits as a development dependency; jobs no longer exports testing infrastructure.
+
+## 0.35.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+
 ## 0.35.0 - 2026-11-04
 
 ### Breaking

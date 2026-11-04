@@ -2,10 +2,10 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
+import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
 import { NoticeContext } from "#internal/NoticeContext.ts";
 import { publishNotice } from "#internal/noticeStore.ts";
-import { requestsRecheck } from "#internal/sessionRecheck.ts";
 import type { NoticeFeedback } from "#notices.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
 
@@ -33,7 +33,7 @@ export function useActionSource<TInput, A, E, R, TRuntimeError>(
 		const lifetime = { active: false, registry };
 		function rejected(error: E, input: TInput) {
 			return Effect.gen(function* () {
-				if (lifetime.active && requestsRecheck(error)) {
+				if (lifetime.active && isUnauthorized(error)) {
 					yield* Effect.sync(() => latestRef.current.recheck());
 				}
 				yield* Effect.sync(() => {

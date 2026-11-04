@@ -1,0 +1,27 @@
+import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
+import type { WorkerJob } from "@shivaedev/jobs/server/job.ts";
+import { quotedSchema } from "./quotedSchema.ts";
+
+export async function expireAttempt(
+	client: EngineClient,
+	schema: string,
+	job: Pick<WorkerJob<unknown>, "name" | "id" | "retryCount">,
+	cause: "expiry" | "heartbeat" = "expiry",
+): Promise<void> {
+	if ((await client.schemaVersion()) !== 46) {
+		throw new Error("Testing expiry requires pg-boss schema version 46");
+	}
+	const quoted = quotedSchema(schema);
+	const timestamp = cause === "expiry" ? "started_on" : "heartbeat_on";
+	const seconds = cause === "expiry" ? "expire_seconds" : "heartbeat_seconds";
+	await client.getDb().executeSql(
+		`UPDATE ${quoted}.job SET ${timestamp} = ${quoted}.job_now() - (${seconds} + 1) * interval '1 second'
+		WHERE name = $1 AND id = $2 AND retry_count = $3 AND state = 'active'`,
+		[job.name, job.id, job.retryCount],
+	);
+	// Supervision owns expiry and dead lettering; make its claim due with the job's deadline.
+	await client
+		.getDb()
+		.executeSql(`UPDATE ${quoted}.queue SET monitor_claim_on = ${quoted}.job_now() - interval '1 week' WHERE name = $1`, [job.name]);
+	await client.supervise(job.name);
+}

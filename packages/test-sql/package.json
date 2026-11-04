@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-sql",
-	"version": "0.20.0",
+	"version": "0.21.1",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"keywords": [
 		"effect"
@@ -58,6 +58,7 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",

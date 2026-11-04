@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Redacted, Tracer } from "effect";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { linkedWorkerSpans, makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { linkedWorkerSpans, makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";

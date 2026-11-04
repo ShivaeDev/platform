@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.26.0 - 2026-11-04
+
+### Added
+
+- `betterAuthMount` accepts `{ clientIp: "railway" }` to select `X-Real-IP` for session addresses and auth rate limiting, ignoring `X-Forwarded-For` and overriding `AUTH_CLIENT_IP_HEADER`. Forwarded addresses still require a peer allowed by `TRUSTED_PROXY`; otherwise, or without `X-Real-IP`, the connection address is used.
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.25.0 - 2026-11-04
+
+### Added
+
+- Auth emails accept per-kind `windows` overrides, falling back to the existing `window` and its one-minute default.
+- Declare local demo personas with `defineSeed`: find or create password users, assign their application roles and run an Effect as each user. Non-local database URLs are refused before connecting.
+- Provision password users through `UserProvisioning` and `betterAuthUserProvisioning`, reusing accounts by email without replacing their profile or password.
+- Compose domain-owned user data export registrations into one typed account export. Check PostgreSQL foreign keys before exporting and report user-referencing tables that have no registration.
+- Register Better Auth profile, linked-account and session data for export without passwords or authentication tokens.
+
+### Fixed
+
+- Preserve Better Auth email continuations in the app link's `callbackURL`, accepting only continuations on the configured app route's origin.
+- Expire auth test sessions relative to the Effect clock so controlled-clock stories agree with session sweeps and the auth provider.
+- Enable native Better Auth database joins by default so interrupted session lookups release PostgreSQL queries without fallback join console errors or account ids. Explicit `advanced.database.joins` options still take precedence.
+
 ## 0.24.0 - 2026-11-04
 
 ### Added

@@ -144,3 +144,9 @@ export function malformedSession() {
 		openApp(engine, "/", { baseUrl: "http://malformed.story.test", malformedSession: true, signedIn: true }),
 	);
 }
+
+export function signedInApp() {
+	return screens.trait("screen", "alice's signed-in session opens the real app", (engine) =>
+		openApp(engine, "/", { baseUrl: "http://retained.story.test", signedIn: true }),
+	);
+}

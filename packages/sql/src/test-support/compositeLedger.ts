@@ -1,11 +1,12 @@
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import { int8 } from "#int8.ts";
 import { makeRepository } from "#repository.ts";
 export class LedgerEntry extends Model.Class<LedgerEntry>("LedgerEntry")({
 	account: Schema.String,
 	amount: Schema.String,
-	sequence: Schema.BigInt,
+	sequence: int8(Schema.BigInt),
 }) {}
 export const compositeLedger = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

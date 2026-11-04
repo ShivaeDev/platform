@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.3.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+
 ## 0.3.0 - 2026-11-04
 
 ### Breaking

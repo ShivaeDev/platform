@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.21.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.21.0 - 2026-11-04
+
+### Added
+
+- Wait for a named advisory lock held by another process with `waitForHeldLock`, or sessions blocked behind a backend with `waitForBlockedSessions`, using bounded PostgreSQL catalog observations.
+
 ## 0.20.0 - 2026-11-04
 
 ### Breaking

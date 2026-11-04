@@ -1,11 +1,9 @@
-import type { Effect, Layer } from "effect";
+import type { Effect } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
-import type { HostRouteRequirements } from "#hostOptions.ts";
-
-export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
-	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }
-	| ([TServices | TError | TRequirements] extends [never] ? { readonly preflight?: never } : never);
+import type { AppDatabaseOptions } from "#appDatabase.ts";
+import type { AppHttpHostOptions } from "#appHost.ts";
+import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
+import type { HostPreflight } from "#hostPreflight.ts";
 
 export type AppHostInput<
 	TRpcs extends Rpc.Any,
@@ -93,3 +91,51 @@ export type AppHostInput<
 				TRouteRequirements
 		  >
 	);
+
+export type AppHostOptions<
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
+> = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
+	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostRoutes<TRouteError, TRouteRequirements> &
+	HostPolicy & {
+		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
+		readonly config?: AppDatabaseOptions["config"];
+		readonly policy?: undefined;
+	};
+
+export type AppLocalHostOptions<
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
+> = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
+	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostRoutes<TRouteError, TRouteRequirements> & {
+		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
+		readonly config?: AppDatabaseOptions["config"];
+		readonly policy: "loopback";
+		readonly sessions?: never;
+	};

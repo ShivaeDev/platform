@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.40.1 - 2026-11-04
+
+### Changed
+
+- Generated apps pin the Effect stack to 4.0.7. Install the 4.0.7 Effect stack together.
+
+## 0.40.0 - 2026-11-04
+
+### Added
+
+- Generated apps include `pnpm db:seed` with a declaration for local owner and user demo personas.
+
+### Fixed
+
+- Generated starter deployment stories wait for blocked PostgreSQL sessions through test-sql's catalog observations.
+- The starter retains its signed-in screen when session checks cannot reach the server and unmounts signed-in routes during sign-out.
+
 ## 0.39.0 - 2026-11-04
 
 ### Breaking

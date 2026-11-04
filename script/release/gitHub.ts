@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { graphql } from "@shivaedev/github/graphql.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { write } from "@shivaedev/github/write.ts";
@@ -50,8 +51,11 @@ export function releaseGitHub(repository: string) {
 				? write("POST", pulls, { base: "main", body, head: "release/next", title }, Pull)
 				: write("PATCH", `${pulls}/${number}`, { body, title }, Pull),
 		snapshot: Effect.fn("ReleaseGitHub.snapshot")(function* () {
-			const result = yield* graphql(QUERY, { name, owner }, Snapshot);
-			const current = result.repository;
+			const result = yield* graphql(QUERY, { name, owner }, Schema.Unknown);
+			if (result.errors.length > 0) {
+				return yield* new GitHubGraphqlError({ errors: result.errors });
+			}
+			const { repository: current } = yield* Schema.decodeUnknownEffect(Snapshot)(result.data);
 			const pull = current.pullRequests.nodes.find((candidate) => !candidate.isCrossRepository);
 			let run: ReleaseCiRun | undefined;
 			if (pull !== undefined && pull.mergeQueueEntry === null) {

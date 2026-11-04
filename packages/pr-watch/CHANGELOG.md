@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.10.0 - 2026-11-04
+
+### Breaking
+
+- `optionsFor` returns a synchronous Effect `Result`. Use Result combinators for synchronous argument handling or wrap the return value with `Effect.fromResult` before yielding or entering an Effect pipeline.
+
 ## 0.9.0 - 2026-11-04
 
 ### Changed

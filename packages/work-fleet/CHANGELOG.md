@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.35.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.35.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/pr-watch` from 0.9.0 to 0.10.0.
+- Update `@shivaedev/server` from 0.24.0 to 0.24.1.
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+- Update `@shivaedev/work-board` from 0.47.0 to 0.47.1.
+
 ## 0.35.0 - 2026-11-04
 
 ### Breaking

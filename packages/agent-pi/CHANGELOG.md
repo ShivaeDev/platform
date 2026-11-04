@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.3.0 - 2026-11-04
+
+### Added
+
+- Run embedded Pi sessions through the shared agent port, with preflight acceptance, file-backed resume, credential-aware models, distinct follow-up and steering delivery, scoped abort and disposal, and provider event conversion. Keep retrying runs open and preserve unmapped events as raw payloads. The Pi coding-agent SDK is an optional peer; image input and transcript reads remain unsupported.
+
 ## 0.2.0 - 2026-11-04
 
 ### Breaking

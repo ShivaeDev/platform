@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.14.0 - 2026-11-04
+
+### Breaking
+
+- `assertLocalDatabase` and `clientConnection` return synchronous Effect `Result` values. Use Result combinators for synchronous handling or wrap their return values with `Effect.fromResult` before yielding or entering an Effect pipeline. Validation and password decoding keep their typed errors.
+
 ## 0.13.0 - 2026-11-04
 
 ### Breaking

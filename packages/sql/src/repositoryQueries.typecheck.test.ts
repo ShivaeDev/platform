@@ -1,4 +1,4 @@
-import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { Context, Effect, type Option, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
@@ -15,6 +15,18 @@ class Row extends Model.Class<Row>("WindowRow")({ id: Schema.Number, name: Name,
 
 const program = Effect.gen(function* () {
 	const rows = yield* makeRepository(Row, { idColumn: "id", spanPrefix: "Row", tableName: "rows" });
+	const found = rows.findOne({ select: ["value"], where: { name: "A", value: { gt: 1 } } });
+	expectTypeOf<Effect.Success<typeof found>>().toEqualTypeOf<Option.Option<{ readonly value: number }>>();
+	expectTypeOf<Effect.Error<typeof found>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+	expectTypeOf<Effect.Services<typeof found>>().toEqualTypeOf<Codec>();
+	const full = rows.findOne({ where: { id: 1 } });
+	expectTypeOf<Effect.Success<typeof full>>().toEqualTypeOf<Option.Option<{ readonly id: number; readonly name: string; readonly value: number }>>();
+	// @ts-expect-error A single row query has no caller-supplied limit.
+	rows.findOne({ limit: 2 });
+	// @ts-expect-error Filters use decoded values.
+	rows.findOne({ where: { value: "1" } });
+	// @ts-expect-error Selections name model fields.
+	rows.findOne({ select: ["missing"] });
 	const orderBy = [
 		{ direction: "desc", field: "value" },
 		{ direction: "asc", field: "id" },
@@ -40,6 +52,6 @@ const program = Effect.gen(function* () {
 	rows.latestPerGroup({ orderBy, partitionBy: ["name"] });
 });
 
-it("latestPerGroup retains model types, codecs and existing ordering", () => {
+it("findOne and latestPerGroup retain model types, codecs and existing ordering", () => {
 	expectTypeOf(program).toBeObject();
 });

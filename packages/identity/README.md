@@ -184,6 +184,8 @@ const authentication = Effect.gen(function* () {
 
 `betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. The mount does not run migrations or require identity's migration history. Use frozen numbered auth migrations as described below, or keep an existing migrator during the transition described in [Auth tables owned by another migrator](#auth-tables-owned-by-another-migrator). The application SQL Layer owns shutdown.
 
+`betterAuthMount` enables Better Auth's native database joins by default. Session lookups through the Effect provider and mounted HTTP routes cancel their PostgreSQL queries quietly when interrupted, including when the user table is locked. This avoids Better Auth's fallback join error output and account ids in the console. An explicit `advanced.database.joins` option overrides the default.
+
 The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
 
 ```ts
@@ -225,6 +227,12 @@ Missing, empty, non-string, overlong and incorrect passwords are refused with HT
 Password resets revoke existing sessions by default. Set `emailAndPassword.revokeSessionsOnPasswordReset: false` in the Better Auth options to retain them explicitly. These defaults sit alongside the mount's rate limiting; application plugins and the provider's email-change settings remain in effect.
 
 `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. Without a trusted proxy, auth rate limiting uses the connection peer address, so different peers have separate buckets and Better Auth receives a client IP without a missing-IP warning. A trusted peer's configured forwarded header takes precedence over the peer address.
+
+On Railway, pass `{ clientIp: "railway" }` as the second argument to `betterAuthMount` and set `TRUSTED_PROXY=100.64.0.0/10`. The preset selects Railway's edge-written `X-Real-IP` for session addresses and auth rate limiting, ignoring client-sent `X-Forwarded-For` even when `AUTH_CLIENT_IP_HEADER` selects that header. Proxy trust still applies: an untrusted peer or a trusted peer without `X-Real-IP` uses its connection address.
+
+```ts
+const mounted = yield* betterAuthMount(authOptions, { clientIp: "railway" });
+```
 
 The auth HTTP server span records the resolved rate-limit address in `auth.rate_limit.address` and its source in `auth.rate_limit.address_source`: `forwarded` for the trusted proxy's configured header, or `peer` for the connection address. These attributes accompany counted sign-in attempts and HTTP 429 refusals, so operators can inspect the choice directly. The recorded address follows Better Auth's normalization, including IPv6 subnet grouping; a trusted peer without a forwarded header records `peer`.
 

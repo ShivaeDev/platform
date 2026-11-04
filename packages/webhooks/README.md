@@ -35,7 +35,7 @@ import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { githubSource } from "@shivaedev/webhooks/server/github.ts";
 import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
 import { webhookRoute } from "@shivaedev/webhooks/server/route.ts";

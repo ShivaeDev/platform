@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.41.1 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
+## 0.41.0 - 2026-11-04
+
+### Added
+
+- Add `useUndoableChange` for versioned commands: capture an inverse payload, guard Undo with the returned version, keep the latest removal notice across reordered replies, preserve typed results and hold deployment updates while writes are pending.
+- `SessionBoundary` accepts a session-check Effect, retries failed checks with exponential backoff, and retries immediately on online or foreground events. Its optional `signOut` atom holds the signed-in tree until the auth owner reports signed out.
+
+### Fixed
+
+- Socket transport failures no longer request a session check; typed authentication refusals still do.
+
 ## 0.40.0 - 2026-11-04
 
 ### Added
