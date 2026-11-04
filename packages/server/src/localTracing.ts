@@ -4,7 +4,6 @@ import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { type LocalTraceEvent, type LocalTraceRow, localTraceRow } from "#localTraceRow.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
-import { redactingTracer } from "#redactingTracer.ts";
 
 export interface LocalTracingOptions {
 	readonly flushInterval?: number;
@@ -56,10 +55,7 @@ export function localTracing({
 					return span;
 				},
 			});
-			return redactingDiagnostics(policy).pipe(
-				Layer.provideMerge(traceDiagnostics),
-				Layer.provideMerge(redactingTracer(policy).pipe(Layer.provideMerge(Layer.succeed(Tracer.Tracer, tracer)))),
-			);
+			return redactingDiagnostics(policy).pipe(Layer.provideMerge(traceDiagnostics), Layer.provideMerge(Layer.succeed(Tracer.Tracer, tracer)));
 		}),
 	);
 }

@@ -2,12 +2,19 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { ConfigProvider, Effect, Exit, Layer, Scope, Tracer } from "effect";
+import { Cause, ConfigProvider, Effect, Exit, Layer, Option, Scope, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { localTracing } from "#localTracing.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
+
+function credential(key: string) {
+	return key === "privateField" || /password/iu.test(key);
+}
+const policy = Object.assign(credential, {
+	forRpc: (tag: string | undefined) => (key: string) => credential(key) || (tag === "checkout" && key === "rpcSecret"),
+});
 
 export const localTraces = storyKit({
 	clock: "test",
@@ -28,6 +35,14 @@ export const localTraces = storyKit({
 	name: "local development traces",
 	stages: [],
 	verbs: ({ nativeSpans, nativeTracer, path }, story) => ({
+		nativeFailure: () =>
+			Effect.sync(() => {
+				const span = nativeSpans.find((entry) => entry.name === "failed");
+				if (span?.status._tag === "Ended" && Exit.isFailure(span.status.exit)) {
+					return Option.getOrUndefined(Cause.findErrorOption(span.status.exit.cause));
+				}
+				return undefined;
+			}),
 		nativeSpanNames: () => Effect.sync(() => nativeSpans.map((span) => span.name)),
 		*open(automatic = false, mode = "development") {
 			story.tell("a scoped trace recorder opens");
@@ -42,13 +57,19 @@ export const localTraces = storyKit({
 			const context = yield* Layer.buildWithScope(
 				recorder.pipe(
 					Layer.provide(Layer.succeed(Tracer.Tracer, nativeTracer)),
-					Layer.provide(Layer.succeed(RedactionPolicy, (key) => key === "privateField" || /password/iu.test(key))),
+					Layer.provide(Layer.succeed(RedactionPolicy, policy)),
 					Layer.provide(ConfigProvider.layer(provider)),
 				),
 				scope,
 			);
 			return {
 				close: () => Scope.close(scope, Exit.void),
+				nested: () =>
+					Effect.annotateCurrentSpan({ rpcSecret: "hidden-child" }).pipe(
+						Effect.withSpan("child"),
+						Effect.withSpan("rpc", { attributes: { "rpc.method": "checkout" } }),
+						Effect.provide(context),
+					),
 				record: (name = "checkout", sampled = true) => {
 					story.tell(`the application records ${name} and its log`);
 					return Effect.gen(function* () {
@@ -56,6 +77,7 @@ export const localTraces = storyKit({
 						yield* Effect.logInfo("password=hidden-log").pipe(Effect.annotateLogs({ orderId: "order-42", privateField: "hidden-annotation" }));
 					}).pipe(Effect.withSpan(name, { sampled }), Effect.provide(context));
 				},
+				reject: (error: Error) => Effect.fail(error).pipe(Effect.withSpan("failed"), Effect.exit, Effect.provide(context)),
 			};
 		},
 		read: () => Effect.sync(() => readLocalTraces(path)),

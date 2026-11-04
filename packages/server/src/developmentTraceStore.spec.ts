@@ -1,6 +1,31 @@
 import { expect } from "vitest";
 import { localTraces } from "#test/localTraces.ts";
 
+localTraces.it("child spans use their parent RPC's redaction policy in the local store", [], function* ({ open, read }) {
+	const recorder = yield* open();
+	yield* recorder.nested();
+	yield* recorder.close();
+	const { spans } = yield* read();
+	expect(spans.find((row) => row.name === "child")?.data).toContain('"rpcSecret":"<redacted>"');
+	expect(JSON.stringify(spans)).not.toContain("hidden-child");
+});
+
+localTraces.it(
+	"the installed tracer keeps the original failure while the local copy redacts its credential",
+	[],
+	function* ({ nativeFailure, open, read }) {
+		const error = new Error("password=hidden-failure", { cause: new Error("privateField=hidden-cause") });
+		const recorder = yield* open();
+		yield* recorder.reject(error);
+		yield* recorder.close();
+		const observed = yield* nativeFailure();
+		const stored = yield* read();
+		expect(observed).toBe(error);
+		expect(JSON.stringify(stored)).not.toContain("hidden-");
+		expect(stored.spans[0]?.data).toContain("<redacted>");
+	},
+);
+
 localTraces.it("closing the scope persists a real span and its correlated redacted log with configured indexes", [], function* ({ open, read }) {
 	const recorder = yield* open();
 	yield* recorder.record();
