@@ -17,7 +17,7 @@ NodeRuntime.runMain(
 );
 ```
 
-The process migrates the database, serves `Api` at `/rpc` and the built client from `./public`, and stops in order on a signal.
+The process migrates the database, serves `Api` at `/rpc` and the built client from the example app’s `public` folder, and stops in order on a signal.
 
 ## Using it
 

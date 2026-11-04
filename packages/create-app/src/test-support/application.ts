@@ -30,7 +30,7 @@ export const application = storyKit({
 	*create() {
 		return yield* createEngine();
 	},
-	inspect: (engine) => ({ answers: engine.answers, app: engine.app, options: engine.options, root: engine.root }),
+	inspect: ({ answers, app, diagnostics, options, printed, root }) => ({ answers, app, diagnostics, options, printed, root }),
 	layer: NodeServices.layer,
 	name: "generated app",
 	stages: ["template", "installation", "workspace", "generated", "app"],

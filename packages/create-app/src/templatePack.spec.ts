@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { templateManifest } from "#test/templateManifest.ts";
 import { customTemplate, localArtifacts } from "#test/traits.ts";
@@ -95,3 +96,53 @@ for (const [described, versions] of [
 		},
 	);
 }
+
+for (const heading of ["catalogs", '"catalogs"']) {
+	application.it(
+		`packing a template preserves its ${heading} mapping and adds exact framework pins`,
+		[
+			customTemplate(
+				{
+					"package.json": templateManifest({ "@shivaedev/platform": "workspace:*", effect: "catalog:runtime" }),
+					"pnpm-workspace.copy.yaml": `packages: []\n${heading}: # runtime dependencies\n  runtime:\n    effect: 4.0.6\n`,
+					"published-versions.json": JSON.stringify({ "@shivaedev/platform": "0.6.1" }),
+				},
+				"the template has an existing runtime catalog and a published platform dependency",
+			),
+		],
+		function* ({ pack, packedFile, packedFrameworkPins, packedManifest }) {
+			yield* pack();
+
+			yield* outcomes([
+				[
+					"dependency references",
+					() => packedManifest(),
+					{ dependencies: { "@shivaedev/platform": "catalog:framework", effect: "catalog:runtime" } },
+				],
+				["framework pins", () => packedFrameworkPins(["@shivaedev/platform"]), { "@shivaedev/platform": "0.6.1" }],
+				["existing catalog", () => packedFile("pnpm-workspace.yaml"), expect.stringContaining("  runtime:\n    effect: 4.0.6\n")],
+			]);
+		},
+	);
+}
+
+application.it(
+	"packing refuses a framework range before putting it in a catalog",
+	[
+		customTemplate(
+			{
+				"package.json": templateManifest({ "@shivaedev/platform": "workspace:*" }),
+				"pnpm-workspace.copy.yaml": "catalog:\n  effect: 4.0.6\n",
+				"published-versions.json": JSON.stringify({ "@shivaedev/platform": "^0.6.1" }),
+			},
+			"the template has a catalog but its published framework version is a range",
+		),
+	],
+	function* ({ pack }) {
+		const answer = yield* pack();
+
+		expect(answer).toBe(
+			"refused: Failed to prepare template file package.json: @shivaedev/platform: name an exact published version in published-versions.json",
+		);
+	},
+);

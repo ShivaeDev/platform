@@ -17,7 +17,7 @@ export const consumerWorkspace = [
 	{ content: '{"name":"@antumbra/group"}', path: "packages/group/package.json" },
 	{
 		content:
-			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"*"}}',
+			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"file:./node_modules/effect"}}',
 		path: "packages/group/domain/package.json",
 	},
 ];
@@ -45,12 +45,12 @@ export function workspaceGroupInstalled() {
 export const independentConsumer = [
 	{
 		content:
-			'{"name":"@antumbra/group","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"*"}}',
+			'{"name":"@antumbra/group","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"file:./node_modules/effect"}}',
 		path: "packages/group/package.json",
 	},
 	{
 		content:
-			'{"name":"@antumbra/plain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"*"}}',
+			'{"name":"@antumbra/plain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"workspace:*"}}',
 		path: "packages/group/plain/package.json",
 	},
 	{
@@ -71,7 +71,7 @@ export const independentConsumer = [
 	},
 	{
 		content:
-			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"*","effect":"*"}}',
+			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"workspace:*","effect":"file:./node_modules/effect"}}',
 		path: "packages/group/domain/package.json",
 	},
 ];
@@ -81,7 +81,7 @@ export function serviceConsumer(installed: boolean): readonly SeedFile[] {
 	return [
 		{
 			content:
-				'{"name":"@antumbra/app","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/domain":"*","effect":"*"}}',
+				'{"name":"@antumbra/app","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/domain":"workspace:*","effect":"file:./node_modules/effect"}}',
 			path: "packages/app/package.json",
 		},
 		{

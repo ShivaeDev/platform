@@ -25,7 +25,7 @@ The **shared copies** are real files under `.agents/skills/<name>/`. They are th
 
 The **Claude compatibility link**, `.claude/skills/<name>`, is a relative symlink to that same folder. It provides another path to the one copy. Direct reading of `.agents/skills/` does not use this link; the sync operation still requires creating it, as described under [limits](#install-setup-and-limits).
 
-The **sync manifest**, `.agents/skills/.shivaedev-skills.json`, records the package version and a hash for each copied folder. It also records ownership: a folder or link whose name is absent from the manifest belongs to the repository. `sync` replaces the copies it owns and refuses to overwrite an unowned name. `check` compares the selected names, installed version and copies with that record.
+The **sync manifest**, `<repository>/.agents/skills/.shivaedev-skills.json`, records the package version and a hash for each copied folder. It also records ownership: a folder or link whose name is absent from the manifest belongs to the repository. `sync` replaces the copies it owns and refuses to overwrite an unowned name. `check` compares the selected names, installed version and copies with that record.
 
 The work has three parts: select the shared instructions once, sync and review them when the selection or dependency changes, and check them in everyday lint and CI runs. Each agent working from that checkout has the same committed files available; discovery and use still depend on its host's instruction-loading rules.
 
