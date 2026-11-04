@@ -12,13 +12,29 @@ import {
 	TAKEN_NAME,
 } from "#test/checks.ts";
 
-checkedNames.it("changing a name its check called taken hides that message at once", [nameChecked(TAKEN_NAME)], function* ({ enter, feedbackOn }) {
-	expect(yield* feedbackOn("name")).toBe(TAKEN_MESSAGE);
+checkedNames.it(
+	"with zero debounce, changing a name starts its check before the change returns",
+	[nameChecked("first")],
+	function* ({ checkedNamesSoFar, enter }) {
+		expect(yield* checkedNamesSoFar()).toEqual(["first"]);
 
-	yield* enter("name", "free");
+		yield* enter("name", "second");
 
-	expect(yield* feedbackOn("name")).toBeUndefined();
-});
+		expect(yield* checkedNamesSoFar()).toEqual(["first", "second"]);
+	},
+);
+
+checkedNames.it(
+	"changing a name its check called taken hides that message at once",
+	[checksWaitForAnswers(), nameChecked(TAKEN_NAME), checkAnswered(TAKEN_NAME, TAKEN_MESSAGE)],
+	function* ({ enter, feedbackOn }) {
+		expect(yield* feedbackOn("name")).toBe(TAKEN_MESSAGE);
+
+		yield* enter("name", "free");
+
+		expect(yield* feedbackOn("name")).toBeUndefined();
+	},
+);
 
 checkedNames.it(
 	"when the check of a new name fails, the earlier name's taken message does not come back",
