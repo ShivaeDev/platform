@@ -1,6 +1,7 @@
 import { Clock, Effect, type Exit, Fiber, Predicate, Schedule } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PostgresOptions } from "@shivaedev/sql/postgresLayer.ts";
+import { CleanupClock } from "./clocks.ts";
 import { abandonedDatabase } from "./databaseOwner.ts";
 import { administer } from "./databases.ts";
 
@@ -8,6 +9,7 @@ export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(functio
 	url: Parameters<typeof administer>[0],
 	options?: PostgresOptions,
 ) {
+	const clock = yield* CleanupClock;
 	const pending: Fiber.Fiber<Exit.Exit<unknown, SqlError>>[] = [];
 	function drop(name: string) {
 		return administer(url, (admin) => admin`drop database if exists ${admin(name)} with (force)`, options).pipe(
@@ -16,7 +18,7 @@ export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(functio
 				times: 300,
 				while: (error) => Predicate.hasProperty(error.reason.cause, "code") && error.reason.cause.code === "53300",
 			}),
-			Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()),
+			Effect.provideService(Clock.Clock, clock),
 		);
 	}
 	const awaitCleanup = Effect.suspend(() =>

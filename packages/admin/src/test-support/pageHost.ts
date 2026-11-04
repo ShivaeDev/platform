@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Predicate } from "effect";
+import { Clock, Effect, Layer, Option, Predicate } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -38,7 +38,8 @@ function workspaceHost(documents = true) {
 }
 
 export const workspaceServer = Effect.gen(function* () {
-	const context = yield* Layer.build(workspaceHost());
+	const clock = yield* Clock.Clock;
+	const context = yield* Layer.build(workspaceHost().pipe(Layer.provideMerge(Layer.succeed(Clock.Clock, clock))));
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(address)) {
 		throw new Error("The admin host must listen on TCP");
@@ -47,7 +48,7 @@ export const workspaceServer = Effect.gen(function* () {
 });
 
 export const pageHost = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => workspaceServer,
 	name: "admin page host",
 	stages: [],

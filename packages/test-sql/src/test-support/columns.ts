@@ -9,7 +9,7 @@ import { adminUrl, configured } from "./postgres.ts";
 
 export const columns = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => Effect.void,
 	layer: makePostgresTestLayer(clientOptions({ initialize: Effect.void, prepare: false, url: adminUrl }, { snakeCase: true })),
 	name: "table column readout without migrations",

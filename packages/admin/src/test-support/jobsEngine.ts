@@ -1,5 +1,6 @@
 import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
+import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
@@ -38,7 +39,8 @@ const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ inval
 export const jobsEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const testing = makePgBossTesting();
+	const clock = yield* TestClock.testClockWith(Effect.succeed);
+	const testing = makePgBossTesting({ clock });
 	const deliveries: string[] = [];
 	const boss: { client?: ReturnType<typeof testing.clientFactory> } = {};
 	let readCount: () => number = function readCount() {

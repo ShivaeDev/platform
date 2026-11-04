@@ -24,7 +24,7 @@ function driverFor(engine: Engine, tell: (line: string) => void) {
 
 export const sessionsScreen = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create(): Generator<ReturnType<typeof sessionsHost>, Engine, never> {
 		return { ...(yield* sessionsHost()), screen: undefined };
 	},

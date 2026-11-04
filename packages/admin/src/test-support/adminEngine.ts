@@ -18,6 +18,7 @@ import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
 import { Jobs, Users } from "#test/pages.ts";
+import { clientRuntime } from "./clientRuntime.ts";
 
 const Restricted = adminPage({
 	contract: contract("admin.restricted", {
@@ -57,10 +58,12 @@ export const adminEngine = Effect.gen(function* () {
 	};
 	const protocol = Layer.mergeAll(registration.handlers, changes).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const client = yield* RpcTest.makeClient(group).pipe(Effect.provide(protocol));
+	const runtime = yield* clientRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {
 		group,
 		makeEffect: RpcTest.makeClient(group, { flatten: true }),
 		protocol,
+		runtime,
 	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),

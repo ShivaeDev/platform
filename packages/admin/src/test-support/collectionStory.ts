@@ -11,7 +11,7 @@ import { collectionDatabase, collectionEngine, configured } from "./collectionEn
 
 export const collectionStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => collectionEngine,
 	layer: collectionDatabase,
 	name: "live admin collection pages",

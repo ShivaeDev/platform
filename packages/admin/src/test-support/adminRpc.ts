@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Ref } from "effect";
+import { Clock, Effect, Layer, Option, Ref } from "effect";
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
@@ -14,6 +14,7 @@ export const adminRpc = Effect.fnUntraced(function* (
 	group: Group,
 	handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<Group>> | JobsPermission | UsersPermission, never, SessionPolicy>,
 ) {
+	const clock = yield* Clock.Clock;
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const policy = {
 		origin: () => true,
@@ -23,7 +24,12 @@ export const adminRpc = Effect.fnUntraced(function* (
 	const registered = handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const routes = RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" }).pipe(Layer.provide([registered, RpcSerialization.layerJson]));
 	const handler = yield* HttpRouter.toHttpEffect(routes);
-	const context = yield* Layer.build(HttpServer.serve(handler).pipe(Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 }))));
+	const context = yield* Layer.build(
+		HttpServer.serve(handler).pipe(
+			Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 })),
+			Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
+		),
+	);
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(address)) {
 		throw new Error("The admin host must listen on TCP");
