@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 - 2026-11-04
+
+### Added
+
+- Provide the pg-boss testing controller in test-kits, using jobs’ public client and inspection service with the real PostgreSQL engine.
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
 ## 0.3.1 - 2026-11-04
 
 ### Changed

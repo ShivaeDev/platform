@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.26.0 - 2026-11-04
+
+### Added
+
+- `betterAuthMount` accepts `{ clientIp: "railway" }` to select `X-Real-IP` for session addresses and auth rate limiting, ignoring `X-Forwarded-For` and overriding `AUTH_CLIENT_IP_HEADER`. Forwarded addresses still require a peer allowed by `TRUSTED_PROXY`; otherwise, or without `X-Real-IP`, the connection address is used.
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
 ## 0.25.0 - 2026-11-04
 
 ### Added

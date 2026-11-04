@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.47.2 - 2026-11-04
+
+### Changed
+
+- Require Effect 4.0.7 and its matching companion packages. Install the 4.0.7 Effect stack together.
+
 ## 0.47.1 - 2026-11-04
 
 ### Changed
