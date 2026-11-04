@@ -1,6 +1,7 @@
-import { Cause, Deferred, Effect, Exit, Queue } from "effect";
+import { Cause, Clock, Deferred, Effect, Exit, Queue } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { WorkerReleaseTesting } from "#testing/WorkerRelease.ts";
 import { onPostgres } from "./engines.ts";
 import { handoverEngine, inWords, type Loop } from "./workerHandoverEngine.ts";
 
@@ -18,6 +19,13 @@ function arm(engine: HandoverEngine, loop: Loop, permanent: boolean) {
 
 export const workerHandover = storyKit({
 	...onPostgres,
+	around: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+		onPostgres.around(effect).pipe(
+			Effect.provideServiceEffect(
+				WorkerReleaseTesting,
+				Effect.map(Clock.Clock, (clock) => ({ clock, register: () => Effect.void })),
+			),
+		),
 	clock: "test",
 	create: handoverEngine,
 	inspect: (engine) => ({ fault: engine.fault, timeline: engine.timeline, warnings: engine.logged }),

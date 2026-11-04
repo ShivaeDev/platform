@@ -1,4 +1,5 @@
 import { Config, type Context, Deferred, Effect, Layer, Schema, type Scope } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
@@ -15,7 +16,7 @@ export const handoverWorker = Effect.fnUntraced(function* (
 	timeline: string[],
 ) {
 	const connectionString = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
-	const testing = makePgBossTesting();
+	const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 	const started = yield* Deferred.make<void>();
 	const queue = defineQueue({ name: "handover", schema: Schema.Struct({ hold: Schema.Boolean }), worker: { pollingIntervalSeconds: 0.5 } });
 	const Jobs = makePgBoss(`handover/${name}`);
@@ -48,12 +49,19 @@ export const handoverWorker = Effect.fnUntraced(function* (
 		),
 	);
 	const context = yield* Layer.buildWithScope(layer, scope);
-	yield* testing.fetchesPass(queue, 1);
+	yield* testing.waitForIdle;
 	timeline.push(`${name} started fetching`);
 	return {
 		holdJob: Jobs.pipe(
 			Effect.flatMap((jobs) => jobs.enqueue(queue, { hold: true })),
 			Effect.provideContext(context),
+			Effect.andThen(
+				Effect.sync(() => {
+					for (const worker of client?.getWipData?.() ?? []) {
+						client?.notifyWorker?.(worker.id);
+					}
+				}),
+			),
 			Effect.andThen(Deferred.await(started)),
 		),
 		workingQueues: () => [...new Set((client?.getWipData?.() ?? []).map((worker) => worker.name))],

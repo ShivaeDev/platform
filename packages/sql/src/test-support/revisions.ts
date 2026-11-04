@@ -80,6 +80,7 @@ function revisionVerbs({ announced, pulls, records: log }: RevisionEngine, tell:
 			Effect.gen(function* () {
 				tell(`a transaction syncs a revision at ${lockedHour}:00 and holds its row lock while a writer syncs a revision at ${hour}:00, then commits`);
 				const [waiting] = yield* raceWithLock({
+					clock: "test",
 					effects: [pulls.upsert(revision(hour), whenNewer)],
 					lock: pulls.upsert(revision(lockedHour), whenNewer),
 					release: "commit",
