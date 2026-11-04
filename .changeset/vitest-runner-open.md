@@ -4,4 +4,4 @@
 
 ### Added
 
-- Expose the existing Vitest runner `open` operation from `/adapters/open.ts`.
+- Expose the existing Vitest runner `open` operation and its `RunOptions` type from `/adapters/open.ts`.

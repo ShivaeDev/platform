@@ -10,7 +10,7 @@ import type { Files } from "./tasks.ts";
 import type { Selection } from "./VitestRunner.ts";
 import { writeMergedReports } from "./writeMergedReports.ts";
 
-interface RunOptions {
+export interface RunOptions {
 	readonly cacheDir?: string;
 	readonly reports: { readonly json: string; readonly junit: string };
 	readonly rerun: boolean;
