@@ -7,7 +7,7 @@ import { timestampHost } from "./timestampHost.ts";
 import { timestampScreen } from "./timestampScreen.ts";
 
 export const clockApp = storyKit({
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z"),
 	*create() {
 		const host = yield* timestampHost;
 		const context = yield* Effect.context<never>();

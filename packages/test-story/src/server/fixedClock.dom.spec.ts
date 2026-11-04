@@ -46,7 +46,7 @@ clockApp.it(
 );
 
 clockApp.it(
-	"uses the running clock for the host, the worker and the screen when the story does not pin the clock",
+	"uses the kit’s clock for the host, the worker and the screen when the story does not override it",
 	[],
 	function* ({ runsTimestampJob, timesOfTheRun }) {
 		yield* runsTimestampJob();

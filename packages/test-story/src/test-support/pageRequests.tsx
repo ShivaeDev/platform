@@ -12,7 +12,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 export const pageRequests = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const originalFetch = globalThis.fetch;
 		const originalUrl = window.location.href;

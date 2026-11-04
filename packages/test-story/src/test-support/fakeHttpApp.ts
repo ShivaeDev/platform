@@ -18,7 +18,7 @@ const routes = {
 function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 	const name = guarded ? "fake HTTP service" : "public HTTP service";
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		*create() {
 			const scope = yield* Scope.fork(yield* Scope.Scope);
 			let tell: ((line: string) => void) | undefined;

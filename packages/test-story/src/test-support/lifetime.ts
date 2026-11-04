@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Clock, DateTime, Effect } from "effect";
 import { storyKit } from "#server/storyKit.ts";
 import { noteLifetime, recordLifetime } from "./lifetimeLog.ts";
 
@@ -9,7 +9,7 @@ export const lifetime = storyKit({
 		},
 	},
 	around: (effect) => noteLifetime("enter").pipe(Effect.andThen(effect), Effect.ensuring(noteLifetime("exit"))),
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z"),
 	*create() {
 		yield* recordLifetime("engine");
 		return {};
@@ -17,7 +17,7 @@ export const lifetime = storyKit({
 	name: "lifetime",
 	stages: ["built"],
 	verbs: () => ({
-		clock: () => Clock.currentTimeMillis.pipe(Effect.map((millis) => (millis === 0 ? "the test clock at zero" : "the live clock"))),
+		clock: () => Clock.currentTimeMillis.pipe(Effect.map((millis) => (millis === 0 ? "the test clock at zero" : "the pinned clock"))),
 		recordsBody: () => noteLifetime("body"),
 	}),
 });

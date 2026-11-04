@@ -10,7 +10,7 @@ import { domHost } from "#test/domHost.ts";
 declare const window: Window;
 
 export const assetDocument = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const errors = yield* Effect.acquireRelease(
 			Effect.sync(() => vi.spyOn(window.console, "error")),
