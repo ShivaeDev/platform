@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import type { PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import type { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import type { HostOptions, RunningHost } from "#test-support/host.ts";

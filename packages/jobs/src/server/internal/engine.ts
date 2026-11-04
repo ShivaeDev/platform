@@ -1,6 +1,6 @@
 import { Context, type Effect } from "effect";
 import type { PgBossClient } from "#server/client.ts";
-import type { PgBossError, PgBossTestingError } from "#server/error.ts";
+import type { PgBossError } from "#server/error.ts";
 import type { PgBossService } from "#server/service.ts";
 
 export type StoredJob = Awaited<ReturnType<NonNullable<PgBossClient["findJobs"]>>>[number];
@@ -26,10 +26,3 @@ export class JobEngine extends Context.Service<
 		) => Effect.Effect<{ readonly claimed: boolean; readonly deferred: boolean }, PgBossError>;
 	}
 >()("@shivaedev/jobs/JobEngine") {}
-
-export class TestingEngine extends Context.Service<
-	TestingEngine,
-	{
-		readonly expireAttempt: (job: JobAttempt, cause?: "expiry" | "heartbeat") => Effect.Effect<void, PgBossTestingError>;
-	}
->()("@shivaedev/jobs/TestingEngine") {}
