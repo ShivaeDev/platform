@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-11-04
+
+### Added
+
+- Serve native Effect toolkit layers over stdio with `mcpStdio` from `@shivaedev/mcp/stdio.ts`. The server scope owns the transport and tool handlers, including cancellation and resource cleanup.
+
 ## 0.6.3 - 2026-11-03
 
 ### Changed

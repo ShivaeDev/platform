@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.33.1 to 0.34.0.
+- Update `@shivaedev/email` from 0.3.1 to 0.3.2.
+- Update `@shivaedev/identity` from 0.22.1 to 0.22.2.
+- Update `@shivaedev/sql` from 0.36.0 to 0.36.1.
+- Update `@shivaedev/test-sql` from 0.18.1 to 0.18.2.
+- Update `@shivaedev/test-story` from 0.36.1 to 0.37.0.
+
 ## 0.2.0 - 2026-11-03
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/github` from 0.11.1 to 0.11.2.
+- Update `@shivaedev/service` from 0.6.1 to 0.6.2.
+
 ## 0.8.1 - 2026-11-03
 
 ### Changed

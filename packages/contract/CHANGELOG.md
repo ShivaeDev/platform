@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.0 - 2026-11-04
+
+### Added
+
+- `makeClient` accepts a native Atom runtime factory so application and test clocks can govern live query coalescing and reconnection.
+
 ## 0.33.1 - 2026-11-03
 
 ### Fixed

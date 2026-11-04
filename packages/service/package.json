@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/service",
-	"version": "0.6.1",
+	"version": "0.6.2",
 	"description": "Declared Effect services with scoped initialization and bound dependencies",
 	"keywords": [
 		"effect"
