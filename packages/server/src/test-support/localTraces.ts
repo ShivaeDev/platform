@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
+import { ConfigProvider, Effect, Exit, Layer, Scope, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { localTracing } from "#localTracing.ts";
@@ -15,11 +15,20 @@ export const localTraces = storyKit({
 		const root = mkdtempSync(join(tmpdir(), "platform-traces-"));
 		yield* Effect.addFinalizer(() => Effect.sync(() => rmSync(root, { force: true, recursive: true })));
 		const path = join(root, "nested", "traces.db");
-		return { path };
+		const nativeSpans: Tracer.NativeSpan[] = [];
+		const nativeTracer = Tracer.make({
+			span: (options) => {
+				const span = new Tracer.NativeSpan(options);
+				nativeSpans.push(span);
+				return span;
+			},
+		});
+		return { nativeSpans, nativeTracer, path };
 	},
 	name: "local development traces",
 	stages: [],
-	verbs: ({ path }, story) => ({
+	verbs: ({ nativeSpans, nativeTracer, path }, story) => ({
+		nativeSpanNames: () => Effect.sync(() => nativeSpans.map((span) => span.name)),
 		*open(automatic = false, mode = "development") {
 			story.tell("a scoped trace recorder opens");
 			const scope = yield* Scope.make();
@@ -32,6 +41,7 @@ export const localTraces = storyKit({
 			});
 			const context = yield* Layer.buildWithScope(
 				recorder.pipe(
+					Layer.provide(Layer.succeed(Tracer.Tracer, nativeTracer)),
 					Layer.provide(Layer.succeed(RedactionPolicy, (key) => key === "privateField" || /password/iu.test(key))),
 					Layer.provide(ConfigProvider.layer(provider)),
 				),

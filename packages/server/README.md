@@ -240,7 +240,7 @@ Set `browserErrors: { log: true, includeUserId: true, requireSession: true }` on
 
 With `NODE_ENV=development` and no OTLP endpoint, `appHost` and `otlpTracing` record to `.platform/traces.db` using Node's SQLite support. `runDevelopment` sets this mode for its child processes. Add `.platform/` to the application's ignore file. Set `PLATFORM_TRACE_STORE` to choose another file and `PLATFORM_TRACE_INDEXED_ATTRIBUTES=orderId,projectId` to index application attributes. Indexed values use the same redaction as the stored spans. An explicit OTLP endpoint takes precedence; other modes without an endpoint keep export disabled.
 
-Records flush every second and when their scope closes. The store retains the latest five recorder runs, deleting older spans, logs and attribute indexes when a recorder opens. Logs use the existing `effect.log` diagnostic spans; the `logs` view exposes their parent span ID and trace ID. Open the file with any SQLite viewer, or inspect it directly:
+Records flush every second and when their scope closes. The store retains the latest five completed recorder runs, deleting older spans, logs and attribute indexes when a recorder closes. Active recorders remain writable until their scopes close. Logs use the existing `effect.log` diagnostic spans; the `logs` view exposes their parent span ID and trace ID. Open the file with any SQLite viewer, or inspect it directly:
 
 ```sh
 sqlite3 .platform/traces.db "SELECT name, trace_id, span_id, data FROM spans ORDER BY started_at_millis DESC LIMIT 20"
@@ -248,7 +248,7 @@ sqlite3 .platform/traces.db "SELECT trace_id, span_id, data FROM logs ORDER BY a
 sqlite3 .platform/traces.db "SELECT span_id FROM span_attributes WHERE key = 'orderId' AND value = 'order-42'"
 ```
 
-For explicit composition, provide `localTracing({ path, indexedAttributes, retainedRuns, flushInterval })` from `@shivaedev/server/localTracing.ts` to the application's Layer. All options are optional; `flushInterval` is milliseconds, and `retainedRuns` is a positive integer. It uses `RedactionPolicy`, including host schema sensitivity, and preserves existing console loggers. Local recording and OTLP export are alternative sinks; compose one per application scope.
+For explicit composition, provide `localTracing({ path, indexedAttributes, retainedRuns, flushInterval })` from `@shivaedev/server/localTracing.ts` to the application's Layer. All options are optional; `flushInterval` is milliseconds, and `retainedRuns` is a positive integer. It uses `RedactionPolicy`, including host schema sensitivity, and preserves the application's installed tracer and console loggers. Local recording and OTLP export are alternative sinks; compose one per application scope.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. `appHost` continues incoming W3C `traceparent` context in RPC handling, including one sent by an edge proxy, whether or not an exporter is configured.
 

@@ -3,7 +3,9 @@ import { redactRecord } from "@shivaedev/errors/redact.ts";
 import { redactText } from "@shivaedev/errors/sensitive.ts";
 import { type HostRedactionPolicy, redactionForRpc } from "#RedactionPolicy.ts";
 
-export function localTraceRow(span: Tracer.NativeSpan, policy: HostRedactionPolicy) {
+export type LocalTraceEvent = readonly [name: string, time: bigint, attributes: Record<string, unknown>];
+
+export function localTraceRow(span: Tracer.Span, events: readonly LocalTraceEvent[], policy: HostRedactionPolicy) {
 	if (span.status._tag !== "Ended" || !span.sampled) {
 		return undefined;
 	}
@@ -16,7 +18,7 @@ export function localTraceRow(span: Tracer.NativeSpan, policy: HostRedactionPoli
 		durationNanos: String(endTime - startTime),
 		endedAtMillis: Number.parseInt(String(endTime / 1_000_000n), 10),
 		error: Exit.isFailure(exit) ? redactText(Cause.pretty(exit.cause), sensitive) : null,
-		events: span.events.map(([name, time, values]) => ({
+		events: events.map(([name, time, values]) => ({
 			attributes: redactRecord(values, sensitive),
 			name: redactText(name, sensitive),
 			time: String(time),

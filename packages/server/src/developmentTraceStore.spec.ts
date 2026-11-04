@@ -40,7 +40,7 @@ localTraces.it("the timer persists a batch before scope close", [], function* ({
 	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "checkout"]);
 });
 
-localTraces.it("opening a third run drops spans, correlated logs and indexes beyond the two-run retention limit", [], function* ({ open, read }) {
+localTraces.it("closing a third run drops spans, correlated logs and indexes beyond the two-run retention limit", [], function* ({ open, read }) {
 	for (const name of ["oldest", "middle", "latest"]) {
 		const recorder = yield* open();
 		yield* recorder.record(name);
@@ -56,6 +56,27 @@ localTraces.it("opening a third run drops spans, correlated logs and indexes bey
 		{ key: "password", value: "<redacted>" },
 		{ key: "password", value: "<redacted>" },
 	]);
+});
+
+localTraces.it("retention leaves an active recorder able to flush until its scope closes", [], function* ({ open, read, secondPasses }) {
+	const active = yield* open();
+	for (const name of ["oldest", "middle", "latest"]) {
+		const recorder = yield* open();
+		yield* recorder.record(name);
+		yield* recorder.close();
+	}
+	yield* active.record("active");
+	yield* secondPasses();
+	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "middle", "effect.log", "latest", "effect.log", "active"]);
+	yield* active.close();
+	expect((yield* read()).spans.map((row) => row.name)).toEqual(["effect.log", "middle", "effect.log", "latest"]);
+});
+
+localTraces.it("local recording preserves the application's installed native tracer", [], function* ({ nativeSpanNames, open }) {
+	const recorder = yield* open();
+	yield* recorder.record();
+	yield* recorder.close();
+	expect(yield* nativeSpanNames()).toEqual(["checkout", "effect.log"]);
 });
 
 localTraces.it("two scoped recorders share a store and flush their own batches", [], function* ({ open, read }) {

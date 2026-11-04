@@ -11,7 +11,7 @@ export function localTraceDatabase(path: string, retainedRuns: number, indexedAt
 		db.exec(`
 			PRAGMA journal_mode = WAL;
 			PRAGMA foreign_keys = ON;
-			CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, started_at_millis INTEGER NOT NULL);
+			CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, started_at_millis INTEGER NOT NULL, completed INTEGER NOT NULL DEFAULT 0);
 			CREATE TABLE IF NOT EXISTS spans (
 				run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
 				span_id TEXT PRIMARY KEY, trace_id TEXT NOT NULL, parent_span_id TEXT,
@@ -28,8 +28,11 @@ export function localTraceDatabase(path: string, retainedRuns: number, indexedAt
 					json_extract(data, '$.events[0].attributes') AS data FROM spans WHERE name = 'effect.log';
 		`);
 		const runId = randomUUID();
-		db.prepare("INSERT INTO runs VALUES (?, ?)").run(runId, startedAtMillis);
-		db.prepare("DELETE FROM runs WHERE id NOT IN (SELECT id FROM runs ORDER BY rowid DESC LIMIT ?)").run(retainedRuns);
+		db.prepare("INSERT INTO runs(id, started_at_millis) VALUES (?, ?)").run(runId, startedAtMillis);
+		const complete = db.prepare("UPDATE runs SET completed = 1 WHERE id = ?");
+		const prune = db.prepare(
+			"DELETE FROM runs WHERE completed = 1 AND id NOT IN (SELECT id FROM runs WHERE completed = 1 ORDER BY rowid DESC LIMIT ?)",
+		);
 		const insert = db.prepare("INSERT INTO spans VALUES (?, ?, ?, ?, ?, ?, ?)");
 		const index = db.prepare("INSERT INTO span_attributes VALUES (?, ?, ?)");
 		const indexed = new Set(indexedAttributes);
@@ -43,7 +46,14 @@ export function localTraceDatabase(path: string, retainedRuns: number, indexedAt
 			}
 		}
 		return {
-			close: () => db.close(),
+			close: () => {
+				try {
+					complete.run(runId);
+					prune.run(retainedRuns);
+				} finally {
+					db.close();
+				}
+			},
 			write: (rows: readonly LocalTraceRow[]) => {
 				db.exec("BEGIN");
 				try {
