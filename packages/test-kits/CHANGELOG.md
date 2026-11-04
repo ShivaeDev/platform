@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-04
+
+### Added
+
+- Publish a scoped fake GitHub App with real HTTP installation-token exchanges, configurable REST and GraphQL routes, provider fault controls and signed webhook delivery for application stories.
+
 ## 0.4.0 - 2026-11-04
 
 ### Added

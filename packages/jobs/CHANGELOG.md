@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.37.0 - 2026-11-04
+
+### Breaking
+
+- Requires the catalog-compatible `@effect/sql-pg` peer to compile shared keyset fragments through the existing pg-boss connection. Consumers must install `@effect/sql-pg` alongside `@shivaedev/jobs`, `pg-boss` and `effect`.
+
 ## 0.36.0 - 2026-11-04
 
 ### Added

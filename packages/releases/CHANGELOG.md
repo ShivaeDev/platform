@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-11-04
+
+### Added
+
+- Configure per-package `versionFloors` to continue a moved package's published version line. Requested and dependent releases bump from the higher of the manifest version and its floor; applying and checking use the same plan without querying npm.
+
 ## 0.10.1 - 2026-11-04
 
 ### Changed

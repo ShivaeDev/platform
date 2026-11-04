@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.41.0 - 2026-11-04
+
+### Fixed
+
+- Generated minimal-app guidance describes optional notes-module paths as examples instead of pointing at files excluded from the app.
+
+### Breaking
+
+- Generated apps store published framework pins in the `framework` catalog of pnpm-workspace.yaml and reference them as catalog:framework in package.json. After a template update, review those catalog pins and run pnpm install. Tools reading framework versions from literal manifest values must resolve the framework catalog instead.
+
 ## 0.40.1 - 2026-11-04
 
 ### Changed
