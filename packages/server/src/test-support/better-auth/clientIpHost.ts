@@ -24,7 +24,7 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 		await (await getMigrations(options)).runMigrations();
 	});
 	const context = yield* Effect.gen(function* () {
-		const mounted = yield* betterAuthMount(options).pipe(Effect.provide(memoryStore));
+		const mounted = yield* betterAuthMount(options, { clientIp: "railway" }).pipe(Effect.provide(memoryStore));
 		return yield* Layer.build(
 			appHost({
 				config: { port: 0 },
