@@ -6,7 +6,7 @@ import { Mailer } from "#server/Mailer.ts";
 import type { MailerError } from "#server/MailerError.ts";
 
 export const transport = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const mail = yield* inbox();
 		const held = yield* mail.endpoint.hold("send");

@@ -76,7 +76,7 @@ it("infers the engine, the stages, the verbs and what the layer provides from th
 it("hands the test body the verbs and the story", () => {
 	shelf.it("counts the books", [], function* ({ clerk, story }) {
 		expectTypeOf(clerk.counts()).toEqualTypeOf<number>();
-		expectTypeOf(story).toEqualTypeOf<Story<Shelf, Run>>();
+		expectTypeOf(story).toEqualTypeOf<Story<Shelf, Run, "built" | "stocked", { clerk: { counts: () => number; waits: () => Waits } }>>();
 		expectTypeOf(clerk.waits()).toEqualTypeOf<Waits>();
 		yield* clerk.waits();
 	});

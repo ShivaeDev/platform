@@ -47,7 +47,7 @@ export const pool = storyKit({
 		}),
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => Effect.sync((): PoolState => ({ limit: 3, mode: "database", releases: new Map() })),
 	inspect: (state) => ({ heldBackends: [...state.releases.keys()], limit: state.limit, mode: state.mode }),
 	layer: postgres,

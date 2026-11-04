@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.3 - 2026-11-03
+
+### Fixed
+
+- Generated starter worker stories pass lease time through the host verb instead of fixed sleeps.
+
 ## 0.38.2 - 2026-11-03
 
 ### Changed

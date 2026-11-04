@@ -14,8 +14,9 @@ const Unexpected = defineQueue({ name: "unexpected", schema: Schema.Struct({}) }
 database.it(
 	"a worker uses the browser's declared queue name to handle an email",
 	[running("app", [worker(Emails, "succeeds")], { queueNames: [emailQueue.name] })],
-	function* ({ enqueue, untilFinished, handled }) {
+	function* ({ enqueue, untilFinished, handled, pollNow }) {
 		yield* enqueue("app", Emails, { userId: 42 }, { as: "welcome" });
+		yield* pollNow("app", Emails);
 		yield* untilFinished(Emails, 1);
 
 		expect(yield* handled(Emails)).toEqual([{ userId: 42 }]);

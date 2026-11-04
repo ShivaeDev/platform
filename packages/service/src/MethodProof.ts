@@ -4,8 +4,8 @@ import type {
 	GenericMethodDescriptor,
 	GenericOrStructurallyOverloadedMethodsAreUnsupported,
 	HasDistinctCallSignatures,
-} from "./genericMethod.ts";
-import type { RequirementRecord, RequirementsOf } from "./ServiceRequirements.ts";
+} from "#genericMethod.ts";
+import type { RequirementRecord, RequirementsOf } from "#ServiceRequirements.ts";
 
 export type MethodEntry = AnyMethod | GenericMethodDescriptor<AnyMethod>;
 
@@ -19,21 +19,23 @@ type MethodRequirements<TMethod> = TMethod extends (...arguments_: readonly neve
 	? TRequirements
 	: never;
 
-interface MethodHasUndeclaredServiceRequirements {
+interface MethodHasUndeclaredServiceRequirements<TName extends PropertyKey, TMissing> {
 	readonly _serviceDefinitionError: "method has service requirements absent from the service declaration";
+	readonly method: TName;
+	readonly missingServices: TMissing;
 }
 
 interface ServiceMembersMustBeMethods {
 	readonly _serviceDefinitionError: "service members must be methods";
 }
 
-type OrdinaryMethodProof<TMethod, TRequirements extends RequirementRecord> = [
+type OrdinaryMethodProof<TName extends PropertyKey, TMethod, TRequirements extends RequirementRecord> = [
 	Exclude<MethodRequirements<TMethod>, RequirementsOf<TRequirements> | Scope.Scope>,
 ] extends [never]
 	? TMethod
-	: MethodHasUndeclaredServiceRequirements;
+	: MethodHasUndeclaredServiceRequirements<TName, Exclude<MethodRequirements<TMethod>, RequirementsOf<TRequirements> | Scope.Scope>>;
 
-type SupportedMethod<TMethod, TRequirements extends RequirementRecord> =
+type SupportedMethod<TName extends PropertyKey, TMethod, TRequirements extends RequirementRecord> =
 	TMethod extends GenericMethodDescriptor<AnyMethod>
 		? TMethod
 		: TMethod extends AnyMethod
@@ -41,11 +43,11 @@ type SupportedMethod<TMethod, TRequirements extends RequirementRecord> =
 				? GenericOrStructurallyOverloadedMethodsAreUnsupported
 				: TMethod extends (...arguments_: infer TArguments) => infer TResult
 					? ((...arguments_: TArguments) => TResult) extends TMethod
-						? OrdinaryMethodProof<TMethod, TRequirements>
+						? OrdinaryMethodProof<TName, TMethod, TRequirements>
 						: GenericOrStructurallyOverloadedMethodsAreUnsupported
 					: GenericOrStructurallyOverloadedMethodsAreUnsupported
 			: ServiceMembersMustBeMethods;
 
 export type MethodProof<TMethods extends MethodInventory, TRequirements extends RequirementRecord> = {
-	readonly [TName in keyof TMethods]: SupportedMethod<TMethods[TName], TRequirements>;
+	readonly [TName in keyof TMethods]: SupportedMethod<TName, TMethods[TName], TRequirements>;
 };

@@ -32,7 +32,7 @@ function shownOf(engine: LocalEngine, view: View) {
 }
 
 export const notesStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => localEngine,
 	inspect: ({ server }) => ({
 		reads: Effect.runSync(SubscriptionRef.get(server.reads)),

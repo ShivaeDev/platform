@@ -19,7 +19,7 @@ export const clientIp = storyKit({
 		},
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: (): Engine => ({ env: { "TRUSTED_PROXY": "127.0.0.1" } }),
 	inspect: (engine) => ({ env: engine.env, url: engine.host?.baseUrl }),
 	layer: postgres,

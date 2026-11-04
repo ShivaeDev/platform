@@ -4,7 +4,7 @@ import type { DatabaseEngine } from "./databaseEngine.ts";
 import { labelOf } from "./engine.ts";
 import { idOf } from "./verbs.ts";
 
-export function traceReadouts(engine: DatabaseEngine) {
+export function traceReadouts(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {
 		linkedWorkers: (senderName: string) =>
 			Effect.gen(function* () {
@@ -20,6 +20,13 @@ export function traceReadouts(engine: DatabaseEngine) {
 					trace: span.traceId === sender.traceId ? "sender trace" : "own trace",
 				}));
 			}),
+		untilJobSpanEnds: (as: string) => {
+			tell(`wait until the job span of ${as} ends`);
+			return Effect.suspend(() => {
+				const { id } = idOf(engine, as);
+				return engine.trace.whenSpanEnds((span) => span.attributes.get("job.id") === id);
+			});
+		},
 		workerSenders: (as: string) =>
 			Effect.gen(function* () {
 				const { id } = idOf(engine, as);

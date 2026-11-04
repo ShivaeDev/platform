@@ -1,6 +1,6 @@
 # @shivaedev/mcp
 
-Let AI clients act on application data as the user who connected them. Keep tools in native Effect toolkits, mount them on your application host, and use the same identity and permissions as your contracts.
+Let AI clients act on application data through native Effect toolkits. Mount them on your application host with the same identity and permissions as your contracts, or serve them locally over stdio.
 
 ## Tools for each audience
 
@@ -63,6 +63,29 @@ const adminTools = McpServer.toolkit(AdminTools).pipe(
 ```
 
 Application roles and grants come from `@shivaedev/access`; identity resolves the current stored role and checks those grants. An audience without a permission is available to every signed-in caller. Add `failure: YourErrorSchema` to a tool and return that failure in its Effect handler; native MCP error results carry the declared failure.
+
+### Run a local stdio server
+
+Use `mcpStdio` from `@shivaedev/mcp/stdio.ts` when an MCP client starts your integration as a child process. Pass the same native toolkit Layer used for HTTP; combine several toolkits with `Layer.mergeAll`. Provide the handlers' application services through Layers.
+
+```ts
+import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { Effect, Layer, Logger } from "effect";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { mcpStdio } from "@shivaedev/mcp/stdio.ts";
+
+mcpStdio({ name: "Local integration", version: "1", tools: userTools }).pipe(
+	Layer.provide(Layer.succeed(Identity, { id: "local-user" })),
+	Layer.launch,
+	Effect.provideService(Logger.LogToStderr, true),
+	Effect.provide(NodeServices.layer),
+	NodeRuntime.runMain,
+);
+```
+
+`userTools` is the toolkit Layer declared above. The stdio entry point requires Effect's `Stdio` service, supplied here by `NodeServices.layer` from `@effect/platform-node`. Keep stdout for MCP messages and direct application logs to stderr. The server supports MCP `2026-07-28` and `2025-11-25` over newline-delimited JSON-RPC. Its Layer scope owns the transport and handlers: cancelling a tool call releases its scoped resources, and closing the client stops the child process and releases in-flight tool resources.
+
+Stdio uses the services supplied by the local application. It does not run the HTTP session policy or select permission-based audiences; the application chooses which toolkits and identity services to provide to its local client.
 
 ### Connect OAuth to identity and the host
 

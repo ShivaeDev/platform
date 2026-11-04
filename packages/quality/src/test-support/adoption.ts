@@ -17,7 +17,6 @@ interface Adoption {
 }
 
 export const adoption = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const root = qualityTree([
@@ -60,7 +59,7 @@ export const adoption = storyKit({
 });
 
 function recordDebt(root: string) {
-	return Effect.promise(() => runQuality(root, "baseline", "write")).pipe(
+	return runQuality(root, "baseline", "write").pipe(
 		Effect.flatMap((result) => (result.status === 0 ? Effect.void : Effect.die(new Error(result.stdout + result.stderr)))),
 	);
 }

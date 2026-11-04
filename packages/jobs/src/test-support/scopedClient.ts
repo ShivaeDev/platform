@@ -36,7 +36,7 @@ function holdStartup(client: PgBossClient, entered: Deferred.Deferred<void>, res
 
 export const scopedClient = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const { url } = yield* PostgresTestDatabase;
 		const sql = yield* SqlClient.SqlClient;

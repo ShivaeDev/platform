@@ -19,8 +19,10 @@ export const knipRunning = qualityLifecycle.trait(
 		writeFileSync(join(engine.root, "package.json"), JSON.stringify({ name: "app", scripts: { test: "vitest run" }, type: "module" }));
 		writeFileSync(
 			join(engine.root, "vitest.config.mjs"),
-			`console.error("knip config ready");
-setInterval(() => {}, 1000);
+			`import { MessageChannel } from "node:worker_threads";
+const { port1 } = new MessageChannel();
+port1.on("message", () => {});
+console.error("knip config ready");
 await new Promise(() => {});
 export default {};
 `,

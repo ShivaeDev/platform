@@ -26,7 +26,7 @@ export const connections = storyKit({
 			engine.before = yield* engine.state();
 		}),
 	},
-	clock: "live",
+	clock: "test",
 	create: createConnectionEngine,
 	inspect: ({ before, name, outcome }) => ({ before, name, outcome }),
 	layer: NodeServices.layer,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.0 - 2026-11-03
+
+### Added
+
+- Add the scoped `WorkerReleaseTesting` hook for host stories to control lease time and await release checks.
+
 ## 0.35.0 - 2026-11-03
 
 ### Breaking

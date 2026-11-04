@@ -30,11 +30,13 @@ export type Fixture =
 	| "outcomeStories"
 	| "quotedStories"
 	| "refusingStories"
+	| "restartedStories"
 	| "scopedStories"
 	| "screenWaitStories"
 	| "timerStories"
 	| "tracingStories"
 	| "unlocatedStories"
+	| "uninspectedStories"
 	| "unroutedDomStories"
 	| "unroutedNodeStories";
 
@@ -70,7 +72,7 @@ function outcomeOf(result: StoryResult): string {
 }
 
 export const storyRunner = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const directory = yield* Effect.acquireRelease(
 			Effect.sync(() => mkdtempSync(join(tmpdir(), "test-story-runner-"))),

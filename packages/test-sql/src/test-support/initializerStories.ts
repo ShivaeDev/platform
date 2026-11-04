@@ -16,7 +16,7 @@ function initializerKit(source: InitializerSource) {
 	const { layer, preparation } = initializerLayer(source);
 	return storyKit({
 		after: { database: (engine) => engine.acquire },
-		clock: "live",
+		clock: "test",
 		create: () => storyDatabase(),
 		inspect: () => ({ preparation }),
 		layer,

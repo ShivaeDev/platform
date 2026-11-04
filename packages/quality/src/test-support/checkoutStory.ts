@@ -25,7 +25,6 @@ export const checkoutStory = storyKit({
 			engine.root = join(engine.repository.root, engine.layout.folder);
 		},
 	},
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(Effect.sync(emptyCheckout), ({ repository }) =>
 			Effect.sync(() => {

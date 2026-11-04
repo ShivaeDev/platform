@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
-import { fleetRecords } from "#fleetRecords.ts";
+import { fleetRecords, fleetScheduling } from "#fleetRecords.ts";
 import type { DispatchNow } from "#model.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
@@ -50,7 +50,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 	}
 	function locked<A, E, R>(workId: string, body: Effect.Effect<A, E, R>) {
 		return commit(
-			[fleetRecords.list, fleetRecords.item(workId)],
+			[fleetRecords.list, fleetRecords.item(workId), fleetScheduling.list, fleetScheduling.item(workId)],
 			sql`select pg_advisory_xact_lock(hashtextextended(${`${namespace}:dispatch:${workId}`}, 0))`.pipe(Effect.andThen(body)),
 		);
 	}

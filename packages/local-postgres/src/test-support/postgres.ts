@@ -5,7 +5,7 @@ import { postgresVerbs, shown } from "#test/postgresVerbs.ts";
 
 export const postgresDefinition = {
 	after: { machine: connectCli },
-	clock: "live" as const,
+	clock: "test" as const,
 	create: () => createPostgres,
 	inspect: (engine: PostgresEngine) => ({ calls: engine.calls.map(shown), environment: engine.environment, outcome: engine.outcome }),
 	layer: NodeServices.layer,

@@ -1,7 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
@@ -9,9 +8,10 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bind } from "#bind.ts";
 import { ClientOffline, Guard, Records } from "./queryFailureContract.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export const queryFailureStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const access = { offline: false };
 		const services = yield* Layer.build(
@@ -34,10 +34,11 @@ export const queryFailureStory = storyKit({
 				RpcMiddleware.layerClient(Guard, ({ next, request }) => (access.offline ? Effect.fail(new ClientOffline()) : next(request))),
 			),
 		);
+		const runtime = yield* storyRuntime;
 		class Client extends AtomRpc.Service<Client>()("test/QueryFailureClient", {
 			group: Records,
 			protocol,
-			runtime: Atom.context({ memoMap: Layer.makeMemoMapUnsafe() }),
+			runtime,
 		}) {}
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),

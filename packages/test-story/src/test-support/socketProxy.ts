@@ -10,7 +10,7 @@ import { ReadPage, readPageHost } from "#test/readPageHost.ts";
 
 export const socketProxy = storyKit({
 	around: (effect) => Effect.scoped(ipv4OnlySockets.pipe(Effect.andThen(effect))),
-	clock: "live",
+	clock: "test",
 	*create() {
 		const host = yield* readPageHost;
 		const upstream = new URL(host.url).origin;

@@ -1,9 +1,10 @@
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenDriverOptions, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { refusal } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
 import { type LoadingIndicator, LoadingPage } from "./LoadingPage.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -11,6 +12,7 @@ expectNoReactWarnings();
 
 interface State {
 	budgets: Pick<ScreenDriverOptions, "loadingTimeoutMs" | "timeoutMs">;
+	clock: Effect.Success<typeof drivenClock>;
 	delay: number;
 	hidden: boolean;
 	indicator: LoadingIndicator;
@@ -18,17 +20,37 @@ interface State {
 	view?: Rendered;
 }
 
+function readyAfter(state: State) {
+	return (ready: () => void) => {
+		const fiber = Effect.runFork(
+			Effect.sleep(state.delay).pipe(
+				Effect.andThen(
+					Effect.sync(() => {
+						act(ready);
+					}),
+				),
+				Effect.provideService(Clock.Clock, state.clock.boundary),
+			),
+		);
+		return () => fiber.interruptUnsafe();
+	};
+}
+
 export const loadingScreen = storyKit({
 	after: {
 		*screen(state) {
 			state.view = yield* Effect.acquireRelease(
-				Effect.promise(() => render(<LoadingPage {...state} />)),
+				Effect.promise(() => render(<LoadingPage {...state} onReady={readyAfter(state)} />)),
 				(view) => Effect.promise(view.unmount),
 			);
 		},
 	},
-	clock: "live",
-	create: (): State => ({ budgets: { loadingTimeoutMs: 500, timeoutMs: 40 }, delay: 120, hidden: false, indicator: "none", missing: false }),
+	clock: "test",
+	create: () =>
+		Effect.map(
+			drivenClock,
+			(clock): State => ({ budgets: { loadingTimeoutMs: 500, timeoutMs: 40 }, clock, delay: 120, hidden: false, indicator: "none", missing: false }),
+		),
 	inspect: ({ view }) => ({ screen: view?.container.ownerDocument.body.innerHTML }),
 	name: "loading screen",
 	stages: ["screen"],
@@ -45,9 +67,9 @@ export const loadingScreen = storyKit({
 		let elapsed = 0;
 		function timed<A>(action: Effect.Effect<A>) {
 			return Effect.gen(function* () {
-				const started = performance.now();
-				const result = yield* action;
-				elapsed = performance.now() - started;
+				const started = state.clock.boundary.currentTimeMillisUnsafe();
+				const result = yield* state.clock.drive(action);
+				elapsed = state.clock.boundary.currentTimeMillisUnsafe() - started;
 				return result;
 			});
 		}

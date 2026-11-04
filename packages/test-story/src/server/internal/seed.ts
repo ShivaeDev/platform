@@ -5,20 +5,15 @@ import type * as Scope from "effect/Scope";
 import * as Tracer from "effect/Tracer";
 import type { AnyTestLayer, EffectClock } from "@shivaedev/test/types.ts";
 import { refusal } from "#server/internal/errors.ts";
-import { type AnyEffect, type EffectHook, type Hook, hooked } from "#server/internal/hooked.ts";
+import { type AnyEffect, type EffectHook, hooked } from "#server/internal/hooked.ts";
 import { type Narration, tellGiven } from "#server/internal/narration.ts";
 import type { LooseRunHooks } from "#server/internal/runUntil.ts";
 import type { Parts } from "#server/internal/traits.ts";
-import type { RunUntilOptions } from "#server/storyKit.ts";
+import type { Story } from "#server/storyKit.ts";
 
 export type LooseTrait = Parts<string, (engine: unknown) => Effect.Effect<void, unknown, unknown>>;
 
-export interface LooseStory {
-	readonly engine: unknown;
-	readonly lines: readonly string[];
-	readonly runUntil: (until: Hook<[engine: unknown], AnyEffect, boolean>, options?: RunUntilOptions) => Effect.Effect<void, unknown, unknown>;
-	readonly tell: (line: string) => void;
-}
+export type LooseStory = Story<unknown, AnyEffect, string>;
 
 export interface LooseDefinition {
 	readonly after?: Readonly<Partial<Record<string, EffectHook<[engine: unknown], AnyEffect, unknown>>>>;
@@ -36,16 +31,24 @@ export interface LooseDefinition {
 	readonly verbs: (engine: unknown, story: LooseStory) => object;
 }
 
-export const seed = Effect.fnUntraced(function* (
+export const seed = Effect.fnUntraced(function* <A>(
 	definition: LooseDefinition,
 	engine: unknown,
 	narration: Narration,
 	given: readonly LooseTrait[],
-	body: Effect.Effect<unknown, unknown, unknown>,
+	body: Effect.Effect<A, unknown, unknown>,
 	onFailure: (cause: Cause.Cause<unknown>) => Effect.Effect<unknown, never, unknown>,
+	initial = true,
 ) {
 	const parts = given.flatMap((each) => each.parts);
-	tellGiven(narration, parts);
+	const offset = narration.lines.length;
+	if (initial) {
+		tellGiven(narration, parts);
+	} else {
+		for (const part of parts) {
+			narration.tellAt(part.line, part.site);
+		}
+	}
 	const stage = Effect.fnUntraced(function* (name: string) {
 		for (const [index, part] of parts.entries()) {
 			if (part.stage === name) {
@@ -55,7 +58,7 @@ export const seed = Effect.fnUntraced(function* (
 							return Effect.interrupt;
 						}
 						const thrown = Cause.squash(cause);
-						narration.refused = { cause: thrown, index };
+						narration.refused = { cause: thrown, index: offset + index };
 						return Effect.die(refusal(definition.name, part.line, thrown));
 					}),
 				);
@@ -67,7 +70,7 @@ export const seed = Effect.fnUntraced(function* (
 		}
 		return undefined;
 	});
-	function remaining(index: number): Effect.Effect<unknown, unknown, unknown> {
+	function remaining(index: number): Effect.Effect<A, unknown, unknown> {
 		const name = definition.stages[index];
 		if (name === undefined) {
 			return body.pipe(Effect.tapCause(onFailure));

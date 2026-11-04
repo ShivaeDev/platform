@@ -19,7 +19,7 @@ for (const partition of [false, true]) {
 			enqueuedUntil(Mail, { id: 42 }, { as: "mail 42" }, "failed"),
 			enqueuedUntil(Mail, { id: 7 }, { as: "mail 7" }, "failed"),
 		],
-		function* ({ listed, listedNames, open, retry, untilJob, untilWaiting }) {
+		function* ({ listed, listedNames, open, retry, untilJob, untilWaiting, pollNow }) {
 			expect(yield* listed("app", "dead-lettered", Mail)).toMatchObject({
 				jobs: [
 					expect.objectContaining({ job: "copy of mail 7", queue: "mail-dlq-dlq", sourceQueue: "mail-dlq" }),
@@ -28,6 +28,7 @@ for (const partition of [false, true]) {
 			});
 
 			yield* retry("app", "mail 42");
+			yield* pollNow("app", Mail);
 			yield* untilWaiting("delivery");
 
 			expect(yield* listedNames("app", "dead-lettered", Mail)).toEqual(["copy of mail 7", "copy of mail 42"]);

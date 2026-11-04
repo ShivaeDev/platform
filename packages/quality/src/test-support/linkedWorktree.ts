@@ -101,7 +101,7 @@ export function linkedWorktree(name: string, { dependencies = true, files = [], 
 
 export function hookInstalled() {
 	return checkoutStory.trait("hook", "quality hooks install has installed quality's pre-commit hook", function* (engine) {
-		const run = yield* Effect.promise(() => runQuality(engine.root, "hooks", "install"));
+		const run = yield* runQuality(engine.root, "hooks", "install");
 		if (run.status !== 0) {
 			return yield* Effect.die(new Error(`quality hooks install failed: ${run.stderr}`));
 		}

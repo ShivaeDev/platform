@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 import { Config, Effect, Option } from "effect";
 
 const HEAVY_ENV = Object.fromEntries(
@@ -20,6 +21,10 @@ export const ISOLATED_ENV = {
 	"PATH": Effect.runSync(Config.String("PATH")),
 };
 
+export function isolatedEnvironment(root: string) {
+	return { ...ISOLATED_ENV, "HEAVY_PROCESS_LOCK": resolve(root, "heavy.lock") };
+}
+
 const SETTINGS = [
 	"user.name=Quality",
 	"user.email=quality@example.invalid",
@@ -32,7 +37,7 @@ export function git(root: string, ...args: readonly string[]): string {
 	return execFileSync("git", [...SETTINGS.flatMap((setting) => ["-c", setting]), ...args], {
 		cwd: root,
 		encoding: "utf8",
-		env: ISOLATED_ENV,
+		env: isolatedEnvironment(root),
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 }
@@ -46,7 +51,7 @@ export function mergeBranch(root: string, branch: string): "merged" | "conflicte
 	const result = spawnSync("git", [...SETTINGS.flatMap((setting) => ["-c", setting]), "merge", "--quiet", "--no-edit", branch], {
 		cwd: root,
 		encoding: "utf8",
-		env: ISOLATED_ENV,
+		env: isolatedEnvironment(root),
 	});
 	if (result.status !== 0 && result.status !== 1) {
 		throw new Error(`git merge failed: ${result.error ?? result.stderr}`);

@@ -142,7 +142,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | `stages`               | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile.                                                                                                                                                                                           |
 | `after`                | Optional. A hook per stage that runs once that stage's traits are applied, even when no trait names the stage, so a value it derives is ready before a later stage reads it. A returned native Effect Context provides services to later stages and the body. Its typed failure fails the test.                           |
 | `run`                  | Optional. What `story.runUntil` needs: `step(engine, tell)` advances the engine once and tells what happened, `maxSteps` caps one run, `failed(engine)` returns a sentence when the engine is in a state it cannot recover from, and `diagnose(engine)` says why it has not finished.                                     |
-| `inspect`              | Optional. The part of the engine a failure prints. Without it, the failure prints the whole engine.                                                                                                                                                                                                                       |
+| `inspect`              | Optional. The part of the engine a failure prints. Without it, the failure prints a bounded summary without invoking custom inspectors or getters.                                                                                                                                                                        |
 | `verbs(engine, story)` | One action or one observation per verb. A verb that waits for a stepped engine returns the Effect from `story.runUntil`; the spec reads observations and asserts separately.                                                                                                                                              |
 
 Every test of the kit is named `Bakery Story: <its name>`, so `vitest run -t "Bakery Story: "` runs only the bakery's stories with no setup. A project that splits runs by Vitest tags can also tag them:
@@ -416,7 +416,7 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
+`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. HTTP stories use the kit’s controlled clock and wait for request or response signals; the same clock controls the fake’s reply time.
 
 Use the controls through kit verbs after acquiring the service. `scriptFault(route, { kind: "status", reply })` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
@@ -550,7 +550,29 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 });
 ```
 
-`kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. A spec reads the engine through the kit's readouts rather than `story.engine`, so each check names what it observes. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
+`kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)`, `runUntil`, `apply(traits)` and `restart(traits)`. A spec reads the engine through the kit's readouts rather than `story.engine`, so each check names what it observes. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
+
+`story` in a spec carries the kit's stage and verb types. `Story<Engine, Run, Stage, Verbs>` is the explicit form when a helper needs those controls; an existing `Story<Engine, Run>` annotation remains usable for engine reads, narration and `runUntil`.
+
+`yield* story.apply(traits)` applies more traits to the current engine, using the kit's stage order and running each stage's `after` hook again. Bundles open in place and tell their lines at this point in the story. A refusal marks the mid-story trait that failed.
+
+`yield* story.restart(traits)` creates a fresh engine from the same kit, applies the supplied traits and returns its verbs and `story`. It uses the current test's layer and Scope. Earlier engines stay readable; their resources and the restarted engine's resources close in reverse acquisition order when the test ends.
+
+```ts
+bakery.it("compares two ovens and adds dough after baking", [ovenIsLit(), hasDough(1)], function* ({ oven, story }) {
+	yield* oven.bakesEverything();
+	expect(oven.loaves()).toBe(1);
+
+	const second = yield* story.restart([ovenIsLit(), hasDough(2)]);
+	yield* second.oven.bakesEverything();
+	expect(second.oven.loaves()).toBe(2);
+	expect(oven.loaves()).toBe(1);
+
+	yield* second.story.apply([hasDough(1)]);
+	yield* second.oven.bakesEverything();
+	expect(second.oven.loaves()).toBe(3);
+});
+```
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
@@ -817,7 +839,7 @@ When traits choose an empty or migrated starting database, use test-sql's [`stor
 
 For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/test-sql/server/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/test-sql/README.md) for template preparation and both wrappers.
 
-React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events; the screen driver's `settle()` waits on the application's pending signal and flushes React before readouts. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
+React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events; the screen driver's `settle()` waits on the application's pending signal and flushes React before readouts. Keep the kit’s controlled clock for HTTP and DOM stories too; advance timers through verbs and observe completion signals. `runUntil` is for engines with a meaningful step hook. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
 
 For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. An `inspect` hook may read engine state through an Effect or generator, using the kit’s layer before the story’s Scope closes.
 
@@ -848,7 +870,7 @@ import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 
 const cookieApp = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const { baseUrl } = yield* startHost();
 		const fetch = domFetch(baseUrl);
@@ -1082,6 +1104,7 @@ Test-story is an application's one test dependency: it brings [`@shivaedev/test`
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - Engine creation failures name the kit and the create phase and include a rerun command. Layer acquisition failures precede the story and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
+- Without `inspect`, the failure prints a summary with depth 2, at most 10 array entries and 200 characters per string, capped at 2,000 characters plus an ellipsis. Custom inspectors and getters are not invoked. The report suggests adding `inspect` for the state needed to diagnose the failure. Composed kits summarize features without an inspect hook too.
 - `inspect` runs when the story fails, before its Scope closes. If only cleanup fails, it runs after cleanup with the kit's services. Plain functions, generators and functions returning an Effect are supported.
 - The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.
 - The package is built for ShivaeDev applications and may change without a deprecation period.

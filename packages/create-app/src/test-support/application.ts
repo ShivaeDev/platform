@@ -27,7 +27,6 @@ export const application = storyKit({
 			yield* Effect.sync(() => appFolder(engine.root, engine.options));
 		},
 	},
-	clock: "live",
 	*create() {
 		return yield* createEngine();
 	},

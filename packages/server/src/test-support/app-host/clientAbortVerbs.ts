@@ -16,7 +16,7 @@ function probeOf(state: HostState): ClientAbortState {
 	}
 	return state.clientAbort;
 }
-function rpcFetch(state: HostState, method: string, signal: AbortSignal) {
+function rpcFetch(state: HostState, method: string, signal: AbortSignal | null = null) {
 	return fetch(`${state.url}/rpc`, {
 		body: `${JSON.stringify({ _tag: "Request", headers: [["x-request-id", `abort-${method}`]], id: "0", payload: method === "hold" || method === "watch" ? { password: "abort-secret" } : null, tag: method })}\n`,
 		headers: { "content-type": "application/ndjson" },
@@ -25,7 +25,7 @@ function rpcFetch(state: HostState, method: string, signal: AbortSignal) {
 	});
 }
 function call(state: HostState, method: "rows" | "commit") {
-	return io(async () => wireAnswers(await (await rpcFetch(state, method, AbortSignal.timeout(5000))).text())["0"]);
+	return io(async () => wireAnswers(await (await rpcFetch(state, method)).text())["0"]);
 }
 function hintKind(chunk: string): string {
 	const message: unknown = JSON.parse(chunk.trim().split("\n")[0] ?? "null");

@@ -18,7 +18,7 @@ const byPriority = { handsBatchesOver: "by priority" } as const;
 database.it(
 	"an attempt that interrupts itself keeps the jobs before it completed and leaves itself and the rest of its batch active",
 	[batch],
-	function* ({ attempts, start, storedStates, untilInterrupted }) {
+	function* ({ attempts, start, storedStates, timePasses, untilInterrupted }) {
 		expect(yield* storedStates("interrupted")).toEqual({ "job 0": "created", "job 1": "created", "job 2": "created" });
 
 		yield* start("app", [interrupting], byPriority);
@@ -28,15 +28,19 @@ database.it(
 			["attempts", () => attempts(Interrupted), ["job 0", "job 1"]],
 			["stored states", () => storedStates("interrupted"), { "job 0": "completed", "job 1": "active", "job 2": "active" }],
 		]);
+		yield* timePasses("2 seconds");
+		yield* timePasses("500 millis");
 	},
 );
 
 database.it(
 	"pg-boss fails the interrupted job and the rest of its batch once they expire",
 	[batch, running("app", [interrupting], byPriority), interrupted(Interrupted, 1)],
-	function* ({ job, storedStates, untilSettled }) {
+	function* ({ job, storedStates, timePasses, untilSettled }) {
 		expect(yield* storedStates("interrupted")).toEqual({ "job 0": "completed", "job 1": "active", "job 2": "active" });
 
+		yield* timePasses("2 seconds");
+		yield* timePasses("500 millis");
 		yield* untilSettled(Interrupted, 3);
 
 		yield* outcomes([

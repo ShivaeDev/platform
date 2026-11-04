@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Clock, DateTime, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -32,7 +32,7 @@ function receiptJobName(state: InboxState, id: string) {
 export const inbox = storyKit({
 	after: { host: startHost },
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-10-01T12:00:00Z"),
 	create: () => inboxState(undefined),
 	inspect: ({ answers, handled }) => ({ answers, handled }),
 	layer: postgresLayer,
@@ -57,9 +57,11 @@ export const inbox = storyKit({
 		storedReceipts: () =>
 			Effect.gen(function* () {
 				yield* workersIdle(state);
-				const rows = yield* SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by source, delivery_id`.withoutTransform).pipe(
-					Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))),
-				);
+				const rows = yield* SqlClient.SqlClient.use(
+					(sql) =>
+						sql`select * from ${sql(state.receiptsSchema === undefined ? "webhook_receipts" : `${state.receiptsSchema}.webhook_receipts`)} order by source, delivery_id`
+							.withoutTransform,
+				).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))));
 				return rows.map((row) => ({
 					delivery: row.deliveryId,
 					event: row.event,
@@ -68,6 +70,14 @@ export const inbox = storyKit({
 					source: row.source,
 				}));
 			}),
+		storedReceiptTables: () =>
+			SqlClient.SqlClient.use((sql) =>
+				sql<{ name: string }>`select n.nspname || '.' || c.relname as name from pg_class c
+				join pg_namespace n on n.oid = c.relnamespace
+				where c.relname in ('webhook_receipts', 'webhook_receipts_migrations') order by name`.pipe(
+					Effect.map((rows) => rows.map(({ name }) => name)),
+				),
+			),
 	}),
 });
 
@@ -92,8 +102,9 @@ export const firstReceiptUpdateFails = inbox.trait("inbox", "the first copy to u
 export function senderOptIn(expiry: "future" | "past") {
 	return inbox.trait("inbox", `the sender's opt-in expires in the ${expiry}`, function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const now = yield* Clock.currentTimeMillis;
 		yield* sql`create table webhook_senders (sender text primary key, allowed_until timestamptz not null)`;
-		yield* sql`insert into webhook_senders values ('alice', now() + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
+		yield* sql`insert into webhook_senders values ('alice', to_timestamp(${now} / 1000.0) + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
 	});
 }
 
@@ -108,3 +119,9 @@ export const mappingWaitsForResource = inbox.trait("inbox", "the mapping must wa
 export const mappingRefusesDelivery = inbox.trait("inbox", "the mapping refuses the delivery after acquiring a resource", (state) => {
 	state.resources.refused = true;
 });
+
+export function receiptsInSchema(schema: string) {
+	return inbox.trait("host", `receipts belong to schema ${schema}`, (state) => {
+		state.receiptsSchema = schema;
+	});
+}

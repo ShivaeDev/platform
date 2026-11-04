@@ -7,6 +7,7 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { clientReadKeys } from "#clientKeys.ts";
 import { live } from "#live.ts";
 import { hintWords } from "./answers.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 import { Notes, notes, viewerEngine } from "./viewerEngine.ts";
 
 const slowConsumerEngine = Effect.gen(function* () {
@@ -14,10 +15,12 @@ const slowConsumerEngine = Effect.gen(function* () {
 	const stalled = yield* Deferred.make<void>();
 	const resumed = yield* Deferred.make<void>();
 	const received = yield* SubscriptionRef.make<readonly string[]>([]);
+	const runtime = yield* storyRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/SlowConsumer", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: server.layerFor("alice"),
+		runtime,
 	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
@@ -60,7 +63,7 @@ const slowConsumerEngine = Effect.gen(function* () {
 });
 
 export const slowConsumer = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => slowConsumerEngine,
 	inspect: (engine) => ({ received: Effect.runSync(SubscriptionRef.get(engine.received)) }),
 	name: "slow live consumer",

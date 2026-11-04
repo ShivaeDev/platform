@@ -48,7 +48,8 @@ host.it(
 	function* (daemon) {
 		const started = yield* daemon.waitForRecord("one", (current) => current.step === "working");
 		daemon.finishTurn(started, "FLEET_QUESTION: Which storage should I use?");
-		const waiting = yield* daemon.reconcile("one");
+		yield* daemon.reconcile("one");
+		const waiting = yield* daemon.waitForRecord("one", (record) => record.decision?.published !== undefined);
 		const published = waiting.decision?.published;
 		if (published === undefined) {
 			return yield* Effect.die("Expected a published worker question");

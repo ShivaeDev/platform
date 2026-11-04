@@ -1,7 +1,9 @@
-import { Cause, ConfigProvider, Context, Deferred, Effect, type Fiber, Layer, Logger, References, Tracer } from "effect";
+import { Cause, ConfigProvider, Context, Deferred, Effect, type Fiber, Layer, Logger, Redacted, References, Tracer } from "effect";
 import { HttpServer } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
+import { TestClock } from "effect/testing";
+import { CLOCK_OVERRIDE_SETTING } from "pg-boss";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
@@ -36,6 +38,7 @@ export interface InboxState {
 	host: Fiber.Fiber<void, unknown> | undefined;
 	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
+	receiptsSchema: string | undefined;
 	receiver?: Effect.Success<ReturnType<typeof otlpReceiver>>;
 	readonly resources: ReturnType<typeof mappingResources>;
 	readonly sent: Sent[];
@@ -55,6 +58,7 @@ export function inboxState(mode: InboxState["mode"]): InboxState {
 		host: undefined,
 		logs: [],
 		mode,
+		receiptsSchema: undefined,
 		resources: mappingResources(),
 		sent: [],
 		signingKey: WEBHOOK_SECRET,
@@ -99,6 +103,10 @@ export function hostLayer(state: InboxState) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const { url } = yield* PostgresTestDatabase;
+			const clock = yield* TestClock.testClockWith(Effect.succeed);
+			const databaseUrl = new URL(Redacted.value(url));
+			// Transactional enqueues use the host SQL pool, which must opt into pg-boss's controlled database clock too.
+			databaseUrl.searchParams.set("options", `-c ${CLOCK_OVERRIDE_SETTING}=on`);
 			const registeredSources = {
 				github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } },
 				mirror: sources.github,
@@ -107,14 +115,14 @@ export function hostLayer(state: InboxState) {
 			const signingEnvironment = {
 				...(state.receiver === undefined
 					? {}
-					: { "OTEL_BSP_SCHEDULE_DELAY": "10", "OTEL_EXPORTER_OTLP_ENDPOINT": state.receiver.url, "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" }),
+					: { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1", "OTEL_EXPORTER_OTLP_ENDPOINT": state.receiver.url, "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" }),
 				...(state.signingKey === undefined ? {} : { "WEBHOOK_SECRET": state.signingKey }),
 				"TIMESTAMPED_WEBHOOK_SECRET": TIMESTAMPED_SECRET,
 			};
 			return appHost({
 				application: Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
-					const testing = makePgBossTesting();
+					const testing = makePgBossTesting({ clock });
 					state.testing = testing;
 					const clientLayer = pgBossLayer({
 						clientFactory: testing.clientFactory,
@@ -139,14 +147,15 @@ export function hostLayer(state: InboxState) {
 						routes: webhookRoute({
 							basePath: "/hooks",
 							jobs: Jobs,
+							receiptsSchema: state.receiptsSchema,
 							sources: registeredSources,
 						}).pipe(Layer.provide(jobs), Layer.provide(senderPreferences), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
 						services: jobs,
 					};
 				}),
-				config: { databaseUrl: url },
+				config: { clock, databaseUrl: Redacted.make(databaseUrl.toString()) },
 				migrations: {
-					components: [pgBossSchema(), webhookReceipts],
+					components: [pgBossSchema(), webhookReceipts({ schema: state.receiptsSchema })],
 					loader: Migrator.fromRecord({}),
 					...(state.mode === undefined ? {} : { mode: state.mode }),
 					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),

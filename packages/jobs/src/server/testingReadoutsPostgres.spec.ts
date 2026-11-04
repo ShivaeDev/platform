@@ -85,8 +85,11 @@ database.it(
 		running("app", [scheduled(Cleanup, "hangs", "succeeds")], { controller: "test retries", schedule: false }),
 		controlled((testing) => testing.expireIn(Cleanup, "1 second"), "expire cleanup attempts after one second"),
 	],
-	function* ({ job, triggerRun, untilIdle }) {
+	function* ({ job, triggerRun, timePasses, untilAttempts, untilIdle }) {
 		yield* triggerRun("app", Cleanup, "retried run");
+		yield* untilAttempts(Cleanup, 1);
+		yield* timePasses("1 second");
+		yield* timePasses("500 millis");
 		yield* untilIdle("app");
 
 		expect(yield* job("retried run")).toMatchObject({ expireInSeconds: 1, retryCount: 1, state: "completed" });

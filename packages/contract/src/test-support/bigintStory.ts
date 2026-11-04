@@ -15,6 +15,7 @@ import type { QueryReference } from "#serverMetadata.ts";
 import { shown, times } from "./answers.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 const records = collection("bigint-records", Schema.String);
 const Get = query("get", {
@@ -52,10 +53,12 @@ const bigintEngine = Effect.gen(function* () {
 				stored.get(id) ?? "Missing",
 			),
 	});
+	const runtime = yield* storyRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/BigintRecords", {
 		group: Records,
 		makeEffect: RpcTest.makeClient(Records, { flatten: true }),
 		protocol: handlers,
+		runtime,
 	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
@@ -81,7 +84,7 @@ function referenceWords(reference: QueryReference) {
 }
 
 export const bigintStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => bigintEngine,
 	inspect: (engine) => ({
 		reads: Effect.runSync(SubscriptionRef.get(engine.reads)).map(String),

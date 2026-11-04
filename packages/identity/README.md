@@ -36,38 +36,46 @@ There are three parts to an authenticated RPC boundary:
 
 An **Origin policy** is a function of the transport request's origin, headers and RPC name. A **session provider** returns `Option<Session>` or fails with `AuthUnavailable`; a session carries `user.id`. These are application inputs, not a second authentication framework. Better Auth is the supported provider, mounted through `server/better-auth/`.
 
-### Once per application: contracts and session policy
+### Declared request subjects
 
-Declare the RPC group in a shared module:
+A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`, so service methods can read the caller without an actor argument.
 
 ```ts
 import { Effect, Schema } from "effect";
-import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { Identity } from "@shivaedev/identity/identity.ts";
-import { Authenticated } from "@shivaedev/identity/middleware.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { command } from "@shivaedev/contract/operation.ts";
+import { selfSubject, Subject } from "@shivaedev/identity/subject.ts";
 
-export const Account = RpcGroup.make(
-	Rpc.make("ReadOwn", {
-		error: Forbidden,
-		payload: { userId: Schema.String },
-		success: Schema.String,
-	}),
-).middleware(Authenticated);
-
-export const Handlers = Account.toLayer({
-	ReadOwn: ({ userId }) =>
-		Effect.gen(function* () {
-			const identity = yield* Identity;
-			if (identity.id !== userId) {
-				return yield* new Forbidden({ message: "Not your account" });
-			}
-			return identity.id;
-		}),
+const Save = command("save", { payload: { title: Schema.String }, success: Schema.String, invalidates: () => [] });
+export const Account = contract("account", { commands: [Save], subject: selfSubject });
+export const Handlers = Account.application.toLayer({
+	"account.save": ({ title }) => Effect.map(Subject, ({ id }) => `${id}: ${title}`),
 });
 ```
 
-The middleware declaration makes `Identity` available to guarded handlers and adds `Unauthorized`, `AuthUnavailable` and `Forbidden` to the client's failure type. An unguarded handler that requires `Identity` cannot become a service-free handler Layer. Keep the group declaration in the shared module and the handler implementation on the server when organizing application files.
+For delegation, use `accountSubject` with an application permission and a typed refusal:
+
+```ts
+import { Schema } from "effect";
+import { permission } from "@shivaedev/access/permission.ts";
+import { accountSubject } from "@shivaedev/identity/subject.ts";
+
+const EditAccount = permission("accounts.edit");
+class CannotActForAccount extends Schema.TaggedError<CannotActForAccount>()("CannotActForAccount", { account: Schema.String }) {}
+const delegated = accountSubject({
+	permission: EditAccount,
+	refusal: CannotActForAccount,
+	deny: (account) => new CannotActForAccount({ account }),
+});
+```
+
+Pass `subject: delegated` to the contract. A delegated request selects the account with the `x-platform-subject` transport header; omitting it selects the session account. Acting on another account requires the named permission's `any` grant. An `own` grant does not authorize another account. A refusal reaches the native client as the declared error instance before the handler runs. `Identity` and `SessionUser` still describe the actor when `Subject` describes another account. The session provider must supply the `SessionUserSchema` profile fields, as for `AuthenticatedUser`.
+
+`appHost` installs `subjectResolverLayer()` from `@shivaedev/identity/server/subjectResolverLayer.ts` for session hosts. Custom native RPC hosts provide that Layer with their `SessionPolicy` and install `subjectLayers(group)` from `@shivaedev/contract/subjectLayers.ts` when building the native RPC server. The subject declaration includes authentication failures in the client's error type; it needs no separate authentication middleware.
+
+### Once per application: contracts and session policy
+
+Declare authentication middleware for actor-only boundaries. When a request acts on an account's data, declare its subject on the contract instead of accepting an owner id and checking it in each handler.
 
 Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, permission routes and session resolution read that service from the Effect environment. For a Better Auth provider, adapt its existing session lookup:
 
@@ -240,7 +248,7 @@ The native `emailAndPassword.onPasswordReset` callback runs first. An Effect fai
 
 ### User directory
 
-Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
+Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. Setting `authOptions.user.modelName` to `"users"` directs directory reads to that table, including the admin Users view and its pagination. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
 
 ```ts
 import { UserDirectory } from "@shivaedev/identity/server/UserDirectory.ts";
@@ -671,7 +679,7 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Identity`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
+For self-only features, declare `contract("preferences", { keyScope: "session", subject: selfSubject, queries, commands })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
 The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 

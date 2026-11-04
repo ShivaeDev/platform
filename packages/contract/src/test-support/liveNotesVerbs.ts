@@ -1,5 +1,7 @@
 import { Effect, Fiber, Ref, Stream, SubscriptionRef } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
@@ -159,6 +161,10 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				story.tell("the server ends the live stream and the client reconnects");
 				const before = yield* hintsHandled(engine);
 				yield* Effect.promise(server.disconnect);
+				yield* until(AtomRegistry.toStream(registry, engine.client.status), (status) => status.connection === "reconnecting", {
+					name: "reconnecting live stream",
+				});
+				yield* TestClock.adjust("200 millis");
 				yield* untilHandledBeyond(engine, before);
 			}),
 		streamDropsWhileRefused: () => {

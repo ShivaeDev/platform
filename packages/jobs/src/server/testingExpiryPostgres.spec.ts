@@ -18,10 +18,14 @@ const expiringAfterOneSecond = controlled((testing) => testing.expireIn(Stuck, "
 database.it(
 	"an attempt stuck past the controller's expiry is interrupted and its retry completes",
 	[running("app", [worker(Stuck, "hangs", "succeeds")], { controller: "test retries" }), expiringAfterOneSecond],
-	function* ({ enqueue, interruptions, job, untilJob }) {
+	function* ({ enqueue, interruptions, job, timePasses, untilAttempts, untilJob, pollNow }) {
 		expect(yield* interruptions(Stuck)).toEqual([]);
 
 		yield* enqueue("app", Stuck, { id: 7 }, { as: "job" });
+		yield* pollNow("app", Stuck);
+		yield* untilAttempts(Stuck, 1);
+		yield* timePasses("1 second");
+		yield* timePasses("500 millis");
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([
@@ -34,10 +38,17 @@ database.it(
 database.it(
 	"an attempt stuck through every retry is dead-lettered with pg-boss's handler timeout",
 	[running("app", [worker(Stuck, "hangs")], { controller: "test retries" }), expiringAfterOneSecond],
-	function* ({ deadLettered, enqueue, interruptions, job, untilDeadLettered }) {
+	function* ({ deadLettered, enqueue, interruptions, job, timePasses, untilAttempts, untilDeadLettered, pollNow }) {
 		expect(yield* deadLettered(Stuck)).toEqual([]);
 
 		yield* enqueue("app", Stuck, { id: 8 }, { as: "job", retryLimit: 1 });
+		yield* pollNow("app", Stuck);
+		yield* untilAttempts(Stuck, 1);
+		yield* timePasses("1 second");
+		yield* timePasses("500 millis");
+		yield* untilAttempts(Stuck, 2);
+		yield* timePasses("1 second");
+		yield* timePasses("500 millis");
 		yield* untilDeadLettered(Stuck, 1);
 
 		yield* outcomes([

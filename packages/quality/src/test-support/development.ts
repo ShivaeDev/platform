@@ -24,7 +24,6 @@ function forwarded(answer: Answer | undefined) {
 }
 
 export const development = storyKit({
-	clock: "live",
 	*create() {
 		const host = createServer((request, response) => {
 			response.setHeader("content-type", "application/json");

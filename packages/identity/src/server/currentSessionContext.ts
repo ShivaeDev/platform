@@ -4,9 +4,9 @@ import { SessionUser, SessionUserSchema, SessionUserWithProviderAccounts } from 
 import { providerAccountsUser } from "./providerAccountsUser.ts";
 import type { SessionShape } from "./session.ts";
 
-export const currentSessionContext = Effect.fnUntraced(function* <TSession extends SessionShape, R>(
+export const currentSessionContext = Effect.fnUntraced(function* <TSession extends SessionShape, R, E = AuthUnavailable | Forbidden>(
 	id: string,
-	lookup: Effect.Effect<Option.Option<TSession>, AuthUnavailable | Forbidden, R>,
+	lookup: Effect.Effect<Option.Option<TSession>, E, R>,
 ) {
 	const session = yield* lookup;
 	if (Option.isNone(session) || session.value.user.id !== id) {

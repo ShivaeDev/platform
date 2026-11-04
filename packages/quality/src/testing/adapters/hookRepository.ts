@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
 import { shellWords } from "#hooks/command.ts";
 import { qualityArgs, type Run } from "./cli.ts";
-import { commitAll, git, ISOLATED_ENV } from "./git.ts";
+import { commitAll, git, isolatedEnvironment } from "./git.ts";
 import { formatTree } from "./qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile, seedTree } from "./tree.ts";
 
@@ -121,7 +121,11 @@ export function withWorktree(repository: HookRepository, name: string, at?: stri
 }
 
 export function commits(cwd: string, message: string): Run {
-	const result = spawnSync("git", ["commit", "--quiet", "--allow-empty", "--message", message], { cwd, encoding: "utf8", env: ISOLATED_ENV });
+	const result = spawnSync("git", ["commit", "--quiet", "--allow-empty", "--message", message], {
+		cwd,
+		encoding: "utf8",
+		env: isolatedEnvironment(cwd),
+	});
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 

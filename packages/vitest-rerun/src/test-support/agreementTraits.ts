@@ -17,8 +17,8 @@ it('recovers with an unhandled error', async () => {
 	if (attempt === 1) {
 		throw new Error('The first attempt fails');
 	}
-	setTimeout(() => { throw new Error('Unhandled rerun error'); }, 0);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	queueMicrotask(() => { throw new Error('Unhandled rerun error'); });
+	await new Promise((resolve) => queueMicrotask(resolve));
 });
 `),
 		),

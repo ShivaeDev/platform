@@ -52,7 +52,7 @@ export const modulesHost = storyKit({
 		}),
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: (): State => ({ calls: [], replacements: Layer.empty, url: "" }),
 	layer: postgres,
 	name: "application modules",

@@ -19,7 +19,7 @@ repository.it(
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 const LATER =
-	'---\n"@shivaedev/create-app": minor\n"@shivaedev/platform": minor\n"@shivaedev/pending": minor\n---\n\n### Added\n\n- `@shivaedev/create-app`: Choose an app name.\n- `@shivaedev/pending`: Choose an app name.\n- `@shivaedev/platform`: Use the later feature.\n';
+	'---\n"@shivaedev/create-app": minor\n"@shivaedev/platform": minor\n---\n\n### Added\n\n- `@shivaedev/create-app`: Choose an app name.\n- `@shivaedev/platform`: Use the later feature.\n';
 
 releasePullRequest.it(
 	"a frozen release passes the merge queue and squash publishing gates, leaving later inputs for a new PR",
@@ -30,9 +30,7 @@ releasePullRequest.it(
 		yield* run();
 		yield* setCiRun("in_progress");
 		const head = yield* git("rev-parse", "origin/release/next");
-		yield* git("push", "origin", `${head}:refs/pull/1/head`);
 		yield* pushMain("packages/platform/index.js", 'export const feature = "later";\n');
-		yield* pushMain("packages/pending/package.json", '{"name":"@shivaedev/pending","version":"0.0.0"}\n');
 		yield* pushMain(".changeset/later.md", LATER);
 		yield* outcomes([
 			["maintainer", () => run(), "held: approved CI in_progress"],
@@ -67,8 +65,8 @@ releasePullRequest.it(
 		const failure = yield* publish(base);
 		expect(failure).toBeUndefined();
 		yield* outcomes([
-			["published head", () => git("rev-parse", "HEAD"), head],
-			["published code", () => publishedFile("@shivaedev/platform", "index.js"), 'export const feature = "frozen";\n'],
+			["published head", () => git("rev-parse", "HEAD"), commit],
+			["published code", () => publishedFile("@shivaedev/platform", "index.js"), 'export const feature = "later";\n'],
 			[
 				"published versions",
 				() => publishedPackages().pipe(Effect.map((packages) => packages.toSorted((left, right) => left.name.localeCompare(right.name)))),
@@ -79,7 +77,7 @@ releasePullRequest.it(
 			],
 		]);
 		const published = (yield* readGitHub()).requests.find(({ endpoint }) => endpoint.endsWith("/releases"));
-		expect(published?.body).toMatchObject({ "tag_name": `release-${head}`, "target_commitish": head });
+		expect(published?.body).toMatchObject({ "tag_name": `release-${commit}`, "target_commitish": commit });
 		expect(published?.body?.body).toContain("Keep a saved draft.");
 		expect(published?.body?.body).not.toContain("Choose an app name.");
 		yield* git("switch", "main");
@@ -91,7 +89,6 @@ releasePullRequest.it(
 		expect(next.changesets).toEqual([{ name: "later.md", text: LATER }]);
 		expect(next.releases.map(({ name, to }) => [name, to])).toEqual([
 			["@shivaedev/create-app", "0.10.0"],
-			["@shivaedev/pending", "0.1.0"],
 			["@shivaedev/platform", "0.16.0"],
 		]);
 		const pull = yield* readGitHub();

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Rpc, type RpcGroup } from "effect/rpc";
-import { schemaFieldKeys, validateFieldScope } from "#schemaFieldScope.ts";
+import { SensitiveFieldConflict, schemaFieldKeys, validateFieldScope } from "#schemaFieldScope.ts";
 import { maskedValue } from "#schemaSensitiveAst.ts";
 import { isSensitiveKey, REDACTED } from "#sensitive.ts";
 import { wireRedactor } from "#wireRedactor.ts";
@@ -30,10 +30,22 @@ const rpcSensitiveKeys = Effect.fnUntraced(function* (rpc: Rpc.AnyWithProps, ext
 });
 export const schemaSensitiveKeys = Effect.fnUntraced(function* <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, extra: readonly string[] = []) {
 	const policies = new Map<string, Effect.Success<ReturnType<typeof rpcSensitiveKeys>>>();
+	const conflicts: SensitiveFieldConflict["conflicts"][number][] = [];
 	for (const rpc of group.requests.values()) {
 		if (Rpc.isRpc(rpc)) {
-			policies.set(rpc._tag, yield* rpcSensitiveKeys(rpc, extra));
+			const policy = yield* rpcSensitiveKeys(rpc, extra).pipe(
+				Effect.catchTag("SensitiveFieldConflict", (error) => {
+					conflicts.push(...error.conflicts);
+					return Effect.void;
+				}),
+			);
+			if (policy !== undefined) {
+				policies.set(rpc._tag, policy);
+			}
 		}
+	}
+	if (conflicts.length > 0) {
+		return yield* new SensitiveFieldConflict({ conflicts });
 	}
 	function sensitive(key: string) {
 		return extra.includes(key) || isSensitiveKey(key) || [...policies.values()].some((policy) => policy(key));

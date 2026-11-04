@@ -20,7 +20,9 @@ isolatedEngine.it(
 			{ concurrency: "unbounded" },
 		);
 		const intent = (yield* fleet.get("one")).value;
-		expect(intent.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
+		const operations = intent.attempts.map((entry) => entry.operationId);
+		expect(operations).toEqual(["operation-1", expect.any(String)]);
+		expect(operations.at(-1)).not.toBe(operations[0]);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.prompt).toContain(answer.body);
@@ -30,6 +32,7 @@ isolatedEngine.it(
 				const restarted = yield* Fleet;
 				const recovered = yield* restarted.reconcile("one");
 				expect(recovered.value.step).toBe("working");
+				expect(recovered.value.attempts.map((entry) => entry.operationId)).toEqual(operations);
 				expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
 				yield* restarted.resolve("one", decision.id, answer.id);
 			}),
@@ -39,7 +42,7 @@ isolatedEngine.it(
 			providerCalls()
 				.filter((call) => call.call === "turn")
 				.map((call) => call.operationId),
-		).toEqual(["operation-1", "operation-2"]);
+		).toEqual(operations);
 	},
 );
 

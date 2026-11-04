@@ -356,6 +356,8 @@ try {
 }
 ```
 
+`boardLayer` carries RPC schema policy failures in its Layer error channel. `SensitiveFieldConflict` from `@shivaedev/errors/schemaFieldScope.ts` lists every conflicting field in the RPC group in its `conflicts` array and message, with `field`, `publicSchema` and `sensitiveSchema` for each entry.
+
 `boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the human responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests require a loopback host as resolved by Effect's HTTP server; a missing or non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
 
 #### Read and wait from a Node agent

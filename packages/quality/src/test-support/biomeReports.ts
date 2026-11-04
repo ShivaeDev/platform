@@ -5,7 +5,6 @@ import { services } from "#cli/runMain.ts";
 import { removeSeededTrees, seedTree } from "#testing/adapters/tree.ts";
 
 export const biomeReports = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		return { failure: "", root: seedTree([]) };

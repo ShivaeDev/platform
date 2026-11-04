@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.21.0 - 2026-11-03
+
+### Added
+
+- The `hostTime` testing layer advances worker lease time and waits for heartbeat and release checks.
+
+### Fixed
+
+- Worker-release heartbeat and polling timers use the live lifecycle clock by default, so passing an application day does not replay every heartbeat.
+
+### Breaking
+
+- Stories that drive worker-release polling through their application TestClock must now pass that clock as `config.clock` to `appDatabase`, `appHost` or `workerHost`. Use the `hostTime` testing layer and its `timePasses` verb to advance lease timestamps and await release checks.
+
 ## 0.20.2 - 2026-11-03
 
 ### Changed

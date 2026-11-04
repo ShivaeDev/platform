@@ -1,4 +1,5 @@
 import { Deferred, Effect, Layer, Ref, Stream, SubscriptionRef } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "#bind.ts";
@@ -6,7 +7,7 @@ import type { ResumeSource } from "#resume.ts";
 import { Notes } from "./notes.ts";
 import type { notesServer } from "./notesServer.ts";
 
-export function automaticResumeClient(server: Effect.Success<typeof notesServer>, resume?: ResumeSource) {
+export function automaticResumeClient(server: Effect.Success<typeof notesServer>, runtime: Atom.RuntimeFactory, resume?: ResumeSource) {
 	const opened = Effect.runSync(SubscriptionRef.make(0));
 	const active = Effect.runSync(SubscriptionRef.make(0));
 	const ended = Effect.runSync(Effect.flatMap(Deferred.make<void>(), Ref.make));
@@ -27,6 +28,7 @@ export function automaticResumeClient(server: Effect.Success<typeof notesServer>
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: Layer.merge(handlers, server.guard),
+		runtime,
 	}) {}
 	return {
 		active,

@@ -11,7 +11,7 @@ const create = Effect.gen(function* () {
 });
 
 export const sessionStreamsStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	inspect: (engine) => ({ open: Effect.runSync(SubscriptionRef.get(engine.open)), streams: [...engine.streams.keys()] }),
 	name: "session-owned streams",

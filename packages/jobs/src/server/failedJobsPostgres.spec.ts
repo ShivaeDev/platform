@@ -88,10 +88,11 @@ database.it(
 database.it(
 	"failed jobs page newest first, and a later failure does not shift the pages already handed out",
 	fiveFailed,
-	function* ({ enqueue, firstPage, listedNames, remainingPages, untilJob }) {
+	function* ({ enqueue, firstPage, listedNames, remainingPages, untilJob, pollNow }) {
 		expect(yield* firstPage("app", "failed", Listed, 2)).toEqual(["job 5", "job 4"]);
 
 		yield* enqueue("app", Listed, { id: 6 }, { as: "job 6", retryLimit: 0 });
+		yield* pollNow("app", Listed);
 		yield* untilJob("job 6", "failed");
 
 		yield* outcomes([

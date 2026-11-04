@@ -12,11 +12,12 @@ for (const adapter of [
 		derivedReadsStory.it(
 			`a scope-only timeline refreshes when record ${id} in a server-discovered list changes ${adapter.name}`,
 			[...adapter.traits, viewingTimeline],
-			function* ({ edit, shown, waitForBody }) {
+			function* ({ coalescingWindowPasses, edit, shown, waitForBody }) {
 				expect(yield* shown()).toEqual(before);
 
 				yield* edit(id, "Changed");
 
+				yield* coalescingWindowPasses();
 				yield* waitForBody("Changed");
 				expect(yield* shown()).toEqual(after);
 			},
@@ -50,11 +51,12 @@ for (const empty of [false, true]) {
 	derivedReadsStory.it(
 		`the ${empty ? "empty" : "populated"} timeline includes a list created after subscribing through its membership key`,
 		[...(empty ? [emptyTimeline] : []), viewingTimeline],
-		function* ({ create, shown, waitForBody }) {
+		function* ({ coalescingWindowPasses, create, shown, waitForBody }) {
 			expect(yield* shown()).toEqual(empty ? [] : ["First", "Second"]);
 
 			yield* create("alice", 4, "New list");
 
+			yield* coalescingWindowPasses();
 			yield* waitForBody("New list");
 			expect(yield* shown()).toEqual(empty ? ["New list"] : ["First", "Second", "New list"]);
 		},

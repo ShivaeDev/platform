@@ -27,14 +27,15 @@ function notAnswering(route: string) {
 }
 
 export function livePageShown() {
-	return () => page()?.dataset.status !== undefined && document.querySelector("#live")?.textContent === "Live";
+	// The failed page's status survives its re-read; the route is republished once its replacement renders.
+	return () => page()?.dataset.route !== undefined && document.querySelector("#live")?.textContent === "Live";
 }
 
 export function shellSessionVerbs(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
 		boardServerAnswers: () =>
 			Effect.promise(async () => {
-				tell("the Board server answers again and the page opens");
+				tell("the Board server answers again");
 				await act(() => {
 					engine.serverStopped = false;
 					return Promise.resolve();

@@ -60,7 +60,6 @@ function outcomeOf({ status }: Run): string {
 
 export function makeRuleStory() {
 	const ruleStory = storyKit({
-		clock: "live",
 		create: () =>
 			Effect.gen(function* () {
 				const fs = yield* FileSystem.FileSystem;
@@ -87,7 +86,7 @@ export function makeRuleStory() {
 			findings: () => checked(engine),
 			gate: Effect.fn("RuleStory.gate")(function* () {
 				story.tell("quality runs the repository gate");
-				engine.answer = yield* Effect.promise(() => runQuality(engine.root, "lint"));
+				engine.answer = yield* runQuality(engine.root, "lint");
 			}),
 			gateOutcome: () => Effect.map(answered(engine), outcomeOf),
 			gateReport: () => Effect.map(answered(engine), (answer) => answer.stdout + answer.stderr),

@@ -1,5 +1,4 @@
 import { EventEmitter } from "node:events";
-import { Clock, Effect } from "effect";
 import type {
 	FindJobsOptions,
 	Job,
@@ -44,6 +43,7 @@ export class FakeClient implements PgBossClient {
 	readonly createQueueFailures: unknown[] = [];
 	readonly deliverOnWork = new Map<string, unknown>();
 	databaseNow: number | undefined;
+	now: () => number = () => 0;
 	creationAttempts = 0;
 	claimReads = 0;
 	stallsClaimReads = false;
@@ -54,7 +54,7 @@ export class FakeClient implements PgBossClient {
 	duringStop: (() => void) | undefined;
 
 	getDb() {
-		return { executeSql: async () => ({ rows: [{ count: "0", now: this.databaseNow ?? Effect.runSync(Clock.currentTimeMillis) }] }) };
+		return { executeSql: async () => ({ rows: [{ count: "0", now: this.databaseNow ?? this.now() }] }) };
 	}
 	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
 		for (const id of idsOf(target)) {
@@ -163,7 +163,7 @@ export class FakeClient implements PgBossClient {
 				name,
 				retryCount: 0,
 				signal: new AbortController().signal,
-				startedOn: new Date(Effect.runSync(Clock.currentTimeMillis)),
+				startedOn: new Date(this.now()),
 			};
 			await run([delivered]);
 		}
@@ -180,6 +180,6 @@ export function job(name: string, data: unknown): Job<unknown> & { readonly star
 		name,
 		retryCount: 0,
 		signal: new AbortController().signal,
-		startedOn: new Date(Effect.runSync(Clock.currentTimeMillis)),
+		startedOn: new Date(0),
 	};
 }

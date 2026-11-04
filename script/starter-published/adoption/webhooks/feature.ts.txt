@@ -49,7 +49,7 @@ export const webhooksRegistration = {
 	group: RpcGroup.make(),
 	handlers: Layer.empty,
 	migrations: {
-		components: [webhookReceipts, indexedIssues],
+		components: [webhookReceipts(), indexedIssues],
 		loader: Migrator.fromRecord({}),
 	},
 	name: "webhooks",

@@ -11,8 +11,10 @@ import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { Guard, TimelineData, Timelines } from "./derivedReadsContract.ts";
 import { derivedReadsData } from "./derivedReadsData.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export const derivedReadsEngine = Effect.gen(function* () {
+	const runtime = yield* storyRuntime;
 	const sql = yield* SqlClient.SqlClient;
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
@@ -47,7 +49,7 @@ export const derivedReadsEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const connection = makeClient(Timelines, { protocol: Layer.succeedContext(transport), url: "memory://timelines" });
+	const connection = makeClient(Timelines, { protocol: Layer.succeedContext(transport), runtime, url: "memory://timelines" });
 	const client = yield* RpcClient.make(Timelines, { flatten: true }).pipe(Effect.provideContext(transport));
 	const query = connection.api.timeline.query({ scope: "alice" });
 	return { client, projectKeys, query, registry, sql };

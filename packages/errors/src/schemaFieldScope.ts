@@ -91,11 +91,17 @@ function fieldsOf(ast: SchemaAST.AST, schema: string, extra: readonly string[], 
 }
 
 export class SensitiveFieldConflict extends Schema.TaggedError<SensitiveFieldConflict>()("SensitiveFieldConflict", {
-	field: Schema.String,
-	message: Schema.String,
-	publicSchema: Schema.String,
-	sensitiveSchema: Schema.String,
-}) {}
+	conflicts: Schema.Array(Schema.Struct({ field: Schema.String, publicSchema: Schema.String, sensitiveSchema: Schema.String })),
+}) {
+	override get message(): string {
+		return this.conflicts
+			.map(
+				({ field, publicSchema, sensitiveSchema }) =>
+					`Sensitive field "${field}" in schema ${sensitiveSchema} conflicts with public field in schema ${publicSchema}; RPC diagnostics cannot distinguish these fields. Use distinct field names or mark both fields sensitive.`,
+			)
+			.join("\n");
+	}
+}
 
 export const validateFieldScope = Effect.fn("Errors.validateFieldScope")(function* (
 	schemas: readonly { readonly ast: SchemaAST.AST; readonly name: string }[],
@@ -103,18 +109,21 @@ export const validateFieldScope = Effect.fn("Errors.validateFieldScope")(functio
 ) {
 	const candidates = new Set(schemas.flatMap(({ ast }) => [...schemaFieldKeys(ast, [])]));
 	const fields = schemas.flatMap(({ ast, name }) => fieldsOf(ast, name, extra, candidates));
+	const conflicts = new Map<string, SensitiveFieldConflict["conflicts"][number]>();
 	// A masked container protects its children without making each child name sensitive.
 	for (const hidden of fields.filter(
 		(field) => candidates.has(field.key) && field.sensitive && !extra.includes(field.key) && !isSensitiveKey(field.key),
 	)) {
 		const publicField = fields.find((field) => field.key === hidden.key && !field.sensitive);
-		if (publicField !== undefined) {
-			return yield* new SensitiveFieldConflict({
+		if (publicField !== undefined && !conflicts.has(hidden.key)) {
+			conflicts.set(hidden.key, {
 				field: hidden.key,
-				message: `Sensitive field "${hidden.key}" in schema ${hidden.path} conflicts with public field in schema ${publicField.path}; RPC diagnostics cannot distinguish these fields. Use distinct field names or mark both fields sensitive.`,
 				publicSchema: publicField.path,
 				sensitiveSchema: hidden.path,
 			});
 		}
+	}
+	if (conflicts.size > 0) {
+		return yield* new SensitiveFieldConflict({ conflicts: [...conflicts.values()] });
 	}
 });

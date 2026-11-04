@@ -14,10 +14,11 @@ export interface LiveClientSettings {
 	readonly clock?: Clock.Clock;
 	readonly coalesceWindow?: Duration.Input;
 	readonly includeResume?: boolean;
+	readonly nextEvent?: () => number;
 	readonly resyncKeys?: readonly Key[];
 }
 
-export type HandledHints = Readonly<Record<LiveHint["_tag"], number> & { readonly at: number }>;
+export type HandledHints = Readonly<Record<LiveHint["_tag"], number> & { readonly order: number }>;
 
 export function liveClient(url: string, options: ResumeOptions = {}, settings: LiveClientSettings = {}) {
 	const { coalesceWindow, includeResume = true, resyncKeys = [notes.item(1), notes.item(2), notes.list] } = settings;
@@ -25,6 +26,12 @@ export function liveClient(url: string, options: ResumeOptions = {}, settings: L
 	if (settings.clock !== undefined) {
 		runtime.addGlobalLayer(Layer.succeed(Clock.Clock, settings.clock));
 	}
+	let event = 0;
+	function recordEvent() {
+		event += 1;
+		return event;
+	}
+	const nextEvent = settings.nextEvent ?? recordEvent;
 	class Client extends AtomRpc.Service<Client>()("example/LiveDocuments", {
 		group: LiveNotes,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
@@ -33,13 +40,13 @@ export function liveClient(url: string, options: ResumeOptions = {}, settings: L
 	const api = bind(LiveNotes, Client, { live: false });
 	const resume = Atom.make(0);
 	const signal = resumeSignal(options);
-	const handled = Effect.runSync(SubscriptionRef.make<HandledHints>({ at: 0, Changed: 0, Resync: 0 }));
+	const handled = Effect.runSync(SubscriptionRef.make<HandledHints>({ Changed: 0, order: 0, Resync: 0 }));
 	// The count moves when live() pulls the element after a hint, so a waiter sees the hint already handled.
 	function counted(hint: LiveHint) {
 		return Stream.concat(
 			Stream.succeed(hint),
 			Stream.drain(
-				Stream.fromEffect(SubscriptionRef.update(handled, (counts) => ({ ...counts, at: performance.now(), [hint._tag]: counts[hint._tag] + 1 }))),
+				Stream.fromEffect(SubscriptionRef.update(handled, (counts) => ({ ...counts, order: nextEvent(), [hint._tag]: counts[hint._tag] + 1 }))),
 			),
 		);
 	}

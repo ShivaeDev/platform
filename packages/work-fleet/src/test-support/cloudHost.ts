@@ -27,7 +27,7 @@ export const configureCloud = Effect.fn("CloudHost.configureCloud")(function* (
 	};
 });
 
-export function cloudHostVerbs(engine: HostStoryEngine) {
+export function cloudHostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	function runtime(noChange = false) {
 		return hostLayer(engine.fixture.host, {
 			...engine.fixture.parts,
@@ -72,6 +72,7 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 			Effect.flatMap(Fleet, (fleet) => fleet.reconcile(workId)).pipe(Effect.provide(runtime(noChange))),
 		cloudRecords: records,
 		processClient: (url: string | undefined) => {
+			tell("connect to the ready host process");
 			if (url === undefined) {
 				throw new Error("Wait for the process listener before connecting");
 			}
@@ -83,7 +84,10 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 			).pipe(Effect.provide(runtime()), refusal),
 		spawnBoardProcess: () => hostProcess(engine.fixture.configFile, false, false, new URL("./boardProcess.ts", import.meta.url)),
 		spawnHost: () => hostProcess(engine.fixture.configFile),
-		spawnRestartHost: (pausePublication = false) => hostProcess(engine.fixture.configFile, pausePublication, true),
+		spawnRestartHost: (pausePublication = false) => {
+			tell("start a restartable host process");
+			return hostProcess(engine.fixture.configFile, pausePublication, true);
+		},
 		useCloudProvider: () => {
 			engine.parts = { ...engine.parts, provider: hostProvider(engine.fixture.host) };
 		},

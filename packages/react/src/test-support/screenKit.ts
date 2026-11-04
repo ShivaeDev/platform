@@ -8,7 +8,7 @@ export function screenKit<TState, TVerbs extends object>(
 	verbs: (state: TState, screen: Screen, now: () => number) => TVerbs,
 ) {
 	return {
-		clock: "live" as const,
+		clock: "test" as const,
 		*create() {
 			const clock = yield* Clock.Clock;
 			const screen = new Screen(() => undefined);

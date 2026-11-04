@@ -62,7 +62,7 @@ function shownOf(engine: ViewerEngine, viewer: Viewer) {
 }
 
 export const viewerStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => viewerStoryEngine,
 	inspect: (engine) => ({ reads: Effect.runSync(SubscriptionRef.get(engine.reads)), stored: [...Effect.runSync(Ref.get(engine.stored)).values()] }),
 	name: "viewer-scoped hints",

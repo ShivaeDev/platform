@@ -20,7 +20,10 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 		["create-app", "0.9.0"],
 	] as const) {
 		yield* write(`packages/${name}/package.json`, JSON.stringify({ name: `@shivaedev/${name}`, version }));
-		yield* write(`packages/${name}/CHANGELOG.md`, "# Changelog\n");
+		yield* write(
+			`packages/${name}/CHANGELOG.md`,
+			`# Changelog\n\n## ${version} - 2026-10-01\n\n### Fixed\n\n- Previously released ${name} behavior.\n`,
+		);
 	}
 	yield* write(
 		"pnpm-workspace.yaml",

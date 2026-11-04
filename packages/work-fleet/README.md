@@ -29,7 +29,7 @@ work-fleet up .work
 
 `fleet: approved` lets Fleet run the task, and `areas` keeps it from running beside work that changes the same folder. `work-fleet up` starts Fleet and Board together for the Board folder `.work`.
 
-The daemon shares Board’s watched index for admission, dispatch, reconciliation and answers. A Board change wakes the scheduler; a slow pass runs at least a minute apart as a safety net. Active provider turns retain their configured observation interval.
+The daemon shares Board’s watched index for admission, dispatch, reconciliation and answers. Board changes and committed scheduling changes wake the reconciler. Retry deadlines wake the affected work; main and GitHub observations remain at least a minute apart, and active provider turns keep their configured observation interval. Idle Fleet runs no admission or reconciliation passes between changes and due observations.
 
 ## Using it
 
@@ -135,7 +135,7 @@ Set optional `worker.reviewerGuidance` to repository-specific review instruction
 
 #### Set capacity
 
-The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet"`, `quota: "codex"`, an empty `launch` and no `openPullRequests` curve. `concurrency` limits execution; `backlog` limits undelivered adopted changes; `openPullRequests` slows new implementer launches as Fleet's open PRs pile up. `intervalSeconds` sets the time between scheduler passes (15 by default).
+The host defaults to `concurrency: 100`, `backlog: 100`, `namespace: "work_fleet"`, `quota: "codex"`, an empty `launch` and no `openPullRequests` curve. `concurrency` limits execution; `backlog` limits undelivered adopted changes; `openPullRequests` slows new implementer launches as Fleet's open PRs pile up. `intervalSeconds` sets the provider observation cadence (15 seconds by default). Main and GitHub observations use at least 60 seconds, subject to GitHub pacing; internal reconciliation wakes on changes and due times.
 
 The Codex quota policy uses ordinary-usage eligibility and caches observations for a minute; `quota: "unlimited"` admits without that provider limit. An unknown quota response fails rather than granting capacity.
 
@@ -174,7 +174,7 @@ Every GitHub read Fleet makes, for PR state, checks, rulesets, PR files and repo
 
 The client keeps the ETag of each URL and repeats reads as conditional requests, so an unchanged resource answers `304 Not Modified`, costs no rate limit and returns the cached body. Fleet records the client's per-resource budget observations with the time it observed them. Fleet does not call `/rate_limit`.
 
-Every local tool shares one GitHub token, so Fleet keeps the last 20% of each resource's budget for agents and people. While the `core` budget stays above half, the scheduler runs at the configured interval; between half and 20% the pause stretches smoothly toward five minutes. Below 20% remaining Fleet makes no call to that resource until its reset, and affected work shows `GitHub paused below the 20% reserve until <time>`.
+Every local tool shares one GitHub token, so Fleet keeps the last 20% of each resource's budget for agents and people. While the `core` budget stays above half, GitHub observations use their configured cadence; between half and 20% that cadence stretches smoothly toward five minutes. Below 20% remaining Fleet makes no call to that resource until its reset, and affected work shows `GitHub paused below the 20% reserve until <time>`.
 
 A rate-limited response, primary or secondary, blocks further calls to that resource until the reset, the `retry-after` time or a backoff starting at one minute, and affected work shows `GitHub is rate-limited until <time>` without counting toward read-failure escalation.
 
@@ -737,7 +737,7 @@ export function launch(work: PrepareWork) {
 
 Review when enabled and checks must name the exact adopted head; the reviewer must use a different session from the worker.
 
-Each scheduler pass shares a Board snapshot and identity index across admission, dispatch and reconciliation. Launch authorization calls `BoardGateway.get(workId, { fresh: true })` to reread the selected source and refresh its entry in that snapshot. Other item lookups retain their shared reads; the next pass reads changed, added and removed files again. Work revisions follow the authored brief read; approval is read separately, and decision publications retain their exact source revisions. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
+Each admission and dispatch pass shares a Board snapshot and identity index. Independent record reconcilers each own a read pass, so a suspended review or validation does not block other work. Launch authorization calls `BoardGateway.get(workId, { fresh: true })` to reread the selected source and refresh its entry in that snapshot. Other item lookups retain their shared reads; the next pass reads changed, added and removed files again. Work revisions follow the authored brief read; approval is read separately, and decision publications retain their exact source revisions. Fleet's own publications enter the current snapshot after they are recorded; reconciliation that outlives the pass reads fresh sources.
 
 Fleet excludes files with invalid metadata or unreadable sources from admission, records a Board problem with the file and diagnostic, and retries them on the next pass. An unrelated invalid file leaves running work undisturbed. A lookup of an invalid or missing work source still blocks that work; when metadata cannot supply its identity, the missing-identity diagnostic includes the Board file problems. The named problem reaches the execution status and the published decision, using the original approved context for publication.
 

@@ -8,7 +8,7 @@ import { ReadoutsPage } from "./ReadoutsPage.tsx";
 expectNoReactWarnings();
 
 export const readoutScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const view = yield* Effect.acquireRelease(

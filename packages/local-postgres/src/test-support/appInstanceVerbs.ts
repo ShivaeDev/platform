@@ -1,4 +1,5 @@
 import { Config, Effect, Exit, FileSystem, Path, Scope } from "effect";
+import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import { hostPostgresBinaries } from "#server/adapters/hostPostgresBinaries.ts";
 import { appPostgres } from "#server/appPostgres.ts";
@@ -28,6 +29,10 @@ export function appInstanceVerbs(engine: AppInstanceEngine, story: { tell: (line
 		);
 	});
 	return {
+		aSecondPasses: () => {
+			story.tell("one second passes before the next migration");
+			return TestClock.adjust("1 second");
+		},
 		denyBackupWrites: Effect.fn("AppInstance.denyBackupWrites")(function* () {
 			story.tell("the backup directory becomes unwritable");
 			const fs = yield* FileSystem.FileSystem;

@@ -19,8 +19,9 @@ const first = { note: "original", revision: 42, tenant: "alice" };
 database.it(
 	"the same id parts reject a second enqueue even when other payload fields change, and the worker receives the original once",
 	[running("app", [Revisions]), enqueued(Revisions, first, { as: "original", underSpan: "original send" })],
-	function* ({ answered, enqueue, handled, start, untilIdle }) {
+	function* ({ answered, enqueue, handled, start, untilIdle, pollNow }) {
 		yield* enqueue("app", Revisions, { ...first, note: "changed" }, { as: "duplicate", underSpan: "duplicate send" });
+		yield* pollNow("app", Revisions);
 
 		expect(yield* answered()).toBe("nothing");
 		yield* start("worker", [worker(Revisions, "succeeds")]);

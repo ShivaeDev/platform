@@ -11,11 +11,13 @@ const refreshing = [gated, enqueued(Gated, refresh(42), { as: "refresh 42" }), w
 database.it(
 	"a job for an entity waits while another job for it runs, and a job for another entity runs alongside",
 	refreshing,
-	function* ({ attempts, enqueue, job, untilAttempts }) {
+	function* ({ attempts, enqueue, job, untilAttempts, pollNow }) {
 		expect(yield* attempts(Gated)).toEqual(["refresh 42"]);
 
 		yield* enqueue("app", Gated, reconcile(42), { as: "reconcile 42" });
+		yield* pollNow("app", Gated);
 		yield* enqueue("app", Gated, reconcile(99), { as: "reconcile 99" });
+		yield* pollNow("app", Gated);
 		yield* untilAttempts(Gated, 2);
 
 		yield* outcomes([
@@ -54,15 +56,20 @@ for (const { retryDelay, situation, state, tries } of earlier) {
 		reached("refresh 42", state),
 	];
 
-	database.it(`the next job for an entity runs while an earlier job for it ${situation}`, given, function* ({ attempts, enqueue, job, untilJob }) {
-		expect(yield* job("refresh 42")).toMatchObject({ singletonKey: '[["pullRequestId","number","42"]]', state });
+	database.it(
+		`the next job for an entity runs while an earlier job for it ${situation}`,
+		given,
+		function* ({ attempts, enqueue, job, untilJob, pollNow }) {
+			expect(yield* job("refresh 42")).toMatchObject({ singletonKey: '[["pullRequestId","number","42"]]', state });
 
-		yield* enqueue("app", Retried, reconcile(42), { as: "reconcile 42" });
-		yield* untilJob("reconcile 42", "completed");
+			yield* enqueue("app", Retried, reconcile(42), { as: "reconcile 42" });
+			yield* pollNow("app", Retried);
+			yield* untilJob("reconcile 42", "completed");
 
-		yield* outcomes([
-			["attempts", () => attempts(Retried), [...tries]],
-			["refresh 42", () => job("refresh 42"), expect.objectContaining({ state })],
-		]);
-	});
+			yield* outcomes([
+				["attempts", () => attempts(Retried), [...tries]],
+				["refresh 42", () => job("refresh 42"), expect.objectContaining({ state })],
+			]);
+		},
+	);
 }

@@ -12,7 +12,7 @@ import { type Feed, followHints } from "#test/rpc/followHints.ts";
 import { Api, type Check, documents, policyHost } from "./fixture.ts";
 
 export const readPolicyHost = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const checks: Check[] = [];
 		const revoked = new Set<string>();

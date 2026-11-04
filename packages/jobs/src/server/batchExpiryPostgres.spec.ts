@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
-import { interrupted, running, storedTogether } from "#test/postgres/traits.ts";
+import { running, storedTogether } from "#test/postgres/traits.ts";
 import { scheduled, workerBy } from "#test/workers.ts";
 import { defineSchedule } from "./defineSchedule.ts";
 
@@ -24,10 +24,12 @@ const byPriority = { handsBatchesOver: "by priority" } as const;
 database.it(
 	"a job that outlives its deadline is interrupted at it, and the rest of its batch is left for expiry",
 	[batch],
-	function* ({ attempts, interruptions, start, storedStates, untilInterrupted }) {
+	function* ({ attempts, interruptions, start, storedStates, timePasses, untilAttempts, untilInterrupted }) {
 		expect(Object.values(yield* storedStates("batch-expiry"))).toEqual(["created", "created", "created", "created"]);
 
 		yield* start("app", [hangingOnce], byPriority);
+		yield* untilAttempts(Expiring, 2);
+		yield* timePasses("1 second");
 		yield* untilInterrupted(Expiring, 1);
 
 		yield* outcomes([
@@ -35,15 +37,22 @@ database.it(
 			["interruptions", () => interruptions(Expiring), ["job 1 at or after its deadline"]],
 			["stored states", () => storedStates("batch-expiry"), { "job 0": "completed", "job 1": "active", "job 2": "active", "job 3": "active" }],
 		]);
+		yield* timePasses("3 seconds");
+		yield* timePasses("500 millis");
 	},
 );
 
 database.it(
 	"the jobs a batch left behind run again once they expire, never alongside their first attempt",
-	[batch, running("app", [hangingOnce], byPriority), interrupted(Expiring, 1)],
-	function* ({ attemptCounts, overlappingAttempts, storedStates, untilSettled }) {
+	[batch, running("app", [hangingOnce], byPriority)],
+	function* ({ attemptCounts, overlappingAttempts, storedStates, timePasses, untilAttempts, untilInterrupted, untilSettled }) {
+		yield* untilAttempts(Expiring, 2);
+		yield* timePasses("1 second");
+		yield* untilInterrupted(Expiring, 1);
 		expect(yield* attemptCounts(Expiring)).toEqual({ "job 0": 1, "job 1": 1 });
 
+		yield* timePasses("3 seconds");
+		yield* timePasses("500 millis");
 		yield* untilSettled(Expiring, 4);
 
 		yield* outcomes([
@@ -63,8 +72,12 @@ const Hourly = defineSchedule({ cron: "0 * * * *", name: "hourly", queue: { expi
 database.it(
 	"a scheduled run that outlives its expiry is interrupted, failed by pg-boss and listed with pg-boss's timeout as an Error",
 	[running("app", [scheduled(Hourly, "hangs")])],
-	function* ({ adminSends, interruptions, listedOutputs, storedJobs, untilSettled }) {
+	function* ({ adminSends, interruptions, listedOutputs, storedJobs, timePasses, untilAttempts, untilSettled, pollNow }) {
 		yield* adminSends("hourly", null, { as: "hourly run" });
+		yield* pollNow("app", Hourly);
+		yield* untilAttempts(Hourly, 1);
+		yield* timePasses("1 second");
+		yield* timePasses("500 millis");
 		yield* untilSettled(Hourly, 1);
 
 		yield* outcomes([

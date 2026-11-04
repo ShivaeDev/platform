@@ -19,8 +19,10 @@ const failingOnce = worker(Woken, { fails: "Try again" }, "succeeds");
 database.it(
 	"a failed attempt runs again once its retry delay ends, without waiting for the worker's next poll",
 	[waitingJob],
-	function* ({ attempts, start, untilJob, wakes }) {
+	function* ({ attempts, start, timePasses, untilJob, untilWakeScheduled, wakes }) {
 		yield* start("app", [failingOnce], { schedule: false, supervise: false });
+		yield* untilWakeScheduled(1001);
+		yield* timePasses(1001);
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([
@@ -46,8 +48,9 @@ const Replacement = defineQueue({
 database.it(
 	"a runtime that has stopped never wakes its worker for a pending retry",
 	[storedTogether(Replaced, [{ as: "job", data: {} }]), running("app", [worker(Replaced, { fails: "Try again" })]), reached("job", "retry")],
-	function* ({ attempts, start, stop, untilJob, wakes }) {
+	function* ({ attempts, start, stop, timePasses, untilJob, wakes }) {
 		yield* stop("app");
+		yield* timePasses(3001);
 		yield* start("replacement", [worker(Replacement, "succeeds")]);
 		yield* untilJob("job", "completed");
 
@@ -86,9 +89,12 @@ database.it(
 		),
 		waiting("held", "one worker is busy with the held job"),
 	],
-	function* ({ attempts, enqueue, job, pollNow, untilJob, wakes }) {
+	function* ({ attempts, enqueue, job, timePasses, untilJob, untilWakeScheduled, wakes, pollNow }) {
 		yield* enqueue("app", Siblings, { holds: false }, { as: "job" });
 		yield* pollNow("app", Siblings);
+		yield* pollNow("app", Siblings);
+		yield* untilWakeScheduled(1001);
+		yield* timePasses(1001);
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([

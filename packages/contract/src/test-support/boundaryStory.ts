@@ -55,7 +55,7 @@ const handlers = Api.application.toLayer(
 );
 
 export const boundaryStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const services = yield* Layer.build(appHost({ config: { port: 0 }, group: Api, handlers, policy: "loopback" }));
 		const server = Context.get(services, HttpServer.HttpServer);

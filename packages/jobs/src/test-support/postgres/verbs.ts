@@ -8,16 +8,12 @@ import type { PgBossService } from "#server/service.ts";
 import type { PgBossTesting } from "#server/testing.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { Registration } from "#test/workers.ts";
-import { untilWork } from "#test/workers.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { admin, controllerWorking, provided, runningIn, type StartOptions, startRuntime, until } from "./engine.ts";
+import { admin, provided, runningIn, type StartOptions, startRuntime } from "./engine.ts";
 import { enqueuePayload } from "./enqueuePayload.ts";
+import { passTime } from "./timeVerbs.ts";
 
 type Tell = (line: string) => void;
-
-function patiently<A>(description: string, wait: Effect.Effect<A>) {
-	return wait.pipe(Effect.timeoutOrElse({ duration: "20 seconds", orElse: () => Effect.die(new Error(`Gave up waiting until ${description}`)) }));
-}
 
 export interface Enqueue extends SendOptions {
 	readonly as: string;
@@ -43,30 +39,30 @@ export function answer<A, E, R>(engine: DatabaseEngine, effect: Effect.Effect<A,
 	);
 }
 
-export function enqueueAs<const TPayload extends StoryPayload>(
+export const enqueueAs = Effect.fnUntraced(function* <const TPayload extends StoryPayload>(
 	engine: DatabaseEngine,
 	name: string,
 	queue: QueueDefinition<string, TPayload>,
 	payload: Schema.Schema.Type<TPayload>,
 	{ as, sameIdAs, singletonKey, underSpan, ...options }: Enqueue,
 ) {
-	return Effect.suspend(() => {
-		const jobs = runningIn(engine, name).jobs;
-		const id = sameIdAs === undefined ? options.id : idOf(engine, sameIdAs).id;
-		const sendOptions = { ...options, ...(id === undefined ? {} : { id }) };
-		const sending = enqueuePayload(jobs, queue, payload, { ...sendOptions, ...(singletonKey === undefined ? {} : { singletonKey }) });
-		const send = Effect.map(Effect.zip(Clock.currentTimeMillis, sending), ([at, sent]) => {
-			if (Option.isSome(sent)) {
-				engine.enqueuedAt.set(as, at);
-				engine.labels.set(sent.value, as);
-				engine.jobs.set(as, { id: sent.value, queue });
-				return as;
-			}
-			return "nothing";
-		});
-		return answer(engine, provided(engine, name, underSpan === undefined ? send : send.pipe(Effect.withSpan(underSpan))));
+	// Submission order needs distinct millisecond timestamps even while the story clock is stopped.
+	yield* passTime(engine, 1);
+	const jobs = runningIn(engine, name).jobs;
+	const id = sameIdAs === undefined ? options.id : idOf(engine, sameIdAs).id;
+	const sendOptions = { ...options, ...(id === undefined ? {} : { id }) };
+	const sending = enqueuePayload(jobs, queue, payload, { ...sendOptions, ...(singletonKey === undefined ? {} : { singletonKey }) });
+	const send = Effect.map(Effect.zip(Clock.currentTimeMillis, sending), ([at, sent]) => {
+		if (Option.isSome(sent)) {
+			engine.enqueuedAt.set(as, at);
+			engine.labels.set(sent.value, as);
+			engine.jobs.set(as, { id: sent.value, queue });
+			return as;
+		}
+		return "nothing";
 	});
-}
+	return yield* answer(engine, provided(engine, name, underSpan === undefined ? send : send.pipe(Effect.withSpan(underSpan))));
+});
 
 export function idOf(engine: DatabaseEngine, as: string) {
 	const job = engine.jobs.get(as);
@@ -196,101 +192,6 @@ export function runtimeVerbs(engine: DatabaseEngine, tell: Tell) {
 		stop: (name: string) => {
 			tell(`${name} stops`);
 			return Effect.suspend(() => runningIn(engine, name).stop).pipe(Effect.tap(() => Effect.sync(() => engine.runtimes.delete(name))));
-		},
-	};
-}
-
-export function waitingVerbs(engine: DatabaseEngine, tell: Tell) {
-	return {
-		untilAttempts: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${queue.name} has started ${count} attempts`);
-			return patiently(
-				`${queue.name} has started ${count} attempts`,
-				untilWork(engine.work, () => (engine.work.attemptsOf(queue.name).length >= count ? true : undefined)),
-			);
-		},
-		untilDeadLettered: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${count} ${queue.name} jobs are dead-lettered`);
-			return until(
-				engine,
-				`${count} ${queue.name} jobs are dead-lettered`,
-				Effect.map(deadLetterSources(engine, queue.name), (sources) => (sources.length >= count ? sources : undefined)),
-			);
-		},
-		untilDeferred: (name: string, queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${name} holds ${count} deferred ${queue.name} jobs`);
-			return until(
-				engine,
-				`${name} holds ${count} deferred ${queue.name} jobs`,
-				Effect.suspend(() => testingOf(engine, name).deferred(queue)).pipe(Effect.map((waiting) => (waiting.length >= count ? waiting : undefined))),
-			);
-		},
-		untilFetchesPass: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${count} ${queue.name} worker ${count === 1 ? "fetch passes" : "fetches pass"}`);
-			return Effect.suspend(() => controllerWorking(engine, queue.name).fetchesPass(queue, count)).pipe(
-				Effect.mapError((error) => new Error(failureOf(error))),
-				Effect.orDie,
-			);
-		},
-		untilFinished: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${count} ${queue.name} attempts have finished`);
-			return patiently(
-				`${count} ${queue.name} attempts have finished`,
-				untilWork(engine.work, () => {
-					const ids = new Set(engine.work.attemptsOf(queue.name));
-					return engine.work.finished.filter(({ id }) => ids.has(id)).length >= count ? true : undefined;
-				}),
-			);
-		},
-		untilIdle: (name: string) => {
-			tell(`wait until the testing controller of ${name} reports idle`);
-			return Effect.suspend(() => testingOf(engine, name).waitForIdle).pipe(Effect.timeout("20 seconds"));
-		},
-		untilInterrupted: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${count} ${queue.name} attempts were interrupted`);
-			return patiently(
-				`${count} ${queue.name} attempts were interrupted`,
-				untilWork(engine.work, () => {
-					const ids = new Set(engine.work.attemptsOf(queue.name));
-					return engine.work.interrupted.filter(({ id }) => ids.has(id)).length >= count ? true : undefined;
-				}),
-			);
-		},
-		untilJob: (as: string, state: JobWithMetadata["state"]) => {
-			tell(`wait until ${as} is ${state}`);
-			return Effect.suspend(() => {
-				const { id, queue } = idOf(engine, as);
-				return controllerWorking(engine, queue.name)
-					.untilJob(queue, id, state)
-					.pipe(Effect.mapError((error) => new Error(failureOf(error).replace(id, as))));
-			}).pipe(Effect.orDie, Effect.asVoid);
-		},
-		untilLogged: (fragment: string) => {
-			tell(`wait until a log line mentions "${fragment}"`);
-			return patiently(
-				`a log line mentions "${fragment}"`,
-				untilWork(engine.work, () => (engine.logs.some(({ message }) => JSON.stringify(message).includes(fragment)) ? true : undefined)),
-			);
-		},
-		untilPassed: (gate: string) => {
-			tell(`wait until the work at the ${gate} gate has gone on`);
-			return patiently(`the work at the ${gate} gate has gone on`, Deferred.await(engine.work.gate(gate).passed));
-		},
-		untilSettled: (queue: Pick<QueueDefinition, "name">, count: number) => {
-			tell(`wait until ${count} ${queue.name} jobs have completed or failed`);
-			return until(
-				engine,
-				`${count} ${queue.name} jobs have completed or failed`,
-				Effect.gen(function* () {
-					const client = yield* admin(engine);
-					const stored = yield* Effect.promise(() => client.findJobs(queue.name));
-					return stored.filter(({ state }) => state === "completed" || state === "failed").length >= count ? true : undefined;
-				}),
-			);
-		},
-		untilWaiting: (gate: string) => {
-			tell(`wait until a job waits at the ${gate} gate`);
-			return Deferred.await(engine.work.gate(gate).entered).pipe(Effect.timeout("20 seconds"));
 		},
 	};
 }

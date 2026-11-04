@@ -36,7 +36,7 @@ notesDeployment.it(
 			["queued note", () => wordCountOf("alice", queued), "not counted"],
 		]);
 	},
-	90_000,
+	30_000,
 );
 
 notesDeployment.it(

@@ -42,10 +42,11 @@ for (const header of [undefined, "invalid"] as const) {
 	email.it(
 		`a Resend 429 with ${header ?? "no"} Retry-After still retries and delivers`,
 		[rateLimited(header)],
-		function* ({ enqueue, startWorker, nextEmail, untilIdle, providerRequests }) {
+		function* ({ enqueue, startWorker, fallbackRetryDelayPasses, nextEmail, untilIdle, providerRequests }) {
 			const id = yield* enqueue("Confirm", "https://app.test/confirm?token=secret-link");
 
 			yield* startWorker();
+			yield* fallbackRetryDelayPasses();
 
 			expect((yield* nextEmail()).idempotencyKey).toBe(id);
 			yield* untilIdle();

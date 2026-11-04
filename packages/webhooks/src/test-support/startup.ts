@@ -16,7 +16,7 @@ function startupOutcome(exit: Exit.Exit<unknown, unknown>) {
 
 export const startup = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => inboxState(undefined),
 	layer: postgresLayer,
 	name: "webhook startup",

@@ -1,4 +1,6 @@
 import { Effect } from "effect";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { ANSWER_RECORDED } from "#attention.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import type { BoardDecisionReading } from "#board/schema.ts";
 import { ensureDecisionOwner } from "#engine/ensureDecisionOwner.ts";
@@ -59,17 +61,30 @@ function unanswerable(reading: Exclude<BoardDecisionReading, { readonly _tag: "P
 }
 
 const recordAnswerFailure = Effect.fn("Fleet.recordAnswerFailure")(function* (state: EngineState, stored: Versioned<FleetRecord>, error: unknown) {
-	yield* Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error);
 	return yield* state.load(stored.value.workId).pipe(
-		Effect.flatMap((current) =>
-			current.value.step !== "waiting" || current.value.decision === undefined
-				? Effect.succeed(current)
-				: state.save(current, {
+		Effect.flatMap((current) => {
+			if (current.value.step !== "waiting" || current.value.decision === undefined) {
+				return Effect.succeed(current);
+			}
+			// Recording acceptance advances the version while a concurrent resolver reads the same decision.
+			if (
+				error instanceof Conflict
+				&& current.version !== stored.version
+				&& current.value.decision.id === stored.value.decision?.id
+				&& current.value.blocker === ANSWER_RECORDED
+			) {
+				return Effect.succeed(current);
+			}
+			return Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error).pipe(
+				Effect.andThen(
+					state.save(current, {
 						...current.value,
 						attentionOwner: current.value.decision.id === stored.value.decision?.id ? failureOwner(error) : current.value.attentionOwner,
 						blocker: `Answer failed: ${failureMessage(error)}`,
 					}),
-		),
+				),
+			);
+		}),
 		Effect.retry({ while: (failure) => failure instanceof StorageConflict }),
 	);
 });

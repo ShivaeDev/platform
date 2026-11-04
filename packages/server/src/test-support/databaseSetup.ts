@@ -12,7 +12,7 @@ export const hasTestDatabase = postgresTestUrl("TEST_DATABASE_URL").configured;
 type Setting = "DATABASE_URL" | "TEST_DATABASE_URL";
 
 export const databaseSetup = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => {
 		const unique = randomUUID().replaceAll("-", "");
 		const env: Partial<Record<Setting, string>> = {

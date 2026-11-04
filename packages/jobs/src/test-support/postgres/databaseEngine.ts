@@ -1,6 +1,6 @@
 import type { Context, Effect, Fiber, Redacted, Schema } from "effect";
 import type { SqlClient } from "effect/sql";
-import type { PgBoss } from "pg-boss";
+import { type PgBoss, TestClock } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { PgBossClient } from "#server/client.ts";
@@ -38,7 +38,9 @@ export interface Release {
 export interface DatabaseEngine {
 	readonly admins: Map<string, PgBoss>;
 	answered: unknown;
+	readonly budgetWaits: Map<string, Fiber.Fiber<unknown>>;
 	readonly changeWatches: Map<string, Fiber.Fiber<number>>;
+	readonly clock: TestClock;
 	readonly controllers: PgBossTesting[];
 	readonly enqueuedAt: Map<string, number>;
 	readonly fetchWatches: Map<string, Fiber.Fiber<unknown, unknown>>;
@@ -79,7 +81,7 @@ export interface DatabaseEngine {
 	readonly work: WorkLog;
 }
 
-export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.SqlClient): DatabaseEngine {
+export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.SqlClient, now: number): DatabaseEngine {
 	const work = workLog();
 	const timeline: string[] = [];
 	const labels = new Map<string, string>();
@@ -93,7 +95,9 @@ export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.Sq
 	return {
 		admins: new Map(),
 		answered: "nothing asked yet",
+		budgetWaits: new Map(),
 		changeWatches: new Map(),
+		clock: new TestClock(now),
 		controllers: [],
 		enqueuedAt: new Map(),
 		fetchWatches: new Map(),

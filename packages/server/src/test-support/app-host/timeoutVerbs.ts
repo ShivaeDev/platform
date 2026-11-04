@@ -1,8 +1,9 @@
-import { Effect, Exit, Fiber, ManagedRuntime } from "effect";
+import { Effect, Exit, Fiber } from "effect";
 import { HttpBody, HttpClient, HttpClientError } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
 import { causeWords, words } from "@shivaedev/test-story/server/answers.ts";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { close } from "./lifecycle.ts";
 import { requests } from "./requests.ts";
@@ -34,22 +35,27 @@ export function timeoutVerbs(state: HostState, tell: (line: string) => void) {
 			tell("the last millisecond of the export timeout passes and the host warns");
 			return TestClock.adjust(1).pipe(Effect.andThen(io(() => logged(state, () => warned(state)))));
 		},
+		exportIntervalPasses: (interval: number) => {
+			tell(`the ${interval} ms export interval passes`);
+			return untilTimer(interval).pipe(Effect.andThen(TestClock.adjust(interval)));
+		},
 		firstExportArrives: () => {
 			tell("the collector receives the host's first export");
 			return io(() => receiverOf(state).whenReceived((exports) => exports.length > 0));
 		},
 		probeCollector: (timeout: number) => {
 			tell(`the native OTLP HTTP client posts to the collector with a ${timeout} ms timeout`);
-			return io(async () => {
-				const runtime = ManagedRuntime.make(otlpHttpClient(timeout));
-				try {
-					const exit = await runtime.runPromiseExit(
-						HttpClient.post(`${receiverOf(state).url}/v1/traces`, { body: HttpBody.jsonUnsafe({ resourceSpans: [] }) }),
-					);
-					return Exit.isSuccess(exit) ? `answered ${exit.value.status}` : causeWords(exit.cause, transportWords);
-				} finally {
-					await runtime.dispose();
-				}
+			return Effect.gen(function* () {
+				const posting = yield* HttpClient.post(`${receiverOf(state).url}/v1/traces`, { body: HttpBody.jsonUnsafe({ resourceSpans: [] }) }).pipe(
+					Effect.provide(otlpHttpClient(timeout)),
+					Effect.exit,
+					Effect.forkChild,
+				);
+				yield* io(() => receiverOf(state).whenReceived((exports) => exports.length > 0));
+				yield* untilTimer(timeout);
+				yield* TestClock.adjust(timeout);
+				const exit = yield* Fiber.join(posting);
+				return Exit.isSuccess(exit) ? `answered ${exit.value.status}` : causeWords(exit.cause, transportWords);
 			});
 		},
 		shutdownBegins: () => {

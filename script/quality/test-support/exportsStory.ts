@@ -21,7 +21,7 @@ export const exportsStory = storyKit({
 	stages: ["repository"],
 	verbs: (root, story) => ({
 		lint: () =>
-			Effect.promise(() => {
+			Effect.suspend(() => {
 				story.tell("the author runs Quality lint in process with the default rules");
 				return runQuality(root, "lint");
 			}),

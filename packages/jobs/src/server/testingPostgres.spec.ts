@@ -105,10 +105,11 @@ const expiringOnThird = [
 database.it(
 	"a job the controller expires on its third claim fails with pg-boss's timeout without running a third time",
 	expiringOnThird,
-	function* ({ attempts, deadLettered, enqueue, job, untilDeadLettered }) {
+	function* ({ attempts, deadLettered, enqueue, job, untilDeadLettered, pollNow }) {
 		expect(yield* attempts(Checked)).toEqual([]);
 
 		yield* enqueue("app", Checked, { id: 7 }, { as: "job" });
+		yield* pollNow("app", Checked);
 		yield* untilDeadLettered(Checked, 1);
 
 		yield* outcomes([
@@ -125,10 +126,11 @@ database.it(
 		running("app", [worker(Checked, "succeeds")], { controller: "test retries" }),
 		controlled((testing) => testing.expireAfter(Checked, 3), "expire the third checked attempt"),
 	],
-	function* ({ attempts, enqueue, job, untilJob }) {
+	function* ({ attempts, enqueue, job, untilJob, pollNow }) {
 		expect(yield* attempts(Checked)).toEqual([]);
 
 		yield* enqueue("app", Checked, { id: 9 }, { as: "job" });
+		yield* pollNow("app", Checked);
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([

@@ -25,5 +25,12 @@ export function fanoutCloudVerbs(engine: HostStoryEngine) {
 			}
 			return { mutations: backend.mutations, operations: backend.operations, sessions: backend.sessions };
 		},
+		revealCloudTurns: () => {
+			const backend = backends.get(engine);
+			if (backend === undefined) {
+				throw new Error("Configure Cloud fanout first");
+			}
+			backend.revealTurns();
+		},
 	};
 }

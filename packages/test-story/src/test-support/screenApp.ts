@@ -4,10 +4,12 @@ import { routeOutbound } from "#server/routeOutbound.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
+import { drivenScreen } from "./drivenScreen.ts";
 import { pendingScreen } from "./pendingScreen.ts";
 
 export const screenApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const service = yield* fakeHttpService({
 			routes: {
@@ -23,20 +25,21 @@ export const screenApp = storyKit({
 		const root = document.createElement("main");
 		document.body.append(root);
 		const app = pendingScreen(root);
-		let repainting: ReturnType<typeof setInterval> | undefined;
 		yield* Effect.addFinalizer(() =>
 			Effect.sync(() => {
-				clearInterval(repainting);
 				app.close();
 				root.remove();
 			}),
 		);
 		return {
 			app,
-			repaints: (count: number) => {
-				const frames = app.waitFrames(count);
-				repainting ??= setInterval(app.repaint, 10);
-				return frames;
+			clock: yield* drivenClock,
+			repaints: async (count: number) => {
+				for (let frame = 0; frame < count; frame += 1) {
+					const rendered = app.waitFrames(1);
+					app.repaint();
+					await rendered;
+				}
 			},
 			root,
 			service,
@@ -45,9 +48,9 @@ export const screenApp = storyKit({
 	inspect: ({ app, root }) => ({ pending: app.pending(), screen: root.textContent }),
 	name: "screen driver",
 	stages: ["screen"],
-	verbs: ({ app, root, repaints, service }, story) => {
+	verbs: ({ clock, app, root, repaints, service }, story) => {
 		service.narrate(story.tell);
-		const driver = screenDriver({ pending: app.pending, root, tell: story.tell });
+		const driver = drivenScreen(clock, screenDriver({ pending: app.pending, root, tell: story.tell }));
 		const settling = background();
 		return {
 			...driver,

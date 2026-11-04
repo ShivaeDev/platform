@@ -14,8 +14,10 @@ import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 const memoryEngine = Effect.gen(function* () {
+	const runtime = yield* storyRuntime;
 	const server = yield* notesServer;
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
@@ -38,7 +40,7 @@ const memoryEngine = Effect.gen(function* () {
 			}),
 	});
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide([handlers, server.guard])));
-	const connection = makeClient(Notes, { protocol: Layer.succeedContext(transport), url: "memory://notes" });
+	const connection = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
 	const client = yield* connection.client;
 	const other = yield* connection.client;
 	const listeners = new Map<number, { readonly scope: Scope.Closeable; readonly viewer: HintViewer<unknown> }>();
@@ -52,7 +54,7 @@ const memoryEngine = Effect.gen(function* () {
 });
 
 export const memoryStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => memoryEngine,
 	name: "in-memory clients",
 	stages: ["access", "listeners", "screen"],

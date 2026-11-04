@@ -1,20 +1,22 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, Layer, PubSub, Queue, Stream } from "effect";
+import { Console, Effect, Layer, PubSub, Stream } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { BoardIndex } from "#board/Index.ts";
 import { headlessBoard } from "#board/workspace.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
-import { run } from "#engine/scheduler.ts";
+import { run } from "#engine/runScheduler.ts";
 import { admitApproved } from "#host/admission.ts";
 import type { FleetHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { healthLayer } from "#host/healthLayer.ts";
 import { LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
-import { providerReadPause } from "#host/providerReadPause.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
 import { statusLayer } from "#host/statusLayer.ts";
 import type { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
+import { schedulerInputs } from "#schedulerInputs.ts";
 import type { SessionTransport } from "#session/service.ts";
 
 export interface HostParts {
@@ -56,16 +58,17 @@ export function hostLayer(
 	);
 }
 
-// An applied config edit starts the next pass at once instead of after the interval it replaced, and a low GitHub budget stretches that interval.
-export const schedulerPause = Effect.gen(function* () {
+export const schedulerCadence = Effect.gen(function* () {
 	const live = yield* LiveConfig;
 	const github = yield* GithubApi;
 	const { host: applied } = yield* live.current;
 	const interval = applied.interval * 1000;
 	const watched = yield* Effect.serviceOption(BoardIndex);
-	const delay = yield* github.pace(watched._tag === "Some" ? Math.max(60_000, interval) : interval);
-	const pause = delay > interval ? Effect.raceFirst(Effect.sleep(delay), providerReadPause(interval)) : Effect.sleep(delay);
-	yield* Effect.raceFirst(pause, live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
+	return {
+		areaMergeWaitMs: applied.areaMergeWaitMs,
+		github: yield* github.pace(watched._tag === "Some" ? Math.max(60_000, interval) : interval),
+		provider: interval,
+	};
 });
 
 export function hostScheduler(host: FleetHost) {
@@ -84,12 +87,19 @@ export function hostScheduler(host: FleetHost) {
 	return Effect.gen(function* () {
 		const { index } = yield* BoardIndex;
 		const events = yield* PubSub.subscribe(index.changes.events);
-		const pending = yield* Queue.sliding<void>(1);
-		yield* Stream.fromSubscription(events).pipe(
-			Stream.filter((change) => change._tag === "Watching" || change.paths.some((path) => path !== "fleet/status.md")),
-			Stream.runForEach(() => Queue.offer(pending, undefined)),
+		const reactivity = yield* Reactivity.Reactivity;
+		const live = yield* LiveConfig;
+		const invalidate = reactivity.invalidate(invalidationKeys([schedulerInputs.list]));
+		yield* live.changes.pipe(
+			Stream.drop(1),
+			Stream.runForEach(() => invalidate),
 			Effect.forkScoped,
 		);
-		return yield* run(Effect.raceFirst(schedulerPause, Queue.take(pending)), admission);
+		yield* Stream.fromSubscription(events).pipe(
+			Stream.filter((change) => change._tag === "Watching" || change.paths.some((path) => path !== "fleet/status.md")),
+			Stream.runForEach(() => invalidate),
+			Effect.forkScoped,
+		);
+		return yield* run(schedulerCadence, admission);
 	});
 }

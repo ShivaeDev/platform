@@ -83,6 +83,8 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 The `sessions` Layer provides one identity `SessionPolicy` to handler middleware, sockets, change subscriptions and application routes. Construct it with `Layer.succeed(SessionPolicy, { origin, provider, roles })`; policy readers take no policy argument.
 
+A session host also installs identity's subject resolver for contracts with `subject: selfSubject` or `subject: accountSubject(...)`. It resolves the session account or authorizes the delegated `x-platform-subject` transport header before the handler runs, supplies the branded `Subject` plus the actor's `Identity` and `SessionUser` to the request, and returns the declared typed refusal when delegation is denied. Business payloads do not carry an owner id. See [declared request subjects](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for declarations and session profile requirements.
+
 Omit `services` when the app has no service Layer of its own. The host uses `Layer.empty`; handler requirements remain explicit, and a migrated host still provides its database services to handlers. Annotated options that declare service outputs, errors or requirements must supply a `services` Layer.
 
 Pass application HTTP endpoints through `routes`, including routes that read app services. Use `handlers` for RPC implementations and their middleware Layers. `routes` accepts native HTTP router Layers; the host supplies `services` during route construction and request handling, preserves route Layer build errors and leaves missing services in the host’s requirement type.
@@ -318,7 +320,7 @@ Diagnostic failure, defect and interruption reasons are rebuilt with sanitized a
 
 The shared errors policy also masks `db.user`, `db.user.name` and `db.connection_string` in logs, error reports and exported traces. It matches field names, not arbitrary occurrences of their values in prose. Free text uses credential-shaped string, key-assignment and URL rules; it does not scan for personal data. Keep sensitive values out of ordinary prose and span names.
 
-For native RPC serialization, `yield* schemaSensitiveKeys(group, extraKeys)` from `@shivaedev/errors/schemaSensitiveKeys.ts` obtains a key predicate with `forRpc(tag)` and `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. The Effect can fail with `SensitiveFieldConflict` from `@shivaedev/errors/schemaFieldScope.ts`; `appHost` reports this typed failure during Layer startup. Pass the predicate and its methods to `redactingRpcSerialization(wire, sensitive)`. The serializer correlates request tags and response IDs, including batches, and uses the validated schema policy to mask failures within their declared wire shapes. Incompatible masks fail policy definition with `InvalidRedactionMask` from `@shivaedev/errors/wireMask.ts`, before the host listens; supply a constant `redactionMask` annotation on a constrained sensitive schema when its generic mask cannot decode. Unassociated defects use the conservative policy across the host's defect schemas.
+For native RPC serialization, `yield* schemaSensitiveKeys(group, extraKeys)` from `@shivaedev/errors/schemaSensitiveKeys.ts` obtains a key predicate with `forRpc(tag)` and `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. The Effect can fail with `SensitiveFieldConflict` from `@shivaedev/errors/schemaFieldScope.ts`; `appHost` reports this typed failure during Layer startup, with every conflicting field in the group in its `conflicts` array and message. Each entry contains `field`, `publicSchema` and `sensitiveSchema`. Pass the predicate and its methods to `redactingRpcSerialization(wire, sensitive)`. The serializer correlates request tags and response IDs, including batches, and uses the validated schema policy to mask failures within their declared wire shapes. Incompatible masks fail policy definition with `InvalidRedactionMask` from `@shivaedev/errors/wireMask.ts`, before the host listens; supply a constant `redactionMask` annotation on a constrained sensitive schema when its generic mask cannot decode. Unassociated defects use the conservative policy across the host's defect schemas.
 
 The masking primitives, `redact`, `redactWire`, `redactRecord`, `redactText`, `redactUrl`, `redactCause`, `schemaSensitiveKeys` and `isSensitiveKey`, live in [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme).
 
@@ -386,6 +388,8 @@ The signal aborts on an additional signal, socket close, incomplete request clos
 
 In the child entry point, build the app host Layer, then run `reportHostReady` from `@shivaedev/server/testing/hostProcessChild.ts` with that Layer's context. It reads `HttpServer`, reports the listening URL and process ID over IPC, and fails if there is no parent IPC channel. The child must install its signal handlers before reporting readiness. After a handler finishes its work, run `acknowledgeHostSignal(signal)` from the same module. `signal(signal)` in the parent sends the OS signal and waits for that signal's IPC acknowledgement. Deliver signals sequentially, using signals the child handles; signals that kill or suspend a process cannot be acknowledged.
 
+For a restart story, pass the current host's `stop()` Effect as the replacement's `beforeStart` option. In the replacement child, run `awaitHostStart` from `@shivaedev/server/testing/hostProcessChild.ts` before building the app host Layer. This handshake lets the replacement finish loading its modules while the current host still serves requests. The parent runs `beforeStart` after the child reports preparation, then releases the child with `SIGUSR2` and waits for normal readiness. Reserve that signal until `awaitHostStart` completes.
+
 Wrap the kit in the application's story vocabulary:
 
 ```ts
@@ -395,7 +399,7 @@ import { hostProcess } from "@shivaedev/server/testing/hostProcess.ts";
 
 const host = storyKit({
 	name: "application host",
-	clock: "live",
+	clock: "test",
 	stages: [],
 	create: () => hostProcess({ module: new URL("./host.ts", import.meta.url) }),
 	verbs: (process) => ({

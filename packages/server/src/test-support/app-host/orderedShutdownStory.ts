@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Deferred, Effect, Layer, Stream } from "effect";
+import { Deferred, Effect, Fiber, Layer, Stream } from "effect";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
@@ -12,13 +12,14 @@ import { DRAINING_MILLIS, ShutdownApi } from "./orderedShutdownApi.ts";
 interface OrderedShutdownState {
 	readonly database: Effect.Success<typeof PostgresTestDatabase>;
 	host?: Effect.Success<ReturnType<typeof hostProcess>>;
+	receiver?: Effect.Success<ReturnType<typeof otlpReceiver>>;
 	spans: () => readonly OtlpSpan[];
 	stalled: boolean;
 }
 
 export const orderedShutdownHost = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create(): Effect.fn.Return<OrderedShutdownState, never, PostgresTestDatabase> {
 		return {
 			database: yield* PostgresTestDatabase,
@@ -50,10 +51,12 @@ export const orderedShutdownHost = storyKit({
 				Effect.gen(function* () {
 					story.tell("the host starts with PostgreSQL and an OTLP collector");
 					const receiver = yield* otlpReceiver({ status: state.stalled ? () => undefined : 200 });
+					state.receiver = receiver;
 					state.spans = () => receiver.spans;
 					state.host = yield* hostProcess({
 						databaseUrl: state.database.url,
 						env: {
+							"COLLECTOR_STALLED": state.stalled ? "1" : "0",
 							"OTEL_BSP_EXPORT_TIMEOUT": "1000",
 							"OTEL_BSP_SCHEDULE_DELAY": "60000",
 							"OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url,
@@ -81,7 +84,17 @@ export const orderedShutdownHost = storyKit({
 			shutdownDuration: () => Effect.suspend(() => running().shutdownDuration()),
 			sigterm: () => {
 				story.tell(`SIGTERM interrupts the real host process within its ${DRAINING_MILLIS} ms drain budget`);
-				return Effect.suspend(() => running().signal("SIGTERM")).pipe(Effect.timeout(DRAINING_MILLIS));
+				return Effect.gen(function* () {
+					const shutdown = yield* running().signal("SIGTERM").pipe(Effect.forkChild);
+					if (state.receiver === undefined) {
+						return yield* Effect.die("Launch the host before shutting it down");
+					}
+					yield* state.receiver.untilSpan((span) => span.name === "websocket drain", { name: "drain span reaches the collector" });
+					if (state.stalled) {
+						yield* running().signal("SIGUSR1");
+					}
+					yield* Fiber.join(shutdown);
+				});
 			},
 		};
 	},

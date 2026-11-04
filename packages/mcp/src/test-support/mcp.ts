@@ -1,4 +1,4 @@
-import { Redacted } from "effect";
+import { DateTime, type Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -14,6 +14,7 @@ import { type Engine, startEngine } from "./host.ts";
 import { mixedAuthVerbs } from "./mixedAuthVerbs.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 import { tokenVerbs } from "./tokenVerbs.ts";
+import { withControlledDate } from "./withControlledDate.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({
@@ -22,8 +23,8 @@ const postgres = makePostgresTestLayer({
 });
 
 const definition = {
-	around: withIsolatedDatabase,
-	clock: "live" as const,
+	around: <A, E, R>(effect: Effect.Effect<A, E, R>) => withIsolatedDatabase(withControlledDate(effect)),
+	clock: DateTime.makeUnsafe("2026-01-01T00:00:00Z"),
 	inspect: ({ people, refusal, resource }: Engine) => ({ people: [...people.keys()], refusal, resource }),
 	layer: postgres,
 	name: "MCP on the application host",
