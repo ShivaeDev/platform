@@ -69,29 +69,29 @@ runtime.it(
 	},
 );
 
-const Sleepy = defineQueue({ name: "sleepy", schema: Schema.Struct({}) });
+const Held = defineQueue({ name: "held", schema: Schema.Struct({}) });
 
 runtime.it(
-	"a handler's sleep runs on the worker runtime's clock",
-	[running("app", [worker(Sleepy, { sleeps: 100 })])],
-	function* ({ clockPasses, deliveryFinishes, settlements, startsDelivering }) {
-		yield* startsDelivering("sleepy", { id: "job-1" });
-		yield* clockPasses(99);
+	"a delivered job completes only after its handler finishes",
+	[running("app", [worker(Held, { waitsFor: "handler" })])],
+	function* ({ deliveryFinishes, open, settlements, startsDelivering, untilWaiting }) {
+		yield* startsDelivering("held", { id: "job-1" });
+		yield* untilWaiting("handler");
+
 		expect(yield* settlements()).toEqual([]);
 
-		yield* clockPasses(1);
+		yield* open("handler");
 		yield* deliveryFinishes();
 
 		expect(yield* settlements()).toEqual(["job-1 completed"]);
 	},
-	{ clock: "test" },
 );
 
 runtime.it(
 	"stopping the runtime interrupts a running handler and settles nothing",
-	[running("app", [worker(Sleepy, "hangs")])],
+	[running("app", [worker(Held, "hangs")])],
 	function* ({ deliveryFinishes, interrupted, settlements, startsDelivering, stop }) {
-		yield* startsDelivering("sleepy", { id: "job-1" });
+		yield* startsDelivering("held", { id: "job-1" });
 
 		yield* stop("app");
 		yield* deliveryFinishes();
