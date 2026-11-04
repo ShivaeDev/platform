@@ -12,7 +12,7 @@ export interface DevelopmentOptions {
 
 export const development = Effect.fn("Platform.development")(function* ({ server, worker, conditions = [] }: DevelopmentOptions) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const options = { stderr: "inherit", stdout: "inherit" } as const;
+	const options = { env: { "NODE_ENV": "development" }, extendEnv: true, stderr: "inherit", stdout: "inherit" } as const;
 	const args = [...conditions.map((condition) => `--conditions=${condition}`), "--watch"];
 	return yield* Effect.raceAll([
 		spawner.exitCode(ChildProcess.make(process.execPath, [...args, server], options)),

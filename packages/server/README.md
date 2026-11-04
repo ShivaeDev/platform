@@ -209,7 +209,7 @@ const host = appHost({
 
 Construct Better Auth inside `application`, since its constructor starts schema validation. Keep validation enabled so a current migration ledger with missing auth columns still reports drift. The starter uses this form after its pre-deploy migrations.
 
-Railway tracing is the default error and trace destination. The starter enables tracing for both services in `.railway/railway.ts`; Railway injects the endpoint, authentication headers and service identity. `appHost` exports through the redacting Effect OTLP/HTTP pipeline. Leave exporter endpoints unset on Railway so its injected configuration takes effect. Without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
+Railway tracing is the default error and trace destination. The starter enables tracing for both services in `.railway/railway.ts`; Railway injects the endpoint, authentication headers and service identity. `appHost` exports through the redacting Effect OTLP/HTTP pipeline. Leave exporter endpoints unset on Railway so its injected configuration takes effect. Outside development mode, without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
 
 The supported tracing variables and defaults are:
 
@@ -238,25 +238,17 @@ For existing Railway services, enable manual tracing per service and environment
 Set `browserErrors: { log: true, includeUserId: true, requireSession: true }` on `appHost` for the recommended signed-in application setting. `log` writes one Error log with the masked message and stack per accepted report, including when OTLP export is off. `includeUserId` resolves the session and adds `user.id` to the HTTP span and error report when signed in. `requireSession` rejects signed-out reports with 401; a session-provider outage returns 503. Session lookups use the host's session and origin policy. With no session policy, requiring a session rejects reports. All three options default to false, preserving reports before sign-in without session lookups or an extra log line. `browserErrorRoute(trustedProxy?, options?)` accepts the same options when composed directly.
 
 
-For local traces, run an OpenTelemetry Collector on loopback with an OTLP HTTP receiver and its `debug` exporter. Set `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318` for the app and worker; the collector's console shows the redacted spans, diagnostic events and reported errors. A minimal collector configuration is:
+With `NODE_ENV=development` and no OTLP endpoint, `appHost` and `otlpTracing` record to `.platform/traces.db` using Node's SQLite support. `runDevelopment` sets this mode for its child processes. Add `.platform/` to the application's ignore file. Set `PLATFORM_TRACE_STORE` to choose another file and `PLATFORM_TRACE_INDEXED_ATTRIBUTES=orderId,projectId` to index application attributes. Indexed values use the same redaction as the stored spans. An explicit OTLP endpoint takes precedence; other modes without an endpoint keep export disabled.
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      http:
-        endpoint: 127.0.0.1:4318
-exporters:
-  debug:
-    verbosity: detailed
-service:
-  pipelines:
-    traces:
-      receivers: [ otlp ]
-      exporters: [ debug ]
+Records flush every second and when their scope closes. The store retains the latest five recorder runs, deleting older spans, logs and attribute indexes when a recorder opens. Logs use the existing `effect.log` diagnostic spans; the `logs` view exposes their parent span ID and trace ID. Open the file with any SQLite viewer, or inspect it directly:
+
+```sh
+sqlite3 .platform/traces.db "SELECT name, trace_id, span_id, data FROM spans ORDER BY started_at_millis DESC LIMIT 20"
+sqlite3 .platform/traces.db "SELECT trace_id, span_id, data FROM logs ORDER BY at_millis DESC LIMIT 20"
+sqlite3 .platform/traces.db "SELECT span_id FROM span_attributes WHERE key = 'orderId' AND value = 'order-42'"
 ```
 
-Save the configuration as `otelcol.local.yaml` and run `otelcol --config=otelcol.local.yaml`. Start the web and worker processes with `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318`, then read the collector console. Without an endpoint, local development and tests start with export disabled. Console logging remains available. Railway is the production sink; do not add another error service.
+For explicit composition, provide `localTracing({ path, indexedAttributes, retainedRuns, flushInterval })` from `@shivaedev/server/localTracing.ts` to the application's Layer. All options are optional; `flushInterval` is milliseconds, and `retainedRuns` is a positive integer. It uses `RedactionPolicy`, including host schema sensitivity, and preserves existing console loggers. Local recording and OTLP export are alternative sinks; compose one per application scope.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. `appHost` continues incoming W3C `traceparent` context in RPC handling, including one sent by an edge proxy, whether or not an exporter is configured.
 
@@ -497,6 +489,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `setupDatabases.ts`                                                             | `setupDatabases()`: prepare the local development and test databases.                                                                                           |
 | `development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                       |
 | `rpc-server/publicConfigLayer.ts`                                               | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                 |
+| `localTracing.ts`                                                               | `localTracing(options?)`: scoped local SQLite spans and correlated logs with configurable attribute indexes and run retention.                                  |
 | `otlpTracing.ts`                                                                | `otlpTracing`: redacting Railway OTLP export for worker spans, logs and error reports.                                                                          |
 | `RedactionPolicy.ts`                                                            | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
