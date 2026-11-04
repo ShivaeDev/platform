@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Redacted } from "effect";
@@ -55,6 +56,7 @@ export const adminSetup = storyKit({
 					const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 					return yield* spawner.exitCode(
 						ChildProcess.make("pnpm", ["db:seed"], {
+							cwd: fileURLToPath(new URL("../../../", import.meta.url)),
 							env: { "BETTER_AUTH_SECRET": Redacted.value(secret), "DATABASE_URL": Redacted.value(database.url) },
 							extendEnv: true,
 							stderr: "inherit",
