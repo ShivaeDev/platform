@@ -16,6 +16,7 @@ import type { hostTransport } from "#hostTransport.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import { socketRpc } from "#socketRpc.ts";
+import { UnixSocketRequest } from "#UnixSocketRequest.ts";
 
 type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = ReturnType<
 	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>
@@ -60,7 +61,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
 			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
-			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
+			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
 			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",
