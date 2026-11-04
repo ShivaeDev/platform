@@ -53,7 +53,7 @@ export function selectedApp(template?: PostgresTestTemplate) {
 			app: () => Layer.build(Layer.effect(App, startApp)),
 			database: (database) => database.acquire,
 		},
-		clock: "live",
+		clock: "test",
 		create: () => storyDatabase(template === undefined ? undefined : { template }),
 		inspect: () => Effect.flatMap(App, (app) => app.tables()),
 		layer: setup().layer,

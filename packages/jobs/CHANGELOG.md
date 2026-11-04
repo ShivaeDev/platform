@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.0 - 2026-11-04
+
+### Breaking
+
+- Testing controller wait budgets now use the caller's Effect clock. Stories on TestClock must fork waits and advance their clock to test a timeout; applications using the default clock keep wall-time budgets.
+
 ## 0.33.0 - 2026-11-03
 
 ### Added

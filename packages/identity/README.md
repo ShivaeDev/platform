@@ -90,11 +90,12 @@ export const auth = createAuthClient({ plugins: [preferencesClient()] });
 
 The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
 
-`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439.
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
 ```ts
 import { DateTime, Effect, Layer } from "effect";
-import { AccountClock, AccountDayStart } from "@shivaedev/identity/server/AccountClock.ts";
+import { AccountClock } from "@shivaedev/identity/server/AccountClock.ts";
+import { AccountDayStart } from "@shivaedev/identity/server/account-clock/settings.ts";
 
 const clockLayer = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)));
 const today = Effect.gen(function* () {

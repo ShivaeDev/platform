@@ -27,7 +27,7 @@ type Loader = Effect.Effect<readonly Migrator.ResolvedMigration[], Migrator.Migr
 
 export const upgrade = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: (): UpgradeEngine => ({
 		columns: [],
 		columnsSeenByLaterMigration: [],

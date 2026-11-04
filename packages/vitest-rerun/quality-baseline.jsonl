@@ -1,4 +1,5 @@
 {"path":"packages/vitest-rerun/package.json","rule":"code/unused","count":1}
+{"path":"packages/vitest-rerun/src/adapters/VitestRunner.ts","rule":"effect/service-definition-assembly","count":3}
 {"path":"packages/vitest-rerun/src/cli.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/internal/attempt.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/vitest-rerun/src/internal/mergeAttempt.ts","rule":"effect/adapter-imports","count":1}

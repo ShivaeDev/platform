@@ -30,3 +30,23 @@ for (const failure of ["transport drop", "server outage"] as const) {
 		},
 	);
 }
+
+liveRetryStory.it(
+	"resume reconnects immediately and resets the next retry's backoff",
+	[],
+	function* ({ attempts, drop, restore, resume, secondsPass }) {
+		yield* drop("transport drop");
+		yield* secondsPass(60);
+		const beforeResume = yield* attempts();
+
+		yield* restore();
+		yield* resume();
+
+		expect(yield* attempts()).toBe(beforeResume + 1);
+
+		yield* drop("transport drop");
+		yield* secondsPass(2);
+
+		expect(yield* attempts()).toBeGreaterThan(beforeResume + 1);
+	},
+);

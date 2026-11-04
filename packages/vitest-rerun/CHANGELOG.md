@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/service` from 0.6.1 to 0.6.2.
+
 ## 0.5.0 - 2026-11-03
 
 ### Added

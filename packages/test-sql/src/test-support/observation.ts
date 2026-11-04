@@ -6,6 +6,7 @@ import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type ObserveOptions, observeUntil } from "#server/observeUntil.ts";
 import { adminUrl, configured } from "./postgres.ts";
+import { withCatalogClock } from "./withCatalogClock.ts";
 
 type Name = "alice" | "bob";
 
@@ -52,6 +53,7 @@ function sessionCount(count: number) {
 }
 
 export const observation = storyKit({
+	around: withCatalogClock,
 	clock: "test",
 	create: () => Effect.map(SqlClient.SqlClient, (admin) => new ObservationEngine(admin)),
 	inspect: (engine) => ({ counts: engine.counts, sessions: [...engine.sessions.keys()] }),

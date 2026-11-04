@@ -11,3 +11,7 @@
 ### Fixed
 
 - `@shivaedev/contract`: emit portable declarations for exported contracts with declared subjects.
+
+### Breaking
+
+- `@shivaedev/identity`: import `AccountDayStart` and `LogicalDay` from `@shivaedev/identity/server/account-clock/settings.ts`. `server/AccountClock.ts` exports the service only.

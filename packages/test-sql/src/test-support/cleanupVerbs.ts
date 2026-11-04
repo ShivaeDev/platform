@@ -1,6 +1,8 @@
-import { Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
+import { Clock, Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
+import { CleanupClock } from "#server/internal/clocks.ts";
 import { observeUntil } from "#server/observeUntil.ts";
 import type { CleanupEngine } from "./cleanup.ts";
 import { attempt } from "./outcome.ts";
@@ -25,6 +27,13 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 		awaitCleanup: () => {
 			story.tell("the story awaits the run's cleanup");
 			return engine.run(Effect.flatMap(PostgresTestDatabase, (database) => database.awaitCleanup));
+		},
+		cleanupRetryIntervalPasses: () => {
+			story.tell("the run's 100 millisecond cleanup retry interval passes");
+			return Effect.gen(function* () {
+				yield* untilTimer("100 millis").pipe(Effect.provideService(Clock.Clock, state.cleanupClock));
+				yield* state.cleanupClock.adjust("100 millis");
+			});
 		},
 		cloneDatabase: () => {
 			story.tell("the story checks whether its clone still exists");
@@ -95,7 +104,7 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 		},
 		startRun: () => {
 			story.tell("the run starts");
-			return engine.lease();
+			return engine.lease().pipe(Effect.provideService(CleanupClock, state.cleanupClock));
 		},
 	};
 }

@@ -42,7 +42,8 @@ export function App({
 			connect={(_, registry) => {
 				const client = connect(url, registry, runtime);
 				connected(registry, client);
-				return client;
+				const connection = { api: { notes: client, sameNotes: client } };
+				return Object.assign(connection, { parent: connection });
 			}}
 			identify={(id) => id}
 			liveCoalesceWindow="500 millis"
@@ -63,7 +64,7 @@ export function App({
 				</button>
 			}
 		>
-			{(client) => <Note client={client} />}
+			{(client) => <Note client={client.api.notes} />}
 		</SessionBoundary>
 	);
 }

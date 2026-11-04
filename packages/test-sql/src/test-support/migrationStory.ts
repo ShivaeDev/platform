@@ -9,7 +9,7 @@ import { createSteps, stepsVerbs } from "./stepsVerbs.ts";
 
 export const app = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => createSteps,
 	inspect: ({ counts, loaderResource, migration }) => ({ loaderResource, loads: counts.loads, migration }),
 	layer,
