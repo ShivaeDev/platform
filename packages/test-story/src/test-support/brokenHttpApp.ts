@@ -8,7 +8,7 @@ function* brokenChunks(thrown: unknown) {
 }
 
 export const brokenHttpApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const state: { thrown: unknown; source: "reply" | "guard" | "script" | "stream" } = { source: "reply", thrown: undefined };
 		const service = yield* fakeHttpService({

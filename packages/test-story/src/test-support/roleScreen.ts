@@ -2,6 +2,8 @@ import { Effect } from "effect";
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
+import { drivenScreen } from "./drivenScreen.ts";
 
 export const roleScreen = storyKit({
 	*create() {
@@ -29,13 +31,13 @@ export const roleScreen = storyKit({
 			event.preventDefault();
 			output.textContent = `Submitted ${new FormData(form).get("email")}`;
 		});
-		return { root, save };
+		return { clock: yield* drivenClock, root, save };
 	},
 	inspect: ({ root }) => ({ screen: root.textContent ?? "" }),
 	name: "role screen",
 	stages: ["screen"],
-	verbs: ({ root, save }, story) => {
-		const driver = screenDriver({ root, tell: story.tell });
+	verbs: ({ clock, root, save }, story) => {
+		const driver = drivenScreen(clock, screenDriver({ root, tell: story.tell }));
 		const searches = background();
 		return {
 			...driver,

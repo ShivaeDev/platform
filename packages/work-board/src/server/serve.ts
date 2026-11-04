@@ -1,4 +1,4 @@
-import { Context, Deferred, Duration, Effect, Layer, Path, Scope } from "effect";
+import { Context, Deferred, Duration, Effect, Layer, Path } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/server/appHost.ts";
@@ -6,7 +6,6 @@ import { workRpcs } from "#rpc/contract.ts";
 import type { Server } from "#rpc/Server.ts";
 import type { BoardOptions } from "#server/board.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";
-import { boardSocket } from "#server/boardSocket.ts";
 import { boardRoutes } from "#server/http/boardRoutes.ts";
 import { MAX_BYTES, RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
 
@@ -24,11 +23,7 @@ export function serveBoard(options: ServeOptions) {
 			const info = yield* Deferred.make<typeof Server.Type>();
 			const runtime = yield* boardRuntime(options, Deferred.await(info));
 			const handlers = runtime.rpcHandlers;
-			const listeners = yield* Scope.fork(yield* Scope.Scope, "parallel");
-			const socketScope = yield* Scope.fork(listeners, "sequential");
-			yield* boardSocket(directory, handlers, options.drainRequests).pipe(Scope.provide(socketScope));
-			const httpScope = yield* Scope.fork(listeners, "sequential");
-			const host = yield* Layer.buildWithScope(
+			const host = yield* Layer.build(
 				appHost({
 					config: {
 						disablePreemptiveShutdown: options.drainRequests !== true,
@@ -36,6 +31,7 @@ export function serveBoard(options: ServeOptions) {
 						host: HOST,
 						maxBodySize: 4 * MAX_BYTES + 4096,
 						port: options.port,
+						socketPath: (yield* Path.Path).join(directory, "board.sock"),
 					},
 					group: workRpcs,
 					handlers,
@@ -44,7 +40,6 @@ export function serveBoard(options: ServeOptions) {
 					rpcPath: RPC_PATH,
 					services: runtime.live,
 				}),
-				httpScope,
 			);
 			const { address } = Context.get(host, HttpServer.HttpServer);
 			if (!NetAddress.isInetAddress(address)) {

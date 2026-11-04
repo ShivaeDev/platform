@@ -2,6 +2,7 @@ import { type Duration, Effect, Queue, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
+import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -13,13 +14,14 @@ import { mountLive } from "#client/mountLive.ts";
 import type { QueryOptions } from "#client/resultState.ts";
 import { LoaderWindowRead } from "./LoaderWindowRead.tsx";
 import { Screen } from "./Screen.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 const notes = collection("loader-window-notes", Schema.Number);
 const Get = query("get", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Number });
 const Notes = contract("loaderWindowNotes", { queries: [Get] });
 
 export const loaderWindowStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const hints = yield* Queue.unbounded<LiveHint>();
 		const handled = yield* Queue.unbounded<void>();
@@ -41,10 +43,13 @@ export const loaderWindowStory = storyKit({
 					return value;
 				}),
 		});
+		const runtime = yield* storyRuntime;
+		const run = Effect.runPromiseWith(yield* Effect.context());
 		class Client extends AtomRpc.Service<Client>()("loader-window/Client", {
 			group: Notes,
 			makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 			protocol: handlers,
+			runtime,
 		}) {}
 		const api = bind(Notes, Client);
 		const atom = api.get.query();
@@ -59,6 +64,7 @@ export const loaderWindowStory = storyKit({
 			readers: new Map<string, QueryOptions | undefined>(),
 			requests,
 			responses,
+			run,
 			screen,
 			setValue: (next: number) => {
 				value = next;
@@ -128,6 +134,7 @@ export const loaderWindowStory = storyKit({
 				}),
 			requests: () => [...engine.requests],
 			shown: () => engine.view.container.textContent,
+			windowPasses: () => engine.screen.act("the 100ms coalescing window passes", () => engine.run(TestClock.adjust("100 millis"))),
 		};
 	},
 });

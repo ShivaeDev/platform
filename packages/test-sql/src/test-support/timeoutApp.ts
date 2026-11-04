@@ -2,7 +2,9 @@ import { Context, Deferred, Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
+import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { setup } from "./postgres.ts";
@@ -37,7 +39,7 @@ export const timeoutApp = storyKit({
 			}
 			return yield* withIsolatedDatabase(effect);
 		}),
-	clock: "live",
+	clock: "test",
 	*create() {
 		const closedBeforeSetup = beforeSetup;
 		const sql = yield* SqlClient.SqlClient;
@@ -45,14 +47,16 @@ export const timeoutApp = storyKit({
 		const name = new URL(Redacted.value(database.url)).pathname.slice(1);
 		previousDatabase = name;
 		const written = yield* Deferred.make<void>();
+		const clock = yield* watchedClock;
+		const testing = makePgBossTesting({ clock });
 		const services = yield* Layer.build(
 			Jobs.layer({
 				jobs: [writeItem.handle(({ value }) => Effect.andThen(sql`insert into items values (2, ${value})`, Deferred.succeed(written, undefined)))],
-			}).pipe(Layer.provide(pgBossLayer({ connectionString: database.url }))),
+			}).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
 		);
 		const jobs = Context.get(services, Jobs);
 		yield* Effect.addFinalizer(() => sql`insert into notes values (1, 'closed')`.pipe(Effect.orDie));
-		return { closedBeforeSetup, jobs, name, sql, written };
+		return { closedBeforeSetup, jobs, name, sql, testing, written };
 	},
 	inspect: (engine) => ({ closedBeforeSetup: engine.closedBeforeSetup, name: engine.name }),
 	layer: setup().layer,
@@ -78,6 +82,7 @@ export const timeoutApp = storyKit({
 		writeItem: Effect.fn("TimeoutApp.writeItem")(function* (value: string) {
 			story.tell(`the application enqueues the item "${value}" and waits for its worker to write it`);
 			yield* engine.jobs.enqueue(writeItem, { value });
+			yield* engine.testing.waitForIdle;
 			yield* Deferred.await(engine.written);
 		}),
 	}),

@@ -41,7 +41,7 @@ const untracedLogEvents = Effect.fnUntraced(function* () {
 
 export function otlpReadoutApp(protobuf: boolean, immediate = false, postgres = false) {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		*create() {
 			const receiver = yield* otlpReceiver();
 			const scope = yield* Scope.fork(yield* Scope.Scope);

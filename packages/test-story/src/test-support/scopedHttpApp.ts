@@ -20,7 +20,7 @@ function sent(caller: Caller): Send {
 }
 
 export const scopedHttpApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const comments: string[] = [];
 		const service = yield* fakeHttpService({

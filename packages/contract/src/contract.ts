@@ -1,31 +1,15 @@
 import { Schema } from "effect";
-import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
+import { Rpc, RpcGroup, type RpcMiddleware } from "effect/rpc";
 import { declarationError, type Unique } from "#internal/declarationError.ts";
-import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
+import { subjectMiddleware } from "#internal/subjectMiddleware.ts";
+import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { OperationRpc } from "#operationRpc.ts";
 import { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
-
-export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
+import type { SubjectDeclaration, WithSubject } from "#subject.ts";
 
 export type QueryServices<TQuery> = TQuery extends QueryShape<unknown, infer R> ? R : never;
-
-type OperationError<TOperation extends OperationShape> = TOperation extends QueryShape
-	? Schema.Union<readonly [TOperation["error"], typeof QueryReadDenied]>
-	: TOperation["error"];
-
-export type OperationRpc<TContract extends string, TOperation> = TOperation extends OperationShape
-	? TOperation extends StreamShape
-		? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], RpcSchema.Stream<TOperation["success"], TOperation["error"]>, Schema.Never>
-		: Rpc.Rpc<
-				Tag<TContract, TOperation["name"]>,
-				TOperation["payload"],
-				TOperation["success"],
-				OperationError<TOperation>,
-				TOperation extends QueryShape ? typeof ReadPolicyGuard : never,
-				QueryServices<TOperation>
-			>
-	: never;
 
 export interface Declared<
 	TName extends string,
@@ -92,10 +76,12 @@ export function contract<
 	const TCommands extends readonly CommandShape[] = readonly [],
 	const TStreams extends readonly StreamShape[] = readonly [],
 	const TScope extends "session" | undefined = undefined,
+	const TSubject extends SubjectDeclaration | undefined = undefined,
 >(
 	name: TName,
 	operations: {
 		readonly keyScope?: TScope;
+		readonly subject?: TSubject;
 		readonly queries?: TQueries & Unique<TQueries>;
 		readonly commands?: TCommands & Unique<[...TQueries, ...TCommands]>;
 		readonly streams?: TStreams & Unique<[...TQueries, ...TCommands, ...TStreams]>;
@@ -104,8 +90,11 @@ export function contract<
 	TName,
 	TQueries,
 	TCommands,
-	| OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]>
-	| Rpc.AddMiddleware<ReturnType<typeof changesRpc<TName, TQueries>>, typeof ReadPolicyGuard>,
+	WithSubject<
+		| OperationRpc<TName, TQueries[number] | TCommands[number] | TStreams[number]>
+		| Rpc.AddMiddleware<ReturnType<typeof changesRpc<TName, TQueries>>, typeof ReadPolicyGuard>,
+		TSubject
+	>,
 	TStreams,
 	TScope
 >;
@@ -113,6 +102,7 @@ export function contract(
 	name: string,
 	operations: {
 		readonly keyScope?: "session";
+		readonly subject?: SubjectDeclaration;
 		readonly queries?: readonly QueryShape[];
 		readonly commands?: readonly CommandShape[];
 		readonly streams?: readonly StreamShape[];
@@ -127,11 +117,14 @@ export function contract(
 			stream: operation.kind === "stream",
 			success: operation.success,
 		}).annotateMerge(operationAnnotations(operation, keyScope));
-		return operation.kind === "query" ? rpc.middleware(ReadPolicyGuard) : rpc;
+		const guarded = operation.kind === "query" ? rpc.middleware(ReadPolicyGuard) : rpc;
+		return operations.subject === undefined ? guarded : guarded.middleware(subjectMiddleware(`${name}.${operation.name}`, operations.subject));
 	});
 	const application = RpcGroup.make(...rpcs);
 	const changes = changesRpc(name, queries).middleware(ReadPolicyGuard);
-	return withDeclaration(application.add(keyScope === undefined ? changes : changes.annotate(KeyScope, keyScope)), application, {
+	const subjectChanges = operations.subject === undefined ? changes : changes.middleware(subjectMiddleware(`${name}.$changes`, operations.subject));
+	const group = application.add(keyScope === undefined ? subjectChanges : subjectChanges.annotate(KeyScope, keyScope));
+	return withDeclaration(group, application, {
 		commands,
 		keyScope,
 		name,

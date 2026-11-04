@@ -1,14 +1,14 @@
 import { expect } from "vitest";
-import { liveKit } from "#test/liveKit.ts";
+import { pinnedKit } from "#test/pinnedKit.ts";
 
-liveKit.it("runs a live kit's create, after and step hooks on the live clock", [], function* ({ clockReadings, stepsOnce }) {
+pinnedKit.it("runs a pinned kit's create, after and step hooks on the pinned clock", [], function* ({ clockReadings, stepsOnce }) {
 	yield* stepsOnce();
 
-	expect(clockReadings()).toEqual(["create on the live clock", "after on the live clock", "step on the live clock"]);
+	expect(clockReadings()).toEqual(["create on the pinned clock", "after on the pinned clock", "step on the pinned clock"]);
 });
 
-liveKit.it(
-	"runs a live kit's create, after and step hooks on the test clock when the story asks for it",
+pinnedKit.it(
+	"runs a pinned kit's create, after and step hooks on the test clock when the story asks for it",
 	[],
 	function* ({ clockReadings, stepsOnce }) {
 		yield* stepsOnce();

@@ -6,7 +6,7 @@ import { liveVerbs } from "./liveVerbs.ts";
 
 export const integration = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => createLiveEngine,
 	inspect: (engine) => ({
 		delivered: engine.server.delivered,

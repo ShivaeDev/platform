@@ -8,6 +8,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 import { connect } from "./connect.ts";
 import { migrations } from "./feature.ts";
 import { openHost } from "./openHost.ts";
@@ -25,8 +26,9 @@ const create = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const host = yield* openHost(database.url);
 	const wire = transport();
-	const client = connect(host.url, wire.layer);
-	const writer = connect(host.url, layerWebSocketConstructorWS, false);
+	const runtime = yield* storyRuntime;
+	const client = connect(host.url, wire.layer, true, runtime);
+	const writer = connect(host.url, layerWebSocketConstructorWS, false, runtime);
 	const writerRegistry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(registry) => Effect.sync(() => registry.dispose()),
@@ -61,7 +63,7 @@ function displayed(engine: Engine, title: string) {
 
 export const comparedPostgres = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => create,
 	inspect: (engine) => ({ requests: engine.wire.requests, results: engine.wire.results, screen: engine.screen.container.textContent }),
 	layer,

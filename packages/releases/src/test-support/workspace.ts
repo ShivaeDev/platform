@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Effect, FileSystem, Schema } from "effect";
+import { Clock, DateTime, Effect, FileSystem, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ReleasePlan } from "#model.ts";
 import { planRelease } from "#planner.ts";
@@ -25,7 +25,7 @@ function printedLines(stdout: string): readonly string[] {
 }
 
 export const workspace = storyKit({
-	clock: "live",
+	clock: DateTime.makeUnsafe("2026-06-15T23:59:59.999Z"),
 	create: makeFixture,
 	inspect: ({ answers }) => ({ answers }),
 	layer: NodeServices.layer,

@@ -16,7 +16,7 @@ import { readPageTransport } from "#test/readPageTransport.ts";
 import { makePageClient, ReadPageView } from "#test/readPageView.ts";
 
 export const readPage = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const { url, held, opened } = yield* readPageHost;

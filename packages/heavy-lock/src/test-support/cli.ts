@@ -1,7 +1,9 @@
 import process from "node:process";
-import { Effect, Option } from "effect";
+import { Clock, Effect, Option } from "effect";
+import { TestClock } from "effect/testing";
 import { decodeHolder } from "#holder.ts";
-import { type CliRun, type CommandLine, cliEnvironment, commands, startCli } from "./cliProcess.ts";
+import { type CommandLine, cliEnvironment, commands } from "./cliCommands.ts";
+import { type CliRun, startCli } from "./cliProcess.ts";
 import { type Lock, nameOf } from "./lock.ts";
 import { startTime } from "./startTime.ts";
 
@@ -17,8 +19,9 @@ function holderIdGiven(engine: Lock, run: CliRun) {
 
 export function cli(engine: Lock, tell: (line: string) => void) {
 	const launch = Effect.fn("LockStory.launch")(function* (name: string, args: readonly string[], env = cliEnvironment(engine.lock, engine.env)) {
+		const now = yield* Clock.currentTimeMillis;
 		const run = yield* Effect.acquireRelease(
-			Effect.sync(() => startCli(args, env, engine.cliOptions.cwd)),
+			Effect.sync(() => startCli(args, env, now, engine.cliOptions.cwd)),
 			(child) =>
 				Effect.promise(async () => {
 					child.stop();
@@ -53,6 +56,15 @@ export function cli(engine: Lock, tell: (line: string) => void) {
 				return Object.entries(engine.paths).find(([, value]) => value === path)?.[0] ?? "no known lock path";
 			}),
 		pidOf: (name: string) => Effect.map(runOf(name), ({ pid }) => pid),
+		pollIntervalPasses: (name: string) =>
+			Effect.gen(function* () {
+				tell(`${name}'s CLI polling interval passes`);
+				const run = yield* runOf(name);
+				const time = yield* Effect.promise(() => run.nextPoll);
+				yield* TestClock.setTime(time);
+				run.advanceTo(time);
+				yield* exits(run);
+			}),
 		printedBy: (name: string) =>
 			afterExit(name, (run) =>
 				run

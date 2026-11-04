@@ -54,7 +54,7 @@ function xhrEcho() {
 }
 
 export const documentApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		if (window.fetch === globalThis.fetch) {
 			throw new Error("Document stories need the test-story DOM environment with separate window.fetch and host fetch.");

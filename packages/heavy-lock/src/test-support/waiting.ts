@@ -1,13 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
-import { Effect, Option } from "effect";
-import { TestClock } from "effect/testing";
-import { decodeHolder } from "#holder.ts";
-import { cli } from "./cli.ts";
-import { commands } from "./cliProcess.ts";
-import { lockStory } from "./kit.ts";
-import { readLock } from "./lock.ts";
+import { Effect } from "effect";
+import { cli } from "#test/cli.ts";
+import { commands } from "#test/cliCommands.ts";
+import { lockStory } from "#test/kit.ts";
 
 export function hungAfter(milliseconds: number) {
 	return lockStory.trait("configuration", `waiters warn after a hold lasts ${milliseconds}ms`, (engine) => {
@@ -45,8 +42,6 @@ export function heldByAnotherProcess(branch?: string, detached = false) {
 				}
 				engine.cliOptions.cwd = cwd;
 				yield* cli(engine, () => undefined).starts("holder", commands.holdsUntilReleased);
-				const holder = Option.getOrThrow(decodeHolder(readLock(engine.lock) ?? ""));
-				yield* TestClock.setTime(holder.startedAtMs);
 			}),
 	);
 }

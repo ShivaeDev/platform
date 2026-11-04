@@ -7,6 +7,7 @@ import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.
 import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
+import { subjectResolverLayer } from "@shivaedev/identity/server/subjectResolverLayer.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { boundedRpcSocket } from "#boundedRpcSocket.ts";
 import { hostChanges } from "#hostChanges.ts";
@@ -16,6 +17,7 @@ import type { hostTransport } from "#hostTransport.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import { socketRpc } from "#socketRpc.ts";
+import { UnixSocketRequest } from "#UnixSocketRequest.ts";
 
 type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = ReturnType<
 	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>
@@ -51,16 +53,18 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
-	const middleware =
+	const middleware = Layer.merge(
+		subjectResolverLayer(),
 		options.policy === "loopback"
 			? rpcRequestTracing(sensitive)
-			: Layer.mergeAll(authenticatedLayer(), maybeAuthenticatedLayer(), rpcRequestTracing(sensitive));
+			: Layer.mergeAll(authenticatedLayer(), maybeAuthenticatedLayer(), rpcRequestTracing(sensitive)),
+	);
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
 			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
-			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
+			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
 			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",

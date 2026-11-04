@@ -51,7 +51,7 @@ const runFixture = Effect.fnUntraced(function* (file: string, hookTimeout?: numb
 });
 
 export const vitestRunner = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => Effect.succeed<{ run: InnerRun }>({ run: { stories: [], uncaught: [] } }),
 	inspect: ({ run }) => run,
 	name: "vitest runner",

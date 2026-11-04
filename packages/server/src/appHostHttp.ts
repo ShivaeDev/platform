@@ -1,8 +1,8 @@
-import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
+import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
@@ -69,7 +69,7 @@ export function appHostHttp<
 						HttpRouter.toHttpEffect(httpRoutes).pipe(
 							Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
 						),
-					).pipe(Layer.provideMerge(application), Layer.provide(sessions), Layer.provideMerge(NodeHttpServer.layerHttpServices));
+					).pipe(Layer.provideMerge(application), Layer.provide(sessions), Layer.provideMerge(hostHttpServices));
 				}),
 			).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive))),
 		),

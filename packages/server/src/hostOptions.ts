@@ -13,6 +13,7 @@ export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THa
 	readonly browserErrors?: BrowserErrorOptions;
 	readonly config?: AppDatabaseOptions["config"] & {
 		readonly port?: number;
+		readonly socketPath?: string;
 		readonly host?: string;
 		readonly trustedProxy?: string;
 		readonly maxBodySize?: number;

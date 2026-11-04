@@ -2,10 +2,11 @@ import { type Duration, Effect, Fiber } from "effect";
 import { type FakeHttpRequestRecord, fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { type SignalNotReceived, until } from "#server/until.ts";
+import { drivenClock } from "./drivenClock.ts";
 import { httpClient } from "./httpClient.ts";
 
 export const httpArrivalApp = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		let title = "Original";
 		const service = yield* fakeHttpService({
@@ -25,12 +26,12 @@ export const httpArrivalApp = storyKit({
 				},
 			},
 		});
-		return { service };
+		return { clock: yield* drivenClock, service };
 	},
 	inspect: ({ service }) => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 	name: "HTTP arrivals",
 	stages: ["ready"],
-	verbs: ({ service }, story) => {
+	verbs: ({ clock, service }, story) => {
 		service.narrate(story.tell);
 		const client = httpClient(
 			() => service.url,
@@ -48,8 +49,10 @@ export const httpArrivalApp = storyKit({
 				story.tell(`the upstream title changes to ${title}`);
 				return client.asks("/title", { body: title, method: "POST" });
 			},
-			completion: (path: string, timeout: Duration.Input = "5 seconds") =>
-				until(service.completed, (request) => request.path === path, { name: `completed ${path}`, timeout }),
+			completion: (path: string, timeout?: Duration.Input) => {
+				const wait = until(service.completed, (request) => request.path === path, { name: `completed ${path}`, timeout: timeout ?? "5 seconds" });
+				return timeout === undefined ? clock.run(wait) : clock.drive(wait);
+			},
 			hold: service.hold,
 			receipt,
 			stall: service.stall,

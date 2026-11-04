@@ -1,3 +1,4 @@
+import { DateTime } from "effect";
 import { expect } from "vitest";
 import { signals, source } from "#test/signals.ts";
 
@@ -63,12 +64,12 @@ for (const collect of [false, true]) {
 }
 
 signals.it(
-	"uses a live deadline in a live-clock story too",
-	[source("quiet")],
+	"uses the external deadline with a plain controlled source clock too",
+	[source("boundary")],
 	function* ({ wait, ending }) {
 		yield* wait();
 
 		expect(ending()).toContain('Signal "ready" never arrived: the live-time deadline expired.');
 	},
-	{ clock: "live" },
+	{ clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") },
 );
