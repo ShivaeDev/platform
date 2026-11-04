@@ -3,6 +3,7 @@ import { expectTypeOf } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateCheckRun } from "#checkRunSchemas.ts";
 import { GitHub } from "#GitHub.ts";
+import { graphql } from "#graphql.ts";
 import { list } from "#list.ts";
 import { listBounded } from "#listBounded.ts";
 import { listPages } from "#listPages.ts";
@@ -35,6 +36,9 @@ const WithService = Schema.String.pipe(
 );
 const readWithService = read("/item", WithService);
 const writeWithService = write("POST", "/items", { title: "New" }, WithService);
+const graphqlWithService = graphql("query { viewer { login } }", {}, WithService);
+expectTypeOf<Effect.Services<typeof graphqlWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
+expectTypeOf<Effect.Success<typeof graphqlWithService>>().toEqualTypeOf<string>();
 expectTypeOf<Effect.Services<typeof readWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Effect.Services<typeof writeWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 
