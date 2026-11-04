@@ -10,7 +10,7 @@ import { handoverWorker } from "./handoverWorker.ts";
 export type Loop = "heartbeat" | "poll";
 
 export function inWords(cause: string) {
-	return cause.includes("Connection closed") ? "connection closed" : (cause.split("\n")[0] ?? "");
+	return cause.includes("terminating connection due to administrator command") ? "connection closed" : (cause.split("\n")[0] ?? "");
 }
 
 function messageOf(message: unknown) {

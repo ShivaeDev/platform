@@ -39,7 +39,7 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 				return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
 					status: requests.length === 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Accepted"),
 				});
-			}).pipe(privateFailures),
+			}).pipe(Effect.scoped, privateFailures),
 		)
 		.pipe(
 			Effect.catchIf(

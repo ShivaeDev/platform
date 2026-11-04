@@ -1,0 +1,42 @@
+import { Redacted } from "effect";
+import { PgBossError, PgBossNotFoundError, PgBossPayloadError, PgBossQueueNamesError } from "@shivaedev/jobs/server/error.ts";
+import { PgBossTestingError } from "@shivaedev/test-kits/jobs/error.ts";
+
+export function failureOf(error: unknown): string {
+	if (error instanceof PgBossNotFoundError) {
+		return `${error.operation} refused: ${error.message}`;
+	}
+	if (error instanceof PgBossQueueNamesError) {
+		return `queue declaration mismatch: missing [${error.missing.join(", ")}], unexpected [${error.unexpected.join(", ")}]`;
+	}
+	if (error instanceof PgBossError) {
+		return `${error.operation}${error.queue === undefined ? "" : ` ${error.queue}`} failed with ${originalOf(error.original)}`;
+	}
+	if (error instanceof PgBossPayloadError) {
+		return `${error.direction} ${error.queue} payload failed with ${originalOf(error.original)}`;
+	}
+	if (error instanceof PgBossTestingError) {
+		return `testing ${error.operation}${error.queue === undefined ? "" : ` ${error.queue}`} failed with ${originalOf(error.original)}`;
+	}
+	if (error instanceof Error) {
+		return error.message;
+	}
+	return taggedOf(error) ?? String(error);
+}
+
+function originalOf(original: Redacted.Redacted<unknown>): string {
+	const value = Redacted.value(original);
+	return value instanceof Error ? value.message : String(value);
+}
+
+function taggedOf(error: unknown): string | undefined {
+	if (typeof error !== "object" || error === null) {
+		return undefined;
+	}
+	const tag = Reflect.get(error, "_tag");
+	const message = Reflect.get(error, "message");
+	if (typeof tag !== "string") {
+		return undefined;
+	}
+	return typeof message === "string" && message !== "" ? `${tag}: ${message}` : tag;
+}

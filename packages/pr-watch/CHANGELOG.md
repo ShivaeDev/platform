@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-04
+
+### Breaking
+
+- `optionsFor` returns a synchronous Effect `Result`. Use Result combinators for synchronous argument handling or wrap the return value with `Effect.fromResult` before yielding or entering an Effect pipeline.
+
 ## 0.9.0 - 2026-11-04
 
 ### Changed

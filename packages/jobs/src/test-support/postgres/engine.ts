@@ -1,12 +1,12 @@
 import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
 import { registrationName } from "#server/internal/register.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";
-import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#server/testing.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
 import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "./clientObservers.ts";
