@@ -1069,6 +1069,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1980,6 +1983,9 @@ importers:
         specifier: workspace:*
         version: link:../test-story
     devDependencies:
+      '@shivaedev/github':
+        specifier: workspace:*
+        version: link:../github
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -2467,6 +2473,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

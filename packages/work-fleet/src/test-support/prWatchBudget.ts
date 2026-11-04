@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
-import { fakeGitHub } from "@shivaedev/github/test-support/fakeGitHub.ts";
 import type { Options } from "@shivaedev/pr-watch/model.ts";
 import { requestFailure } from "@shivaedev/pr-watch/requestFailure.ts";
 import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
+import { fakeGitHub } from "@shivaedev/test-kits/github/adapters/rest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";

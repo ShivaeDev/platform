@@ -1,8 +1,8 @@
 import { ConfigProvider, Context, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
-import { fakeGitHub } from "@shivaedev/github/test-support/fakeGitHub.ts";
 import { telemetry } from "@shivaedev/github/test-support/telemetry.ts";
+import { fakeGitHub } from "@shivaedev/test-kits/github/adapters/rest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
 import { githubCli } from "#test/githubCli.ts";

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { type FakeHttpReply, type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import type { FakeHttpReply, FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { fakeGitHubApp } from "#github/fake.ts";
 
 export interface ScriptedGithubResponse {
 	readonly body: unknown;
@@ -58,7 +59,9 @@ export function fakeGitHub(options: { readonly limit?: number; readonly remainin
 		return { chunks: status === HttpStatus.fromLiteral("NotModified") ? [] : [body], headers, status };
 	}
 	const serve = Effect.gen(function* () {
-		const server = yield* fakeHttpService({ routes: { api: { path: "/:path*", reply: (request): FakeHttpReply => respond(request, server.url) } } });
+		const { server } = yield* fakeGitHubApp({
+			routes: () => ({ api: { path: "/:path*", reply: (request): FakeHttpReply => respond(request, server.url) } }),
+		});
 		return server;
 	});
 	return {
