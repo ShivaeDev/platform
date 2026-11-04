@@ -6,7 +6,6 @@ import { Crypto, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { HOLDER_ID_ENV } from "#holder.ts";
 import { cli } from "./cli.ts";
-import { TEST_TIMEOUT_MS } from "./cliProcess.ts";
 import { acquireInScope, buildLayer, commandVerbs, startCommand } from "./commands.ts";
 import { draft } from "./draft.ts";
 import { cleanupFails, draftWriteFails } from "./fileFaults.ts";
@@ -14,9 +13,10 @@ import { createLock, type HolderProcess, lockDirectory, lockVerbs, readLock, see
 import { protocolVerbs, writeReference } from "./protocol.ts";
 import { reclamation } from "./reclamation.ts";
 
-export const liveCli = { clock: "live", timeout: TEST_TIMEOUT_MS } as const;
+export const CLI_TIMEOUT_MS = 20_000;
 
 export const lockStory = storyKit({
+	clock: "test",
 	create: () => createLock,
 	inspect: (engine) => ({ env: engine.env, files: lockDirectory(engine.lock), lock: readLock(engine.lock) }),
 	layer: NodeServices.layer,

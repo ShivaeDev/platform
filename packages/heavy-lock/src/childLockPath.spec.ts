@@ -1,5 +1,5 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { acquiredInScope, heldBy, inheritsHolderIdOf, liveCli, lockPathsFrom, lockStory } from "#test/kit.ts";
+import { acquiredInScope, CLI_TIMEOUT_MS, heldBy, inheritsHolderIdOf, lockPathsFrom, lockStory } from "#test/kit.ts";
 
 for (const { locked, sources } of [
 	{ locked: "explicit", sources: ["explicit", "HEAVY_PROCESS_LOCK", "HOME"] },
@@ -19,7 +19,7 @@ for (const { locked, sources } of [
 				["lock holder after check exits", () => lock.holder(locked), "build"],
 			]);
 		},
-		liveCli,
+		CLI_TIMEOUT_MS,
 	);
 }
 
@@ -35,5 +35,5 @@ lockStory.it(
 			["lock holder after check exits", () => lock.holder(), "build"],
 		]);
 	},
-	liveCli,
+	CLI_TIMEOUT_MS,
 );
