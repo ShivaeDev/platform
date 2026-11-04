@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.61.0 - 2026-11-04
+
+### Added
+
+- Declare deliberately non-Effect subsystems with `nonEffectFolders` in Quality config. All `effect/*` rules and Effect-specific Biome plugins are off in those folders and their descendants; other rules and Effect importers remain checked. The declaration applies to the gate and Biome fix passes without adding baseline debt.
+
+### Fixed
+
+- Let `baseline write --first-adoption` record findings from every rule, including rules that permit config exceptions. A repository without a baseline may record all rules at once; policy upgrades with an existing baseline still name explicit rules, and ordinary later writes still require changed file selections.
+- Follow story specs' runtime imports into test-support when reporting sleeps, polling, quiet windows, fake timers and `eventually`. Keep product timers and controlled kit clock advances accepted, and explain that a deadline bounds a failure but does not prove completion.
+
 ## 0.60.0 - 2026-11-04
 
 ### Added

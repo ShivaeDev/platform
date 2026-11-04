@@ -1,11 +1,12 @@
 import { Effect } from "effect";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type ChangeKeysEngine, changeKeysEngine } from "./changeKeysEngine.ts";
+import { compositeRecordKey } from "#compositeRecordKey.ts";
+import { type ChangeKeysEngine, changeKeysEngine, keyWords } from "./changeKeysEngine.ts";
 import { changeKeysVerbs, ID_BEYOND_NUMBER } from "./changeKeysVerbs.ts";
-import { compositeLedger } from "./compositeLedger.ts";
+import { compositeLedger, LedgerEntry } from "./compositeLedger.ts";
 import { onPostgres } from "./engines.ts";
-import { setupOwnedRows } from "./postgresOwnedRows.ts";
+import { OwnedRow, setupOwnedRows } from "./postgresOwnedRows.ts";
 
 function inspect(engine: ChangeKeysEngine) {
 	return { createdIds: engine.createdIds, endings: engine.endings, woken: engine.woken };
@@ -78,5 +79,31 @@ export function cashEntry() {
 			return yield* Effect.die(new Error("Give the story the ledger table first"));
 		}
 		yield* ledger.entries.insert({ account: "cash", amount: "7", sequence: ID_BEYOND_NUMBER });
+	});
+}
+
+export function watchesOwnedDraft() {
+	return changeKeys.trait("watchers", "a subscriber watches owned row 1/2 using its decoded model value", function* (engine) {
+		const { owned } = engine;
+		if (owned === undefined) {
+			return yield* Effect.die(new Error("Give the story the owned rows table first"));
+		}
+		const row = yield* owned.rows.findById({ id: 1, ownerId: 2 });
+		const key = yield* compositeRecordKey(OwnedRow, { idColumn: ["id", "ownerId"], tableName: owned.tableName }, row);
+		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push(keyWords(engine, key)));
+		yield* Effect.addFinalizer(() => Effect.sync(stop));
+	});
+}
+
+export function watchesCashEntry() {
+	return changeKeys.trait("watchers", "a subscriber watches the cash entry using its decoded bigint model value", function* (engine) {
+		const { ledger } = engine;
+		if (ledger === undefined) {
+			return yield* Effect.die(new Error("Give the story the ledger table first"));
+		}
+		const row = yield* ledger.entries.findById({ account: "cash", sequence: ID_BEYOND_NUMBER });
+		const key = yield* compositeRecordKey(LedgerEntry, { idColumn: ["account", "sequence"], tableName: ledger.tableName }, row);
+		const stop = engine.reactivity.registerUnsafe([key], () => engine.woken.push(keyWords(engine, key)));
+		yield* Effect.addFinalizer(() => Effect.sync(stop));
 	});
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.38.10 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.20.0 to 0.20.1.
+- Update `@shivaedev/email` from 0.4.0 to 0.4.1.
+- Update `@shivaedev/form` from 0.16.0 to 0.17.0.
+- Update `@shivaedev/identity` from 0.24.0 to 0.25.0.
+- Update `@shivaedev/jobs` from 0.35.0 to 0.35.1.
+- Update `@shivaedev/local-postgres` from 0.13.0 to 0.14.0.
+- Update `@shivaedev/rate-limit` from 0.4.0 to 0.5.0.
+- Update `@shivaedev/react` from 0.40.0 to 0.41.0.
+- Update `@shivaedev/server` from 0.24.0 to 0.24.1.
+- Update `@shivaedev/sql` from 0.37.0 to 0.38.0.
+- Update `@shivaedev/webhooks` from 0.8.0 to 0.8.1.
+
 ## 0.38.9 - 2026-11-04
 
 ### Changed

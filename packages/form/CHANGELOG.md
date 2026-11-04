@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.0 - 2026-11-04
+
+### Added
+
+- Forms expose typed nested field refs and edits, with a React hook for nested inputs and their path feedback.
+
+### Fixed
+
+- A zero `debounce` runs advisory field checks without scheduling a timer.
+
 ## 0.16.0 - 2026-11-04
 
 ### Breaking

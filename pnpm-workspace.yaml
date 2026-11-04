@@ -20,7 +20,7 @@ overrides:
 catalog:
   "@anthropic-ai/claude-agent-sdk": 0.3.225
   "@earendil-works/pi-coding-agent": 0.84.4
-  "@modelcontextprotocol/sdk": 1.30.0
+  "@modelcontextprotocol/sdk": 1.32.0
   "@zip.js/zip.js": 2.24.0
   resend: 6.35.0
   playwright: 1.64.1
@@ -75,7 +75,7 @@ catalog:
   "@better-auth/oauth-provider": 1.7.14
   better-auth: 1.7.14
   pg-boss: 12.38.0
-  satteri: 0.11.1
+  satteri: 0.11.5
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
@@ -83,6 +83,8 @@ catalog:
   "@vitest/coverage-v8": 5.0.5
 
 catalogs:
+  claude-code:
+    "@modelcontextprotocol/sdk": 1.30.0
   compiler-api:
     typescript: npm:@typescript/typescript6@6.0.2
 
@@ -90,6 +92,8 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
+  # Renovate security update: @modelcontextprotocol/sdk@1.32.0
+  - "@modelcontextprotocol/sdk@1.32.0"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade

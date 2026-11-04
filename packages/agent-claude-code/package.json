@@ -51,7 +51,7 @@
 	"devDependencies": {
 		"@anthropic-ai/claude-agent-sdk": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@modelcontextprotocol/sdk": "catalog:",
+		"@modelcontextprotocol/sdk": "catalog:claude-code",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
@@ -61,7 +61,7 @@
 	},
 	"peerDependencies": {
 		"@anthropic-ai/claude-agent-sdk": "catalog:",
-		"@modelcontextprotocol/sdk": "catalog:",
+		"@modelcontextprotocol/sdk": "catalog:claude-code",
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {

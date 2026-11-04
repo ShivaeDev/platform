@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { testingEngine } from "#server/adapters/testingEngine.ts";
+import { testingEngine } from "@shivaedev/test-kits/jobs/adapters/testingEngine.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { admin } from "./engine.ts";
 import { idOf } from "./verbs.ts";

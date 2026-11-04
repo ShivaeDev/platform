@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
@@ -23,10 +23,13 @@ export const NotesService = defineService({
 	methods: (repository) => {
 		function get(id: number, userId: string) {
 			return Effect.gen(function* () {
-				const rows = yield* repository
-					.findMany({ limit: 1, where: { id, userId } })
+				const row = yield* repository
+					.findOne({ where: { id, userId } })
 					.pipe(Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error))));
-				return rows[0] ?? (yield* Effect.fail(new NotFound({ message: "Note not found" })));
+				return yield* Option.match(row, {
+					onNone: () => Effect.fail(new NotFound({ message: "Note not found" })),
+					onSome: Effect.succeed,
+				});
 			});
 		}
 		function enqueue(noteId: number) {

@@ -4,7 +4,7 @@ import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 
 type Origin = "module" | "factory" | "controller" | "readout" | undefined;
 
-const TESTING_MODULE = "@shivaedev/jobs/server/testing.ts";
+const TESTING_MODULE = "@shivaedev/test-kits/jobs/testing.ts";
 
 function importedOrigin(node: ts.Node): Origin {
 	if (importFrom(node) !== TESTING_MODULE) {

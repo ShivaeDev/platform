@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.40.0 - 2026-11-04
+
+### Added
+
+- Generated apps include `pnpm db:seed` with a declaration for local owner and user demo personas.
+
+### Fixed
+
+- Generated starter deployment stories wait for blocked PostgreSQL sessions through test-sql's catalog observations.
+- The starter retains its signed-in screen when session checks cannot reach the server and unmounts signed-in routes during sign-out.
+
 ## 0.39.0 - 2026-11-04
 
 ### Breaking

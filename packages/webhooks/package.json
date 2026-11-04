@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/webhooks",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"description": "Verified webhook receipts and transactional job delivery over Effect HTTP",
 	"keywords": [
 		"effect"
@@ -60,6 +60,7 @@
 		"@effect/platform-node": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
