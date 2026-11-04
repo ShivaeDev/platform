@@ -179,7 +179,13 @@ Every response from the host's native RPC endpoint carries `Cache-Control: priva
 
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same TCP guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
-Import `appHost` from `@shivaedev/server/appHost.ts` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` from `@shivaedev/server/AppHostInput.ts` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
+Import `appHost` from `@shivaedev/server/appHost.ts` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts:
+
+```ts
+import type { AppHostOptions } from "@shivaedev/server/AppHostInput.ts";
+```
+
+A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
 
 Set `config.buildVersion` to the deployed build ID to announce it over the host's native RPC socket. `platform.hostVersion.watch` sends that opaque string when subscribed and stays open; a reconnected subscriber receives the replacement host's ID. Omitting the option leaves the stream silent. Embed the same ID in the browser bundle and use React's `deployUpdate` controller to expose a superseded bundle without polling health. The application supplies staged-update activation, blockers, reload wording and confirmation.
 
