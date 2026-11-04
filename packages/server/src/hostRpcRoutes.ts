@@ -2,6 +2,7 @@ import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
+import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
 import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
@@ -14,6 +15,7 @@ import { hostChanges } from "#hostChanges.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
+import { hostVersionLayer } from "#hostVersionLayer.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import { socketRpc } from "#socketRpc.ts";
@@ -23,6 +25,7 @@ type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = Retu
 	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>
 >;
 type RouteOptions<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = {
+	readonly config?: { readonly buildVersion?: string };
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, TError, TRequirements>;
 	readonly rpcPath?: HttpRouter.PathInput;
@@ -63,9 +66,10 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
-			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const group = options.group.merge(HostVersion.application);
+			const handler = yield* hostRpc(group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
-			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const websocket = yield* hostRpc(group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",
 				options.rpcPath ?? "/rpc",
@@ -98,6 +102,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 		}),
 	).pipe(
 		Layer.provide(Layer.merge(middleware, hostChanges(options.group).pipe(Layer.provideMerge(options.handlers)))),
+		Layer.provide(hostVersionLayer(options.config?.buildVersion)),
 		Layer.provide(RpcSerialization.layerNdjson),
 	);
 }

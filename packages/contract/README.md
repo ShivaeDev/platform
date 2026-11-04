@@ -294,6 +294,10 @@ The dependency rule is deliberately asymmetric:
 
 Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
+### Host build announcements
+
+`HostVersion` from `@shivaedev/contract/HostVersion.ts` declares the native `platform.hostVersion.watch` string stream shared by the application host and React's deploy controller. The host announces its configured build ID on subscription, including after a host replacement reconnects. It uses the same shared WebSocket connection as other `makeClient` bindings with matching transport options. Applications normally use the controller from `@shivaedev/react/client/deployUpdate.ts` rather than consuming this stream directly.
+
 ### Client activity
 
 `clientActivity(client)` from `@shivaedev/contract/clientActivity.ts` returns a native Effect `Stream` with a `current` Effect for a client made by `makeClient`. Its state reports `rpcCalls` for finite calls, `liveInvalidations` for queued live refreshes, `refreshingAtoms` for mounted query atoms awaiting values, and a `liveHints` sequence for received subscription updates. Long-lived streams do not count as finite calls. `isClientIdle(state)` is true when all three work counts are zero. Observe its stream or pass `activityScreenSignal(clientActivity(client))` to a test-story screen driver's `pending` option and call `settle()` before screen assertions. `activityScreenSignal(activity)` projects the stream and its `current` Effect into `{ pending, hints }`, with `pending` true while finite work remains and `hints` carrying the received live-hint count. The returned shape is structural and carries no test-story dependency. Coalesced work stays pending until its refresh completes.
