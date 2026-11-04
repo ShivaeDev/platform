@@ -7,6 +7,7 @@ import { artifacts } from "#artifacts.ts";
 import { checkRuns } from "#checkRuns.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { type GraphqlOptions, graphqlRequests } from "#graphql.ts";
 import { decodedPages, type ListOptions } from "#pagedLists.ts";
 import { rateLimits } from "#rateLimits.ts";
 import { repositoryReads } from "#repositoryReads.ts";
@@ -33,6 +34,7 @@ export const GitHub = defineService({
 		return {
 			bytes: (path: string, accept: string, limit: number) => Effect.map(request(get(path, accept), limit), (entry) => entry.bytes),
 			...client,
+			graphql: graphqlRequests(apiUrl, client),
 			list: genericMethod(client.list),
 			...archive,
 			...stickyComments(client),
@@ -52,6 +54,10 @@ export const GitHub = defineService({
 
 export function read<TSchema extends Schema.Constraint>(path: string, schema: TSchema, responseByteLimit?: number) {
 	return Effect.flatMap(GitHub, (github) => Effect.flatMap(github.read(path, responseByteLimit), (response) => response.decode(schema)));
+}
+
+export function graphql<TSchema extends Schema.Constraint>(query: string, variables: unknown, schema: TSchema, options?: GraphqlOptions) {
+	return Effect.flatMap(GitHub, (github) => github.graphql(query, variables, options).pipe(Effect.flatMap((response) => response.decode(schema))));
 }
 
 export function listPages<TSchema extends Schema.Constraint, E = ServiceUnavailable>(
