@@ -10,6 +10,7 @@ import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
+import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
 import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
@@ -67,6 +68,7 @@ export const builtInRules = [
 	adapterImports,
 	effectBoundary,
 	failureHonesty,
+	rpcBoundary,
 	serviceIds,
 	serviceParameters,
 	sharedErrorClasses,
