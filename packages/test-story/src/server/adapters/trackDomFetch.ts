@@ -1,4 +1,5 @@
-import { Effect, SubscriptionRef } from "effect";
+import * as Effect from "effect/Effect";
+import * as SubscriptionRef from "effect/SubscriptionRef";
 
 export function trackDomFetch(transport: typeof globalThis.fetch) {
 	const pending = Effect.runSync(SubscriptionRef.make(false));
