@@ -11,7 +11,7 @@ import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { DatabaseConfig } from "#appDatabase.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 

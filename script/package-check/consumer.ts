@@ -88,7 +88,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 	}
 	yield* checkBrowserEntries(root, pkg, packages, consumer);
 	if (scenario?.omitOptionalPeers) {
-		yield* checkOptionalPeers(pkg, consumer);
+		yield* checkOptionalPeers(pkg, consumer, imports);
 	}
 	for (const script of ["typecheck", "typecheck:nodenext"]) {
 		yield* command(consumer, "pnpm", ["run", script]);
@@ -119,10 +119,10 @@ const checkBlockedImport = Effect.fn("Packed.checkBlockedImport")(function* (pkg
 	yield* requireThat(outcome.includes("ERR_PACKAGE_PATH_NOT_EXPORTED"), `${pkg.manifest.name}: ${specifier} must not be importable: ${outcome}`);
 });
 
-const checkOptionalPeers = Effect.fn("Packed.checkOptionalPeers")(function* (pkg: Package, consumer: string) {
+const checkOptionalPeers = Effect.fn("Packed.checkOptionalPeers")(function* (pkg: Package, consumer: string, imports: ReadonlySet<string>) {
 	const fs = yield* FileSystem.FileSystem;
 	for (const [name, meta] of Object.entries(pkg.manifest.peerDependenciesMeta ?? {})) {
-		if (meta.optional) {
+		if (meta.optional && !imports.has(name)) {
 			yield* requireThat(
 				!(yield* fs.exists(join(consumer, "node_modules", name))),
 				`${pkg.manifest.name}: minimal consumer installed optional peer ${name}`,

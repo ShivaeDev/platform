@@ -2,7 +2,7 @@ import { Effect, ManagedRuntime, type Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, migrations, Preview, repository } from "./feature.ts";
 
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {

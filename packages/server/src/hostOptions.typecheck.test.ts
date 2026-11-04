@@ -5,6 +5,7 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { appHost as databaseHost } from "#appDatabase.ts";
 import { type AppHttpHostOptions, appHost } from "#appHost.ts";
 
 class Queue extends Context.Service<Queue, { readonly size: number }>()("@shivaedev/server/host-inference/Queue") {}
@@ -52,10 +53,10 @@ const migratedGenerator = Layer.unwrap(
 	Effect.gen(function* () {
 		const port = yield* Effect.succeed(0);
 		yield* Effect.void;
-		return appHost({ config: { port }, group, handlers, migrations, services: queueLayer({}), sessions });
+		return databaseHost({ config: { port }, group, handlers, migrations, services: queueLayer({}), sessions });
 	}),
 );
-const migratedLoopback = Layer.unwrap(Effect.succeed(appHost({ group, handlers, migrations, policy: "loopback", services: queueLayer({}) })));
+const migratedLoopback = Layer.unwrap(Effect.succeed(databaseHost({ group, handlers, migrations, policy: "loopback", services: queueLayer({}) })));
 const httpWithSessions = Layer.unwrap(Effect.succeed(appHost({ group, handlers, services: queueLayer({}), sessions })));
 const withRequirements = Layer.unwrap(
 	Effect.gen(function* () {
@@ -104,8 +105,8 @@ const httpOnlyComplete = appHost({ routes: httpOnlyRoutes, services });
 const httpOnlyTyped: AppHttpHostOptions = {};
 const httpOnlyTypedHost = appHost(httpOnlyTyped);
 const databaseRoute = HttpRouter.add("GET", "/database", SqlClient.SqlClient.use((sql) => sql`select 1`).pipe(Effect.as(HttpServerResponse.empty())));
-const httpOnlyMigrated = appHost({ migrations, routes: databaseRoute });
-const httpOnlyDeferred = appHost({ application: Effect.succeed({ routes: databaseRoute }), migrations });
+const httpOnlyMigrated = databaseHost({ migrations, routes: databaseRoute });
+const httpOnlyDeferred = databaseHost({ application: Effect.succeed({ routes: databaseRoute }), migrations });
 
 it("HTTP-only hosts retain dependencies, build failures and migrated SQL", () => {
 	expectTypeOf<Layer.Services<typeof httpOnlyIncomplete>>().toEqualTypeOf<Queue>();
@@ -124,3 +125,8 @@ it("native RPC still requires its group, handlers and session policy together", 
 	// @ts-expect-error Native RPC requires sessions or the explicit loopback policy.
 	appHost({ group, handlers });
 });
+
+// @ts-expect-error Database host options belong to the database entry.
+appHost({ migrations });
+// @ts-expect-error Deferred database construction belongs to the database entry.
+appHost({ application: Effect.succeed({}), migrations });

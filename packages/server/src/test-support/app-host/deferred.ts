@@ -1,7 +1,6 @@
 import { Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { appDatabase } from "#appDatabase.ts";
-import { appHost } from "#appHost.ts";
+import { appDatabase, appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 import { databaseOf, type HostState } from "./state.ts";
 import { postgresHost } from "./story.ts";

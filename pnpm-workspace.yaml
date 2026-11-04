@@ -16,6 +16,7 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
+  "@anthropic-ai/claude-agent-sdk": 0.3.225
   "@earendil-works/pi-coding-agent": 0.84.4
   "@modelcontextprotocol/sdk": 1.32.0
   "@zip.js/zip.js": 2.24.0
@@ -62,6 +63,8 @@ catalog:
   "@shivaedev/work-fleet": 0.35.2
 
 catalogs:
+  claude-code:
+    "@modelcontextprotocol/sdk": 1.30.0
   compiler-api:
     typescript: npm:@typescript/typescript6@6.0.2
 

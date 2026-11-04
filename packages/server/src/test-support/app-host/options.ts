@@ -3,7 +3,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Migrator } from "effect/sql";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { sessions, staticAssets } from "./fixture.ts";
 import { useForwardingProxy } from "./lifecycle.ts";
 import { Ping, pingHandlers } from "./ping.ts";

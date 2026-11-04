@@ -6,7 +6,7 @@ import { TestClock } from "effect/testing";
 import { CLOCK_OVERRIDE_SETTING } from "pg-boss";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import type { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";

@@ -27,7 +27,7 @@ const program = Effect.gen(function* () {
 	const page = keysetPage(options);
 	expectTypeOf<Effect.Success<typeof page>>().toEqualTypeOf<KeysetPage<Row, Cursor>>();
 	expectTypeOf<Effect.Error<typeof page>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
-	expectTypeOf<Effect.Services<typeof page>>().toEqualTypeOf<SqlClient.SqlClient | Decoder>();
+	expectTypeOf<Effect.Services<typeof page>>().toEqualTypeOf<Decoder>();
 	// @ts-expect-error A unique tie-breaker is required even without other ordering.
 	keysetPage({ cursorFor: options.cursorFor, limit: 2, orderBy: [], read: options.read });
 	// @ts-expect-error Directions must be ascending or descending.

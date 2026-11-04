@@ -110,6 +110,12 @@
 	],
 	"server": [
 		{
+			"entries": ["./appHost.ts"],
+			"fixtures": ["host-minimal.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["host-minimal.ts"]
+		},
+		{
 			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./runtime/types.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,

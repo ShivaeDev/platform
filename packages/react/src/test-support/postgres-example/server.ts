@@ -4,7 +4,7 @@ import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appHost.ts";
+import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appDatabase.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderHandlers } from "./orderHandlers.ts";

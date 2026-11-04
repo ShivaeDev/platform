@@ -54,6 +54,7 @@
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
+		"@effect/sql-pg": "catalog:",
 		"@shivaedev/http": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-kits": "workspace:*",
@@ -66,6 +67,7 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/sql-pg": "catalog:",
 		"effect": "catalog:",
 		"pg-boss": "catalog:"
 	},
