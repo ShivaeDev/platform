@@ -564,6 +564,42 @@ A newer dispatch interrupts the earlier command by default. Interrupted work pro
 
 A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
 
+#### Remove with a version-guarded Undo
+
+Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Supply the bound command's `run`, its native `runtime`, and the application's `deployUpdate` as `update`:
+
+```tsx
+import { Option } from "effect";
+import { useUndoableChange } from "@shivaedev/react/client/adapters/useUndoableChange.ts";
+
+function RemoveNote({ note }: { readonly note: { id: string; version: number } }) {
+	const change = useUndoableChange({ ...api.change, runtime: NotesClient.runtime, update }, { describe: (saved) => `Removed ${saved.id}` });
+	const notice = Option.getOrUndefined(change.notice);
+	return (
+		<>
+			<button
+				disabled={change.pending}
+				onClick={() => change.remove({ id: note.id, expectedVersion: note.version, removed: true }, { id: note.id, removed: false })}
+			>
+				Remove
+			</button>
+			{notice && (
+				<p>
+					{notice.message}
+					<button disabled={change.undoing} onClick={change.undo}>
+						Undo
+					</button>
+				</p>
+			)}
+		</>
+	);
+}
+```
+
+`api`, `NotesClient`, the soft-removal payload and `update` belong to the application. `remove(input, inverse)` captures the inverse domain fields. `undo()` sends those fields through the same command with `expectedVersion` set to the successful removal's returned `version`. The server must enforce that version and declare its typed conflict; a later edit then refuses Undo without overwriting the row. `removeResult` and `undoResult` preserve the native `AsyncResult`, including typed failures. Successful Undo clears its notice; a failed Undo leaves it available.
+
+`notice` is a native `Option` containing `message`, the submitted `input` and returned `value`. Only the most recently dispatched removal can publish it, even when replies arrive in reverse order. An older Undo cannot clear a newer notice. `removing` and `undoing` describe the two writes, and `pending` includes either. Each invocation holds `update.block` for its whole Effect lifetime, so overlapping writes hold deployment activation until all finish. The hook keeps UI wording and inverse domain data in the app; no `NoticeHost` is needed.
+
 #### Commands with a pending display value
 
 Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
