@@ -4,7 +4,7 @@ The [README](../README.md) introduces the gate. This page explains how the basel
 
 ## Baseline
 
-For a shared policy upgrade, `quality baseline write --first-adoption --rule <id>` records existing findings of explicitly named rules that refuse config exceptions, including unchanged files. This mode covers first adoption of a rule or new detection shapes; it does not change ordinary file-scoped writes. Review each new or raised entry and state why that debt needs a separate migration. Rules that permit exceptions and unnamed rules refuse this mode.
+`quality baseline write --first-adoption` records existing findings of every rule when there is no baseline, including rules that permit config exceptions and findings in unchanged files. For a shared policy upgrade with an existing baseline, name the rules with `quality baseline write --first-adoption --rule <id>`; every rule is eligible, and unrelated entries remain unchanged. An existing baseline refuses an unnamed write, including with `--first-adoption`. Ordinary later writes still require named rules and changed file selections. Review each new or raised entry and state why that debt needs a separate migration.
 
 ```jsonl
 {"path":"src/legacy/sync.ts","rule":"comments/no-jsdoc","count":3}
