@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-04
+
+### Breaking
+
+- `parseChangeset` and `parseBody` return synchronous Effect `Result` values. Use Result combinators for pure parsing or wrap their return values with `Effect.fromResult` before yielding or entering an Effect pipeline. Malformed quoted scalars keep their original non-enumerable error cause.
+
 ## 0.9.0 - 2026-11-04
 
 ### Breaking

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { type StoryKit, storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
@@ -68,6 +68,11 @@ function invoiceVerbs(engine: InvoiceEngine, tell: (line: string) => void) {
 			Effect.gen(function* () {
 				tell(`the line ${line} is deleted`);
 				yield* lines.delete(yield* idOf(engine, line));
+			}),
+		findLine: (query: Parameters<Lines["findOne"]>[0]) =>
+			Effect.suspend(() => {
+				tell(`findOne runs ${JSON.stringify(query)}`);
+				return attempt(lines.findOne(query).pipe(Effect.map(Option.match({ onNone: () => "none", onSome: (some) => ({ some }) }))));
 			}),
 		findLines: (query: Parameters<Lines["findMany"]>[0]) =>
 			Effect.suspend(() => {

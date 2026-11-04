@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.38.0 - 2026-11-04
+
+### Added
+
+- Models can declare struct-valued groups stored as prefixed flat columns and select or replace a group through repositories.
+- Ordered child helpers append, move and reorder under a PostgreSQL parent lock without incrementing sibling versions.
+- Versioned repository updates can choose columns while retaining optimistic concurrency checks.
+- `backfillPostgres` processes bounded batches in separate commit-bound transactions, saving application-owned progress with each batch so interrupted runs can resume outside the numbered migration ledger.
+
+### Breaking
+
+- Import `makeWorkerRelease` from `@shivaedev/sql/makeWorkerRelease.ts` instead of `@shivaedev/sql/WorkerRelease.ts`. `WorkerRelease` stays in its existing module; worker registration and release coordination behave the same.
+
 ## 0.37.0 - 2026-11-04
 
 ### Breaking

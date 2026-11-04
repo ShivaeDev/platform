@@ -199,8 +199,8 @@ catalogs:
       specifier: 1.30.0
       version: 1.30.0
     '@shivaedev/work-fleet':
-      specifier: 0.35.0
-      version: 0.35.0
+      specifier: 0.35.1
+      version: 0.35.1
     '@tailwindcss/vite':
       specifier: 4.3.3
       version: 4.3.3
@@ -334,7 +334,7 @@ importers:
         version: link:packages/test-story
       '@shivaedev/work-fleet':
         specifier: 'catalog:'
-        version: 0.35.0(c25578d269049a2141456d1a5783ce4a)
+        version: 0.35.1(433f78f3369851cb87fd4abcc019addf)
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -3504,12 +3504,12 @@ packages:
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/admin@0.20.0':
-    resolution: {integrity: sha512-Al3lb35aWgavJMnWjTDlNLzt59eudoUUEfzN99sUjcFkftBucplBPSwS9Lg38X1gx0ye0VVLgf1vI87/GOcYzg==}
+  '@shivaedev/admin@0.20.1':
+    resolution: {integrity: sha512-DIBNfu19vuzd/fAs04QXkcw7GthorQTbt762pprXGR1JGRpuIwCp7N+VuzEG6M5Uv2umLc4HoVlKwUVD/aw77Q==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/atom-react': 4.0.6
-      '@shivaedev/react': 0.40.0
+      '@shivaedev/react': 0.41.0
       effect: 4.0.6
       react: 19.3.1
     peerDependenciesMeta:
@@ -3538,8 +3538,8 @@ packages:
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/form@0.16.0':
-    resolution: {integrity: sha512-WpgeNrS2/cnPCHAwsnQmF+INXipjSEN+S466UFYF33kn0aVznyiZYRrbtAYyY0El0/1SNGvTs2nLCigmetB0bQ==}
+  '@shivaedev/form@0.17.0':
+    resolution: {integrity: sha512-3TSDYrLrEH56+mLnHYCJeJHjRFscMdKlpwtmP2ypdlubkI6ilvhY26ZhNc5CzrcLy1grGtKoLRtDeUXSnFIM3w==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/atom-react': 4.0.6
@@ -3567,8 +3567,8 @@ packages:
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/identity@0.24.0':
-    resolution: {integrity: sha512-9cuKH4fdyiGyNgkhUJF5FPwbAi1aehweM/tjBTFWW3Y1qm5TRfFIFXA1rcyCaDXXcietIuqQ7O2pYWk8Zw9EhQ==}
+  '@shivaedev/identity@0.25.0':
+    resolution: {integrity: sha512-mBfnDf8QZDjkljPLLD9DlCXXVjlfAaiwJuUaRbbaiBNfmhS8yd3w+L+SlZY669kxuijmTFPE6LxxmAxLsrdyrw==}
     engines: {node: '>=24'}
     peerDependencies:
       '@better-auth/oauth-provider': 1.7.14
@@ -3580,21 +3580,21 @@ packages:
       better-auth:
         optional: true
 
-  '@shivaedev/jobs@0.35.0':
-    resolution: {integrity: sha512-A7IW2Dhwb4pxMjPQ+RTbDkVRU7BdhOdRwtPDY5NcUGz0Kh8Vib0fOw2zmzacIwvPSweSR1CdTu6Q5qP+ZDjeEA==}
+  '@shivaedev/jobs@0.35.1':
+    resolution: {integrity: sha512-h9Nv/lwH9MiiLZjhQM9zNbLgBKtbTvIh39/jkCNMOIElTYc06qVgBKZiI1jK5DepIH7Tl8FS0CuBIfc7UZaqlQ==}
     engines: {node: '>=24'}
     peerDependencies:
       effect: 4.0.6
       pg-boss: 12.38.0
 
-  '@shivaedev/local-postgres@0.13.0':
-    resolution: {integrity: sha512-HmoBtRasMwOwGddIASyMSBhPhnKHdMN98o3LQ1NSuHN5qkdWDtQ4N/TVXVuELmydSW4xcYgNhB6vdxXEK/Hiug==}
+  '@shivaedev/local-postgres@0.14.0':
+    resolution: {integrity: sha512-4VoszpjAx36QOo8hNZgIFgeZo1MHyl7qAB0rY9Jnwgi262rh0ZMAm3hs/Xx4sO7cAfK5jHPTH66n7bv8pB56PA==}
     engines: {node: '>=24'}
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/pr-watch@0.9.0':
-    resolution: {integrity: sha512-BiG2yeQ/XCqyf76gM01oV6LvSIwh53aWdvP2uynIaSDPUvDvK2UOdriSohcG1p4NMy4Hk/HHA9263NZ5/Ka9XQ==}
+  '@shivaedev/pr-watch@0.10.0':
+    resolution: {integrity: sha512-ldvuw9jPp3XzTd4muouvGtXI2AqMFOFIw6dPzDvymTl9mDUotfCVlGKTOajNGCLqko+Jn8U12EIG8YsdmUEV0Q==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -3602,18 +3602,18 @@ packages:
       '@effect/platform-node-shared': 4.0.6
       effect: 4.0.6
 
-  '@shivaedev/rate-limit@0.4.0':
-    resolution: {integrity: sha512-qfnqi+RppiwFtN0BxLhFJ6VkUct89pL+u6qofJor/u2zNagsOjmFk4PBByak2fMl2wDGR70VJn5xczelzb54Zg==}
+  '@shivaedev/rate-limit@0.5.0':
+    resolution: {integrity: sha512-e64zjfn7panSHPlEStVEeErUGzDCMvQyEWEZHWbdgjGKnHS0zVePuO/ffBbjFPlojnLNwQgp6rIATCg8UFjYWA==}
     engines: {node: '>=24'}
     peerDependencies:
-      '@shivaedev/sql': 0.37.0
+      '@shivaedev/sql': 0.38.0
       effect: 4.0.6
     peerDependenciesMeta:
       '@shivaedev/sql':
         optional: true
 
-  '@shivaedev/react@0.40.0':
-    resolution: {integrity: sha512-1IRSXtpMhq9K1ts7wJN4pHOXSsdMa8hL+ExGud3pfot6ysXlxmw8+NyvpqtA/qEWPYqZjrOiJQgAK4j0bGZGiQ==}
+  '@shivaedev/react@0.41.0':
+    resolution: {integrity: sha512-a8eSy6WXagCPXKywzQLv48CtCPemHTGtSzrl7aFlkDrTPAW6kCTX7ASU8+1GRzbe41Olo2uwJLwVN4obRJo9kg==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/atom-react': 4.0.6
@@ -3630,15 +3630,15 @@ packages:
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/server@0.24.0':
-    resolution: {integrity: sha512-Mwt4lXCTV1Ps9l+TEW1JspzEKysgVBBXV+05iB/WNPBmoqnMufCN5QD1TJIo70KoInBnlcXwdU4yHT0MIrdSJg==}
+  '@shivaedev/server@0.24.1':
+    resolution: {integrity: sha512-/gGR3Yn7Xk+L8qnUlsa1fE7nD6Q3oDNgd7c6LcDUglBSZJQmEc4zca93oWREnYolGRq8RLEMQa4i4/300YgMMQ==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/platform-node': 4.0.6
       '@effect/sql-pg': 4.0.6
       '@effect/vitest': 4.0.6
-      '@shivaedev/admin': 0.20.0
-      '@shivaedev/test-sql': 0.20.0
+      '@shivaedev/admin': 0.20.1
+      '@shivaedev/test-sql': 0.21.0
       better-auth: 1.7.14
       effect: 4.0.6
     peerDependenciesMeta:
@@ -3661,8 +3661,8 @@ packages:
     peerDependencies:
       effect: 4.0.6
 
-  '@shivaedev/sql@0.37.0':
-    resolution: {integrity: sha512-eSLbx93nYq8CaRT0vMahvPztQAhglhrD5FYC0jVrqnejuVl2Oq6g65pMpUSnFRO983JBH8zwLTGGxThPQNaadA==}
+  '@shivaedev/sql@0.38.0':
+    resolution: {integrity: sha512-FThHqrigtkd+EyZ+lsS/LD6G3Vrt4jZ5fZwbAMDvaAPZ5/whG5aa6aIHOSyfwKhUFyStTPuUSeUWnx2Sn8GLLQ==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/sql-pg': 4.0.6
@@ -3671,8 +3671,8 @@ packages:
       '@effect/sql-pg':
         optional: true
 
-  '@shivaedev/test-sql@0.20.0':
-    resolution: {integrity: sha512-mWRL14kFZ1S89hA1S8VXH/dD/iZ0ziXt25o4ORJ6i6sknRBWuY59X1K7fw8Z6HRlj0DPTBWfDQfNDSpa9W1bXg==}
+  '@shivaedev/test-sql@0.21.0':
+    resolution: {integrity: sha512-3mD5o/VZEYq4vW+xsYc4KNQdkaifF0YVKL9CJS6/IvgDRGcKf8JSe19LzuIQ/x2B07k3Gr0352Ttvg4CzLM+6Q==}
     engines: {node: '>=24'}
     peerDependencies:
       '@effect/sql-pg': 4.0.6
@@ -3682,8 +3682,8 @@ packages:
     resolution: {integrity: sha512-+PFlKwKyxJ++v5q7sIOn+Z1UtG0SomUYNJgjKDQW6PZxZstZV1Fb4ZlJXyxFnt3SZ8o2RA25EYwVAeW/WcUc5g==}
     engines: {node: '>=24'}
 
-  '@shivaedev/work-board@0.47.0':
-    resolution: {integrity: sha512-Mq46xYb9wCaVat8tIlIPME3S4ye/CkB6+6426uw6rhXyBJgMdi8FvSWjm+rNXdWeh/ACs2qB9rRPSBTkRG3crg==}
+  '@shivaedev/work-board@0.47.1':
+    resolution: {integrity: sha512-kS94/XB7hMtbpA5v0jxYA1v830v/ij84ToE4e2doSmHq+HyRbNfgJZEPOV7TfC68Yr7BINdoQJoF1PgSALBkVA==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -3691,8 +3691,8 @@ packages:
       '@effect/platform-node-shared': 4.0.6
       effect: 4.0.6
 
-  '@shivaedev/work-fleet@0.35.0':
-    resolution: {integrity: sha512-jvBHCaPYrfFkt9GkPfnSB8tJHwTXN2TNw9JDg6PGDdsJ2n8fNgBl5Fwx37Gx+lWrJKSegeI/sylNqzWucv+rdg==}
+  '@shivaedev/work-fleet@0.35.1':
+    resolution: {integrity: sha512-P3jH0GFenUe45lzMyy8e90U2VgnO5iEgpxylLAX4c7V6CXgrIkT47X5hFYgdvfSHeFITqQgCAh1PKgS/SJUq0g==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -7453,18 +7453,18 @@ snapshots:
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       effect: 4.0.6
 
-  '@shivaedev/admin@0.20.0(d2ee87717cb0bba093e914184aed1a6d)':
+  '@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6)':
     dependencies:
       '@shivaedev/access': 0.5.0(effect@4.0.6)
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/identity': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/jobs': 0.35.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))
+      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/jobs': 0.35.1(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))
       effect: 4.0.6
     optionalDependencies:
       '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
-      '@shivaedev/react': 0.40.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
+      '@shivaedev/react': 0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
       react: 19.3.1
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
@@ -7488,7 +7488,7 @@ snapshots:
     dependencies:
       effect: 4.0.6
 
-  '@shivaedev/form@0.16.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)':
+  '@shivaedev/form@0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)':
     dependencies:
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       effect: 4.0.6
@@ -7509,15 +7509,15 @@ snapshots:
     dependencies:
       effect: 4.0.6
 
-  '@shivaedev/identity@0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
+  '@shivaedev/identity@0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
     dependencies:
       '@shivaedev/access': 0.5.0(effect@4.0.6)
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/rate-limit': 0.4.0(@shivaedev/sql@0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/rate-limit': 0.5.0(@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)
       '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
       effect: 4.0.6
     optionalDependencies:
       '@better-auth/oauth-provider': 1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5))
@@ -7525,22 +7525,22 @@ snapshots:
     transitivePeerDependencies:
       - '@effect/sql-pg'
 
-  '@shivaedev/jobs@0.35.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))':
+  '@shivaedev/jobs@0.35.1(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)(pg-boss@12.38.0(@opentelemetry/api@1.9.1))':
     dependencies:
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
       effect: 4.0.6
       pg-boss: 12.38.0(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
       - '@effect/sql-pg'
     optional: true
 
-  '@shivaedev/local-postgres@0.13.0(effect@4.0.6)':
+  '@shivaedev/local-postgres@0.14.0(effect@4.0.6)':
     dependencies:
       effect: 4.0.6
 
-  '@shivaedev/pr-watch@0.9.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)':
+  '@shivaedev/pr-watch@0.10.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)':
     dependencies:
       '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
@@ -7551,21 +7551,21 @@ snapshots:
     transitivePeerDependencies:
       - '@zip.js/zip.js'
 
-  '@shivaedev/rate-limit@0.4.0(@shivaedev/sql@0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/rate-limit@0.5.0(@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(effect@4.0.6)':
     dependencies:
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       effect: 4.0.6
     optionalDependencies:
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
 
-  '@shivaedev/react@0.40.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)':
+  '@shivaedev/react@0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)':
     dependencies:
       '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       '@shivaedev/access': 0.5.0(effect@4.0.6)
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/form': 0.16.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
-      '@shivaedev/identity': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/form': 0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
+      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
       effect: 4.0.6
       react: 19.3.1
     optionalDependencies:
@@ -7580,22 +7580,22 @@ snapshots:
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       effect: 4.0.6
 
-  '@shivaedev/server@0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.0(d2ee87717cb0bba093e914184aed1a6d))(@shivaedev/test-sql@0.20.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
+  '@shivaedev/server@0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)':
     dependencies:
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       '@shivaedev/http': 0.6.0(effect@4.0.6)
-      '@shivaedev/identity': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/local-postgres': 0.13.0(effect@4.0.6)
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/local-postgres': 0.14.0(effect@4.0.6)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
       effect: 4.0.6
     optionalDependencies:
       '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg': 4.0.6(effect@4.0.6)
       '@effect/vitest': 4.0.6(effect@4.0.6)(vitest@5.0.5)
-      '@shivaedev/admin': 0.20.0(d2ee87717cb0bba093e914184aed1a6d)
-      '@shivaedev/test-sql': 0.20.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/admin': 0.20.1(ce8d7024d423df57bce89132f08ad2e6)
+      '@shivaedev/test-sql': 0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
       better-auth: 1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
@@ -7604,7 +7604,7 @@ snapshots:
     dependencies:
       effect: 4.0.6
 
-  '@shivaedev/sql@0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/sql@0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
     dependencies:
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       '@shivaedev/service': 0.7.0(effect@4.0.6)
@@ -7612,16 +7612,16 @@ snapshots:
     optionalDependencies:
       '@effect/sql-pg': 4.0.6(effect@4.0.6)
 
-  '@shivaedev/test-sql@0.20.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
+  '@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)':
     dependencies:
       '@effect/sql-pg': 4.0.6(effect@4.0.6)
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
       effect: 4.0.6
     optional: true
 
   '@shivaedev/types@0.4.0': {}
 
-  '@shivaedev/work-board@0.47.0(709c48935b5679317215050483ee5f1c)':
+  '@shivaedev/work-board@0.47.1(d89bb510a2818019a5191e34e2b41f70)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@effect/atom-react': 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
@@ -7630,11 +7630,11 @@ snapshots:
       '@shivaedev/changes': 0.10.0(effect@4.0.6)
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
-      '@shivaedev/form': 0.16.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
+      '@shivaedev/form': 0.17.0(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(effect@4.0.6)(react@19.3.1)
       '@shivaedev/github': 0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/identity': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
-      '@shivaedev/react': 0.40.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
-      '@shivaedev/server': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.0(d2ee87717cb0bba093e914184aed1a6d))(@shivaedev/test-sql@0.20.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/identity': 0.25.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/sql-pg@4.0.6(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/react': 0.41.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0))(@effect/sql-pg@4.0.6(effect@4.0.6))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)(react@19.3.1)
+      '@shivaedev/server': 0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
       '@shivaedev/service': 0.7.0(effect@4.0.6)
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/react-table': 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -7674,7 +7674,7 @@ snapshots:
       - scheduler
       - supports-color
 
-  '@shivaedev/work-fleet@0.35.0(c25578d269049a2141456d1a5783ce4a)':
+  '@shivaedev/work-fleet@0.35.1(433f78f3369851cb87fd4abcc019addf)':
     dependencies:
       '@effect/platform-node': 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/platform-node-shared': 4.0.6(effect@4.0.6)
@@ -7683,12 +7683,12 @@ snapshots:
       '@shivaedev/contract': 0.36.0(effect@4.0.6)
       '@shivaedev/errors': 0.9.0(effect@4.0.6)
       '@shivaedev/github': 0.12.0(@zip.js/zip.js@2.24.0)(effect@4.0.6)
-      '@shivaedev/pr-watch': 0.9.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)
+      '@shivaedev/pr-watch': 0.10.0(@effect/platform-node-shared@4.0.6(effect@4.0.6))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@zip.js/zip.js@2.24.0)(effect@4.0.6)
       '@shivaedev/reconciler': 0.2.0(effect@4.0.6)
-      '@shivaedev/server': 0.24.0(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.0(d2ee87717cb0bba093e914184aed1a6d))(@shivaedev/test-sql@0.20.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
+      '@shivaedev/server': 0.24.1(@better-auth/oauth-provider@1.7.14(@better-auth/core@1.7.14(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5)))(@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1)))(@effect/sql-pg@4.0.6(effect@4.0.6))(@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5))(@shivaedev/admin@0.20.1(ce8d7024d423df57bce89132f08ad2e6))(@shivaedev/test-sql@0.21.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6))(better-auth@1.7.14(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(effect@4.0.6)
       '@shivaedev/service': 0.7.0(effect@4.0.6)
-      '@shivaedev/sql': 0.37.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
-      '@shivaedev/work-board': 0.47.0(709c48935b5679317215050483ee5f1c)
+      '@shivaedev/sql': 0.38.0(@effect/sql-pg@4.0.6(effect@4.0.6))(effect@4.0.6)
+      '@shivaedev/work-board': 0.47.1(d89bb510a2818019a5191e34e2b41f70)
       effect: 4.0.6
     transitivePeerDependencies:
       - '@better-auth/oauth-provider'
