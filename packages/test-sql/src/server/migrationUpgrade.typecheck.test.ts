@@ -2,19 +2,11 @@ import { Effect, type Schema } from "effect";
 import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { MigrationLoaderDependency as Dependency } from "#test/MigrationLoaderDependency.ts";
 import { Item, migrations, types } from "#test/migrationUpgrade.ts";
 import { assertModelColumns, type ModelColumnMismatch } from "./assertModelColumns.ts";
 import { migrationUpgrade } from "./migrationUpgrade.ts";
 import { type PostgresColumn, tableColumns } from "./tableColumns.ts";
-
-const Dependency = defineService({
-	id: "@shivaedev/test-sql/MigrationLoaderDependency",
-	initialize: Effect.void,
-	methods: () => ({}),
-	requires: [],
-});
-type Dependency = typeof Dependency.Identifier;
 
 const upgrade = migrationUpgrade({
 	migrations: { ...migrations, loader: Effect.flatMap(Dependency, () => migrations.loader) },
