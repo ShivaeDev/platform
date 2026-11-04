@@ -2,11 +2,13 @@ import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
 import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpsert } from "#conditionalUpsert.ts";
 import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import type { UpsertAssignment, UpsertColumn } from "#upsertColumns.ts";
 import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 
@@ -52,11 +54,12 @@ export const makeConflictWrites = Effect.fnUntraced(function* (
 	},
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const { tableName, spanPrefix } = options;
 	const returning = yield* upsertReturning();
-	const encode = Schema.encodeEffect(model.insert);
-	const decode = Schema.decodeUnknownEffect(model);
-	const decodeUpsert = makeUpsertDecoder(model);
+	const encode = Schema.encodeEffect(storageSchema(model.insert, model.fields, nameTransforms));
+	const decode = Schema.decodeUnknownEffect(storageSchema(model, model.fields, nameTransforms));
+	const decodeUpsert = makeUpsertDecoder(model, nameTransforms);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const conditional = yield* makeConditionalUpsert(model, options);
 	const clause = yield* makeConflictClause(model, options);

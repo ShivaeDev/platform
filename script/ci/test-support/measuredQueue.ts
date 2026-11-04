@@ -9,7 +9,7 @@ import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { planning } from "./planning.ts";
 
-function measuredGithub(args: string[]) {
+function measuredGithub(args: string[], emptyNewest = false) {
 	if (args[1]?.includes("workflows/ci.yml/runs?event=merge_group&status=success&per_page=10")) {
 		return JSON.stringify({
 			"workflow_runs": [
@@ -37,9 +37,9 @@ function measuredGithub(args: string[]) {
 		join(directory, tests ? "test-durations.json" : "consumer-durations.json"),
 		JSON.stringify({
 			runId,
-			sha: tests && runId === "43" ? "wrong" : `sha-${runId}`,
+			sha: tests && runId === "43" && !emptyNewest ? "wrong" : `sha-${runId}`,
 			shardCount: tests ? 3 : 5,
-			timings: [{ durationMs: 10_000, name: "file" }],
+			timings: emptyNewest && runId === "43" ? [] : [{ durationMs: 10_000, name: "file" }],
 		}),
 	);
 	return "";
@@ -51,6 +51,7 @@ export function measuredQueue(
 		| "denied"
 		| "missing snapshots"
 		| "missing consumers"
+		| "empty newest snapshots"
 		| "replaced"
 		| "invalid runs"
 		| "invalid artifacts"
@@ -63,7 +64,7 @@ export function measuredQueue(
 				throw new Error("download failed");
 			}
 			if (!args[1]?.includes("/artifacts?")) {
-				return measuredGithub(args);
+				return measuredGithub(args, mode === "empty newest snapshots");
 			}
 			if (mode === "missing snapshots" || (mode === "missing consumers" && args[1].includes("name=consumer-balancing"))) {
 				return JSON.stringify({ artifacts: [] });

@@ -20,7 +20,7 @@ function driverFor(engine: JobsScreenEngine, tell: (line: string) => void) {
 
 export const jobsScreen = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create(): Generator<typeof jobsEngine, JobsScreenEngine, never> {
 		const engine = yield* jobsEngine;
 		return { ...engine, screen: undefined };

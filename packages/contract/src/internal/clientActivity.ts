@@ -2,14 +2,16 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { activityState } from "#adapters/activityState.ts";
+import { clientConnection } from "#adapters/clientConnection.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { wrapAtom } from "./wrapAtom.ts";
 
 type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();
 
-export function makeActivity() {
-	const { activity, change } = activityState();
+export function makeActivity(factory: Atom.RuntimeFactory) {
+	const { activity, change, setConnection } = activityState();
+	const connection = clientConnection(factory, setConnection);
 	function begin(key: "rpcCalls" | "liveInvalidations") {
 		change(key, 1);
 		return () => change(key, -1);
@@ -23,6 +25,7 @@ export function makeActivity() {
 	}
 	function watch<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) {
 		const watched = wrapAtom(atom, (get) => {
+			get.mount(connection.status);
 			get.once(queryCoalesceWindow(watched));
 			get.subscribe(queryCoalesceWindow(watched), (duration) => get.set(queryCoalesceWindow(atom), duration), { immediate: true });
 			let busy = false;
@@ -59,5 +62,12 @@ export function makeActivity() {
 		});
 		return watched;
 	}
-	return { activity, hint: () => change("liveHints", 1), queued: () => begin("liveInvalidations"), track, watch };
+	return {
+		activity: Object.assign(activity, { connectionStatus: connection.status }),
+		hint: () => change("liveHints", 1),
+		queued: () => begin("liveInvalidations"),
+		statuses: connection.statuses,
+		track,
+		watch,
+	};
 }

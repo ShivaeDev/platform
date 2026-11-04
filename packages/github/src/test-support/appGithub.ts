@@ -3,9 +3,11 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { collectUntil } from "@shivaedev/test-story/server/until.ts";
-import { GitHub, list, read } from "#GitHub.ts";
+import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { githubApp, type InstallationScope } from "#githubApp.ts";
+import { list } from "#list.ts";
+import { read } from "#read.ts";
 import { verifyWebhook } from "#verifyWebhook.ts";
 import {
 	APP_ID,
@@ -271,14 +273,6 @@ export const appGithub = storyKit({
 		};
 	},
 });
-
-export const holdsInstallationToken = appGithub.trait(
-	"github",
-	"the background client already holds installation token 1 from an earlier read",
-	function* ({ contexts }) {
-		yield* read(PULL, PullRequest).pipe(Effect.provide(contexts.background));
-	},
-);
 
 export const clockReadsTwoMinutes = appGithub.trait("github", "the clock reads 00:02:00", function* () {
 	yield* TestClock.adjust("2 minutes");

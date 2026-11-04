@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.6.2 - 2026-11-04
+
+### Fixed
+
+- Name the ordinary method and every missing service type in undeclared service requirement diagnostics, excluding declared dependencies and caller scope.
+
 ## 0.6.1 - 2026-11-02
 
 ### Fixed

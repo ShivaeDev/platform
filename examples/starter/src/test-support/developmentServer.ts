@@ -15,7 +15,7 @@ export const developmentServer = Effect.fn("AppStory.developmentServer")(functio
 		const child = yield* spawner.spawn(
 			ChildProcess.make(
 				process.execPath,
-				["--conditions=source", fileURLToPath(new URL("./developmentServerChild.ts", import.meta.url)), target, options.configFile ?? ""],
+				["--conditions=@shivaedev/source", fileURLToPath(new URL("./developmentServerChild.ts", import.meta.url)), target, options.configFile ?? ""],
 				{ additionalFds: { fd3: { type: "output" } } },
 			),
 		);

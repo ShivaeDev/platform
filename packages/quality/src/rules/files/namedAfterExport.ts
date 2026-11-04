@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { routeFiles } from "#inventory/routeFiles.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
 import { isMigrationFile } from "#naming/migrationFile.ts";
@@ -89,16 +90,17 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 }
 
 export const namedAfterExport = defineRule({
-	check: ({ files, options, readText, sources }) =>
+	check: ({ files, options, readText, root, sources }) =>
 		Effect.gen(function* () {
 			const layout = yield* packageLayout({ files, readText });
+			const routes = yield* routeFiles(root);
 			const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
 			return sources
-				.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
+				.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || routes.files.has(file.path) || toolOwned.ignores(file.path)))
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. TanStack Router configuration owns route filenames. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,

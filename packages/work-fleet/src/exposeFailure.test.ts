@@ -36,6 +36,12 @@ failureStory.it("an unclassified error belongs to the orchestrator", [], functio
 	expect(yield* ownerOf(new Error("Unclassified"))).toBe("orchestrator");
 });
 
+failureStory.it("the service error mapper preserves a defect for the handler boundary", [], function* ({ serviceDefect }) {
+	const outcome = yield* serviceDefect(new Error("Unexpected failure"));
+
+	expect(outcome).toBe("the original defect");
+});
+
 for (const [failure, error, expected] of [
 	[
 		"a storage conflict",

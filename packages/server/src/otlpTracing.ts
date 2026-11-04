@@ -1,6 +1,7 @@
-import { Config, Context, Effect, Layer, Schema } from "effect";
+import { Config, ConfigProvider, Context, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
+import { localTracing } from "#localTracing.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
@@ -22,6 +23,22 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.effectC
 				Config.withDefault(undefined),
 			));
 		if (endpoint === undefined) {
+			const mode = yield* Config.String("NODE_ENV").pipe(Config.withDefault("production"));
+			if (mode === "development") {
+				const path = yield* Config.String("PLATFORM_TRACE_STORE").pipe(Config.withDefault(".platform/traces.db"));
+				const indexed = yield* Config.String("PLATFORM_TRACE_INDEXED_ATTRIBUTES").pipe(Config.withDefault(""));
+				return yield* Layer.build(
+					localTracing({
+						indexedAttributes: indexed
+							.split(",")
+							.map((key) => key.trim())
+							.filter(Boolean),
+						path,
+					}),
+				).pipe(
+					Effect.mapError((cause) => new Config.ConfigError(new ConfigProvider.SourceError({ cause, message: "Cannot open local trace store" }))),
+				);
+			}
 			return Context.empty();
 		}
 		const configuredProtocol = yield* Config.String("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL").pipe(

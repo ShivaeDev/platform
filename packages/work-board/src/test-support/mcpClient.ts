@@ -17,7 +17,7 @@ const Result = Schema.Struct({
 export const mcpClient = Effect.fn("Test.mcpClient")(function* (directory: string) {
 	const child = yield* Effect.acquireRelease(
 		Effect.sync(() =>
-			spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("../server/cli.ts", import.meta.url)), "mcp", directory], {
+			spawn(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(new URL("../server/cli.ts", import.meta.url)), "mcp", directory], {
 				stdio: ["pipe", "pipe", "pipe"],
 			}),
 		),

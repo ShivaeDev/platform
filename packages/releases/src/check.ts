@@ -29,7 +29,7 @@ const validateInputs = Effect.fn("Changesets.validateInputs")(function* (before:
 const parseDeclarations = Effect.fn("Changesets.parseDeclarations")(function* (before: Workspace, after: Workspace) {
 	return yield* Effect.forEach(
 		[...before.changesets.filter((source) => !after.changesets.some((pending) => pending.name === source.name)), ...after.changesets],
-		parseChangeset,
+		(source) => Effect.fromResult(parseChangeset(source)),
 	);
 });
 

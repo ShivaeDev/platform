@@ -1,17 +1,17 @@
 import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { fakeGitHub } from "#test/sign-in-policy/github.ts";
 import { accountRoleHost, type Person, type SeedRole } from "./accountRoleHost.ts";
 import { mappedTables, pluginMappedTables } from "./mappedTables.ts";
 
 function accountRolesKit(mapping: AuthTableOptions = {}) {
 	return storyKit({
-		around: withIsolatedDatabase,
-		clock: "live",
+		around: withIdentityDatabase,
+		clock: storyClock,
 		*create() {
 			const github = yield* fakeGitHub(new Map([["1001", { id: "1001", login: "alice", member: true }]]));
 			yield* routeOutbound({ "api.github.com": github.url, "github.com": github.url });

@@ -21,7 +21,7 @@ export const originStream = Effect.fn("NativeOrigins.originStream")(function* (h
 
 export function openServerStreams(host: Host) {
 	return Effect.promise(async () => {
-		const result = await fetch(`${host.baseUrl}/resync`, { method: "POST", signal: AbortSignal.timeout(5000) });
+		const result = await fetch(`${host.baseUrl}/resync`, { method: "POST" });
 		const count: unknown = await result.json();
 		if (typeof count !== "number") {
 			throw new Error("The host did not report its open stream count");

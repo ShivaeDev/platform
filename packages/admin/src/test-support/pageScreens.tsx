@@ -13,7 +13,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 const warnings = expectNoReactWarnings();
 
 export const pageScreens = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => Effect.map(workspaceServer, ({ url }): { screen: Rendered | undefined; url: string } => ({ screen: undefined, url })),
 	name: "admin page screen",
 	stages: [],

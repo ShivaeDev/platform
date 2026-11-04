@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.20.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.19.5 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.34.0 to 0.35.0.
+- Update `@shivaedev/identity` from 0.23.0 to 0.23.1.
+- Update `@shivaedev/react` from 0.38.1 to 0.39.0.
+
+## 0.19.4 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/access` from 0.4.1 to 0.4.2.
+- Update `@shivaedev/contract` from 0.33.1 to 0.34.0.
+- Update `@shivaedev/errors` from 0.7.0 to 0.8.0.
+- Update `@shivaedev/identity` from 0.22.1 to 0.23.0.
+- Update `@shivaedev/jobs` from 0.33.0 to 0.34.0.
+- Update `@shivaedev/react` from 0.38.0 to 0.38.1.
+
 ## 0.19.3 - 2026-11-03
 
 ### Changed

@@ -1,9 +1,9 @@
 import { Duration, Effect, Exit, Option, Predicate, Schedule, Scope } from "effect";
 import { isSqlError } from "effect/sql/SqlError";
 import { WorkerReleaseTesting } from "#testing/WorkerRelease.ts";
+import { makeWorkerRelease } from "./makeWorkerRelease.ts";
 import { readPostgresRelease } from "./postgresRelease.ts";
 import { releaseWorkers } from "./releaseWorkers.ts";
-import { makeWorkerRelease } from "./WorkerRelease.ts";
 
 function isCloseable(scope: Scope.Scope): scope is Scope.Closeable {
 	return Predicate.hasProperty(scope, "~effect/Scope/Closeable") && scope["~effect/Scope/Closeable"] === "~effect/Scope/Closeable";

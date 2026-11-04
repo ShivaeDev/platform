@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.60.0 - 2026-11-04
+
+### Added
+
+- Recognise TanStack Router's file-routed folders from `tsr.config.json` and literal Vite plugin options. Route file and folder names follow the router without per-file exceptions, including newly added routes; ordinary files and ignored helpers retain naming checks.
+
+### Fixed
+
+- Report raw service acquisition, `story.engine` access and production constructor wiring in story bodies even when traits or kit inputs are used. Keep colocated constructor subjects, native Effect data constructors and SQL handles used only for transaction blocks available.
+- Recognise Schema error classes imported from installed `@shivaedev` packages as data in story bodies, while continuing to report production constructors.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.59.0 - 2026-11-04
+
+### Added
+
+- `appViteConfig` accepts `{ webPort, apiPort }` as its fourth argument. Omitted ports read `VITE_PORT` and `PORT` respectively, falling back to 5173 and 3000.
+- `tests/positive-refusals` reports negative-only `toBe` and `toEqual` checks on outcome readouts. Pair them with a positive domain reason or public response on the same outcome in the same story, including an `outcomes` row.
+- Report `rpcBoundary` and `rpcBoundaryHandlers` outside modules that build native RPC handlers, keeping service failures typed until the handler edge.
+- Enforce service definitions as operation inventories with imported initializers, operations and state factories, including marked generic methods.
+
+### Breaking
+
+- Import `ImportAnalysisFailure` from `@shivaedev/quality/adapters/ImportAnalysisFailure.ts` instead of `@shivaedev/quality/adapters/ImportCompiler.ts`.
+
+## 0.58.0 - 2026-11-04
+
+### Added
+
+- Report native `sql.withTransaction` around repository writes or change announcements with `effect/sql-transact`, directing callers to begin the outer transaction with `transact(effect, { onSqlError })` before the unsupported composition runs. Native read-only and raw SQL transactions remain supported.
+
+### Changed
+
+- Quality fixtures use their own process lock for in-process commands, executable commands and git-hook checks.
+
+### Breaking
+
+- `runQuality` from `testing/adapters/cli.ts` returns an Effect that keeps the caller's clock and lifecycle. Replace `await runQuality(...)` and `Effect.promise(() => runQuality(...))` with `yield* runQuality(...)` inside an Effect. Quality story kits use the controlled test clock.
+
 ## 0.57.2 - 2026-11-03
 
 ### Fixed

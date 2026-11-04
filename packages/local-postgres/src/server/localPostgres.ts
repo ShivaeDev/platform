@@ -27,7 +27,7 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 			try: () => new URL(connection),
 		});
 		server.pathname = "/postgres";
-		yield* assertLocalDatabase(server.toString(), ["postgres"]);
+		yield* Effect.fromResult(assertLocalDatabase(server.toString(), ["postgres"]));
 		function waitForVersion() {
 			return sql(server, "SHOW server_version").pipe(Effect.retry({ schedule: Schedule.spaced(delayMillis), times: attempts - 1 }));
 		}
@@ -54,7 +54,7 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 				try: () => new URL(value),
 			});
 			const name = parsed.pathname.slice(1);
-			const url = yield* assertLocalDatabase(value, [name]);
+			const url = yield* Effect.fromResult(assertLocalDatabase(value, [name]));
 			if (!/^[a-z][a-z0-9_]{0,62}$/u.test(name)) {
 				return yield* new LocalPostgresError({ message: "Invalid local database name." });
 			}

@@ -23,9 +23,9 @@ export const executableExport = exportTraits(
 	{
 		bin: { board: "./dist/server/cli.js" },
 		exports: {
-			"./*.ts": { import: "./dist/server/*.js", source: "./src/server/*.ts" },
-			"./board.ts": { import: "./dist/server/board.js", source: "./src/server/board.ts" },
-			"./cli.ts": { import: "./dist/server/cli.js", source: "./src/server/cli.ts" },
+			"./*.ts": { "@shivaedev/source": "./src/server/*.ts", import: "./dist/server/*.js" },
+			"./board.ts": { "@shivaedev/source": "./src/server/board.ts", import: "./dist/server/board.js" },
+			"./cli.ts": { "@shivaedev/source": "./src/server/cli.ts", import: "./dist/server/cli.js" },
 		},
 		name: "board",
 		version: "1.0.0",
@@ -42,9 +42,9 @@ export const sharedExport = exportTraits(
 	"an exact shared export sits beneath a blocked folder pattern",
 	{
 		exports: {
-			"./*.ts": { import: "./dist/*.js", source: "./src/*.ts" },
+			"./*.ts": { "@shivaedev/source": "./src/*.ts", import: "./dist/*.js" },
 			"./browser/responses/*": null,
-			"./browser/responses/schema.ts": { import: "./dist/browser/responses/schema.js", source: "./src/browser/responses/schema.ts" },
+			"./browser/responses/schema.ts": { "@shivaedev/source": "./src/browser/responses/schema.ts", import: "./dist/browser/responses/schema.js" },
 		},
 		name: "board",
 		version: "1.0.0",
@@ -60,7 +60,7 @@ export const sharedExport = exportTraits(
 export const aliasedExport = exportTraits(
 	"an exact blocked module has a public alias",
 	{
-		exports: { "./loadQuery.ts": null, "./router.ts": { import: "./dist/loadQuery.js", source: "./src/loadQuery.ts" } },
+		exports: { "./loadQuery.ts": null, "./router.ts": { "@shivaedev/source": "./src/loadQuery.ts", import: "./dist/loadQuery.js" } },
 		name: "router",
 		version: "1.0.0",
 	},
@@ -71,9 +71,9 @@ export const selectedPattern = exportTraits(
 	"specific export patterns select modules ahead of the root wildcard",
 	{
 		exports: {
-			"./*.ts": { import: "./dist/*.js", source: "./src/*.ts" },
-			"./browser/document/*.ts": { import: "./dist/client/document/*.js", source: "./src/client/document/*.ts" },
-			"./rpc/*.ts": { import: "./dist/server/rpc/*.js", source: "./src/server/rpc/*.ts" },
+			"./*.ts": { "@shivaedev/source": "./src/*.ts", import: "./dist/*.js" },
+			"./browser/document/*.ts": { "@shivaedev/source": "./src/client/document/*.ts", import: "./dist/client/document/*.js" },
+			"./rpc/*.ts": { "@shivaedev/source": "./src/server/rpc/*.ts", import: "./dist/server/rpc/*.js" },
 			"./server/*": null,
 		},
 		name: "board",

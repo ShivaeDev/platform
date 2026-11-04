@@ -1,13 +1,14 @@
 import { Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/sql";
-import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { observeUntil } from "#server/observeUntil.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { databaseQueries } from "./databaseQueries.ts";
+import { Items } from "./Items.ts";
 import { inPlace } from "./inPlace.ts";
+import { writeItem } from "./writeItem.ts";
 
 export type Ending = "succeeds" | "fails with rejected" | "dies with assertion failed";
 
@@ -16,17 +17,6 @@ const endings: Record<Ending, Effect.Effect<void, string>> = {
 	"fails with rejected": Effect.fail("rejected"),
 	succeeds: Effect.void,
 };
-
-export function writeItem(value: string) {
-	return Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value}`);
-}
-
-const Items = defineService({
-	id: "@shivaedev/test-sql/test/Items",
-	initialize: Effect.void,
-	methods: () => ({ rename: (value: string) => Effect.asVoid(writeItem(value)) }),
-	requires: [SqlClient.SqlClient],
-});
 
 export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) {
 	const admin = engine.admin;

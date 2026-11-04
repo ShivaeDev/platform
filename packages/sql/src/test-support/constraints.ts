@@ -84,7 +84,12 @@ function constraintVerbs({ items, onSqlError, records: log, sql, table }: Constr
 		insertItemsWhileNameLocked: (name: string, inputs: readonly ItemInput[]) =>
 			Effect.gen(function* () {
 				tell(`a transaction inserts ${name} and holds it uncommitted while another transaction inserts ${described(inputs)}, then commits`);
-				const [loser] = yield* raceWithLock({ effects: [insertAll(inputs)], lock: items.insert({ name, quantity: 1 }), release: "commit" });
+				const [loser] = yield* raceWithLock({
+					clock: "test",
+					effects: [insertAll(inputs)],
+					lock: items.insert({ name, quantity: 1 }),
+					release: "commit",
+				});
 				log.endings.push(
 					loser === undefined
 						? "never ran"

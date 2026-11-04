@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import type { OriginPolicy } from "#server/origin.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { makeApp } from "./api.ts";
 import { createProvider, mintSession, ORIGIN } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
@@ -19,8 +19,8 @@ export const sessions = storyKit({
 			}
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const provider = yield* createProvider();
 		const engine: Engine = { accounts: new Map(), close: provider.close, provider };

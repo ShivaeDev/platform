@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.7.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.23.0 to 0.23.1.
+
+## 0.7.0 - 2026-11-04
+
+### Added
+
+- Serve native Effect toolkit layers over stdio with `mcpStdio` from `@shivaedev/mcp/stdio.ts`. The server scope owns the transport and tool handlers, including cancellation and resource cleanup.
+
 ## 0.6.3 - 2026-11-03
 
 ### Changed

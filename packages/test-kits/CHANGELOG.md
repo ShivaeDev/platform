@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.0 - 2026-11-04
+
+### Added
+
+- Provides a stateful Discord provider with message HTTP routes and a native gateway socket boundary for stories running the real clients.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.2.2 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.34.0 to 0.35.0.
+- Update `@shivaedev/identity` from 0.23.0 to 0.23.1.
+- Update `@shivaedev/test-sql` from 0.18.2 to 0.19.0.
+- Update `@shivaedev/test-story` from 0.37.0 to 0.37.1.
+
+## 0.2.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.33.1 to 0.34.0.
+- Update `@shivaedev/email` from 0.3.1 to 0.3.2.
+- Update `@shivaedev/identity` from 0.22.1 to 0.23.0.
+- Update `@shivaedev/sql` from 0.36.0 to 0.36.1.
+- Update `@shivaedev/test-sql` from 0.18.1 to 0.18.2.
+- Update `@shivaedev/test-story` from 0.36.1 to 0.37.0.
+
 ## 0.2.0 - 2026-11-03
 
 ### Added

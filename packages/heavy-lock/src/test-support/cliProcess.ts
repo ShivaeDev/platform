@@ -2,55 +2,17 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-export const HEAVY_LOCK_CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
-
-export const TEST_TIMEOUT_MS = 20_000;
-
-const COMMAND_LIFETIME_S = TEST_TIMEOUT_MS / 1000;
-
-export function cliEnvironment(lock: string, extra: Record<string, string> = {}): Record<string, string> {
-	return {
-		"HEAVY_PROCESS_LOCK": lock,
-		"PATH": "/usr/bin:/bin",
-		...extra,
-	};
-}
-
-export type CommandLine = readonly [string, ...string[]];
-
-function shell(script: string): CommandLine {
-	return ["/bin/sh", "-c", `echo running; ${script}`];
-}
-
-// Each command reports "running" on stdout once the CLI has started it; a command that waits ends by itself after the test timeout, because it runs in its own process group where the cleanup of an abandoned test cannot reach it.
-export const commands = {
-	blocksRelease: shell('rm "$HEAVY_PROCESS_LOCK"; mkdir "$HEAVY_PROCESS_LOCK"'),
-	exitsWith: (code: number) => shell(`exit ${code}`),
-	holdsUntilReleased: shell("read line"),
-	killsItselfWith: (signal: NodeJS.Signals) => shell(`kill -${signal.slice(3)} $$`),
-	nestedRunOf: (command: CommandLine): CommandLine => [process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", ...command],
-	printsToStderr: (line: string) => shell(`echo '${line}' >&2`),
-	reportsArguments: (...args: readonly string[]): CommandLine => [...shell('printf "%s\\n" "$@"'), "check", ...args],
-	reportsHolderId: shell(
-		'printf "holder id=%s\\nlock=%s\\nlock path=%s\\n" "$HEAVY_PROCESS_LOCK_ID" "$(cat "$HEAVY_PROCESS_LOCK" 2>/dev/null)" "$HEAVY_PROCESS_LOCK"',
-	),
-	reportsProcessGroup: shell('if [ "$(ps -o pgid= -p $$ | tr -d " ")" = "$$" ]; then echo "leads its process group"; fi'),
-	sleeps: shell(`exec sleep ${COMMAND_LIFETIME_S}`),
-	trapsAndExits: (signal: NodeJS.Signals, code: number): CommandLine => [
-		"/bin/sh",
-		"-c",
-		`trap 'kill $sleeper 2>/dev/null; exit ${code}' ${signal.slice(3)}; sleep ${COMMAND_LIFETIME_S} & sleeper=$!; echo running; wait $sleeper; exit 1`,
-	],
-	withSignalAcknowledgingDescendant: (signal: NodeJS.Signals): CommandLine => [
-		process.execPath,
-		fileURLToPath(new URL("./signalDescendant.ts", import.meta.url)),
-		signal,
-		String(TEST_TIMEOUT_MS / 2),
-	],
-};
+export const CLI_ARGUMENTS = [
+	"--conditions=@shivaedev/source",
+	"--import",
+	fileURLToPath(new URL("./cliClock.ts", import.meta.url)),
+	fileURLToPath(new URL("../cli.ts", import.meta.url)),
+];
 
 export interface CliRun {
+	readonly advanceTo: (time: number) => void;
 	readonly exited: Promise<number | null>;
+	readonly nextPoll: Promise<number>;
 	readonly pid: number;
 	readonly release: () => void;
 	readonly settled: Promise<void>;
@@ -78,8 +40,27 @@ function commandNoLongerReads(): undefined {
 	return undefined;
 }
 
-export function startCli(args: readonly string[], env: Record<string, string>, cwd?: string): CliRun {
-	const child = spawn(process.execPath, ["--conditions=source", HEAVY_LOCK_CLI, ...args], { cwd, detached: true, env, stdio: "pipe" });
+export function startCli(args: readonly string[], env: Record<string, string>, now: number, cwd?: string): CliRun {
+	const child = spawn(process.execPath, [...CLI_ARGUMENTS, ...args], {
+		cwd,
+		detached: true,
+		env: { ...env, "HEAVY_LOCK_STORY_TIME": String(now) },
+		stdio: ["pipe", "pipe", "pipe", "ipc"],
+	});
+	const { stdin: input, stdout: output, stderr: errors } = child;
+	if (input === null || output === null || errors === null) {
+		throw new Error("The story CLI needs piped standard input, output and error streams.");
+	}
+	const stdin = input;
+	let sleeping = false;
+	let check: () => void = commandNoLongerReads;
+	const nextPoll = new Promise<number>((resolve) => {
+		child.on("message", (time: number) => {
+			sleeping = true;
+			resolve(time);
+			check();
+		});
+	});
 	let status: number | null | undefined;
 	let stdout = "";
 	let stderr = "";
@@ -93,41 +74,41 @@ export function startCli(args: readonly string[], env: Record<string, string>, c
 		return stderr.includes("heavy-process lock: waiting for") ? "waiting" : "starting";
 	}
 	function stop() {
-		child.stdin.end();
+		stdin.end();
 		if (status === undefined) {
 			killGroup(child.pid);
 		}
 	}
-	const deadline = setTimeout(stop, TEST_TIMEOUT_MS);
-	child.stdin.on("error", commandNoLongerReads);
+	stdin.on("error", commandNoLongerReads);
 	const exited = new Promise<number | null>((resolve, reject) => {
 		child.on("error", reject);
 		child.on("close", (code) => {
 			status = code;
-			clearTimeout(deadline);
 			resolve(code);
 		});
 	});
 	const settled = new Promise<void>((resolve) => {
-		function check() {
-			if (state() !== "starting") {
+		check = () => {
+			if (state() !== "starting" && (state() !== "waiting" || sleeping)) {
 				resolve();
 			}
-		}
-		child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+		};
+		output.setEncoding("utf8").on("data", (chunk: string) => {
 			stdout += chunk;
 			check();
 		});
-		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+		errors.setEncoding("utf8").on("data", (chunk: string) => {
 			stderr += chunk;
 			check();
 		});
 		child.on("close", check);
 	});
 	return {
+		advanceTo: (time) => child.send(time),
 		exited,
+		nextPoll,
 		pid: child.pid ?? 0,
-		release: () => child.stdin.write("\n"),
+		release: () => stdin.write("\n"),
 		settled,
 		state,
 		stderr: () => stderr,

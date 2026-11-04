@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.39.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.38.5 - 2026-11-04
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.38.4 - 2026-11-04
+
+### Fixed
+
+- Generated resource stories use a controlled clock seeded at the current date so minted sessions remain valid for Better Auth. Generator and starter-update stories also use the controlled clock and observe child-process completion.
+
 ## 0.38.3 - 2026-11-03
 
 ### Fixed

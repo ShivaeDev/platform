@@ -98,9 +98,7 @@ isolatedEngine.it(
 		).toMatchObject([{ cwd: "/synthetic" }]);
 		expect(publishedDecisions()).toEqual([lost.value.decision?.reason]);
 		const decisionId = lost.value.decision?.id ?? "missing";
-		const released = yield* afterRestart(
-			Fleet.pipe(Effect.flatMap((restarted) => restarted.resolve("one", decisionId, respond(decisionId, "release")))),
-		);
+		const released = yield* afterRestart((restarted) => restarted.resolve("one", decisionId, respond(decisionId, "release")));
 		expect(released.value.step).toBe("released");
 		expect(released.value.attempts.at(-1)?.sessionUnusable).toBe(true);
 	},

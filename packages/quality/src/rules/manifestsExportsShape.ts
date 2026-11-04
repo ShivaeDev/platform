@@ -18,7 +18,8 @@ function standardPattern(key: string, value: unknown): boolean {
 	}
 	const subpath = key.slice("./".length);
 	const stem = subpath.slice(0, -".ts".length);
-	const conditions = { default: `./dist/${stem}.js`, source: `./src/${subpath}`, types: `./dist/${stem}.d.ts` };
+	const source = "@shivaedev/source" in value ? "@shivaedev/source" : "source";
+	const conditions = { default: `./dist/${stem}.js`, [source]: `./src/${subpath}`, types: `./dist/${stem}.d.ts` };
 	return (
 		Object.keys(value).length === Object.keys(conditions).length
 		&& Object.entries(conditions).every(([condition, target]) => value[condition] === target)

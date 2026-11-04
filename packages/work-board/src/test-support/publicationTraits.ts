@@ -140,7 +140,7 @@ export function writerKilledAt(phase: "temporary" | "published") {
 		`a writer publishing response.interrupted is killed right after it syncs its ${phase === "temporary" ? "temporary file" : "published record"}`,
 		function* (engine) {
 			const child = fork(new URL("./publicationChild.ts", import.meta.url), [engine.notes.root, phase], {
-				execArgv: ["--conditions=source"],
+				execArgv: ["--conditions=@shivaedev/source"],
 				stdio: ["ignore", "pipe", "pipe", "ipc"],
 			});
 			const exited = once(child, "exit");

@@ -48,7 +48,7 @@ function loggedStacks(cause: Cause.Cause<unknown>) {
 }
 
 export const rejections = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => createRejections,
 	name: "RPC rejection",
 	stages: ["storage"],

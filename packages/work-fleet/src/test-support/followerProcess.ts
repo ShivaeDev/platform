@@ -54,7 +54,7 @@ export function followerProcess(
 				[
 					...(options.pnpm
 						? ["-s", "fleet"]
-						: ["--conditions=source", "--import", fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url)), cli]),
+						: ["--conditions=@shivaedev/source", "--import", fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url)), cli]),
 					command,
 					...ids,
 					...(options.cwd === undefined ? ["--board", dirname(configFile)] : []),

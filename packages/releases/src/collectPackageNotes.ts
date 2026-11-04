@@ -8,7 +8,7 @@ export const collectPackageNotes = Effect.fn("Changesets.collectPackageNotes")(f
 	plan: ReleasePlan,
 	dependencies: readonly string[] = [],
 ) {
-	const changesets = yield* Effect.forEach(plan.changesets, parseChangeset);
+	const changesets = yield* Effect.forEach(plan.changesets, (source) => Effect.fromResult(parseChangeset(source)));
 	const entries = changesets.flatMap((changeset) => changeset.entries.filter((entry) => entry.package === release.name));
 	const moved = plan.releases.filter((candidate) => dependencies.includes(candidate.name));
 	const dependencyNotes =

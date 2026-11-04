@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Exit, Scope } from "effect";
 import { type StoryKit, storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type EngineServices, onPostgresClients, onSqlite } from "./engines.ts";
 import { type Database, type TransactionEngine, transactionEngine } from "./transactionEngine.ts";
@@ -52,13 +52,21 @@ export function subscriberThrows(kit: Kit, key: string) {
 	});
 }
 
-export function commitsSlowly() {
-	return postgresTransactions.trait("schema", "a deferred trigger makes each COMMIT of a new order take a second", function* (engine) {
-		const { main, tables } = engine;
+export function commitsWhenReleased() {
+	return postgresTransactions.trait("schema", "a deferred trigger holds COMMIT on an advisory lock until the kit releases it", function* (engine) {
+		const { main, other, tables } = engine;
 		const name = tables.orders.replace("transact_orders_", "transact_slow_");
+		const scope = yield* Scope.fork(yield* Effect.scope);
+		const connection = yield* Scope.provide(other.reserve, scope);
+		yield* Effect.acquireRelease(connection.executeRaw("select pg_advisory_lock(hashtextextended($1, 0))", [name]), () =>
+			connection.executeRaw("select pg_advisory_unlock(hashtextextended($1, 0))", [name]).pipe(Effect.orDie),
+		).pipe(Scope.provide(scope));
+		engine.commitGate = { release: Scope.close(scope, Exit.void) };
 		yield* Effect.acquireRelease(
 			Effect.andThen(
-				main.unsafe(`create function "${name}"() returns trigger language plpgsql as $$ begin perform pg_sleep(1); return null; end $$`),
+				main.unsafe(
+					`create function "${name}"() returns trigger language plpgsql as $$ begin perform pg_advisory_xact_lock(hashtextextended('${name}', 0)); return null; end $$`,
+				),
 				main.unsafe(
 					`create constraint trigger "${name}" after insert on "${tables.orders}" deferrable initially deferred for each row execute function "${name}"()`,
 				),

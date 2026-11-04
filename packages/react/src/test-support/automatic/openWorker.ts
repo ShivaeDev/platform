@@ -12,7 +12,7 @@ const Response = Schema.Union([
 
 export async function openWorker(databaseUrl: string) {
 	const child = fork(join(dirname(fileURLToPath(import.meta.url)), "worker.ts"), [JSON.stringify({ databaseUrl, schema: "automatic_jobs" })], {
-		execArgv: ["--conditions=source"],
+		execArgv: ["--conditions=@shivaedev/source"],
 		stdio: ["ignore", "pipe", "pipe", "ipc"],
 	});
 	let failure = "";

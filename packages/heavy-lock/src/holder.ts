@@ -3,6 +3,7 @@ import { Effect, type Option, Schema } from "effect";
 export const HOLDER_ID_ENV = "HEAVY_PROCESS_LOCK_ID";
 
 export const Holder = Schema.Struct({
+	branch: Schema.optionalKey(Schema.String),
 	command: Schema.String,
 	cwd: Schema.String,
 	id: Schema.String,
@@ -15,7 +16,7 @@ export type Holder = typeof Holder.Type;
 
 const HolderJson = Schema.fromJsonString(Holder);
 
-const PROTOCOL_KEYS = ["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs"];
+const PROTOCOL_KEYS = ["id", "pid", "processStartedAt", "command", "cwd", "startedAtMs", "branch"];
 
 export function encodeHolder(holder: Holder): Effect.Effect<string> {
 	return Schema.encodeEffect(Holder)(holder).pipe(

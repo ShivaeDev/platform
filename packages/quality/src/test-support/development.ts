@@ -30,12 +30,16 @@ export const development = storyKit({
 			response.end(JSON.stringify({ host: request.headers.host, path: request.url }));
 		});
 		yield* Effect.acquireRelease(
-			Effect.promise(() => new Promise<void>((resolve) => host.listen(3000, "127.0.0.1", resolve))),
+			Effect.promise(() => new Promise<void>((resolve) => host.listen(0, "127.0.0.1", resolve))),
 			() => Effect.promise(() => new Promise<void>((resolve, reject) => host.close((error) => (error ? reject(error) : resolve())))),
 		);
-		const config = appViteConfig([], [], ["/health"]);
+		const address = host.address();
+		if (address === null || typeof address === "string") {
+			throw new Error("The application host has no TCP address");
+		}
+		const config = appViteConfig([], [], ["/health"], { apiPort: address.port, webPort: 0 });
 		const vite = yield* Effect.acquireRelease(
-			Effect.promise(() => createViteServer({ ...config, configFile: false, server: { ...config.server, port: 0, watch: null } })),
+			Effect.promise(() => createViteServer({ ...config, configFile: false, server: { ...config.server, watch: null } })),
 			(server) => Effect.promise(() => server.close()),
 		);
 		yield* Effect.promise(() => vite.listen());

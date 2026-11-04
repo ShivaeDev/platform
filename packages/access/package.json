@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/access",
-	"version": "0.4.1",
+	"version": "0.5.0",
 	"description": "Browser-safe role declarations and permission checks for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/access#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

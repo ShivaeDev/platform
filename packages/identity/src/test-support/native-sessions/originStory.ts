@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { originVerbs } from "./originVerbs.ts";
 
@@ -17,8 +17,8 @@ export const origins = storyKit({
 			state.host = yield* startHost(true, state.nativeOrigins, state.trustedProxy);
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): State => ({ nativeOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN] }),
 	inspect: (state) => ({ lookups: state.host?.activity.lookups, nativeOrigins: state.nativeOrigins }),
 	layer: postgres,

@@ -1,6 +1,5 @@
-import { Effect } from "effect";
-import { expect } from "vitest";
-import { it } from "@shivaedev/test/adapters/it.ts";
+import { Result } from "effect";
+import { expect, it } from "vitest";
 import { type Input, optionsFor } from "#arguments.ts";
 
 const input: Input = {
@@ -13,12 +12,12 @@ const input: Input = {
 	repository: "acme/project",
 };
 
-it.effect("watch settings deduplicate PRs and convert seconds to milliseconds", function* () {
-	const parsed = yield* optionsFor({ ...input, numbers: [1, 2, 1] });
+it("watch settings deduplicate PRs and convert seconds to milliseconds", () => {
+	const parsed = Result.getOrThrow(optionsFor({ ...input, numbers: [1, 2, 1] }));
 	expect(parsed).toMatchObject({ heartbeat: 900_000, options: { interval: 60_000, numbers: [1, 2], stateFile: ".pr-watch/acme-project.json" } });
 });
 
-it.effect.each<Partial<Input>>([
+it.each<Partial<Input>>([
 	{ repository: "bad" },
 	{ numbers: [] },
 	{ numbers: [-1] },
@@ -29,7 +28,7 @@ it.effect.each<Partial<Input>>([
 	{ apiUrl: "not a URL" },
 	{ apiUrl: "http://github.example" },
 	{ apiUrl: "https://user:password@github.example" },
-])("invalid watch settings fail as argument errors", function* (changes) {
-	const error = yield* optionsFor({ ...input, ...changes }).pipe(Effect.flip);
+])("invalid watch settings fail as argument errors", (changes) => {
+	const error = Result.getOrThrow(Result.flip(optionsFor({ ...input, ...changes })));
 	expect(error.reason).toBe("arguments");
 });

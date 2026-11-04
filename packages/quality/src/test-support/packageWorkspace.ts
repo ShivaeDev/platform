@@ -33,7 +33,9 @@ export function packageWorkspace() {
 			]);
 			linkPackage(engine.root);
 			formatTree(engine.root);
-			writeAll(engine.root, [{ content: `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`, path: BIN }]);
+			writeAll(engine.root, [
+				{ content: `#!/bin/sh\nexec node --conditions=@shivaedev/source ${join(packageRoot, "src", "cli.ts")} "$@"\n`, path: BIN },
+			]);
 			chmodSync(join(engine.root, BIN), 0o755);
 			git(engine.root, "init", "--quiet");
 		},

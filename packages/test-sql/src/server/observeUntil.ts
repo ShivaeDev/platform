@@ -1,7 +1,9 @@
 import { Data, Duration, Effect, Formatter, Option } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { CatalogClock } from "#server/internal/clocks.ts";
 
 export interface ObserveOptions {
+	readonly clock?: "live" | "test";
 	readonly every?: Duration.Input;
 	readonly stableReads?: number;
 	readonly within?: Duration.Input;
@@ -40,7 +42,7 @@ export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A,
 ) {
 	const within = Duration.fromInputUnsafe(options?.within ?? "5 seconds");
 	const stableReads = options?.stableReads ?? 2;
-	const clock = yield* CatalogClock;
+	const clock = options?.clock === "test" ? { deadline: Effect.sleep, pause: TestClock.adjust } : yield* CatalogClock;
 	const pause = clock.pause(options?.every ?? "25 millis");
 	let last = Option.none<A>();
 	let reads = 0;

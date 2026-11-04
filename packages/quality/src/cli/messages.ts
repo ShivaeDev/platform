@@ -25,7 +25,7 @@ exceptions migrate Move legacy registry entries and Biome declarations into qual
 baseline merge    Merge Git baseline versions into <current>: deletions win and counts take the minimum.
 baseline install-driver Configure only the repository-local merge.quality-baseline.driver setting.
 baseline write    Adopt initial debt once, or record named rules only for --file paths changed since HEAD. Stage new files first.
-                  --first-adoption records a shared policy upgrade for explicit rules that refuse config exceptions, including unchanged files.
+                  --first-adoption records any rule, including unchanged files. With an existing baseline, name explicit --rule ids.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
 baseline migrate  Move a JSON or JSON Lines baseline (--from, quality/baseline.json by default) into root and package shards.

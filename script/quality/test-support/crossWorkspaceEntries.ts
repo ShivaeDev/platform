@@ -8,7 +8,7 @@ export const crossWorkspaceEntries = unusedRepository.trait("repository", "scrip
 		JSON.stringify({
 			name: "fixture",
 			private: true,
-			scripts: { check: "node --conditions=source packages/app/src/from-root.ts" },
+			scripts: { check: "node --conditions=@shivaedev/source packages/app/src/from-root.ts" },
 			type: "module",
 			workspaces: ["packages/*"],
 		}),
@@ -21,8 +21,9 @@ export const crossWorkspaceEntries = unusedRepository.trait("repository", "scrip
 			name: "app",
 			private: true,
 			scripts: {
-				"check:published": "env -u NODE_OPTIONS node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
-				"check:sibling": "node --conditions=source '../tool/src/from-sibling.ts'",
+				"check:published":
+					"env -u NODE_OPTIONS node --conditions=@shivaedev/source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
+				"check:sibling": "node --conditions=@shivaedev/source '../tool/src/from-sibling.ts'",
 				"start": "node wrapper.ts -- node src/start.ts",
 			},
 			type: "module",

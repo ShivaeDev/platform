@@ -8,3 +8,9 @@ for (const window of [0, "100 millis"] as const) {
 		expect(yield* shown()).toEqual([`Notes (${window})`, `Tasks (${window})`]);
 	});
 }
+
+composedModules.it("an explicit binding list applies the session window only to its selected module", [], function* ({ open, shown }) {
+	yield* open(0, ["Notes"]);
+
+	expect(yield* shown()).toEqual(["Notes (0)", "Tasks (20 millis)"]);
+});

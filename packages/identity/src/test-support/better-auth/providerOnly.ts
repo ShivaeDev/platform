@@ -1,10 +1,10 @@
 import { Effect, Schema } from "effect";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
 import { oauthProvider } from "./oauthProvider.ts";
 import { providerOnlyHost } from "./providerOnlyHost.ts";
@@ -35,8 +35,8 @@ export const providerOnly = storyKit({
 			engine.host = yield* providerOnlyHost(engine.enabledPaths, engine.disabledPaths, engine.preset);
 		}),
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): Engine => ({ cookie: "", disabledPaths: [], enabledPaths: [], preset: true }),
 	layer: postgres,
 	name: "provider-only auth mount",

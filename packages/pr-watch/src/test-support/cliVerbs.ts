@@ -30,7 +30,7 @@ function lines(stdout: string) {
 }
 
 function spawnWatch(engine: Engine, notify: () => void) {
-	const child = spawn(process.execPath, ["--conditions=source", CLI, ...programArguments(engine)], {
+	const child = spawn(process.execPath, ["--conditions=@shivaedev/source", CLI, ...programArguments(engine)], {
 		env: engine.cliEnvironment,
 		stdio: ["ignore", "pipe", "pipe"],
 	});
@@ -91,7 +91,7 @@ export function cliVerbs(engine: Engine, tell: (line: string) => void) {
 				tell(`the CLI runs${extra.length === 0 ? "" : ` with ${extra.join(" ")}`}`);
 				execFile(
 					process.execPath,
-					["--conditions=source", CLI, ...programArguments(engine, ...extra)],
+					["--conditions=@shivaedev/source", CLI, ...programArguments(engine, ...extra)],
 					{ env: engine.cliEnvironment, timeout: 10_000 },
 					(error, stdout, stderr) => {
 						engine.cli = { exit: exitOf(error), stderr, stdout };

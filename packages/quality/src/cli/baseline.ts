@@ -4,7 +4,6 @@ import type { BaselineEntry } from "#baseline/format.ts";
 import { saveShards } from "#baseline/shards.ts";
 import { adopt, type Pruned, prune, type Scope } from "#baseline/update.ts";
 import { openSession, type Session } from "#engine/session.ts";
-import { registrable } from "#engine/violation.ts";
 import { applyRegistry } from "#exceptions/registry.ts";
 import { SetupFailure } from "#failure.ts";
 import { changesSince } from "#git/history.ts";
@@ -30,11 +29,6 @@ export const writeBaseline = Effect.fn("Cli.writeBaseline")(function* (
 
 	const session = yield* openSession(cwd, config);
 	const existing = session.baseline.files.size === 0 ? undefined : session.baseline.entries;
-	if (firstAdoption && (rules.length === 0 || rules.some((rule) => registrable(session.config, rule)))) {
-		return yield* new SetupFailure({
-			message: "baseline write refused: --first-adoption requires explicit --rule ids that refuse config exceptions.",
-		});
-	}
 	if (existing !== undefined && files.length === 0 && !firstAdoption) {
 		return yield* new SetupFailure({
 			message: "baseline write refused: a baseline exists. Record a rule with --rule <id> and --file <path>; use prune for moved or fixed debt.",

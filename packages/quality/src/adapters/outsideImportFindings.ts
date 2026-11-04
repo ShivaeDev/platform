@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import type { ImportAnalysisFailure } from "#adapters/ImportCompiler.ts";
+import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";

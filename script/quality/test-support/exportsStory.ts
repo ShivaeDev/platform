@@ -7,7 +7,7 @@ import { writePackageExports } from "@shivaedev/quality/testing/adapters/writePa
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const filePathExports = {
-	"./*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" },
+	"./*.ts": { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" },
 	"./package.json": "./package.json",
 };
 

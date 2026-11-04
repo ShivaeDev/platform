@@ -11,7 +11,7 @@ export const adminCommand = Effect.fn("AdminSetup.adminCommand")(function* (emai
 	return yield* Effect.gen(function* () {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const child = yield* spawner.spawn(
-			ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("../../server/admin/run.ts", import.meta.url))], {
+			ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", fileURLToPath(new URL("../../server/admin/run.ts", import.meta.url))], {
 				env: {
 					"ADMIN_EMAIL": email,
 					"ADMIN_PASSWORD": password,

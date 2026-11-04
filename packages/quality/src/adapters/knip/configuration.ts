@@ -11,7 +11,14 @@ const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}
 function importPaths(imports: Readonly<Record<string, unknown>>) {
 	return Object.fromEntries(
 		Object.entries(imports).flatMap(([name, target]) => {
-			const selected = typeof target === "object" && target !== null && "source" in target ? target.source : target;
+			let selected = target;
+			if (typeof target === "object" && target !== null) {
+				if ("@shivaedev/source" in target) {
+					selected = target["@shivaedev/source"];
+				} else if ("source" in target) {
+					selected = target.source;
+				}
+			}
 			const paths = exportTargets(selected).filter((path) => path.startsWith("./"));
 			return paths.length === 0 ? [] : [[name, paths]];
 		}),

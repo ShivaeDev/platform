@@ -11,7 +11,7 @@ for (const project of test.projects ?? []) {
 }
 
 export default defineConfig({
-	resolve: { conditions: ["source", "module", "browser", "development|production"] },
-	ssr: { resolve: { conditions: ["source", "node", "development|production"] } },
+	resolve: { conditions: ["@shivaedev/source", "module", "browser", "development|production"] },
+	ssr: { resolve: { conditions: ["@shivaedev/source", "node", "development|production"] } },
 	test: { ...test, tags: genreTags("bakery", "mill") },
 });

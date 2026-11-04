@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.36.0 - 2026-11-04
+
+### Added
+
+- Declare the host build-version stream shared by server and browser clients.
+
+### Fixed
+
+- emit portable declarations for exported contracts with declared subjects.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.35.0 - 2026-11-04
+
+### Added
+
+- Client activity and its screen signal carry the same shared connection status.
+
+### Fixed
+
+- Resume signals interrupt live retry backoff and reconnect immediately, resetting the next retry delay.
+- Bound commands with a declared `BadRequest` return payload construction and encoding failures as that typed rejection, including struct-level validation details.
+- Live binding discovery traverses nested object and array properties, preserves explicit binding lists, and visits shared objects and cycles once.
+
+## 0.34.0 - 2026-11-04
+
+### Added
+
+- `makeClient` accepts a native Atom runtime factory so application and test clocks can govern live query coalescing and reconnection.
+- Contracts accept a subject declaration that supplies request context through native RPC middleware and includes its typed refusals in the client's error channel.
+
+### Breaking
+
+- Import the `OperationRpc` and `Tag` helper types from `@shivaedev/contract/operationRpc.ts` instead of `@shivaedev/contract/contract.ts`.
+
 ## 0.33.1 - 2026-11-03
 
 ### Fixed

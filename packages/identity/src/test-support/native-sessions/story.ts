@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { callers } from "./callers.ts";
 import { diagnosticVerbs } from "./diagnosticVerbs.ts";
 import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
@@ -24,8 +24,8 @@ export const nativeSessions = storyKit({
 			state.host = yield* startHost(state.enabled, state.nativeOrigins);
 		},
 	},
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: (): State => ({ accounts: new Map(), enabled: true }),
 	inspect: (state) => ({ accounts: [...state.accounts.keys()], enabled: state.enabled }),
 	layer: postgres,

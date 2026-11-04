@@ -1,5 +1,6 @@
-import { Deferred, Effect, Exit, Fiber, Schedule } from "effect";
+import { Deferred, Effect, Exit, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { transact } from "#transact.ts";
@@ -49,8 +50,7 @@ function contenderTransaction(sql: SqlClient.SqlClient, key: bigint | string, st
 
 function blockedSession(sql: SqlClient.SqlClient, pid: number) {
 	const blocked = sql<{ readonly blocked: boolean }>`select cardinality(pg_blocking_pids(${pid})) > 0 as blocked`;
-	// PostgreSQL signals nothing when a session starts waiting on a lock, so the kit polls the contender's blockers.
-	return blocked.pipe(Effect.repeat({ schedule: Schedule.spaced("5 millis"), while: ([row]) => row?.blocked !== true }), Effect.orDie);
+	return observeUntil(blocked, ([row]) => row?.blocked === true, "the contender to block on the advisory lock", { clock: "test" }).pipe(Effect.orDie);
 }
 
 function holderOf(engine: LockEngine) {

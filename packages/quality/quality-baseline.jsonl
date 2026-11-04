@@ -84,7 +84,6 @@
 {"path":"packages/quality/src/rules/stories/matchesAny.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/stories/origins.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/stories/prerequisites.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/rules/stories/program.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/stories/queueSql.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/stories/sqlText.ts","rule":"effect/boundary","count":5}
 {"path":"packages/quality/src/rules/suppressions/noDoubleCast.ts","rule":"effect/adapter-imports","count":1}

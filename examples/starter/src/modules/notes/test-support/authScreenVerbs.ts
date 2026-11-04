@@ -12,6 +12,13 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		}
 		return engine.auth;
 	}
+	function refresh() {
+		const view = engine.view;
+		if (view === undefined) {
+			throw new Error("The app is not open");
+		}
+		return auth().auth.session.refresh.pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+	}
 	const quietly = screenActions(engine, () => undefined);
 	return {
 		authenticated: () =>
@@ -24,6 +31,11 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			Effect.sync(() => {
 				tell("alice's notes session expires");
 				engine.client.session.signedIn = false;
+			}),
+		failSessionCheck: () =>
+			Effect.sync(() => {
+				tell("the session check provider becomes unavailable");
+				auth().fail();
 			}),
 		href: () =>
 			Effect.sync(() => {
@@ -40,11 +52,18 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		refreshSession: () =>
 			Effect.promise(async () => {
 				tell("the app's auth client refreshes the session");
-				const view = engine.view;
-				if (view === undefined) {
-					throw new Error("The app is not open");
-				}
-				await act(() => Effect.runPromise(auth().auth.session.refresh.pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry))));
+				await act(() => Effect.runPromise(refresh()));
+			}),
+		refreshSessionOutcome: () =>
+			Effect.promise(async () => {
+				tell("the app's auth client checks the session and reports its outcome");
+				let outcome: string | undefined;
+				await act(async () => {
+					outcome = await Effect.runPromise(
+						refresh().pipe(Effect.match({ onFailure: (failure) => ("_tag" in failure ? failure._tag : failure.code), onSuccess: () => "checked" })),
+					);
+				});
+				return outcome;
 			}),
 		sessionChecks: () =>
 			Effect.sync(() => countWords(auth().requests.filter((url) => url.pathname === "/api/auth/get-session").length, "session check")),

@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { ruleConfiguration } from "#adapters/rule.ts";
+import { NonEffectFolders } from "#config/nonEffectFolders.ts";
 import { type Decoded, decodeWith } from "#decoded.ts";
 import { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { RegisteredRule } from "#rule.ts";
@@ -28,6 +29,7 @@ const ConfigInput = Schema.Struct({
 	exceptions: Schema.optionalKey(Schema.Array(ExceptionDeclaration)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
+	nonEffectFolders: Schema.optionalKey(NonEffectFolders),
 	registry: Schema.optionalKey(Schema.String),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
 	sources: Schema.optionalKey(Schema.Array(Schema.String)),

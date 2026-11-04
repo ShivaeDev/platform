@@ -37,7 +37,7 @@ export const appTooling = storyKit({
 		build: () => {
 			story.tell("build the application with its shared Vite config");
 			return Effect.sync(() =>
-				spawnSync(process.execPath, ["--conditions=source", join(starterModules, "vite/bin/vite.js"), "build"], {
+				spawnSync(process.execPath, ["--conditions=@shivaedev/source", join(starterModules, "vite/bin/vite.js"), "build"], {
 					cwd: engine.root,
 					encoding: "utf8",
 				}),
@@ -48,7 +48,7 @@ export const appTooling = storyKit({
 		runTests: () => {
 			story.tell("run the application's DOM stories with the shared test config");
 			return Effect.sync(() =>
-				spawnSync(process.execPath, ["--conditions=source", join(starterModules, "vitest/vitest.mjs"), "run", "--reporter", "verbose"], {
+				spawnSync(process.execPath, ["--conditions=@shivaedev/source", join(starterModules, "vitest/vitest.mjs"), "run", "--reporter", "verbose"], {
 					cwd: engine.root,
 					encoding: "utf8",
 				}),
@@ -60,7 +60,7 @@ export const appTooling = storyKit({
 				Effect.promise(() => new Promise<void>((resolve, reject) => backend.close((error) => (error ? reject(error) : resolve())))),
 			);
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-			const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=source", "serve.mjs"], { cwd: engine.root }));
+			const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", "serve.mjs"], { cwd: engine.root }));
 			const address = yield* Deferred.make<string>();
 			yield* child.stdout.pipe(
 				Stream.decodeText(),

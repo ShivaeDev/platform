@@ -2,6 +2,7 @@ import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noLimitImports } from "#rules/stories/noLimitImports.ts";
+import { positiveRefusals } from "#rules/stories/positiveRefusals.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
@@ -14,6 +15,7 @@ const STORY = [
 		'expect(count).toBe(2); yield* Effect.sleep("50 millis");',
 		'expect((yield* order())._tag).toBe("Cancelled");',
 		'expect(yield* refunds()).toEqual(["order 1"]);',
+		'expect(yield* outcome()).not.toBe("accepted");',
 	),
 ].join("\n");
 
@@ -24,6 +26,7 @@ const RULES = [
 	{ line: 4, rule: domainOutcomes },
 	{ line: 4, rule: groupedOutcomes },
 	{ line: 3, rule: waitOnEvents },
+	{ line: 6, rule: positiveRefusals },
 ];
 
 for (const { line, rule } of RULES) {

@@ -21,5 +21,5 @@ export default defineConfig({
 	},
 	define: { "import.meta.resolve": "undefined" },
 	plugins: [tailwindcss(), react()],
-	resolve: { conditions: ["source"], tsconfigPaths: true },
+	resolve: { conditions: ["@shivaedev/source"], tsconfigPaths: true },
 });
