@@ -12,7 +12,11 @@ ruleStory.it(
 
 		yield* assertThat(yield* findings(), (actual) =>
 			actual.toEqual([
-				{ file: "packages/kit", message: 'The folder of the package @demo/ui-kit is named "ui-kit", in kebab-case after the package name.' },
+				{
+					file: "packages/kit",
+					message:
+						'The folder of the package @demo/ui-kit must be named "ui-kit", in kebab-case after the package name, or its path below the workspace package root must join with "-" to "ui-kit".',
+				},
 			]),
 		);
 	},
