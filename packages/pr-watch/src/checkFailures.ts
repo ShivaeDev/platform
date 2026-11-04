@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { type Options, WatchError } from "#model.ts";
@@ -69,7 +70,15 @@ const requiredFailures = Effect.fn("GitHub.requiredFailures")(function* (
 	let failed = false;
 	do {
 		const body: typeof Required.Type = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha }).pipe(
-			Effect.flatMap((response) => decodeGraphqlData(response, Required)),
+			Effect.flatMap((response) => decodeGraphqlData(response, Schema.Unknown)),
+			Effect.flatMap(
+				Effect.fnUntraced(function* ({ data, errors }) {
+					if (errors.length > 0) {
+						return yield* new GitHubGraphqlError({ errors });
+					}
+					return yield* Schema.decodeUnknownEffect(Required)(data);
+				}),
+			),
 			Effect.catchTag("GitHubGraphqlError", (cause) =>
 				Effect.fail(new WatchError({ message: `GitHub required checks: ${cause.message}`, reason: "response" }, { cause })),
 			),
