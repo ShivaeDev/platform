@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Deferred, Effect, Exit, Logger, Option, Queue, Scope } from "effect";
 import { SqlClient, Statement } from "effect/sql";
+import * as TestClock from "effect/testing/TestClock";
 import { coordinateWorkerRelease } from "#coordinateWorkerRelease.ts";
 import { postgresRelease } from "#postgresRelease.ts";
 import { releaseWorkers } from "#releaseWorkers.ts";
@@ -31,7 +32,7 @@ export const handoverEngine = Effect.fnUntraced(function* () {
 	const heartbeats = yield* client.listen(channel);
 	const trigger = `${ledger}_heartbeat`;
 	yield* sql.unsafe(`create function "${trigger}"() returns trigger language plpgsql as $$
-		begin perform pg_notify('${channel}', 'heartbeat'); return new; end $$`);
+	begin perform pg_notify('${channel}', 'heartbeat'); return new; end $$`);
 	yield* Effect.addFinalizer(() => sql`drop function ${sql(trigger)}() cascade`.pipe(Effect.orDie));
 	yield* sql.unsafe(`create trigger heartbeat after update on "${ledger}_workers" for each row execute function "${trigger}"()`);
 	const scope = yield* Scope.fork(yield* Effect.scope);
@@ -95,7 +96,7 @@ export const handoverEngine = Effect.fnUntraced(function* () {
 			Deferred.await(closed),
 			(exit) => Exit.isFailure(exit) && lastFailure !== undefined && Option.getOrUndefined(Cause.findErrorOption(exit.cause)) === lastFailure,
 		),
-		recordSecondRelease: postgresRelease("second", ledger).apply,
+		recordSecondRelease: TestClock.adjust("1 millis").pipe(Effect.andThen(postgresRelease("second", ledger).apply)),
 		second: yield* releaseWorkers("second", 5000, ledger),
 		startSecond: Effect.gen(function* () {
 			const secondScope = yield* Scope.fork(yield* Effect.scope);

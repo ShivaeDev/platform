@@ -65,6 +65,7 @@ export function orderedDaysRace({ order, parentTable, sql }: OrderedDaysEngine, 
 					}>`select cardinality(pg_blocking_pids(${contenderPid})) > 0 and query like ${`%${parentTable}%for update%`} as blocked from pg_stat_activity where pid = ${contenderPid}`,
 					(rows) => rows[0]?.blocked === true,
 					"the competing reorder to wait on the parent lock",
+					{ clock: "test" },
 				);
 				yield* Effect.raceFirst(waiting, Effect.andThen(Fiber.join(contender), Effect.die(new Error("The competing reorder did not wait"))));
 				return "waiting on the parent lock";
