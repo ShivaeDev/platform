@@ -26,7 +26,6 @@ function withArgs(args: readonly string[]): string {
 }
 
 export const rerunStory = storyKit({
-	clock: "live",
 	create: () => createSuite,
 	inspect: (suite) => ({
 		exitCodes: suite.runs.map((run) => run.exitCode),
@@ -84,7 +83,7 @@ export function collectionFailsOnce() {
 }
 
 export function leavesUnhandledError() {
-	return rerunStory.trait("tests", "a test in unhandled.spec.ts throws an unhandled error from a timer", (suite) =>
+	return rerunStory.trait("tests", "a test in unhandled.spec.ts throws an unhandled error from a microtask", (suite) =>
 		writeFile(suite, "unhandled.spec.ts", unhandledError),
 	);
 }
