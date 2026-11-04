@@ -27,6 +27,10 @@ Import `inbox`, `emailLink` and the `ReceivedEmail` type from `@shivaedev/test-k
 
 Import `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts`. They use Better Auth's adapter without requiring its test plugin. `signedInUser(auth, fields)` returns the user, session, headers, cookies and token. Optional `providerAccounts` attach provider identities. `signInAgain(auth, userId)` renews the same user's session on the caller's Effect Clock. `passwordUser` accepts either `password` or `passwordHash`; use an existing hash when password hashing is only a precondition. `storedProviderAccounts` reports credential-presence booleans without returning credential values.
 
+### Discord bots
+
+Import `fakeDiscord` from `@shivaedev/test-kits/discord/fake.ts` and acquire it in a scope. Its loopback `server` retains messages across creation, editing, history reads and deletion, and supports the standard fake HTTP fault controls. Use the token `story-discord-token` with the real Discord REST client and set its API URL to `server.url`. Provide `gateway.transport` as the real gateway client's `GatewayTransport`; it speaks identify, heartbeat and resume frames, retains sessions and replays dispatches emitted during a dropped connection. `gateway.dispatch(type, data)`, `drop(code?)` and `invalidate(resumable)` change the provider, while `frames` and `urls` expose outbound observations. Drive reconnect and rate-limit time through the story kit's controlled clock.
+
 ### MCP bearer tokens
 
 Import `mcpBearerToken` from `@shivaedev/test-kits/mcp/adapters/bearerToken.ts`. With the application's mounted Better Auth instance (JWT and MCP provider plugins enabled), an existing signed-in user and OAuth client, mint the token precondition:
