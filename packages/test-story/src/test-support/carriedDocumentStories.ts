@@ -3,7 +3,7 @@ import { outcomes } from "#server/outcomes.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 const visitor = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => ({}),
 	name: "visitor",
 	stages: [],

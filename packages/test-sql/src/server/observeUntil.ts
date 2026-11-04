@@ -1,5 +1,6 @@
-import { Clock, Data, Duration, Effect, Formatter, Option } from "effect";
+import { Data, Duration, Effect, Formatter, Option } from "effect";
 import * as TestClock from "effect/testing/TestClock";
+import { CatalogClock } from "#server/internal/clocks.ts";
 
 export interface ObserveOptions {
 	readonly clock?: "live" | "test";
@@ -32,7 +33,7 @@ export class NeverSettled<A> extends Data.TaggedError("NeverSettled")<{
 	}
 }
 
-// PostgreSQL announces no change to its catalog views, so each read observes the engine itself.
+// PostgreSQL announces no change to its catalog views, so this poll is the sanctioned wait for them.
 export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A, E, R>(
 	read: Effect.Effect<A, E, R>,
 	settled: (value: A) => boolean,
@@ -41,9 +42,8 @@ export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A,
 ) {
 	const within = Duration.fromInputUnsafe(options?.within ?? "5 seconds");
 	const stableReads = options?.stableReads ?? 2;
-	const clock = options?.clock === "test" ? yield* Clock.Clock : Clock.Clock.defaultValue();
-	const every = options?.every ?? "25 millis";
-	const pause = options?.clock === "test" ? TestClock.adjust(every) : Effect.sleep(every).pipe(Effect.provideService(Clock.Clock, clock));
+	const clock = options?.clock === "test" ? { deadline: Effect.sleep, pause: TestClock.adjust } : yield* CatalogClock;
+	const pause = clock.pause(options?.every ?? "25 millis");
 	let last = Option.none<A>();
 	let reads = 0;
 	function observe(streak: number): Effect.Effect<A, E, R> {
@@ -54,9 +54,8 @@ export const observeUntil = Effect.fn("PostgresTest.observeUntil")(function* <A,
 			return agreeing >= stableReads ? Effect.succeed(value) : Effect.andThen(pause, observe(agreeing));
 		});
 	}
-	const deadline = Effect.sleep(within).pipe(
-		Effect.provideService(Clock.Clock, clock),
-		Effect.andThen(Effect.suspend(() => Effect.fail(new NeverSettled({ last, reads, waitingFor, within })))),
-	);
+	const deadline = clock
+		.deadline(within)
+		.pipe(Effect.andThen(Effect.suspend(() => Effect.fail(new NeverSettled({ last, reads, waitingFor, within })))));
 	return yield* Effect.raceFirst(observe(0), deadline);
 });

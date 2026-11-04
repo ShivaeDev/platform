@@ -2,6 +2,7 @@ import { Clock, Effect, Queue, Scope, Stream } from "effect";
 import { storyKit } from "#server/storyKit.ts";
 import { collectUntil, type SignalNotReceived, until } from "#server/until.ts";
 import { attempt } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
 
 interface SignalValue {
 	readonly status: string;
@@ -10,19 +11,19 @@ interface SignalValue {
 interface SignalEngine {
 	ending: string;
 	lifetime: string[];
-	mode: "burst" | "quiet" | "clock" | "empty" | "failed" | "silent";
+	mode: "burst" | "quiet" | "clock" | "empty" | "failed" | "silent" | "boundary";
 	result: SignalValue | readonly SignalValue[] | undefined;
 	seen: string[];
 }
 
+function initialState(): SignalEngine {
+	return { ending: "not started", lifetime: [], mode: "burst", result: undefined, seen: [] };
+}
+
 export const signals = storyKit({
-	create: (): SignalEngine => ({
-		ending: "not started",
-		lifetime: [],
-		mode: "burst",
-		result: undefined,
-		seen: [],
-	}),
+	*create() {
+		return { ...initialState(), clock: yield* drivenClock };
+	},
 	name: "signal waits",
 	stages: ["source"],
 	verbs: (engine, story) => {
@@ -74,20 +75,21 @@ export const signals = storyKit({
 			lifetime: () => engine.lifetime,
 			result: () => engine.result,
 			seen: () => engine.seen,
-			time: () => Clock.currentTimeMillis,
+			time: () => engine.clock.time,
 			wait: (collect = false) => {
 				story.tell(`wait for ${collect ? "collected signals" : "the ready signal"}`);
 				const options = { name: "ready", timeout: "30 millis" } as const;
 				const wait: Effect.Effect<SignalValue | readonly SignalValue[], string | SignalNotReceived> = collect
 					? collectUntil(stream, (values) => values.some(matches), options)
 					: until(stream, matches, options);
-				return attempt(wait.pipe(Effect.tap(remember))).pipe(Effect.tap(recordEnding));
+				const observed = engine.mode === "boundary" ? wait.pipe(Effect.provideService(Clock.Clock, engine.clock.boundary)) : wait;
+				return engine.clock.drive(attempt(observed.pipe(Effect.tap(remember)))).pipe(Effect.tap(recordEnding));
 			},
 		};
 	},
 });
 
-export function source(mode: "quiet" | "clock" | "empty" | "failed" | "silent") {
+export function source(mode: "quiet" | "clock" | "empty" | "failed" | "silent" | "boundary") {
 	return signals.trait("source", `the signal source is ${mode}`, (engine) => {
 		engine.mode = mode;
 	});

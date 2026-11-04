@@ -6,7 +6,7 @@ import { storyKit } from "#server/storyKit.ts";
 import { ReadPage, readPageHost } from "#test/readPageHost.ts";
 
 export const subscriptionClients = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const { url, held, opened } = yield* readPageHost;
 		const openings = yield* PubSub.subscribe(opened);

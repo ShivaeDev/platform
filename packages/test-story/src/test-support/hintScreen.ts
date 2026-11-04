@@ -8,7 +8,7 @@ import { storyKit } from "#server/storyKit.ts";
 expectNoReactWarnings();
 
 export const hintScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const updates = yield* Queue.unbounded<ScreenSignalState, Cause.Done>();

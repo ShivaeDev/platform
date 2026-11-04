@@ -25,7 +25,7 @@ market.it("tells both features' lines in the order the story ran them", [loafOrd
 });
 
 market.it("runs on the clock of the first feature that names one", [], function* ({ stock }) {
-	expect(yield* stock.clock()).toBe("the live clock");
+	expect(yield* stock.clock()).toBe("the pinned clock");
 });
 
 const MARKET_LIFETIME = [

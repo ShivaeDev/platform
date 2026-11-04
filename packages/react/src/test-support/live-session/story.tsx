@@ -1,10 +1,14 @@
-import { Effect, Fiber, Stream } from "effect";
+import { Clock, Effect, Fiber, Stream } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 import { App } from "./App.tsx";
 import type { connect } from "./connect.ts";
 import { sessionCookie } from "./cookie.ts";
@@ -31,18 +35,42 @@ function revoke(host: Host, rechecked: readonly (string | undefined)[], screen: 
 	return Effect.sync(() => {
 		screen.tell("the server revokes alice's session and her stream revalidation rechecks it");
 		host.state.session = undefined;
-	}).pipe(Effect.andThen(settleScreen(view.container, () => rechecked.length === before || !settled(host, view), screen.tell)));
+	}).pipe(
+		Effect.andThen(untilTimer("100 millis")),
+		Effect.andThen(
+			Effect.gen(function* () {
+				const run = Effect.runPromiseWith(yield* Effect.context());
+				yield* screen.act("the stream revalidation interval passes", () => run(TestClock.adjust("100 millis")));
+			}),
+		),
+		Effect.andThen(settleScreen(view.container, () => rechecked.length === before || !settled(host, view), screen.tell)),
+	);
 }
 
+const renameNote = Effect.fnUntraced(function* (host: Host, title: string, answer: Effect.Effect<unknown>) {
+	const answered = yield* Effect.forkChild(answer);
+	yield* Effect.promise(() => host.rename(title));
+	yield* Effect.raceFirst(
+		Fiber.join(answered),
+		untilTimer("500 millis").pipe(Effect.andThen(TestClock.adjust("500 millis")), Effect.andThen(Fiber.join(answered))),
+	);
+});
+
 export const liveSessionStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
-		const host = yield* Effect.acquireRelease(Effect.promise(openHost), (value) => Effect.promise(value.close));
+		const clock = yield* Clock.Clock;
+		const runtime = yield* storyRuntime;
+		const host = yield* Effect.acquireRelease(
+			Effect.promise(() => openHost(clock)),
+			(value) => Effect.promise(value.close),
+		);
 		window.location.href = host.url;
 		const screen = new Screen(() => undefined);
 		const rechecked: Array<string | undefined> = [];
 		const registries: AtomRegistry.AtomRegistry[] = [];
 		const clients: ReturnType<typeof connect>[] = [];
+		const run = Effect.runPromiseWith(yield* Effect.context());
 		const view = yield* screen.open(
 			<App
 				connected={(registry, client) => {
@@ -52,6 +80,7 @@ export const liveSessionStory = storyKit({
 				rechecked={() => {
 					rechecked.push(host.state.session);
 				}}
+				runtime={runtime}
 				session={() => host.state.session}
 				signIn={() => {
 					host.state.session = "alice";
@@ -60,12 +89,12 @@ export const liveSessionStory = storyKit({
 			/>,
 		);
 		yield* noteGoesLive(host, view, screen.tell);
-		return { clients, host, rechecked, registries, screen, view };
+		return { clients, host, rechecked, registries, run, screen, view };
 	},
 	inspect: ({ host, view }) => ({ ...host.state, html: view.container.innerHTML }),
 	name: "live session",
 	stages: ["screen"],
-	verbs: ({ clients, host, rechecked, registries, screen, view }, story) => {
+	verbs: ({ clients, host, rechecked, registries, run, screen, view }, story) => {
 		screen.tell = story.tell;
 		function nextAnswer() {
 			const registry = registries.at(-1);
@@ -96,13 +125,7 @@ export const liveSessionStory = storyKit({
 			registries: () => Effect.sync(() => registries.map(registryState)),
 			rename: (title: string) =>
 				screen.act(`the server renames the note to ${title} and the open note answers the change hint`, () =>
-					Effect.runPromise(
-						Effect.gen(function* () {
-							const answered = yield* Effect.forkChild(nextAnswer());
-							yield* Effect.promise(() => host.rename(title));
-							yield* Fiber.join(answered);
-						}).pipe(Effect.timeout("3 seconds"), Effect.orDie),
-					),
+					run(renameNote(host, title, nextAnswer()).pipe(Effect.orDie)),
 				),
 			revokeSession: () => revoke(host, rechecked, screen, view),
 			shown: () => Effect.sync(() => view.container.textContent),
@@ -135,6 +158,7 @@ interface ScopedEngine {
 	credential: Credential;
 	current: Session | undefined;
 	readonly host: Host;
+	readonly runtime: Atom.RuntimeFactory;
 	readonly screen: Screen;
 	shell: ReturnType<typeof shell>;
 	readonly signIns: Record<User, number>;
@@ -179,9 +203,14 @@ function scopedVerbs(engine: ScopedEngine) {
 }
 
 export const privateNotes = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
-		const host = yield* Effect.acquireRelease(Effect.promise(openHost), (value) => Effect.promise(value.close));
+		const clock = yield* Clock.Clock;
+		const runtime = yield* storyRuntime;
+		const host = yield* Effect.acquireRelease(
+			Effect.promise(() => openHost(clock)),
+			(value) => Effect.promise(value.close),
+		);
 		window.location.href = host.url;
 		const screen = new Screen(() => undefined);
 		const view = yield* screen.open();
@@ -189,8 +218,9 @@ export const privateNotes = storyKit({
 			credential: "bearer",
 			current: undefined,
 			host,
+			runtime,
 			screen,
-			shell: shell(host.url, view, false),
+			shell: shell(host.url, view, false, runtime),
 			signIns: { alice: 0, bob: 0 },
 			view,
 		};
@@ -212,7 +242,7 @@ export function signedInPrivately(credential: Credential, users: readonly User[]
 		function* (engine) {
 			engine.credential = credential;
 			if (credential === "cookie") {
-				engine.shell = shell(engine.host.url, engine.view, true);
+				engine.shell = shell(engine.host.url, engine.view, true, engine.runtime);
 				yield* Effect.addFinalizer(() => sessionCookie());
 			}
 			const verbs = scopedVerbs(engine);

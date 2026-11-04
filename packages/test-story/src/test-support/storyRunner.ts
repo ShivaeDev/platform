@@ -72,7 +72,7 @@ function outcomeOf(result: StoryResult): string {
 }
 
 export const storyRunner = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const directory = yield* Effect.acquireRelease(
 			Effect.sync(() => mkdtempSync(join(tmpdir(), "test-story-runner-"))),

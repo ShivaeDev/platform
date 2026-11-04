@@ -1,4 +1,4 @@
-import { act, type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 export type LoadingIndicator = "status" | "busy" | "root busy" | "text" | "text dots" | "dialog" | "native dialog" | "closed dialog" | "none";
@@ -37,24 +37,19 @@ function loadingNotice(indicator: LoadingIndicator, hidden: boolean): ReactNode 
 }
 
 export function LoadingPage({
-	delay,
+	onReady,
 	indicator,
 	hidden = false,
 	missing = false,
 }: {
-	readonly delay: number;
+	readonly onReady: (ready: () => void) => () => void;
 	readonly hidden?: boolean;
 	readonly indicator: LoadingIndicator;
 	readonly missing?: boolean;
 }) {
 	const [ready, setReady] = useState(false);
 	const [saved, setSaved] = useState(false);
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			act(() => setReady(true));
-		}, delay);
-		return () => clearTimeout(timer);
-	}, [delay]);
+	useEffect(() => onReady(() => setReady(true)), [onReady]);
 	const loading = ready ? null : loadingNotice(indicator, hidden);
 	const control =
 		ready && !missing ? (

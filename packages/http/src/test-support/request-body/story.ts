@@ -34,7 +34,6 @@ export const requestBody = storyKit({
 			state.url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}/body`;
 		},
 	},
-	clock: "live",
 	*create() {
 		const agent = new Agent({ keepAlive: true, maxSockets: 1 });
 		yield* Effect.addFinalizer(() => Effect.sync(() => agent.destroy()));

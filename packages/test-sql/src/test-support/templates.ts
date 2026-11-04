@@ -16,7 +16,7 @@ const items = Effect.gen(function* () {
 
 export const templates = storyKit({
 	after: { database: (engine) => engine.acquire },
-	clock: "live",
+	clock: "test",
 	create: () => storyDatabase(),
 	inspect: () => ({ preparation }),
 	layer: templateLayer,

@@ -4,11 +4,13 @@ import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adap
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
+import { drivenScreen } from "./drivenScreen.ts";
 
 expectNoReactWarnings();
 
 export const eventScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const pending = yield* SubscriptionRef.make(true);
@@ -18,7 +20,7 @@ export const eventScreen = storyKit({
 			(mounted) => Effect.promise(mounted.unmount),
 		);
 		const settings: { mode: "sampler" | "stream" | "none" } = { mode: "sampler" };
-		return { ...settings, observing, page: 0, pending, subscriptions: 0, view };
+		return { clock: yield* drivenClock, ...settings, observing, page: 0, pending, subscriptions: 0, view };
 	},
 	inspect: ({ pending, view }) => ({ pending: SubscriptionRef.getUnsafe(pending), screen: view.container.innerHTML }),
 	name: "screen events",
@@ -43,17 +45,20 @@ export const eventScreen = storyKit({
 			return SubscriptionRef.getUnsafe(pending);
 		}
 		const signal = engine.mode === "stream" ? stream : sample;
-		const driver = screenDriver({
-			...(engine.mode === "none" ? {} : { pending: signal }),
-			root: () => {
-				const root = view.container.querySelector("main");
-				if (!root) {
-					throw new Error("The event screen has no main element");
-				}
-				return root;
-			},
-			tell: story.tell,
-		});
+		const driver = drivenScreen(
+			engine.clock,
+			screenDriver({
+				...(engine.mode === "none" ? {} : { pending: signal }),
+				root: () => {
+					const root = view.container.querySelector("main");
+					if (!root) {
+						throw new Error("The event screen has no main element");
+					}
+					return root;
+				},
+				tell: story.tell,
+			}),
+		);
 		const waiting = background();
 		function paint(message: string, complete = false, name = message) {
 			story.tell(`render ${message}`);

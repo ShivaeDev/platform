@@ -85,7 +85,7 @@ const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 
 export const actions = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const recording = recordingTracer();
 		const host = yield* openHost(recording.tracer);

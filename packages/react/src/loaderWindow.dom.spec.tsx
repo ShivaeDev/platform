@@ -8,6 +8,7 @@ loaderWindowStory.it("a loader screen coalesces two quick hints into one refetch
 
 	yield* screen.publish(1);
 	yield* screen.publish(2);
+	yield* screen.windowPasses();
 	yield* screen.refetched();
 
 	expect(screen.shown()).toBe("2");
@@ -60,6 +61,7 @@ loaderWindowStory.it("removing the latest reader restores the earlier reader's l
 	yield* screen.removeReader("second");
 	yield* screen.publish(1);
 	yield* screen.publish(2);
+	yield* screen.windowPasses();
 	yield* screen.refetched();
 
 	expect(screen.shown()).toBe("2");
@@ -73,6 +75,7 @@ loaderWindowStory.it("clearing the only reader's live window returns to the sess
 	yield* screen.changeReaderWindow("first", undefined);
 	yield* screen.publish(1);
 	yield* screen.publish(2);
+	yield* screen.windowPasses();
 	yield* screen.refetched();
 
 	expect(screen.shown()).toBe("2");

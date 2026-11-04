@@ -35,7 +35,7 @@ afterAll(() => restoreNetwork?.());
 
 function networkKit(passthrough: boolean) {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		create: () => ({}),
 		name: passthrough ? "network enabled" : "contained Node",
 		outbound: {},

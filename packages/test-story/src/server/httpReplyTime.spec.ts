@@ -1,8 +1,8 @@
 import { outcomes } from "#server/outcomes.ts";
-import { rateLimited, timedHttpApp } from "#test/httpFaultApp.ts";
+import { httpFaultApp, rateLimited } from "#test/httpFaultApp.ts";
 
 for (const phase of ["before", "after"] as const) {
-	timedHttpApp.it(
+	httpFaultApp.it(
 		`computes a held ${phase} fault's reply at arrival before the story advances its clock`,
 		[],
 		function* ({ answer, header, hold, scriptFault, sends, timePasses }) {
@@ -22,7 +22,7 @@ for (const phase of ["before", "after"] as const) {
 		},
 	);
 
-	timedHttpApp.it(
+	httpFaultApp.it(
 		`builds a one-shot fault's reply ${phase} the route's reply when the request arrives, at the story clock's time`,
 		[],
 		function* ({ answer, header, scriptFault, sends, timePasses }) {
@@ -40,7 +40,7 @@ for (const phase of ["before", "after"] as const) {
 }
 
 for (const phase of ["before", "after"] as const) {
-	timedHttpApp.it(
+	httpFaultApp.it(
 		`builds a repeated fault's reply ${phase} the route's reply again for each arrival`,
 		[],
 		function* ({ answer, asks, header, scriptFault, sends, timePasses }) {
@@ -59,7 +59,7 @@ for (const phase of ["before", "after"] as const) {
 	);
 }
 
-timedHttpApp.it(
+httpFaultApp.it(
 	"builds an immediate fault's reply from the waiting request at the time of the fault",
 	[],
 	function* ({ answer, fault, header, hold, sends, timePasses }) {

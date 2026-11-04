@@ -31,7 +31,7 @@ export interface EventStoreOptions<A, E, TUpcastError> {
 }
 
 export interface Append<A> {
-	readonly events: readonly [A, ...A[]];
+	readonly events: readonly A[];
 	readonly expectedVersion: number;
 	readonly requestId: string;
 	readonly stream: string;

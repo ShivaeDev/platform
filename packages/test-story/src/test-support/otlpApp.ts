@@ -1,9 +1,10 @@
-import { type Duration, Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
+import { Clock, type Duration, Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { type OtlpSpan, otlpReceiver } from "#server/otlpReceiver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { background } from "./attempt.ts";
+import { drivenClock } from "./drivenClock.ts";
 import { bytesInWords } from "./httpClient.ts";
 
 const exportWork = Effect.gen(function* () {
@@ -47,9 +48,10 @@ function exported(receiver: { readonly spans: readonly OtlpSpan[] }, name: strin
 
 export function otlpApp(protobuf: boolean) {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		*create() {
 			const receiver = yield* otlpReceiver();
+			const storyClock = yield* Clock.Clock;
 			const runtime = ManagedRuntime.make(
 				OtlpTracer.layer({
 					exportInterval: "1 hour",
@@ -57,16 +59,20 @@ export function otlpApp(protobuf: boolean) {
 					maxBatchSize: 1,
 					resource: { serviceName: "story-exporter" },
 					url: `${receiver.url}/v1/traces`,
-				}).pipe(Layer.provide(protobuf ? OtlpSerialization.layerProtobuf : OtlpSerialization.layerJson), Layer.provide(FetchHttpClient.layer)),
+				}).pipe(
+					Layer.provide(protobuf ? OtlpSerialization.layerProtobuf : OtlpSerialization.layerJson),
+					Layer.provide(FetchHttpClient.layer),
+					Layer.provide(Layer.succeed(Clock.Clock, storyClock)),
+				),
 			);
 			yield* Effect.addFinalizer(() => Effect.promise(() => runtime.dispose()));
 			const traced: { ids: TracedIds | undefined } = { ids: undefined };
-			return { receiver, runtime, traced };
+			return { clock: yield* drivenClock, receiver, runtime, storyClock, traced };
 		},
 		inspect: ({ receiver }) => receiver.spans.map(({ name }) => name),
 		name: protobuf ? "protobuf traces" : "JSON traces",
 		stages: ["ready"],
-		verbs: ({ receiver, runtime, traced }, story) => {
+		verbs: ({ clock, receiver, runtime, storyClock, traced }, story) => {
 			const running = background();
 			return {
 				exportedSpan: (name: string) => Effect.sync(() => exported(receiver, name)),
@@ -95,23 +101,29 @@ export function otlpApp(protobuf: boolean) {
 				tracedIds: () => Effect.sync(() => traced.ids),
 				tracesFailure: () => {
 					story.tell("the application traces failed work");
-					return Effect.promise(() => runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore)));
+					return Effect.promise(() =>
+						runtime.runPromise(
+							Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore, Effect.provideService(Clock.Clock, storyClock)),
+						),
+					);
 				},
 				tracesWork: () => {
 					story.tell("the application traces work");
 					return Effect.promise(async () => {
-						traced.ids = await runtime.runPromise(exportWork);
+						traced.ids = await runtime.runPromise(exportWork.pipe(Effect.provideService(Clock.Clock, storyClock)));
 					});
 				},
-				waitsForSpan: (name: string, timeout: Duration.Input = "5 seconds") =>
-					receiver.untilSpan((span) => span.name === name, { name: `exported ${name} span`, timeout }),
+				waitsForSpan: (name: string, timeout?: Duration.Input) => {
+					const wait = receiver.untilSpan((span) => span.name === name, { name: `exported ${name} span`, timeout: timeout ?? "5 seconds" });
+					return timeout === undefined ? clock.run(wait) : clock.drive(wait);
+				},
 			};
 		},
 	});
 }
 
 export const lifecycle = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		const receiver = yield* otlpReceiver().pipe(Effect.provideService(Scope.Scope, scope));

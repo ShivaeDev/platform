@@ -17,7 +17,7 @@ const acquireProvider = Effect.fnUntraced(function* (name: Provider, hostname: s
 });
 
 export const scopedOutbound = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => ({ providers: new Map<Provider, Scope.Closeable>() }),
 	inspect: ({ providers }) => [...providers.keys()],
 	name: "scoped outbound",

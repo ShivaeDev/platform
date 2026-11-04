@@ -110,7 +110,7 @@ const openNote = Effect.fn("LoaderScreen.openNote")(function* (engine: Engine) {
 });
 
 export const loaderScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const host = yield* loaderHost();
 		const engine: Engine = {

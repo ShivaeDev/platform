@@ -1,6 +1,6 @@
 import { DateTime, Duration } from "effect";
 import { expect } from "vitest";
-import { liveTimers, timers } from "#test/timers.ts";
+import { pinnedTimers, timers } from "#test/timers.ts";
 
 const DELIVERY_DELAY = Duration.seconds(1);
 const ADVANCE_BY = Duration.seconds(2);
@@ -104,8 +104,8 @@ timers.it(
 	},
 );
 
-liveTimers.it(
-	"watches the test clock when a story overrides a live kit",
+pinnedTimers.it(
+	"watches the test clock when a story overrides a pinned kit",
 	[],
 	function* ({ starts, waitForTimer, timePasses, time }) {
 		yield* starts("delivery", [DELIVERY_DELAY]);

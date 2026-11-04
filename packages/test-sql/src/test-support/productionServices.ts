@@ -26,7 +26,7 @@ const sessions = Effect.gen(function* () {
 
 export const productionServices = storyKit({
 	after: { configuration: ({ engine }) => engine.lease() },
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine = yield* createDatabaseEngine;
 		const preparation: Effect.Success<typeof sessions>[] = [];

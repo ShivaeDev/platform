@@ -3,7 +3,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 
-const app = storyKit({ clock: "live", create: () => ({}), name: "contained DOM", stages: ["host"], verbs: () => ({}) });
+const app = storyKit({ clock: "test", create: () => ({}), name: "contained DOM", stages: ["host"], verbs: () => ({}) });
 
 app.it("refuses host fetch even when the host catches it", [], function* () {
 	const url = yield* domHost(async (_request, response) => {
@@ -27,7 +27,7 @@ app.it("refuses an unrouted redirect destination", [], function* () {
 });
 
 const networkEnabled = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => ({}),
 	name: "network enabled DOM",
 	outbound: {},
