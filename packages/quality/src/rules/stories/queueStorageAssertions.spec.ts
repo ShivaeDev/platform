@@ -11,9 +11,9 @@ for (const code of [
 	"const { jobsTesting: testing } = host; expect(yield* testing.jobs(queue)).toHaveLength(1);",
 	"const { snapshot: states } = jobsTesting; expect(yield* states([queue])).toEqual([]);",
 	"const read = jobsTesting.jobs; expect(yield* read(queue)).toHaveLength(1);",
-	'import { makePgBossTesting as makeTesting } from "@shivaedev/jobs/server/testing.ts"; const testing = makeTesting(); expect(yield* testing.jobs(queue)).toEqual([]);',
-	'import * as testingApi from "@shivaedev/jobs/server/testing.ts"; const testing = testingApi.makePgBossTesting(); expect(yield* testing.snapshot([queue])).toEqual([]);',
-	'import type { PgBossTesting as Testing } from "@shivaedev/jobs/server/testing.ts"; function* story(testing: Testing) { expect(yield* testing.jobs(queue)).toEqual([]); }',
+	'import { makePgBossTesting as makeTesting } from "@shivaedev/test-kits/jobs/testing.ts"; const testing = makeTesting(); expect(yield* testing.jobs(queue)).toEqual([]);',
+	'import * as testingApi from "@shivaedev/test-kits/jobs/testing.ts"; const testing = testingApi.makePgBossTesting(); expect(yield* testing.snapshot([queue])).toEqual([]);',
+	'import type { PgBossTesting as Testing } from "@shivaedev/test-kits/jobs/testing.ts"; function* story(testing: Testing) { expect(yield* testing.jobs(queue)).toEqual([]); }',
 ]) {
 	ruleStory.it(
 		`tests/queue-readouts rejects application queue evidence: ${code}`,
@@ -58,7 +58,7 @@ ruleStory.it(
 	[
 		repositoryHas(
 			{
-				content: 'import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts"; export const testing = makePgBossTesting();',
+				content: 'import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts"; export const testing = makePgBossTesting();',
 				path: "src/test-support/controller.ts",
 			},
 			{
@@ -122,5 +122,25 @@ ruleStory.it(
 	],
 	function* ({ check }) {
 		expect(yield* check(queueReadouts)).toEqual([]);
+	},
+);
+
+ruleStory.it(
+	"tests/queue-readouts lets test-kits prove its jobs controller while checking other kits and nested apps",
+	[
+		repositoryHas(
+			{ content: 'packages: ["packages/*", "packages/*/apps/*"]', path: "pnpm-workspace.yaml" },
+			{ content: '{"name":"@shivaedev/test-kits"}', path: "packages/kits/package.json" },
+			{ content: '{"name":"app"}', path: "packages/kits/apps/app/package.json" },
+			{ content: "expect(yield* jobsTesting.jobs(queue)).toEqual([]);", path: "packages/kits/src/jobs/controller.spec.ts" },
+			{ content: "export const states = () => jobsTesting.snapshot([queue]);", path: "packages/kits/src/test-support/jobs/states.ts" },
+			{ content: "expect(yield* jobsTesting.jobs(queue)).toEqual([]);", path: "packages/kits/src/email/app.spec.ts" },
+			{ content: "expect(yield* jobsTesting.jobs(queue)).toEqual([]);", path: "packages/kits/apps/app/src/jobs/app.spec.ts" },
+		),
+	],
+	function* ({ check, locations }) {
+		yield* check(queueReadouts);
+
+		expect(yield* locations()).toEqual(["packages/kits/apps/app/src/jobs/app.spec.ts:1", "packages/kits/src/email/app.spec.ts:1"]);
 	},
 );
