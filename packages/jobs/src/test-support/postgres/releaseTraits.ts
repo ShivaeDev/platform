@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { makeWorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { makeWorkerRelease } from "@shivaedev/sql/makeWorkerRelease.ts";
 import { database } from "./database.ts";
 
 export function releaseHeld(by: "this deployment" | "another deployment") {

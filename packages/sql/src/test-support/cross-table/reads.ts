@@ -1,6 +1,7 @@
 import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { dashboardService } from "./dashboard.ts";
+import { Dashboard } from "./Dashboard.ts";
+import { DashboardConfig } from "./DashboardConfig.ts";
 import { makePullRequests } from "./pullRequests.ts";
 import { makeReports } from "./reports.ts";
 
@@ -24,7 +25,6 @@ export const crossTableReads = Effect.gen(function* () {
 		{ id: 10, "pull_request_id": 1, score: 7 },
 		{ id: 30, "pull_request_id": 3, score: 9 },
 	]);
-	const Dashboard = dashboardService(tables);
-	const reads = yield* Dashboard.pipe(Effect.provide(Dashboard.layer));
+	const reads = yield* Dashboard.pipe(Effect.provide(Dashboard.layer), Effect.provideService(DashboardConfig, tables));
 	return { reads, tables };
 });
