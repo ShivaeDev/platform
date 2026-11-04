@@ -163,11 +163,18 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
+  claude-code:
+    '@modelcontextprotocol/sdk':
+      specifier: 1.30.0
+      version: 1.30.0
   compiler-api:
     typescript:
       specifier: npm:@typescript/typescript6@6.0.2
       version: 6.0.2
   default:
+    '@anthropic-ai/claude-agent-sdk':
+      specifier: 0.3.225
+      version: 0.3.225
     '@base-ui/react':
       specifier: 1.9.0
       version: 1.9.0
@@ -632,13 +639,38 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/agent-claude-code:
+    dependencies:
+      '@shivaedev/agent':
+        specifier: workspace:*
+        version: link:../agent
     devDependencies:
+      '@anthropic-ai/claude-agent-sdk':
+        specifier: 'catalog:'
+        version: 0.3.225(@anthropic-ai/sdk@1.3.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(zod@4.6.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
+      '@modelcontextprotocol/sdk':
+        specifier: catalog:claude-code
+        version: 1.30.0(supports-color@7.2.0)(zod@4.6.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.7
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/agent-codex:
     dependencies:
@@ -2537,8 +2569,69 @@ packages:
   '@antfu/install-pkg@2.1.0':
     resolution: {integrity: sha512-sdg9NxU3zR4Mnawfbc/x6GB5Wf17WYud5qOuEuxXjaKpYpMkISSJEjItGebXJ2bQ4DIcly4NYH23mtkGJjvKUw==}
 
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.225':
+    resolution: {integrity: sha512-8FOfgIVOxWR5UO1iDtPXD1VjmsKH9NwgsvRSnPOWk+wsVgBnKpI/xdPGuqvsPnNnNXf5pGHBaTHV5HNpkHfhqA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.225':
+    resolution: {integrity: sha512-9qhZz7Mdbm+yE6bU1/aRsF8fVz796kXlQM4TOc1liQw0I7J+Y18XcN9ucSNCzjQWuZm6+ui56aevV/fw1M/Lsw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.225':
+    resolution: {integrity: sha512-BPuNN/ZeTSVSrWCQBZRXjn/GA37mYFsWOlHoXIHI0MsSHt7dd63Nyfn50pLwfDUeumpraDIIHwPYTU2s8xqP4A==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.225':
+    resolution: {integrity: sha512-yEr0d9tDT/5SfJXiYGiAAuamO/fImJ34Gy/UzYOwMOmecnmvvPXiz6unNEGTWO3nVGzAyv80yrPQ8sHsBhsfQw==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.225':
+    resolution: {integrity: sha512-EDSP6Pkksuy4tJrflwHG6keBsEnCTepgMBz+MWYT3l9Pjy7+j6PLqHEU5vajqmV0XK2o7Uyo3IX86tdDpYLbNA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.225':
+    resolution: {integrity: sha512-DPkjSS8VhykA1zrcVQQ7KKqYuR/z2nysL/vwmY+hOEqLaTF8xHObPdeaPzHFURrf5zm/YNhmuV4Xm9EPqKnaNw==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.225':
+    resolution: {integrity: sha512-pa4jnIfihQN7AaI2kd+C027ALqk1V67sGLNSE67J6DyQIjD3L0XSK+d6Dq8ujykE2WUJb8AATw89weF7Yiun0Q==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.225':
+    resolution: {integrity: sha512-cmW+47q8btuHnxBn7sbFmVi9V6pqY26gAPoiW55RWIQnPiIyhRuBSezvv01B0tL20449Kzc8gv7dRA2Y1C1UTw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@anthropic-ai/claude-agent-sdk@0.3.225':
+    resolution: {integrity: sha512-xVyfgmxYooNmb2l2iYfIzLVnsYNVbSuXNUp0xKdSIBY2CIZTvK63acQ89MYfWn7tdcf6CU0KWUpbNqpT6/sPlQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@anthropic-ai/sdk': '>=0.93.0'
+      '@modelcontextprotocol/sdk': ^1.29.0
+      zod: ^4.0.0
+
   '@anthropic-ai/sdk@0.91.1':
     resolution: {integrity: sha512-LAmu761tSN9r66ixvmciswUj/ZC+1Q4iAfpedTfSVLeswRwnY3n2Nb6Tsk+cLPP28aLOPWeMgIuTuCcMC6W/iw==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@anthropic-ai/sdk@1.3.0':
+    resolution: {integrity: sha512-k7z9BlLLPxfZH+ov7dS6EnaN/wiZeV8YNT1LZfrpAHIy7oY7pHr4UzirF9f2OlHtFEnRBOX+AZQ91Y5fK+TPTw==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -3235,6 +3328,16 @@ packages:
   '@mermaid-js/parser@2.0.1':
     resolution: {integrity: sha512-j37dj/h6p6pots1L7pLPPNuABEEu9WP4OYg9pW1g+nYG331j0+3canE9OagtYdytYvdSAMG+2fKU5cxep6LgjA==}
     engines: {node: '>=22.12.0'}
+
+  '@modelcontextprotocol/sdk@1.30.0':
+    resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@cfworker/json-schema': ^4.1.1
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      '@cfworker/json-schema':
+        optional: true
 
   '@modelcontextprotocol/sdk@1.32.0':
     resolution: {integrity: sha512-8BviX/hK4Gd2eL1KdTwm0gfl4d3wdoErW0Jd00h6nomUAtk6IJk5vwQJc6kfWtJTzN5OEV/lgIiJKI8fiDGAlA==}
@@ -6462,9 +6565,56 @@ snapshots:
       package-manager-detector: 1.8.0
       tinyexec: 1.3.1
 
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.225':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk@0.3.225(@anthropic-ai/sdk@1.3.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5))(zod@4.6.5)':
+    dependencies:
+      '@anthropic-ai/sdk': 1.3.0(zod@4.6.5)
+      '@modelcontextprotocol/sdk': 1.30.0(supports-color@7.2.0)(zod@4.6.5)
+      zod: 4.6.5
+    optionalDependencies:
+      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.225
+      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.225
+
   '@anthropic-ai/sdk@0.91.1(zod@4.6.5)':
     dependencies:
       json-schema-to-ts: 3.1.1
+    optionalDependencies:
+      zod: 4.6.5
+
+  '@anthropic-ai/sdk@1.3.0(zod@4.6.5)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      json-schema-to-ts: 3.1.1
+      standardwebhooks: 1.1.1
     optionalDependencies:
       zod: 4.6.5
 
@@ -7177,6 +7327,28 @@ snapshots:
   '@mermaid-js/parser@2.0.1':
     dependencies:
       '@chevrotain/types': 13.2.0
+
+  '@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.5)':
+    dependencies:
+      '@hono/node-server': 2.1.5(hono@4.13.14)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1
+      content-type: 1.0.5
+      cors: 2.8.6
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.1
+      express: 5.3.0(supports-color@7.2.0)
+      express-rate-limit: 8.7.1(express@5.3.0(supports-color@7.2.0))(supports-color@7.2.0)
+      hono: 4.13.14
+      jose: 6.2.4
+      json-schema-typed: 8.0.2
+      pkce-challenge: 5.0.1
+      raw-body: 3.0.2
+      zod: 4.6.5
+      zod-to-json-schema: 3.25.2(zod@4.6.5)
+    transitivePeerDependencies:
+      - supports-color
 
   '@modelcontextprotocol/sdk@1.32.0(supports-color@7.2.0)(zod@4.6.5)':
     dependencies:
