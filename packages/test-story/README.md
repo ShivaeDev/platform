@@ -745,6 +745,20 @@ The helpers subscribe by running the stream before inspecting its values. Use a 
 
 A deadline or stream ending without a match fails with `SignalNotReceived` in the error channel. Its message names the missing signal, shows the last observation (the collection for `collectUntil`, or that no value arrived), and includes a `help:` line. Source failures pass through.
 
+Use `untilAtom` from `@shivaedev/test-story/server/untilAtom.ts` to wait for an atom's current or next matching value through its registry subscription:
+
+```ts
+import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { untilAtom } from "@shivaedev/test-story/server/untilAtom.ts";
+
+const ready = yield* untilAtom(status, (value) => value === "ready", { name: "worker ready" }).pipe(
+	Effect.provideService(AtomRegistry.AtomRegistry, registry),
+);
+```
+
+It releases the subscription on success, timeout or interruption. An `AsyncResult` failure fails the wait with `AtomFailed`, carrying the signal's `name` and native `cause`. A missing match uses the same `SignalNotReceived` diagnostics as `until`.
+
 ### Waiting for process output, spans and abandoned requests
 
 Acquire `lineSignals(child.stdout)` or `lineSignals(child.stderr)` in the kit's scoped `create` hook before driving the child. Its `untilLine(matches, options)` waits for a complete line and returns it; `lines` reads the captured lines. It handles lines split across writes, CRLF, UTF-8 characters split across writes, and the final line without a newline. Closing the story scope closes the line reader; the kit owns the child process lifetime.

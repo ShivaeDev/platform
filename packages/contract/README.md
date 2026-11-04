@@ -733,6 +733,22 @@ const client = makeClient(Notes, {
 
 The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions deliver the server's initial resync and changed hints, and mounted queries refresh from those hints. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
 
+### Settled queries in stories
+
+Use `settledQueries` from `@shivaedev/contract/testing.ts` in a story kit's scoped setup to observe a bound query:
+
+```ts
+import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { settledQueries } from "@shivaedev/contract/testing.ts";
+
+const results = yield* settledQueries(client.api.list.query()).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
+const first = yield* results.next;
+const current = yield* results.latest;
+```
+
+`next` consumes the current settled result, then each completed refresh, including equal values and failures, as native `AsyncResult` values. Pending reads are not queued. `latest` reads the current `AsyncResult`, which may still be loading. Closing the Effect scope releases the watcher; independent scopes can observe the same query.
+
 ### Live hints in stories
 
 Use `watchHints` and `heard` from `@shivaedev/test-kits/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
