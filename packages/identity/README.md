@@ -148,7 +148,7 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. The mount does not run migrations or require identity's migration history. Use frozen numbered auth migrations as described below, or keep an existing migrator during the transition described in [Auth tables owned by another migrator](#auth-tables-owned-by-another-migrator). The application SQL Layer owns shutdown.
 
 The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
 
@@ -578,6 +578,35 @@ The failure's `_tag` remains `AuthFailure`; its `code` union includes the declar
 `authSession` returns a session Effect with the same read failures. It decodes `user.permissions` through `PermissionSession` from `@shivaedev/identity/PermissionSession.ts` while preserving the provider's session and user data. Its `SessionWithPermissions<A>` type is exported from the adapter. Missing grants stay optional, malformed grants fail with `AuthUnavailable`, and a successful `null` means signed out. The reader must return a nullable session with a `user` object; use `authQuery` for other payloads.
 
 React's `authAction`, `authQuery` and `authSession` consume these Effects to create atoms. See [React's Better Auth usage](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#better-auth-actions).
+
+### Auth tables owned by another migrator
+
+An application moving from Prisma can keep Prisma in charge of its auth tables while adopting identity's mount. Apply the existing migrator first, then run `assertBetterAuthSchema` as a startup guard before `betterAuthMount`. Both use the same application `SqlClient`; keep Better Auth's table and field mappings aligned with the existing schema.
+
+```ts
+import { Effect } from "effect";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+
+const authOptions = {
+	account: { modelName: "Account" },
+	emailAndPassword: { enabled: true },
+	session: { modelName: "Session" },
+	user: { modelName: "User" },
+	verification: { modelName: "Verification" },
+};
+
+const authentication = Effect.gen(function* () {
+	yield* assertBetterAuthSchema(authOptions);
+	const database = yield* betterAuthDatabase();
+	return yield* betterAuthMount({ ...authOptions, database });
+});
+```
+
+Provide the SQL Layer and `memoryStore`, and supply the secret as for any mount. The guard fails in the Effect error channel with `BetterAuthSchemaDrift` from the assertion module; its `missing` array names missing tables and columns, such as `column User.emailVerified`. This failure stops acquisition before the mount starts, preserving the actionable schema diagnostic instead of the provider's generic `AuthUnavailable`. Extra application columns can stay in the auth tables. The mount reads existing sessions without changing the schema or taking over its migrations.
+
+This is a migration step towards identity's frozen auth migrations. While Prisma owns the tables, make schema corrections in Prisma. When ownership moves, preserve the existing schema baseline in the application's migration history and use the frozen workflow below for subsequent auth changes. Generate each addition against a disposable database with the previously shipped schema applied, and register it with the application's numbered SQL migrations. Keep one migrator responsible for each auth schema change.
 
 ### Frozen auth migrations
 
