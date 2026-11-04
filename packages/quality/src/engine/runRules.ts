@@ -1,6 +1,7 @@
 import { basename, isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
 import { ManifestFailure } from "#adapters/manifestInventory.ts";
+import { inNonEffectFolder } from "#config/nonEffectFolders.ts";
 import { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
@@ -67,7 +68,14 @@ function expectedFailure(rule: ActiveRule, root: string, cause: unknown): readon
 
 function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
 	return Effect.suspend(() => rule.check(inputs)).pipe(
-		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
+		Effect.map((findings) =>
+			findings
+				.filter(
+					(finding) =>
+						!(rule.id.startsWith("effect/") && inNonEffectFolder(repositoryPath(inputs.root, finding.file), inputs.nonEffectFolders ?? [])),
+				)
+				.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
+		),
 		Effect.catch((cause) => {
 			const findings = expectedFailure(rule, inputs.root, cause);
 			if (findings !== undefined) {

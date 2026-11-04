@@ -25,6 +25,7 @@ export interface RuleInputs {
 	readonly configFile?: string;
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
+	readonly nonEffectFolders?: readonly string[];
 	readonly readText: (path: string) => Promise<string | undefined>;
 	readonly root: string;
 	readonly signal?: AbortSignal;
