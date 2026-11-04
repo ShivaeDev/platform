@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 - 2026-11-04
+
+### Added
+
+- Let PostgreSQL catalog observations and lock races drive a test clock between reads with `clock: "test"`, including their failure deadline.
+
 ## 0.18.2 - 2026-11-04
 
 ### Changed

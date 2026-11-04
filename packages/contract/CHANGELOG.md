@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.35.0 - 2026-11-04
+
+### Added
+
+- Client activity and its screen signal carry the same shared connection status.
+
+### Fixed
+
+- Resume signals interrupt live retry backoff and reconnect immediately, resetting the next retry delay.
+- Bound commands with a declared `BadRequest` return payload construction and encoding failures as that typed rejection, including struct-level validation details.
+- Live binding discovery traverses nested object and array properties, preserves explicit binding lists, and visits shared objects and cycles once.
+
 ## 0.34.0 - 2026-11-04
 
 ### Added

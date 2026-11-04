@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.23.0 - 2026-11-04
+
+### Added
+
+- Allow `appHost` to omit both the native RPC `group` and `handlers` while serving an existing HTTP API through `routes`, as a migration step towards native RPC. Host services, migrations, body-limit configuration, proxy trust, health and tracing retain their existing behavior; the existing API owns authentication and CORS. No native RPC endpoint or RPC preflight policy is installed without a group.
+- `appHost` accepts `config.socketPath` for Unix HTTP and WebSocket RPC, alone or beside an explicit TCP `port`. Socket files are published with mode `0600`, stale sockets are reclaimed at startup, and shutdown removes the socket.
+
+### Breaking
+
+- Host option types include the HTTP-only shape. Consumers that inspect native RPC options must narrow with `options.group !== undefined` before reading the group or handlers. Existing native `appHost` calls retain their options.
+
 ## 0.22.0 - 2026-11-04
 
 ### Added
