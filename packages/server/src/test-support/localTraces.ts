@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { Cause, ConfigProvider, Effect, Exit, Layer, Option, Scope, Tracer } from "effect";
+import { Cause, Clock, ConfigProvider, Effect, Exit, Layer, Option, Scope, Tracer } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { localTracing } from "#localTracing.ts";
@@ -48,9 +48,10 @@ export const localTraces = storyKit({
 			story.tell("a scoped trace recorder opens");
 			const scope = yield* Scope.make();
 			yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
+			const clock = yield* Clock.Clock;
 			const recorder: Layer.Layer<never, unknown> = automatic
 				? otlpTracing
-				: localTracing({ flushInterval: 1000, indexedAttributes: ["orderId", "password"], path, retainedRuns: 2 });
+				: localTracing({ clock, flushInterval: 1000, indexedAttributes: ["orderId", "password"], path, retainedRuns: 2 });
 			const provider = ConfigProvider.fromEnv({
 				env: { "NODE_ENV": mode, "PLATFORM_TRACE_INDEXED_ATTRIBUTES": "orderId,password", "PLATFORM_TRACE_STORE": path },
 			});

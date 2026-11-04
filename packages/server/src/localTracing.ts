@@ -6,6 +6,7 @@ import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 
 export interface LocalTracingOptions {
+	readonly clock?: Clock.Clock;
 	readonly flushInterval?: number;
 	readonly indexedAttributes?: readonly string[];
 	readonly path?: string;
@@ -13,6 +14,7 @@ export interface LocalTracingOptions {
 }
 
 export function localTracing({
+	clock = Clock.Clock.defaultValue(),
 	path = ".platform/traces.db",
 	indexedAttributes = [],
 	retainedRuns = 5,
@@ -33,7 +35,7 @@ export function localTracing({
 				pending = [];
 			});
 			yield* Effect.addFinalizer(() => flush);
-			yield* Effect.sleep(flushInterval).pipe(Effect.andThen(flush), Effect.forever, Effect.forkScoped);
+			yield* Effect.sleep(flushInterval).pipe(Effect.andThen(flush), Effect.forever, Effect.provideService(Clock.Clock, clock), Effect.forkScoped);
 			const tracer = Tracer.make({
 				...underlying,
 				span: (options) => {
