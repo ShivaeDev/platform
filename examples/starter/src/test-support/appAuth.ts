@@ -70,6 +70,9 @@ export function appAuth(options: {
 	});
 	return {
 		auth,
+		fail: () => {
+			sessionFailure = true;
+		},
 		recover: () => {
 			sessionFailure = false;
 		},

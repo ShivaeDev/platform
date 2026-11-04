@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/form",
-	"version": "0.14.0",
+	"version": "0.16.0",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -55,7 +55,6 @@
 		"@effect/atom-react": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",

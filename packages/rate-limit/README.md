@@ -46,7 +46,7 @@ A custom store implements `Store.consume` from `@shivaedev/rate-limit/Store.ts`,
 
 ### PostgreSQL story fixtures
 
-`postgresTestDatabase` from `@shivaedev/rate-limit/postgresTestDatabase.ts` provides `expireWindows`, an Effect that expires all stored windows in an isolated test database. Use it to establish expired windows before exercising the production limiter; it does not advance the PostgreSQL clock.
+`postgresTestDatabase` from `@shivaedev/rate-limit/postgresTestDatabase.ts` provides `expireWindows`, an Effect that expires all stored windows in an isolated test database, and `elapseWindows(duration)`, which subtracts an Effect duration from every stored expiry. Use them to establish expired or partially elapsed windows before exercising the production limiter; neither advances the PostgreSQL clock. A story kit advances its controlled clock by the same duration when aging reservations.
 
 ### Install
 

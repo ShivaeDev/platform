@@ -10,7 +10,7 @@ export function mergeTimingArtifacts(engine: Workspace) {
 	const { root } = engine.workspace;
 	writeFileSync(join(root, "jobs.json"), JSON.stringify(engine.jobs));
 	execFileSync(process.execPath, [
-		"--conditions=source",
+		"--conditions=@shivaedev/source",
 		fileURLToPath(new URL("../mergeTestTimings.ts", import.meta.url)),
 		"--directory",
 		root,

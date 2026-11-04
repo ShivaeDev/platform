@@ -48,7 +48,6 @@
 			"dist/rules/stories/importBindings.d.ts",
 			"dist/rules/stories/importOrigin.d.ts",
 			"dist/rules/stories/origins.d.ts",
-			"dist/rules/stories/program.d.ts",
 			"dist/rules/stories/registersTests.d.ts",
 			"dist/rules/stories/retryOption.d.ts",
 			"dist/rules/stories/returnValues.d.ts",

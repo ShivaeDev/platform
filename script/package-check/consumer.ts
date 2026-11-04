@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { checkBrowserEntries } from "#package-check/browserEntries.ts";
 import { consumerDependencies } from "#package-check/consumerDependencies.ts";
 import { consumerWorkspace } from "#package-check/consumerWorkspace.ts";
@@ -9,11 +8,13 @@ import { checkEffectCopies } from "#package-check/effectCopies.ts";
 import { blockedEntries, exportEntries, packedFiles } from "#package-check/exports.ts";
 import { command, requireThat, writeJson } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
+import { checkRuntimeExports } from "#package-check/runtimeExports.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
 import { checkUnhoisted } from "#package-check/unhoisted.ts";
 import { writeFixtures } from "#package-check/writeFixtures.ts";
 
 const compilerOptions = {
+	customConditions: ["source"],
 	exactOptionalPropertyTypes: true,
 	lib: ["ESNext", "DOM", "DOM.Iterable"],
 	module: "ESNext",
@@ -55,7 +56,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 		join(consumer, "tsconfig.json"),
 		scenario?.tsconfig === undefined
 			? { compilerOptions, include: ["*.ts"] }
-			: { compilerOptions: { outDir: "dist", types: ["node"] }, extends: scenario.tsconfig, include: ["*.ts"] },
+			: { compilerOptions: { customConditions: ["source"], outDir: "dist", types: ["node"] }, extends: scenario.tsconfig, include: ["*.ts"] },
 	);
 	yield* writeJson(join(consumer, "tsconfig.nodenext.json"), {
 		compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext" },
@@ -96,17 +97,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 		const problems = declarationProblems(consumer, config, "entries.ts");
 		yield* requireThat(problems.length === 0, `${pkg.manifest.name}: ${problems.join("\n")}`);
 	}
-	const environment = yield* postgresTestEnvironment;
-	yield* command(consumer, "env", [
-		...Object.entries(environment).map(([name, value]) => `${name}=${value}`),
-		"node",
-		"--input-type=module",
-		"--eval",
-		entries
-			.filter((entry) => !entry.json)
-			.map((entry) => `await import(${JSON.stringify(entry.specifier)});`)
-			.join("\n"),
-	]);
+	yield* checkRuntimeExports(consumer, entries);
 	yield* runFixtures(consumer, scenario?.run ?? []);
 	if (scenario === undefined) {
 		yield* checkBlockedImport(pkg, consumer, blockedEntries(pkg.manifest, packed));

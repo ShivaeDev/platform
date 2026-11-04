@@ -1,9 +1,10 @@
-import { Cause, type Duration, Effect, Option, Predicate, Schedule } from "effect";
+import { Cause, type Duration, Effect, Option, Predicate, Queue, Schedule } from "effect";
 
 export function liveRetry<E, R>(
 	attempt: Effect.Effect<void, E, R>,
 	ended: (failure: Option.Option<Cause.Cause<E>>, retry: boolean) => void,
 	delay: Duration.Input = "1 second",
+	resume?: Queue.Queue<void>,
 ) {
 	const next = Effect.matchCause(attempt, {
 		onFailure: (failure) => {
@@ -17,8 +18,14 @@ export function liveRetry<E, R>(
 			return true;
 		},
 	});
-	return Effect.repeat(next, {
+	const run = Effect.repeat(next, {
 		schedule: Schedule.jittered(Schedule.min([Schedule.exponential(delay, 2), Schedule.spaced("30 seconds")])),
 		while: (retry) => retry,
 	}).pipe(Effect.asVoid);
+	return resume === undefined
+		? run
+		: Effect.suspend(() => Effect.raceFirst(Effect.as(run, false), Effect.as(Queue.take(resume), true))).pipe(
+				Effect.repeat({ while: (restarted) => restarted }),
+				Effect.asVoid,
+			);
 }

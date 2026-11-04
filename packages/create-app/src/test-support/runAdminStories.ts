@@ -7,7 +7,7 @@ export function runAdminStories(app: string, starter: string, foundationOnly = f
 	writeFileSync(join(app, child), readFileSync(join(starter, child)));
 	writeFileSync(
 		join(app, "admin-stories.config.ts"),
-		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["source"]);\n',
+		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"]);\n',
 	);
 	return appScript(
 		app,
@@ -31,6 +31,6 @@ export function runAdminStories(app: string, starter: string, foundationOnly = f
 			"--maxWorkers",
 			"2",
 		],
-		["NODE_OPTIONS=--conditions=source"],
+		["NODE_OPTIONS=--conditions=@shivaedev/source"],
 	);
 }

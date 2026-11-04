@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema, type Scope } from "effect";
 import ts from "typescript";
+import { nonEffectPlugins } from "#biome/nonEffectPlugins.ts";
 
 const ObjectConfig = Schema.Record(Schema.String, Schema.Unknown);
 
@@ -17,6 +18,7 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 	original: string,
 	config: Readonly<Record<string, unknown>>,
 	paths: Map<string, string>,
+	nonEffectFolders: readonly string[],
 ): Effect.fn.Return<string, PlatformError.PlatformError | Schema.SchemaError, FileSystem.FileSystem | Scope.Scope> {
 	const existing = paths.get(original);
 	if (existing !== undefined) {
@@ -30,7 +32,7 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 	for (const specifier of Array.isArray(config.extends) ? config.extends : []) {
 		const source = specifier.startsWith(".") ? resolve(dirname(original), specifier) : require.resolve(specifier);
 		const inherited = yield* parseConfig(source, yield* fs.readFileString(source));
-		extended.push(yield* writeConfig(root, source, inherited, paths));
+		extended.push(yield* writeConfig(root, source, inherited, paths, nonEffectFolders));
 	}
 	const vcs = config.vcs ?? {};
 	const generated = {
@@ -38,7 +40,7 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 		...(Array.isArray(config.extends) ? { extends: extended } : {}),
 		...(Array.isArray(config.plugins)
 			? {
-					plugins: config.plugins.map((plugin) =>
+					plugins: nonEffectPlugins(config.plugins, nonEffectFolders).map((plugin) =>
 						typeof plugin === "string" ? resolve(root, plugin) : { ...plugin, path: resolve(root, plugin.path) },
 					),
 				}
@@ -54,6 +56,6 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 	return path;
 });
 
-export function relocateConfig(root: string, original: string, config: Readonly<Record<string, unknown>>) {
-	return writeConfig(root, original, config, new Map());
+export function relocateConfig(root: string, original: string, config: Readonly<Record<string, unknown>>, nonEffectFolders: readonly string[] = []) {
+	return writeConfig(root, original, config, new Map(), nonEffectFolders);
 }

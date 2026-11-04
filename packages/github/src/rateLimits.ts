@@ -16,7 +16,14 @@ export function rateLimits() {
 	const failures = new Map<string, number>();
 	const resources = new Map<string, string>();
 	function resource(path: string) {
-		return resources.get(path) ?? (path.startsWith("/search/") ? "search" : "core");
+		const observed = resources.get(path);
+		if (observed !== undefined) {
+			return observed;
+		}
+		if (path === "/graphql" || path === "/api/graphql") {
+			return "graphql";
+		}
+		return path.startsWith("/search/") ? "search" : "core";
 	}
 	return {
 		blocked,

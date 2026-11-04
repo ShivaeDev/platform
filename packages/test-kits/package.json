@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-kits",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Reusable story building blocks for Platform applications",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -62,6 +62,7 @@
 	"peerDependencies": {
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/discord": "workspace:*",
 		"@shivaedev/email": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/sql": "workspace:*",

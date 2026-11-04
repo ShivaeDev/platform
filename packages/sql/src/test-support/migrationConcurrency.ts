@@ -1,5 +1,6 @@
-import { Deferred, Effect, Fiber, Schedule } from "effect";
+import { Deferred, Effect, Fiber } from "effect";
 import type { SqlClient } from "effect/sql";
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { described, type Migration } from "./migrationCatalog.ts";
 import type { Applied, MigrationEngine } from "./migrationEngine.ts";
@@ -10,8 +11,7 @@ function waitersOn(sql: SqlClient.SqlClient, key: string, count: number) {
 		where locktype = 'advisory' and not granted and objsubid = 1
 		and database = (select oid from pg_database where datname = current_database())
 		and ((classid::bigint << 32) | objid::bigint) = hashtextextended(${key}, 0)`;
-	// PostgreSQL signals nothing when a session starts waiting on a lock, so the kit polls the lock table for the ledger key's waiters.
-	return waiting.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => (row?.waiting ?? 0) < count }));
+	return observeUntil(waiting, ([row]) => (row?.waiting ?? 0) >= count, `${count} runners to wait on the ledger lock`, { clock: "test" });
 }
 
 export function migrationConcurrency(

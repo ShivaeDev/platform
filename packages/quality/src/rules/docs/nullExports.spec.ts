@@ -4,7 +4,7 @@ import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const OPEN_MANIFEST = {
-	content: JSON.stringify({ exports: { "./*.ts": { source: "./src/*.ts" } }, name: "@acme/lib" }),
+	content: JSON.stringify({ exports: { "./*.ts": { "@shivaedev/source": "./src/*.ts" } }, name: "@acme/lib" }),
 	path: "packages/lib/package.json",
 };
 
@@ -15,7 +15,7 @@ for (const path of ["./internal/*", "./internal/secret.ts"]) {
 			repositoryHas(
 				...docsWorkspace,
 				{
-					content: JSON.stringify({ exports: { "./*.ts": { source: "./src/*.ts" }, [path]: null }, name: "@acme/lib" }),
+					content: JSON.stringify({ exports: { "./*.ts": { "@shivaedev/source": "./src/*.ts" }, [path]: null }, name: "@acme/lib" }),
 					path: "packages/lib/package.json",
 				},
 				markdown("docs/guide.md", "Call `hidden` from `@acme/lib/internal/secret.ts`."),

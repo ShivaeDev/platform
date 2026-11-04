@@ -3,11 +3,12 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { inspect, promisify } from "node:util";
 import type { BetterAuthOptions } from "better-auth";
-import { Effect, Layer } from "effect";
+import { Clock, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withControlledDate } from "#test/clock.ts";
 import { emptyMount, type MountEngine, PROVIDER_SECRETS, type ProviderView, startMountHost } from "./mountHost.ts";
 
 const clients = { alice: "198.51.100.10", bob: "198.51.100.20" } as const;
@@ -88,7 +89,8 @@ const signUpThroughProxy = Effect.fnUntraced(function* (engine: MountEngine, ori
 
 export const mount = storyKit({
 	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provideContext(engine.store)) },
-	clock: "live",
+	around: withControlledDate,
+	clock: storyClock,
 	*create() {
 		return { ...emptyMount(), store: yield* Layer.build(memoryStore) };
 	},
@@ -108,12 +110,15 @@ export const mount = storyKit({
 			}),
 		logsMentionProviderSecrets: () => Effect.sync(() => PROVIDER_SECRETS.filter((secret) => inspect(engine.logs, { depth: 20 }).includes(secret))),
 		productionVisit: () =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				story.tell("a visitor requests auth on a production host without a proxy");
-				const { stdout } = await promisify(execFile)(
-					process.execPath,
-					["--conditions=source", fileURLToPath(import.meta.resolve("#test/better-auth/mountProduction.ts"))],
-					{ env: { "NODE_ENV": "production" } },
+				const now = yield* Clock.currentTimeMillis;
+				const { stdout } = yield* Effect.promise(() =>
+					promisify(execFile)(
+						process.execPath,
+						["--conditions=@shivaedev/source", fileURLToPath(import.meta.resolve("#test/better-auth/mountProduction.ts")), String(now)],
+						{ env: { "NODE_ENV": "production" } },
+					),
 				);
 				const { address, logs, status } = JSON.parse(stdout);
 				return {

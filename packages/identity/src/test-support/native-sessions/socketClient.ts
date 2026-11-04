@@ -58,12 +58,15 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 
 export type ProfileSocket = Effect.Success<ReturnType<typeof openProfile>>;
 
-export function rejectedFrame(host: Host, frame?: string) {
+export function rejectedFrame(host: Host, frame?: string, opened?: () => void) {
 	return Effect.callback<{ code: number; reason: string }>((resume) => {
 		const socket = new globalThis.WebSocket(`${host.baseUrl.replace(/^http/u, "ws")}/rpc?auth=frame`);
-		if (frame !== undefined) {
-			socket.addEventListener("open", () => socket.send(frame));
-		}
+		socket.addEventListener("open", () => {
+			opened?.();
+			if (frame !== undefined) {
+				socket.send(frame);
+			}
+		});
 		socket.addEventListener("close", (event) => resume(Effect.succeed({ code: event.code, reason: event.reason })));
 		return Effect.sync(() => socket.close());
 	});

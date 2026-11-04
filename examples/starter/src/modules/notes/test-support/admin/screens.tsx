@@ -82,7 +82,6 @@ export const adminScreens = storyKit({
 
 export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Type = "admin") {
 	return adminScreens.trait("screen", `alice, signed in as ${role}, opens ${path} on the real app host`, function* (engine) {
-		engine.accounts.set("alice", yield* mintUser(engine.host, "alice", role));
 		yield* openScreen(engine, path, role);
 	});
 }

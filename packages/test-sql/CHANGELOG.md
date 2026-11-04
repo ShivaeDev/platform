@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.20.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.19.0 - 2026-11-04
+
+### Added
+
+- Let PostgreSQL catalog observations and lock races drive a test clock between reads with `clock: "test"`, including their failure deadline.
+
+## 0.18.2 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/sql` from 0.36.0 to 0.36.1.
+
 ## 0.18.1 - 2026-11-03
 
 ### Changed

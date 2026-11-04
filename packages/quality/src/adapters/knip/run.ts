@@ -40,7 +40,7 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 				ChildProcess.make(
 					process.execPath,
 					[
-						"--conditions=source",
+						"--conditions=@shivaedev/source",
 						"--eval",
 						LAUNCH,
 						pathToFileURL(API).href,

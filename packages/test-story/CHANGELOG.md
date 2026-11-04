@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.38.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.37.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.34.0 to 0.35.0.
+- Update `@shivaedev/test-sql` from 0.18.2 to 0.19.0.
+
+## 0.37.0 - 2026-11-04
+
+### Added
+
+- `story.restart(traits)` starts another engine from the same kit and returns its verbs and story, keeping earlier engines readable in the test Scope.
+- `story.apply(traits)` applies traits mid-story in stage order, including after hooks and readable trait refusals.
+
+### Fixed
+
+- Capture every started engine before story Scope cleanup when a story fails.
+- Failure reports without an inspect hook print a bounded engine summary without traversing the whole Effect Context or invoking custom inspectors and getters.
+
 ## 0.36.1 - 2026-11-03
 
 ### Changed

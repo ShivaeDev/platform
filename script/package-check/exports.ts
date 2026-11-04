@@ -17,7 +17,7 @@ function starOf(pattern: string, path: string): string | undefined {
 }
 
 function sourceTargets(value: unknown): string[] {
-	return typeof value === "object" && value !== null && "source" in value ? targets(value.source) : targets(value);
+	return typeof value === "object" && value !== null && "@shivaedev/source" in value ? targets(value["@shivaedev/source"]) : targets(value);
 }
 
 function blocked(manifest: Manifest, subpath: string): boolean {

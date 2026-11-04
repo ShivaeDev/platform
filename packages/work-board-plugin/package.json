@@ -17,14 +17,14 @@
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"scripts": {
 		"build": "pnpm build:client && tsc --project tsconfig.build.json",
-		"build:client": "node --conditions=source script/build-client.ts",
+		"build:client": "node --conditions=@shivaedev/source script/build-client.ts",
 		"test": "pnpm test:prepare && vitest run",
 		"test:prepare": "pnpm build:client",
 		"typecheck": "tsc --noEmit"

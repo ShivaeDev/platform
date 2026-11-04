@@ -1,14 +1,13 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
-import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput, HostPreflight } from "#AppHostInput.ts";
 import { appDatabase, type DatabaseConfig } from "#appDatabase.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#appHostHttp.ts";
 import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
+import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 
@@ -18,10 +17,10 @@ export interface AppDatabaseOptions<R = never, E = never> {
 }
 
 export type AppHostOptions<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
 	TServices = never,
 	TServiceError = never,
 	TServiceRequirements = never,
@@ -34,17 +33,17 @@ export type AppHostOptions<
 	TMigrationError = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
-	HostRoutes<TRouteError, TRouteRequirements> & {
+	HostRoutes<TRouteError, TRouteRequirements> &
+	HostPolicy & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
 		readonly policy?: undefined;
-		readonly sessions: Layer.Layer<SessionPolicy>;
 	};
 
 export type AppLocalHostOptions<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
 	TServices = never,
 	TServiceError = never,
 	TServiceRequirements = never,
@@ -64,10 +63,10 @@ export type AppLocalHostOptions<
 	};
 
 export type AppHttpHostOptions<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
 	TServices = never,
 	TServiceError = never,
 	TServiceRequirements = never,
@@ -81,10 +80,10 @@ export type AppHttpHostOptions<
 	HostRoutes<TRouteError, TRouteRequirements> &
 	HostPolicy & { readonly migrations?: undefined };
 export const appHost: AppHostFactory = <
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
 	TServices = never,
 	TServiceError = never,
 	TServiceRequirements = never,
@@ -122,9 +121,8 @@ export const appHost: AppHostFactory = <
 		startup === undefined
 			? Layer.empty
 			: Layer.unwrap(
-					Effect.map(
-						"application" in options ? Effect.succeed(isSensitiveKey) : schemaSensitiveKeys(options.group, options.config?.sensitiveKeys),
-						(sensitive) => startup.pipe(Layer.provide(redactingDiagnostics(sensitive))),
+					Effect.map("application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options), (sensitive) =>
+						startup.pipe(Layer.provide(redactingDiagnostics(sensitive))),
 					),
 				);
 	if ("application" in options) {

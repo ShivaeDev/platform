@@ -2,10 +2,12 @@ import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, type SqlModel } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import type { PrimaryKey, Repository } from "#compositeRepository.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
-import type { UpdateInput } from "#repositoryUpdate.ts";
+import type { Column, Columns, Selected, UpdateInput } from "#repositoryUpdate.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import { type VersionedOptions, versionedStatements } from "#versionedStatements.ts";
 
 export type IdColumn<TModel extends Model.Any> = keyof TModel["Type"] & keyof TModel["update"]["Type"] & keyof TModel["fields"];
@@ -30,17 +32,34 @@ type WriteError = SqlError | Schema.SchemaError | OptimisticConcurrencyError;
 type KeyColumn<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = TId extends readonly IdColumn<TModel>[]
 	? TId[number]
 	: Extract<TId, IdColumn<TModel>>;
-export interface VersionedWrites<TModel extends Model.Any, TId extends PrimaryKey<TModel>> {
+type RequiredColumn<TModel extends Model.Any, TId extends PrimaryKey<TModel>, TVersion extends PropertyKey> = KeyColumn<TModel, TId> | TVersion;
+interface VersionedUpdate<
+	TModel extends Model.Any,
+	TId extends PrimaryKey<TModel>,
+	TVersion extends VersionColumn<TModel, TId>,
+	A,
+	R = TModel["update"]["EncodingServices"] | TModel["DecodingServices"],
+> {
+	<TColumn extends Column<TModel, RequiredColumn<TModel, TId, TVersion>>>(
+		input: Selected<TModel, RequiredColumn<TModel, TId, TVersion>, TColumn>,
+		options: Columns<TColumn>,
+	): Effect.Effect<A, WriteError, R>;
+	(input: UpdateInput<TModel>): Effect.Effect<A, WriteError, R>;
+}
+
+export interface VersionedWrites<
+	TModel extends Model.Any,
+	TId extends PrimaryKey<TModel>,
+	TVersion extends VersionColumn<TModel, TId> = VersionColumn<TModel, TId>,
+> {
 	readonly delete: (
 		id: TId extends readonly IdColumn<TModel>[] ? Pick<TModel["Type"], TId[number]> : TModel["fields"][Extract<TId, IdColumn<TModel>>]["Type"],
 		expectedVersion: number,
 	) => Effect.Effect<void, WriteError, TModel["fields"][KeyColumn<TModel, TId>]["EncodingServices"]>;
 	readonly insert: Repository<TModel, TId>["insert"];
 	readonly insertVoid: Repository<TModel, TId>["insertVoid"];
-	readonly update: (
-		input: UpdateInput<TModel>,
-	) => Effect.Effect<TModel["Type"], WriteError, TModel["update"]["EncodingServices"] | TModel["DecodingServices"]>;
-	readonly updateVoid: (input: UpdateInput<TModel>) => Effect.Effect<void, WriteError, TModel["update"]["EncodingServices"]>;
+	readonly update: VersionedUpdate<TModel, TId, TVersion, TModel["Type"]>;
+	readonly updateVoid: VersionedUpdate<TModel, TId, TVersion, void, TModel["update"]["EncodingServices"]>;
 }
 
 export const makeVersionedWrites = Effect.fnUntraced(function* (
@@ -48,9 +67,10 @@ export const makeVersionedWrites = Effect.fnUntraced(function* (
 	options: VersionedOptions & { readonly changes: RepositoryChanges; readonly spanPrefix: string },
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const { spanPrefix, changes } = options;
 	const statements = yield* versionedStatements(model, options);
-	const decodeRow = Schema.decodeUnknownEffect(model);
+	const decodeRow = Schema.decodeUnknownEffect(storageSchema(model, model.fields, nameTransforms));
 	function insert(input: unknown) {
 		return Effect.gen(function* () {
 			const statement = yield* statements.insert(input);
@@ -74,9 +94,9 @@ export const makeVersionedWrites = Effect.fnUntraced(function* (
 			return rows.length === 0 ? Option.none() : Option.some(yield* decodeRow(rows[0]));
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.insertOrIgnore`));
 	}
-	function update(input: Readonly<Record<string, unknown>>) {
+	function update(input: Readonly<Record<string, unknown>>, settings?: { readonly columns: readonly string[] }) {
 		return Effect.gen(function* () {
-			const { statement, classify } = yield* statements.update(input);
+			const { statement, classify } = yield* statements.update(input, settings?.columns);
 			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			if (rows.length === 0) {
 				return yield* classify();
@@ -85,9 +105,9 @@ export const makeVersionedWrites = Effect.fnUntraced(function* (
 			return yield* decodeRow(rows[0]);
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.update`));
 	}
-	function updateVoid(input: Readonly<Record<string, unknown>>) {
+	function updateVoid(input: Readonly<Record<string, unknown>>, settings?: { readonly columns: readonly string[] }) {
 		return Effect.gen(function* () {
-			const { statement, classify } = yield* statements.update(input);
+			const { statement, classify } = yield* statements.update(input, settings?.columns);
 			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			if (rows.length === 0) {
 				return yield* classify();

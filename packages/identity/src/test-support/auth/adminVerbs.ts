@@ -3,8 +3,9 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { AdminApi } from "./adminApi.ts";
-import type { AdminHost } from "./adminHost.ts";
+import { type AdminHost, REVALIDATION_INTERVAL } from "./adminHost.ts";
 import { adminRouteVerbs } from "./adminRouteVerbs.ts";
 import { profileVerbs } from "./profileVerbs.ts";
 
@@ -17,13 +18,16 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 	).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	const makeClient = RpcClient.make(AdminApi);
 	let feed: { readonly fiber: Fiber.Fiber<unknown> } | undefined;
+	function feedEnding() {
+		return feed === undefined ? Effect.succeed("no feed followed") : Fiber.join(feed.fiber);
+	}
 	function call<A, E>(use: (client: Effect.Success<typeof makeClient>) => Effect.Effect<A, E>) {
 		return answered(makeClient.pipe(Effect.flatMap(use), Effect.provide(protocol), Effect.scoped));
 	}
 	return {
 		...profileVerbs(host, story),
 		...adminRouteVerbs(host, story),
-		adminFeedEnding: () => (feed === undefined ? Effect.succeed("no feed followed") : Fiber.join(feed.fiber)),
+		adminFeedEnding: feedEnding,
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
 			story.tell("the caller calls the admin-only RPC");
 			return yield* call((client) => client.adminTools());
@@ -63,6 +67,10 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		readRecord: (id: string) => {
 			story.tell(`read record ${id} through the protected RPC`);
 			return call((client) => client.readRecord({ id }));
+		},
+		revalidationIntervalPasses: () => {
+			story.tell("one stream revalidation interval passes");
+			return untilTimer(REVALIDATION_INTERVAL).pipe(Effect.andThen(passes(REVALIDATION_INTERVAL, feedEnding())), Effect.asVoid);
 		},
 		revokeSession: Effect.fn("AuthStory.revokeSession")(function* () {
 			story.tell("revoke the minted session through Better Auth");

@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { type ManagedRole, type Person, type RoleActor, roleManagementHost } from "./roleManagementHost.ts";
 
 export const roleManagement = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: () => roleManagementHost().pipe(Effect.provide(Reactivity.layer)),
 	layer: postgres,
 	name: "framework role management",

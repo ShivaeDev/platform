@@ -3,17 +3,9 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { defineService } from "@shivaedev/service/defineService.ts";
 import type { NeverSettled } from "#server/observeUntil.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
-
-const Dependency = defineService({
-	id: "@shivaedev/test-sql/RaceDependency",
-	initialize: Effect.void,
-	methods: () => ({}),
-	requires: [],
-});
-type Dependency = typeof Dependency.Identifier;
+import { RaceDependency as Dependency } from "#test/RaceDependency.ts";
 
 const race = raceWithLock({
 	effects: [

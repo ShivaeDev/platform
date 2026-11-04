@@ -1,10 +1,24 @@
-import { type DateTime, Effect } from "effect";
+import type { DateTime } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
-import { inspection } from "#server/adapters/inspection.ts";
 import type { inspectionChanges } from "#server/adapters/inspectionChanges.ts";
 import type { inspectionReads } from "#server/adapters/inspectionReads.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
+import { initializeInspection } from "#server/internal/initializeInspection.ts";
+import { busy } from "#server/internal/operations/busy.ts";
+import { changes } from "#server/internal/operations/changes.ts";
+import { counts } from "#server/internal/operations/counts.ts";
+import { deadLetteredJobs } from "#server/internal/operations/deadLetteredJobs.ts";
+import { deferred } from "#server/internal/operations/deferred.ts";
+import { failedJobs } from "#server/internal/operations/failedJobs.ts";
+import { getJob } from "#server/internal/operations/getJob.ts";
+import { inspectionHealth } from "#server/internal/operations/inspectionHealth.ts";
+import { jobs } from "#server/internal/operations/jobs.ts";
+import { queue } from "#server/internal/operations/queue.ts";
+import { schedules } from "#server/internal/operations/schedules.ts";
+import { schemaVersion } from "#server/internal/operations/schemaVersion.ts";
+import { snapshot } from "#server/internal/operations/snapshot.ts";
+import { storedJobs } from "#server/internal/operations/storedJobs.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import type { PgBossService } from "#server/service.ts";
 
@@ -20,25 +34,22 @@ export interface UnfinishedJob<TQueue extends SnapshotQueue> {
 
 export const PgBossInspection = defineService({
 	id: "@shivaedev/jobs/PgBossInspection",
-	initialize: Effect.gen(function* () {
-		const acquired = yield* PgBoss;
-		return yield* inspection(acquired.client, acquired.schema);
-	}),
+	initialize: initializeInspection,
 	methods: (service) => ({
-		busy: service.busy,
-		changes: service.changes,
-		counts: service.counts,
-		deadLetteredJobs: genericMethod(service.deadLetteredJobs),
-		deferred: service.deferred,
-		failedJobs: genericMethod(service.failedJobs),
-		getJob: genericMethod(service.getJob),
-		health: service.health,
-		jobs: genericMethod(service.jobs),
-		queue: service.queue,
-		schedules: service.schedules,
-		schemaVersion: service.schemaVersion,
-		snapshot: genericMethod(service.snapshot),
-		storedJobs: service.storedJobs,
+		busy: busy(service),
+		changes: changes(service),
+		counts: counts(service),
+		deadLetteredJobs: genericMethod(deadLetteredJobs(service)),
+		deferred: deferred(service),
+		failedJobs: genericMethod(failedJobs(service)),
+		getJob: genericMethod(getJob(service)),
+		health: inspectionHealth(service),
+		jobs: genericMethod(jobs(service)),
+		queue: queue(service),
+		schedules: schedules(service),
+		schemaVersion: schemaVersion(service),
+		snapshot: genericMethod(snapshot(service)),
+		storedJobs: storedJobs(service),
 	}),
 	requires: [PgBoss] as const,
 });

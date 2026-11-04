@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.6.5 - 2026-11-04
+
+### Fixed
+
+- Clarify that story traits may directly establish named scenario givens while the behaviour under test runs through public boundaries. Require stories to drive the kit's clock and any outside engine's time instead of waiting on real time, with examples of stored-row setup and clock advancement.
+
 ## 0.6.4 - 2026-11-03
 
 ### Changed

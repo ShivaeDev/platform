@@ -8,11 +8,11 @@ export type UpdateInput<TModel extends Model.Any> = {
 	readonly [TKey in keyof TModel["update"]["Type"]]: WithoutOverride<TModel["update"]["Type"][TKey]>;
 };
 
-type Column<TModel extends Model.Any, TId extends PropertyKey> = Exclude<Extract<keyof UpdateInput<TModel>, string>, TId>;
-type Selected<TModel extends Model.Any, TId extends PropertyKey, TColumn extends PropertyKey> = Required<
+export type Column<TModel extends Model.Any, TId extends PropertyKey> = Exclude<Extract<keyof UpdateInput<TModel>, string>, TId>;
+export type Selected<TModel extends Model.Any, TId extends PropertyKey, TColumn extends PropertyKey> = Required<
 	Pick<UpdateInput<TModel>, Extract<TId | TColumn, keyof UpdateInput<TModel>>>
 >;
-interface Columns<TColumn> {
+export interface Columns<TColumn> {
 	readonly columns: readonly [TColumn, ...TColumn[]];
 }
 type WriteResult<TModel extends Model.Any, A, E = never> = Effect.Effect<

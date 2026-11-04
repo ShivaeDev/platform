@@ -281,7 +281,7 @@
 	],
 	"resolution": [
 		{
-			"content": "{\"compilerOptions\": {\"module\": \"ESNext\", \"moduleResolution\": \"Bundler\", \"customConditions\": [\"source\"], \"resolveJsonModule\": true, \"paths\": {\"~/*\": [\"./src/*\"]}}}\n",
+			"content": "{\"compilerOptions\": {\"module\": \"ESNext\", \"moduleResolution\": \"Bundler\", \"customConditions\": [\"@shivaedev/source\"], \"resolveJsonModule\": true, \"paths\": {\"~/*\": [\"./src/*\"]}}}\n",
 			"path": "tsconfig.json"
 		},
 		{
@@ -309,7 +309,7 @@
 			"path": "src/required.cjs"
 		},
 		{
-			"content": "{\"name\": \"@demo/shared\", \"exports\": {\".\": {\"types\": \"./dist/index.d.ts\", \"source\": \"./src/index.ts\", \"default\": \"./dist/index.js\"}}}\n",
+			"content": "{\"name\": \"@demo/shared\", \"exports\": {\".\": {\"types\": \"./dist/index.d.ts\", \"@shivaedev/source\": \"./src/index.ts\", \"default\": \"./dist/index.js\"}}}\n",
 			"path": "packages/shared/package.json"
 		},
 		{
@@ -381,7 +381,7 @@
 			"path": "src/globs.d.ts"
 		},
 		{
-			"content": "{\"name\": \"dts-only\", \"exports\": {\".\": {\"source\": \"./index.d.ts\", \"import\": \"./index.d.ts\", \"default\": \"./index.d.ts\"}}}\n",
+			"content": "{\"name\": \"dts-only\", \"exports\": {\".\": {\"@shivaedev/source\": \"./index.d.ts\", \"import\": \"./index.d.ts\", \"default\": \"./index.d.ts\"}}}\n",
 			"path": "node_modules/dts-only/package.json"
 		},
 		{

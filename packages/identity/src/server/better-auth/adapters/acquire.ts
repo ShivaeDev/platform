@@ -4,7 +4,10 @@ import { providerFailure } from "#server/providerFailure.ts";
 import { profileStorage } from "./profileStorage.ts";
 
 export const acquireAuth = Effect.fnUntraced(function* <TOptions extends BetterAuthOptions>(options: TOptions) {
-	const auth = betterAuth(options);
+	const auth = betterAuth({
+		...options,
+		advanced: { ...options.advanced, database: { joins: true, ...options.advanced?.database } },
+	});
 	const context = yield* Effect.tryPromise(async () => {
 		const ready = await auth.$context;
 		await ready.checkSchema?.();

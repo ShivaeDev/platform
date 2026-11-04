@@ -70,7 +70,7 @@ export const names = storyKit({
 			return engine.lease();
 		},
 	},
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.map(createDatabaseEngine, (engine) => {
 			engine.options = clientOptions(engine.options, { snakeCase: true });

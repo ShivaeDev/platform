@@ -1,13 +1,13 @@
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 
 export const auth = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		return yield* startAdminHost;
 	},

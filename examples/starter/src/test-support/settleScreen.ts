@@ -11,6 +11,7 @@ export const settleScreen = Effect.fnUntraced(function* (engine: ScreenSurface, 
 		pending: () => engine.pending?.() ?? false,
 		root: view.container,
 		tell,
+		transport: engine.transport,
 	});
 	yield* screen.settle();
 	if (engine.activity !== undefined) {

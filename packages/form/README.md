@@ -247,7 +247,19 @@ const profile = form(Schema.Struct({ name: Schema.String }), {
 
 This check produces advisory feedback after the configured debounce and completion. A message is shown only while its checked input is still the current field value. Pending checks, older results and a defective check do not show an earlier value's message. Checks can read services from the supplied runtime. Keep authoritative validation in the schema or handler.
 
-For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback and handler rejections for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first message at or beneath that path; a sibling message does not appear there. `error("answers")` retains the top-level summary. Advisory checks remain top-level. Nested values are still edited as a whole top-level field.
+For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback and handler rejections for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first message at or beneath that path; a sibling message does not appear there. `error("answers")` retains the top-level summary. Advisory checks remain top-level. Use typed nested paths to edit individual members.
+
+`fieldAt(["energy", "low"])` returns an encoded-value ref for a nested member. `changeAt(["energy", "low"], "12")` edits that member immutably, preserves its siblings and touches the top-level group for feedback. The schema still decodes the complete struct on submission. Receive, save and revert keep their existing top-level baseline semantics; nested fields do not create separate sessions.
+
+React inputs use `useFieldAt` with the same typed path:
+
+```ts
+import { useFieldAt } from "@shivaedev/form/adapters/useFieldAt.ts";
+
+const low = useFieldAt(foodForm, ["energy", "low"]);
+```
+
+Like `useField`, this returns `value`, `onChange`, `onBlur` and `error`. Its `name` joins the path with dots, such as `energy.low`, and its feedback comes from `errorAt`. The encoded field type determines what `onChange` accepts.
 
 Whole-form Schema refinements are available through `errorAt([])` after submission. This root path selects only a whole-form message; field errors stay on their field paths. In React, render it with `useAtomValue(form.errorAt([]))`. A failed submission also keeps that message in `Invalid.formMessage`. Matching the refinement clears the feedback. Schema feedback is hidden while a new asynchronous decode is pending.
 
@@ -438,7 +450,7 @@ pnpm add @effect/atom-react react
 ```
 
 The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.
-- Field names are top-level schema keys. `useList` edits top-level arrays; nested items remain whole-item edits.
+- String field names are top-level schema keys. `fieldAt`, `changeAt` and `useFieldAt` accept nested path tuples. `useList` edits top-level arrays.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.
 - Decide in the application when to receive normalized rows and how to render general failures. Attach a draft owner when persisted input must end with the session.

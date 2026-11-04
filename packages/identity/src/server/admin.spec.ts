@@ -116,10 +116,11 @@ auth.it(
 auth.it(
 	"removing the admin role ends an open admin stream as forbidden",
 	[signedInWithRole("admin")],
-	function* ({ adminFeedEnding, followAdminFeed, setRole }) {
+	function* ({ adminFeedEnding, followAdminFeed, revalidationIntervalPasses, setRole }) {
 		expect(yield* followAdminFeed()).toBe("Admin feed for member@example.test");
 
 		yield* setRole("user");
+		yield* revalidationIntervalPasses();
 
 		expect(yield* adminFeedEnding()).toBe("failed with forbidden");
 	},

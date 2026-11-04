@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.40.0 - 2026-11-04
+
+### Added
+
+- Activate staged updates while hidden once registered blockers release, and expose an application-owned reload action when activation is unavailable or blocked.
+- Provide `useNewId` and `useClock` callbacks backed by atom runtime Crypto and Clock services, plus a Web Crypto client layer.
+- Add `usePromiseAction` to dispatch promise calls with native action state, `UnknownError` failures by default and an optional typed rejection mapper.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.39.0 - 2026-11-04
+
+### Added
+
+- `useConnectionStatus(client)` exposes one debounced `live | reconnecting` status across every binding on a client.
+- Query state exposes `refusal` separately from RPC transport failures, keeping retained data available during socket recovery. `QueryView` reports refusals through its failure slot while keeping transport causes available on the query.
+
+### Fixed
+
+- Session boundaries mount nested live bindings and apply the session coalescing window to them.
+
+### Breaking
+
+- `QueryView` calls its failure renderer only for refusals. Read `query.cause` for transport diagnostics and use the client connection status for a shared reconnecting notice.
+
+## 0.38.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/access` from 0.4.1 to 0.4.2.
+- Update `@shivaedev/contract` from 0.33.1 to 0.34.0.
+- Update `@shivaedev/errors` from 0.7.0 to 0.8.0.
+- Update `@shivaedev/form` from 0.14.0 to 0.15.0.
+- Update `@shivaedev/identity` from 0.22.1 to 0.23.0.
+
 ## 0.38.0 - 2026-11-03
 
 ### Fixed

@@ -39,7 +39,7 @@ export const compiler = {
 			"Bundler",
 			"--allowImportingTsExtensions",
 			"--customConditions",
-			"source",
+			"@shivaedev/source",
 			...fixtures.map((fixture) => `src/test-support/fixtures/invalid/${fixture}.ts`),
 		]);
 	},

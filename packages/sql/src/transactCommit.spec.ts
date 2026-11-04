@@ -1,14 +1,14 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { commitsSlowly, ordersHaveBigintIds, postgresTransactions, subscriberThrows, transactionKits, watching } from "#test/transactions.ts";
+import { commitsWhenReleased, ordersHaveBigintIds, postgresTransactions, subscriberThrows, transactionKits, watching } from "#test/transactions.ts";
 
 const ID_BEYOND_NUMBER = 9_007_199_254_740_993n;
 
 postgresTransactions.it(
 	"interrupting a transaction while its COMMIT is in flight announces exactly the order the other client then sees committed",
-	[commitsSlowly(), watching(postgresTransactions, "orders", "orders:1")],
-	function* ({ announce, announced, endings, interruptCommit, saveOrder, startSlowCommit, visibleOrders }) {
-		yield* startSlowCommit(function* () {
+	[commitsWhenReleased(), watching(postgresTransactions, "orders", "orders:1")],
+	function* ({ announce, announced, endings, interruptCommit, saveOrder, startHeldCommit, visibleOrders }) {
+		yield* startHeldCommit(function* () {
 			yield* saveOrder(1);
 			yield* announce({ orders: [1] });
 		});

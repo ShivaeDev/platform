@@ -3,12 +3,15 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import { groupColumns } from "#adapters/groupColumns.ts";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import type { Aggregate } from "#aggregateQuery.ts";
 import { latestPerGroup as makeLatestPerGroup } from "#latestPerGroup.ts";
 import { makeAggregate } from "#makeAggregate.ts";
 import { makeQueryClauses } from "#makeQueryClauses.ts";
 import type { FindMany, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
@@ -53,6 +56,7 @@ export function makeQueries<TModel extends Model.Any>(
 ): Effect.Effect<Queries<TModel>, never, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const nameTransforms = yield* sqlNameTransforms;
 		const { fieldAt, where } = yield* makeFilter(model);
 		const readLatest = yield* makeLatestPerGroup(model, options.tableName);
 		const { decodeLimit, orderClause, limitClause } = yield* makeQueryClauses(fieldAt);
@@ -77,7 +81,7 @@ export function makeQueries<TModel extends Model.Any>(
 				const predicate = yield* where(query.where, true, true);
 				const order = yield* orderClause(query.orderBy);
 				const limit = yield* limitClause(query.limit);
-				return sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
+				return sql`select ${sql.csv(groupColumns(model.fields, keys).map(({ column }) => sql`${sql(column)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
 			});
 			return { fields, statement };
 		}
@@ -93,7 +97,7 @@ export function makeQueries<TModel extends Model.Any>(
 			return Effect.gen(function* () {
 				const selected = select(query);
 				const rows = yield* sql`${yield* selected.statement}`;
-				return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(selected.fields)))(rows);
+				return yield* Schema.decodeUnknownEffect(Schema.Array(storageSchema(Schema.Struct(selected.fields), selected.fields, nameTransforms)))(rows);
 			}).pipe(Effect.withSpan(`${options.spanPrefix}.findMany`));
 		}
 		function latestPerGroup(query: LatestPerGroup<TModel>): ReturnType<Queries<TModel>["latestPerGroup"]>;

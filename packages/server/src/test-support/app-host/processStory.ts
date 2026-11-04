@@ -8,7 +8,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hostProcess } from "#testing/hostProcess.ts";
 
-const options = { execArgv: ["--conditions=source"], module: new URL("./process.ts", import.meta.url) };
+const options = { execArgv: ["--conditions=@shivaedev/source"], module: new URL("./process.ts", import.meta.url) };
 
 interface ProcessHostState {
 	databaseUrl?: Redacted.Redacted<string>;

@@ -1,6 +1,6 @@
 # @shivaedev/github
 
-GitHub integrations should share one client instead of repeating token headers, page loops and quota handling in every application. This package turns GitHub REST responses into Schema-decoded Effects and streams while keeping rate limits typed.
+GitHub integrations should share one client instead of repeating token headers, page loops and quota handling in every application. This package turns GitHub REST and GraphQL responses into Schema-decoded Effects and streams while keeping rate limits typed.
 
 ## Read GitHub with less application code
 
@@ -8,7 +8,7 @@ Describe the response you need and read it. Unchanged responses reuse their deco
 
 ```ts
 import { Schema } from "effect";
-import { read } from "@shivaedev/github/GitHub.ts";
+import { read } from "@shivaedev/github/read.ts";
 
 const Repository = Schema.Struct({ name: Schema.String });
 const repository = read("/repos/acme/widgets", Repository);
@@ -23,7 +23,10 @@ const repository = read("/repos/acme/widgets", Repository);
 ```ts
 import { Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub, list, read, write } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { list } from "@shivaedev/github/list.ts";
+import { read } from "@shivaedev/github/read.ts";
+import { write } from "@shivaedev/github/write.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 
 const github = GitHub.layer.pipe(Layer.provide(FetchHttpClient.layer), Layer.provide(GitHubToken.fromEnv));
@@ -43,6 +46,17 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 `GitHubToken.fromEnvOrCli` uses the same environment precedence, then runs `gh auth token` through Effect `ChildProcessSpawner` when neither variable is set. Provide the spawner with this Layer. Authentication failure is a typed `GitHubTokenError` with a string `reason` (`config`, `command` or `refused`) and a non-enumerable `cause`.
 
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
+
+`graphql(query, variables, schema, options?)` from `@shivaedev/github/graphql.ts` returns Schema-decoded `data`. It shares REST authentication, quota observations, bounded responses and the single installation-token refresh. The configured API base selects `/graphql`, or `/api/graphql` for an Enterprise `/api/v3` base, with either trailing-slash form supported. A non-empty GitHub `errors` array fails with `GitHubGraphqlError` from `errors.ts`, even when partial `data` is present; its `errors` carry the messages and its `message` joins them with semicolons. Invalid data fails with `Schema.SchemaError`, and decoding services stay in the caller's requirements.
+
+```ts
+import { graphql } from "@shivaedev/github/graphql.ts";
+
+const Viewer = Schema.Struct({ viewer: Schema.Struct({ login: Schema.String }) });
+const viewer = graphql("query { viewer { login } }", {}, Viewer);
+```
+
+The service's `graphql(query, variables, options?)` returns a representation with `decode(dataSchema)`, matching `read` and `write`. The Schema describes `data` directly, without the envelope. `GraphqlOptions` from `graphqlRequests.ts` accepts `responseByteLimit` for a per-request cap and `apiUrl` to override the configured REST base for that call. GraphQL and REST core quotas stay separate. The representation also exposes the raw JSON `body` for transport adapters. `decodeGraphqlData(body, dataSchema)` from `graphqlRequests.ts` applies the same typed error-envelope handling and data decoding to an adapter-supplied response.
 
 `read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST`, `PATCH`, `PUT` or `DELETE` and decodes its response. Pass `undefined` for a bodyless request. For a 204 response, omit the schema to receive `void`, or pass `Schema.Void` explicitly; the service representation also supports `decode(Schema.Void)`. These mutations share authentication, quota observations and the single installation-token refresh. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
 
@@ -81,7 +95,7 @@ The service's `read(path)` and `write(method, path, body)` return a representati
 Use `listBounded(path, itemSchema, pageCap, options?)` to collect a prefix within a positive page cap. It returns `{ items, skipped, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
 
 ```ts
-import { listBounded } from "@shivaedev/github/GitHub.ts";
+import { listBounded } from "@shivaedev/github/listBounded.ts";
 
 const issues = listBounded("/repos/acme/widgets/issues", Issue, 2);
 ```
@@ -98,7 +112,7 @@ const checks = listBounded("/repos/acme/widgets/commits/main/check-runs", CheckR
 });
 ```
 
-Import `CheckRun` from `@shivaedev/github/checkRuns.ts`. Decoding fails at the first invalid item by default. With `onDecodeError: "skip"`, valid items keep their order and `skipped` counts rejected items across the fetched pages. Invalid JSON, a missing envelope key, a non-array value, HTTP failures and byte-limit failures still fail the read. A page containing only rejected items still follows its next Link. The page cap counts fetched pages, including empty pages, and never counts pages beyond the cap.
+Import `CheckRun` from `@shivaedev/github/checkRunSchemas.ts`. Decoding fails at the first invalid item by default. With `onDecodeError: "skip"`, valid items keep their order and `skipped` counts rejected items across the fetched pages. Invalid JSON, a missing envelope key, a non-array value, HTTP failures and byte-limit failures still fail the read. A page containing only rejected items still follows its next Link. The page cap counts fetched pages, including empty pages, and never counts pages beyond the cap.
 
 `listPages(path, itemSchema, options?)` returns a Stream of `{ items, skipped, hasNext }` pages for consumers that need streaming counts. `list` flattens those pages into items. Both fetch only while consumed.
 
@@ -142,7 +156,9 @@ Provide `githubApp` as the `GitHubToken` Layer. With just the App ID and a PEM p
 ```ts
 import { Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub, list, read } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { list } from "@shivaedev/github/list.ts";
+import { read } from "@shivaedev/github/read.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
 
 const clients = (privateKey: Redacted.Redacted<string>) => {
@@ -172,9 +188,9 @@ A single `githubApp(credentials)` Layer also provides `GitHubApp`, whose `instal
 ```ts
 import { Effect, Layer, Redacted, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { read } from "@shivaedev/github/GitHub.ts";
+import { read } from "@shivaedev/github/read.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
-import { withInstallation } from "@shivaedev/github/installationClients.ts";
+import { withInstallation } from "@shivaedev/github/withInstallation.ts";
 
 const app = (privateKey: Redacted.Redacted<string>) => githubApp({ appId: "123456", privateKey }).pipe(Layer.provide(FetchHttpClient.layer));
 const Repositories = Schema.Struct({ repositories: Schema.Array(Schema.Struct({ id: Schema.Number, name: Schema.String })) });
@@ -192,7 +208,7 @@ Pass the GitHub account from your application's session to `GitHubApp.viewerRepo
 
 ```ts
 import { Effect } from "effect";
-import { GitHubApp } from "@shivaedev/github/installationClients.ts";
+import { GitHubApp } from "@shivaedev/github/app/GitHub.ts";
 
 const access = Effect.gen(function* () {
 	const app = yield* GitHubApp;
@@ -302,7 +318,7 @@ const report = Effect.gen(function* () {
 });
 ```
 
-`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; both creation and update with `status: "completed"` require a conclusion, including runtime validation before any request. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRuns.ts`.
+`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; both creation and update with `status: "completed"` require a conclusion, including runtime validation before any request. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRunSchemas.ts`.
 
 `findLatestCheckRun(owner, repo, { headSha, name?, appId? })` pages the commit's check runs and returns an `Option<CheckRun>`. Supply a name, an app ID, or both; both filters must match when supplied together. It selects the greatest run ID across all pages. `CheckRun.app` exposes the app ID when GitHub supplies it. Read statuses include GitHub Actions-only `waiting`, `requested` and `pending`, so another app's run in one of those states does not prevent ownership lookup.
 

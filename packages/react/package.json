@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/react",
-	"version": "0.38.0",
+	"version": "0.40.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

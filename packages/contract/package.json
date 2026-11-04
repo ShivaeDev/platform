@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/contract",
-	"version": "0.33.1",
+	"version": "0.36.0",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
@@ -61,7 +61,6 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

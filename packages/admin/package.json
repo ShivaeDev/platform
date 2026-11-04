@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/admin",
-	"version": "0.19.3",
+	"version": "0.20.0",
 	"description": "Explicit admin page contracts and a protected native Effect RPC registry",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/admin#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

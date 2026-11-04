@@ -39,7 +39,7 @@ export function workspaceBoardVerbs(engine: BoardEngine, tell: (line: string) =>
 		failedMigration: () =>
 			Effect.sync(() => {
 				tell("work-board migrate runs on the Board directory and the reader reads its exit and errors");
-				const run = spawnSync(process.execPath, ["--conditions=source", CLI, "migrate", engine.notes.root], { encoding: "utf8" });
+				const run = spawnSync(process.execPath, ["--conditions=@shivaedev/source", CLI, "migrate", engine.notes.root], { encoding: "utf8" });
 				return { errors: run.stderr, exit: run.status === 0 ? "succeeded" : "failed" };
 			}),
 		fleetBriefRequests: () =>

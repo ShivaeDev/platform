@@ -61,7 +61,7 @@ const migrate = Effect.fnUntraced(function* (state: MigrationState, initialOnly:
 	const child = yield* spawner.spawn(
 		ChildProcess.make(
 			process.execPath,
-			["--conditions=source", fileURLToPath(new URL("./migrationProcess.ts", import.meta.url)), initialOnly ? "initial" : "all"],
+			["--conditions=@shivaedev/source", fileURLToPath(new URL("./migrationProcess.ts", import.meta.url)), initialOnly ? "initial" : "all"],
 			{ env, extendEnv: true, stderr: "inherit" },
 		),
 	);

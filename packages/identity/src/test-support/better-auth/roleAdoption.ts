@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { type Person, roleAdoptionHost } from "./roleAdoptionHost.ts";
 
 export const roleAdoption = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	create: () => roleAdoptionHost(),
 	layer: postgres,
 	name: "stored role adoption",

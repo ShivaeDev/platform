@@ -20,7 +20,8 @@ function repository() {
 		{ content: "export const used = 1;\nexport const unused = 2;\nexport type Unused = string;\n", path: "packages/app/src/values.ts" },
 		{ content: "export const orphan = 1;\n", path: "packages/app/src/orphan.ts" },
 		{
-			content: '{"name":"library","type":"module","exports":{"./*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
+			content:
+				'{"name":"library","type":"module","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
 			path: "packages/library/package.json",
 		},
 		{ content: "export const publicValue = 1;\n", path: "packages/library/src/publicValue.ts" },
@@ -74,7 +75,7 @@ export const providedDependency = unusedRepository.trait(
 		writes(
 			root,
 			"packages/component/package.json",
-			'{"name":"@demo/component","exports":{"./*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
+			'{"name":"@demo/component","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
 		);
 		writes(root, "packages/component/src/component.ts", "export const component = 1;\n");
 		writes(root, "packages/app/src/start.ts", 'import { component } from "@demo/component/component.ts";\nconsole.log(component);\n');
@@ -118,7 +119,7 @@ export const sourceImports = unusedRepository.trait("repository", "a clean packa
 		root,
 		"packages/app/package.json",
 		JSON.stringify({
-			imports: { "#*.tsx": { default: "./dist/*.js", source: "./src/*.tsx", types: "./dist/*.d.ts" } },
+			imports: { "#*.tsx": { "@shivaedev/source": "./src/*.tsx", default: "./dist/*.js", types: "./dist/*.d.ts" } },
 			name: "app",
 			private: true,
 			scripts: { start: "node src/start.ts" },

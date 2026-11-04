@@ -16,7 +16,13 @@ export function hostProcess(configFile: string, pausePublication = false, report
 			const changed = changeSignal();
 			const child = spawn(
 				process.execPath,
-				["--conditions=source", fileURLToPath(entry), configFile, ...(pausePublication ? ["pause-publication"] : []), ...(report ? ["report"] : [])],
+				[
+					"--conditions=@shivaedev/source",
+					fileURLToPath(entry),
+					configFile,
+					...(pausePublication ? ["pause-publication"] : []),
+					...(report ? ["report"] : []),
+				],
 				{
 					stdio: ["ignore", "pipe", "pipe", "ipc"],
 				},

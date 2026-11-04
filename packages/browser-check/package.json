@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/browser-check",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Local screenshots and smoke checks for running Platform apps",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

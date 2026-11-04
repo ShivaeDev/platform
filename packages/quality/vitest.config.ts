@@ -10,8 +10,8 @@ export default defineConfig({
 			"#exports-story": fileURLToPath(new URL("../../script/quality/test-support/exportsStory.ts", import.meta.url)),
 			"#rule-story": fileURLToPath(new URL("../../script/quality/test-support/ruleKit.ts", import.meta.url)),
 		},
-		conditions: ["source", "module", "browser", "development|production"],
+		conditions: ["@shivaedev/source", "module", "browser", "development|production"],
 	},
-	ssr: { resolve: { conditions: ["source", "node", "development|production"] } },
+	ssr: { resolve: { conditions: ["@shivaedev/source", "node", "development|production"] } },
 	test: testProjects(),
 });

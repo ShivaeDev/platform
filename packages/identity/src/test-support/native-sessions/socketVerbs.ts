@@ -1,12 +1,17 @@
-import { Effect, Option, Stream } from "effect";
+import { Deferred, Effect, Fiber, Option, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { answerOf } from "@shivaedev/test-story/server/answers.ts";
-import type { Host } from "./host.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { type Host, REVALIDATION_INTERVAL } from "./host.ts";
 import { type Account, authRequest } from "./requests.ts";
 import { openProfile, type ProfileSocket, rejectedFrame } from "./socketClient.ts";
 
 export function socketVerbs(host: Host, account: (name: string) => Account, tell: (line: string) => void) {
 	const sockets = new Map<string, ProfileSocket>();
+	let silent: Effect.Effect<{ code: number; reason: string }> | undefined;
+	function silentClosed() {
+		return silent === undefined ? Effect.die("No silent native socket is open") : silent;
+	}
 	function socket(name: string) {
 		const value = sockets.get(name);
 		if (value === undefined) {
@@ -31,6 +36,10 @@ export function socketVerbs(host: Host, account: (name: string) => Account, tell
 				yield* Effect.promise(() => response.text());
 			});
 		},
+		handshakeDeadlinePasses: () => {
+			tell("the five-second authentication frame deadline passes");
+			return passes("5 seconds", silentClosed()).pipe(Effect.asVoid);
+		},
 		openNativeProfile: (name: string, owner = name) => {
 			tell(`${name} opens ${owner}'s live profile with a browser WebSocket constructor and a first-frame bearer`);
 			return Effect.gen(function* () {
@@ -43,6 +52,15 @@ export function socketVerbs(host: Host, account: (name: string) => Account, tell
 				sockets.set(name, yield* openProfile(host, account(name), account(owner), true));
 			});
 		},
+		openSilentNativeSocket: () =>
+			Effect.gen(function* () {
+				tell("a native socket opens without sending its authentication frame");
+				const opened = yield* Deferred.make<void>();
+				const fiber = yield* rejectedFrame(host, undefined, () => Effect.runSync(Deferred.succeed(opened, undefined))).pipe(Effect.forkScoped);
+				silent = Fiber.join(fiber);
+				yield* Deferred.await(opened);
+				yield* untilTimer("5 seconds");
+			}),
 		profileShown: (name: string, expected?: string) => {
 			const next = socket(name).next.pipe(
 				Stream.filter((result) => expected === undefined || (AsyncResult.isSuccess(result) && result.value.name === expected)),
@@ -74,11 +92,12 @@ export function socketVerbs(host: Host, account: (name: string) => Account, tell
 			tell(`${name}'s native shell resumes`);
 			return socket(name).resume;
 		},
-		silentNativeSocket: () => {
-			tell("a native socket opens without sending its authentication frame");
-			return rejectedFrame(host);
-		},
+		silentNativeSocketClosed: silentClosed,
 		socketClosed: (name: string) => socket(name).closed,
+		socketRevalidationIntervalPasses: (name: string) => {
+			tell(`one socket revalidation interval passes for ${name}`);
+			return untilTimer(REVALIDATION_INTERVAL).pipe(Effect.andThen(passes(REVALIDATION_INTERVAL, socket(name).closed)), Effect.asVoid);
+		},
 		socketUrls: (name: string) => Effect.sync(() => socket(name).urls.map((url) => url.replace(host.baseUrl.replace(/^http/u, "ws"), ""))),
 	};
 }

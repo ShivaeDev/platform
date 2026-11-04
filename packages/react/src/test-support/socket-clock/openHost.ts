@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Context, Deferred, Effect, Layer, Stream } from "effect";
+import { Clock, Context, Deferred, Effect, Layer, Stream } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
@@ -11,15 +11,8 @@ export const openHost = Effect.gen(function* () {
 	const waiting = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	const sockets = new Set<Socket>();
-	const state = { expired: false, handshakes: 0, hold: false };
-	yield* Effect.sleep("30 seconds").pipe(
-		Effect.andThen(
-			Effect.sync(() => {
-				state.expired = true;
-			}),
-		),
-		Effect.forkScoped,
-	);
+	const state = { handshakes: 0, hold: false };
+	const expiresAt = (yield* Clock.currentTimeMillis) + 30_000;
 	const gate = HttpRouter.middleware((httpEffect) =>
 		Effect.gen(function* () {
 			state.handshakes += 1;
@@ -33,7 +26,11 @@ export const openHost = Effect.gen(function* () {
 	const handlers = Notes.toLayer({
 		"socketClockNotes.$changes": () => Stream.never,
 		"socketClockNotes.save": () =>
-			state.expired ? Effect.fail(new EditExpired({ message: "The edit window has closed" })) : Effect.succeed("Saved"),
+			Effect.gen(function* () {
+				return (yield* Clock.currentTimeMillis) >= expiresAt
+					? yield* Effect.fail(new EditExpired({ message: "The edit window has closed" }))
+					: "Saved";
+			}),
 	});
 	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson, gate.layer]),

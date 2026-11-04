@@ -72,7 +72,7 @@ export function shadcnAlias(directory: string, alias: string): string {
 		join(directory, "components.tsx"),
 		{
 			...options,
-			customConditions: ["source", ...(options.customConditions ?? [])],
+			customConditions: ["@shivaedev/source", ...(options.customConditions ?? [])],
 			moduleResolution: ts.ModuleResolutionKind.Bundler,
 		},
 		{

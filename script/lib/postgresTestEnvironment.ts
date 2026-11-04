@@ -4,14 +4,14 @@ import { LOCAL_SERVER } from "@shivaedev/local-postgres/server/localPostgres.ts"
 
 export const postgresTestEnvironment = Effect.gen(function* () {
 	const connection = yield* Config.String("TEST_DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/platform_test`));
-	const base = yield* assertLocalDatabase(connection, ["platform_test"]);
+	const base = yield* Effect.fromResult(assertLocalDatabase(connection, ["platform_test"]));
 	function select(name: string) {
 		return Effect.gen(function* () {
 			const database = `platform_test_${name.toLowerCase()}`;
 			const url = new URL(base);
 			url.pathname = `/${database}`;
 			const value = yield* Config.String(`PLATFORM_${name}_TEST_DATABASE_URL`).pipe(Config.withDefault(url.toString()));
-			yield* assertLocalDatabase(value, [database]);
+			yield* Effect.fromResult(assertLocalDatabase(value, [database]));
 			return value;
 		});
 	}

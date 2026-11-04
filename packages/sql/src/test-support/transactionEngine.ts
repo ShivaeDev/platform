@@ -18,6 +18,7 @@ export type Database = "PostgreSQL" | "SQLite";
 
 export interface TransactionEngine {
 	readonly announced: string[];
+	commitGate: { readonly release: Effect.Effect<void> } | undefined;
 	committing: { readonly fiber: Fiber.Fiber<unknown, unknown> } | undefined;
 	readonly database: Database;
 	readonly endings: string[];
@@ -57,6 +58,7 @@ export function transactionEngine(database: Database) {
 		}
 		const engine: TransactionEngine = {
 			announced: [],
+			commitGate: undefined,
 			committing: undefined,
 			database,
 			endings: [],

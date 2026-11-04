@@ -1,5 +1,4 @@
-import { Effect } from "effect";
-import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { Effect, Schema } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -45,6 +44,16 @@ export const clientIp = storyKit({
 					}),
 				);
 			},
+			sessionIpAddress: (cookies: readonly string[]) => {
+				story.tell("read Alice's session IP address over HTTP");
+				return Effect.promise(async () => {
+					const response = await fetch(`${baseUrl}/api/auth/get-session`, {
+						headers: { cookie: cookies.map((cookie) => cookie.split(";")[0]).join("; ") },
+					});
+					const body = Schema.decodeUnknownSync(Schema.Struct({ session: Schema.Struct({ ipAddress: Schema.String }) }))(await response.json());
+					return body.session.ipAddress;
+				});
+			},
 			signInResponse: (headers: Record<string, string>) => {
 				story.tell("Alice signs in through Railway's proxy");
 				return emailResponse(baseUrl, "sign-in", headers);
@@ -53,22 +62,22 @@ export const clientIp = storyKit({
 				story.tell("Alice registers an email and password over HTTP without signing in");
 				return emailRequest(baseUrl, "sign-up", engine.env.PUBLIC_URL === undefined ? {} : { origin: engine.env.PUBLIC_URL });
 			},
-			storedSessions: () => {
-				story.tell("read the session IP addresses stored in PostgreSQL");
-				return Effect.flatMap(authTestDatabase, (storage) => storage.sessionIpAddresses);
-			},
 		};
 	},
 });
 
 export const railway = clientIp.trait("configured", "Railway proxy settings with a simulated transport peer", (engine) => {
 	Object.assign(engine.env, {
-		"AUTH_CLIENT_IP_HEADER": "x-real-ip",
+		"AUTH_CLIENT_IP_HEADER": "x-forwarded-for",
 		"HOST": "0.0.0.0",
 		"PUBLIC_URL": "https://app.example",
 		"TRUSTED_PROXY": "100.64.0.0/10",
 	});
 	engine.proxyPeer = "100.64.0.2";
+});
+
+export const untrustedPeer = clientIp.trait("configured", "the transport peer is outside Railway's trusted proxy range", (engine) => {
+	engine.proxyPeer = "203.0.113.5";
 });
 
 function emailRequest(baseUrl: string, path: string, headers: Record<string, string>) {

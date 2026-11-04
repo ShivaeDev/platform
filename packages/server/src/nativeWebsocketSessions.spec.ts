@@ -25,11 +25,12 @@ nativeSessions.it(
 nativeSessions.it(
 	"revoking alice's bearer closes her authenticated socket with policy violation",
 	[alice],
-	function* ({ openNativeProfile, profileShown, signsOut, socketClosed }) {
+	function* ({ openNativeProfile, profileShown, signsOut, socketClosed, socketRevalidationIntervalPasses }) {
 		yield* openNativeProfile("alice");
 		expect(yield* profileShown("alice")).toMatchObject({ name: "alice" });
 
 		yield* signsOut({ bearer: "alice" });
+		yield* socketRevalidationIntervalPasses("alice");
 
 		expect(yield* socketClosed("alice")).toEqual({ code: 1008, reason: "Authentication required" });
 	},
@@ -52,8 +53,11 @@ for (const kind of ["invalid", "expired", "malformed", "oversized", "header-cont
 nativeSessions.it(
 	"a native socket without an authentication frame closes when its handshake deadline passes",
 	[],
-	function* ({ silentNativeSocket }) {
-		expect(yield* silentNativeSocket()).toEqual({ code: 1008, reason: "Authentication required" });
+	function* ({ handshakeDeadlinePasses, openSilentNativeSocket, silentNativeSocketClosed }) {
+		yield* openSilentNativeSocket();
+		yield* handshakeDeadlinePasses();
+
+		expect(yield* silentNativeSocketClosed()).toEqual({ code: 1008, reason: "Authentication required" });
 	},
 	15_000,
 );
@@ -74,11 +78,12 @@ nativeSessions.it(
 nativeSessions.it(
 	"expiry closes an established native socket",
 	[alice],
-	function* ({ openNativeProfile, profileShown, sessionExpires, socketClosed }) {
+	function* ({ openNativeProfile, profileShown, sessionExpires, socketClosed, socketRevalidationIntervalPasses }) {
 		yield* openNativeProfile("alice");
 		expect(yield* profileShown("alice")).toMatchObject({ name: "alice" });
 
 		yield* sessionExpires();
+		yield* socketRevalidationIntervalPasses("alice");
 
 		expect(yield* socketClosed("alice")).toEqual({ code: 1008, reason: "Authentication required" });
 	},
@@ -101,11 +106,12 @@ nativeSessions.it(
 nativeSessions.it(
 	"an unavailable session provider closes an established native socket with an internal error",
 	[alice],
-	function* ({ openNativeProfile, profileShown, sessionProviderUnavailable, socketClosed }) {
+	function* ({ openNativeProfile, profileShown, sessionProviderUnavailable, socketClosed, socketRevalidationIntervalPasses }) {
 		yield* openNativeProfile("alice");
 		expect(yield* profileShown("alice")).toMatchObject({ name: "alice" });
 
 		yield* sessionProviderUnavailable();
+		yield* socketRevalidationIntervalPasses("alice");
 
 		expect(yield* socketClosed("alice")).toEqual({ code: 1011, reason: "Authentication unavailable" });
 	},

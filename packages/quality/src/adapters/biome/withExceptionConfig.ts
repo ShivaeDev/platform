@@ -9,9 +9,10 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 	root: string,
 	declarations: readonly ExceptionDeclaration[],
 	run: (args: readonly string[]) => Effect.Effect<TValue, TError, TRequirements>,
+	nonEffectFolders: readonly string[] = [],
 ) {
 	const { includes, overrides } = exceptionConfig(declarations);
-	if (includes.length === 0 && overrides.length === 0) {
+	if (includes.length === 0 && overrides.length === 0 && nonEffectFolders.length === 0) {
 		return yield* run([]);
 	}
 	const { config, text } = yield* Effect.gen(function* () {
@@ -40,6 +41,6 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!.worktrees", "!.quality-biome-*"] },
 		overrides: [...previousOverrides, ...overrides],
 	};
-	const path = yield* relocateConfig(root, join(root, config), generated);
+	const path = yield* relocateConfig(root, join(root, config), generated, nonEffectFolders);
 	return yield* run([`--config-path=${path}`]);
 });

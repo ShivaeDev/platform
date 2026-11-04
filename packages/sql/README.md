@@ -89,6 +89,24 @@ const database = PgClient.layer(
 
 To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appHost.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
+### Grouped values in flat columns
+
+Use `Model.Group` from `@shivaedev/sql/Model.ts` inside a native Effect model when several columns form one value:
+
+```ts
+import { Schema } from "effect";
+import { Model as NativeModel } from "effect/schema";
+import { Model } from "@shivaedev/sql/Model.ts";
+
+class Food extends NativeModel.Class<Food>("Food")({
+	id: NativeModel.Field({ select: Schema.Number, update: Schema.Number }),
+	name: Schema.String,
+	energy: Model.Group({ low: Schema.NumberFromString, expected: Schema.NumberFromString, high: Schema.NumberFromString }, { prefix: "energy_" }),
+}) {}
+```
+
+Repository inputs and returned values contain `energy: { low, expected, high }`. Storage uses `energy_low`, `energy_expected` and `energy_high`; the prefix is concatenated with each member name. Member codecs still encode and decode each value. The application creates those columns. `findById` and `findMany`, including `select: ["energy"]`, return the struct. A chosen-column update with `columns: ["energy"]` replaces the group together and preserves other columns. Use scalar model fields for filters, ordering and conflict targets; a group declares a stored value, not a relation or a nested query language.
+
 ### 1. Once per model: fields and writable variants
 
 ```ts
@@ -210,7 +228,7 @@ yield* lines.updateVoid({ id: 1, note: null }, { columns: ["note"] });
 yield* lines.update({ id: 2, name: "Travel" }, { columns: ["name"], onMissing: "fail" });
 ```
 
-Each call executes one `UPDATE … RETURNING` without a preliminary read, encodes only the selected fields and every primary-key component through the model's update schemas, and publishes its table, record and old/new bucket keys after commit. Other columns retain their stored values, including omitted update timestamps. The column list is nonempty and contains writable fields other than the primary key; invalid selections fail with `SchemaError`. Composite-key inputs include every key component. `updateVoid` discards the returned row; `update` returns the decoded model and keeps the same missing-row behavior as a complete update. Column selection is available on unversioned repositories.
+Each call executes one `UPDATE … RETURNING` without a preliminary read, encodes only the selected fields and every primary-key component through the model's update schemas, and publishes its table, record and old/new bucket keys after commit. Other columns retain their stored values, including omitted update timestamps. The column list is nonempty and contains writable fields other than the primary key; invalid selections fail with `SchemaError`. Composite-key inputs include every key component. `updateVoid` discards the returned row; `update` returns the decoded model and keeps the same missing-row behavior as a complete update. Versioned repositories also accept column selection when the input includes the expected version.
 
 A selected row can be passed unchanged to `update` or `updateVoid`, including a model with native `Model.DateTimeUpdateFromDate`. Repository update inputs accept its ordinary read-back date-time value without requiring `Model.Override`; a supplied value is preserved.
 
@@ -620,6 +638,40 @@ A stale version or missing row fails with `OptimisticConcurrencyError` in the er
 
 These writes use SQL `RETURNING`. Repositories without `versionColumn` retain native CRUD signatures and behavior.
 
+A partial versioned update includes the primary key, expected version and chosen values:
+
+```ts
+yield* documents.update({ ...key, lockVersion: 0, name: "Published" }, { columns: ["name"] });
+yield* documents.updateVoid({ ...key, lockVersion: 1, name: "Final" }, { columns: ["name"] });
+```
+
+Only the chosen columns are assigned, and the version increments once. Other values need not be read or sent back. The version is required and cannot appear in `columns`. Stale partial writes fail with the same `OptimisticConcurrencyError` and leave the row unchanged.
+
+### Ordered children under a parent
+
+`makeOrderedChildren` from `@shivaedev/sql/makeOrderedChildren.ts` uses a PostgreSQL parent-row lock to serialize `append`, `move` and `reorder` for that parent:
+
+```ts
+const orderedDays = yield* makeOrderedChildren(Day, {
+ tableName: "days",
+ idColumn: "id",
+ parentColumn: "planId",
+ parentTable: "plans",
+ parentIdColumn: "id",
+ positionColumn: "position",
+ versionColumn: "version",
+ spanPrefix: "Day",
+});
+
+yield* orderedDays.append(planId, { id: dayId, name: "Training" });
+yield* orderedDays.move(planId, dayId, 0);
+yield* orderedDays.reorder(planId, [thirdDayId, dayId, secondDayId]);
+```
+
+The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
+
+The lock is held until the transaction commits, including when called inside `transact`. A concurrent reorder of that parent waits. Use these helpers for ordering writes under the same parent. The application owns the parent foreign key and DDL; if positions are unique within a parent, declare `UNIQUE (plan_id, position) DEFERRABLE INITIALLY DEFERRED` so positions can swap within the transaction.
+
 ### Transactions and invalidation
 
 ```ts
@@ -724,6 +776,43 @@ const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) =>
 
 `advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact` mapper.
 
+### Bounded, resumable PostgreSQL backfills
+
+Use `backfillPostgres` from `@shivaedev/sql/backfillPostgres.ts` for data work that needs separate commits. Run it after schema migrations, outside any transaction. The application owns its checkpoint table, the ordered selection and the row transformation. All runners of the same backfill must use the same advisory lock key.
+
+```ts
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
+import { backfillPostgres } from "@shivaedev/sql/backfillPostgres.ts";
+import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
+
+const capitalizeNames = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* backfillPostgres({
+		batchSize: 100,
+		lock: "items:capitalize_names",
+		loadProgress: Effect.map(
+			sql<{ readonly id: number }>`select last_id as id from backfill_progress where name = 'capitalize_names'`,
+			([row]) => row?.id ?? 0,
+		),
+		select: (after, limit) => sql<{ readonly id: number }>`select id from items where id > ${after} order by id limit ${limit} for update`,
+		process: (row) =>
+			Effect.gen(function* () {
+				yield* sql`update items set name = upper(name) where id = ${row.id}`;
+				yield* invalidateOnCommit([`item:${row.id}`]);
+			}),
+		saveProgress: (last) => sql`insert into backfill_progress (name, last_id) values ('capitalize_names', ${last.id})
+			on conflict (name) do update set last_id = excluded.last_id`,
+	});
+});
+```
+
+Create `items` and `backfill_progress` in numbered migrations; the example's checkpoint table has a text primary key `name` and an integer `last_id`. Each batch takes a transaction-scoped advisory lock before `loadProgress`, passes the checkpoint and `batchSize` to `select`, processes rows sequentially and saves progress from the last selected row in that same `transact`. It processes at most `batchSize` rows even if selection returns more; use SQL `LIMIT` to bound reads and locks too. An empty selection finishes the invocation and its result counts rows processed during that invocation, including rows whose transformation made no change. Progress must advance over every selected row, including unchanged rows.
+
+Use repository writes or record raw writes with `invalidateOnCommit`; each committed batch announces its changes through the existing SQL channel. A failed or interrupted batch rolls back its rows, checkpoint and recorded changes while earlier commits remain. Call the helper again to reload the stored checkpoint and resume. A completed rerun processes zero rows. Callback failures and native SQL errors stay typed; invalid batch sizes fail with `SchemaError`, and an enclosing transaction fails with `BackfillInsideTransaction` before processing. `batchSize` must be a positive safe integer.
+
+The helper adds no ledger entries and does not change `migratePostgres`'s single transaction for pending numbered migrations. Keep checkpoint writes on the provided client and inside `saveProgress`. Choose a stable, uniquely ordered cursor that cannot skip remaining work. The application decides how concurrent inserts or edits relate to that cursor and owns any retry policy. Effects outside PostgreSQL cannot be rolled back with a batch.
+
 ### PostgreSQL migrations: one discovered folder
 
 Application migrations live in `src/server/migrations/`. Name each file with a four-digit zero-padded sequential number, an underscore and a snake_case name, such as `0007_add_note_tags.ts`. Export the migration's SQL Effect as the default export:
@@ -815,6 +904,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
 - `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
 - `@shivaedev/sql/migrations.ts`: `migratePostgres(options)` — Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`.
+- `@shivaedev/sql/backfillPostgres.ts`: `backfillPostgres({ batchSize, lock, loadProgress, select, process, saveProgress })` — Bounded transactions with application-owned checkpoints; returns the rows processed in this invocation. `BackfillInsideTransaction` rejects an enclosing transaction.
 - `@shivaedev/sql/assertPostgresMigrations.ts`: `assertPostgresMigrations({ loader, table?, components? })` — Read-only readiness check of required migration IDs and names in the native ledger and registered schema components.
 - `@shivaedev/sql/pendingPostgresMigrations.ts`: `pendingPostgresMigrations({ loader, table?, components? })` — Pending ledger migrations as ID and name, and pending schema components as name and detail.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.

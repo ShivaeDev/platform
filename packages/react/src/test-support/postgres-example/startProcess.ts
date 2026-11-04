@@ -6,7 +6,7 @@ import { recorded } from "./recorded.ts";
 
 export async function startProcess(configuration: Configuration) {
 	const child = fork(new URL("./process.ts", import.meta.url), [JSON.stringify(configuration)], {
-		execArgv: ["--conditions=source"],
+		execArgv: ["--conditions=@shivaedev/source"],
 		stdio: ["ignore", "pipe", "pipe", "ipc"],
 	});
 	const responses = recorded<Response>();

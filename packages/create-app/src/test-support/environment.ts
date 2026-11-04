@@ -22,7 +22,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"-u",
 			"PLATFORM_SQL_TEST_DATABASE_URL",
 			`PATH=${join(app, "node_modules/.bin")}:${Effect.runSync(Config.String("PATH"))}`,
-			"NODE_OPTIONS=--conditions=source",
+			"NODE_OPTIONS=--conditions=@shivaedev/source",
 			...environment,
 			"sh",
 			"-c",
@@ -45,7 +45,7 @@ export function installDatabaseProbe(app: string) {
 	}
 	writeFileSync(
 		join(app, "environment.config.ts"),
-		'export default { resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } }, test: { include: ["src/environment.test.ts"] } };\n',
+		'export default { resolve: { conditions: ["@shivaedev/source"] }, ssr: { resolve: { conditions: ["@shivaedev/source"] } }, test: { include: ["src/environment.test.ts"] } };\n',
 	);
 	writeFileSync(join(app, "src/environment.test.ts"), databaseProbe());
 }
@@ -66,5 +66,5 @@ export function workspaceConditions(app: string, starter: string) {
 
 export function readyAgainstWorkspace(app: string, starter: string) {
 	workspaceConditions(app, starter);
-	return appScript(app, "ready", [], ["NODE_OPTIONS=--conditions=source"]);
+	return appScript(app, "ready", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]);
 }

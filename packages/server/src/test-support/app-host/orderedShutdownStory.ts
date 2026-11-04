@@ -61,7 +61,7 @@ export const orderedShutdownHost = storyKit({
 							"OTEL_BSP_SCHEDULE_DELAY": "60000",
 							"OTEL_EXPORTER_OTLP_ENDPOINT": receiver.url,
 						},
-						execArgv: ["--conditions=source"],
+						execArgv: ["--conditions=@shivaedev/source"],
 						module: new URL("./orderedShutdownProcess.ts", import.meta.url),
 					});
 				}),

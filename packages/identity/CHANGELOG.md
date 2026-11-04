@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.24.0 - 2026-11-04
+
+### Added
+
+- store account timezone, locale and units through authenticated preference contracts. Browser sign-in capture preserves subsequent edits.
+- provide an account clock with a configurable local day start and DST-aware logical days and half-open day ranges.
+
+### Breaking
+
+- import `AccountDayStart` and `LogicalDay` from `@shivaedev/identity/server/account-clock/settings.ts`. `server/AccountClock.ts` exports the service only.
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.23.1 - 2026-11-04
+
+### Changed
+
+- Support externally migrated Better Auth tables as a transition to identity's frozen auth migrations. Run `assertBetterAuthSchema` before `betterAuthMount` at startup to refuse schema drift with typed diagnostics naming missing tables or columns.
+
+## 0.23.0 - 2026-11-04
+
+### Added
+
+- Identity provides `selfSubject`, `accountSubject` and a branded `Subject` service. Services can read the session user independently of the account being acted on; delegated accounts require the permission's `any` grant.
+
 ## 0.22.1 - 2026-11-03
 
 ### Changed

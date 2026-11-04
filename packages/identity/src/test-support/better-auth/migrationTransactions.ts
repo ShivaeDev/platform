@@ -3,10 +3,10 @@ import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { compositionHost, compositionOptions, signUpAlice } from "./compositionHost.ts";
 
 const postgres = makePostgresTestLayer({
@@ -35,8 +35,8 @@ const registerInMigration = Effect.gen(function* () {
 }).pipe(Effect.scoped);
 
 export const authMigrationTransactions = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
 		yield* migratePostgres({

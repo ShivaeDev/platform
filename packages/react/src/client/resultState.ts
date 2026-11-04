@@ -4,13 +4,13 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
+import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
 import { acceptLoaderQuery } from "#adapters/queryHandoff.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
 import { useLiveWindow } from "#client/adapters/useLiveWindow.ts";
 import { usePermissionFailure } from "#internal/adapters/usePermissionFailure.ts";
 import { useQueryNotice } from "#internal/adapters/useQueryNotice.ts";
-import { requestsRecheck } from "#internal/sessionRecheck.ts";
 import type { NoticeDescriptor } from "#notices.ts";
 import { type ActionOptions, useActionSource } from "./actionCompletion.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
@@ -34,7 +34,7 @@ function state<A, E>(result: AsyncResult.AsyncResult<A, E>, data = AsyncResult.v
 function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, enabled = true): void {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (enabled && AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), requestsRecheck)) {
+		if (enabled && AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), isUnauthorized)) {
 			recheck();
 		}
 	}, [enabled, recheck, result]);
@@ -42,6 +42,7 @@ function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, e
 export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly denied: boolean;
 	readonly refresh: () => void;
+	readonly refusal: Option.Option<Exclude<E, { readonly _tag: "RpcClientError" }>>;
 }
 export interface QueryOptions<E = unknown> {
 	readonly coalesceWindow?: Duration.Input | undefined;
@@ -79,6 +80,12 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 		...state(result, data),
 		denied: Option.exists(AsyncResult.cause(result), (cause) => Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))),
 		refresh,
+		refusal: Option.flatMap(AsyncResult.cause(result), (cause) =>
+			Option.filter(
+				Cause.findErrorOption(cause),
+				(error): error is Exclude<E, { readonly _tag: "RpcClientError" }> => !Predicate.isTagged(error, "RpcClientError"),
+			),
+		),
 	};
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {

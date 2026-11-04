@@ -1,8 +1,11 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
+import { selectedUpdate } from "#repositoryUpdate.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 
 const Version = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 export interface VersionedOptions {
@@ -16,6 +19,7 @@ export interface VersionedOptions {
 
 export const versionedStatements = Effect.fnUntraced(function* (model: Model.Any, options: VersionedOptions) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const { tableName, idColumns, versionColumn, conflict } = options;
 	const entries: [string, Schema.Constraint][] = [];
 	for (const column of idColumns) {
@@ -31,8 +35,8 @@ export const versionedStatements = Effect.fnUntraced(function* (model: Model.Any
 		return yield* Effect.die(new Error(`Unknown version column: ${versionColumn}`));
 	}
 	const encodeVersion = Schema.encodeEffect(versionSchema);
-	const encodeInsert = Schema.encodeEffect(model.insert);
-	const encodeUpdate = Schema.encodeEffect(model.update);
+	const encodeInsert = Schema.encodeEffect(storageSchema(model.insert, model.fields, nameTransforms));
+	const encodeUpdate = Schema.encodeEffect(storageSchema(model.update, model.fields, nameTransforms));
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const validateVersion = Schema.decodeUnknownEffect(Version);
 	const clause =
@@ -59,9 +63,15 @@ export const versionedStatements = Effect.fnUntraced(function* (model: Model.Any
 			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix}`;
 		});
 	}
-	function update(input: Readonly<Record<string, unknown>>) {
+	function update(input: Readonly<Record<string, unknown>>, columns?: readonly string[]) {
 		return Effect.gen(function* () {
-			const encoded = yield* record(yield* encodeUpdate(input));
+			const encoded = yield* record(
+				yield* columns === undefined
+					? encodeUpdate(input)
+					: Effect.flatMap(selectedUpdate(model, columns, [...idColumns, versionColumn], input), (schema) =>
+							Schema.encodeEffect(storageSchema(schema, model.fields, nameTransforms))(input),
+						),
+			);
 			const expectedVersion = yield* validateVersion(encoded[versionColumn]);
 			const assignments = Object.entries(encoded).filter(([column]) => !idColumns.includes(column) && column !== versionColumn);
 			const set = sql.csv([

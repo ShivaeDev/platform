@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
-import { Fleet } from "#fleet.ts";
 import { heldAction } from "#test/engineRaceTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { repairReportsCanBeAdopted, workerReportsCanBeAdopted } from "#test/engineWorkerReportTraits.ts";
@@ -36,7 +35,7 @@ isolatedEngine.it(
 		const original = yield* workerReportReply(dispatched, "Missing report");
 		const following = yield* fleet.reconcile("one").pipe(Effect.forkChild);
 		yield* waitForGate("entered");
-		const intent = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.get("one")));
+		const intent = yield* afterRestart((restarted) => restarted.get("one"));
 		const attempt = intent.value.attempts.at(-1);
 		expect(intent.value.step).toBe("working");
 		expect(intent.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
@@ -49,7 +48,7 @@ isolatedEngine.it(
 		expect(lost.value.attempts.at(-1)?.operationId).toBe(attempt?.operationId);
 		expect(lost.value.attempts.at(-1)?.receipt).toBeUndefined();
 		expect(providerOperations()).toEqual(["operation-1", "operation-2"]);
-		const recovered = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
+		const recovered = yield* afterRestart((restarted) => restarted.reconcile("one"));
 		expect(recovered.value.attempts.at(-1)).toMatchObject({ operationId: attempt?.operationId, status: "running" });
 		expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).toBe(original.sessionId);
 		expect(
@@ -81,7 +80,7 @@ isolatedEngine.it(
 		expect(retry.value.step).toBe("working");
 		expect(retry.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 		yield* workerReportReply(retry, `${REPORT}\nTrailing text`);
-		const malformed = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
+		const malformed = yield* afterRestart((restarted) => restarted.reconcile("one"));
 		expect(malformed.value.step).toBe("waiting");
 		expect(malformed.value.decision?.id).not.toBe(decisionId);
 		expect(malformed.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);

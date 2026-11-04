@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-fleet",
-	"version": "0.32.3",
+	"version": "0.35.0",
 	"description": "Optional Board-backed execution, review and authorized delivery",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-fleet#readme",
 	"bugs": {
@@ -17,14 +17,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

@@ -7,10 +7,12 @@ import { databaseVerbs } from "./databaseVerbs.ts";
 import { limitVerbs } from "./limitVerbs.ts";
 import { adminUrl, configured } from "./postgres.ts";
 import { raceVerbs } from "./raceVerbs.ts";
+import { withCatalogClock } from "./withCatalogClock.ts";
 
 export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },
-	clock: "live",
+	around: withCatalogClock,
+	clock: "test",
 	create: () => createDatabaseEngine,
 	inspect: (engine) => ({
 		blocks: [...engine.blocks.keys()],

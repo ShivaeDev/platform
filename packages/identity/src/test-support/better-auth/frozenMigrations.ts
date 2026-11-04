@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { authMigrationFiles } from "./migrationFiles.ts";
 import { authMigrationSchema } from "./migrationSchema.ts";
 
@@ -20,8 +21,8 @@ const columns = Effect.flatMap(
 );
 
 export const frozenAuthMigrations = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const options: Omit<BetterAuthOptions, "database"> = { emailAndPassword: { enabled: true }, logger: { disabled: true } };
 		return {

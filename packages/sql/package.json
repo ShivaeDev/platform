@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/sql",
-	"version": "0.36.0",
+	"version": "0.37.0",
 	"description": "Schema-derived repositories over native Effect SQL",
 	"keywords": [
 		"effect"
@@ -20,14 +20,14 @@
 	"imports": {
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		}
 	},
 	"exports": {
 		"./*.ts": {
-			"source": "./src/*.ts",
+			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},

@@ -1,23 +1,23 @@
 import { Effect, Schema } from "effect";
-import { read, write } from "@shivaedev/github/GitHub.ts";
+import { graphql } from "@shivaedev/github/graphql.ts";
+import { read } from "@shivaedev/github/read.ts";
+import { write } from "@shivaedev/github/write.ts";
 import { type ReleaseCiRun, releaseHoldReason } from "./holdReason.ts";
 
 const Snapshot = Schema.Struct({
-	data: Schema.Struct({
-		repository: Schema.Struct({
-			pullRequests: Schema.Struct({
-				nodes: Schema.Array(
-					Schema.Struct({
-						headRefOid: Schema.String,
-						isCrossRepository: Schema.Boolean,
-						mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
-						number: Schema.Number,
-						state: Schema.String,
-					}),
-				),
-			}),
-			ref: Schema.NullOr(Schema.Struct({ target: Schema.Struct({ oid: Schema.String }) })),
+	repository: Schema.Struct({
+		pullRequests: Schema.Struct({
+			nodes: Schema.Array(
+				Schema.Struct({
+					headRefOid: Schema.String,
+					isCrossRepository: Schema.Boolean,
+					mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
+					number: Schema.Number,
+					state: Schema.String,
+				}),
+			),
 		}),
+		ref: Schema.NullOr(Schema.Struct({ target: Schema.Struct({ oid: Schema.String }) })),
 	}),
 });
 const Runs = Schema.Struct({
@@ -50,8 +50,8 @@ export function releaseGitHub(repository: string) {
 				? write("POST", pulls, { base: "main", body, head: "release/next", title }, Pull)
 				: write("PATCH", `${pulls}/${number}`, { body, title }, Pull),
 		snapshot: Effect.fn("ReleaseGitHub.snapshot")(function* () {
-			const result = yield* write("POST", "/graphql", { query: QUERY, variables: { name, owner } }, Snapshot);
-			const current = result.data.repository;
+			const result = yield* graphql(QUERY, { name, owner }, Snapshot);
+			const current = result.repository;
 			const pull = current.pullRequests.nodes.find((candidate) => !candidate.isCrossRepository);
 			let run: ReleaseCiRun | undefined;
 			if (pull !== undefined && pull.mergeQueueEntry === null) {

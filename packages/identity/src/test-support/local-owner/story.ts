@@ -2,12 +2,13 @@ import { Effect, Fiber, Queue, Redacted, Stream } from "effect";
 import { Migrator } from "effect/sql";
 import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { machineTokenMigration } from "#server/adapters/machineTokenMigration.ts";
+import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { httpClient, socketClient } from "./clients.ts";
-import { ownerHost } from "./host.ts";
+import { ownerHost, REVALIDATION_INTERVAL } from "./host.ts";
 
 const postgres = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({ "1_machine_tokens": machineTokenMigration }), lockTimeout: "5 seconds" },
@@ -15,8 +16,8 @@ const postgres = makePostgresTestLayer({
 });
 
 export const ownerStory = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
+	around: withIdentityDatabase,
+	clock: storyClock,
 	*create() {
 		const host = yield* ownerHost();
 		const machine = yield* host.local.machines.issue({ name: "reader agent", scope: "reader" });
@@ -30,6 +31,9 @@ export const ownerStory = storyKit({
 		let current = host;
 		const previousOwner = Redacted.value(host.local.token);
 		let subscription: { readonly next: Effect.Effect<string, unknown>; readonly closed: Effect.Effect<{ code: number; reason: string }> } | undefined;
+		function closed() {
+			return subscription === undefined ? Effect.die("No live query is open") : subscription.closed;
+		}
 		function token(caller: "owner" | "machine" | "missing" | "invalid" | "previous owner") {
 			switch (caller) {
 				case "missing":
@@ -78,6 +82,10 @@ export const ownerStory = storyKit({
 					story.tell("another loopback host starts with a fresh owner credential over the same PostgreSQL database");
 					current = yield* ownerHost();
 				}),
+			revalidationIntervalPasses: () => {
+				story.tell("one socket revalidation interval passes");
+				return untilTimer(REVALIDATION_INTERVAL).pipe(Effect.andThen(passes(REVALIDATION_INTERVAL, closed())), Effect.asVoid);
+			},
 			revoke: () => {
 				story.tell("the owner revokes the machine token in PostgreSQL");
 				return current.local.machines.revoke(machine.id);
@@ -86,7 +94,7 @@ export const ownerStory = storyKit({
 				story.tell("the process tries to issue a token with an undeclared scope");
 				return answered(current.local.machines.issue({ name: "unknown", scope: "undeclared" }));
 			},
-			subscriptionClosed: () => (subscription === undefined ? Effect.die("No live query is open") : subscription.closed),
+			subscriptionClosed: closed,
 			subscriptionUpdate: () => (subscription === undefined ? Effect.die("No live query is open") : subscription.next),
 		};
 	},

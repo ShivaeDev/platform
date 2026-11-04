@@ -12,7 +12,7 @@ export type JobsView = keyof ReturnType<typeof views>;
 
 export const jobsStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => jobsEngine,
 	inspect: ({ deliveries, names }) => ({ deliveries: deliveries.map((id) => names.get(id) ?? id), jobs: [...names.values()] }),
 	layer: postgresLayer,
@@ -107,7 +107,7 @@ export const jobsStory = storyKit({
 				if (answers === undefined) {
 					throw new Error(`The ${view} view is not mounted`);
 				}
-				return Queue.take(answers).pipe(Effect.timeoutOrElse({ duration: "5 seconds", orElse: () => Effect.succeed("no fresh answer") }));
+				return Queue.take(answers);
 			},
 			pgBossReadsSinceRegistration: () => Effect.sync(engine.registrationReads),
 			pgBossStops: () => {
@@ -151,8 +151,9 @@ export function mailFails(...ids: readonly number[]) {
 	return jobsStory.trait("jobs", `${ids.map((id) => `mail ${id}`).join(", ")} failed on first delivery and moved to mail-dlq`, function* (engine) {
 		for (const id of ids) {
 			named(engine, Option.getOrThrow(yield* engine.jobs.enqueue(Mail, { id }, { retryLimit: 0 })), `mail ${id}`);
+			// Distinct delivery instants keep chronological paging independent of UUID ordering.
+			yield* engine.testing.timePasses("1 millis");
 		}
-		yield* engine.testing.waitForIdle;
 		const copies = yield* engine.jobs.deadLetteredJobs(Mail, { limit: 100 });
 		nameCopies(engine, copies.jobs, (source) => `the dead-letter copy of ${source}`);
 	});

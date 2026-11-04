@@ -1,7 +1,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect, FileSystem, Path, Schema } from "effect";
-import { write } from "@shivaedev/github/GitHub.ts";
+import { write } from "@shivaedev/github/write.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { type Entry, parseBody, renderEntries } from "@shivaedev/releases/sections.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
@@ -32,7 +32,7 @@ export const publishNotes = Effect.fn("Release.publishNotes")(function* (
 		}
 		const notes = section.slice(section.indexOf("\n") + 1).trim();
 		packages.push(`## ${name} ${version}\n\n${notes}`);
-		const entries = yield* parseBody(`${name}@${version}`, notes);
+		const entries = yield* Effect.fromResult(parseBody(`${name}@${version}`, notes));
 		const migrations = entries.filter((entry) => entry.section === "Breaking");
 		if (migrations.length > 0) {
 			breaking.push(`### ${name}\n\n${renderEntries(migrations, false)}`);

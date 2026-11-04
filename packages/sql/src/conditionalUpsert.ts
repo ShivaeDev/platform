@@ -2,9 +2,11 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { Comparisons, FindManyFilter } from "#repositoryFilter.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 import type { UpsertAssignment } from "#upsertColumns.ts";
 import { makeUpsertDecoder, type UpsertRow, upsertReturning } from "#upsertResult.ts";
 
@@ -65,10 +67,11 @@ export const makeConditionalUpsert = Effect.fnUntraced(function* (
 	},
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const nameTransforms = yield* sqlNameTransforms;
 	const returning = yield* upsertReturning();
-	const encode = Schema.encodeEffect(model.insert);
+	const encode = Schema.encodeEffect(storageSchema(model.insert, model.fields, nameTransforms));
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
-	const decode = makeUpsertDecoder(model);
+	const decode = makeUpsertDecoder(model, nameTransforms);
 	const clause = yield* makeConflictClause(model, options);
 	return (
 		inputs: readonly unknown[],

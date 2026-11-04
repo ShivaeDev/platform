@@ -73,6 +73,40 @@ Pass `subject: delegated` to the contract. A delegated request selects the accou
 
 `appHost` installs `subjectResolverLayer()` from `@shivaedev/identity/server/subjectResolverLayer.ts` for session hosts. Custom native RPC hosts provide that Layer with their `SessionPolicy` and install `subjectLayers(group)` from `@shivaedev/contract/subjectLayers.ts` when building the native RPC server. The subject declaration includes authentication failures in the client's error type; it needs no separate authentication middleware.
 
+### Account preferences and logical days
+
+`AccountPreferences` from `@shivaedev/identity/accountPreferences.ts` exposes authenticated `get`, `set` and `capture` operations for the caller's timezone, locale and units (`metric` or `imperial`). `set` replaces all three values. `capture` only creates a missing record, preserving saved preferences on subsequent sign-ins. An account without a record reads `UTC`, `en` and `metric`. The contract uses `selfSubject`, so a caller cannot select another account with a transport header.
+
+Apply `accountPreferencesMigration` from `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts` as a numbered migration through `migratePostgres`. Provide `AccountPreferencesStore.layer` from `@shivaedev/identity/server/AccountPreferencesStore.ts` with the application's `SqlClient`, merge `AccountPreferences` into the RPC group, and install `accountPreferencesHandlers` from `@shivaedev/identity/server/accountPreferencesHandlers.ts`. The host supplies subject middleware as for other subject contracts.
+
+To capture browser defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the optional Better Auth client plugin:
+
+```ts
+import { createAuthClient } from "better-auth/client";
+import { preferencesClient } from "@shivaedev/identity/server/better-auth/adapters/preferencesClient.ts";
+
+export const auth = createAuthClient({ plugins: [preferencesClient()] });
+```
+
+The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
+
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
+
+```ts
+import { DateTime, Effect, Layer } from "effect";
+import { AccountClock } from "@shivaedev/identity/server/AccountClock.ts";
+import { AccountDayStart } from "@shivaedev/identity/server/account-clock/settings.ts";
+
+const clockLayer = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)));
+const today = Effect.gen(function* () {
+	const clock = yield* AccountClock;
+	const day = yield* clock.logicalDay(yield* DateTime.now);
+	return yield* clock.dayRange(day);
+}).pipe(Effect.provide(clockLayer));
+```
+
+`logicalDay(instant)` returns an ISO calendar date; omitting the instant uses Effect's current clock. `dayRange(day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
+
 ### Once per application: contracts and session policy
 
 Declare authentication middleware for actor-only boundaries. When a request acts on an account's data, declare its subject on the contract instead of accepting an owner id and checking it in each handler.
@@ -148,7 +182,9 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. The mount does not run migrations or require identity's migration history. Use frozen numbered auth migrations as described below, or keep an existing migrator during the transition described in [Auth tables owned by another migrator](#auth-tables-owned-by-another-migrator). The application SQL Layer owns shutdown.
+
+`betterAuthMount` enables Better Auth's native database joins by default. Session lookups through the Effect provider and mounted HTTP routes cancel their PostgreSQL queries quietly when interrupted, including when the user table is locked. This avoids Better Auth's fallback join error output and account ids in the console. An explicit `advanced.database.joins` option overrides the default.
 
 The adapter captures the SQL transaction at creation. An adapter created at startup does not join a later `transact` around an `auth.api` call: its auth writes commit independently and survive the application's rollback. For a shared boundary, create the adapter inside `transact`, and use it only within that transaction. Create the mount there too when its Effect hooks must share the application transaction:
 
@@ -191,6 +227,12 @@ Missing, empty, non-string, overlong and incorrect passwords are refused with HT
 Password resets revoke existing sessions by default. Set `emailAndPassword.revokeSessionsOnPasswordReset: false` in the Better Auth options to retain them explicitly. These defaults sit alongside the mount's rate limiting; application plugins and the provider's email-change settings remain in effect.
 
 `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. Without a trusted proxy, auth rate limiting uses the connection peer address, so different peers have separate buckets and Better Auth receives a client IP without a missing-IP warning. A trusted peer's configured forwarded header takes precedence over the peer address.
+
+On Railway, pass `{ clientIp: "railway" }` as the second argument to `betterAuthMount` and set `TRUSTED_PROXY=100.64.0.0/10`. The preset selects Railway's edge-written `X-Real-IP` for session addresses and auth rate limiting, ignoring client-sent `X-Forwarded-For` even when `AUTH_CLIENT_IP_HEADER` selects that header. Proxy trust still applies: an untrusted peer or a trusted peer without `X-Real-IP` uses its connection address.
+
+```ts
+const mounted = yield* betterAuthMount(authOptions, { clientIp: "railway" });
+```
 
 The auth HTTP server span records the resolved rate-limit address in `auth.rate_limit.address` and its source in `auth.rate_limit.address_source`: `forwarded` for the trusted proxy's configured header, or `peer` for the connection address. These attributes accompany counted sign-in attempts and HTTP 429 refusals, so operators can inspect the choice directly. The recorded address follows Better Auth's normalization, including IPv6 subnet grouping; a trusted peer without a forwarded header records `peer`.
 
@@ -245,6 +287,33 @@ const authentication = (options: BetterAuthOptions) =>
 ```
 
 The native `emailAndPassword.onPasswordReset` callback runs first. An Effect failure with `BetterAuthHookError` fields reaches the caller as HTTP 403 with its code and message. This callback follows Better Auth's post-reset lifecycle; a failure does not undo the password change.
+
+### Seed local demo users
+
+`defineSeed` builds the PostgreSQL and Better Auth layers from `DATABASE_URL`, finds or creates each persona by email, assigns its role through `assignRole`, then evaluates `run` with that user's `Identity`, `SessionUser` and query viewer. The database must already be migrated. Only PostgreSQL URLs on `localhost`, `127.0.0.1` or `[::1]` are accepted; connection host overrides are refused before connecting.
+
+```ts
+import { Effect, Redacted } from "effect";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { defineSeed } from "@shivaedev/identity/server/better-auth/adapters/defineSeed.ts";
+
+const roles = roleSet(role("member", []));
+const seed = defineSeed({
+	defaultRole: "member",
+	roles,
+	users: [{ email: "alice@demo.test", name: "alice", password: Redacted.make("local-demo-password"), role: "member" }],
+	run: Effect.gen(function* () {
+		const user = yield* SessionUser;
+		yield* Effect.logInfo(`Seed application data for ${user.email}`);
+	}),
+});
+```
+
+Pass the application's Better Auth settings as `auth` when it customizes user tables or authentication options. Existing emails reuse the same user ID, profile and password; each seed run assigns the declared role and runs the application Effect again, so application data seeding should itself be repeatable. New users receive password credentials and can sign in with the declared password.
+
+For provisioning outside a seed, provide `betterAuthUserProvisioning(auth)` from `@shivaedev/identity/server/better-auth/adapters/userProvisioning.ts` and call `(yield* UserProvisioning).findOrCreateUser({ email, name, password })`, importing `UserProvisioning` from `@shivaedev/identity/server/UserProvisioning.ts`. This shares the seed's email-based reuse behavior without the seed's local database restriction.
 
 ### User directory
 
@@ -579,6 +648,35 @@ The failure's `_tag` remains `AuthFailure`; its `code` union includes the declar
 
 React's `authAction`, `authQuery` and `authSession` consume these Effects to create atoms. See [React's Better Auth usage](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#better-auth-actions).
 
+### Auth tables owned by another migrator
+
+An application moving from Prisma can keep Prisma in charge of its auth tables while adopting identity's mount. Apply the existing migrator first, then run `assertBetterAuthSchema` as a startup guard before `betterAuthMount`. Both use the same application `SqlClient`; keep Better Auth's table and field mappings aligned with the existing schema.
+
+```ts
+import { Effect } from "effect";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+
+const authOptions = {
+	account: { modelName: "Account" },
+	emailAndPassword: { enabled: true },
+	session: { modelName: "Session" },
+	user: { modelName: "User" },
+	verification: { modelName: "Verification" },
+};
+
+const authentication = Effect.gen(function* () {
+	yield* assertBetterAuthSchema(authOptions);
+	const database = yield* betterAuthDatabase();
+	return yield* betterAuthMount({ ...authOptions, database });
+});
+```
+
+Provide the SQL Layer and `memoryStore`, and supply the secret as for any mount. The guard fails in the Effect error channel with `BetterAuthSchemaDrift` from the assertion module; its `missing` array names missing tables and columns, such as `column User.emailVerified`. This failure stops acquisition before the mount starts, preserving the actionable schema diagnostic instead of the provider's generic `AuthUnavailable`. Extra application columns can stay in the auth tables. The mount reads existing sessions without changing the schema or taking over its migrations.
+
+This is a migration step towards identity's frozen auth migrations. While Prisma owns the tables, make schema corrections in Prisma. When ownership moves, preserve the existing schema baseline in the application's migration history and use the frozen workflow below for subsequent auth changes. Generate each addition against a disposable database with the previously shipped schema applied, and register it with the application's numbered SQL migrations. Keep one migrator responsible for each auth schema change.
+
 ### Frozen auth migrations
 
 Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(options, roleOptions?)` reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
@@ -775,6 +873,36 @@ export default Effect.gen(function* () {
 
 Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` to delete owned rows with their user, or a nullable `user_id` and `ON DELETE SET NULL` to retain rows without an owner. `userReference` describes the default PostgreSQL mapping, so an application that customizes Better Auth's user table or id column must use its own mapping. Account reads and writes still go through identity; the foreign key grants no access to auth data. Quality's `boundaries/auth-sql` accepts these references while rejecting other auth SQL outside the configured owners.
 
+### Register user data exports
+
+Each domain supplies a `UserDataExport` from `server/userDataExport.ts`: the schema-qualified tables it owns and an `export(userId)` Effect that reads that user's rows. Keep filtering and the choice of exported fields in the domain. Compose the registrations once in the application's account module:
+
+```ts
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
+import { accountExport } from "@shivaedev/identity/server/accountExport.ts";
+import { betterAuthUserDataExport } from "@shivaedev/identity/server/better-auth/adapters/userDataExport.ts";
+
+const notesExport = {
+	tables: [{ schema: "public", table: "notes" }],
+	export: Effect.fn(function* (userId: string) {
+		const sql = yield* SqlClient.SqlClient;
+		return yield* sql<{ title: string }>`select title from notes where user_id = ${userId} order by title`;
+	}),
+};
+
+const exports = accountExport({ account: betterAuthUserDataExport(), notes: notesExport });
+
+const checkExportCoverage = exports.check;
+const exportUser = exports.exportUser;
+```
+
+`exportUser(userId)` checks coverage, enumerates every registration and returns one object keyed by domain, preserving each domain's result type, Effect dependencies and failures. Empty domain results remain in the export. The account handler supplies the authorized user's id; this server API does not authenticate callers. Application-owned tables with no foreign key need explicit registration too: PostgreSQL cannot discover their ownership.
+
+Run `check` against the migrated application database in a startup check or PostgreSQL story. It reads PostgreSQL's foreign-key catalog and fails with `UnregisteredUserExportTables` from `server/account-export/check.ts` when any table referencing the user id lacks a registration. The error's `tables` names each missing `{ schema, table }` once, including references from other schemas. A registration covers its named table; the domain remains responsible for exporting the right rows and fields, which its stories should prove. An export runs the same check before reading domain data, so a newly added foreign key cannot silently leave a table out.
+
+The default reference is `public.user(id)`. For a customized auth mapping, pass `{ schema, table, column }` as the second argument to `accountExport`. Pass the same Better Auth options to `betterAuthUserDataExport(options)`; its optional second argument selects the PostgreSQL schema. The built-in registration exports profile fields, linked-account identifiers and session metadata for that user, with timestamps as native Effect UTC values. Passwords, access tokens, refresh tokens and session tokens are excluded by explicit field selection. Add registrations for application fields and plugin-owned tables that the built-in registration does not cover.
+
 ### Signed-in story preconditions
 
 Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance with the host's database, secret and cookie policy. Keep the plugin out of production auth options.
@@ -859,15 +987,16 @@ const mounted = yield* betterAuthMount(options, {
     },
     deliver: (message) => mailer.deliver(message),
     window: "1 minute",
+    windows: { ConfirmAccount: "2 minutes", ResetPassword: "5 minutes" },
   },
 });
 ```
 
-`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. The `url` and every `token` are `Redacted<string>` so delivered messages keep their links and tokens hidden in logs and traces. Read them with `Redacted.value(message.url)` or `Redacted.value(message.token)` only when rendering the email or submitting the token. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
+`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. The `url` and every `token` are `Redacted<string>` so delivered messages keep their links and tokens hidden in logs and traces. Read them with `Redacted.value(message.url)` or `Redacted.value(message.token)` only when rendering the email or submitting the token. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. When Better Auth supplies a continuation in its email link, identity copies it into `callbackURL` on the app link, replacing a configured `callbackURL` only when the continuation resolves to that app route's origin. Relative and absolute same-origin continuations are accepted; off-origin continuations are omitted even when Better Auth trusts that origin. Duplicate sign-up emails read `callbackURL` from the sign-up request supplied by Better Auth; server-side calls without a request keep their configured sign-in route. A confirmation page forwards both `token` and `callbackURL` to Better Auth's verification API so verification continues to the requested page, such as an invitation. A reset page submits the token with the new password to the reset API and uses the continuation after success.
 
 The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
 
-Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
+Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input and remains the default for every kind. The optional `windows` map overrides that duration by `AuthEmail["_tag"]`; omitted kinds still use `window`, or one minute when it is absent. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
 
 ### Sweep expired sessions in a worker
 

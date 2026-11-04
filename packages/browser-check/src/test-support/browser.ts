@@ -11,7 +11,7 @@ const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 const PREFIX = "browser-check: ";
 
 export const browser = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "browser-check-story-" });

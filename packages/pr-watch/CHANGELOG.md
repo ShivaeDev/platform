@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0 - 2026-11-04
+
+### Changed
+
+- Queue confirmation and required-check reads use github's shared GraphQL transport and envelope decoding while preserving their existing diagnostics and the `GitHubHttp` adapter contract.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.8.2 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/github` from 0.11.1 to 0.11.2.
+- Update `@shivaedev/service` from 0.6.1 to 0.6.2.
+
 ## 0.8.1 - 2026-11-03
 
 ### Changed

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
+## 0.6.0 - 2026-11-04
+
+### Added
+
+- Expose the existing Vitest runner `open` operation and its `RunOptions` type from `/adapters/open.ts`.
+
+## 0.5.1 - 2026-11-04
+
+### Changed
+
+- Update `@shivaedev/service` from 0.6.1 to 0.6.2.
+
 ## 0.5.0 - 2026-11-03
 
 ### Added
