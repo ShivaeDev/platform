@@ -36,9 +36,12 @@ function isModule(folder: string, stems: ReadonlySet<string>): boolean {
 	return stems.has(`${folder}/${name}`) || stems.has(`${posix.dirname(folder)}/${name}`);
 }
 
-function packageMessage(name: string, packageName: string): string | undefined {
+function packageMessage(folder: string, packageName: string): string | undefined {
 	const expected = packageName.replace(/^@[^/]+\//u, "");
-	return name === expected ? undefined : `The folder of the package ${packageName} is named "${expected}", in kebab-case after the package name.`;
+	const nested = folder.split("/").slice(1).join("-");
+	return posix.basename(folder) === expected || nested === expected
+		? undefined
+		: `The folder of the package ${packageName} must be named "${expected}", in kebab-case after the package name, or its path below the workspace package root must join with "-" to "${expected}".`;
 }
 
 function groupMessage(name: string): string | undefined {
@@ -65,7 +68,7 @@ function messageFor(folder: string, context: Context): string | undefined {
 	}
 	const packageName = context.names.get(folder);
 	if (packageName !== undefined) {
-		return packageMessage(name, packageName);
+		return packageMessage(folder, packageName);
 	}
 	if (context.content.ignores(`${folder}/`)) {
 		return SNAKE.test(name) ? undefined : `"${name}" holds content, so it is named in snake_case, such as forest_path/.`;
@@ -91,7 +94,7 @@ export const folderNames = defineRule({
 			});
 		}),
 	description:
-		"A package folder is named after its package, a module folder after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
+		"A package folder's final name or its path below the workspace package root joined with hyphens matches its unscoped package name. A module folder is named after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
 	id: "files/folder-names",
 	options: Schema.toStandardSchemaV1(FolderNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,
