@@ -280,6 +280,33 @@ const authentication = (options: BetterAuthOptions) =>
 
 The native `emailAndPassword.onPasswordReset` callback runs first. An Effect failure with `BetterAuthHookError` fields reaches the caller as HTTP 403 with its code and message. This callback follows Better Auth's post-reset lifecycle; a failure does not undo the password change.
 
+### Seed local demo users
+
+`defineSeed` builds the PostgreSQL and Better Auth layers from `DATABASE_URL`, finds or creates each persona by email, assigns its role through `assignRole`, then evaluates `run` with that user's `Identity`, `SessionUser` and query viewer. The database must already be migrated. Only PostgreSQL URLs on `localhost`, `127.0.0.1` or `[::1]` are accepted; connection host overrides are refused before connecting.
+
+```ts
+import { Effect, Redacted } from "effect";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { defineSeed } from "@shivaedev/identity/server/better-auth/adapters/defineSeed.ts";
+
+const roles = roleSet(role("member", []));
+const seed = defineSeed({
+	defaultRole: "member",
+	roles,
+	users: [{ email: "alice@demo.test", name: "alice", password: Redacted.make("local-demo-password"), role: "member" }],
+	run: Effect.gen(function* () {
+		const user = yield* SessionUser;
+		yield* Effect.logInfo(`Seed application data for ${user.email}`);
+	}),
+});
+```
+
+Pass the application's Better Auth settings as `auth` when it customizes user tables or authentication options. Existing emails reuse the same user ID, profile and password; each seed run assigns the declared role and runs the application Effect again, so application data seeding should itself be repeatable. New users receive password credentials and can sign in with the declared password.
+
+For provisioning outside a seed, provide `betterAuthUserProvisioning(auth)` from `@shivaedev/identity/server/better-auth/adapters/userProvisioning.ts` and call `(yield* UserProvisioning).findOrCreateUser({ email, name, password })`, importing `UserProvisioning` from `@shivaedev/identity/server/UserProvisioning.ts`. This shares the seed's email-based reuse behavior without the seed's local database restriction.
+
 ### User directory
 
 Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. Setting `authOptions.user.modelName` to `"users"` directs directory reads to that table, including the admin Users view and its pagination. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
