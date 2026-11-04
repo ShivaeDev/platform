@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.40.0 - 2026-11-04
+
+### Added
+
+- Activate staged updates while hidden once registered blockers release, and expose an application-owned reload action when activation is unavailable or blocked.
+- Provide `useNewId` and `useClock` callbacks backed by atom runtime Crypto and Clock services, plus a Web Crypto client layer.
+- Add `usePromiseAction` to dispatch promise calls with native action state, `UnknownError` failures by default and an optional typed rejection mapper.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.39.0 - 2026-11-04
 
 ### Added

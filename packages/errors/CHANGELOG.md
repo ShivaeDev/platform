@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-04
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.8.0 - 2026-11-04
 
 ### Breaking

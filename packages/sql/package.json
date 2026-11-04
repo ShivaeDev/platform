@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/sql",
-	"version": "0.36.1",
+	"version": "0.37.0",
 	"description": "Schema-derived repositories over native Effect SQL",
 	"keywords": [
 		"effect"
