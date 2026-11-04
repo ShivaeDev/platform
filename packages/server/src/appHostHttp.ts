@@ -2,7 +2,6 @@ import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
-import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
@@ -12,6 +11,7 @@ import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
 import { hostAssets } from "#hostAssets.ts";
 import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
 import { hostRpcRoutes } from "#hostRpcRoutes.ts";
+import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
@@ -43,14 +43,14 @@ export function appHostHttp<
 	> &
 		HostPolicy,
 ) {
+	const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
 	return Layer.unwrap(
-		Effect.map(schemaSensitiveKeys(options.group, options.config?.sensitiveKeys), (sensitive) =>
+		Effect.map(hostSensitiveKeys(options), (sensitive) =>
 			Layer.unwrap(
 				Effect.gen(function* () {
 					const transport = yield* hostTransport(options);
 					const { bodySize, host, trustedProxy, nativeOrigins } = transport;
-					const routes = hostRpcRoutes(options, transport, sensitive);
-					const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
+					const routes = options.group === undefined ? Layer.empty : hostRpcRoutes(options, transport, sensitive);
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
 					const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
 					const server = nodeHttpServer(host, { ...options.config, maxBodySize: bodySize });
@@ -62,7 +62,7 @@ export function appHostHttp<
 						assets,
 						applicationRoutes,
 					).pipe(
-						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
+						Layer.provide(options.group === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
 						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
 					);
 					return Layer.unwrap(

@@ -20,14 +20,16 @@ export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THa
 		readonly disablePreemptiveShutdown?: boolean;
 		readonly gracefulShutdownTimeout?: Duration.Input;
 	};
-	readonly group: RpcGroup.RpcGroup<TRpcs>;
-	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
 	readonly nativeOrigins?: readonly string[];
 	readonly rpcPath?: HttpRouter.PathInput;
 } & (
-	| { readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements> }
-	| ([TServices | TServiceError | TServiceRequirements] extends [never] ? { readonly services?: never } : never)
-);
+	| { readonly group: RpcGroup.RpcGroup<TRpcs>; readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements> }
+	| { readonly group?: never; readonly handlers?: never }
+) &
+	(
+		| { readonly services: Layer.Layer<TServices, TServiceError, TServiceRequirements> }
+		| ([TServices | TServiceError | TServiceRequirements] extends [never] ? { readonly services?: never } : never)
+	);
 
 export interface HostRoutes<TRouteError = never, TRouteRequirements = HostRouteRequirements> {
 	readonly routes?: Layer.Layer<never, TRouteError, TRouteRequirements>;
@@ -48,4 +50,5 @@ export type HostOptions<
 
 export type HostPolicy =
 	| { readonly policy?: undefined; readonly sessions: Layer.Layer<SessionPolicy> }
-	| { readonly policy: "loopback"; readonly sessions?: never };
+	| { readonly policy: "loopback"; readonly sessions?: never }
+	| { readonly group?: never; readonly policy?: undefined; readonly sessions?: never };

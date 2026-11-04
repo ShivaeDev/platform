@@ -29,6 +29,39 @@ The RPC host composes contract's `CommandGuard` with `publishCommand` and the `C
 
 The optional modules solve different boundaries. `runtime/` carries Effect services into Promise callers, and `node-http/` combines subscription cancellation sources. Choose the modules that match the application rather than adopting every integration.
 
+### Adopt the host before replacing an existing API
+
+For an app migrating from tRPC or another HTTP API, omit both `group` and `handlers` and mount the existing API through `routes`. This is a supported migration step towards native RPC; new apps use native contracts and handlers. Without a group the host installs no native RPC endpoint or RPC preflight policy, so an existing API can keep `/rpc`. The existing API continues to own its authentication and CORS policy. Supply `sessions` only if application routes or browser error reporting need the host's session policy.
+
+```ts
+import { Effect } from "effect";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { handleRequest } from "./existing-api.ts";
+
+const Routes = HttpRouter.add("POST", "/api/trpc/*", () =>
+	Effect.gen(function* () {
+		const body = yield* readBoundedBody();
+		const request = yield* HttpServerRequest.HttpServerRequest;
+		const web = yield* HttpServerRequest.toWeb(request);
+		const response = yield* Effect.promise(() => handleRequest(new Request(web, { body })));
+		return HttpServerResponse.fromWeb(response);
+	}),
+);
+
+const Server = appHost({
+	routes: Routes,
+	config: { host: "0.0.0.0", trustedProxy: "127.0.0.1", maxBodySize: 1024 * 1024 },
+});
+```
+
+`handleRequest` is the app's existing `(request: Request) => Promise<Response>`. Use `readBoundedBody` when forwarding bodies; `routes` receives the host's `MAX_BODY_SIZE` or `config.maxBodySize`, and that reader returns 413 on overflow. Merely converting a request to a Web request does not bound its body. Configure the actual proxy peer in `trustedProxy`; the host still requires trust when binding publicly and applies it at its own transport boundaries, including browser error reports. This setting does not install authentication or an Origin guard around application routes.
+
+The same host composition provides scoped `services`, migration ordering (including deferred `application` construction), `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. Health still returns 503 without SQL and 200 with reachable PostgreSQL. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
+
+Host option types include this HTTP-only shape. A wrapper that reads native RPC options first narrows with `options.group !== undefined` before reading `group` or `handlers`. Existing native `appHost` calls keep their options.
+
 ### Prepare local development
 
 `setupDatabases()` from `@shivaedev/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; setup command failures retain their local-postgres error tags. Provide `ChildProcessSpawner` at the setup entry point, for example with `Effect.provide(NodeServices.layer)` before `NodeRuntime.runMain`. Migrations remain the application's responsibility.
