@@ -1,16 +1,16 @@
 import { Deferred, Effect, Fiber } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { SignalNotReceived, UntilOptions } from "@shivaedev/test-story/server/until.ts";
-import { untilAtom } from "./untilAtom.ts";
+import { storyKit } from "#server/storyKit.ts";
+import type { SignalNotReceived, UntilOptions } from "#server/until.ts";
+import { type AtomFailed, untilAtom } from "#server/untilAtom.ts";
 
 interface Engine {
 	atom: Atom.Atom<string>;
 	readonly firstSeen: Deferred.Deferred<void>;
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly source: Atom.Writable<string>;
-	wait?: Fiber.Fiber<string, SignalNotReceived>;
+	wait?: Fiber.Fiber<string, SignalNotReceived | AtomFailed>;
 }
 
 function waiting(engine: Engine) {
@@ -37,14 +37,13 @@ export const atomStory = storyKit({
 		function waitFor(value: string, options?: UntilOptions) {
 			story.tell(`wait for the atom to hold ${value}`);
 			return untilAtom(
-				engine.registry,
 				engine.atom,
 				(current) => {
 					Deferred.doneUnsafe(engine.firstSeen, Effect.void);
 					return current === value;
 				},
 				options,
-			);
+			).pipe(Effect.provideService(AtomRegistry.AtomRegistry, engine.registry));
 		}
 		return {
 			*beginWaitingFor(value: string) {

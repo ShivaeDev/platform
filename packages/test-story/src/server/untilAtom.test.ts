@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { atomStory, firstReadPublishes } from "#test/atomStories.ts";
 
 atomStory.it("resolves with an atom's matching current value", [], function* ({ waitFor }) {
