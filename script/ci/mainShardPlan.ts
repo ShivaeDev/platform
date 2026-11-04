@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Cause, Effect, Schema } from "effect";
-import { read } from "@shivaedev/github/GitHub.ts";
+import { read } from "@shivaedev/github/read.ts";
 import { decodeTimingSnapshot } from "./timings.ts";
 
 const MainRun = Schema.Struct({
