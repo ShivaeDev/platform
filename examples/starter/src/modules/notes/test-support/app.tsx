@@ -5,6 +5,7 @@ import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/auth.ts";
@@ -164,10 +165,9 @@ export function authScreen() {
 
 export function signedInAccount() {
 	return notesApp.trait("account", "alice has a signed-in session", function* (engine) {
-		const { headers } = yield* mintUser({ origin: engine.baseUrl }, "alice");
+		const { cookies, headers } = yield* mintUser({ origin: engine.baseUrl }, "alice");
 		engine.headers = headers;
-		engine.fetch = globalThis.fetch;
-		engine.auth = makeAuth({ baseUrl: engine.baseUrl, fetchOptions: { customFetchImpl: engine.fetch, headers } });
+		yield* seedCookies(cookies);
 	});
 }
 

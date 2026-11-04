@@ -31,6 +31,7 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 		}
 	});
 	return {
+		heardKeys: () => hints.flatMap((hint) => (hint._tag === "Changed" ? hint.keys : [])),
 		hints: () => [...hints],
 		observeProtocol: Effect.gen(function* () {
 			const underlying = yield* RpcClient.Protocol;

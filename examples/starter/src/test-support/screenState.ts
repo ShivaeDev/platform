@@ -2,10 +2,12 @@ import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
+import type { ScreenDriverOptions } from "@shivaedev/test-story/server/screenDriver.ts";
 
 export interface ScreenSurface {
 	activity?: ClientActivity;
 	pending?: () => boolean;
+	transport?: ScreenDriverOptions["transport"];
 	view: Rendered | undefined;
 }
 
