@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { loaderScreen, noteLoadedButNotMounted, refreshHeld } from "#test/loaderScreen.tsx";
+import { loaderScreen } from "#test/loaderScreen.tsx";
+import { noteLoadedButNotMounted, refreshHeld } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
 	"a route whose query has answered keeps the screen pending until the router mounts it",

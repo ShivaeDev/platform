@@ -64,7 +64,3 @@ testing.it(
 		expect((yield* resources()).released).toBe(2);
 	},
 );
-
-testing.it.fails("console.error fails a story", [], function* ({ warn }) {
-	yield* warn();
-});

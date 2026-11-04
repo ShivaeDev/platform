@@ -1,10 +1,9 @@
-import { CatchBoundary } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
-import { captureReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { BrokenScreen } from "./BrokenScreen.tsx";
+import { captureReactWarnings, type Rendered, render } from "#client/adapters/react.ts";
+import { storyKit } from "#server/storyKit.ts";
+import { BrokenScreen, FailureBoundary } from "./failureBoundary.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
@@ -42,9 +41,9 @@ export const warningScreen = storyKit({
 			openFailedScreen: (failure: Error, onCaughtError = warnings.onCaughtError) =>
 				open(
 					`render a screen that throws ${failure.name}: ${failure.message} inside a catch boundary`,
-					<CatchBoundary errorComponent={() => <p role="alert">Screen unavailable</p>} getResetKey={() => "screen"}>
+					<FailureBoundary>
 						<BrokenScreen failure={failure} />
-					</CatchBoundary>,
+					</FailureBoundary>,
 					{ onCaughtError },
 				),
 			openWarningScreen: () => open("render a controlled field without onChange", <input value="Uneditable screen field" />),
