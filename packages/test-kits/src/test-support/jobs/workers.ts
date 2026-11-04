@@ -132,7 +132,6 @@ export type Attempt =
 	| { readonly enqueues: (jobs: PgBossService) => Effect.Effect<unknown, unknown> }
 	| { readonly step: string; readonly next: Attempt }
 	| { readonly logs: unknown; readonly afterwards?: Attempt }
-	| { readonly sleeps: number }
 	| "notes its job in the application log";
 
 export interface StartedAttempt {
@@ -195,9 +194,6 @@ function run(attempt: Attempt, log: WorkLog, job: JobContext): Effect.Effect<unk
 		return Effect.flatMap(deferralTime(attempt.until), (at) =>
 			Effect.sync(() => log.deferrals.push({ at, id: job.id })).pipe(Effect.andThen(Effect.fail(new RetryAt({ at, reason })))),
 		);
-	}
-	if ("sleeps" in attempt) {
-		return Effect.sleep(attempt.sleeps);
 	}
 	if ("logs" in attempt) {
 		return logged(attempt, log, job);
