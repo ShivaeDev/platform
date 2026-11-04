@@ -12,6 +12,7 @@ export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THa
 	readonly assets?: string | AssetOptions;
 	readonly browserErrors?: BrowserErrorOptions;
 	readonly config?: AppDatabaseOptions["config"] & {
+		readonly buildVersion?: string;
 		readonly port?: number;
 		readonly socketPath?: string;
 		readonly host?: string;
