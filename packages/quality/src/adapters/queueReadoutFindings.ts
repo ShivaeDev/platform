@@ -5,10 +5,10 @@ import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
-import { storyProgram } from "#rules/stories/program.ts";
 import { nodesWhere } from "#rules/stories/syntax.ts";
 import { readPackageManifest } from "./manifestInventory.ts";
 import { queueTestingOrigin } from "./queueTestingOrigin.ts";
+import { storyProgram } from "./storyProgram.ts";
 
 const MESSAGE =
 	"Reads jobs-testing queue storage. An enqueued job or its state does not prove the work ran. Assert the application's visible result instead; use jobs-testing only to control and settle workers.";

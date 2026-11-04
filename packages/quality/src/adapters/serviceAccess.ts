@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import ts from "typescript";
-import type { BodyReference } from "./bodyReferences.ts";
+import type { BodyReference } from "./bodyReference.ts";
 
 function nativeService({ module, path }: BodyReference): boolean {
 	const name = path[0];

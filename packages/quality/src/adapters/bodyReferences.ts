@@ -1,13 +1,7 @@
 import ts from "typescript";
 import { importFrom } from "#rules/stories/importOrigin.ts";
-import { memberName, unwrapped } from "#rules/stories/syntax.ts";
-
-export interface BodyReference {
-	readonly file?: string | undefined;
-	readonly kind: "data" | "import" | "service" | "told";
-	readonly module: string;
-	readonly path: readonly string[];
-}
+import { memberName } from "#rules/stories/syntax.ts";
+import { type BodyReference, dataFactory, serviceFactory } from "./bodyReference.ts";
 
 export function storyBody(body: ts.Expression, checker: ts.TypeChecker) {
 	const declaration = checker.getTypeAtLocation(body).getCallSignatures()[0]?.declaration;
@@ -34,7 +28,8 @@ export function bodyReferences(body: ts.SignatureDeclaration, checker: ts.TypeCh
 	const visiting = new Set<ts.Node>();
 	const told = body.parameters[0];
 	function symbol(value: ts.Symbol | undefined): BodyReference | undefined {
-		return value?.declarations?.map(visit).find((reference) => reference !== undefined);
+		const direct = value?.declarations?.map(visit).find((reference) => reference !== undefined);
+		return direct ?? (value !== undefined && value.flags & ts.SymbolFlags.Alias ? symbol(checker.getAliasedSymbol(value)) : undefined);
 	}
 	function imported(node: ts.ImportSpecifier | ts.NamespaceImport | ts.ImportClause): BodyReference | undefined {
 		const name = importName(node);
@@ -79,7 +74,18 @@ export function bodyReferences(body: ts.SignatureDeclaration, checker: ts.TypeCh
 		}
 		return member(receiver, memberName(node) ?? "");
 	}
+	function variable(node: ts.VariableDeclaration): BodyReference | undefined {
+		const value = node.initializer ?? node.type;
+		return value === undefined ? undefined : visit(value);
+	}
 	function expression(node: ts.Node): BodyReference | undefined {
+		if (ts.isTypeReferenceNode(node)) {
+			const target = visit(node.typeName);
+			return target?.kind === "import" && dataFactory(target) ? { kind: "data", module: target.module, path: [] } : undefined;
+		}
+		if (ts.isQualifiedName(node)) {
+			return member(visit(node.left), node.right.text);
+		}
 		if (ts.isIdentifier(node)) {
 			return symbol(checker.getSymbolAtLocation(node));
 		}
@@ -104,7 +110,7 @@ export function bodyReferences(body: ts.SignatureDeclaration, checker: ts.TypeCh
 			return imported(node);
 		}
 		if (ts.isVariableDeclaration(node)) {
-			return node.initializer === undefined ? undefined : visit(unwrapped(node.initializer));
+			return variable(node);
 		}
 		if (ts.isBindingElement(node)) {
 			return binding(node);
@@ -125,17 +131,4 @@ export function bodyReferences(body: ts.SignatureDeclaration, checker: ts.TypeCh
 		return value;
 	}
 	return visit;
-}
-
-function dataFactory({ module, path }: BodyReference): boolean {
-	return (module === "effect" && (path[0] === "Schema" || path[0] === "Data")) || module === "effect/Schema" || module === "effect/Data";
-}
-
-function serviceFactory({ module, path }: BodyReference): boolean {
-	return (
-		(module === "@shivaedev/service/defineService.ts" && path[0] === "defineService")
-		|| ((module === "effect" || module === "effect/Context")
-			&& path.at(-1) !== undefined
-			&& ["Service", "Tag", "GenericTag", "Reference"].includes(path.at(-1) ?? ""))
-	);
 }
