@@ -3,7 +3,7 @@ import type { RunEvent } from "@shivaedev/agent/events.ts";
 import type { Observation, Receipt, StartRequest } from "@shivaedev/agent/run.ts";
 import { deliver } from "#adapters/deliver.ts";
 import { unavailable } from "#adapters/failure.ts";
-import { rawOf, toAgentEvents } from "#adapters/mapping.ts";
+import { makeEventMapper, rawOf } from "#adapters/mapping.ts";
 import { openRuntime } from "#adapters/runtime.ts";
 import type { PiOptions } from "#PiOptions.ts";
 
@@ -17,6 +17,7 @@ export const openSession = Effect.fnUntraced(function* (options: PiOptions, requ
 		}
 		Queue.offerUnsafe(output, event);
 	}
+	const toAgentEvents = makeEventMapper();
 	const unsubscribe = session.subscribe((event) => {
 		for (const mapped of toAgentEvents(event)) {
 			emit(mapped);
@@ -40,7 +41,17 @@ export const openSession = Effect.fnUntraced(function* (options: PiOptions, requ
 		events: Stream.fromQueue(output),
 		inspect: Effect.sync(() => observation),
 		interrupt: Effect.tryPromise({ catch: unavailable, try: () => session.abort() }),
-		prompt: (text: string, delivery: "followUp" | "steer") => deliver(session, text, delivery),
+		prompt: (text: string, delivery: "followUp" | "steer") =>
+			deliver(session, text, delivery).pipe(
+				Effect.tap((disposition) =>
+					Effect.sync(() => {
+						if (disposition === "handled" && observation.type === "known" && observation.state === "accepted") {
+							emit({ state: "completed", type: "execution" });
+						}
+					}),
+				),
+				Effect.asVoid,
+			),
 		receipt,
 	};
 });

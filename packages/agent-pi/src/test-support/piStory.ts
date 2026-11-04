@@ -70,11 +70,14 @@ export const piAgent = storyKit({
 	}),
 });
 
-export const refused = piAgent.trait("peer", "Pi refuses preflight", ({ peer }) => {
-	peer.refusal = "preflight";
+export const refused = piAgent.trait("peer", "Pi rejects the prompt before acceptance", ({ peer }) => {
+	peer.refusal = "rejected";
 });
-export const unknownAcceptance = piAgent.trait("peer", "Pi fails without preflight evidence", ({ peer }) => {
+export const unknownAcceptance = piAgent.trait("peer", "Pi resolves the prompt without acceptance evidence", ({ peer }) => {
 	peer.refusal = "unknown";
+});
+export const handled = piAgent.trait("peer", "Pi consumes the prompt without a run", ({ peer }) => {
+	peer.handled = "/handled";
 });
 export const noCredentials = piAgent.trait("peer", "Pi has no credentialed models", ({ peer }) => {
 	peer.models = [];
