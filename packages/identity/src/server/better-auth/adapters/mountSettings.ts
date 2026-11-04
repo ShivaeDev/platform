@@ -2,12 +2,13 @@ import type { BetterAuthOptions } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
 
-export const mountSettings = Effect.fnUntraced(function* (options: BetterAuthOptions) {
+export const mountSettings = Effect.fnUntraced(function* (options: BetterAuthOptions, clientIp?: "railway") {
 	const secret = options.secret ?? Redacted.value(yield* Config.Redacted("BETTER_AUTH_SECRET"));
 	const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 	const origin = Option.map(publicUrl, (url) => url.origin);
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
-	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
+	const clientIpHeader =
+		clientIp === "railway" ? "x-real-ip" : yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
 	return {
 		authOptions: {
