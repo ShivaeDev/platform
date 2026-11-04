@@ -9,7 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
 export const driverScreen = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const view = yield* Effect.acquireRelease(
 			Effect.promise(() => render(null)),

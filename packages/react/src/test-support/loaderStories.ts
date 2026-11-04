@@ -82,11 +82,7 @@ export const loaders = storyKit(
 					begin(state, screen, name);
 				}),
 			outcome: (name: string) => Effect.sync(() => request(state, name).outcome),
-			queryWork: () =>
-				Deferred.await(state.interrupted).pipe(
-					Effect.as("interrupted" as const),
-					Effect.timeoutOrElse({ duration: "3 seconds", orElse: () => Effect.succeed("still running" as const) }),
-				),
+			queryWork: () => Deferred.await(state.interrupted).pipe(Effect.as("interrupted" as const)),
 			settles: (name: string) => settles(state, screen, name),
 		}),
 	),

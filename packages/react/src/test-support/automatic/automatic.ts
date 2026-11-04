@@ -1,104 +1,24 @@
-import { createHash } from "node:crypto";
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Deferred, Effect, Queue, Redacted } from "effect";
+import { Duration, Effect, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { TestClock } from "effect/testing";
 import { act } from "react";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
+import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "./connect.ts";
+import { busy, type Engine, live, open } from "./engine.ts";
 import { migrations } from "./feature.ts";
-import { openHost } from "./openHost.ts";
-import { openScreen } from "./openScreen.tsx";
-import { openWorker } from "./openWorker.ts";
 
 const { url: databaseUrl, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({
 	migrations: { ...migrations, lockTimeout: "5 seconds" },
 	url: Redacted.make(databaseUrl ?? "postgresql://disabled"),
 });
-
-function busy(container: HTMLElement) {
-	return container.querySelector('[data-pending="true"]') !== null || container.textContent?.includes("Loading") === true;
-}
-
-interface Narrator {
-	tell: (line: string) => void;
-}
-
-type Host = Awaited<ReturnType<typeof openHost>>;
-
-interface Engine {
-	readonly delivered: Effect.Effect<readonly unknown[]>;
-	readonly host: Host;
-	readonly marked: Map<number, unknown>;
-	readonly narrator: Narrator;
-	readonly screen: Awaited<ReturnType<typeof openScreen>>;
-	readonly secondHost: Host;
-	readonly worker: Awaited<ReturnType<typeof openWorker>>;
-}
-
-function* open() {
-	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-	const database = yield* PostgresTestDatabase;
-	const name = yield* Config.String("APP_NAME").pipe(Config.withDefault(new URL(Redacted.value(database.url)).pathname));
-	const channel = `changes_${createHash("sha256").update(name).digest("hex").slice(0, 32)}`;
-	const pg = yield* PgClient.PgClient;
-	const incoming = yield* pg.listen(channel);
-	const notifications: string[] = [];
-	const barriers = new Map<string, Deferred.Deferred<void>>();
-	yield* Effect.forever(
-		Queue.take(incoming).pipe(
-			Effect.tap((message) =>
-				Effect.sync(() => {
-					const barrier = barriers.get(message.payload);
-					if (barrier) {
-						Deferred.doneUnsafe(barrier, Effect.void);
-					} else if (message.payload.startsWith("[")) {
-						notifications.push(message.payload);
-					}
-				}),
-			),
-		),
-	).pipe(Effect.forkScoped);
-	const delivered = Effect.gen(function* () {
-		const payload = `barrier ${barriers.size}`;
-		const barrier = Deferred.makeUnsafe<void>();
-		barriers.set(payload, barrier);
-		yield* pg.notify(channel, payload).pipe(Effect.orDie);
-		yield* Deferred.await(barrier);
-		return notifications.map((notification): unknown => JSON.parse(notification));
-	});
-	const host = yield* Effect.acquireRelease(
-		Effect.promise(() => openHost(database.url)),
-		(value) => Effect.promise(value.close),
-	);
-	const secondHost = yield* Effect.acquireRelease(
-		Effect.promise(() => openHost(database.url)),
-		(value) => Effect.promise(value.close),
-	);
-	const worker = yield* Effect.acquireRelease(
-		Effect.promise(() => openWorker(Redacted.value(database.url))),
-		(value) => Effect.promise(value.close),
-	);
-	const screen = yield* Effect.acquireRelease(
-		Effect.promise(() => openScreen(host.url)),
-		(value) => Effect.promise(value.unmount),
-	);
-	const engine: Engine = { delivered, host, marked: new Map(), narrator: { tell: () => undefined }, screen, secondHost, worker };
-	return engine;
-}
-
-function live(engine: Engine) {
-	const { container } = engine.screen;
-	return Effect.suspend(() =>
-		settleScreen(container, () => container.querySelector('[data-live="live"]') === null || busy(container), engine.narrator.tell),
-	);
-}
 
 function automaticVerbs(engine: Engine) {
 	function say(line: string) {
@@ -107,11 +27,20 @@ function automaticVerbs(engine: Engine) {
 	function settle(container: () => HTMLElement = () => engine.screen.container) {
 		return Effect.suspend(() => settleScreen(container(), () => busy(container()), say));
 	}
-	function refreshed(id: number, change: Effect.Effect<unknown>, container?: () => HTMLElement) {
+	function refreshed(id: number, change: Effect.Effect<unknown>, container?: () => HTMLElement, coalesces = true) {
 		return Effect.gen(function* () {
 			const read = engine.host.nextRead(id);
-			yield* change;
-			yield* Effect.promise(() => act(() => read));
+			const run = Effect.runPromiseWith(yield* Effect.context());
+			yield* Effect.promise(() =>
+				act(async () => {
+					await run(change);
+					if (coalesces) {
+						await run(untilTimer("20 millis"));
+						await run(TestClock.adjust("20 millis"));
+					}
+					await read;
+				}),
+			);
 			yield* settle(container);
 		});
 	}
@@ -119,7 +48,7 @@ function automaticVerbs(engine: Engine) {
 		return Effect.acquireUseRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(registry) => {
-				const client = websocket ? connect(url, layerWebSocketConstructorWS) : connect(url);
+				const client = websocket ? connect(url, layerWebSocketConstructorWS, engine.runtime) : connect(url, undefined, engine.runtime);
 				return Effect.promise(() =>
 					act(async () => Effect.runPromise(AtomRegistry.getResult(registry, client.runtime.atom(client.api.rename.run({ id, title }))))),
 				);
@@ -167,7 +96,7 @@ function automaticVerbs(engine: Engine) {
 		settle,
 		showSecond: () => {
 			say("show the second note's query again");
-			return refreshed(2, click("Show second"));
+			return refreshed(2, click("Show second"), undefined, false);
 		},
 		workerCommits: (id: number, title: string) => {
 			say(`a pg-boss worker commits note ${id} as ${title}`);
@@ -182,7 +111,7 @@ function automaticVerbs(engine: Engine) {
 
 export const automatic = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: open,
 	inspect: ({ host, screen }) => ({ publications: host.publications, reads: host.reads, text: screen.container.textContent }),
 	layer,
@@ -209,8 +138,16 @@ export const automatic = storyKit({
 			queryValue: (id: number) => Effect.sync(() => (engine.screen.query(id) === engine.marked.get(id) ? "the same value" : "a new value")),
 			reads: () => Effect.sync(() => engine.host.reads.toSorted()),
 			reconnected: () => {
-				story.tell("wait for the client to reconnect on its own");
-				return live(engine);
+				story.tell("the client's retry interval passes and its socket reconnects");
+				return Effect.gen(function* () {
+					const run = Effect.runPromiseWith(yield* Effect.context());
+					yield* Effect.promise(() => engine.screen.reconnected);
+					yield* until(engine.clock.sleeps, (interval) => Duration.toMillis(interval) > 20, {
+						name: "the live subscription's retry timer",
+					});
+					yield* Effect.promise(() => act(async () => run(TestClock.adjust("2 seconds"))));
+					yield* live(engine);
+				});
 			},
 			renameFromScreen: (title: string) => {
 				story.tell(`rename note 1 to ${title} from the screen`);

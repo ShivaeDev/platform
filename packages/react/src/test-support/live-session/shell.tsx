@@ -1,3 +1,4 @@
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -10,7 +11,7 @@ export interface Connection {
 	readonly registry: AtomRegistry.AtomRegistry;
 }
 
-export function shell(url: string, view: Rendered, browser: boolean) {
+export function shell(url: string, view: Rendered, browser: boolean, runtime: Atom.RuntimeFactory) {
 	const connections: Connection[] = [];
 	return {
 		connections,
@@ -18,7 +19,9 @@ export function shell(url: string, view: Rendered, browser: boolean) {
 			view.render(
 				<SessionBoundary
 					connect={(current, registry) => {
-						const api = browser ? connect(url, registry, undefined, Socket.layerWebSocketConstructorGlobal) : connect(url, registry, current.token);
+						const api = browser
+							? connect(url, registry, runtime, undefined, Socket.layerWebSocketConstructorGlobal)
+							: connect(url, registry, runtime, current.token);
 						connections.push({ id: current.id, registry });
 						return api;
 					}}

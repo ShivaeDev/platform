@@ -132,10 +132,7 @@ function showRound(state: HiddenState, mode: "visible" | "hidden", round: number
 
 function releasedResources(state: HiddenState, screen: Screen) {
 	screen.tell("wait for the hidden renders' resources to be released");
-	return Deferred.await(state.finalized).pipe(
-		Effect.as("released"),
-		Effect.timeoutOrElse({ duration: "3 seconds", orElse: () => Effect.succeed("still held") }),
-	);
+	return Deferred.await(state.finalized).pipe(Effect.as("released"));
 }
 
 export const hiddenSessions = storyKit(
