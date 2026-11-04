@@ -1,4 +1,4 @@
-import { Clock, Effect, Fiber } from "effect";
+import { Clock, Deferred, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#server/client.ts";
@@ -78,6 +78,10 @@ export const runtime = storyKit({
 		handled: (queue: string) => Effect.sync(() => engine.work.handled(queue)),
 		interrupted: () => Effect.sync(() => engine.work.interrupted.map(({ id }) => id)),
 		logged: () => Effect.sync(() => engine.logs.map(({ level, message }) => ({ level, message }))),
+		open: (gate: string) => {
+			story.tell(`the ${gate} gate opens`);
+			return Deferred.succeed(engine.work.gate(gate).opened, undefined);
+		},
 		queueCreationAttempts: () => Effect.sync(() => engine.client.creationAttempts),
 		scheduledCrons: () => Effect.sync(() => engine.client.scheduled.map(({ cron, name, options }) => ({ cron, name, options }))),
 		sent: () => Effect.sync(() => engine.client.sent.map(({ data, name, options }) => ({ data, name, options }))),
@@ -121,6 +125,10 @@ export const runtime = storyKit({
 		stop: (name: string) => {
 			story.tell(`${name} stops`);
 			return Effect.suspend(() => runningIn(engine, name).stop).pipe(Effect.tap(() => Effect.sync(() => engine.runtimes.delete(name))));
+		},
+		untilWaiting: (gate: string) => {
+			story.tell(`wait until a job waits at the ${gate} gate`);
+			return Deferred.await(engine.work.gate(gate).entered);
 		},
 		updatedQueues: () => Effect.sync(() => engine.client.updated.map(({ name, options }) => ({ name, options }))),
 		workerCalls: () => Effect.sync(() => engine.client.calls.filter((call) => call.startsWith("work ") || call.startsWith("stop working "))),
