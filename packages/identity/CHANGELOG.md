@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.24.0 - 2026-11-04
+
+### Added
+
+- store account timezone, locale and units through authenticated preference contracts. Browser sign-in capture preserves subsequent edits.
+- provide an account clock with a configurable local day start and DST-aware logical days and half-open day ranges.
+
+### Breaking
+
+- import `AccountDayStart` and `LogicalDay` from `@shivaedev/identity/server/account-clock/settings.ts`. `server/AccountClock.ts` exports the service only.
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.23.1 - 2026-11-04
 
 ### Changed

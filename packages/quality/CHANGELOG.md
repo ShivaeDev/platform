@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.60.0 - 2026-11-04
+
+### Added
+
+- Recognise TanStack Router's file-routed folders from `tsr.config.json` and literal Vite plugin options. Route file and folder names follow the router without per-file exceptions, including newly added routes; ordinary files and ignored helpers retain naming checks.
+
+### Fixed
+
+- Report raw service acquisition, `story.engine` access and production constructor wiring in story bodies even when traits or kit inputs are used. Keep colocated constructor subjects, native Effect data constructors and SQL handles used only for transaction blocks available.
+- Recognise Schema error classes imported from installed `@shivaedev` packages as data in story bodies, while continuing to report production constructors.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.59.0 - 2026-11-04
 
 ### Added

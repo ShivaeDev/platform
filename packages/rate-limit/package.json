@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/rate-limit",
-	"version": "0.3.3",
+	"version": "0.4.0",
 	"description": "Per-key rate limits with memory and PostgreSQL stores for Effect applications",
 	"keywords": [
 		"effect"

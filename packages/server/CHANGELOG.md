@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.24.0 - 2026-11-04
+
+### Added
+
+- Announce the host's configured build version over native live RPC so loaded tabs detect a deploy without polling health.
+- Record development spans and correlated logs in a local SQLite store without an OpenTelemetry collector, using the host redaction policy. Configure indexed attributes and compose `localTracing` directly with scoped flushing and run retention.
+
+### Changed
+
+- Start development server and worker processes with `NODE_ENV=development`. Hosts without an OTLP endpoint record locally in this mode.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.23.0 - 2026-11-04
 
 ### Added

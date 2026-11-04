@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.36.0 - 2026-11-04
+
+### Added
+
+- Declare the host build-version stream shared by server and browser clients.
+
+### Fixed
+
+- emit portable declarations for exported contracts with declared subjects.
+
+### Breaking
+
+- TypeScript source exports now use `@shivaedev/source` instead of `source`. Replace `source` with `@shivaedev/source` in Node `--conditions`, TypeScript `customConditions`, and Vite/Vitest `resolve.conditions`. Bare `source` selects built JavaScript; no compatibility alias is provided.
+
 ## 0.35.0 - 2026-11-04
 
 ### Added
