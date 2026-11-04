@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Orders, type SaveOrderInput } from "./contract.ts";
-import { OrderService } from "./service.ts";
+import { OrderService } from "./Service.ts";
 
 export interface OrderServerOptions {
 	readonly beforeGet?: (id: number) => Effect.Effect<void>;

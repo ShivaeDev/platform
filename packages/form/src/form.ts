@@ -5,6 +5,7 @@ import type * as AtomRef from "effect/reactivity/AtomRef";
 import { persistence } from "#adapters/persistence.ts";
 import { checkFeedback } from "./checkFeedback.ts";
 import { draft } from "./draft.ts";
+import { refAt } from "./fieldPath.ts";
 import { literalChoices, messageAt, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
 import { fromRef, propertyRef } from "./refs.ts";
@@ -107,6 +108,10 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 			refFor(name).set(value);
 			status.touch(name);
 		},
+		changeAt: (path, value) => {
+			refAt(values, path).set(value);
+			status.touch(path[0]);
+		},
 		choices: <TName extends Name<TFields>>(name: TName) => {
 			const member = schema.fields[name];
 			const decodeChoice = SchemaParser.decodeUnknownSync(Schema.toEncoded(schema), { disableChecks: true });
@@ -125,6 +130,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 			);
 		}),
 		field: refFor,
+		fieldAt: (path) => refAt(values, path),
 		receive: editing.receive,
 		revert: editing.revert,
 		submit,

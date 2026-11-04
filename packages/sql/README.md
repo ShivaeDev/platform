@@ -89,6 +89,24 @@ const database = PgClient.layer(
 
 To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appHost.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
+### Grouped values in flat columns
+
+Use `Model.Group` from `@shivaedev/sql/Model.ts` inside a native Effect model when several columns form one value:
+
+```ts
+import { Schema } from "effect";
+import { Model as NativeModel } from "effect/schema";
+import { Model } from "@shivaedev/sql/Model.ts";
+
+class Food extends NativeModel.Class<Food>("Food")({
+	id: NativeModel.Field({ select: Schema.Number, update: Schema.Number }),
+	name: Schema.String,
+	energy: Model.Group({ low: Schema.NumberFromString, expected: Schema.NumberFromString, high: Schema.NumberFromString }, { prefix: "energy_" }),
+}) {}
+```
+
+Repository inputs and returned values contain `energy: { low, expected, high }`. Storage uses `energy_low`, `energy_expected` and `energy_high`; the prefix is concatenated with each member name. Member codecs still encode and decode each value. The application creates those columns. `findById` and `findMany`, including `select: ["energy"]`, return the struct. A chosen-column update with `columns: ["energy"]` replaces the group together and preserves other columns. Use scalar model fields for filters, ordering and conflict targets; a group declares a stored value, not a relation or a nested query language.
+
 ### 1. Once per model: fields and writable variants
 
 ```ts
@@ -210,7 +228,7 @@ yield* lines.updateVoid({ id: 1, note: null }, { columns: ["note"] });
 yield* lines.update({ id: 2, name: "Travel" }, { columns: ["name"], onMissing: "fail" });
 ```
 
-Each call executes one `UPDATE … RETURNING` without a preliminary read, encodes only the selected fields and every primary-key component through the model's update schemas, and publishes its table, record and old/new bucket keys after commit. Other columns retain their stored values, including omitted update timestamps. The column list is nonempty and contains writable fields other than the primary key; invalid selections fail with `SchemaError`. Composite-key inputs include every key component. `updateVoid` discards the returned row; `update` returns the decoded model and keeps the same missing-row behavior as a complete update. Column selection is available on unversioned repositories.
+Each call executes one `UPDATE … RETURNING` without a preliminary read, encodes only the selected fields and every primary-key component through the model's update schemas, and publishes its table, record and old/new bucket keys after commit. Other columns retain their stored values, including omitted update timestamps. The column list is nonempty and contains writable fields other than the primary key; invalid selections fail with `SchemaError`. Composite-key inputs include every key component. `updateVoid` discards the returned row; `update` returns the decoded model and keeps the same missing-row behavior as a complete update. Versioned repositories also accept column selection when the input includes the expected version.
 
 A selected row can be passed unchanged to `update` or `updateVoid`, including a model with native `Model.DateTimeUpdateFromDate`. Repository update inputs accept its ordinary read-back date-time value without requiring `Model.Override`; a supplied value is preserved.
 
@@ -619,6 +637,40 @@ The application creates the integer version column; no database default is requi
 A stale version or missing row fails with `OptimisticConcurrencyError` in the error channel for `update`, `updateVoid` and `delete`. Import it from `@shivaedev/sql/repository.ts`; its fields are `tableName`, `id`, `expectedVersion` and `reason: "missing" | "stale"`. For a composite key, `id` holds the full key object. Only a zero-row write triggers a read under that same full key to classify the failure: an absent key is `missing`, an existing key is `stale`. A row under another owner is `missing`, with no stored version or row data exposed. Two concurrent writers using the same read version produce one successful update and one conflict, and the losing write leaves the winner's data intact.
 
 These writes use SQL `RETURNING`. Repositories without `versionColumn` retain native CRUD signatures and behavior.
+
+A partial versioned update includes the primary key, expected version and chosen values:
+
+```ts
+yield* documents.update({ ...key, lockVersion: 0, name: "Published" }, { columns: ["name"] });
+yield* documents.updateVoid({ ...key, lockVersion: 1, name: "Final" }, { columns: ["name"] });
+```
+
+Only the chosen columns are assigned, and the version increments once. Other values need not be read or sent back. The version is required and cannot appear in `columns`. Stale partial writes fail with the same `OptimisticConcurrencyError` and leave the row unchanged.
+
+### Ordered children under a parent
+
+`makeOrderedChildren` from `@shivaedev/sql/makeOrderedChildren.ts` uses a PostgreSQL parent-row lock to serialize `append`, `move` and `reorder` for that parent:
+
+```ts
+const orderedDays = yield* makeOrderedChildren(Day, {
+ tableName: "days",
+ idColumn: "id",
+ parentColumn: "planId",
+ parentTable: "plans",
+ parentIdColumn: "id",
+ positionColumn: "position",
+ versionColumn: "version",
+ spanPrefix: "Day",
+});
+
+yield* orderedDays.append(planId, { id: dayId, name: "Training" });
+yield* orderedDays.move(planId, dayId, 0);
+yield* orderedDays.reorder(planId, [thirdDayId, dayId, secondDayId]);
+```
+
+The native model declares the parent field and numeric position in its insert variant, and keeps its ID in select and update. When configured, the version field follows the versioned repository convention above. `append` supplies the parent and next position, starting at zero for an empty parent, and initializes the configured version to zero. `move` takes a zero-based destination and shifts siblings. `reorder` takes exactly the IDs currently under that parent, once each. These two operations assign positions in one statement without touching content or versions, so an existing versioned edit can still save. They fail with `ChildOrderError` from `@shivaedev/sql/orderedChildStatements.ts` for `membership` or `position`; a missing parent fails with `NoSuchElementError`.
+
+The lock is held until the transaction commits, including when called inside `transact`. A concurrent reorder of that parent waits. Use these helpers for ordering writes under the same parent. The application owns the parent foreign key and DDL; if positions are unique within a parent, declare `UNIQUE (plan_id, position) DEFERRABLE INITIALLY DEFERRED` so positions can swap within the transaction.
 
 ### Transactions and invalidation
 

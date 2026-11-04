@@ -3,8 +3,10 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import { storageSchema } from "#adapters/storageSchema.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositorySelect } from "#repositoryQueries.ts";
+import { sqlNameTransforms } from "#sqlNameTransforms.ts";
 
 type CompatibleColumn<TType, TEncoded, TFields extends Schema.Struct.Fields> = {
 	[TKey in keyof TFields]: TFields[TKey]["Type"] extends TType ? (TFields[TKey]["Encoded"] extends TEncoded ? TKey : never) : never;
@@ -31,7 +33,8 @@ export const makeInsertFromSelect = Effect.fnUntraced(function* <TServices = nev
 	prepare?: (columns: readonly string[]) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices>,
 ) {
 	const sql = yield* SqlClient.SqlClient;
-	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
+	const nameTransforms = yield* sqlNameTransforms;
+	const decode = Schema.decodeUnknownEffect(Schema.Array(storageSchema(model, model.fields, nameTransforms)));
 	return (source: RepositorySelect<Schema.Struct.Fields, unknown>, columns: Readonly<Record<string, string>>) =>
 		Effect.gen(function* () {
 			const names = Object.keys(columns);
