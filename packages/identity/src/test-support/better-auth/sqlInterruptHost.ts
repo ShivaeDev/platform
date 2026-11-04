@@ -16,7 +16,6 @@ export const sqlInterruptHost = Effect.gen(function* () {
 	const options = {
 		"baseURL": ORIGIN,
 		database: yield* betterAuthDatabase(),
-		logger: { disabled: true },
 		plugins: [testUtils()],
 		secret: "auth-sql-interruption-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
@@ -25,11 +24,18 @@ export const sqlInterruptHost = Effect.gen(function* () {
 	const mounted = yield* betterAuthMount(options)
 		.pipe(Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+	const calls: Promise<unknown>[] = [];
+	function track<A>(call: Promise<A>): Promise<A> {
+		calls.push(call);
+		return call;
+	}
+	const handler = mounted.auth.handler;
+	mounted.auth.handler = (request) => track(handler(request));
 	const app = HttpRouter.toWebHandler(mounted.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	const provider = betterAuthSessions(
-		(headers) => mounted.auth.api.getSession({ headers }),
-		(headers) => mounted.auth.api.listUserAccounts({ headers }),
+		(headers) => track(mounted.auth.api.getSession({ headers })),
+		(headers) => track(mounted.auth.api.listUserAccounts({ headers })),
 	);
 	return {
 		call: Effect.fnUntraced(function* (kind: AuthCall, headers: Headers) {
@@ -49,5 +55,6 @@ export const sqlInterruptHost = Effect.gen(function* () {
 				name: "alice",
 				providerAccounts: [{ accountId: "alice-github", providerId: "github" }],
 			}),
+		settled: () => Effect.promise(() => Promise.allSettled(calls)).pipe(Effect.asVoid),
 	};
 });
