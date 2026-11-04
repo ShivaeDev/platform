@@ -1,7 +1,6 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Layer } from "effect";
-import { appDatabase } from "#appDatabase.ts";
-import type { AppDatabaseOptions } from "#appHost.ts";
+import { type AppDatabaseOptions, appDatabase } from "#appDatabase.ts";
 
 export function workerHost<R, E, TRequirements, TServices, TServiceError, TServiceRequirements, TMigrations = never, TMigrationError = never>(
 	options: AppDatabaseOptions<TMigrations, TMigrationError> & {

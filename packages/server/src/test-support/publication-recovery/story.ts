@@ -7,7 +7,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { completePublication } from "#test/completePublication.ts";
 import { followHints } from "#test/rpc/followHints.ts";
 import { Api, handlers, migrations } from "./feature.ts";

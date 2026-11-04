@@ -3,13 +3,17 @@ import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { requireThat } from "#package-check/io.ts";
 
-export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: string, database: string) {
+export const runStarter = Effect.fn("Published.runStarter")(function* (
+	cwd: string,
+	database: string,
+	environment: Readonly<Record<string, string>> = {},
+) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	yield* Effect.log("Generated app: pnpm run ci");
 	const child = yield* spawner.spawn(
 		ChildProcess.make("pnpm", ["run", "ci"], {
 			cwd,
-			env: { "TEST_DATABASE_URL": database },
+			env: { ...environment, "TEST_DATABASE_URL": database },
 			extendEnv: true,
 		}),
 	);

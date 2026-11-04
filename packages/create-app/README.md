@@ -44,6 +44,8 @@ A generated app includes a GitHub Actions workflow that runs `pnpm run ci` again
 
 Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup and CI command, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
 
+Published framework pins live in the generated workspace’s `framework` catalog; manifests reference them with `catalog:framework`. Review that catalog when upgrading framework versions, then run `pnpm install`. A template without a catalog keeps literal exact pins.
+
 ### Work in the app
 
 Run `pnpm run setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.
@@ -52,7 +54,7 @@ Run `pnpm run setup` after cloning the generated repository to install dependenc
 
 After migrations, `pnpm db:seed` creates local demo owner and user accounts through identity's `defineSeed`. Edit `src/server/seed.ts` to declare personas and the Effect to run as each user. Reruns reuse accounts, and non-local database URLs are refused.
 
-The app selects `story-testing` from `@shivaedev/skills`. Setup syncs the installed instructions to `.agents/skills/story-testing/`, and `AGENTS.md` links to that local copy. `pnpm lint` rejects edits to managed skills. After changing the skills dependency, run `pnpm skills:sync` and commit the copies and manifest.
+The app selects `story-testing` from `@shivaedev/skills`. Setup syncs the installed instructions to `<app>/.agents/skills/story-testing/`, and `AGENTS.md` links to that local copy. `pnpm lint` rejects edits to managed skills. After changing the skills dependency, run `pnpm skills:sync` and commit the copies and manifest.
 
 ### Add a resource
 

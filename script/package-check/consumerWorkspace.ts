@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { packedWorkspace } from "#ci/packedWorkspace.ts";
+import { packedWorkspace } from "#adapters/packedWorkspace.ts";
 import { command } from "#package-check/io.ts";
 import { bins, decodeVersions, effectPackage, type Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";

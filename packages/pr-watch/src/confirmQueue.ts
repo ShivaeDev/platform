@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "#model.ts";
@@ -33,7 +34,15 @@ export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (options:
 	const http = yield* GitHubHttp;
 	const [owner, name] = options.repository.split("/");
 	const body = yield* http.graphql(options.apiUrl, query, { name, number: snapshot.number, owner }).pipe(
-		Effect.flatMap((response) => decodeGraphqlData(response, QueueResponse)),
+		Effect.flatMap((response) => decodeGraphqlData(response, Schema.Unknown)),
+		Effect.flatMap(
+			Effect.fnUntraced(function* ({ data, errors }) {
+				if (errors.length > 0) {
+					return yield* new GitHubGraphqlError({ errors });
+				}
+				return yield* Schema.decodeUnknownEffect(QueueResponse)(data);
+			}),
+		),
 		Effect.catchTag("GitHubGraphqlError", (cause) =>
 			Effect.fail(new WatchError({ message: `GitHub queue confirmation: ${cause.message}`, reason: "response" }, { cause })),
 		),

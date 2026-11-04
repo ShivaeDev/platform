@@ -21,6 +21,8 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 	const versions = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Versions))(
 		yield* fs.readFileString(join(starter, "published-versions.json")),
 	);
+	const workspace = join(starter, "pnpm-workspace.copy.yaml");
+	const cataloged = (yield* fs.exists(workspace)) && /^(?<quote>["']?)(?:catalog|catalogs)\k<quote>\s*:/mu.test(yield* fs.readFileString(workspace));
 	const entries: Template[number][] = [];
 	const visit = Effect.fn("CreateApp.visit")(function* (directory: string): Effect.fn.Return<void, PlatformError.PlatformError | CreateAppError> {
 		for (const name of (yield* fs.readDirectory(join(starter, directory))).sort()) {
@@ -38,7 +40,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const source = Buffer.from(yield* fs.readFile(join(starter, path)));
 				const content = yield* Effect.try({
 					catch: (cause) => new CreateAppError({ message: `Failed to prepare template file ${path}` }, { cause }),
-					try: () => prepareFile(path, source, versions),
+					try: () => prepareFile(path, source, versions, cataloged),
 				});
 				entries.push({ content: content.toString("base64"), path: target });
 			}
@@ -49,7 +51,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 	if (manifest !== undefined) {
 		const minimal = yield* Effect.try({
 			catch: (cause) => new CreateAppError({ message: "Failed to prepare minimal template file package.minimal.json" }, { cause }),
-			try: () => prepareManifest(Buffer.from(manifest.content, "base64").toString(), versions, true),
+			try: () => prepareManifest(Buffer.from(manifest.content, "base64").toString(), versions, true, cataloged),
 		});
 		entries.push({ content: Buffer.from(minimal).toString("base64"), path: "package.minimal.json" });
 	}

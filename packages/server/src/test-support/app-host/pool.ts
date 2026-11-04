@@ -7,8 +7,7 @@ import { postgres, databaseUrl as testDatabaseUrl } from "@shivaedev/test-sql/se
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appDatabase } from "#appDatabase.ts";
-import { appHost } from "#appHost.ts";
+import { appDatabase, appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 
 interface PoolState {

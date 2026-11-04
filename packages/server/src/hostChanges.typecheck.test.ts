@@ -4,7 +4,7 @@ import { Migrator } from "effect/sql";
 import { expectTypeOf } from "vitest";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 
 class Required extends Context.Service<Required, string>()("@shivaedev/server/changes-test/Required") {}
 const Api = contract("changes", { queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })] });

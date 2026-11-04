@@ -109,27 +109,5 @@
 			"vitest.config.mjs": "export default { test: { include: [\"*.spec.mjs\"] } };\n"
 		},
 		"output": "- Flaky: sample.spec.mjs — fails once"
-	},
-	"work-board": {
-		"args": ["board", "--port", "0", "--home", "plan.md"],
-		"checkVersion": true,
-		"expectedFiles": {},
-		"files": {
-			"board/plan.md": "# Plan\n\n## To do\n\n### `ops` Rotate the key\n"
-		},
-		"pages": {
-			"/": "data-board-react-root",
-			"/_board/mermaid/mermaid.esm.min.mjs": "",
-			"/_board/react.css": "--background:",
-			"/_board/react.js": "data-board-react-root",
-			"/_board/system": "data-board-react-root"
-		}
-	},
-	"work-fleet": {
-		"args": ["status", "--help"],
-		"checkVersion": true,
-		"expectedFiles": {},
-		"files": {},
-		"output": "Show active and completed Fleet work, and waiting work grouped by owner"
 	}
 }

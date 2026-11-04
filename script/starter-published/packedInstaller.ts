@@ -19,7 +19,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import process from "node:process";
-import { packedWorkspace } from ${JSON.stringify(join(root, "script/ci/packedWorkspace.ts"))};
+import { packedWorkspace } from ${JSON.stringify(join(root, "script/adapters/packedWorkspace.ts"))};
 import { withTarballOverrides } from ${JSON.stringify(join(root, "script/withTarballOverrides.ts"))};
 const workspace = join(process.cwd(), "pnpm-workspace.yaml");
 const tarballs = Object.fromEntries(Object.entries(${JSON.stringify(tarballs)}).map(([name, archive]) => [name, relative(process.cwd(), archive)]));

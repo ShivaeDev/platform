@@ -9,7 +9,7 @@ Every Effect application needs the same server shell: wait for migrations, open 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 NodeRuntime.runMain(
@@ -17,7 +17,7 @@ NodeRuntime.runMain(
 );
 ```
 
-The process migrates the database, serves `Api` at `/rpc` and the built client from `./public`, and stops in order on a signal.
+The process migrates the database, serves `Api` at `/rpc` and the built client from the example app’s `public` folder, and stops in order on a signal.
 
 ## Using it
 
@@ -58,7 +58,7 @@ const Server = appHost({
 
 `handleRequest` is the app's existing `(request: Request) => Promise<Response>`. Use `readBoundedBody` when forwarding bodies; `routes` receives the host's `MAX_BODY_SIZE` or `config.maxBodySize`, and that reader returns 413 on overflow. Merely converting a request to a Web request does not bound its body. Configure the actual proxy peer in `trustedProxy`; the host still requires trust when binding publicly and applies it at its own transport boundaries, including browser error reports. This setting does not install authentication or an Origin guard around application routes.
 
-The same host composition provides scoped `services`, migration ordering (including deferred `application` construction), `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. Health still returns 503 without SQL and 200 with reachable PostgreSQL. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
+The host provides scoped `services`, `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. This entry needs `@effect/platform-node` and runs without `@effect/sql-pg`. Health returns 503 without SQL and 200 with reachable PostgreSQL. For migrations or deferred `application` construction, import `appHost` from `@shivaedev/server/appDatabase.ts` with the same HTTP route options. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
 
 Host option types include this HTTP-only shape. A wrapper that reads native RPC options first narrows with `options.group !== undefined` before reading `group` or `handlers`. Existing native `appHost` calls keep their options.
 
@@ -76,7 +76,7 @@ For feature modules, install the optional peer `@shivaedev/admin` and declare ea
 
 ```ts
 import { Effect } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { appModules } from "@shivaedev/server/appModules.ts";
 import { notes, tasks, sessions } from "./app.ts";
@@ -97,7 +97,7 @@ Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second arg
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 const Server = appHost({
@@ -112,7 +112,7 @@ const Server = appHost({
 NodeRuntime.runMain(Layer.launch(Server));
 ```
 
-`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and a `Layer.Layer<SessionPolicy>` from `@shivaedev/identity/server/SessionPolicy.ts`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `node-http/`, `rpc-server/` and `runtime/` entries still work without them.
+`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and a `Layer.Layer<SessionPolicy>` from `@shivaedev/identity/server/SessionPolicy.ts`. The database host entry needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. Hosts without database wiring import `appHost` from `@shivaedev/server/appHost.ts` and need only the Node peer. The `node-http/`, `rpc-server/` and `runtime/` entries still work without them.
 
 The `sessions` Layer provides one identity `SessionPolicy` to handler middleware, sockets, change subscriptions and application routes. Construct it with `Layer.succeed(SessionPolicy, { origin, provider, roles })`; policy readers take no policy argument.
 
@@ -163,7 +163,7 @@ The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABAS
 
 Set `config.socketPath` to serve the application over a Unix socket instead of the default TCP listener. Also set `config.port` to serve the same routes on both listeners; `HttpServer.address` then reports the TCP address. With only `socketPath`, `PORT` does not enable TCP and `HttpServer.address` reports the public socket path. The parent directory must exist. The host publishes the socket with mode `0600`, replaces an unanswered stale socket at startup, refuses an already running listener, and removes its socket on shutdown. Startup uses a private staging directory and a sibling `.<socket-name>.starting` lock. If a process is forcibly killed during startup, remove that lock before restarting, after confirming no startup is still running.
 
-Unix clients can call HTTP RPC and subscribe through WebSocket RPC over the same socket path. Unix requests use filesystem access for transport admission; session middleware and query read policies still apply. TCP keeps its loopback, origin and proxy checks. Work Board uses this listener at its existing `board.sock` path for the Board plugin and `work-board mcp`.
+Unix clients can call HTTP RPC and subscribe through WebSocket RPC over the same socket path. Unix requests use filesystem access for transport admission; session middleware and query read policies still apply. TCP keeps its loopback, origin and proxy checks.
 
 RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body, fixed-length or chunked, returns a 4xx before any RPC handler runs. The same byte limit applies to each WebSocket RPC message, including binary messages and the combined payload of continuation frames. An oversized message closes the connection with code 1009 before any RPC in that message runs; native Effect socket clients receive a typed `SocketError` with a `SocketCloseError` reason. The limit includes bearer authentication frames, and zero refuses every nonempty message. This limit applies to the host's RPC route.
 
@@ -179,7 +179,13 @@ Every response from the host's native RPC endpoint carries `Cache-Control: priva
 
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same TCP guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
-Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
+Import `appHost` from `@shivaedev/server/appHost.ts` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts:
+
+```ts
+import type { AppHostOptions } from "@shivaedev/server/AppHostInput.ts";
+```
+
+A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
 
 Set `config.buildVersion` to the deployed build ID to announce it over the host's native RPC socket. `platform.hostVersion.watch` sends that opaque string when subscribed and stays open; a reconnected subscriber receives the replacement host's ID. Omitting the option leaves the stream silent. Embed the same ID in the browser bundle and use React's `deployUpdate` controller to expose a superseded bundle without polling health. The application supplies staged-update activation, blockers, reload wording and confirmation.
 
@@ -289,7 +295,7 @@ On the server, merge the declaration into the application's group and its genera
 
 ```ts
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { publicConfigLayer } from "@shivaedev/server/rpc-server/publicConfigLayer.ts";
 import { Api, Handlers, sessions } from "./app.ts";
 import { PublicConfig } from "./public-config.ts";

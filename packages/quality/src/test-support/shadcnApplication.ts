@@ -11,7 +11,7 @@ export function shadcnApplication(extension = "tsx", packageImports = false): re
 		config('{ sources: ["src"] }'),
 		{
 			content: JSON.stringify({
-				dependencies: { "@base-ui/react": "*" },
+				dependencies: { "@base-ui/react": "1.0.0" },
 				imports: packageImports ? { "#ui/*": "./src/components/ui/*" } : undefined,
 				name: "shadcn-app",
 				scripts: { start: "node src/main.ts" },

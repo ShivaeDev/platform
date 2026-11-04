@@ -89,13 +89,13 @@ export const selectedPattern = exportTraits(
 );
 
 export const unrelatedBrowserClient = exportTraits(
-	"the packed Board executable serves unrelated JavaScript as its browser client",
+	"the packed server executable serves unrelated JavaScript as its browser client",
 	{ bin: { board: "./server.js" }, name: "board", version: "1.0.0" },
 	{
 		"server.js": `import { createServer } from "node:http";
 const server = createServer((request, response) => {
   response.writeHead(${HttpStatus.fromLiteral("OK")}, { "content-type": "text/javascript" });
-  response.end(request.url === "/_board/react.js" ? "const unrelated = true; export { unrelated as session };" : "work-board");
+  response.end(request.url === "/client.js" ? "const unrelated = true; export { unrelated as session };" : "server");
 });
 server.listen(0, "127.0.0.1", () => console.log("http://127.0.0.1:" + server.address().port));
 `,

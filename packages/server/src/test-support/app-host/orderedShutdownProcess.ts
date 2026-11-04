@@ -4,8 +4,7 @@ import { Clock, Config, Deferred, Effect, Exit, Fiber, Layer, Scope, Stream } fr
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { appDatabase } from "#appDatabase.ts";
-import { appHost } from "#appHost.ts";
+import { appDatabase, appHost } from "#appDatabase.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { acknowledgeHostSignal, reportHostReady } from "#testing/hostProcessChild.ts";
 import { hostProcessReadouts } from "#testing/hostProcessReadouts.ts";

@@ -110,6 +110,12 @@
 	],
 	"server": [
 		{
+			"entries": ["./appHost.ts"],
+			"fixtures": ["host-minimal.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["host-minimal.ts"]
+		},
+		{
 			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./runtime/types.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
@@ -128,24 +134,6 @@
 			"fixtures": [],
 			"omitOptionalPeers": false,
 			"run": []
-		}
-	],
-	"work-fleet": [
-		{
-			"entries": [
-				"./fleet.ts",
-				"./model.ts",
-				"./operations.ts",
-				"./policy.ts",
-				"./preparation/compatibility.ts",
-				"./session/service.ts",
-				"./storage/makePostgresFleetStore.ts",
-				"./board/markdown.ts",
-				"./board/schema.ts"
-			],
-			"fixtures": ["fleet.ts.txt"],
-			"omitOptionalPeers": false,
-			"run": ["fleet.ts"]
 		}
 	]
 }

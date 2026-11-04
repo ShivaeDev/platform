@@ -69,7 +69,7 @@ const backend = Effect.gen(function* () {
 }).pipe(Effect.scoped, Effect.provide(database));
 ```
 
-The Layer owns the pool and waits for every socket to close during shutdown. A reserved connection sees committed writes from client transactions in the same database; it does not implicitly join a client's open transaction. `appDatabase` from `@shivaedev/server/appDatabase.ts` and database-backed `appHost` from `@shivaedev/server/appHost.ts` compose this Layer and expose the pool to application services.
+The Layer owns the pool and waits for every socket to close during shutdown. A reserved connection sees committed writes from client transactions in the same database; it does not implicitly join a client's open transaction. `appDatabase` from `@shivaedev/server/appDatabase.ts` and database-backed `appHost` from `@shivaedev/server/appDatabase.ts` compose this Layer and expose the pool to application services.
 
 ### SQL names: configure the client once
 
@@ -87,7 +87,7 @@ const database = PgClient.layer(
 
 `clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
 
-To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appHost.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
+To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` from `@shivaedev/server/appDatabase.ts` or `appDatabase` from `@shivaedev/server/appDatabase.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
 ### Grouped values in flat columns
 
@@ -398,7 +398,7 @@ const rows = yield* paymentsBySequence([]);
 
 ### Keyset pages over native SQL
 
-`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema:
+`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema. The helper builds native statement fragments without reading `SqlClient`; its service requirements come from your `read` callback:
 
 ```ts
 import { Effect, Schema } from "effect";

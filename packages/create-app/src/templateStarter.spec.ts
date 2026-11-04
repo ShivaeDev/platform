@@ -15,20 +15,20 @@ const CONDITION_CONFIGS = ["tsconfig.json", "vite.config.ts", "vitest.config.ts"
 const RENAMED = [
 	["app-agents.md", "AGENTS.md"],
 	["app-readme.md", "README.md"],
-	["pnpm-workspace.copy.yaml", "pnpm-workspace.yaml"],
 ] as const;
 
 application.it(
-	"packing the starter replaces its workspace:* pieces with their published-versions.json pins and leaves no workspace range",
+	"packing the starter uses catalog references backed by its exact published framework pins and leaves no workspace range",
 	[],
-	function* ({ pack, packedRanges, packedWorkspaceRanges, starterPublishedVersions, starterRanges }) {
+	function* ({ pack, packedFrameworkPins, packedRanges, packedWorkspaceRanges, starterPublishedVersions, starterRanges }) {
 		expect(yield* starterRanges(WORKSPACE_PIECES)).toEqual(Object.fromEntries(WORKSPACE_PIECES.map((name) => [name, "workspace:*"])));
 		const published = yield* starterPublishedVersions(WORKSPACE_PIECES);
 
 		yield* pack();
 
 		yield* outcomes([
-			["workspace pieces", () => packedRanges(WORKSPACE_PIECES), published],
+			["workspace pieces", () => packedRanges(WORKSPACE_PIECES), Object.fromEntries(WORKSPACE_PIECES.map((name) => [name, "catalog:framework"]))],
+			["framework pins", () => packedFrameworkPins(WORKSPACE_PIECES), published],
 			["workspace ranges left", () => packedWorkspaceRanges(), []],
 		]);
 	},

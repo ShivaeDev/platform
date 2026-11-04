@@ -7,7 +7,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";

@@ -1,15 +1,11 @@
-import type { Crypto, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { AppHostInput } from "#AppHostInput.ts";
-import type { AppDatabaseOptions, AppHttpHostOptions } from "#appHost.ts";
-import type { appHostHttp, deferredHost } from "#appHostHttp.ts";
+import type { AppDatabaseOptions } from "#appDatabase.ts";
+import type { deferredHost } from "#appDatabaseHttp.ts";
+import type { AppHttpHostOptions } from "#appHost.ts";
+import type { appHostHttp } from "#appHostHttp.ts";
 import type { HostRouteRequirements } from "#hostOptions.ts";
-
-type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = Layer.Layer<
-	Layer.Success<THost> | TServices,
-	Layer.Error<THost> | TError,
-	Exclude<Layer.Services<THost>, TServices | Crypto.Crypto> | Exclude<TRequirements, Crypto.Crypto>
->;
+import type { PreflightHost } from "#hostPreflight.ts";
 
 export interface AppHostFactory {
 	<

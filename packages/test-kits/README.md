@@ -31,6 +31,28 @@ Import `signedInUser`, `signInAgain`, `passwordUser` and `storedProviderAccounts
 
 Import `fakeDiscord` from `@shivaedev/test-kits/discord/fake.ts` and acquire it in a scope. Its loopback `server` retains messages across creation, editing, history reads and deletion, and supports the standard fake HTTP fault controls. Use the token `story-discord-token` with the real Discord REST client and set its API URL to `server.url`. Provide `gateway.transport` as the real gateway client's `GatewayTransport`; it speaks identify, heartbeat and resume frames, retains sessions and replays dispatches emitted during a dropped connection. `gateway.dispatch(type, data)`, `drop(code?)` and `invalidate(resumable)` change the provider, while `frames` and `urls` expose outbound observations. Drive reconnect and rate-limit time through the story kit's controlled clock.
 
+### GitHub Apps
+
+Import `fakeGitHubApp` from `@shivaedev/test-kits/github/fake.ts` and acquire it in a scope. The provider exchanges signed App JWTs for installation tokens over loopback HTTP. Give the real `@shivaedev/github` client its `credentials.appId`, redacted `credentials.privateKey`, an installation ID and `server.url` as `GitHubConfig.apiUrl`.
+
+```ts
+const github = yield* fakeGitHubApp({
+ routes: ({ installationToken }) => ({
+  repository: {
+   guard: installationToken,
+   path: "/repos/acme/widgets/issues/3",
+   reply: () => ({ body: { title: "Ship widgets" } }),
+  },
+ }),
+});
+```
+
+`routes` uses test-story's named fake HTTP routes for REST reads and writes and GraphQL POSTs. `installationToken` admits issued tokens, `installationOf(request)` returns their installation ID, and `appRequest` checks an App JWT. Routes own their paths; `prefix` changes the token exchange path for Enterprise API bases. Supply `credentials` from `githubAppCredentials()` in `@shivaedev/test-kits/github/adapters/credentials.ts` when several fixtures need the same App key.
+
+`server.requests` records method, path, headers and raw body; `server.scriptFault`, `hold` and the other fake HTTP controls drive rate limits and delayed or refused exchanges. Return rate-limit headers on routes or script a 403/429 reply with `retry-after` to exercise the real client's typed rate-limit handling. The kit does not simulate a GitHub database or interpret GraphQL queries: route replies describe the outside provider's data.
+
+`deliverWebhook(url, { body, event, deliveryId })` sends the exact body bytes over HTTP with GitHub event, delivery and HMAC signature headers, consumes the receiver's response and returns its status. Configure the receiver with `credentials.webhookSecret`; `credentials.webhookSignature(body)` is available for signature-specific stories. Drive token expiry and rate-limit time through the story clock. No client implementation is replaced.
+
 ### MCP bearer tokens
 
 Import `mcpBearerToken` from `@shivaedev/test-kits/mcp/adapters/bearerToken.ts`. With the application's mounted Better Auth instance (JWT and MCP provider plugins enabled), an existing signed-in user and OAuth client, mint the token precondition:

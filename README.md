@@ -39,9 +39,8 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 - [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL service preparation that preserves existing databases and data.
 - [`@shivaedev/vitest-rerun`](./packages/vitest-rerun): Reruns failed Vitest tests in a fresh process and lists the tests that only passed on a rerun in `flaky-tests.json` beside the JUnit report.
 - [`@shivaedev/skills`](./packages/skills): ShivaeDev's shared agent skills, distributed as committed repository files with simple updates and drift checks.
-- [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading agents' Markdown plans, results and questions and giving reviewed direction to an existing agent session.
-- [`@shivaedev/work-fleet`](./packages/work-fleet): Launches approved Work Board items, schedules workers and keeps execution receipts in PostgreSQL.
-- [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
+
+Work Board, Work Fleet and the Work Board plugin are applications built on these packages, maintained in [ShivaeDev/work-apps](https://github.com/ShivaeDev/work-apps). This repository's plugin marketplace still installs the plugin with `/plugin install workboard --marketplace ShivaeDev/platform`; it builds the plugin from that repository.
 
 No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder. The test, test-story, test-sql and vitest-rerun packages also export their `internal/` modules. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
 
@@ -60,7 +59,7 @@ corepack enable
 pnpm ready
 ```
 
-`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, builds the Work Board plugin client, installs the pre-commit hook with `quality hooks install`, and prepares the database. The hook runs the checks of `pnpm lint` and `pnpm typecheck` on every commit, through Quality's lint gate, the conventional `typecheck` script and Platform's `quality:commit` script. Setup builds the plugin client without running the workspace build, lint, typecheck or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
+`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. The hook runs the checks of `pnpm lint` and `pnpm typecheck` on every commit, through Quality's lint gate, the conventional `typecheck` script and Platform's `quality:commit` script. Setup runs none of the workspace build, lint, typecheck or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup never stops or removes an existing service or volume.
 
@@ -79,7 +78,6 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files, which the default run skips. For example, after local setup:
 
 ```sh
-PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/repositoryCrud.spec.ts
 ```
 
@@ -89,7 +87,7 @@ Main push runs skip the shard planner, the package build, the test shards, the p
 
 Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID. Coverage for a commit on main comes from its `merge_group` run; the first line of `measured-commits.txt` is that merge commit, and the second is its first parent.
 
-`pnpm fleet` runs the [Work Fleet](./packages/work-fleet) CLI from source, such as `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`, with one foreground supervisor per Board directory.
+`pnpm fleet` runs the published [Work Fleet](https://github.com/ShivaeDev/work-apps/tree/main/packages/work-fleet) release pinned in the root catalog against this repository's Board, such as `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`, with one foreground supervisor per Board directory.
 
 ### Heavy runs
 

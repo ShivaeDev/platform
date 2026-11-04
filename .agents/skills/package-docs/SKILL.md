@@ -65,7 +65,7 @@ Quality's `docs/references` rule checks links, heading anchors, documented modul
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.
 - [ ] The agent part goes from mental model to examples to API to install and limits.
-- [ ] A `docs/north-star.md`, if present, adds to `AGENTS.md` rather than repeating it.
+- [ ] A `packages/<name>/docs/north-star.md`, if present, adds to `AGENTS.md` rather than repeating it.
 - [ ] No doc keeps a roadmap, a status list or an inventory of files or tests.
 - [ ] No install command or sentence names a package version.
 - [ ] Each claim in the README has a test behind it.

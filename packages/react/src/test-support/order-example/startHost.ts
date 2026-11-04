@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option, type Redacted } from "effect";
 import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Orders } from "./contract.ts";
 import { migrations } from "./postgres.ts";
 import { makeOrdersRepository, OrdersRepository } from "./repository.ts";

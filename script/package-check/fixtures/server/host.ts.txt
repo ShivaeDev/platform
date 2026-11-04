@@ -2,9 +2,8 @@ import { LiveServer } from "@shivaedev/contract/LiveServer.ts"
 import { Effect, Layer, Option, Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
 import { Migrator } from "effect/sql"
-import { appDatabase } from "@shivaedev/server/appDatabase.ts"
+import { appDatabase, appHost } from "@shivaedev/server/appDatabase.ts"
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts"
-import { appHost } from "@shivaedev/server/appHost.ts"
 
 const Api = RpcGroup.make(Rpc.make("ping", { success: Schema.String }))
 const migrations = { loader: Migrator.fromRecord({}) }

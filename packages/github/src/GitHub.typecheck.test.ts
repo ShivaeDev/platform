@@ -38,7 +38,7 @@ const readWithService = read("/item", WithService);
 const writeWithService = write("POST", "/items", { title: "New" }, WithService);
 const graphqlWithService = graphql("query { viewer { login } }", {}, WithService);
 expectTypeOf<Effect.Services<typeof graphqlWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
-expectTypeOf<Effect.Success<typeof graphqlWithService>>().toEqualTypeOf<string>();
+expectTypeOf<Effect.Success<typeof graphqlWithService>>().toEqualTypeOf<{ data: string; errors: ReadonlyArray<{ readonly message: string }> }>();
 expectTypeOf<Effect.Services<typeof readWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Effect.Services<typeof writeWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 

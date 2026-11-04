@@ -10,7 +10,7 @@ import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowed
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { hostAssets } from "@shivaedev/server/hostAssets.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
