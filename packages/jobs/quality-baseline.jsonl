@@ -3,7 +3,6 @@
 {"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/defineSchedule.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/definition.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/inspection.ts","rule":"effect/service-definition-assembly","count":16}
 {"path":"packages/jobs/src/server/internal/clientErrors.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/countsFor.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/deadlineOf.ts","rule":"effect/boundary","count":1}
@@ -15,5 +14,3 @@
 {"path":"packages/jobs/src/server/internal/retryWake.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/testingOperation.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/schema.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/jobs/src/server/service.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/service.ts","rule":"effect/service-definition-assembly","count":4}
