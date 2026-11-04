@@ -2,7 +2,6 @@ import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts"
 import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts"
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts"
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts"
 
 class Mail extends Context.Service<Mail, { send(id: number): Effect.Effect<void> }>()("@consumer/Mail") {}
 
@@ -16,26 +15,6 @@ const Queue = defineQueue({
 defineQueue({ name: "primitive", schema: Schema.String })
 const Cleanup = defineSchedule({ name: "cleanup", cron: "0 * * * *" })
 const Jobs = makePgBoss("@consumer/Jobs")
-const testing = makePgBossTesting({ retryPolicy: testRetryPolicy })
-const testingLayer = Jobs.layer({ jobs: [Queue] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory })))
-const readout = Effect.gen(function* () {
-  const jobs = yield* testing.jobs(Queue)
-  for (const job of jobs) {
-    const id: number = job.data.id
-    // @ts-expect-error Testing readouts decode payloads through the packed package.
-    const encoded: string = job.data.id
-    void id
-    void encoded
-  }
-  yield* testing.failNextSend(Queue)
-  yield* testing.expireAfter(Queue, 2)
-  yield* testing.checkBatchWindow(Queue, 100)
-  yield* testing.checkSchemaVersion(45)
-  const revision = yield* testing.revision
-  yield* testing.waitForChange(revision)
-})
-void testingLayer
-void readout
 const layer = Jobs.layer({
   jobs: [
     Queue.handle(({ id }) => Effect.flatMap(Mail, (mail) => mail.send(id))),

@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 import type { PgBossClient } from "#server/client.ts";
-import { deferralChanges } from "#server/internal/adapters/deferralChanges.ts";
 import { STATELY_DEFERRAL_POLICY } from "#server/internal/deferral.ts";
 import type { JobAttempt } from "#server/internal/engine.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
+import { localInspectionChanges } from "./localInspectionChanges.ts";
 
 const Settlement = Schema.Struct({ claimed: Schema.Boolean, deferred: Schema.Boolean });
 
@@ -54,7 +54,9 @@ export async function settleDeferral(client: PgBossClient, schema: string, job: 
 	);
 	const settled = Schema.decodeUnknownSync(Settlement)(rows[0]);
 	if (settled.deferred) {
-		deferralChanges.get(db)?.();
+		for (const changed of localInspectionChanges.get(db) ?? []) {
+			changed(schema, job.name);
+		}
 	}
 	return settled;
 }

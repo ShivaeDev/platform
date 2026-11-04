@@ -1,0 +1,26 @@
+import { Effect, Layer, Schema } from "effect"
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts"
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts"
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts"
+const Jobs = makePgBoss("@consumer/Jobs")
+const Queue = defineQueue({ name: "mail", schema: Schema.Struct({ id: Schema.NumberFromString }) })
+const testing = makePgBossTesting({ retryPolicy: testRetryPolicy })
+const testingLayer = Jobs.layer({ jobs: [Queue] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory })))
+const readout = Effect.gen(function* () {
+  const jobs = yield* testing.jobs(Queue)
+  for (const job of jobs) {
+    const id: number = job.data.id
+    // @ts-expect-error Testing readouts decode payloads through the packed package.
+    const encoded: string = job.data.id
+    void id
+    void encoded
+  }
+  yield* testing.failNextSend(Queue)
+  yield* testing.expireAfter(Queue, 2)
+  yield* testing.checkBatchWindow(Queue, 100)
+  yield* testing.checkSchemaVersion(45)
+  const revision = yield* testing.revision
+  yield* testing.waitForChange(revision)
+})
+void testingLayer
+void readout

@@ -1,5 +1,6 @@
 import { type Context, Deferred, Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
+import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -8,7 +9,6 @@ import type { PgBossClient, PgBossClientFactory } from "#server/client.ts";
 import type { PgBossClientOptionsError, PgBossError } from "#server/error.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
 import { pgBossLayer } from "#server/service.ts";
-import { makePgBossTesting } from "#server/testing.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
 
 interface Acquisition {

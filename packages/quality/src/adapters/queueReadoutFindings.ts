@@ -19,8 +19,11 @@ export const queueReadoutFindings = Effect.fn("Stories.queueReadoutFindings")(fu
 	const program = storyProgram(inputs, graph);
 	const origin = queueTestingOrigin(program.getTypeChecker());
 	return inputs.sources.flatMap((file) => {
-		const owner = packageOf(graph.packages, file.path)?.name ?? root?.name;
-		if (!isTestCode(file.path) || owner === "@shivaedev/jobs") {
+		const workspace = packageOf(graph.packages, file.path);
+		const owner = workspace?.name ?? root?.name;
+		const local = workspace === undefined ? file.path : file.path.slice(workspace.directory.length + 1);
+		const controller = owner === "@shivaedev/test-kits" && (local.startsWith("src/jobs/") || local.startsWith("src/test-support/jobs/"));
+		if (!isTestCode(file.path) || owner === "@shivaedev/jobs" || controller) {
 			return [];
 		}
 		const source = program.getSourceFile(join(inputs.root, file.path));

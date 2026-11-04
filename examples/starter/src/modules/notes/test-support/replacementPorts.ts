@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
-import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
+import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
