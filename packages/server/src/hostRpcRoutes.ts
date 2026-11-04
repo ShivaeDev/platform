@@ -7,6 +7,7 @@ import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.
 import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
+import { subjectResolverLayer } from "@shivaedev/identity/server/subjectResolverLayer.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { boundedRpcSocket } from "#boundedRpcSocket.ts";
 import { hostChanges } from "#hostChanges.ts";
@@ -51,10 +52,12 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
-	const middleware =
+	const middleware = Layer.merge(
+		subjectResolverLayer(),
 		options.policy === "loopback"
 			? rpcRequestTracing(sensitive)
-			: Layer.mergeAll(authenticatedLayer(), maybeAuthenticatedLayer(), rpcRequestTracing(sensitive));
+			: Layer.mergeAll(authenticatedLayer(), maybeAuthenticatedLayer(), rpcRequestTracing(sensitive)),
+	);
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
