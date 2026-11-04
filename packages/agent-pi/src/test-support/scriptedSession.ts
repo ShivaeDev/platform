@@ -2,10 +2,11 @@ import type { AgentSessionEvent, CreateAgentSessionOptions, PromptOptions } from
 
 interface SessionScript {
 	readonly abortFails: boolean;
+	readonly handled: string | undefined;
 	readonly held: boolean;
 	readonly persisted: boolean;
 	readonly prompted: () => void;
-	readonly refusal: "preflight" | "unknown" | undefined;
+	readonly refusal: "rejected" | "unknown" | undefined;
 }
 export function scriptedSession(options: CreateAgentSessionOptions, script: SessionScript) {
 	if (options.sessionManager === undefined) {
@@ -17,6 +18,7 @@ export function scriptedSession(options: CreateAgentSessionOptions, script: Sess
 	const completions: (() => void)[] = [];
 	const acceptances: (() => void)[] = [];
 	const lifecycle: string[] = [];
+	let running = false;
 	const history = manager.buildSessionContext().messages;
 	function emit(event: AgentSessionEvent) {
 		if (event.type === "message_end" && (event.message.role === "user" || event.message.role === "assistant")) {
@@ -52,13 +54,19 @@ export function scriptedSession(options: CreateAgentSessionOptions, script: Sess
 				prompts.push({ delivery: promptOptions?.streamingBehavior, text });
 				script.prompted();
 				if (script.refusal !== undefined) {
-					if (script.refusal === "preflight") {
-						promptOptions?.preflightResult?.(false);
-					}
-					return Promise.reject(new Error("provider refused text"));
+					return script.refusal === "rejected" ? Promise.reject(new Error("provider refused text")) : Promise.resolve();
+				}
+				if (text === script.handled) {
+					promptOptions?.preflightResult?.("handled");
+					return Promise.resolve();
+				}
+				if (running) {
+					promptOptions?.preflightResult?.("queued");
+					return Promise.resolve();
 				}
 				function accept() {
-					promptOptions?.preflightResult?.(true);
+					promptOptions?.preflightResult?.("started");
+					running = true;
 					emit({ type: "agent_start" });
 				}
 				if (script.held) {
@@ -80,11 +88,12 @@ export function scriptedSession(options: CreateAgentSessionOptions, script: Sess
 				};
 			},
 		},
-		settle: () => {
+		settle: (aborted: boolean) => {
+			running = false;
 			for (const resolve of completions.splice(0)) {
 				resolve();
 			}
-			emit({ type: "agent_settled" });
+			emit({ aborted, type: "agent_settled" });
 		},
 		unsettled: () => completions.length,
 	};

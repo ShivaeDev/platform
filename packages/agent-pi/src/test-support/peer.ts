@@ -9,11 +9,12 @@ type CatalogModel = Awaited<ReturnType<ModelRuntime["getAvailable"]>>[number];
 interface Peer {
 	abortFails: boolean;
 	directory: string;
+	handled: string | undefined;
 	held: boolean;
 	models: CatalogModel[];
 	noSessionFile: boolean;
 	prompted: Queue.Queue<void>;
-	refusal: "preflight" | "unknown" | undefined;
+	refusal: "rejected" | "unknown" | undefined;
 	resources: { options: DefaultResourceLoaderOptions; reloaded: boolean }[];
 	sessions: ReturnType<typeof scriptedSession>[];
 }
@@ -21,6 +22,7 @@ export function makePeer(directory: string, prompted: Queue.Queue<void>): Peer {
 	return {
 		abortFails: false,
 		directory,
+		handled: undefined,
 		held: false,
 		models: [
 			{
@@ -62,6 +64,7 @@ vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => {
 			const peer = current();
 			const opened = scriptedSession(options, {
 				abortFails: peer.abortFails,
+				handled: peer.handled,
 				held: peer.held,
 				persisted: !peer.noSessionFile,
 				prompted: () => {

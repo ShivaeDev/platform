@@ -1,24 +1,32 @@
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
+import type { AgentSession, PromptOptions } from "@earendil-works/pi-coding-agent";
 import { Effect } from "effect";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
 import { protocolFailure, rejected } from "#adapters/failure.ts";
 
-export function deliver(session: AgentSession, text: string, delivery: "followUp" | "steer") {
-	return Effect.callback<void, BackendFailure>((resume) => {
-		let preflight: boolean | undefined;
+type PromptDisposition = Parameters<NonNullable<PromptOptions["preflightResult"]>>[0];
+
+export function deliver(session: AgentSession, text: string, delivery: "followUp" | "steer"): Effect.Effect<PromptDisposition, BackendFailure> {
+	return Effect.callback<PromptDisposition, BackendFailure>((resume) => {
+		let accepted = false;
 		session
 			.prompt(text, {
-				preflightResult: (ok) => {
-					preflight = ok;
-					if (ok) {
-						resume(Effect.void);
-					}
+				preflightResult: (disposition) => {
+					accepted = true;
+					resume(Effect.succeed(disposition));
 				},
 				streamingBehavior: delivery,
 			})
 			.then(
-				() => resume(Effect.void),
-				(error: unknown) => resume(Effect.fail(preflight === false ? rejected(error) : protocolFailure(error))),
+				() => {
+					if (!accepted) {
+						resume(Effect.fail(protocolFailure("Pi prompt resolved without acceptance evidence")));
+					}
+				},
+				(error: unknown) => {
+					if (!accepted) {
+						resume(Effect.fail(rejected(error)));
+					}
+				},
 			);
 	});
 }

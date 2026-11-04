@@ -71,9 +71,9 @@ export function piVerbs(state: Effect.Success<ReturnType<typeof piState>>, tell:
 					}),
 				),
 			),
-		settle: (name: string) =>
+		settle: (name: string, aborted = false) =>
 			Effect.sync(() => {
-				peerSession(name).settle();
+				peerSession(name).settle(aborted);
 			}),
 		start: (name: string, text: string | readonly [string, string], model?: string, effort?: string) =>
 			Effect.gen(function* () {

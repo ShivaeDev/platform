@@ -27,9 +27,11 @@ for (const [reason, state] of [
 	["error", "failed"],
 	["aborted", "interrupted"],
 ] as const) {
-	piAgent.it(`a final ${reason} ending stays ${state} after Pi settles`, [], function* ({ start, emit, settle, inspect, events }) {
+	piAgent.it(`a final ${reason} ending waits for Pi to settle before reporting ${state}`, [], function* ({ start, emit, settle, inspect, events }) {
 		yield* start("alice", "work");
 		yield* emit("alice", { messages: [assistant(reason)], type: "agent_end", willRetry: false });
+		expect(yield* inspect("alice")).toEqual({ state: "running", type: "known" });
+
 		yield* settle("alice");
 
 		yield* outcomes([
@@ -38,6 +40,18 @@ for (const [reason, state] of [
 		]);
 	});
 }
+
+piAgent.it("an aborted settlement cancels a run even after a successful agent end", [], function* ({ start, emit, settle, inspect, events }) {
+	yield* start("alice", "work");
+	yield* emit("alice", { messages: [assistant()], type: "agent_end", willRetry: false });
+
+	yield* settle("alice", true);
+
+	yield* outcomes([
+		["execution evidence", () => inspect("alice"), { state: "interrupted", type: "known" }],
+		["execution events", () => events("alice", "execution"), [{ state: "running" }, { state: "interrupted" }]],
+	]);
+});
 
 piAgent.it("settled messages carry text, thinking, token deltas and separate provider cost", [], function* ({ start, emit, events }) {
 	yield* start("alice", "work");

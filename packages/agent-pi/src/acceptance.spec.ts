@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { heldPreflight, noSessionFile, piAgent, refused, unknownAcceptance } from "#test/piStory.ts";
+import { handled, heldPreflight, noSessionFile, piAgent, refused, unknownAcceptance } from "#test/piStory.ts";
 
 piAgent.it(
 	"successful preflight returns a receipt and matching acknowledgement before completion",
@@ -25,7 +25,7 @@ piAgent.it(
 	},
 );
 
-piAgent.it("preflight refusal remains authoritative non-acceptance", [refused], function* ({ start, result, reconcile }) {
+piAgent.it("a rejected prompt without a disposition remains authoritative non-acceptance", [refused], function* ({ start, result, reconcile }) {
 	yield* start("alice", "work");
 
 	yield* outcomes([
@@ -34,12 +34,45 @@ piAgent.it("preflight refusal remains authoritative non-acceptance", [refused], 
 	]);
 });
 
-piAgent.it("failure without preflight evidence preserves uncertainty", [unknownAcceptance], function* ({ start, result, reconcile }) {
+piAgent.it("prompt resolution without a disposition preserves uncertainty", [unknownAcceptance], function* ({ start, result, reconcile }) {
 	yield* start("alice", "work");
 
 	yield* outcomes([
 		["submission", () => result("alice"), "uncertain: alice"],
 		["reconciliation", () => reconcile("alice"), { operationId: "alice", type: "uncertain" }],
+	]);
+});
+
+piAgent.it("a handled prompt is accepted and completes without a run", [handled], function* ({ start, result, reconcile, inspect, events }) {
+	yield* start("alice", "/handled");
+
+	yield* outcomes([
+		["submission", () => result("alice"), "accepted"],
+		["reconciliation", () => reconcile("alice"), { type: "accepted" }],
+		["execution evidence", () => inspect("alice"), { state: "completed", type: "known" }],
+		["execution events", () => events("alice", "execution"), [{ state: "completed" }]],
+	]);
+});
+
+piAgent.it("handled input leaves an active run open", [handled], function* ({ start, steer, inspect, events }) {
+	yield* start("alice", "work");
+
+	yield* steer("alice", "/handled");
+
+	yield* outcomes([
+		["execution evidence", () => inspect("alice"), { state: "running", type: "known" }],
+		["execution events", () => events("alice", "execution"), [{ state: "running" }]],
+	]);
+});
+
+piAgent.it("queued input leaves an active run open", [], function* ({ start, queue, inspect, events }) {
+	yield* start("alice", "work");
+
+	yield* queue("alice", "later");
+
+	yield* outcomes([
+		["execution evidence", () => inspect("alice"), { state: "running", type: "known" }],
+		["execution events", () => events("alice", "execution"), [{ state: "running" }]],
 	]);
 });
 
