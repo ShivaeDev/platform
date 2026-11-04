@@ -4,13 +4,17 @@ import { firstFood, groupedFoods, oatsStored, snakeCaseGroupedFoods } from "#tes
 
 for (const kit of [groupedFoods, snakeCaseGroupedFoods]) {
 	for (const write of ["insert", "insertPlain"] as const) {
-		kit.it(`${write} round-trips a grouped energy triple through flat PostgreSQL columns`, [], function* (verbs) {
+		kit.it(`${write} round-trips grouped energy and preserves an insert-only source in flat PostgreSQL columns`, [], function* (verbs) {
 			const inserted = yield* verbs[write]();
 
 			expect(inserted).toMatchObject({ ...firstFood, id: 1, version: 0 });
 			yield* outcomes([
 				["decoded food", () => verbs.food(), { ...firstFood, id: 1, version: 0 }],
-				["stored columns", () => verbs.rawColumns(), [{ "energy_expected": "20", "energy_high": "30", "energy_low": "10" }]],
+				[
+					"stored columns",
+					() => verbs.rawColumns(),
+					[{ "energy_expected": "20", "energy_high": "30", "energy_low": "10", source: "nutrition label" }],
+				],
 				["selected group", () => verbs.listEnergy(), [{ energy: firstFood.energy }]],
 			]);
 		});

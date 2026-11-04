@@ -15,10 +15,13 @@ export class Food extends NativeModel.Class<Food>("GroupedFood")({
 	energy: Model.Group({ expected: Schema.NumberFromString, high: Schema.NumberFromString, low: Schema.NumberFromString }, { prefix: "energy_" }),
 	id: NativeModel.Field({ select: Schema.Number, update: Schema.Number }),
 	name: Schema.String,
+	source: NativeModel.Field({ insert: Schema.String }),
 	version: NativeModel.Field({ select: Schema.Number, update: Schema.Number }),
 }) {}
 
 export const firstFood = { energy: { expected: 20, high: 30, low: 10 }, name: "Oats" };
+
+const insertion = { ...firstFood, source: "nutrition label" };
 
 const foodEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -26,7 +29,7 @@ const foodEngine = Effect.fnUntraced(function* () {
 	yield* ownTable(
 		sql,
 		tableName,
-		sql`id integer generated always as identity primary key, name text not null,
+		sql`id integer generated always as identity primary key, name text not null, source text not null,
 		energy_low text not null, energy_expected text not null, energy_high text not null, version integer not null default 0`,
 	);
 	const options = { idColumn: "id", spanPrefix: "Food", tableName } as const;
@@ -50,14 +53,14 @@ function foodKit(name: string, options: SqlNameTransforms = {}) {
 			food: () => foods.findById(1),
 			insert: () => {
 				story.tell("insert oats with a grouped energy triple");
-				return foods.insert(firstFood);
+				return foods.insert(insertion);
 			},
 			insertPlain: () => {
 				story.tell("insert oats through an unversioned repository");
-				return plain.insert(firstFood);
+				return plain.insert(insertion);
 			},
 			listEnergy: () => foods.findMany({ select: ["energy"] }),
-			rawColumns: () => sql`select energy_low, energy_expected, energy_high from ${sql(tableName)} where id = 1`.withoutTransform,
+			rawColumns: () => sql`select energy_low, energy_expected, energy_high, source from ${sql(tableName)} where id = 1`.withoutTransform,
 			rename: (version: number, write: "update" | "updateVoid" = "update") => {
 				story.tell(`rename oats at version ${version}, choosing only name`);
 				return attempt(
@@ -81,5 +84,5 @@ export const groupedFoods = foodKit("grouped food columns");
 export const snakeCaseGroupedFoods = foodKit("grouped food columns with snake_case names", clientOptions({}));
 
 export function oatsStored() {
-	return groupedFoods.trait("rows", "oats are stored at version zero", ({ foods }) => foods.insertVoid(firstFood));
+	return groupedFoods.trait("rows", "oats are stored at version zero", ({ foods }) => foods.insertVoid(insertion));
 }

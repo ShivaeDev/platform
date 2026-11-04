@@ -43,18 +43,15 @@ export function rowMapping(fields: Schema.Struct.Fields, names?: SqlNameTransfor
 			return expanded;
 		},
 		flatten: (row: unknown) => {
-			const flat: Record<string, unknown> = {};
 			if (!Predicate.isObject(row)) {
-				return flat;
+				return {};
 			}
+			const flat: Record<string, unknown> = { ...row };
 			for (const { key, member, column } of columns) {
-				if (!Object.hasOwn(row, key)) {
-					continue;
-				}
 				if (member === undefined) {
-					flat[column] = row[key];
 					continue;
 				}
+				delete flat[key];
 				const value = row[key];
 				if (Predicate.isObject(value) && Object.hasOwn(value, member)) {
 					flat[column] = Reflect.get(value, member);
