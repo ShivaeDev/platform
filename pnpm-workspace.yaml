@@ -41,12 +41,12 @@ catalog:
   class-variance-authority: 0.7.1
   lucide-react: 1.62.0
   "@biomejs/biome": 2.6.3
-  "@effect/vitest": 4.0.6
-  "@effect/atom-react": 4.0.6
-  "@effect/platform-node": 4.0.6
-  "@effect/platform-node-shared": 4.0.6
-  "@effect/sql-sqlite-node": 4.0.6
-  "@effect/sql-pg": 4.0.6
+  "@effect/vitest": 4.0.7
+  "@effect/atom-react": 4.0.7
+  "@effect/platform-node": 4.0.7
+  "@effect/platform-node-shared": 4.0.7
+  "@effect/sql-sqlite-node": 4.0.7
+  "@effect/sql-pg": 4.0.7
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   react: 19.3.1
@@ -69,7 +69,7 @@ catalog:
   "@types/mdast": 4.0.4
   "@types/node": 24.19.2
   "@typescript/native": npm:typescript@7.0.2
-  effect: 4.0.6
+  effect: 4.0.7
   esbuild: 0.28.2
   "@better-auth/oauth-provider": 1.7.14
   better-auth: 1.7.14
