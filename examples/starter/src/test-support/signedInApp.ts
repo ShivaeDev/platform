@@ -1,0 +1,38 @@
+import { Effect } from "effect";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { notes } from "#modules/notes/notes.ts";
+import { notesHttp } from "#modules/notes/test-support/http.ts";
+import { screenActions } from "#modules/notes/test-support/screenActions.ts";
+import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
+import { appScreen } from "./appScreen.tsx";
+import { postgres } from "./postgres.ts";
+import { mintUser } from "./sessionPrecondition.ts";
+import { uiScreenVerbs } from "./uiScreenVerbs.ts";
+
+export const signedInApp = storyKit({
+	around: withIsolatedDatabase,
+	clock: "live",
+	*create() {
+		const screen = yield* appScreen({ account: { name: "alice" }, route: "/" });
+		const bob = yield* mintUser(screen, "bob");
+		const bobClient = yield* notesHttp(screen.baseUrl, bob.headers.get("cookie") ?? "", screen.origin);
+		return { ...screen, bob, bobClient };
+	},
+	inspect: ({ history, observed, view }) => ({ heardKeys: observed.heardKeys(), route: history.location.pathname, text: view.container.textContent }),
+	layer: postgres,
+	name: "signed-in app",
+	stages: [],
+	verbs: (engine, story) => ({
+		...screenActions(engine, story.tell),
+		...screenObservations(engine),
+		...uiScreenVerbs(engine, story.tell),
+		bobAddsNote: (title: string) => {
+			story.tell(`bob adds ${JSON.stringify(title)} from another client`);
+			return engine.bobClient["notes.create"]({ title });
+		},
+		heardKeys: () => Effect.sync(() => engine.observed.heardKeys()),
+		listKey: (name: "alice" | "bob") => notes.bucket.userId(name === "alice" ? engine.account.user.id : engine.bob.user.id),
+		waitsForHint: () => engine.observed.watchHints(),
+	}),
+});

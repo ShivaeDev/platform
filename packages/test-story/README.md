@@ -862,6 +862,8 @@ The environment keeps Node's global `fetch`, `Request`, `Response`, `Headers`, `
 
 `domFetch(baseUrl)` from `@shivaedev/test-story/server/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host uses global Node fetch without browser cookies.
 
+The returned fetch also exposes `pending`, a native `Stream<boolean>` that starts with the current busy state and stays true until every outstanding call resolves or rejects, including cancellation. Pass `fetch.pending` as the screen driver’s `transport` (alongside application activity) or `pending` to settle on document requests. Completion means response headers arrived, not that a streaming body was consumed.
+
 Call it in the kit's `create` hook after starting the host:
 
 ```ts
@@ -1058,7 +1060,7 @@ const observed = yield* browserReads({ contracts: [Notes], url });
 const client = makeClient(Notes, { protocol: observed.protocol, url });
 ```
 
-Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`.
+Expose `observed.readCount`, `observed.reads`, `observed.hints`, `observed.heardKeys` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`. `heardKeys()` returns all keys from received `Changed` hints in delivery order, retaining repeats across session sockets. Resync hints add no keys. Read it after a real delivery or screen completion signal to assert that a key was never heard.
 
 `observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, `"refused"` with `refusalTag` from a tagged failure Exit, or `"closed"` when the stream completes empty, dies or disconnects before answering. A refusal or closure is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered, been refused or closed. Closing a client also closes its unanswered openings and leaves other clients' openings pending. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
 

@@ -1,11 +1,10 @@
-export function domFetch(
-	baseUrl: string,
-	target: { readonly fetch: typeof globalThis.fetch; readonly location: { href: string } } = window,
-): typeof globalThis.fetch {
+import { trackDomFetch } from "#server/adapters/trackDomFetch.ts";
+
+export function domFetch(baseUrl: string, target: { readonly fetch: typeof globalThis.fetch; readonly location: { href: string } } = window) {
 	const base = new URL(baseUrl);
 	target.location.href = base.href;
 	const transport = target.fetch.bind(target);
-	return (input, init) => {
+	return trackDomFetch((input, init) => {
 		if (input instanceof Request) {
 			const request = new Request(input, init);
 			return transport(request.url, {
@@ -25,5 +24,5 @@ export function domFetch(
 			typeof input === "string" ? new URL(input, base).href : input,
 			init?.headers instanceof Headers ? { ...init, headers: [...init.headers] } : init,
 		);
-	};
+	});
 }
