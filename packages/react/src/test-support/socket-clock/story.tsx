@@ -1,6 +1,6 @@
-import { type Duration, Effect, Queue } from "effect";
-import { TestClock } from "effect/testing";
+import { Effect, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "./connect.ts";
@@ -32,8 +32,11 @@ export const socketClockStory = storyKit({
 					yield* Queue.take(connections);
 				}),
 			handshakes: () => Effect.sync(() => host.state.handshakes),
-			passes: (duration: Duration.Input) => screen.act(`${duration} pass on the story clock`, () => run(TestClock.adjust(duration))),
-			reconnecting: () => host.waiting,
+			minutePasses: () => screen.act("a minute passes on the story clock", () => run(passes("1 minute", Effect.void))),
+			reconnectDelayPasses: () =>
+				screen
+					.act("the reconnect delay passes and the next handshake reaches the server", () => run(passes("1 second", Effect.void)))
+					.pipe(Effect.andThen(host.waiting)),
 			releaseHandshake: () => {
 				story.tell("the server releases the WebSocket handshake");
 				return host.release.pipe(Effect.andThen(Queue.take(connections)));

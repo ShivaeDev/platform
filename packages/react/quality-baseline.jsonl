@@ -14,6 +14,4 @@
 {"path":"packages/react/src/internal/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
 {"path":"packages/react/src/notices.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/src/test-support/formOptionsStories.tsx","rule":"tests/wait-on-events","count":2}
-{"path":"packages/react/src/test-support/socket-clock/openHost.ts","rule":"tests/wait-on-events","count":1}
 {"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}
