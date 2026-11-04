@@ -24,6 +24,7 @@ export function outcome<A, E, R>(effect: Effect.Effect<A, E, R>) {
 export const writersRace = Effect.fnUntraced(function* (engine: NoteEngine, repeated: boolean) {
 	const sql = yield* SqlClient.SqlClient;
 	const results = yield* raceWithLock({
+		clock: "test",
 		effects: ["alice", "bob"].map((name) =>
 			outcome(
 				engine.store.append({
@@ -71,7 +72,7 @@ export const raceRebuildAndCatchUp = Effect.fnUntraced(function* (engine: NoteEn
 		and query like '%select version from events_streams%'
 	) as waiting`.pipe(Effect.map(([row]) => row?.waiting ?? false));
 	const ending = yield* Effect.raceFirst(
-		observeUntil(waiting, (blocked) => blocked, "catch-up to wait for rebuild").pipe(Effect.as("waited for rebuild")),
+		observeUntil(waiting, (blocked) => blocked, "catch-up to wait for rebuild", { clock: "test" }).pipe(Effect.as("waited for rebuild")),
 		Fiber.join(consuming).pipe(Effect.as("finished before rebuild committed")),
 	);
 	yield* Deferred.succeed(release, undefined);

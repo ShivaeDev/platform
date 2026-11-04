@@ -21,6 +21,29 @@ for (const [stableReads, reads] of [
 }
 
 observation.it(
+	"a controlled catalog wait observes alice's session close",
+	[sessionOpen("alice")],
+	function* ({ sessionCountsSeen, waitForNoSessions, waitOutcome }) {
+		yield* waitForNoSessions({ clock: "test", during: "alice closes after the first read" });
+
+		yield* outcomes([
+			["session counts seen", () => sessionCountsSeen(), ["1 open session", "0 open sessions"]],
+			["wait outcome", () => waitOutcome(), "settled on 0 open sessions"],
+		]);
+	},
+);
+
+observation.it(
+	"a controlled catalog wait exhausts its deadline while alice's session remains open",
+	[sessionOpen("alice")],
+	function* ({ failureMessage, waitForNoSessions }) {
+		yield* waitForNoSessions({ clock: "test", every: "1 minute", within: "2 minutes" });
+
+		expect(yield* failureMessage()).toBe("Timed out after 2m waiting for no story session to be open: 2 reads, last value 1");
+	},
+);
+
+observation.it(
 	"while the story's test clock stays paused, the wait sees alice's session close and settles once two reads in a row see none",
 	[sessionOpen("alice")],
 	function* ({ readsAtTheEnd, sessionCountsSeen, waitForNoSessions, waitOutcome }) {
