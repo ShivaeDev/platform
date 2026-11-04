@@ -11,7 +11,7 @@ import { editorVerbs, verbs } from "./verbs.ts";
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 export const settingsStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => createEngine,
 	inspect: ({ screen }) => screen.inspect(),
 	layer: makePostgresTestLayer({

@@ -6,7 +6,7 @@ import { orderVerbs } from "./verbs.ts";
 
 export const app = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine = yield* createApplication;
 		window.location.href = engine.url;

@@ -1,5 +1,6 @@
-import { Effect, Layer } from "effect";
+import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -28,7 +29,14 @@ function verbs(state: State, screen: Screen) {
 				}
 				call.resolve(message);
 			}),
-		elapse: (millis: number) => screen.act(`advance the debounce clock by ${millis}ms`, () => vi.advanceTimersByTimeAsync(millis)),
+		elapse: (millis: number) =>
+			Effect.gen(function* () {
+				const run = Effect.runPromiseWith(yield* Effect.context());
+				yield* screen.act(`advance the debounce clock by ${millis}ms`, async () => {
+					await run(TestClock.adjust(millis));
+					await vi.advanceTimersByTimeAsync(millis);
+				});
+			}),
 		reverse: () => screen.driver(current(state)).click({ name: "Reverse answers", role: "button" }),
 		save: () => screen.driver(current(state)).click({ name: "Save", role: "button" }),
 		type: (value: string) => screen.driver(current(state)).enter('input[name="title"]', value),
@@ -61,16 +69,15 @@ export function optionsShown(kind: Kind) {
 				Effect.sync(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })),
 				() => Effect.sync(() => vi.useRealTimers()),
 			);
-			const runtime = Atom.runtime(
-				Layer.succeed(TitleCheck)({
-					check: (value) =>
-						Effect.promise(() => {
-							const call = Promise.withResolvers<string | undefined>();
-							state.calls.set(value, call);
-							return call.promise;
-						}).pipe(Effect.uninterruptible),
-				}),
-			);
+			const checks = Layer.succeed(TitleCheck)({
+				check: (value) =>
+					Effect.promise(() => {
+						const call = Promise.withResolvers<string | undefined>();
+						state.calls.set(value, call);
+						return call.promise;
+					}).pipe(Effect.uninterruptible),
+			});
+			const runtime = Atom.runtime(Layer.merge(Layer.succeed(Clock.Clock, yield* Clock.Clock), checks));
 			state.view = yield* screen.open(<FormOptionsView kind={kind} runtime={runtime} />);
 		},
 	);

@@ -41,12 +41,7 @@ export async function startProcess(configuration: Configuration) {
 		}
 		const exited = once(child, "exit");
 		child.send({ _tag: "Close" });
-		const timer = globalThis.setTimeout(() => child.kill("SIGKILL"), 5000);
-		try {
-			await exited;
-		} finally {
-			clearTimeout(timer);
-		}
+		await exited;
 	}
 	try {
 		await responses.when(() => count("Ready") > 0);

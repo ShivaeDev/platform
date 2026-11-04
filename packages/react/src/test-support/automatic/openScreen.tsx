@@ -1,5 +1,6 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { act } from "react";
@@ -9,20 +10,24 @@ import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
 import { Notes, Read } from "./screen.tsx";
 
-export async function openScreen(url: string) {
+export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 	window.location.href = url;
 	const sockets: Socket.WebSocketLike[] = [];
+	const reconnected = Promise.withResolvers<void>();
 	const addresses: string[] = [];
 	const socketConstructor = Layer.effect(
 		Socket.WebSocketConstructor,
 		Effect.map(Socket.WebSocketConstructor, (make) => (address, options) => {
 			const socket = make(address, options);
 			sockets.push(socket);
+			if (sockets.length > 1) {
+				socket.addEventListener("open", () => reconnected.resolve(), { once: true });
+			}
 			addresses.push(address);
 			return socket;
 		}),
 	).pipe(Layer.provide(layerWebSocketConstructorWS));
-	const client = connect(url, socketConstructor);
+	const client = connect(url, socketConstructor, runtime);
 	const separate: Awaited<ReturnType<typeof render>>[] = [];
 	let owner: AtomRegistry.AtomRegistry | undefined;
 	const view = await render(
@@ -81,6 +86,7 @@ export async function openScreen(url: string) {
 			}
 			return owner.get((id === 1 ? client.api : client.preview).get.query({ id }));
 		},
+		reconnected: reconnected.promise,
 		rename: async (title: string) => {
 			await act(() => {
 				const input = view.container.querySelector<HTMLInputElement>('[aria-label="Title"]');
