@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-04
+
+### Added
+
+- The PostgreSQL story fixture exposes `elapseWindows(duration)` to age stored reservations without waiting on wall time.
+
 ## 0.4.0 - 2026-11-04
 
 ### Breaking
