@@ -3,8 +3,6 @@ import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
-import type { appDatabase } from "#appDatabase.ts";
-import type { AppHttpHostOptions } from "#appHost.ts";
 import { browserErrorRoute } from "#browserErrorRoute.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
@@ -13,7 +11,6 @@ import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOption
 import { hostRpcRoutes } from "#hostRpcRoutes.ts";
 import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";
 import { hostTransport } from "#hostTransport.ts";
-import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
@@ -74,75 +71,4 @@ export function appHostHttp<
 			).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive))),
 		),
 	);
-}
-
-export function migratedHost<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
-	TRouteError = never,
-	TRouteRequirements = HostRouteRequirements,
-	TMigrationError = never,
->(
-	options: HostOptions<
-		TRpcs,
-		THandlers,
-		THandlerError,
-		THandlerRequirements,
-		TServices,
-		TServiceError,
-		TServiceRequirements,
-		TRouteError,
-		TRouteRequirements
-	> &
-		HostPolicy & {
-			readonly migrations: MigrationOptions<TMigrations, TMigrationError>;
-		},
-	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
-) {
-	const services = Layer.mergeAll(options.services ?? Layer.empty);
-	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) });
-}
-
-export function deferredHost<
-	TRpcs extends Rpc.Any,
-	THandlers,
-	THandlerError,
-	THandlerRequirements,
-	TServices,
-	TServiceError,
-	TServiceRequirements,
-	TMigrations,
-	TApplicationError,
-	TApplicationRequirements,
-	TRouteError = never,
-	TRouteRequirements = HostRouteRequirements,
-	TMigrationError = never,
->(
-	application: Effect.Effect<
-		AppHttpHostOptions<
-			TRpcs,
-			THandlers,
-			THandlerError,
-			THandlerRequirements,
-			TServices,
-			TServiceError,
-			TServiceRequirements,
-			never,
-			never,
-			never,
-			TRouteError,
-			TRouteRequirements
-		>,
-		TApplicationError,
-		TApplicationRequirements
-	>,
-	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
-) {
-	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options))).pipe(Layer.provideMerge(database));
 }

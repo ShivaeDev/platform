@@ -1,7 +1,6 @@
 import { Config, Context, Effect, Layer, Schema } from "effect";
 import { Migrator } from "effect/sql";
-import { appDatabase } from "#appDatabase.ts";
-import { appHost } from "#appHost.ts";
+import { appDatabase, appHost } from "#appDatabase.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { Ping } from "./ping.ts";
 import { databaseOf } from "./state.ts";

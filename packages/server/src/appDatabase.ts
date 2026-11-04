@@ -1,17 +1,29 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Config, Context, Crypto, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
+import { Clock, Config, Context, Crypto, Effect, Layer, Option, Redacted } from "effect";
 import * as Hex from "effect/encoding/Hex";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { Migrator } from "effect/sql";
+import type { Rpc } from "effect/rpc";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
-import { assertPostgresMigrations, postgresMigrationError } from "@shivaedev/sql/assertPostgresMigrations.ts";
+import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
-import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { type PendingPostgresMigrations, pendingPostgresMigrations } from "@shivaedev/sql/pendingPostgresMigrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
-import type { AppDatabaseOptions } from "#appHost.ts";
+import type { AppHostFactory } from "#AppHostFactory.ts";
+import type { AppHostInput } from "#AppHostInput.ts";
+import { deferredHost, migratedHost } from "#appDatabaseHttp.ts";
+import { appHostHttp } from "#appHostHttp.ts";
+import type { HostRouteRequirements } from "#hostOptions.ts";
+import { hostPreflight } from "#hostPreflight.ts";
+import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";
+import type { MigrationOptions } from "#MigrationOptions.ts";
+import { prepareMigrations } from "#prepareMigrations.ts";
+
+export interface AppDatabaseOptions<R = never, E = never> {
+	readonly config?: DatabaseConfig;
+	readonly migrations: MigrationOptions<R, E>;
+}
 
 export interface DatabaseConfig extends PostgresOptions {
 	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "connectionTTL" | "resync">>;
@@ -80,53 +92,51 @@ const defaultChangesChannel = Effect.fnUntraced(function* (name: string) {
 	return `changes_${Hex.encode(digest).slice(0, 32)}`;
 });
 
-function prepareMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
-	switch (migrations.mode) {
-		case "check": {
-			const { release: _release, ...schema } = migrations;
-			return assertPostgresMigrations(schema);
-		}
-		case "wait":
-			return waitForMigrations(migrations);
-		default:
-			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" }).pipe(Effect.asVoid);
+export const appHost: AppHostFactory = <
+	TRpcs extends Rpc.Any = never,
+	THandlers = never,
+	THandlerError = never,
+	THandlerRequirements = never,
+	TServices = never,
+	TServiceError = never,
+	TServiceRequirements = never,
+	TMigrations = never,
+	TApplicationError = never,
+	TApplicationRequirements = never,
+	TPreflight = never,
+	TPreflightError = never,
+	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
+>(
+	options: AppHostInput<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TMigrations,
+		TApplicationError,
+		TApplicationRequirements,
+		TPreflight,
+		TPreflightError,
+		TPreflightRequirements,
+		TRouteError,
+		TRouteRequirements,
+		TMigrationError
+	>,
+) => {
+	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));
+	if ("application" in options) {
+		return deferredHost(options.application, appDatabase(options)).pipe(Layer.provideMerge(preflight), Layer.provide(NodeCrypto.layer));
 	}
-}
-
-function waitForMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
-	return Effect.gen(function* () {
-		const progressInterval = Duration.fromInputUnsafe(migrations.progressInterval ?? "30 seconds");
-		let pending: PendingPostgresMigrations = { components: [], migrations: [] };
-		let progress: Fiber.Fiber<never> | undefined;
-		function log(message: string) {
-			return Effect.suspend(() =>
-				Effect.logInfo(message).pipe(Effect.annotateLogs({ pendingComponents: pending.components, pendingMigrations: pending.migrations })),
+	return options.migrations === undefined
+		? appHostHttp(options).pipe(Layer.provideMerge(preflight), Layer.provide(NodeCrypto.layer))
+		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
+				Layer.provideMerge(preflight),
+				Layer.provide(NodeCrypto.layer),
 			);
-		}
-		yield* Effect.gen(function* () {
-			pending = yield* pendingPostgresMigrations(migrations);
-			if (pending.migrations.length === 0 && pending.components.length === 0) {
-				return;
-			}
-			if (progress === undefined) {
-				yield* log("Waiting for database migrations");
-				progress = yield* Effect.forever(Effect.sleep(progressInterval).pipe(Effect.andThen(log("Still waiting for database migrations")))).pipe(
-					Effect.forkScoped,
-				);
-			}
-			return yield* Effect.fail(postgresMigrationError(pending));
-		}).pipe(
-			Effect.retry({
-				schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
-				while: (error) => error instanceof Migrator.MigrationError && error.kind === "BadState",
-			}),
-			Effect.tapError((error) =>
-				error instanceof Migrator.MigrationError && error.kind === "BadState" ? log("Timed out waiting for database migrations") : Effect.void,
-			),
-		);
-		if (progress !== undefined) {
-			yield* Fiber.interrupt(progress);
-			yield* Effect.logInfo("Database migrations current");
-		}
-	}).pipe(Effect.scoped);
-}
+};

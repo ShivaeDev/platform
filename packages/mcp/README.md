@@ -101,7 +101,7 @@ import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigi
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthMcp, mcpProvider } from "@shivaedev/mcp/adapters/betterAuth.ts";
 import { mcpRoutes } from "@shivaedev/mcp/routes.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 
 const application = Effect.gen(function* () {
 	const resource = "https://app.example.com/mcp";
