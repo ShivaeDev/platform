@@ -1,7 +1,6 @@
 import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { Fleet } from "#fleet.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { refusal } from "#test/refusal.ts";
 import { unacknowledgedSession } from "#test/unacknowledgedSession.ts";
@@ -14,12 +13,12 @@ for (const action of ["retry", "release"] as const) {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
-			const stopped = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
+			const stopped = yield* afterRestart((resumed) => resumed.reconcile("one"));
 			expect(stopped.value.decision?.reason).toContain("Lost thread acknowledgement");
 			const decisionId = stopped.value.decision?.id ?? "missing";
 			const responseId = respond(decisionId, action);
-			const resolve = Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decisionId, responseId)));
-			const resolved = yield* afterRestart(resolve);
+
+			const resolved = yield* afterRestart((resumed) => resumed.resolve("one", decisionId, responseId));
 			expect(resolved.value.step).toBe(action === "retry" ? "queued" : "released");
 			expect(resolved.value.attempts[0]).toMatchObject({ status: "failed" });
 			yield* releaseGate("session");
@@ -36,10 +35,10 @@ for (const action of ["retry", "release"] as const) {
 				["session", () => fleet.get("one").pipe(Effect.map((current) => current.value.attempts[0]?.sessionId)), undefined],
 				["provider operations", () => Effect.sync(providerOperations), []],
 			]);
-			const afterRestartResult = yield* afterRestart(resolve);
+			const afterRestartResult = yield* afterRestart((resumed) => resumed.resolve("one", decisionId, responseId));
 			expect(afterRestartResult.value.responses).toEqual(resolved.value.responses);
 			if (action === "retry") {
-				const fresh = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.dispatch("one"))));
+				const fresh = yield* afterRestart((resumed) => resumed.dispatch("one"));
 				expect(fresh.value.attempts.at(-1)?.receipt?.turnId).toBe("turn-operation-2");
 			}
 		},
@@ -65,11 +64,11 @@ isolatedEngine.it(
 		yield* prepareWork("one");
 
 		yield* fleet.dispatch("one");
-		const stopped = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
+		const stopped = yield* afterRestart((resumed) => resumed.reconcile("one"));
 		const decisionId = stopped.value.decision?.id ?? "missing";
 		const responseId = respond(decisionId, "release");
-		const resolve = Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decisionId, responseId)));
-		const retiring = yield* afterRestart(refusal(resolve)).pipe(Effect.forkChild);
+
+		const retiring = yield* afterRestart((resumed) => refusal(resumed.resolve("one", decisionId, responseId))).pipe(Effect.forkChild);
 		yield* waitForGate("retiring");
 		yield* releaseGate("session");
 		yield* waitForGate("turn");
@@ -82,7 +81,7 @@ isolatedEngine.it(
 		]);
 		yield* awaitRecordedReceipt("one");
 		finishWorkers();
-		expect((yield* afterRestart(resolve)).value.step).toBe("released");
+		expect((yield* afterRestart((resumed) => resumed.resolve("one", decisionId, responseId))).value.step).toBe("released");
 		expect(providerOperations()).toEqual(["operation-1"]);
 	},
 	{ clock: "live", timeout: 30_000 },

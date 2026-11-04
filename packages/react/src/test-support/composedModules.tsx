@@ -12,14 +12,14 @@ interface State {
 	view?: Rendered;
 }
 
-function app(window: Duration.Input) {
+function app(window: Duration.Input, selected?: readonly string[]) {
 	return (
 		<SessionBoundary
 			connect={(_, registry) => {
 				const modules = [composedModule("Notes", registry), composedModule("Tasks", registry)];
 				return composeBindings(
 					{ modules },
-					modules.map((module) => module.api),
+					modules.filter((module) => selected === undefined || selected.includes(module.name)).map((module) => module.api),
 				);
 			}}
 			identify={(session) => session}
@@ -37,10 +37,10 @@ export const composedModules = storyKit(
 		"composed module bindings",
 		(): State => ({}),
 		(state, screen) => ({
-			open: (window: Duration.Input) =>
+			open: (window: Duration.Input, selected?: readonly string[]) =>
 				Effect.gen(function* () {
 					screen.tell(`open Notes and Tasks with a ${window} live window`);
-					state.view = yield* screen.open(app(window));
+					state.view = yield* screen.open(app(window, selected));
 					yield* settleScreen(state.view.container, () => state.view?.container.querySelector('[data-pending="true"]') !== null, screen.tell);
 				}),
 			shown: () => Effect.sync(() => [...(state.view?.container.querySelectorAll("output") ?? [])].map((node) => node.textContent)),

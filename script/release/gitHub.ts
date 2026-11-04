@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
-import { read, write } from "@shivaedev/github/GitHub.ts";
 import { graphql } from "@shivaedev/github/graphql.ts";
+import { read } from "@shivaedev/github/read.ts";
+import { write } from "@shivaedev/github/write.ts";
 import { type ReleaseCiRun, releaseHoldReason } from "./holdReason.ts";
 
 const Snapshot = Schema.Struct({

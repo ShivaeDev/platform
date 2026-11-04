@@ -1,8 +1,9 @@
 import ts from "typescript";
+import { storyBody } from "#adapters/bodyReferences.ts";
 
 export function storyUsesInputs(body: ts.Expression, checker: ts.TypeChecker): boolean | undefined {
-	const declaration = checker.getTypeAtLocation(body).getCallSignatures()[0]?.declaration;
-	if (declaration === undefined || !("body" in declaration) || declaration.body === undefined) {
+	const declaration = storyBody(body, checker);
+	if (declaration?.body === undefined) {
 		return undefined;
 	}
 	const inputs = new Set<ts.Symbol>();

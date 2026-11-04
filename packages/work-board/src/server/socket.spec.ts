@@ -51,7 +51,7 @@ boardStory.it("a second board on the same folder is refused and the first keeps 
 		[
 			"the second board",
 			() => startAttempt(),
-			"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board.",
+			"refused: A listener is already running at the project folder/board.sock. Stop it before starting another.",
 		],
 	]);
 });
@@ -86,7 +86,7 @@ boardStory.it(
 	function* ({ bothBoardsStart, serverAnswer }) {
 		const starts = yield* bothBoardsStart();
 
-		expect(starts).toEqual([expect.stringMatching(/^refused: Another board is already running at the project folder\/board\.sock\./u), "started"]);
+		expect(starts).toEqual([expect.stringMatching(/^refused: A listener is already running at the project folder\/board\.sock\./u), "started"]);
 		expect(yield* serverAnswer("socket")).toEqual(ownBoard);
 	},
 );

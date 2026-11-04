@@ -11,8 +11,10 @@ function localTime(ms: number): string {
 	return DateTime.formatLocal(DateTime.makeUnsafe(ms), { locale: "en-GB", timeStyle: "medium" });
 }
 
-export function waitingLine(holder: Holder, nowMs: number): string {
-	return `heavy-process lock: waiting for pid ${holder.pid} running \`${holder.command}\` in ${holder.cwd} since ${localTime(holder.startedAtMs)} (${elapsed(holder.startedAtMs, nowMs)})`;
+export function waitingLine(holder: Holder, nowMs: number, mayBeHung = false): string {
+	const branch = holder.branch === undefined ? "" : ` on branch ${holder.branch}`;
+	const warning = mayBeHung ? "; holder may be hung" : "";
+	return `heavy-process lock: waiting for pid ${holder.pid} running \`${holder.command}\` in ${holder.cwd}${branch} since ${localTime(holder.startedAtMs)} (${elapsed(holder.startedAtMs, nowMs)})${warning}`;
 }
 
 export function acquiredLine(waitStartedMs: number, nowMs: number): string {

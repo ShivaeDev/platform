@@ -1,10 +1,12 @@
 import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { AttentionOwner } from "#attention.ts";
 import { views } from "#engine/views.ts";
-import { fleetRejections } from "#errors.ts";
-import { exposeFailure } from "#exposeFailure.ts";
+import { FleetError, fleetRejections } from "#errors.ts";
+import { exposeFailure as mapFailure } from "#exposeFailure.ts";
 import { Fleet } from "#fleet.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
@@ -67,21 +69,30 @@ export const FleetContract = contract("fleet", {
 	queries: [Views, Get],
 });
 
+export function fleetFailure<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	return mapFailure(effect).pipe(
+		rpcBoundary(FleetError, {
+			message: "The integration is unavailable; inspect runtime diagnostics",
+			unexpected: (message) => new ServiceUnavailable({ message }),
+		}),
+	);
+}
+
 export const fleetHandlers = FleetContract.application.toLayer(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
 		return FleetContract.application.of({
-			"fleet.continue": ({ workId, message }) => exposeFailure(fleet.continue(workId, message).pipe(Effect.map(({ value }) => value))),
-			"fleet.dispatch": ({ workId }) => exposeFailure(fleet.dispatch(workId).pipe(Effect.map(({ value }) => value))),
-			"fleet.get": ({ workId }) => exposeFailure(fleet.get(workId).pipe(Effect.map(({ value }) => value))),
-			"fleet.prepare": (input) => exposeFailure(fleet.prepare(input).pipe(Effect.map(({ value }) => value))),
+			"fleet.continue": ({ workId, message }) => fleetFailure(fleet.continue(workId, message).pipe(Effect.map(({ value }) => value))),
+			"fleet.dispatch": ({ workId }) => fleetFailure(fleet.dispatch(workId).pipe(Effect.map(({ value }) => value))),
+			"fleet.get": ({ workId }) => fleetFailure(fleet.get(workId).pipe(Effect.map(({ value }) => value))),
+			"fleet.prepare": (input) => fleetFailure(fleet.prepare(input).pipe(Effect.map(({ value }) => value))),
 			"fleet.reassign": ({ workId, decisionId, attentionOwner }) =>
-				exposeFailure(fleet.reassign(workId, decisionId, attentionOwner).pipe(Effect.map(({ value }) => value))),
-			"fleet.reconcile": ({ workId }) => exposeFailure(fleet.reconcile(workId).pipe(Effect.map(({ value }) => value))),
-			"fleet.release-ci": ({ workId, head }) => exposeFailure(fleet.releaseCi(workId, head).pipe(Effect.map(({ value }) => value))),
+				fleetFailure(fleet.reassign(workId, decisionId, attentionOwner).pipe(Effect.map(({ value }) => value))),
+			"fleet.reconcile": ({ workId }) => fleetFailure(fleet.reconcile(workId).pipe(Effect.map(({ value }) => value))),
+			"fleet.release-ci": ({ workId, head }) => fleetFailure(fleet.releaseCi(workId, head).pipe(Effect.map(({ value }) => value))),
 			"fleet.resolve": ({ workId, decisionId, responseId }) =>
-				exposeFailure(fleet.resolve(workId, decisionId, responseId).pipe(Effect.map(({ value }) => value))),
-			"fleet.views": () => exposeFailure(fleet.list().pipe(Effect.map((records) => views(records.map(({ value }) => value))))),
+				fleetFailure(fleet.resolve(workId, decisionId, responseId).pipe(Effect.map(({ value }) => value))),
+			"fleet.views": () => fleetFailure(fleet.list().pipe(Effect.map((records) => views(records.map(({ value }) => value))))),
 		});
 	}),
 );

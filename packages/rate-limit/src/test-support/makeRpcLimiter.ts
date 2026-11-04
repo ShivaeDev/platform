@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from "effect";
+import { Clock, Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { isTooManyRequests, TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
@@ -8,9 +8,10 @@ import { Store } from "#Store.ts";
 const Api = RpcGroup.make(Rpc.make("admit", { error: TooManyRequests, success: Schema.Void }));
 
 export const makeRpcLimiter = Effect.fnUntraced(function* (limit: RateLimitOptions) {
+	const clock = yield* Clock.Clock;
 	const store = yield* Store;
 	const handlers = Api.toLayer({
-		admit: () => rateLimit(limit).pipe(Effect.catchTag("RateLimitStoreError", Effect.die)),
+		admit: () => rateLimit(limit).pipe(Effect.provideService(Clock.Clock, clock), Effect.catchTag("RateLimitStoreError", Effect.die)),
 	});
 	const app = HttpRouter.toWebHandler(
 		RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(

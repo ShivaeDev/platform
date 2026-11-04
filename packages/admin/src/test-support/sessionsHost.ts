@@ -1,4 +1,4 @@
-import { Effect, Layer, Option } from "effect";
+import { Clock, Effect, Layer, Option } from "effect";
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -21,10 +21,12 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionsPage } from "#sessions/Page.ts";
+import { clientRuntime } from "./clientRuntime.ts";
 
 const Access = roleSet(role("admin", [ManageSessions]), role("user", []));
 
 export const sessionsHost = Effect.fnUntraced(function* () {
+	const clock = yield* Clock.Clock;
 	const options = {
 		"baseURL": "http://localhost",
 		database: yield* betterAuthDatabase(),
@@ -76,14 +78,20 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		Layer.provide(Layer.succeed(SessionPolicy, policy)),
 	);
 	const handler = yield* HttpRouter.toHttpEffect(routes);
-	const server = yield* Layer.build(HttpServer.serve(handler).pipe(Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 }))));
+	const server = yield* Layer.build(
+		HttpServer.serve(handler).pipe(
+			Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 })),
+			Layer.provideMerge(Layer.succeed(Clock.Clock, clock)),
+		),
+	);
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(server));
 	if (!NetAddress.isInetAddress(address)) {
 		throw new Error("The sessions host must listen on TCP");
 	}
 	const baseUrl = `http://127.0.0.1:${address.port}`;
 	const protocol = RpcClient.layerProtocolHttp({ url: `${baseUrl}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]));
-	const transport = makeClient(SessionsPage.contract, { live: false, protocol, url: `${baseUrl}/rpc` });
+	const runtime = yield* clientRuntime;
+	const transport = makeClient(SessionsPage.contract, { live: false, protocol, runtime, url: `${baseUrl}/rpc` });
 	const client = yield* transport.client;
 	return {
 		accounts,

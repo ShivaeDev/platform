@@ -1,10 +1,11 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Context, Data, Effect, Layer, Option, Schema } from "effect";
+import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Migrator } from "effect/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { appHost } from "#appHost.ts";
+import { type AppHttpHostOptions, appHost } from "#appHost.ts";
 
 class Queue extends Context.Service<Queue, { readonly size: number }>()("@shivaedev/server/host-inference/Queue") {}
 class QueueError extends Data.TaggedError("QueueError") {}
@@ -95,4 +96,31 @@ it("preserves service outputs, failures and callback requirements", () => {
 	expectTypeOf<Layer.Services<typeof withRequirements>>().toEqualTypeOf<QueueEvents>();
 	// @ts-expect-error The service factory's callback requirement must be provided.
 	NodeRuntime.runMain(Layer.launch(withRequirements));
+});
+
+const httpOnlyRoutes = HttpRouter.add("GET", "/existing", Queue.pipe(Effect.map(({ size }) => HttpServerResponse.text(String(size)))));
+const httpOnlyIncomplete = appHost({ routes: httpOnlyRoutes });
+const httpOnlyComplete = appHost({ routes: httpOnlyRoutes, services });
+const httpOnlyTyped: AppHttpHostOptions = {};
+const httpOnlyTypedHost = appHost(httpOnlyTyped);
+const databaseRoute = HttpRouter.add("GET", "/database", SqlClient.SqlClient.use((sql) => sql`select 1`).pipe(Effect.as(HttpServerResponse.empty())));
+const httpOnlyMigrated = appHost({ migrations, routes: databaseRoute });
+const httpOnlyDeferred = appHost({ application: Effect.succeed({ routes: databaseRoute }), migrations });
+
+it("HTTP-only hosts retain dependencies, build failures and migrated SQL", () => {
+	expectTypeOf<Layer.Services<typeof httpOnlyIncomplete>>().toEqualTypeOf<Queue>();
+	expectTypeOf<Layer.Services<typeof httpOnlyComplete>>().toEqualTypeOf<never>();
+	expectTypeOf<Extract<Layer.Error<typeof httpOnlyComplete>, QueueError>>().toEqualTypeOf<QueueError>();
+	expectTypeOf<Layer.Services<typeof httpOnlyTypedHost>>().toEqualTypeOf<never>();
+	expectTypeOf<Layer.Services<typeof httpOnlyMigrated>>().toEqualTypeOf<never>();
+	expectTypeOf<Layer.Services<typeof httpOnlyDeferred>>().toEqualTypeOf<never>();
+});
+
+it("native RPC still requires its group, handlers and session policy together", () => {
+	// @ts-expect-error Native RPC requires handlers.
+	appHost({ group, policy: "loopback" });
+	// @ts-expect-error Native handlers require a group.
+	appHost({ handlers, policy: "loopback" });
+	// @ts-expect-error Native RPC requires sessions or the explicit loopback policy.
+	appHost({ group, handlers });
 });

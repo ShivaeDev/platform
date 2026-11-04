@@ -3,6 +3,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
+import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
@@ -118,6 +119,15 @@ export const liveSessionStory = storyKit({
 				Effect.sync(() => {
 					story.tell("the server stops letting alice read the note");
 					host.state.allowed = false;
+				}),
+			liveWindow: () =>
+				Effect.sync(() => {
+					const registry = registries.at(-1);
+					const client = clients.at(-1);
+					if (registry === undefined || client === undefined) {
+						throw new Error("No open note");
+					}
+					return registry.get(client[LiveConnection].coalesceWindow);
 				}),
 			reads: () => Effect.sync(() => host.state.reads),
 			// The query's Unauthorized effect and the live connection's failure listener may both report one revocation.

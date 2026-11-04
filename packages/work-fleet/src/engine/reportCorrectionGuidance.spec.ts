@@ -1,6 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { workerGuidance } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { workerReportsCanBeAdopted } from "#test/engineWorkerReportTraits.ts";
@@ -20,15 +19,15 @@ describe("report correction after worker guidance changes", () => {
 				yield* workerReportReply(followUp, `FLEET_PR: ${PR}`);
 				const turns = providerCalls().filter((call) => call.call === "turn").length;
 				yield* afterRestart(
-					Effect.gen(function* () {
-						const restarted = yield* Fleet;
-						const blocked = yield* restarted.reconcile("one");
-						expect(blocked.value.step).toBe("waiting");
-						expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
-						expect(blocked.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
-						expect(blocked.value.result).toBeUndefined();
-						expect((yield* restarted.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
-					}),
+					(restarted) =>
+						Effect.gen(function* () {
+							const blocked = yield* restarted.reconcile("one");
+							expect(blocked.value.step).toBe("waiting");
+							expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
+							expect(blocked.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
+							expect(blocked.value.result).toBeUndefined();
+							expect((yield* restarted.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
+						}),
 					({ workerGuidance: _workerGuidance, ...policy }) => (nextGuidance === undefined ? policy : { ...policy, workerGuidance: nextGuidance }),
 				);
 				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);

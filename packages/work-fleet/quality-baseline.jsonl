@@ -1,6 +1,7 @@
 {"path":"packages/work-fleet/src/admit.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/board/answerPublication.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/markdown.test.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/board/markdownGateway.ts","rule":"effect/service-definition-assembly","count":7}
 {"path":"packages/work-fleet/src/board/publicationFailure.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/readPass.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/abandonStalled.ts","rule":"effect/service-parameters","count":1}
@@ -81,6 +82,7 @@
 {"path":"packages/work-fleet/src/engine/releaseReceipts.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/releasedDeliveries.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/reportRecoveryMatrix.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/engine/repository.ts","rule":"effect/service-definition-assembly","count":12}
 {"path":"packages/work-fleet/src/engine/requestConflictRepair.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/requestRework.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/reserveRenewal.ts","rule":"effect/service-parameters","count":1}
@@ -112,6 +114,7 @@
 {"path":"packages/work-fleet/src/engine/watchedPrs.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/workerReport.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/errors.ts","rule":"structure/no-barrel","count":1}
+{"path":"packages/work-fleet/src/fleet.ts","rule":"effect/service-definition-assembly","count":27}
 {"path":"packages/work-fleet/src/host/answerApplyConflict.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/answerPublication.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/answerQueue.spec.ts","rule":"effect/boundary","count":1}
@@ -127,23 +130,28 @@
 {"path":"packages/work-fleet/src/host/continueReport.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/daemonCommands.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/daemonContract.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/host/daemonHandlers.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/host/dispatchRequests.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/fleetStatus.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/freshRetry.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/githubApi.ts","rule":"effect/service-definition-assembly","count":4}
 {"path":"packages/work-fleet/src/host/healthPublication.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/integrations.ts","rule":"effect/service-definition-assembly","count":4}
 {"path":"packages/work-fleet/src/host/localOnlyCriteria.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/mainSource.ts","rule":"effect/service-definition-assembly","count":6}
 {"path":"packages/work-fleet/src/host/mergePrediction.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/host/nameThreads.ts","rule":"effect/failure-honesty","count":1}
+{"path":"packages/work-fleet/src/host/providerHealth.ts","rule":"effect/service-definition-assembly","count":5}
 {"path":"packages/work-fleet/src/host/quota.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: quota-cache stories still assert refresh counters; replacing these needs an observation-request trace in the policy kit."}
 {"path":"packages/work-fleet/src/host/readWaitStates.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/report.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/reportAttachmentSafety.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/reportAttachments.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/reportBoard.ts","rule":"effect/service-definition-assembly","count":8}
 {"path":"packages/work-fleet/src/host/reportCurrentMain.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/reportQuestion.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/runtime.ts","rule":"biome/plugin","count":2}
 {"path":"packages/work-fleet/src/host/settledAnswers.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/statusLayer.ts","rule":"effect/service-definition-assembly","count":6}
 {"path":"packages/work-fleet/src/host/supervision.spec.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-fleet/src/host/supervisor.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/supervisorPort.ts","rule":"effect/boundary","count":1}
@@ -152,11 +160,14 @@
 {"path":"packages/work-fleet/src/host/watchStream.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/policyGuidance.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/providers/codexCloud.ts","rule":"biome/plugin","count":1}
+{"path":"packages/work-fleet/src/providers/codexCloud.ts","rule":"effect/service-definition-assembly","count":5}
 {"path":"packages/work-fleet/src/providers/codexCloudConnection.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/providers/codexLocal.ts","rule":"biome/plugin","count":1}
+{"path":"packages/work-fleet/src/providers/codexLocal.ts","rule":"effect/service-definition-assembly","count":5}
 {"path":"packages/work-fleet/src/providers/codexRpc.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-fleet/src/providers/startCodexTurn.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/reportFileFailure.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-fleet/src/session/service.ts","rule":"effect/service-definition-assembly","count":16}
 {"path":"packages/work-fleet/src/storage/answerStore.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/storage/backfillDecisionCodes.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Backfill rows have a fixed local storage shape; decoding must be considered with the storage migration boundary (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/dispatchStore.ts","rule":"biome/plugin","count":1}

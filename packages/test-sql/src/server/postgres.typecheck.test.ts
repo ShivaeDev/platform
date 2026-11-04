@@ -5,20 +5,12 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { defineService } from "@shivaedev/service/defineService.ts";
 import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
+import { Missing } from "#test/Missing.ts";
 import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
 import { withTestTransaction } from "./withTestTransaction.ts";
-
-const Missing = defineService({
-	id: "@shivaedev/test-sql/types/Missing",
-	initialize: Effect.void,
-	methods: () => ({}),
-	requires: [],
-});
-type Missing = typeof Missing.Identifier;
 
 const body = Effect.gen(function* () {
 	yield* Scope.Scope;
