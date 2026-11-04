@@ -205,3 +205,9 @@
 {"path":"packages/work-fleet/src/providers/codexLogin.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-fleet/src/scheduling/sweeps.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-fleet/src/storage/recordChildren.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/work-fleet/src/test-support/daemonResources.ts","rule":"tests/wait-on-events","count":1}
+{"path":"packages/work-fleet/src/test-support/gitScopeRepository.ts","rule":"tests/wait-on-events","count":1}
+{"path":"packages/work-fleet/src/test-support/hostVerbs.ts","rule":"tests/wait-on-events","count":2}
+{"path":"packages/work-fleet/src/test-support/providerReadStory.ts","rule":"tests/wait-on-events","count":3}
+{"path":"packages/work-fleet/src/test-support/providerStory.ts","rule":"tests/wait-on-events","count":2}
+{"path":"packages/work-fleet/src/test-support/watchEventVerbs.ts","rule":"tests/wait-on-events","count":1}

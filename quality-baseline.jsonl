@@ -62,6 +62,7 @@
 {"path":"script/starter-published/installDocumentation.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/starter-published/packedInstaller.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/starter-published/run.ts","rule":"effect/adapter-imports","count":1}
+{"path":"script/test-harness/test-support/environment.ts","rule":"tests/wait-on-events","count":1}
 {"path":"script/test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/test/vitest.config.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/boundary","count":6}
