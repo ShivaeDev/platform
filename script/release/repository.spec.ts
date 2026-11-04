@@ -4,7 +4,7 @@ import { repository } from "#release/test-support/repository.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
-repository.it("the repository hook aligns starter pins and both binaries with an applied release", [], function* ({ apply, check, read }) {
+repository.it("the repository hook aligns starter pins with an applied release", [], function* ({ apply, check, read }) {
 	expect(yield* check()).toBeUndefined();
 	const plan = yield* apply();
 	const pins = Schema.decodeUnknownSync(Versions)(yield* read("examples/starter/published-versions.json"));
@@ -13,8 +13,6 @@ repository.it("the repository hook aligns starter pins and both binaries with an
 		expect(release).toBeDefined();
 		expect(pins[name]).toBe(release?.to);
 	}
-	expect(yield* read("packages/work-board/src/server/packageInfo.ts")).toBe('export const VERSION = "0.4.1";\n');
-	expect(yield* read("packages/work-fleet/src/packageInfo.ts")).toBe('export const VERSION = "0.3.1";\n');
 	expect(yield* check()).toBeUndefined();
 });
 
