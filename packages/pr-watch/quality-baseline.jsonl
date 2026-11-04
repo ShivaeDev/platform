@@ -1,1 +1,5 @@
+{"path":"packages/pr-watch/src/GitHub.ts","rule":"effect/service-definition-assembly","count":2}
+{"path":"packages/pr-watch/src/GitHubHttp.ts","rule":"effect/service-definition-assembly","count":4}
 {"path":"packages/pr-watch/src/StateFile.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/pr-watch/src/StateFile.ts","rule":"effect/service-definition-assembly","count":6}
+{"path":"packages/pr-watch/src/Watcher.ts","rule":"effect/service-definition-assembly","count":6}

@@ -211,6 +211,7 @@
 {"path":"packages/work-board/src/client/responses/authorLabel.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/responses/retainContext.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/diagnostics/source.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: cache-hit and cache-expiry stories still assert source-read counters; the diagnostics kit needs a request trace before these can assert the actual reads."}
+{"path":"packages/work-board/src/diagnostics/source.ts","rule":"effect/service-definition-assembly","count":6}
 {"path":"packages/work-board/src/diagnostics/source.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/render/callouts.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/render/documentHeadings.ts","rule":"effect/adapter-imports","count":1}
@@ -226,6 +227,7 @@
 {"path":"packages/work-board/src/rpc/PageUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/rejections.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/Responses.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board/src/server/Responses.ts","rule":"effect/service-definition-assembly","count":5}
 {"path":"packages/work-board/src/server/archive/documents.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/archive/run.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/boundary","count":2}
@@ -246,6 +248,7 @@
 {"path":"packages/work-board/src/server/files/watchDirectories.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-board/src/server/files/watchSentinel.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/server/handoffs/Service.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/work-board/src/server/handoffs/Service.ts","rule":"effect/service-definition-assembly","count":4}
 {"path":"packages/work-board/src/server/handoffs/records.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/handoffs/source.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/http/assets.ts","rule":"effect/adapter-imports","count":2}
@@ -272,6 +275,8 @@
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"effect/boundary","count":29}
 {"path":"packages/work-board/src/server/processOwnership.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/processOwnership.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-board/src/server/publication.ts","rule":"effect/service-definition-assembly","count":4}
+{"path":"packages/work-board/src/server/render/Highlighter.ts","rule":"effect/service-definition-assembly","count":2}
 {"path":"packages/work-board/src/server/responses/agent-cli.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/responses/agent-cli.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/server/responses/agentArguments.ts","rule":"effect/boundary","count":3}
@@ -299,6 +304,7 @@
 {"path":"packages/work-board/src/server/search/snapshot.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/views/fleetItems.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-board/src/server/views/fleetItems.ts","rule":"effect/failure-honesty","count":2}
+{"path":"packages/work-board/src/server/workspace.ts","rule":"effect/service-definition-assembly","count":5}
 {"path":"packages/work-board/src/test-support/DiagnosticsPoller.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/test-support/ReadingReadyHarness.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/vitest.config.ts","rule":"effect/adapter-imports","count":1}
