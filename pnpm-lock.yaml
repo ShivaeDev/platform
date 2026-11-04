@@ -570,6 +570,9 @@ importers:
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1249,6 +1252,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1995,6 +2001,9 @@ importers:
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
@@ -2004,6 +2013,9 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.38.0(@opentelemetry/api@1.9.1)
     devDependencies:
       '@shivaedev/quality':
         specifier: workspace:*
@@ -2048,6 +2060,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -2201,6 +2216,9 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

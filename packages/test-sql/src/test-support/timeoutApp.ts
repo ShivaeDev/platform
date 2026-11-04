@@ -2,7 +2,7 @@ import { Context, Deferred, Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { PostgresTestDatabase } from "#server/database.ts";

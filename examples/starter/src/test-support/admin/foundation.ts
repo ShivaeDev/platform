@@ -1,7 +1,7 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Option } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";

@@ -2,11 +2,11 @@ import type { Context, Effect, Fiber, Redacted, Schema } from "effect";
 import type { SqlClient } from "effect/sql";
 import { type PgBoss, TestClock } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
 import type { PgBossService } from "#server/service.ts";
-import type { PgBossTesting } from "#server/testing.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { type WorkLog, workLog } from "#test/workers.ts";
 
