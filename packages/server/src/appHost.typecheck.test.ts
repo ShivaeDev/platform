@@ -4,7 +4,8 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { type AppHostOptions, appHost } from "#appHost.ts";
+import type { AppHostOptions } from "#AppHostInput.ts";
+import { appHost } from "#appDatabase.ts";
 
 class Required extends Context.Service<Required, string>()("@shivaedev/server/host-test/Required") {}
 class BuildFailure extends Schema.TaggedError<BuildFailure>()("BuildFailure", {}) {}

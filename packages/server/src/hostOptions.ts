@@ -3,7 +3,6 @@ import type { HttpRouter } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AssetOptions } from "#AssetOptions.ts";
-import type { AppDatabaseOptions } from "#appHost.ts";
 import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
 
 export type HostRouteRequirements = HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>;
@@ -11,7 +10,7 @@ export type HostRouteRequirements = HttpRouter.HttpRouter | HttpRouter.Request<"
 export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> = {
 	readonly assets?: string | AssetOptions;
 	readonly browserErrors?: BrowserErrorOptions;
-	readonly config?: AppDatabaseOptions["config"] & {
+	readonly config?: {
 		readonly buildVersion?: string;
 		readonly port?: number;
 		readonly socketPath?: string;

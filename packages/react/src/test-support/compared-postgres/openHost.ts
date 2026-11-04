@@ -2,7 +2,7 @@ import { Effect, ManagedRuntime, Queue, type Redacted, SubscriptionRef } from "e
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, migrations, repository } from "./feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redacted<string>) {

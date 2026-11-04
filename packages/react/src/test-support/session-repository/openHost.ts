@@ -4,8 +4,7 @@ import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { appDatabase } from "@shivaedev/server/appDatabase.ts";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appDatabase, appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, migrations, ReadAccess, repository } from "./feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redacted<string>) {

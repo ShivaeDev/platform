@@ -9,7 +9,7 @@ Every Effect application needs the same server shell: wait for migrations, open 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 NodeRuntime.runMain(
@@ -58,7 +58,7 @@ const Server = appHost({
 
 `handleRequest` is the app's existing `(request: Request) => Promise<Response>`. Use `readBoundedBody` when forwarding bodies; `routes` receives the host's `MAX_BODY_SIZE` or `config.maxBodySize`, and that reader returns 413 on overflow. Merely converting a request to a Web request does not bound its body. Configure the actual proxy peer in `trustedProxy`; the host still requires trust when binding publicly and applies it at its own transport boundaries, including browser error reports. This setting does not install authentication or an Origin guard around application routes.
 
-The same host composition provides scoped `services`, migration ordering (including deferred `application` construction), `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. Health still returns 503 without SQL and 200 with reachable PostgreSQL. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
+The host provides scoped `services`, `/health`, HTTP tracing with incoming W3C trace context, and diagnostic redaction. This entry needs `@effect/platform-node` and runs without `@effect/sql-pg`. Health returns 503 without SQL and 200 with reachable PostgreSQL. For migrations or deferred `application` construction, import `appHost` from `@shivaedev/server/appDatabase.ts` with the same HTTP route options. Add the native `group`, `handlers` and session policy as the app adopts native RPC, alongside any remaining HTTP routes.
 
 Host option types include this HTTP-only shape. A wrapper that reads native RPC options first narrows with `options.group !== undefined` before reading `group` or `handlers`. Existing native `appHost` calls keep their options.
 
@@ -76,7 +76,7 @@ For feature modules, install the optional peer `@shivaedev/admin` and declare ea
 
 ```ts
 import { Effect } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { appModules } from "@shivaedev/server/appModules.ts";
 import { notes, tasks, sessions } from "./app.ts";
@@ -97,7 +97,7 @@ Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second arg
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 const Server = appHost({
@@ -112,7 +112,7 @@ const Server = appHost({
 NodeRuntime.runMain(Layer.launch(Server));
 ```
 
-`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and a `Layer.Layer<SessionPolicy>` from `@shivaedev/identity/server/SessionPolicy.ts`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `node-http/`, `rpc-server/` and `runtime/` entries still work without them.
+`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and a `Layer.Layer<SessionPolicy>` from `@shivaedev/identity/server/SessionPolicy.ts`. The database host entry needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. Hosts without database wiring import `appHost` from `@shivaedev/server/appHost.ts` and need only the Node peer. The `node-http/`, `rpc-server/` and `runtime/` entries still work without them.
 
 The `sessions` Layer provides one identity `SessionPolicy` to handler middleware, sockets, change subscriptions and application routes. Construct it with `Layer.succeed(SessionPolicy, { origin, provider, roles })`; policy readers take no policy argument.
 
@@ -289,7 +289,7 @@ On the server, merge the declaration into the application's group and its genera
 
 ```ts
 import { Layer } from "effect";
-import { appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { publicConfigLayer } from "@shivaedev/server/rpc-server/publicConfigLayer.ts";
 import { Api, Handlers, sessions } from "./app.ts";
 import { PublicConfig } from "./public-config.ts";

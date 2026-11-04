@@ -9,7 +9,7 @@ import type { PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 
 const notes = collection("clock-notes", Schema.Number);
 const Jobs = makePgBoss("test/HostClockJobs");

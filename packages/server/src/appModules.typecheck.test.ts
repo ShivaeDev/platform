@@ -3,7 +3,7 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import type { AppModule } from "#AppModule.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import { workerHost } from "#workerHost.ts";

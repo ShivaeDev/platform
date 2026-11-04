@@ -16,7 +16,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { hostOptions } from "./story.ts";
 import { TypedFailures, typedFailure, typedFailureHandlers } from "./typedFailures.ts";
 

@@ -4,7 +4,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { Api, Cost, handlers, migrations } from "./feature.ts";
 
 export const openHost = Effect.gen(function* () {

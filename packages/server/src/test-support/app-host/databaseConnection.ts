@@ -1,6 +1,6 @@
 import { Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { appHost } from "#appHost.ts";
+import { appHost } from "#appDatabase.ts";
 import { serverOffersTls } from "./connectionSecurity.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 import { databaseOf } from "./state.ts";
