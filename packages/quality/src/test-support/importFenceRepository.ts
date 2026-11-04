@@ -15,12 +15,12 @@ export const importFenceRepository: readonly SeedFile[] = [
 	{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
 	{
 		content:
-			'{ "name": "@demo/game", "exports": { "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } }, "dependencies": { "@demo/cms": "workspace:*" } }',
+			'{ "name": "@demo/game", "exports": { "./*.ts": { "@shivaedev/source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } }, "dependencies": { "@demo/cms": "workspace:*" } }',
 		path: "packages/game/package.json",
 	},
 	{
 		content:
-			'{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts", "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } } }',
+			'{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts", "./*.ts": { "@shivaedev/source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } } }',
 		path: "packages/cms/package.json",
 	},
 	{

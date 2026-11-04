@@ -9,7 +9,7 @@ describe("the hook's command", () => {
 	it.effect.each([
 		{
 			ran: "a file in the repository, with its Node options",
-			runs: { launcher: "tools/quality.ts", runner: ["node", "--conditions=source"] },
+			runs: { launcher: "tools/quality.ts", runner: ["node", "--conditions=@shivaedev/source"] },
 			script: "/repo/tools/quality.ts",
 		},
 		{
@@ -19,7 +19,7 @@ describe("the hook's command", () => {
 		},
 		{ ran: "a file outside the repository", runs: { launcher: "node_modules/.bin/quality", runner: [] }, script: "/cache/dlx/quality/dist/cli.js" },
 	])("runs quality the way it ran from $ran", function* ({ runs, script }) {
-		yield* assertThat(hookCommand("/repo", { options: ["--conditions=source"], script }, undefined), (actual) =>
+		yield* assertThat(hookCommand("/repo", { options: ["--conditions=@shivaedev/source"], script }, undefined), (actual) =>
 			actual.toEqual({ ...runs, args: PRE_COMMIT }),
 		);
 	});
@@ -33,8 +33,8 @@ describe("the hook's command", () => {
 
 describe("shell words", () => {
 	it.effect("quote only the words the shell would split or expand", function* () {
-		yield* assertThat(shellWords(["node", "--conditions=source", "my tools/it's.ts", "$HOME"]), (actual) =>
-			actual.toBe("node --conditions=source 'my tools/it'\\''s.ts' '$HOME'"),
+		yield* assertThat(shellWords(["node", "--conditions=@shivaedev/source", "my tools/it's.ts", "$HOME"]), (actual) =>
+			actual.toBe("node --conditions=@shivaedev/source 'my tools/it'\\''s.ts' '$HOME'"),
 		);
 	});
 });

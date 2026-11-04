@@ -68,7 +68,7 @@ shadcn.it(
 		repository([
 			{ content: 'export default { sources: ["apps/web/src"] };', path: "quality.config.ts" },
 			{ content: '{"aliases":{"ui":"#design/stock"}}', path: "apps/web/components.json" },
-			{ content: '{"type":"module","imports":{"#*.tsx":{"source":"./src/*.tsx"}}}', path: "apps/web/package.json" },
+			{ content: '{"type":"module","imports":{"#*.tsx":{"@shivaedev/source":"./src/*.tsx"}}}', path: "apps/web/package.json" },
 			{ content: STOCK, path: "apps/web/src/design/stock/button.tsx" },
 			{ content: STOCK, path: "apps/web/src/button.tsx" },
 		]),

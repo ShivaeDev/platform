@@ -8,7 +8,7 @@ export const conditionalWorkspace: readonly SeedFile[] = [
 	{ content: "export const aliased = 1;", path: "src/aliased.ts" },
 	{
 		content: JSON.stringify({
-			exports: { ".": { import: "./src/imported.mts", require: "./src/required.cts", source: "./src/source.ts" } },
+			exports: { ".": { "@shivaedev/source": "./src/source.ts", import: "./src/imported.mts", require: "./src/required.cts" } },
 			name: "@demo/shared",
 		}),
 		path: "packages/shared/package.json",

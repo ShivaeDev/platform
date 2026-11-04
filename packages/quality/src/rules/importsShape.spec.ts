@@ -3,7 +3,7 @@ import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { exportsWorkspace, LIBRARY_MANIFEST, packageImports } from "#testing/adapters/packageExports.ts";
 
-const ROOT_TARGETS = { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" };
+const ROOT_TARGETS = { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" };
 
 const ACCEPTED_IMPORTS = [
 	{ imports: { "#*.ts": ROOT_TARGETS, "#test/*": "./src/test-support/*" }, name: "conditional source-rooted imports and test-support imports" },
@@ -17,10 +17,10 @@ const ACCEPTED_IMPORTS = [
 
 const REJECTED_IMPORTS = [
 	{ key: "#*.ts", name: "a direct server-rooted target", value: "./src/server/*.ts" },
-	{ key: "#*.ts", name: "a server-rooted source condition", value: { ...ROOT_TARGETS, source: "./src/server/*.ts" } },
+	{ key: "#*.ts", name: "a server-rooted source condition", value: { ...ROOT_TARGETS, "@shivaedev/source": "./src/server/*.ts" } },
 	{ key: "#*.ts", name: "a server-rooted types condition", value: { ...ROOT_TARGETS, types: "./dist/server/*.d.ts" } },
 	{ key: "#*.ts", name: "a server-rooted runtime condition", value: { ...ROOT_TARGETS, default: "./dist/server/*.js" } },
-	{ key: "#*.ts", name: "a missing types condition", value: { default: "./dist/*.js", source: "./src/*.ts" } },
+	{ key: "#*.ts", name: "a missing types condition", value: { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js" } },
 	{ key: "#*.ts", name: "an extra condition", value: { ...ROOT_TARGETS, node: "./dist/server/*.js" } },
 	{ key: "#test/*", name: "test support outside src", value: "./test-support/*" },
 ] as const;

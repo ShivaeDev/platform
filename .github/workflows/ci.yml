@@ -145,7 +145,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          node --conditions=source --input-type=module <<'JS'
+          node --conditions=@shivaedev/source --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
           import { appendFileSync } from 'node:fs';
           import { Effect } from 'effect';
@@ -200,7 +200,7 @@ jobs:
           pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
       - name: Record test timings
         if: always()
-        run: node --conditions=source script/ci/summary.ts .ci/tests.json
+        run: node --conditions=@shivaedev/source script/ci/summary.ts .ci/tests.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
@@ -277,7 +277,7 @@ jobs:
           --timings .ci/consumer-balancing/consumer-durations.json
       - name: Record consumer timings
         if: always()
-        run: node --conditions=source script/ci/summary.ts .ci/consumers.json
+        run: node --conditions=@shivaedev/source script/ci/summary.ts .ci/consumers.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
@@ -352,11 +352,11 @@ jobs:
         if: github.event_name == 'merge_group'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node --conditions=source script/ci/mainJobs.ts > .ci/queue-jobs.json
+        run: node --conditions=@shivaedev/source script/ci/mainJobs.ts > .ci/queue-jobs.json
       - name: Merge successful merge-queue consumer timings
         if: github.event_name == 'merge_group'
         run: >-
-          node --conditions=source script/ci/mergeConsumerTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
+          node --conditions=@shivaedev/source script/ci/mergeConsumerTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
           --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/consumer-durations.json --count ${{ needs.shard-plan.outputs.consumers-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -372,7 +372,7 @@ jobs:
       - name: Merge successful merge-queue test timings
         if: github.event_name == 'merge_group'
         run: >-
-          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
+          node --conditions=@shivaedev/source script/ci/mergeTestTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
           --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

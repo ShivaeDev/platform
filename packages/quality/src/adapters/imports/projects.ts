@@ -29,7 +29,7 @@ function resolutionOptions(options: ts.CompilerOptions, declarations: boolean): 
 function projectOf(root: string, parsed: ParsedProject | undefined): Project {
 	const options = parsed?.options ?? {
 		allowJs: true,
-		customConditions: ["source"],
+		customConditions: ["@shivaedev/source"],
 		module: ts.ModuleKind.ESNext,
 		moduleResolution: ts.ModuleResolutionKind.Bundler,
 		resolveJsonModule: true,

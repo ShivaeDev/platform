@@ -3,7 +3,7 @@ import type { SeedFile } from "#testing/adapters/tree.ts";
 export const sharedErrorFiles: readonly SeedFile[] = [
 	{
 		content: JSON.stringify({
-			exports: { "./*.ts": { source: "./src/*.ts", types: "./dist/*.d.ts" }, "./package.json": "./package.json" },
+			exports: { "./*.ts": { "@shivaedev/source": "./src/*.ts", types: "./dist/*.d.ts" }, "./package.json": "./package.json" },
 			name: "@shivaedev/errors",
 			type: "module",
 		}),

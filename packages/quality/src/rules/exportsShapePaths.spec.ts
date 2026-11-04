@@ -3,11 +3,17 @@ import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
 
-const SERVER_WILDCARD = { "./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } };
+const SERVER_WILDCARD = {
+	"./server/*.ts": { "@shivaedev/source": "./src/server/*.ts", default: "./dist/server/*.js", types: "./dist/server/*.d.ts" },
+};
 
-const CLIENT_MODULE = { "./client.ts": { default: "./dist/client.js", source: "./src/client.ts", types: "./dist/client.d.ts" } };
+const CLIENT_MODULE = { "./client.ts": { "@shivaedev/source": "./src/client.ts", default: "./dist/client.js", types: "./dist/client.d.ts" } };
 
 const ACCEPTED_EXPORTS = [
+	{
+		exports: { "./*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" } },
+		name: "an application's own source condition",
+	},
 	{ exports: { ".": "./dist/index.js", ...FILE_PATH_EXPORTS }, name: "an optional root export beside the wildcard" },
 	{ exports: SERVER_WILDCARD, name: "a single wildcard under a subpath that keeps the module's path" },
 	{

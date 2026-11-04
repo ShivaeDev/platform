@@ -8,7 +8,7 @@ export const appConfigStory = storyKit({
 	verbs: (_engine, story) => ({
 		generate: (options: NonNullable<Parameters<typeof appTestConfig>[1]>) => {
 			story.tell(`the application generates its test config with ${JSON.stringify(options)}`);
-			return appTestConfig(["source"], options);
+			return appTestConfig(["@shivaedev/source"], options);
 		},
 	}),
 });
