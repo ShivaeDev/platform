@@ -266,8 +266,8 @@ catalogs:
       specifier: 6.43.0
       version: 6.43.0
     lucide-react:
-      specifier: 1.62.0
-      version: 1.62.0
+      specifier: 1.63.0
+      version: 1.63.0
     pg-boss:
       specifier: 12.38.0
       version: 12.38.0
@@ -404,7 +404,7 @@ importers:
         version: 4.0.7
       lucide-react:
         specifier: 'catalog:'
-        version: 1.62.0(@types/react@19.3.0)(react@19.3.1)
+        version: 1.63.0(@types/react@19.3.0)(react@19.3.1)
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -5395,6 +5395,15 @@ packages:
       '@types/react':
         optional: true
 
+  lucide-react@1.63.0:
+    resolution: {integrity: sha512-GkBfQG+FUJ41x6y3/lNXiOziVU0Rcqqq0TCzhHS8avsFXHZmOdmfBqsVTvHSaVmbI+wbdGkxHRmhYWhD3N4/yA==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
     engines: {node: '>=12'}
@@ -9406,6 +9415,12 @@ snapshots:
     optional: true
 
   lucide-react@1.62.0(@types/react@19.3.0)(react@19.3.1):
+    dependencies:
+      react: 19.3.1
+    optionalDependencies:
+      '@types/react': 19.3.0
+
+  lucide-react@1.63.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
