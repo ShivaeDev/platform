@@ -3,7 +3,6 @@ import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
 import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Name, Path, Submitter } from "#shape.ts";
-import { controlledDebounceTimers } from "./debounceClock.ts";
 import { draftStorage } from "./draftStorage.ts";
 import type { FormEngine } from "./formEngine.ts";
 import { type FormDriver, formDriver, formVerbs } from "./formVerbs.ts";
@@ -60,9 +59,6 @@ export function formStories<
 			const clock = yield* Clock.Clock;
 			const support = definition.support();
 			const config = definition.config(support);
-			if (config.checks !== undefined) {
-				yield* controlledDebounceTimers;
-			}
 			const registry = yield* freshRegistry;
 			const engine: Engine = {
 				config,
