@@ -22,6 +22,8 @@ Next steps:
 
 The package contains a snapshot of the starter made when it is packed. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
 
+The generated starter keeps the signed-in screen during unreachable session checks, retries authentication rechecks automatically, and unmounts signed-in routes during sign-out until the session refetch answers.
+
 ### Create an app
 
 The folder argument may include a parent path. Its final folder name becomes the package name and must be a lowercase npm name. The destination must be absent or empty, including hidden files. The command runs `pnpm run setup` in the generated app to install dependencies and Quality's pre-commit hook, and reports setup failure with a nonzero exit status. Setup installs the hook only when the app has its own `.git`; it leaves an enclosing repository's hooks alone.
@@ -47,6 +49,8 @@ Generated apps reference Quality’s app TypeScript preset and Vite and test hel
 Run `pnpm run setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.
 
 `pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
+
+After migrations, `pnpm db:seed` creates local demo owner and user accounts through identity's `defineSeed`. Edit `src/server/seed.ts` to declare personas and the Effect to run as each user. Reruns reuse accounts, and non-local database URLs are refused.
 
 The app selects `story-testing` from `@shivaedev/skills`. Setup syncs the installed instructions to `<app>/.agents/skills/story-testing/`, and `AGENTS.md` links to that local copy. `pnpm lint` rejects edits to managed skills. After changing the skills dependency, run `pnpm skills:sync` and commit the copies and manifest.
 

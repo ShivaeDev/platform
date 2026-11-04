@@ -37,6 +37,8 @@ Use `LabelledSwitch` for a setting with a visible label, controlled `checked` st
 
 The server uses `betterAuthMount` with `betterAuthDatabase` from `@shivaedev/identity/server/better-auth/adapters/database.ts` on the application’s SQL pool. The application supplies `authOptions` and composes its RPC session policy.
 
+After `pnpm migrate`, run `pnpm db:seed` to create `owner@demo.test` and `user@demo.test` with password `local-demo-password` and their `owner` and `user` roles. The declaration in `src/server/seed.ts` uses identity's `defineSeed`. Running it again reuses the accounts and passwords. Add application data creation to its `run` Effect and keep that work repeatable. Seeding refuses non-local database URLs before connecting.
+
 For an OAuth-only app, configure `socialProviders` in `authOptions` and pass `{ preset: "provider-only" }` alongside the existing role options in `applicationHost`'s `betterAuthMount` call. Remove the email/password configuration and the manually disabled cookie cache from `authOptions`: the preset closes email/password, magic-link and Better Auth admin HTTP endpoints, keeps provider tokens out of new account writes and disables the cookie cache. Its `enabledPaths` option reopens individual preset endpoints while preserving the mount's role restrictions. See identity's [provider-only preset](https://github.com/ShivaeDev/platform/blob/main/packages/identity/README.md#decide-who-may-sign-in).
 
 `AUTH_RATE_LIMIT_ENABLED` is an Effect Config boolean that defaults to `true` in every environment, including tests. Set it to `false` to disable Better Auth rate limiting for this app.

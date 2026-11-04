@@ -9,7 +9,7 @@ import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
 function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Option<Cause.Cause<unknown>>) {
 	const error = Option.flatMap(failure, Cause.findErrorOption);
 	if (Option.isSome(error)) {
-		void recheckUnauthorized(registry, error.value, true);
+		void recheckUnauthorized(registry, error.value);
 	}
 }
 

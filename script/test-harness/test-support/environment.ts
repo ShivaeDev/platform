@@ -27,10 +27,8 @@ export const fixtureClock = storyKit({
 	name: "runner fixture clock",
 	stages: [],
 	verbs: (harnessTime) => ({
-		advance: (millis: number) => TestClock.adjust(millis),
-		harnessTime: () => harnessTime,
+		harnessTime: () => Effect.succeed(harnessTime),
 		now: () => Clock.currentTimeMillis,
 		output: () => TestConsole.logLines,
-		sleep: (millis: number) => Effect.sleep(millis),
 	}),
 });

@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { failingSessionCheck, refusedAppSignOut, screens } from "#modules/notes/test-support/screens.ts";
+import { failingSessionCheck, refusedAppSignOut, screens, signedInApp } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"Retry after a failed session check asks the app's auth client again and shows sign-in",
@@ -36,3 +37,35 @@ screens.it(
 		]);
 	},
 );
+
+screens.it("an unavailable session refresh keeps the signed-in app and its draft", [signedInApp()], function* (story) {
+	yield* story.settle();
+	expect(yield* story.heading()).toBe("Notes");
+	yield* story.enter("Keep this draft");
+	yield* story.failSessionCheck();
+
+	const outcome = yield* story.refreshSessionOutcome();
+
+	yield* outcomes([
+		["session outcome", () => Effect.succeed(outcome), "UNAVAILABLE"],
+		["signed-in page", story.heading, "Notes"],
+		["draft", story.draft, "Keep this draft"],
+		["session error replacement", story.alert, "no alert"],
+	]);
+});
+
+screens.it("an unavailable check after a signed-out result still offers Retry", [failingSessionCheck()], function* (story) {
+	yield* story.recoverSessionCheck();
+	yield* story.click("Retry");
+	yield* story.settle();
+	expect(yield* story.heading()).toBe("Sign in");
+	yield* story.failSessionCheck();
+
+	const outcome = yield* story.refreshSessionOutcome();
+
+	yield* outcomes([
+		["session outcome", () => Effect.succeed(outcome), "UNAVAILABLE"],
+		["session error", story.alert, "Could not check your session."],
+		["retry control", () => story.offers("Retry"), "offered"],
+	]);
+});

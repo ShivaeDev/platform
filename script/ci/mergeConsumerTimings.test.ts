@@ -28,6 +28,6 @@ planning.it(
 	},
 );
 
-planning.it("requires build timings before sizing consumer shards", [workflowJobs({ "packed consumers (1)": 200 })], ({ mergeConsumers }) => {
-	assert.throws(() => mergeConsumers(reports, 240_000), /build/u);
+planning.it("retains previous timings when build timings are unavailable", [workflowJobs({ "packed consumers (1)": 200 })], ({ mergeConsumers }) => {
+	assert.deepEqual(mergeConsumers(reports, 240_000), { runId: "42", sha: "main-sha", timings: [] });
 });

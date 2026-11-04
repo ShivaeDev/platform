@@ -1,7 +1,5 @@
 import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { TestClock } from "effect/testing";
-import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { FormOptionsView } from "./FormOptionsView.tsx";
@@ -11,6 +9,7 @@ import { screenKit } from "./screenKit.ts";
 
 interface State {
 	readonly calls: Map<string, PromiseWithResolvers<string | undefined>>;
+	readonly started: PromiseWithResolvers<void>;
 	view?: Rendered;
 }
 function current(state: State) {
@@ -29,26 +28,21 @@ function verbs(state: State, screen: Screen) {
 				}
 				call.resolve(message);
 			}),
-		elapse: (millis: number) =>
-			Effect.gen(function* () {
-				const run = Effect.runPromiseWith(yield* Effect.context());
-				yield* screen.act(`advance the debounce clock by ${millis}ms`, async () => {
-					await run(TestClock.adjust(millis));
-					await vi.advanceTimersByTimeAsync(millis);
-				});
-			}),
 		reverse: () => screen.driver(current(state)).click({ name: "Reverse answers", role: "button" }),
 		save: () => screen.driver(current(state)).click({ name: "Save", role: "button" }),
-		type: (value: string) => screen.driver(current(state)).enter('input[name="title"]', value),
+		type: (value: string) =>
+			screen
+				.driver(current(state))
+				.enter('input[name="title"]', value)
+				.pipe(Effect.andThen(Effect.promise(() => state.started.promise))),
 	};
 }
 export const formOptions = storyKit(
 	screenKit(
 		"form options",
-		(): State => ({ calls: new Map() }),
+		(): State => ({ calls: new Map(), started: Promise.withResolvers<void>() }),
 		(state, screen) => ({
 			...verbs(state, screen),
-			checked: () => Effect.sync(() => [...state.calls.keys()]),
 			message: () => Effect.sync(() => current(state).querySelector("output")?.textContent),
 			rows: () =>
 				Effect.sync(() =>
@@ -65,15 +59,12 @@ export function optionsShown(kind: Kind) {
 		"screen",
 		`a ${kind} form with custom required wording, keyed answers and held title checks`,
 		function* ({ state, screen }) {
-			yield* Effect.acquireRelease(
-				Effect.sync(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })),
-				() => Effect.sync(() => vi.useRealTimers()),
-			);
 			const checks = Layer.succeed(TitleCheck)({
 				check: (value) =>
 					Effect.promise(() => {
 						const call = Promise.withResolvers<string | undefined>();
 						state.calls.set(value, call);
+						state.started.resolve();
 						return call.promise;
 					}).pipe(Effect.uninterruptible),
 			});
