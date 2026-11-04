@@ -3,7 +3,7 @@ import type { SubjectDeclaration, SubjectProvides } from "#subject.ts";
 
 export const SUBJECT_TYPE_ID = "@shivaedev/contract/SubjectDeclaration";
 
-interface SubjectMiddleware<TSubject extends SubjectDeclaration> extends RpcMiddleware.AnyId {
+export interface SubjectMiddleware<TSubject extends SubjectDeclaration> extends RpcMiddleware.AnyId {
 	readonly [RpcMiddleware.TypeId]: {
 		readonly provides: SubjectProvides<TSubject>;
 		readonly requires: never;
