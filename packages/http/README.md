@@ -33,6 +33,32 @@ Everything here wraps a native `HttpClient`, `HttpClientResponse` or `HttpServer
 
 ### Calling outside APIs
 
+For repeated JSON reads from an outside API, create one `makeReadClient` from `readClient.ts` per source and payload schema. It reads the native `HttpClient` from the Effect environment. Keep the returned client in the source's service so its cache survives between calls:
+
+```ts
+import { Effect, Schema } from "effect";
+import { makeReadClient } from "@shivaedev/http/readClient.ts";
+import { optionalField } from "@shivaedev/http/optionalField.ts";
+
+const makeFoodSource = Effect.gen(function* () {
+	const client = yield* makeReadClient({
+		source: "foods",
+		schema: Schema.Struct({ name: Schema.String, energy: optionalField(Schema.Number) }),
+		timeout: "5 seconds",
+		bodyLimit: 256 * 1024,
+		capacity: 100,
+		timeToLive: "5 minutes",
+	});
+	return { search: (query: string) => client.get(`https://api.example/foods?q=${encodeURIComponent(query)}`) };
+});
+```
+
+`get(url)` checks the status with `filterStatus` and decodes through `readBoundedJson`. The timeout covers the request and body read, including decoding. The cache is bounded by `capacity` entries, keys by the complete URL, evicts the least recently read entry, and keeps only successful decoded values for `timeToLive`. A failed read is fetched again on the next call.
+
+Failures are `ReadClientError` from `readClient.ts`, with the configured `source` and a `reason`: `timeout`, `body-too-large`, `status`, `decode`, `transport` or `invalid-limit`. A status failure also carries `status`. They retain no raw request, response body or decoding cause. Each cache miss emits an Effect debug log with the source, GET method and URL origin/path, dropping userinfo, query and fragment. Native HTTP spans redact query values too.
+
+`optionalField(schema)` from `optionalField.ts` makes a Struct field optional and treats a field's decoding failure as an absent key. Valid values still decode normally. Use it for unreliable outside fields; required fields elsewhere in the payload still fail decoding.
+
 `filterStatus(client)` passes 2xx responses through and fails other statuses with Schema tagged errors from `errors.ts`: `RemoteUnauthorized` (401), `RemoteNotFound` (404), `RemoteGone` (410), `RemoteRateLimited` (429, or 503 carrying `Retry-After`) and `RemoteHttpError` for other statuses. Errors carry the method, the URL without userinfo, query string or fragment and the status, without headers or body. `RemoteRateLimited.retryAfter` is an optional UTC `DateTime`: delay-seconds use Effect's clock, and HTTP dates name the instant directly. Missing or invalid values leave it undefined; `parseRetryAfter(header, now)` exposes the same parsing.
 
 `checkStatus(response)` from `checkStatus.ts` applies the same status mapping to an existing native response. `filterStatus` delegates to it. Use `isRemoteStatusError(error)` from `errors.ts` to recognize any of these typed status failures.
