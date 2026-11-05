@@ -19,19 +19,18 @@ REST and gateway are independent services sharing a redacted `DiscordToken`. Pro
 
 ### Bot REST
 
-Provide `DiscordRest.layer`, a native `HttpClient` and the token:
+Provide `layer` from `rest/layer.ts`, a native `HttpClient` and the token:
 
 ```ts
 import { Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { DiscordRest } from "@shivaedev/discord/DiscordRest.ts";
+import { layer } from "@shivaedev/discord/rest/layer.ts";
 import { DiscordToken } from "@shivaedev/discord/DiscordToken.ts";
 
-const restLayer = DiscordRest.layer.pipe(
-	Layer.provide(FetchHttpClient.layer),
-	Layer.provide(Layer.succeed(DiscordToken)(Redacted.make("bot-token"))),
-);
+const restLayer = layer.pipe(Layer.provide(FetchHttpClient.layer), Layer.provide(Layer.succeed(DiscordToken)(Redacted.make("bot-token"))));
 ```
+
+The composed REST Layer provides `DiscordRest` from `rest/service.ts` and its `DiscordRestLimits` dependency. Its registration chooses their lifetime: share one build for a bot, or build a fresh Layer for independent pacing state. Operations yield the HTTP client, token, config and limits from the environment; REST initializer state owns only a semaphore, and the limits service owns the bucket maps and reset times.
 
 `request(method, path, schema, body?)` reads the service and decodes the result. `DiscordRest.request(method, path, body?)` returns decoded JSON as `unknown`; a 204 response returns `undefined`. Paths start with `/` and are relative to Discord's API v10 base. Request bodies use native HTTP JSON encoding, and response reads use `@shivaedev/http` with a 1 MiB limit.
 
@@ -43,7 +42,7 @@ Provide `DiscordGateway.layer`, the same token, `DiscordConfig` with your intent
 
 ```ts
 import { Effect } from "effect";
-import { DiscordGateway } from "@shivaedev/discord/DiscordGateway.ts";
+import { DiscordGateway } from "@shivaedev/discord/gateway/service.ts";
 
 const listen = Effect.gen(function* () {
 	const gateway = yield* DiscordGateway;
