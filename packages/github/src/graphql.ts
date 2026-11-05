@@ -1,5 +1,5 @@
 import { Effect, type Schema } from "effect";
-import { GitHub } from "#GitHub.ts";
+import { GitHub } from "#github/service.ts";
 import type { GraphqlOptions } from "#graphqlRequests.ts";
 
 export function graphql<TSchema extends Schema.Constraint>(query: string, variables: unknown, schema: TSchema, options?: GraphqlOptions) {

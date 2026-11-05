@@ -1,6 +1,6 @@
 import { type Context, Effect, Option } from "effect";
 import type { CreateCheckRun, FindCheckRun, UpdateCheckRun } from "#checkRunSchemas.ts";
-import type { GitHub } from "#GitHub.ts";
+import type { GitHub } from "#github/service.ts";
 import type { StickyComment } from "#stickyCommentSchemas.ts";
 import type { FakeRepository } from "./fakeRepository.ts";
 import { answered } from "./outcome.ts";

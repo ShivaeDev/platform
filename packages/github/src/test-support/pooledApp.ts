@@ -1,7 +1,7 @@
 import { NodeHttpClient } from "@effect/platform-node";
 import { Layer, Redacted } from "effect";
-import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
+import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
 import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
 

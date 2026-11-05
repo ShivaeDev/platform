@@ -1,21 +1,19 @@
 import { DateTime, Effect, Option, Redacted, Stream } from "effect";
-import { type HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
+import { HttpClient, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { manualRedirects } from "#adapters/manualRedirects.ts";
 import { GitHubTransportError } from "#errors.ts";
-import type { GitHubToken } from "#GitHubToken.ts";
+import { GitHubToken } from "#GitHubToken.ts";
 import { failRateLimited, type RateLimits } from "#rateLimits.ts";
 import { checkStatus, isUnauthorized, isUnchanged } from "#status.ts";
-import type { TokenRefresh } from "#TokenRefresh.ts";
+import { TokenRefresh } from "#TokenRefresh.ts";
 
-export function authenticatedRequest<R>(
-	client: HttpClient.HttpClient.With<HttpClientError.HttpClientError, R>,
-	token: GitHubToken["Service"],
-	rates: RateLimits,
-	refresh: typeof TokenRefresh.Service = undefined,
-) {
-	const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
+export function authenticatedRequest(rates: RateLimits) {
 	return Effect.fnUntraced(function* (input: HttpClientRequest.HttpClientRequest, mode?: "manual" | "revalidate") {
+		const client = HttpClient.withScope(yield* HttpClient.HttpClient);
+		const token = yield* GitHubToken;
+		const refresh = yield* TokenRefresh;
+		const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
 		const path = new URL(input.url).pathname;
 		const resource = rates.resource(path);
 		const blocked = rates.blocked.get(resource);

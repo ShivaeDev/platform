@@ -1,5 +1,5 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import type { GitHub } from "#GitHub.ts";
+import type { GitHub } from "#github/service.ts";
 import { read } from "#read.ts";
 import { write } from "#write.ts";
 import { PullRequest } from "./fixtures.ts";

@@ -1,8 +1,8 @@
 import { Context, Effect, Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
+import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
 import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
 import { appServer, appServerAt } from "./appServer.ts";

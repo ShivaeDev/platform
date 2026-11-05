@@ -18,12 +18,12 @@ const repository = read("/repos/acme/widgets", Repository);
 
 `parseRepositoryAddress` from `@shivaedev/github/repositoryAddress.ts` parses repository shorthand (`owner/name` or `github:owner/name`), GitHub HTTP(S), Git, SCP-style SSH and `ssh://git@github.com/` remotes, including `git+` prefixes and `.git` suffixes. It trims surrounding whitespace and returns an Effect `Result` containing `{ kind, owner, name, repository, number }`. `kind` distinguishes `remote`, `shorthand` and `pull-request`, so a Git remote reader can reject shorthand that Git treats as a local path. `repository` is `owner/name`; `number` is undefined for repositories and a positive safe integer for canonical `https://github.com/owner/name/pull/number` addresses. Unsupported hosts, malformed addresses and invalid PR numbers return the string-tagged `GitHubAddressInvalid` error from `@shivaedev/github/errors.ts`. PR subpages, queries and fragments are rejected.
 
-`GitHub` is a native Context service declared with `defineService`. Its Layer owns the conditional response cache and resource observations. Provide an Effect `HttpClient` and a `GitHubToken` once, then use the Schema-aware `read`, `list` and `write` functions. Schema decoding services remain visible in their requirements.
+`GitHub` is a native Context service declared with `defineService`. Its Layer owns the conditional response cache and resource observations. Operations yield transport, token, refresh hook and configuration from their declared environment; initializer state contains only owned caches and quota state. Paginated streams keep that bound environment when consumed later. Provide an Effect `HttpClient` and a `GitHubToken` once, then use the Schema-aware `read`, `list` and `write` functions. Schema decoding services remain visible in their requirements.
 
 ```ts
 import { Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { list } from "@shivaedev/github/list.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { write } from "@shivaedev/github/write.ts";
@@ -158,7 +158,7 @@ Provide `githubApp` as the `GitHubToken` Layer. With just the App ID and a PEM p
 ```ts
 import { Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { list } from "@shivaedev/github/list.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
@@ -200,17 +200,17 @@ const repositories = read("/installation/repositories", Repositories);
 const bothInstallations = Effect.all([withInstallation(7, repositories), withInstallation(8, repositories)]);
 ```
 
-Provide `app(privateKey)` once around `bothInstallations` or the application. Each installation has its own full-access token, conditional representations and rate-limit state. A 401 refreshes only that installation's rejected token; a rate limit blocks only that installation's resource. Existing scoped single-installation Layers remain available for access checks.
+Provide `app(privateKey)` once around `bothInstallations` or the application. `githubApp` supplies the `GitHubClients` provider required by `GitHubApp.layer`; consumers do not assemble installation-client Layers themselves. Each installation has its own full-access token, conditional representations and rate-limit state. A 401 refreshes only that installation's rejected token; a rate limit blocks only that installation's resource. Existing scoped single-installation Layers remain available for access checks.
 
 The shared cache holds at most 100 installation clients and evicts the least recently used client when full. Selecting a client renews its 30-minute idle lifetime; a client idle for that interval is replaced on its next selection. Expiry is lazy, with no background timer. Eviction discards the client's token and request state, and its next request exchanges a new token. Keep operations inside `withInstallation` so each selection uses the cache's current client.
 
 ### Repositories visible to an account
 
-Pass the GitHub account from your application's session to `GitHubApp.viewerRepositories(account)`. A number is a GitHub account ID; a string is a login. Provide the same `githubApp(credentials)` Layer as above. The package has no dependency on your session or identity service.
+Pass the target GitHub account to `GitHubApp.viewerRepositories(account)`. A number is a GitHub account ID; a string is a login. Provide the same `githubApp(credentials)` Layer as above. The account is the target of the lookup, not the acting caller. The package has no dependency on your session or identity service.
 
 ```ts
 import { Effect } from "effect";
-import { GitHubApp } from "@shivaedev/github/app/GitHub.ts";
+import { GitHubApp } from "@shivaedev/github/app/service.ts";
 
 const access = Effect.gen(function* () {
 	const app = yield* GitHubApp;
@@ -246,7 +246,7 @@ Call `downloadArtifactArchive` with the artifact ID and a download byte cap. It 
 
 ```ts
 import { Effect } from "effect";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 
 const files = Effect.gen(function* () {
 	const github = yield* GitHub;

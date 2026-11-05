@@ -1,6 +1,6 @@
-import { Cache, Effect, Exit, Schema, Stream } from "effect";
-import { decodedPages } from "#pagedLists.ts";
-import type { Representations } from "#representations.ts";
+import { Effect, Schema, Stream } from "effect";
+import { decodePages } from "#decodePages.ts";
+import { GitHubClients } from "#GitHubClients.ts";
 
 export const InstalledRepository = Schema.Struct({
 	htmlUrl: Schema.String,
@@ -19,8 +19,10 @@ const Account = Schema.Struct({ login: Schema.String });
 const Installation = Schema.Struct({ id: Schema.Number });
 const Permission = Schema.Struct({ permission: Schema.String });
 
-const installationAccess = Effect.fnUntraced(function* (client: Representations, installationId: number, login: string) {
-	const pages = yield* decodedPages(client, "/installation/repositories?per_page=100", InstalledRepository, {
+const installationAccess = Effect.fnUntraced(function* (installationId: number, login: string) {
+	const clients = yield* GitHubClients;
+	const client = yield* clients.installation(installationId);
+	const pages = yield* decodePages(Stream.unwrap(client.list("/installation/repositories?per_page=100")), InstalledRepository, {
 		arrayKey: "repositories",
 	}).pipe(Stream.runCollect);
 	const readable: ViewerRepositoryAccess["readable"][number][] = [];
@@ -42,25 +44,22 @@ const installationAccess = Effect.fnUntraced(function* (client: Representations,
 	return { administrable, readable } satisfies ViewerRepositoryAccess;
 });
 
-export function viewerRepositoryAccess(app: Representations, installation: (id: number) => Effect.Effect<Representations>) {
-	const lookup = Effect.fnUntraced(function* (account: string) {
-		const path = account.startsWith("id:") ? `/user/${account.slice(3)}` : `/users/${encodeURIComponent(account.slice(6))}`;
-		const installations = yield* decodedPages(app, "/app/installations?per_page=100", Installation).pipe(Stream.runCollect);
-		const first = installations.flatMap((page) => page.items)[0];
-		if (first === undefined) {
-			return { administrable: [], readable: [] } satisfies ViewerRepositoryAccess;
-		}
-		const resolver = yield* installation(first.id);
-		const { login } = yield* Effect.flatMap(resolver.read(path), (response) => response.decode(Account));
-		const readable: ViewerRepositoryAccess["readable"][number][] = [];
-		const administrable: ViewerRepositoryAccess["administrable"][number][] = [];
-		for (const { id } of installations.flatMap((page) => page.items)) {
-			const client = yield* installation(id);
-			const access = yield* installationAccess(client, id, login);
-			readable.push(...access.readable);
-			administrable.push(...access.administrable);
-		}
-		return { administrable, readable } satisfies ViewerRepositoryAccess;
-	});
-	return Cache.makeWith(lookup, { capacity: 100, timeToLive: (exit) => (Exit.isSuccess(exit) ? "60 seconds" : 0) });
-}
+export const viewerRepositoryAccess = Effect.fn("GitHubApp.viewerRepositoryAccess")(function* (account: string) {
+	const { app, installation } = yield* GitHubClients;
+	const path = account.startsWith("id:") ? `/user/${account.slice(3)}` : `/users/${encodeURIComponent(account.slice(6))}`;
+	const installations = yield* decodePages(Stream.unwrap(app.list("/app/installations?per_page=100")), Installation).pipe(Stream.runCollect);
+	const first = installations.flatMap((page) => page.items)[0];
+	if (first === undefined) {
+		return { administrable: [], readable: [] } satisfies ViewerRepositoryAccess;
+	}
+	const resolver = yield* installation(first.id);
+	const { login } = yield* Effect.flatMap(resolver.read(path), (response) => response.decode(Account));
+	const readable: ViewerRepositoryAccess["readable"][number][] = [];
+	const administrable: ViewerRepositoryAccess["administrable"][number][] = [];
+	for (const { id } of installations.flatMap((page) => page.items)) {
+		const access = yield* installationAccess(id, login);
+		readable.push(...access.readable);
+		administrable.push(...access.administrable);
+	}
+	return { administrable, readable } satisfies ViewerRepositoryAccess;
+});

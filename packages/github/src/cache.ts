@@ -1,16 +1,15 @@
-import type { Schema } from "effect";
 import type { HttpClientResponse } from "effect/http";
-import { mergeResponseHeaders } from "#adapters/mergeResponseHeaders.ts";
 
 export interface CachedResponse {
-	readonly bytes: Uint8Array;
-	readonly decoded: Map<Schema.Constraint, unknown>;
+	readonly bytes: ArrayBuffer;
+	readonly decoded: Map<object, unknown>;
 	readonly etag?: string | undefined;
-	readonly response: HttpClientResponse.HttpClientResponse;
+	readonly headers: HttpClientResponse.HttpClientResponse["headers"];
+	readonly status: HttpClientResponse.HttpClientResponse["status"];
 }
 
 export function revalidatedResponse(cached: CachedResponse, response: HttpClientResponse.HttpClientResponse): CachedResponse {
-	return { ...cached, etag: response.headers.etag ?? cached.etag, response: mergeResponseHeaders(cached.response, response) };
+	return { ...cached, etag: response.headers.etag ?? cached.etag, headers: { ...cached.headers, ...response.headers }, status: response.status };
 }
 
 export function responseCache() {
@@ -19,7 +18,8 @@ export function responseCache() {
 		get: (key: string) => entries.get(key),
 		set(key: string, entry: CachedResponse) {
 			entries.delete(key);
-			entries.set(key, entry);
+			const { bytes, decoded, etag, headers, status } = entry;
+			entries.set(key, { bytes, decoded, etag, headers, status });
 			if (entries.size > 1000) {
 				const first = entries.keys().next();
 				if (!first.done) {

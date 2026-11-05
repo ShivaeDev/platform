@@ -4,9 +4,9 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { GitHub } from "#github/service.ts";
 import { list } from "#list.ts";
 import { listBounded } from "#listBounded.ts";
 import { read } from "#read.ts";
@@ -150,6 +150,14 @@ export const github = storyKit({
 						: `the client lists every pull request through a pacing callback that refuses its call ${refusedCall}`,
 					Effect.flatMap(GitHub, (service) => service.list("/repos/acme/widgets/pulls", pacing(refusedCall))).pipe(Effect.flatMap(Stream.runCount)),
 				),
+			listWithAnotherCallEnvironment: () => {
+				story.tell("the client returns pull pages before a caller with other credentials and config consumes them");
+				return Effect.flatMap(client.list("/repos/acme/widgets/pulls"), (pages) => Stream.runCollect(pages)).pipe(
+					Effect.provideService(GitHubToken, Option.some(Redacted.make("caller-token"))),
+					Effect.provideService(GitHubConfig, { apiUrl: `${server.url}/caller` }),
+					Effect.asVoid,
+				);
+			},
 			observations: () =>
 				Effect.map(client.observations(), (observed) => observed.map(({ reset, ...budget }) => ({ ...budget, reset: clockTime(reset) }))),
 			pacingCalls: () => Effect.sync(() => [...pacingCalls]),

@@ -1,5 +1,5 @@
 import { type Context, Effect, Schema } from "effect";
-import { GitHub } from "#GitHub.ts";
+import { GitHub } from "#github/service.ts";
 import { write } from "#write.ts";
 import type { appServer } from "./appServer.ts";
 
