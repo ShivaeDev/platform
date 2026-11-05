@@ -9,16 +9,7 @@ import { agentLinks } from "#rules/docs/agentLinks.ts";
 import { docsReferences } from "#rules/docs/references.ts";
 import { repositoryPaths } from "#rules/docs/repositoryPaths.ts";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
-import { adapterImports } from "#rules/effect/adapterImports.ts";
-import { effectBoundary } from "#rules/effect/boundary.ts";
-import { failureHonesty } from "#rules/effect/failureHonesty.ts";
-import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
-import { serviceDefinitionAssembly } from "#rules/effect/serviceDefinitionAssembly.ts";
-import { serviceFolders } from "#rules/effect/serviceFolders.ts";
-import { serviceIds } from "#rules/effect/serviceIds.ts";
-import { serviceParameters } from "#rules/effect/serviceParameters.ts";
-import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
-import { sqlTransact } from "#rules/effect/sqlTransact.ts";
+import { effectPolicy } from "#rules/effect/policy.ts";
 import { ascii } from "#rules/files/ascii.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
@@ -73,21 +64,12 @@ import { noBarrel } from "./noBarrel.ts";
 import { unusedCode } from "./unusedCode.ts";
 
 export const builtInRules = [
+	...effectPolicy,
 	agentLinks,
 	repositoryPaths,
-	serviceFolders,
 	ascii,
 	manifestsDependencyPins,
 	unusedCode,
-	adapterImports,
-	effectBoundary,
-	failureHonesty,
-	rpcBoundary,
-	serviceDefinitionAssembly,
-	serviceIds,
-	serviceParameters,
-	sharedErrorClasses,
-	sqlTransact,
 	jsxConditionals,
 	maxLines,
 	maxDepth,

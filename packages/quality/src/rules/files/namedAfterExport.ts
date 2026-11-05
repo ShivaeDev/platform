@@ -1,6 +1,8 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
+import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
+import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
 import { exportFits } from "#naming/exportFits.ts";
@@ -72,12 +74,21 @@ function nameFinding(file: SourceFile, stem: string, folders: readonly string[])
 }
 
 function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[] {
+	const source = posix.basename(file.path) === "service.ts" ? parse(file) : undefined;
+	if (source !== undefined && directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0) {
+		return [];
+	}
 	const stem = stemOf(file.path);
 	const folders = layout.foldersOf(file.path);
 	if (layout.scripts.has(file.path) || file.text.startsWith(SHEBANG)) {
 		return KEBAB.test(stem)
 			? []
-			: [{ file: file.path, message: `"${stem}" is run as a script, so it is named in kebab-case, such as build-docs.ts.` }];
+			: [
+					{
+						file: file.path,
+						message: `"${stem}" is run as a script, so it is named in kebab-case, such as build-docs.ts.`,
+					},
+				];
 	}
 	const root = moduleRoot(file.path);
 	const admin = root === undefined ? undefined : /^(?:client|server)\/(?<path>admin\/.+)$/u.exec(file.path.slice(root.length + 1))?.groups?.path;
@@ -100,8 +111,10 @@ export const namedAfterExport = defineRule({
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. TanStack Router configuration owns route filenames. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
-	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
+		parseOptions: { errors: "all", onExcessProperty: "error" },
+	}),
 	validate: validateGlobs,
 });

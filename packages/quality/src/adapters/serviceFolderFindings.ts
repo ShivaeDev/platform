@@ -59,6 +59,20 @@ export function serviceFolderFindings({ files, sources }: RuleInputs): readonly 
 		}),
 	);
 	const findings: Finding[] = [];
+	for (const file of sources) {
+		const source = parse(file);
+		if (source !== undefined && directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0) {
+			folders.add(posix.dirname(file.path));
+			if (posix.basename(file.path) !== "service.ts" && files.includes(`${posix.dirname(file.path)}/service.ts`)) {
+				findings.push({
+					file: file.path,
+					message:
+						"Give each service its own folder and move this declaration to its service.ts. Keep that service's operations in focused sibling files.",
+				});
+			}
+		}
+	}
+
 	for (const folder of folders) {
 		const service = `${folder}/service.ts`;
 		if (!files.includes(service)) {

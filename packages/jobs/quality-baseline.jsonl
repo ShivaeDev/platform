@@ -1,3 +1,5 @@
+{"path":"packages/jobs/src/server/PgBossOperations.ts","rule":"effect/service-folders","count":1}
+{"path":"packages/jobs/src/server/PgBossOperations.ts","rule":"effect/service-model","count":23}
 {"path":"packages/jobs/src/server/adapters/registerWorker.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/adapters/runSchemaPlan.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
@@ -8,8 +10,14 @@
 {"path":"packages/jobs/src/server/deadlineOf.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/definitionOptions.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/healthFor.ts","rule":"effect/boundary","count":2}
+{"path":"packages/jobs/src/server/inspection.ts","rule":"effect/service-folders","count":1}
+{"path":"packages/jobs/src/server/inspection.ts","rule":"effect/service-model","count":29}
+{"path":"packages/jobs/src/server/pgBossDefinitionLayer.ts","rule":"effect/context-capture","count":2}
 {"path":"packages/jobs/src/server/register.ts","rule":"effect/boundary","count":2}
+{"path":"packages/jobs/src/server/register.ts","rule":"effect/context-capture","count":2}
 {"path":"packages/jobs/src/server/register.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/jobs/src/server/registerReleasedJobs.ts","rule":"effect/context-capture","count":1}
 {"path":"packages/jobs/src/server/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/retryWake.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/schema.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/jobs/src/server/service.ts","rule":"effect/service-folders","count":1}

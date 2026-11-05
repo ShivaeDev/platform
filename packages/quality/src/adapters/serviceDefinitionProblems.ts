@@ -54,7 +54,7 @@ export function serviceDefinitionProblems(
 	for (const operation of methods?.properties ?? []) {
 		if (!isOperationReference(operation, imports, generics)) {
 			found.push({
-				message: "Reference a named operation export or call its named state factory.",
+				message: "Reference a named Effect.fn operation export that yields its dependencies. Use a state factory only for owned lifetime state.",
 				node: operation,
 			});
 		}

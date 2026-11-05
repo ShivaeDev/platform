@@ -1,10 +1,12 @@
 import ts from "typescript";
+import { callerContextData } from "#rules/effect/callerContextData.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";
 
-export function serviceTypes(checker: ts.TypeChecker) {
+export function serviceTypes(checker: ts.TypeChecker, initializerState = false) {
 	const shapes = new Set<ts.Type>();
+	const contextData = new Set<ts.Type>();
 	const carried = new Map<ts.Type, boolean>();
 	function propertyType(type: ts.Type, name: string): ts.Type | undefined {
 		const property = type.getProperty(name);
@@ -22,17 +24,26 @@ export function serviceTypes(checker: ts.TypeChecker) {
 					&& checker.getNonNullableType(checker.getTypeOfSymbol(property)).getCallSignatures().length === 0,
 			);
 	}
-	function remember(type: ts.Type): void {
+	function remember(type: ts.Type, name?: string): void {
 		if (type.getProperty(SERVICE) === undefined) {
 			return;
 		}
 		const shape = propertyType(type, "Service");
+		if (initializerState && name !== undefined && shape !== undefined && callerContextData(checker, shape, name)) {
+			contextData.add(type);
+			contextData.add(shape);
+			shapes.delete(shape);
+			return;
+		}
+		if (shape !== undefined && contextData.has(shape)) {
+			return;
+		}
 		if (
 			shape !== undefined
 			&& shape.flags & ts.TypeFlags.Object
 			&& (shape.getProperties().length > 0 || shape.getCallSignatures().length > 0)
 			&& checker.getIndexInfosOfType(shape).length === 0
-			&& !options(shape)
+			&& (initializerState || !options(shape))
 			&& (shape.getCallSignatures().length === 0 || type.getProperty("~effect/Context/Reference") === undefined)
 		) {
 			shapes.add(shape);
@@ -61,6 +72,7 @@ export function serviceTypes(checker: ts.TypeChecker) {
 	function carries(type: ts.Type, seen = new Set<ts.Type>()): boolean {
 		if (
 			seen.has(type)
+			|| contextData.has(type)
 			|| type.flags
 				& (ts.TypeFlags.Any
 					| ts.TypeFlags.Unknown

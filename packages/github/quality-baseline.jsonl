@@ -1,1 +1,5 @@
 {"path":"packages/github/package.json","rule":"code/unused","count":1}
+{"path":"packages/github/src","rule":"effect/service-folders","count":1}
+{"path":"packages/github/src/GitHub.ts","rule":"effect/service-model","count":40}
+{"path":"packages/github/src/app","rule":"effect/service-folders","count":1}
+{"path":"packages/github/src/app/GitHub.ts","rule":"effect/service-model","count":5}

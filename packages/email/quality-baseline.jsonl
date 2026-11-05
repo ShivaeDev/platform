@@ -1,0 +1,2 @@
+{"path":"packages/email/src/server","rule":"effect/service-folders","count":1}
+{"path":"packages/email/src/server/Mailer.ts","rule":"effect/service-model","count":2}

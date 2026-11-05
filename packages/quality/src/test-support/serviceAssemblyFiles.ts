@@ -29,7 +29,7 @@ export function serviceAssembly(definition: string, preamble = "", imports = "")
 			preamble,
 			`export const Inventory = defineService(${definition});`,
 		].join("\n"),
-		path: "src/Inventory.ts",
+		path: "src/service.ts",
 	};
 }
 
@@ -68,5 +68,5 @@ export const statelessAssembly: SeedFile = {
 		'import { reset } from "#reset.ts";',
 		'export const Inventory = assemble({ id: "@demo/inventory/Inventory", initialize: Effect.void, methods: () => ({ reset }), requires: [] });',
 	].join("\n"),
-	path: "src/Inventory.ts",
+	path: "src/service.ts",
 };

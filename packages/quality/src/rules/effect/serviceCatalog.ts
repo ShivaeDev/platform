@@ -3,9 +3,9 @@ import servicePackage from "@shivaedev/service/package.json" with { type: "json"
 import { serviceOrigin } from "#rules/effect/serviceOrigin.ts";
 import { serviceTypes } from "#rules/effect/serviceTypes.ts";
 
-export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, packages: readonly string[] = []) {
+export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, packages: readonly string[] = [], initializerState = false) {
 	const prefixes = [servicePackage.name, ...packages].map((name) => `${name.startsWith("@") ? name.split("/")[0] : name}/`);
-	const services = serviceTypes(checker);
+	const services = serviceTypes(checker, initializerState);
 	function imported(node: ts.ImportSpecifier | ts.NamespaceImport): void {
 		const symbol = checker.getSymbolAtLocation(node.name);
 		if (symbol === undefined) {
@@ -16,7 +16,7 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 		for (const candidate of candidates) {
 			const resolved = candidate.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(candidate) : candidate;
 			if (serviceOrigin(checker, resolved)) {
-				services.remember(checker.getTypeOfSymbol(resolved));
+				services.remember(checker.getTypeOfSymbol(resolved), resolved.name);
 			}
 		}
 	}
@@ -29,7 +29,17 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 			return;
 		}
 		const target = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-		services.remember(checker.getTypeOfSymbol(target));
+		services.remember(checker.getTypeOfSymbol(target), target.name);
+	}
+
+	function named(node: ts.Node): void {
+		if (!(ts.isClassDeclaration(node) || ts.isVariableDeclaration(node)) || node.name === undefined || !serviceOrigin(checker, node.name)) {
+			return;
+		}
+		const symbol = checker.getSymbolAtLocation(node.name);
+		if (symbol !== undefined) {
+			services.remember(checker.getTypeOfSymbol(symbol), symbol.name);
+		}
 	}
 
 	function discover(node: ts.Node): void {
@@ -39,12 +49,7 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 		if (ts.isImportSpecifier(node) || ts.isNamespaceImport(node)) {
 			imported(node);
 		}
-		if (ts.isClassDeclaration(node) && node.name !== undefined && serviceOrigin(checker, node.name)) {
-			services.remember(checker.getTypeAtLocation(node.name));
-		}
-		if (ts.isVariableDeclaration(node) && serviceOrigin(checker, node.name)) {
-			services.remember(checker.getTypeAtLocation(node.name));
-		}
+		named(node);
 		if (ts.isTypeReferenceNode(node)) {
 			referenced(node);
 		}

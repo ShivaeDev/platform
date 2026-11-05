@@ -31,6 +31,8 @@
 {"path":"packages/test-story/src/server/compose.typecheck.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/hookInference.typecheck.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/hooked.test.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/test-story/src/server/seed.ts","rule":"effect/context-capture","count":1}
+{"path":"packages/test-story/src/server/start.ts","rule":"effect/context-capture","count":4}
 {"path":"packages/test-story/src/server/storyIt.typecheck.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/labelledOutcomes.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/lifecycle.spec.ts","rule":"effect/adapter-imports","count":1}
