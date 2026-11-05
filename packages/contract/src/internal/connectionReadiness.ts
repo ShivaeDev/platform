@@ -1,8 +1,9 @@
-import { Context, Effect, Latch } from "effect";
+import { Clock, Context, Effect, Latch } from "effect";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { SocketOpenError } from "effect/socket/Socket";
 
-export function connectionReadiness() {
+export const connectionReadiness = Effect.gen(function* () {
+	const clock = yield* Clock.Clock;
 	const ready = Latch.makeUnsafe(true);
 	return {
 		close: Effect.asVoid(ready.close),
@@ -14,12 +15,13 @@ export function connectionReadiness() {
 					duration: "10 seconds",
 					orElse: () => Effect.fail(new RpcClientError({ reason: new SocketOpenError({ cause: "Waiting for a live connection", kind: "Timeout" }) })),
 				}),
+				Effect.provideService(Clock.Clock, clock),
 			),
 		),
 	};
-}
+});
 
-export class ConnectionReadiness extends Context.Service<ConnectionReadiness, ReturnType<typeof connectionReadiness>>()(
+export class ConnectionReadiness extends Context.Service<ConnectionReadiness, Effect.Success<typeof connectionReadiness>>()(
 	"@shivaedev/contract/ConnectionReadiness",
 ) {}
 

@@ -5,6 +5,7 @@ import * as Socket from "effect/socket/Socket";
 import { resumeSocket } from "#adapters/resumeSocket.ts";
 import type { ClientOptions } from "#clientOptions.ts";
 import type { ResumeWindow } from "#resume.ts";
+import { SocketClock } from "#SocketClock.ts";
 import { authenticateSocket } from "#socketAuthentication.ts";
 import { connectionProtocol } from "./connectionProtocol.ts";
 
@@ -14,12 +15,11 @@ interface SocketOptions {
 	readonly identity: string | undefined;
 	readonly resume: ClientOptions["resume"];
 	readonly resumeWindow: ClientOptions["resumeWindow"];
-	readonly runtimeClock: boolean;
 	readonly url: string;
 	readonly webSocketConstructor: ClientOptions["webSocketConstructor"];
 }
 
-const socketMemoMap = Layer.makeMemoMapUnsafe();
+const socketMemoMaps = new WeakMap<Clock.Clock, Layer.MemoMap>();
 
 const windows = new WeakMap<ResumeWindow, { readonly target: ResumeWindow }>();
 
@@ -57,7 +57,17 @@ const protocols = Atom.family(
 				retryPolicy: Schedule.jittered(Schedule.min([Schedule.exponential(500, 1.5), Schedule.spaced(5000)])),
 			}).pipe(Layer.provide(socket), Layer.provide(RpcSerialization.layerNdjson)),
 		);
-		const protocol = options.runtimeClock ? managed : managed.pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())));
-		return Layer.effectContext(Effect.flatMap(Effect.scope, (scope) => Layer.buildWithMemoMap(protocol, socketMemoMap, scope)));
+		return Layer.effectContext(
+			Effect.gen(function* () {
+				const clock = yield* SocketClock;
+				let memo = socketMemoMaps.get(clock);
+				if (memo === undefined) {
+					memo = Layer.makeMemoMapUnsafe();
+					socketMemoMaps.set(clock, memo);
+				}
+				const protocol = managed.pipe(Layer.provide(Layer.succeed(Clock.Clock, clock)));
+				return yield* Layer.buildWithMemoMap(protocol, memo, yield* Effect.scope);
+			}),
+		);
 	},
 );

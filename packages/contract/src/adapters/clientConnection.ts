@@ -7,7 +7,7 @@ import type { LiveStatus } from "#live.ts";
 export function clientConnection(
 	factory: Atom.RuntimeFactory,
 	publish: (status: ConnectionStatus) => void,
-	activity: Stream.Stream<ClientActivityState>,
+	activity: Stream.Stream<ClientActivityState> & { readonly current: Effect.Effect<ClientActivityState> },
 ) {
 	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
 	const current = Atom.map(
@@ -37,10 +37,20 @@ export function clientConnection(
 		get.addFinalizer(cancel);
 		return "live";
 	});
-	const observed = Atom.make(Stream.map(activity, (state) => state.connectionStatus));
 	const status = Atom.make((get): ConnectionStatus => {
 		get.mount(debounced);
-		return Option.getOrElse(AsyncResult.value(get(observed)), () => "live" as const);
+		const context = AsyncResult.value(get(runtime));
+		if (Option.isSome(context)) {
+			const cancel = Effect.runCallbackWith(context.value)(
+				activity.pipe(
+					Stream.map((state) => state.connectionStatus),
+					Stream.changes,
+					Stream.runForEach((value) => Effect.sync(() => get.setSelf(value))),
+				),
+			);
+			get.addFinalizer(cancel);
+		}
+		return Effect.runSync(activity.current).connectionStatus;
 	});
 	return { status, statuses };
 }

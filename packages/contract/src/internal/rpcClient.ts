@@ -28,7 +28,6 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 			identity,
 			resume: options.resume,
 			resumeWindow: options.resumeWindow ?? (typeof window === "undefined" ? undefined : window),
-			runtimeClock: options.runtime !== undefined,
 			url: options.url.replace(/^http/u, "ws"),
 			webSocketConstructor: options.webSocketConstructor,
 		});

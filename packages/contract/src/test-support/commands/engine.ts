@@ -1,10 +1,11 @@
-import { Effect, type Fiber, Layer, Queue } from "effect";
+import { Clock, Effect, type Fiber, Layer, Queue } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
+import { SocketClock } from "#SocketClock.ts";
 import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 import { Counter } from "./Counter.ts";
@@ -13,6 +14,7 @@ import { openHost } from "./openHost.ts";
 export const commandEngine = Effect.gen(function* () {
 	const host = yield* openHost;
 	const runtime = yield* storyRuntime;
+	runtime.addGlobalLayer(Layer.succeed(SocketClock, yield* Clock.Clock));
 	const events = yield* Queue.unbounded<string>();
 	runtime.addGlobalLayer(
 		Layer.succeed(RpcClient.ConnectionHooks, {
