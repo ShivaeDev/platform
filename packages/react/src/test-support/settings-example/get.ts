@@ -8,9 +8,9 @@ function failUnavailable() {
 	return Effect.fail(unavailable());
 }
 
-export const get = Effect.fn("SettingsService.get")((userId: string, entityId: number) =>
+export const get = Effect.fn("SettingsService.get")((entityId: number) =>
 	Effect.gen(function* () {
-		yield* owned(userId, entityId);
+		yield* owned(entityId);
 		const repository = yield* SettingsRepository;
 		return yield* repository
 			.findById(entityId)

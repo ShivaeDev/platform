@@ -14,10 +14,4 @@
 {"path":"packages/react/src/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
 {"path":"packages/react/src/notices.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/src/test-support/order-example","rule":"effect/service-folders","count":1}
-{"path":"packages/react/src/test-support/order-example/Service.ts","rule":"effect/service-model","count":3}
-{"path":"packages/react/src/test-support/postgres-example","rule":"effect/service-folders","count":1}
-{"path":"packages/react/src/test-support/postgres-example/OrderService.ts","rule":"effect/service-model","count":2}
-{"path":"packages/react/src/test-support/settings-example","rule":"effect/service-folders","count":1}
-{"path":"packages/react/src/test-support/settings-example/Service.ts","rule":"effect/service-model","count":2}
 {"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}

@@ -4,19 +4,19 @@ The order feature is the reference composition for Platform's native application
 
 ## Code to read
 
-| Module                                                                              | Responsibility                                                                                                              |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| [Contract](../../packages/react/src/test-support/postgres-example/contract.ts)      | One Schema domain, query and command declarations, read keys, typed failures and an authenticated native streaming RPC.     |
-| [Repository](../../packages/react/src/test-support/postgres-example/repository.ts)  | Native Model fields, `makeRepository` and an application-owned numbered migration loader.                                   |
-| [Service](../../packages/react/src/test-support/postgres-example/OrderService.ts)   | `defineService`, explicit owner authorization, normalized writes and commit-bound invalidation through `transact`.          |
-| [Handlers](../../packages/react/src/test-support/postgres-example/orderHandlers.ts) | Platform request identity passed into service calls; the host's `LiveServer` turns committed invalidations into live hints. |
-| [Server](../../packages/react/src/test-support/postgres-example/server.ts)          | Server's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport.            |
-| [Client](../../packages/react/src/test-support/postgres-example/makeClient.ts)      | Native AtomRpc, contract binding and live invalidation.                                                                     |
-| [Editor](../../packages/react/src/test-support/postgres-example/OrderEditor.tsx)    | `useEditor` connects the query to form fields and decoded saves.                                                            |
+| Module                                                                                       | Responsibility                                                                                                          |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [Contract](../../packages/react/src/test-support/postgres-example/contract.ts)               | One Schema domain, query and command declarations, read keys, typed failures and an authenticated native streaming RPC. |
+| [Repository](../../packages/react/src/test-support/postgres-example/repository.ts)           | Native Model fields, `makeRepository` and an application-owned numbered migration loader.                               |
+| [Service](../../packages/react/src/test-support/postgres-example/service.ts)                 | `defineService`, explicit owner authorization, normalized writes and commit-bound invalidation through `transact`.      |
+| [Handlers](../../packages/react/src/test-support/postgres-example/adapters/orderHandlers.ts) | Request-scoped service calls; the host's `LiveServer` turns committed invalidations into live hints.                    |
+| [Server](../../packages/react/src/test-support/postgres-example/server.ts)                   | Server's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport.        |
+| [Client](../../packages/react/src/test-support/postgres-example/makeClient.ts)               | Native AtomRpc, contract binding and live invalidation.                                                                 |
+| [Editor](../../packages/react/src/test-support/postgres-example/OrderEditor.tsx)             | `useEditor` connects the query to form fields and decoded saves.                                                        |
 
 ## From commit to another editor
 
-The save handler reads `Identity` supplied by Identity's `Authenticated` middleware. It passes the user id to the service on every request; service initialization never retains a request's principal. The service checks the row's owner, updates it through the repository, records the order's invalidation keys, and returns through `transact`.
+The host builds `OrderService.layer` in `requestServices` for each RPC call. Service operations yield `Identity` supplied by Identity's `Authenticated` middleware and the shared repository supplied by the host. The service checks the row's owner, updates it through the repository, records the order's invalidation keys, and returns through `transact`.
 
 `transact` binds the native SQL transaction to the `changes` channel. The channel publishes to server Reactivity after the owning PostgreSQL transaction commits and discards keys on rollback. The authenticated `subscribe` RPC uses `LiveServer.stream` for the selected order's keys. Its initial `Resync` hint reconciles the client, and subsequent hints ask the client's existing query to read again over HTTP.
 

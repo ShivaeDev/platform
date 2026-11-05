@@ -5,11 +5,12 @@ import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appDatabase.ts";
+import { orderHandlers } from "#test/postgres-example/adapters/orderHandlers.ts";
+import { BeforeOrderCommit } from "./BeforeOrderCommit.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
-import { OrderService } from "./OrderService.ts";
-import { orderHandlers } from "./orderHandlers.ts";
 import { Preferences, privateHandlers } from "./privateFeature.ts";
 import { orderMigrations, repositoryLayer } from "./repository.ts";
+import { OrderService } from "./service.ts";
 
 export interface ServerOptions {
 	readonly applicationName?: string;
@@ -39,7 +40,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			),
 		);
 	}
-	const { handlers, publications, delivered, reads } = orderHandlers(read, options.beforeCommit);
+	const { handlers, publications, delivered, reads } = orderHandlers(read);
 	const sessions = new Map([
 		["Bearer alice-session", "alice"],
 		["Bearer bob-session", "bob"],
@@ -73,7 +74,8 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			group: LiveOrders.merge(Preferences),
 			handlers: Layer.merge(handlers, privateHandlers(table, options.beforeCommit)),
 			migrations: { loader: orderMigrations(table), table: ledger },
-			services: OrderService.layer.pipe(Layer.provide(repositoryLayer(table))),
+			requestServices: OrderService.layer,
+			services: repositoryLayer(table).pipe(Layer.merge(Layer.succeed(BeforeOrderCommit, options.beforeCommit ?? Effect.void))),
 			sessions: Layer.succeed(SessionPolicy, policy),
 		}).pipe(Layer.provideMerge(options.logger === undefined ? Layer.empty : Logger.layer([options.logger]))),
 	);
