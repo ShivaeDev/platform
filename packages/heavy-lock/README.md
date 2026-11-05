@@ -72,7 +72,7 @@ The child is the leader of its own process group. While it runs, the wrapper for
 Use `withHeavyLock` when one Effect owns the heavy work. Read `HeldLock.env` and pass it to any child that may itself run a wrapped command:
 
 ```ts
-import { NodeServices } from "@effect/platform-node";
+import { NodeCrypto, NodeServices } from "@effect/platform-node";
 import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
 import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { Effect } from "effect";
@@ -90,22 +90,22 @@ const build = Effect.gen(function* () {
 	return yield* spawner.exitCode(command);
 });
 
-const program = withHeavyLock(build, { command: "pnpm build" }).pipe(Effect.provide(NodeServices.layer));
+const program = withHeavyLock(build, { command: "pnpm build" }).pipe(Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]));
 ```
 
-`withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the Crypto, filesystem, path and process-spawning services. Lock IDs come from Effect's Crypto service. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
+`withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the filesystem, path and process-spawning services, and `NodeCrypto.layerSecureRandom` supplies Effect's `SecureRandom`, which draws the lock IDs. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
 
 Filesystem cleanup failures are reported. Draft and reclamation-gate cleanup failures fail acquisition; a scoped release failure surfaces as a defect containing a `HeavyLockError` and the filesystem cause. Effect retains a work failure alongside a release failure. The CLI reports cleanup failures and exits with code 1.
 
 For a service that owns the hold through a Layer, use `heavyLockLayer`:
 
 ```ts
-import { NodeServices } from "@effect/platform-node";
+import { NodeCrypto, NodeServices } from "@effect/platform-node";
 import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
 import { heavyLockLayer } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { Effect, Layer } from "effect";
 
-const lockLayer = heavyLockLayer({ command: "asset pipeline" }).pipe(Layer.provide(NodeServices.layer));
+const lockLayer = heavyLockLayer({ command: "asset pipeline" }).pipe(Layer.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]));
 
 const program = Effect.gen(function* () {
 	const held = yield* HeldLock;
@@ -116,7 +116,7 @@ const program = Effect.gen(function* () {
 The Layer owns the hold for its lifetime. Use `acquireHeavyLock` directly when the surrounding Scope should own acquisition:
 
 ```ts
-import { NodeServices } from "@effect/platform-node";
+import { NodeCrypto, NodeServices } from "@effect/platform-node";
 import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts";
 import { Effect } from "effect";
 
@@ -125,7 +125,7 @@ const program = Effect.scoped(
 		const held = yield* acquireHeavyLock({ command: "asset pipeline" });
 		return held.env;
 	}),
-).pipe(Effect.provide(NodeServices.layer));
+).pipe(Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]));
 ```
 
 `acquireHeavyLock` returns the held environment rather than providing the service. Its surrounding Scope owns release. A nested `withHeavyLock` joins an existing `HeldLock` service instead of waiting for itself.

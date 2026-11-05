@@ -1,5 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ConfigProvider, Effect } from "effect";
+import { ConfigProvider, Effect, Predicate } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -33,9 +33,10 @@ export const dockerEndpoint = storyKit({
 			if (command._tag !== "StandardCommand") {
 				return Effect.die("The Docker endpoint kit expects a single command");
 			}
-			commands.push(command.args);
+			const args = command.args.filter(Predicate.isString);
+			commands.push(args);
 			// Context discovery is a precondition; operations use the real CLI and fake HTTP daemon.
-			return command.args[0] === "context" ? Effect.succeed(scriptedProcess(endpoint)) : real.spawn(command);
+			return args[0] === "context" ? Effect.succeed(scriptedProcess(endpoint)) : real.spawn(command);
 		});
 		const environment: Record<string, string> = {};
 		const configuration: DockerEnvironment = { "DOCKER_CONTEXT": "approved" };

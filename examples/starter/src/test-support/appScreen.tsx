@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
@@ -40,7 +40,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 		contracts: [foundation.UsersPage.contract, foundation.JobsPage.contract, foundation.SessionsPage.contract, ...(options.modules?.contracts ?? [])],
 		headers: { cookie: account.headers.get("cookie") ?? "", origin: host.origin },
 		url,
-		webSocketConstructor: layerWebSocketConstructorWS,
+		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const clientOptions = { protocol: observed.protocol, url };
 	const foundationClient = makeFoundationClient(url, { ...clientOptions, live: false });

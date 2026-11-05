@@ -2,7 +2,8 @@ import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
-import { Crypto, Effect } from "effect";
+import { Effect } from "effect";
+import { SecureRandom } from "effect/crypto";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { HOLDER_ID_ENV } from "#holder.ts";
 import { cli } from "./cli.ts";
@@ -95,11 +96,8 @@ export function noCommandOption() {
 }
 
 export function idBytes(byte: number) {
-	return lockStory.trait("configuration", `Effect's Crypto service supplies id bytes filled with ${byte}`, (engine) => {
-		engine.crypto = Crypto.make({
-			digest: engine.crypto.digest,
-			randomBytes: (size) => new Uint8Array(size).fill(byte),
-		});
+	return lockStory.trait("configuration", `Effect's SecureRandom service supplies id bytes filled with ${byte}`, (engine) => {
+		engine.random = SecureRandom.make((size) => new Uint8Array(size).fill(byte));
 	});
 }
 

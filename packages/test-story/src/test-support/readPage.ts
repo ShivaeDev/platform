@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Fiber, PubSub, Queue } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
@@ -26,7 +26,7 @@ export const readPage = storyKit({
 		const client = makePageClient(url, observed.protocol);
 		const fetch = domFetch(url);
 		const sessionPending = Atom.make(false);
-		const writer = yield* makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructorWS }).client;
+		const writer = yield* makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructor }).client;
 		const view = yield* Effect.acquireRelease(
 			Effect.promise(() => render(createElement(ReadPageView, { client, fetch, sessionPending }))),
 			(rendered) => Effect.promise(rendered.unmount),

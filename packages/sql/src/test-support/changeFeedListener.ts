@@ -20,18 +20,21 @@ export const listenerEvents = Effect.gen(function* () {
 		reconnectFailures: yield* Queue.unbounded<void>(),
 		recoveries: yield* Queue.unbounded<void>(),
 		resyncs: yield* Queue.unbounded<void>(),
+		retries: yield* Queue.unbounded<void>(),
 	};
 	const loggers = yield* Logger.CurrentLoggers;
 	const logger = Logger.make((options) => {
 		switch (options.logLevel) {
 			case "Debug":
 				Queue.offerUnsafe(events.reconnectFailures, undefined);
+				Queue.offerUnsafe(events.retries, undefined);
 				break;
 			case "Info":
 				Queue.offerUnsafe(events.recoveries, undefined);
 				break;
 			case "Warn":
 				Queue.offerUnsafe(events.losses, undefined);
+				Queue.offerUnsafe(events.retries, undefined);
 				break;
 		}
 	});

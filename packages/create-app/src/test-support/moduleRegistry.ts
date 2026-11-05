@@ -70,7 +70,7 @@ export function serverModules<R = never, E = never, TRequirements = never>(repla
 	"src/server/registration.ts": `import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Path } from "effect";
 import { RpcGroup } from "effect/rpc";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { AuthEmailQueue } from "#server/AuthEmailQueue.ts";
@@ -86,7 +86,7 @@ export function serverRegistration() {
 		migrations: {
 			components: [pgBossSchema()],
 			loader: Path.Path.pipe(
-				Effect.flatMap((path) => Migrator.fromFileSystem(path.resolve(import.meta.dirname, "migrations"))),
+				Effect.flatMap((path) => MigratorFileSystem.fromFileSystem(path.resolve(import.meta.dirname, "migrations"))),
 				Effect.provide(NodeServices.layer),
 			),
 		},

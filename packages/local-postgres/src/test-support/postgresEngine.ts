@@ -1,4 +1,4 @@
-import { Effect, PlatformError } from "effect";
+import { Effect, PlatformError, Predicate } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
 import { LOCAL_SERVER, localPostgres, type ReadinessOptions } from "#server/localPostgres.ts";
 import { dockerScript } from "#test/dockerScript.ts";
@@ -59,7 +59,8 @@ export function connectCli(engine: PostgresEngine) {
 			if (command._tag !== "StandardCommand") {
 				return yield* Effect.die(new Error("The local setup kit expects a single command"));
 			}
-			const { command: file, args } = command;
+			const file = command.command;
+			const args = command.args.filter(Predicate.isString);
 			engine.calls.push([file, ...args]);
 			if (file === "psql" && !engine.hostPsql) {
 				return yield* PlatformError.systemError({

@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node"
+import { NodeCrypto, NodeServices } from "@effect/platform-node"
 import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts"
 import { HeavyLockError } from "@shivaedev/heavy-lock/error.ts"
 import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts"
@@ -16,10 +16,10 @@ export const program: Effect.Effect<number, HeavyLockError | import("effect").Pl
   command: "pnpm build",
   lockPath: "/tmp/heavy.lock",
   pollInterval: "2 seconds",
-}).pipe(Effect.provide(NodeServices.layer))
+}).pipe(Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]))
 
-export const scoped = Effect.scoped(acquireHeavyLock()).pipe(Effect.provide(NodeServices.layer))
-export const layered: Layer.Layer<HeldLock, HeavyLockError> = heavyLockLayer().pipe(Layer.provide(NodeServices.layer))
+export const scoped = Effect.scoped(acquireHeavyLock()).pipe(Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]))
+export const layered: Layer.Layer<HeldLock, HeavyLockError> = heavyLockLayer().pipe(Layer.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]))
 export const failure = (error: HeavyLockError): string => error.message
 
 // @ts-expect-error The lock needs Node services until they are provided.

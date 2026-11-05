@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Queue, Redacted, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
@@ -28,7 +28,7 @@ const create = Effect.gen(function* () {
 	const wire = transport();
 	const runtime = yield* storyRuntime;
 	const client = connect(host.url, wire.layer, true, runtime);
-	const writer = connect(host.url, layerWebSocketConstructorWS, false, runtime);
+	const writer = connect(host.url, layerWebSocketConstructor, false, runtime);
 	const writerRegistry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(registry) => Effect.sync(() => registry.dispose()),

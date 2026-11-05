@@ -1,5 +1,5 @@
 import { RegistryContext, useAtom, useAtomValue } from "@effect/atom-react";
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
@@ -9,7 +9,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { ReadPage } from "./readPageHost.ts";
 
 export function activityPageClient(url: string) {
-	return makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructorWS });
+	return makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructor });
 }
 const titleDraft = Atom.make("");
 

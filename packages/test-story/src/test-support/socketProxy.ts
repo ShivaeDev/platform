@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Fiber, Queue, Stream } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
@@ -17,7 +17,7 @@ export const socketProxy = storyKit({
 		const proxy = yield* forwardingProxy(upstream);
 		const transport = yield* proxyTransport;
 		const client = yield* makeClient(ReadPage, { url: `${proxy.url}/rpc`, webSocketConstructor: transport.webSocketConstructor }).client;
-		const writer = yield* makeClient(ReadPage, { url: host.url, webSocketConstructor: layerWebSocketConstructorWS }).client;
+		const writer = yield* makeClient(ReadPage, { url: host.url, webSocketConstructor: layerWebSocketConstructor }).client;
 		const hints = yield* Queue.unbounded<QueryUpdate>();
 		yield* client["page.$changes"]({ queries: [{ payload: { id: 1 }, query: "get" }] }).pipe(
 			Stream.runForEach((hint) => Queue.offer(hints, hint)),

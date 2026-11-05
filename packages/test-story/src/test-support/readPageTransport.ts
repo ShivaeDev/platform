@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import * as Socket from "effect/socket/Socket";
 
@@ -13,7 +13,7 @@ export function readPageTransport() {
 			sockets.push(socket);
 			return socket;
 		}),
-	).pipe(Layer.provide(layerWebSocketConstructorWS));
+	).pipe(Layer.provide(layerWebSocketConstructor));
 	return {
 		addresses: () => [...addresses],
 		disconnect: () => {

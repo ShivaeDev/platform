@@ -1,7 +1,7 @@
 import type { ResourceNames } from "./names.ts";
 
 export function resourceKit({ name, pascal, table }: ResourceNames) {
-	return `import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+	return `import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -47,7 +47,7 @@ export const app = storyKit({
 				const rows = yield* sql<{ title: string }>\`select title from \${sql("${table}")} order by id desc\`;
 				return rows.map((row) => row.title);
 			}),
-		visitorClient: () => make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, { webSocketConstructor: layerWebSocketConstructorWS }).client,
+		visitorClient: () => make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, { webSocketConstructor: layerWebSocketConstructor }).client,
 	}),
 });
 
@@ -56,7 +56,7 @@ export function signedIn(name: string) {
 		const { headers } = yield* mintUser(engine.host, name);
 		const client = yield* make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: engine.host.origin },
-			webSocketConstructor: layerWebSocketConstructorWS,
+			webSocketConstructor: layerWebSocketConstructor,
 		}).client;
 		engine.accounts.set(name, client);
 	});

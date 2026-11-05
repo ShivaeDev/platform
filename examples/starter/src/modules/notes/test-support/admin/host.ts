@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -59,7 +59,7 @@ export const adminHost = storyKit({
 				group: adminGroup,
 				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
 				url: `${engine.url}/rpc`,
-				webSocketConstructor: layerWebSocketConstructorWS,
+				webSocketConstructor: layerWebSocketConstructor,
 			}).client;
 		});
 		return {

@@ -4,7 +4,7 @@ export function resourceRegistration({ name, camel, pascal }: ResourceNames) {
 	return `import { resolve } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -28,7 +28,7 @@ const handlers = ${pascal}Contract.application.toLayer(
 export const ${camel}Registration = {
 	group: ${pascal}Contract,
 	handlers,
-	migrations: { loader: Migrator.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)) },
+	migrations: { loader: MigratorFileSystem.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)) },
 	name: "${name}",
 	services: ${pascal}Service.layer,
 } satisfies AppModule;

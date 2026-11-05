@@ -2,7 +2,8 @@ import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, FileSystem, type Scope } from "effect";
-import { Migrator, type SqlClient } from "effect/sql";
+import type { SqlClient } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { generateBetterAuthMigration } from "#server/better-auth/adapters/migrations/generate.ts";
 import type { StoredRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
@@ -18,7 +19,7 @@ export const authMigrationFiles = Effect.gen(function* () {
 			Effect.flatMap(generateBetterAuthMigration(options, role), (source) => fs.writeFileString(`${directory}/${name}.ts`, source)),
 		migrate: (live?: Effect.Effect<unknown, unknown, SqlClient.SqlClient | Scope.Scope>) =>
 			migratePostgres({
-				loader: Migrator.fromFileSystem(directory).pipe(
+				loader: MigratorFileSystem.fromFileSystem(directory).pipe(
 					Effect.provide(NodeServices.layer),
 					Effect.map((entries) => (live === undefined ? entries : [...entries, [3, "live_roles", Effect.succeed(live)] as const])),
 				),

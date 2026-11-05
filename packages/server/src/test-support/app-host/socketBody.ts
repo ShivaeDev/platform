@@ -1,4 +1,4 @@
-import { NodeWS } from "@effect/platform-node/NodeSocket";
+import * as NodeWs from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as Socket from "effect/socket/Socket";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -8,7 +8,7 @@ export const socketBody = storyKit({
 	...hostOptions(),
 	name: "RPC socket body limit",
 	verbs: (state, story) => {
-		let connection: { raw: NodeWS.WebSocket; reader: Socket.Reader } | undefined;
+		let connection: { raw: NodeWs.WebSocket; reader: Socket.Reader } | undefined;
 		function connected() {
 			if (connection === undefined) {
 				throw new Error("Open the RPC socket first");
@@ -21,7 +21,7 @@ export const socketBody = storyKit({
 				Effect.gen(function* () {
 					story.tell(`a client opens a real WebSocket at ${path}`);
 					const raw = yield* Effect.acquireRelease(
-						Effect.sync(() => new NodeWS.WebSocket(`${state.url.replace(/^http/u, "ws")}${path}`)),
+						Effect.sync(() => new NodeWs.WebSocket(`${state.url.replace(/^http/u, "ws")}${path}`)),
 						(websocket) => Effect.sync(() => websocket.terminate()),
 					);
 					const socket = yield* Socket.fromWebSocket(Effect.succeed(raw));

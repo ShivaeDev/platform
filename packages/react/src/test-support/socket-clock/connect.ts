@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Clock, Effect, Layer, Queue } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { RpcClient } from "effect/rpc";
@@ -9,7 +9,7 @@ import { Notes } from "./feature.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string, connections: Queue.Queue<string>, controlled = false) {
 	const configured = controlled ? { runtime: yield* storyRuntime } : {};
-	const client = makeClient(Notes, { ...configured, live: false, url, webSocketConstructor: layerWebSocketConstructorWS });
+	const client = makeClient(Notes, { ...configured, live: false, url, webSocketConstructor: layerWebSocketConstructor });
 	const clock = yield* Clock.Clock;
 	const runtime = Atom.runtime(
 		client.pipe(

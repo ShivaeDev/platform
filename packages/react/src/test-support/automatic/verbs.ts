@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
@@ -36,7 +36,7 @@ export function automaticVerbs(engine: Engine) {
 		return Effect.acquireUseRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(registry) => {
-				const client = websocket ? connect(url, layerWebSocketConstructorWS, engine.runtime) : connect(url, undefined, engine.runtime);
+				const client = websocket ? connect(url, layerWebSocketConstructor, engine.runtime) : connect(url, undefined, engine.runtime);
 				return Effect.promise(() =>
 					act(async () => Effect.runPromise(AtomRegistry.getResult(registry, client.runtime.atom(client.api.rename.run({ id, title }))))),
 				);

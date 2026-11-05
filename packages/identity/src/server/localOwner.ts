@@ -1,4 +1,5 @@
-import { Crypto, type Duration, Effect, Option, Redacted } from "effect";
+import { type Duration, Effect, Option, Redacted } from "effect";
+import { SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { SessionUserValue } from "#identity.ts";
@@ -13,8 +14,8 @@ export const localOwner = Effect.fn("Identity.localOwner")(function* (options: {
 }) {
 	const { owner, roles } = options;
 	const access = yield* roles.resolve(owner.role);
-	const crypto = yield* Crypto.Crypto;
-	const token = Redacted.make(Hex.encode(yield* crypto.randomBytes(32)));
+	const random = yield* SecureRandom.SecureRandom;
+	const token = Redacted.make(Hex.encode(yield* random.randomBytes(32)));
 	const machines = yield* machineTokens({ owner, roles });
 	const allowed = localTransport();
 	const sessions: SessionPolicy["Service"] = {

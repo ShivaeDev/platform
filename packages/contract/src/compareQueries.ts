@@ -1,5 +1,5 @@
-import { Crypto, Effect, Schema } from "effect";
-import * as Hex from "effect/encoding/Hex";
+import { Effect, Schema } from "effect";
+import { Digest } from "effect/crypto";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import { changedHint } from "#queryHints.ts";
@@ -36,9 +36,8 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 		}
 		const value = yield* read(request);
 		const encoded = yield* Schema.encodeUnknownEffect(Schema.toCodecJson(request.query.success))(value).pipe(Effect.orDie);
-		const crypto = yield* Crypto.Crypto;
-		const digest = yield* crypto.digest("SHA-256", new TextEncoder().encode(JSON.stringify(encoded))).pipe(Effect.orDie);
-		const hash = Hex.encode(digest);
+		const digest = yield* Digest.Digest;
+		const hash = yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(JSON.stringify(encoded)));
 		if (hash === hashes.get(index)) {
 			return { _tag: "Unchanged", queryIndex: index } satisfies QueryUnchanged;
 		}

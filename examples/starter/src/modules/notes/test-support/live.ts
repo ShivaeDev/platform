@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Queue, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -14,7 +14,7 @@ import type { RpcAddress } from "./Engine.ts";
 const liveClient = Effect.fn("AppStory.liveClient")(function* (address: RpcAddress, cookie: string) {
 	const client = makeNotesClient(`${address.baseUrl}/rpc`, {
 		headers: { cookie, origin: address.origin },
-		webSocketConstructor: layerWebSocketConstructorWS,
+		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
@@ -46,7 +46,7 @@ function changesClient(address: RpcAddress, cookie: string) {
 	return makeClient(Notes, {
 		headers: { cookie, origin: address.origin },
 		url: `${address.baseUrl}/rpc`,
-		webSocketConstructor: layerWebSocketConstructorWS,
+		webSocketConstructor: layerWebSocketConstructor,
 	}).client;
 }
 

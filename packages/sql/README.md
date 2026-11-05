@@ -953,7 +953,7 @@ const migrateOrders = migratePostgres({
 });
 ```
 
-`migrationsFromDirectory(root)` delegates discovery to Effect's `Migrator.fromFileSystem` and requires native `FileSystem` and `Path` services. Keep the folder beside the server source when deploying it, or include it in your server build. Adding a migration means adding one file; there is no import list. The first run of `0001_create_orders.ts` returns `[[1, "create_orders"]]`; repeating it returns `[]`, and adding a higher numbered file applies the new work. Treat applied migrations as immutable.
+`migrationsFromDirectory(root)` delegates discovery to Effect's `MigratorFileSystem.fromFileSystem` from `effect/sql/MigratorFileSystem` and requires native `FileSystem` and `Path` services. Keep the folder beside the server source when deploying it, or include it in your server build. Adding a migration means adding one file; there is no import list. The first run of `0001_create_orders.ts` returns `[[1, "create_orders"]]`; repeating it returns `[]`, and adding a higher numbered file applies the new work. Treat applied migrations as immutable.
 
 Use sequential numbers, not timestamps. Effect's Migrator skips any migration whose ID is not greater than the latest applied ID. A timestamped migration from a branch that merges late could therefore be silently skipped by native Migrator on an already-migrated database. Two branches that choose the same sequential number instead fail loudly with Effect's duplicate-ID `MigrationError` (`kind: "Duplicates"`), forcing the second branch to renumber and re-check. This package also rejects gaps below the latest applied ID, as described below.
 

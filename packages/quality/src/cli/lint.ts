@@ -40,7 +40,7 @@ export const lint = Effect.fn("Cli.lint")(
 	(effect) =>
 		withHeavyLock(effect, { command: "quality lint" }).pipe(
 			Effect.catchTag("HeavyLockError", (cause) => new SetupFailure({ cause, message: cause.message })),
-			Effect.provide(NodeCrypto.layer),
+			Effect.provide(NodeCrypto.layerSecureRandom),
 			Effect.provide(NodePath.layer),
 		),
 );
