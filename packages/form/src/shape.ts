@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
 import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/reactivity/Reactivity";
-import type { FieldPath, ValueAt } from "./fieldPath.ts";
+import type { FieldPath, OptionalKeys, OptionalPath, ValueAt } from "./fieldPath.ts";
 import type { FieldMessages } from "./messages.ts";
 import type { PersistedDraftConfig } from "./persistence.ts";
 
@@ -81,6 +81,8 @@ export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly fieldAt: <const TPath extends Path<Name<TFields>> & FieldPath<Encoded<TFields>>>(
 		path: TPath,
 	) => AtomRef.AtomRef<ValueAt<Encoded<TFields>, TPath>>;
+	readonly omit: (name: OptionalKeys<Encoded<TFields>> & Name<TFields>) => void;
+	readonly omitAt: <const TPath extends Path<Name<TFields>> & OptionalPath<Encoded<TFields>>>(path: TPath) => void;
 	readonly receive: (values: Encoded<TFields>) => void;
 	readonly revert: () => void;
 	readonly submit: Atom.AtomResultFn<void, A, E | TRuntimeError | FieldFailure | Invalid>;

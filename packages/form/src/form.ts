@@ -5,7 +5,7 @@ import type * as AtomRef from "effect/reactivity/AtomRef";
 import { persistence } from "#adapters/persistence.ts";
 import { checkFeedback } from "./checkFeedback.ts";
 import { draft } from "./draft.ts";
-import { refAt } from "./fieldPath.ts";
+import { omitAt, refAt } from "./fieldPath.ts";
 import { literalChoices, messageAt, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
 import { fromRef, propertyRef } from "./refs.ts";
@@ -131,6 +131,14 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		}),
 		field: refFor,
 		fieldAt: (path) => refAt(values, path),
+		omit: (name) => {
+			omitAt(values, [name]);
+			status.touch(name);
+		},
+		omitAt: (path) => {
+			omitAt(values, path);
+			status.touch(path[0]);
+		},
 		receive: editing.receive,
 		revert: editing.revert,
 		submit,

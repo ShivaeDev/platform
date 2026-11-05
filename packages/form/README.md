@@ -251,6 +251,10 @@ For a nested value held in one top-level field, `errorAt(["answers", index, "tex
 
 `fieldAt(["energy", "low"])` returns an encoded-value ref for a nested member. `changeAt(["energy", "low"], "12")` edits that member immutably, preserves its siblings and touches the top-level group for feedback. The schema still decodes the complete struct on submission. Receive, save and revert keep their existing top-level baseline semantics; nested fields do not create separate sessions.
 
+Paths stop at optional or nullable parents. Read the group ref to observe `undefined` or `null`, and create or replace the complete group with `change` or `changeAt`, supplying every required sibling.
+
+Use `omit("note")` to remove a top-level optional key, or `omitAt(["profile", "note"])` for an optional key below required parents. Omission preserves siblings and touches the top-level field. `change("note", undefined)` assigns a present key; Schema decides whether that value is valid. Dirty comparison distinguishes absence from a present `undefined`, and receive, save and revert preserve that distinction.
+
 React inputs use `useFieldAt` with the same typed path:
 
 ```ts
@@ -419,6 +423,8 @@ The returned form exposes:
 | `values`                   | `AtomRef<Encoded<F>>` for the whole input                                                     |
 | `field(name)`              | `AtomRef<Encoded<F>[K]>` for a field                                                          |
 | `change(name, value)`      | Write encoded input through the form's editing operation                                      |
+| `omit(name)`               | Remove an optional top-level key                                                              |
+| `omitAt(path)`             | Remove an optional nested key below required parents                                          |
 | `blur(name)`               | Field blur operation, supplied as `useField(...).onBlur`                                      |
 | `error(name)`              | Atom of `string \| undefined`                                                                 |
 | `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |

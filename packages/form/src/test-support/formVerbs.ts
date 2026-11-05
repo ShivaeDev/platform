@@ -2,6 +2,7 @@ import { inspect } from "node:util";
 import { Deferred, Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { OptionalKeys } from "#fieldPath.ts";
 import { form } from "#form.ts";
 import { type Encoded, FieldFailure, type Fields, Invalid, type Name, type Path } from "#shape.ts";
 import type { draftStorage } from "./draftStorage.ts";
@@ -102,6 +103,11 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError, TSuppo
 			Effect.sync(() => {
 				tell(`leave the ${name}`);
 				current().blur(name);
+			}),
+		omit: (name: OptionalKeys<Encoded<TFields>> & Name<TFields>) =>
+			Effect.sync(() => {
+				tell(`remove the ${name}`);
+				current().omit(name);
 			}),
 		refresh: (values: Encoded<TFields>) =>
 			Effect.sync(() => {

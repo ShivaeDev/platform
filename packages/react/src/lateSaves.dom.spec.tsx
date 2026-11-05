@@ -74,3 +74,19 @@ lateSaves.it(
 		expect(yield* shown()).toEqual({ dirty: false, values: { name: "Remote", note: "Remote note" } });
 	},
 );
+
+lateSaves.it(
+	"an editor keeps a note omitted during normalization as unsaved input",
+	[openForm("editor")],
+	function* ({ click, finish, noteKey, shown, type }) {
+		yield* type("name", "Submitted");
+		yield* click("Save");
+		yield* click("Remove note");
+		yield* finish();
+
+		yield* outcomes([
+			["editor", () => shown(), { dirty: true, values: { name: "SUBMITTED" } }],
+			["note key", () => noteKey(), "false"],
+		]);
+	},
+);

@@ -13,12 +13,12 @@ export const stock = formStories(() => Schema.Struct({ name: Schema.String, quan
 export const notes = formStories(() => Schema.Struct({ name: Schema.String, note: Schema.optionalKey(Schema.String) }), {
 	...none,
 	config: () => ({ initialValues: { name: "First" }, onSubmit: Effect.succeed, runtime }),
+	verbs: (driver) => ({ notePresent: () => Effect.sync(() => Object.hasOwn(driver.current().values.value, "note")) }),
 });
 
 export function noteRemoved() {
 	return notes.step("the note is removed", (driver) => {
-		const { name } = driver.current().values.value;
-		driver.current().values.set({ name });
+		driver.current().omit("note");
 	});
 }
 

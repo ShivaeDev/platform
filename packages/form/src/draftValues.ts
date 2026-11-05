@@ -1,5 +1,7 @@
 import { Equal } from "effect";
 
+const omitted = Symbol("omitted");
+
 export type Entries = Readonly<Record<string, unknown>>;
 
 export interface Draft<TValues> {
@@ -8,8 +10,27 @@ export interface Draft<TValues> {
 	readonly settled: Entries;
 }
 
+function sameField(left: Entries, right: Entries, name: string): boolean {
+	return Object.hasOwn(left, name) === Object.hasOwn(right, name) && Equal.equals(left[name], right[name]);
+}
+
+export function settledBaseline<TValues>(held: Draft<TValues>): TValues;
+export function settledBaseline({ baseline, settled }: Draft<Entries>): Entries {
+	const result = { ...baseline, ...settled };
+	for (const name of Object.keys(settled)) {
+		if (settled[name] === omitted) {
+			delete result[name];
+		}
+	}
+	return result;
+}
+
 export function untouched({ baseline, current, settled }: Draft<Entries>, name: string): boolean {
-	return Equal.equals(current[name], baseline[name]) || (Object.hasOwn(settled, name) && Equal.equals(current[name], settled[name]));
+	return (
+		sameField(current, baseline, name)
+		|| (Object.hasOwn(settled, name)
+			&& (settled[name] === omitted ? !Object.hasOwn(current, name) : Object.hasOwn(current, name) && Equal.equals(current[name], settled[name])))
+	);
 }
 
 export function changed(held: Draft<Entries>): boolean {
@@ -28,11 +49,11 @@ export function merged(held: Draft<Entries>, incoming: Entries): unknown {
 	return result;
 }
 
-function matching(current: Entries, submitted: Entries): Entries {
+function matching(current: Entries, submitted: Entries, baseline: Entries): Entries {
 	return Object.fromEntries(
-		Object.keys({ ...current, ...submitted })
-			.filter((name) => Equal.equals(current[name], submitted[name]))
-			.map((name) => [name, submitted[name]]),
+		Object.keys({ ...baseline, ...current, ...submitted })
+			.filter((name) => sameField(current, submitted, name))
+			.map((name) => [name, Object.hasOwn(submitted, name) ? submitted[name] : omitted]),
 	);
 }
 
@@ -49,12 +70,12 @@ export function mergeObserved(current: Entries, incoming: Entries, local: Readon
 }
 
 export function changedFields(previous: Entries, current: Entries): readonly string[] {
-	return Object.keys({ ...previous, ...current }).filter((name) => !Equal.equals(previous[name], current[name]));
+	return Object.keys({ ...previous, ...current }).filter((name) => !sameField(previous, current, name));
 }
 
 export function accepted<TValues extends Entries>(held: Draft<TValues>, baseline: TValues, submitted: TValues, incoming?: TValues): Draft<TValues> {
 	if (held.baseline !== baseline) {
-		return { ...held, settled: matching(held.current, submitted) };
+		return { ...held, settled: matching(held.current, submitted, held.baseline) };
 	}
 	return {
 		...held,
