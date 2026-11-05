@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.42.0 - 2026-11-05
+
+### Added
+
+- Let `useUndoableChange` build an inverse command input from the successful result with `undoInput`, carrying per-row versions or an undo token for batch changes. Existing single-row versioned calls keep working unchanged.
+- Expose the immediate `waiting-for-connection` status through `useConnectionStatus` while a bound command waits, keeping actions pending until delivery or the typed connection timeout.
+- Provides `useDebouncedValue` and cancellable `useDelay` hooks on the atom runtime's Effect Clock. Pending timers count as observed atom work for screen settlement and cancel on unmount.
+
+### Fixed
+
+- Editors preserve keys omitted during save normalization, and create forms preserve omissions through reset.
+
+### Breaking
+
+- `useConnectionStatus` can return `waiting-for-connection`. Render it as a reconnect notice while the action remains pending.
+
 ## 0.41.2 - 2026-11-04
 
 ### Changed

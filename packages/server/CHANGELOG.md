@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.0 - 2026-11-05
+
+### Breaking
+
+- `testing/*` helpers move under `@shivaedev/test-kits/host/`, dropping the host prefix from filenames: use `process.ts`, `processChild.ts`, `processReadouts.ts`, `processProtocol.ts`, `ProcessError.ts` and `time.ts`. Change imports to those paths; server no longer declares test-sql as a peer.
+
 ## 0.25.0 - 2026-11-04
 
 ### Fixed

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.41.2 - 2026-11-05
+
+### Fixed
+
+- Generated starter PostgreSQL story kits skip locally when `TEST_DATABASE_URL` is absent or empty and fail collection in CI when it is missing.
+- Generated applications import runtime story helpers from test-kits.
+
 ## 0.41.1 - 2026-11-04
 
 ### Changed

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.63.0 - 2026-11-05
+
+### Added
+
+- Flag direct `Config` and `process.env` reads of `*DATABASE_URL` variables in test-support with `tests/database-url`; use test-sql's `postgresTestUrl` so missing URLs fail in CI.
+- Reject runtime packages that publish testing modules or declare test packages as shipped dependencies or peers. Findings name the package and direct helpers into `@shivaedev/test-kits`.
+
+### Fixed
+
+- Report incomplete Knip analysis, including throwing tool configs, as one `code/unused` finding with the tool output while the other rules finish.
+- Leave skills-tool managed copies, their Claude links and ownership manifests out of lint, formatting and fixes while continuing to check local skills.
+- Resolve Vite asset imports through package exports, accepting the query suffixes declared by `vite/client` while reporting missing assets, private package paths and unsupported suffixes.
+
+### Breaking
+
+- Unit tests now reject Effect runners, Clock and TestClock through runtime import chains, including production helpers and shared `it.effect` adapters. Use plain Vitest `it` and existing pure APIs for pure logic; move Effect behaviour to the package's story kit. Findings name the helper chain and terminal source location.
+
 ## 0.62.1 - 2026-11-04
 
 ### Fixed
