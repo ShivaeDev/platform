@@ -6,14 +6,14 @@ import { type PendingPostgresMigrations, pendingPostgresMigrations } from "@shiv
 import type { MigrationOptions } from "#MigrationOptions.ts";
 
 export function prepareMigrations<R, E>(migrations: MigrationOptions<R, E>) {
-	switch (migrations.mode) {
+	switch (migrations.mode ?? "migrate") {
 		case "check": {
 			const { release: _release, ...schema } = migrations;
 			return assertPostgresMigrations(schema);
 		}
 		case "wait":
 			return waitForMigrations(migrations);
-		default:
+		case "migrate":
 			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" }).pipe(Effect.asVoid);
 	}
 }

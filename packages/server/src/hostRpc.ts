@@ -7,6 +7,7 @@ import { prependMiddleware } from "@shivaedev/contract/prependMiddleware.ts";
 import { ReadPolicyGuard, readPolicyGuardLayer } from "@shivaedev/contract/ReadPolicyGuard.ts";
 import { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
 import { publishCommand } from "#publishCommand.ts";
+import type { RequestServices } from "#requestServices.ts";
 import { tracedGroup } from "#tracedGroup.ts";
 
 export const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
@@ -17,11 +18,11 @@ export const hostRpc = Effect.fnUntraced(function* <R extends Rpc.Any, TServices
 	websocket = false,
 	services?: Layer.Layer<TServices, never, TRequirements>,
 ) {
-	class RequestServices extends RpcMiddleware.Service<RequestServices, { provides: TServices; requires: TRequirements }>()(
+	const requestsMiddleware = RpcMiddleware.Service<RequestServices<TServices, TRequirements>, { provides: TServices; requires: TRequirements }>()(
 		"@shivaedev/server/RequestServices",
-	) {}
+	);
 	const requestLayer = Layer.mergeAll(services ?? Layer.empty);
-	const requested = yield* prependMiddleware(group.middleware(RequestServices), RequestServices.key);
+	const requested = yield* prependMiddleware(group.middleware(requestsMiddleware), requestsMiddleware.key);
 	const requests = yield* prependMiddleware(requested, ReadPolicyGuard.key);
 	const guarded = yield* guardCommands(requests.merge(HostVersion.application));
 	const traced = tracedGroup(guarded);
@@ -32,6 +33,6 @@ export const hostRpc = Effect.fnUntraced(function* <R extends Rpc.Any, TServices
 		Effect.provideService(ReadPolicyGuard, readPolicy),
 		Effect.provideService(CommandGuard, publication),
 		Effect.provide(subjectLayers(group)),
-		Effect.provide(Layer.succeed(RequestServices, (effect) => Effect.provide(effect, requestLayer))),
+		Effect.provide(Layer.succeed(requestsMiddleware, (effect) => Effect.provide(effect, requestLayer))),
 	);
 });
