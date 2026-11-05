@@ -1,6 +1,3 @@
-{"path":"examples/starter/src/modules/notes/server","rule":"effect/service-folders","count":1}
-{"path":"examples/starter/src/modules/notes/server/Service.ts","rule":"effect/service-model","count":1}
-{"path":"examples/starter/src/server/applicationHost.ts","rule":"effect/context-capture","count":1}
 {"path":"package.json","rule":"code/unused","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/adapter-imports","count":2}
 {"path":"script/ci/focused-tests.ts","rule":"effect/adapter-imports","count":1}

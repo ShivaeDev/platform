@@ -20,32 +20,32 @@ const handlers = Notes.application.toLayer(
 		"notes.create": (input) =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.create(input);
+				return yield* service.createNote(input);
 			}),
 		"notes.delete": (input) =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.delete(input);
+				return yield* service.deleteNote(input);
 			}),
 		"notes.get": (input) =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.get(input.id);
+				return yield* service.getNote(input.id);
 			}),
 		"notes.import": (input) =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.import(input);
+				return yield* service.importNote(input);
 			}),
 		"notes.list": () =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.list();
+				return yield* service.listNotes();
 			}),
 		"notes.update": (input) =>
 			Effect.gen(function* () {
 				const service = yield* notesService;
-				return yield* service.update(input);
+				return yield* service.updateNote(input);
 			}),
 	}),
 );
@@ -64,7 +64,7 @@ export const notesRegistration = {
 	queues: notesWorker.queues,
 	requestServices: Layer.effect(
 		NoteReadAccess,
-		Effect.map(notesService, (service) => service.canRead),
+		Effect.map(notesService, (service) => service.canReadNote),
 	).pipe(Layer.provideMerge(notesService.layer)),
 	services: NotesRepository.layer,
 	workers: notesWorker.workers,

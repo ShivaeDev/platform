@@ -1,3 +1,0 @@
-{"path":"src/modules/notes/server","rule":"effect/service-folders","count":1}
-{"path":"src/modules/notes/server/Service.ts","rule":"effect/service-model","count":1}
-{"path":"src/server/applicationHost.ts","rule":"effect/context-capture","count":1}

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { callerContextData } from "#rules/effect/callerContextData.ts";
+import { callerContextData } from "#adapters/callerContextData.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";
