@@ -1,5 +1,7 @@
-import { Context, type Effect } from "effect";
-import type { open } from "#adapters/open.ts";
+import { Context, type Effect, type FileSystem, type PlatformError, type Schema, type Scope } from "effect";
+import type { Files, SnapshotSummary } from "#adapters/tasks.ts";
+import type { VitestRerunError } from "#error.ts";
+import type { Snapshot } from "#snapshot.ts";
 
 export interface Selection {
 	readonly fileId: string;
@@ -13,6 +15,24 @@ export interface RunOptions {
 	readonly vitestArgs: readonly string[];
 }
 
-export type AttemptRunner = Effect.Success<ReturnType<typeof open>>;
+export interface AttemptRunner {
+	collect: (files: Files, summary: Snapshot["summary"]) => Effect.Effect<void>;
+	finish: (
+		outputDir: string,
+		attempt: number,
+		reports: RunOptions["reports"],
+	) => Effect.Effect<void, PlatformError.PlatformError | Schema.SchemaError | VitestRerunError, FileSystem.FileSystem>;
+	read: () => Effect.Effect<{
+		errors: unknown[];
+		files: Files;
+		root: string;
+		summary: SnapshotSummary;
+	}>;
+	rerun: (selected: readonly Selection[]) => Effect.Effect<undefined, VitestRerunError>;
+	start: () => Effect.Effect<void, VitestRerunError>;
+}
 
-export class VitestRuntime extends Context.Service<VitestRuntime, { readonly open: typeof open }>()("@shivaedev/vitest-rerun/VitestRuntime") {}
+export class VitestRuntime extends Context.Service<
+	VitestRuntime,
+	{ readonly open: (input: RunOptions) => Effect.Effect<AttemptRunner, VitestRerunError, Scope.Scope> }
+>()("@shivaedev/vitest-rerun/VitestRuntime") {}
