@@ -7,8 +7,9 @@ import { commitAll, git } from "#testing/adapters/git.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
+import { type SkillsRepository, skillReadouts } from "./skillDistribution.ts";
 
-interface RepositoryEngine {
+interface RepositoryEngine extends SkillsRepository {
 	answer: CliAnswer | undefined;
 	readonly root: string;
 }
@@ -38,6 +39,7 @@ export const repositoryStory = storyKit({
 	stages: ["repository", "formatting", "history"],
 	verbs: (engine, story) => ({
 		...cliVerbs(engine, story.tell),
+		...skillReadouts(engine),
 		commits: (message: string) =>
 			Effect.sync(() => {
 				story.tell(`the author commits "${message}"`);

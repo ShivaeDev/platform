@@ -8,6 +8,7 @@ import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.
 import { posix } from "./ignoreScope.ts";
 import { linesOf } from "./linesOf.ts";
 import { shadcnFiles } from "./shadcnFiles.ts";
+import { skillCopies } from "./skillCopies.ts";
 import { scopeAbove, walk } from "./walk.ts";
 
 export interface InventoryScope {
@@ -50,11 +51,13 @@ export const collectInventory = Effect.fn("Inventory.collectInventory")(function
 ): Effect.fn.Return<Inventory, FilesystemFailure | SetupFailure, RuleServices> {
 	const excluded = ignorePatterns([...scope.exclude]);
 	const toolOwned = new Set(yield* shadcnFiles(root));
+	const copies = yield* skillCopies(root);
 	const zones = yield* Effect.forEach(scope.sources, (zone) => zoneFiles(root, zone), { concurrency: READ_CONCURRENCY });
 	const relativePaths = zones.flat().map((absolute) => posix(relative(root, absolute)));
 	const files = [...new Set(relativePaths)]
 		.filter((path) => !excluded.ignores(path))
 		.filter((path) => !toolOwned.has(path))
+		.filter((path) => !copies.owns(join(root, path)))
 		.sort((left, right) => {
 			if (left === right) {
 				return 0;
