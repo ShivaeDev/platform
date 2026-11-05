@@ -1,6 +1,7 @@
 import { Effect } from "effect";
-import type { ConfiguredBackend } from "@shivaedev/agent/backend.ts";
+import { Codex } from "#codex/service.ts";
 
-export const configuredBackend = Effect.fn("Codex.configuredBackend")((codex: { readonly backend: () => Effect.Effect<ConfiguredBackend> }) =>
-	codex.backend(),
-);
+export const configuredBackend = Effect.fn("Codex.configuredBackend")(function* () {
+	const codex = yield* Codex;
+	return yield* codex.backend();
+});

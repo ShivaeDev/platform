@@ -2,14 +2,13 @@ import { Effect, Semaphore } from "effect";
 import { Rejected, UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { ImageInput, Receipt, StartRequest } from "@shivaedev/agent/run.ts";
 import { features } from "#adapters/features.ts";
-import type { LineProcess } from "#adapters/process.ts";
 import { observe, readRequest } from "#adapters/reads.ts";
 import { receiptOf, recovery } from "#adapters/recovery.ts";
 import { AppServer, openServer } from "#adapters/server.ts";
 import { openSession, type Session } from "#adapters/session.ts";
 import type { CodexConfiguration } from "#config.ts";
-export const initializeEngine = Effect.fn("Codex.initializeEngine")(function* (config: CodexConfiguration, spawn?: () => LineProcess) {
-	const server = yield* openServer(config, spawn);
+export const initializeEngine = Effect.fn("Codex.initializeEngine")(function* (config: CodexConfiguration) {
+	const server = yield* openServer(config);
 	const sessions = new Map<string, Session>();
 	const { operations, refusals, reconcile } = yield* recovery(sessions).pipe(Effect.provideService(AppServer, server));
 	const submissionGate = yield* Semaphore.make(1);

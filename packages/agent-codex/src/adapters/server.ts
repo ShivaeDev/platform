@@ -3,14 +3,15 @@ import { Clock, Context, Deferred, Effect, Exit, Fiber, Option, PubSub, Queue, S
 import { BackendUnavailable } from "@shivaedev/agent/failures.ts";
 import { connect } from "#adapters/connect.ts";
 import { handshake } from "#adapters/handshake.ts";
-import { type LineProcess, spawnLineProcess } from "#adapters/process.ts";
+import { ProcessSpawner } from "#adapters/process.ts";
 import { DynamicToolCallParams } from "#adapters/protocol.ts";
 import { residualApproval } from "#adapters/residualApproval.ts";
 import type { RpcNotification } from "#adapters/rpc.ts";
 import { tellCliVersionOnce } from "#adapters/tellCliVersionOnce.ts";
 import { openThreadClaims } from "#adapters/threadClaims.ts";
 import type { CodexConfiguration } from "#config.ts";
-export const openServer = Effect.fn("Codex.openServer")(function* (config: CodexConfiguration, spawn?: () => LineProcess) {
+export const openServer = Effect.fn("Codex.openServer")(function* (config: CodexConfiguration) {
+	const spawner = yield* ProcessSpawner;
 	const notifications = yield* PubSub.unbounded<RpcNotification>();
 	const requests = yield* Queue.unbounded<{ id: number | string; method: string; params: unknown }>();
 	const exited = yield* Deferred.make<void>();
@@ -18,8 +19,7 @@ export const openServer = Effect.fn("Codex.openServer")(function* (config: Codex
 	const child = yield* Effect.acquireRelease(
 		Effect.try({
 			catch: () => new BackendUnavailable({ backend: "codex", message: "Could not start Codex app-server" }),
-			try: () =>
-				spawn?.() ?? spawnLineProcess({ args: config.args ?? ["app-server"], command: config.command ?? "codex", cwd: config.cwd ?? process.cwd() }),
+			try: () => spawner.spawn({ args: config.args ?? ["app-server"], command: config.command ?? "codex", cwd: config.cwd ?? process.cwd() }),
 		}),
 		(processHandle) => Effect.sync(() => processHandle.kill()),
 	);

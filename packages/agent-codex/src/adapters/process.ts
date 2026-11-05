@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { Context } from "effect";
 
 export interface LineProcess {
 	readonly kill: () => void;
@@ -13,6 +14,10 @@ interface SpawnLineProcessOptions {
 	readonly command: string;
 	readonly cwd: string;
 }
+
+export const ProcessSpawner = Context.Reference("@shivaedev/agent-codex/ProcessSpawner", {
+	defaultValue: () => ({ spawn: spawnLineProcess }),
+});
 
 // Codex app-server uses newline-delimited JSON over stdio.
 export function spawnLineProcess(options: SpawnLineProcessOptions): LineProcess {

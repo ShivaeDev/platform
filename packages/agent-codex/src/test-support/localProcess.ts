@@ -4,7 +4,7 @@ import { Context, Effect, Layer, Logger } from "effect";
 import { Backend } from "@shivaedev/agent/backend.ts";
 import type { Receipt } from "@shivaedev/agent/run.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { codexLayer } from "#codex.ts";
+import { codexLayer } from "#codexLayer.ts";
 import { CodexConfig } from "#config.ts";
 export const localProcess = storyKit({
 	create: () =>

@@ -1,0 +1,12 @@
+import { Effect } from "effect";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { CodexEngine } from "#adapters/engine.ts";
+import { backend } from "./backend.ts";
+import { census } from "./census.ts";
+
+export const Codex = defineService({
+	id: "@shivaedev/agent-codex/Codex",
+	initialize: Effect.void,
+	methods: () => ({ backend, census }),
+	requires: [CodexEngine],
+});
