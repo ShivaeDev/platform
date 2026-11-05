@@ -63,6 +63,9 @@ interface Context {
 
 function messageFor(folder: string, context: Context): string | undefined {
 	const name = posix.basename(folder);
+	if (name === "internal") {
+		return 'A folder named "internal" implies privacy that export maps do not enforce. Move its files into the parent folder or a folder named after their job.';
+	}
 	if (context.owned.has(folder) || context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
 		return undefined;
 	}
@@ -94,7 +97,7 @@ export const folderNames = defineRule({
 			});
 		}),
 	description:
-		"A package folder's final name or its path below the workspace package root joined with hyphens matches its unscoped package name. A module folder is named after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
+		"Folders cannot be named internal. A package folder's final name or its path below the workspace package root joined with hyphens matches its unscoped package name. A module folder is named after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
 	id: "files/folder-names",
 	options: Schema.toStandardSchemaV1(FolderNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,

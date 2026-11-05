@@ -2,6 +2,7 @@
 "@shivaedev/contract": minor
 "@shivaedev/email": minor
 "@shivaedev/jobs": minor
+"@shivaedev/quality": minor
 "@shivaedev/react": minor
 "@shivaedev/test": minor
 "@shivaedev/test-kits": minor
@@ -13,6 +14,7 @@
 
 ### Breaking
 
+- `@shivaedev/quality`: The `files/folder-names` rule rejects folders named `internal`, including module, package, content, tool-owned and route folders. Move their files into the parent folder or a folder named after their job.
 - `@shivaedev/contract`: Remove `internal/` from module imports. Use `clientActivities.ts` for the former `internal/clientActivity.ts` and `queryProgress.ts` for the former `internal/querySignals.ts`; existing `clientActivity.ts` and `querySignals.ts` imports keep their meaning.
 - `@shivaedev/email`: Import development mail rendering from `server/log-mailer/send.ts` instead of `server/internal/log-mailer/send.ts`.
 - `@shivaedev/jobs`: Replace `server/internal/` with `server/` in module imports.
