@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { counted } from "#github-http/counted.ts";
 import type { HttpState } from "#github-http/initialize.ts";
 import { request } from "#github-http/request.ts";

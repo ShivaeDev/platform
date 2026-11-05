@@ -1,7 +1,7 @@
 import { DateTime, Effect, Layer, Redacted, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
 import { graphql } from "@shivaedev/github/graphql.ts";
 import { read } from "@shivaedev/github/read.ts";

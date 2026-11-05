@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { Layer, Logger, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { planning } from "./planning.ts";
 

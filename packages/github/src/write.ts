@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { GitHub } from "#GitHub.ts";
+import { GitHub } from "#github/service.ts";
 
 type WriteMethod = "POST" | "PATCH" | "PUT" | "DELETE";
 

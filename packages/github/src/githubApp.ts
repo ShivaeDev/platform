@@ -1,7 +1,8 @@
 import { Layer } from "effect";
-import { GitHubApp } from "#app/GitHub.ts";
+import { appTokens } from "#adapters/appTokens.ts";
+import { githubClientsLayer } from "#adapters/githubClientsLayer.ts";
+import { GitHubApp } from "#app/service.ts";
 import type { AppCredentials } from "#appJwt.ts";
-import { appTokens } from "#appTokens.ts";
 import { GitHubAppCredentials } from "#GitHubAppCredentials.ts";
 
 export interface InstallationScope {
@@ -19,5 +20,8 @@ export type GitHubAppOptions = AppCredentials &
 
 export function githubApp(options: GitHubAppOptions) {
 	const authentication = appTokens(options);
-	return Layer.merge(authentication, GitHubApp.layer.pipe(Layer.provide(Layer.succeed(GitHubAppCredentials)({ credentials: options }))));
+	return Layer.merge(
+		authentication,
+		GitHubApp.layer.pipe(Layer.provide(githubClientsLayer), Layer.provide(Layer.succeed(GitHubAppCredentials)({ credentials: options }))),
+	);
 }

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { ArtifactExtractionOptions } from "#artifactExtraction.ts";
-import type { GitHub } from "#GitHub.ts";
+import type { GitHub } from "#github/service.ts";
 import type { artifactFixture } from "./artifactFixture.ts";
 import { answered } from "./outcome.ts";
 import { type ArchiveEntry, zipArchive } from "./zipArchive.ts";

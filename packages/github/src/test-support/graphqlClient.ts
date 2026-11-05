@@ -1,8 +1,8 @@
 import { Context, Effect, Layer, Redacted, Schema, SchemaGetter } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
+import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
 import { graphql } from "#graphql.ts";
 import { read } from "#read.ts";

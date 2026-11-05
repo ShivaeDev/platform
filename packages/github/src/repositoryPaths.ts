@@ -1,4 +1,4 @@
-import type { RepositoryListOptions } from "#repositoryReads.ts";
+import type { RepositoryListOptions } from "#RepositoryListOptions.ts";
 
 export function repository(owner: string, repo: string) {
 	return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;

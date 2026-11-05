@@ -1,4 +1,4 @@
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { delay } from "#github-http/delay.ts";
 import { get } from "#github-http/get.ts";

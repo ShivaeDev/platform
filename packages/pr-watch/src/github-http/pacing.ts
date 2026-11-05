@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import type { HttpState } from "#github-http/initialize.ts";
 import { pollPacing } from "#quota.ts";
 

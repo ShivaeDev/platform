@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from "effect";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { beforePage } from "#github-http/adapters/beforePage.ts";
 import { counted } from "#github-http/counted.ts";
 import type { HttpState } from "#github-http/initialize.ts";

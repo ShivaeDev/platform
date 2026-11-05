@@ -2,7 +2,7 @@ import { Effect, Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHubApp } from "#app/GitHub.ts";
+import { GitHubApp } from "#app/service.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { githubApp } from "#githubApp.ts";
 import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";

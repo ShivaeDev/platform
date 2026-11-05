@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { GitHubApp } from "#app/GitHub.ts";
-import { GitHub } from "#GitHub.ts";
+import { GitHubApp } from "#app/service.ts";
+import { GitHub } from "#github/service.ts";
 
 export function withInstallation<A, E, R>(installationId: number, effect: Effect.Effect<A, E, R>) {
 	return Effect.flatMap(GitHubApp, (app) =>

@@ -3,9 +3,9 @@ import { NodeServices } from "@effect/platform-node";
 import { ConfigProvider, Effect, FileSystem, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { GitHub } from "#github/service.ts";
 import { read } from "#read.ts";
 import { PullRequest } from "./fixtures.ts";
 

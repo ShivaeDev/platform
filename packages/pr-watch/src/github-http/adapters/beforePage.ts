@@ -1,5 +1,5 @@
 import { type Context, Effect } from "effect";
-import type { GitHub } from "@shivaedev/github/GitHub.ts";
+import type { GitHub } from "@shivaedev/github/github/service.ts";
 import { beforeRequest } from "#github-http/beforeRequest.ts";
 import type { HttpState } from "#github-http/initialize.ts";
 

@@ -1,6 +1,6 @@
 import type { Context } from "effect";
 import { Effect, Stream } from "effect";
-import type { GitHub } from "#GitHub.ts";
+import type { GitHub } from "#github/service.ts";
 import { answered } from "./outcome.ts";
 
 export type RepositoryRead = "authenticated user" | "issue" | "compare" | "tree" | "commit" | "permission" | "user";

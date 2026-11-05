@@ -1,6 +1,6 @@
 import { Layer } from "effect";
-import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { GitHub as GitHubClient } from "@shivaedev/github/github/service.ts";
 import { GitHub } from "#github/service.ts";
 import { GitHubHttp } from "#github-http/service.ts";
 import { StateFile } from "#state-file/service.ts";
