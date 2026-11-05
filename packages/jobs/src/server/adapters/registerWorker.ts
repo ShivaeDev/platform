@@ -2,12 +2,12 @@ import { Effect, Fiber, Scope } from "effect";
 import { batchHandler } from "#server/adapters/batchHandler.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
+import { deferrableAttempt } from "#server/deferrableAttempt.ts";
+import { JobEngine } from "#server/engine.ts";
 import { toPgBossError } from "#server/error.ts";
-import { deferrableAttempt } from "#server/internal/deferrableAttempt.ts";
-import { JobEngine } from "#server/internal/engine.ts";
-import { retryWake } from "#server/internal/retryWake.ts";
-import { traceJob } from "#server/internal/tracing.ts";
 import type { WorkerJob } from "#server/job.ts";
+import { retryWake } from "#server/retryWake.ts";
+import { traceJob } from "#server/tracing.ts";
 import type { WorkerOptions } from "#server/workerOptions.ts";
 import { jobEngine } from "./jobEngine.ts";
 

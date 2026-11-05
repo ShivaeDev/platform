@@ -8,13 +8,13 @@ export default [
 			files(
 				"packages/test-story/src/server/screenDriver.ts",
 				"packages/test-story/src/server/screenSignal.ts",
-				"packages/test-story/src/server/internal/waitForScreen.ts",
-				"packages/test-story/src/server/internal/nextScreenHint.ts",
+				"packages/test-story/src/server/waitForScreen.ts",
+				"packages/test-story/src/server/nextScreenHint.ts",
 			),
 		)
 		.mayNotReach(packages("contract"))
 		.demonstratedBy({
-			illegal: ["packages/test-story/src/server/internal/waitForScreen.ts", "packages/contract/src/clientActivity.ts"],
-			legal: ["packages/test-story/src/server/internal/waitForScreen.ts", "packages/test-story/src/server/screenSignal.ts"],
+			illegal: ["packages/test-story/src/server/waitForScreen.ts", "packages/contract/src/clientActivity.ts"],
+			legal: ["packages/test-story/src/server/waitForScreen.ts", "packages/test-story/src/server/screenSignal.ts"],
 		}),
 ];

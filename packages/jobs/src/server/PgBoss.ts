@@ -1,6 +1,6 @@
 import { Context } from "effect";
 import type { StopOptions } from "#server/clientOptions.ts";
-import type { AcquiredClient } from "#server/internal/lifecycle.ts";
+import type { AcquiredClient } from "#server/lifecycle.ts";
 
 export class PgBoss extends Context.Service<
 	PgBoss,

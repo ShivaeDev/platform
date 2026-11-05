@@ -2,8 +2,8 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect, Fiber, Schedule } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useMemo } from "react";
+import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import type { SessionBoundaryProps } from "#client/sessionBoundary.ts";
-import { useLatestCallback } from "#internal/adapters/useLatestCallback.ts";
 
 export function useSessionRetry(recheck: SessionBoundaryProps<unknown, unknown>["recheck"], identity: string | undefined): () => void {
 	const registry = useContext(RegistryContext);

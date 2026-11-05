@@ -5,7 +5,7 @@ import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaed
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
-import { registrationName } from "#server/internal/register.ts";
+import { registrationName } from "#server/register.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";

@@ -4,9 +4,9 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement, Fragment, type ReactNode, useContext, useLayoutEffect, useMemo } from "react";
 import type { AtomServices } from "#AtomServices.ts";
-import { NoticeContext } from "#internal/NoticeContext.ts";
-import type { NoticeClock, NoticeEntry } from "#internal/noticeEntry.ts";
-import { noticeStore } from "#internal/noticeStore.ts";
+import { NoticeContext } from "#NoticeContext.ts";
+import type { NoticeClock, NoticeEntry } from "#noticeEntry.ts";
+import { noticeStore } from "#noticeStore.ts";
 
 export interface NoticeDescriptor<R = never> {
 	readonly action?:

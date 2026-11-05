@@ -4,10 +4,10 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
+import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import { mountLive } from "#client/mountLive.ts";
-import { useLatestCallback } from "#internal/adapters/useLatestCallback.ts";
-import { RecheckContext } from "#internal/RecheckContext.ts";
-import { registerSessionRecheck } from "#internal/sessionRecheck.ts";
+import { RecheckContext } from "#RecheckContext.ts";
+import { registerSessionRecheck } from "#sessionRecheck.ts";
 
 interface Owned<TClient> {
 	readonly client: TClient;

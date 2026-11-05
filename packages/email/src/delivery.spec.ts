@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { email } from "#test/internal/email.ts";
-import { development, rejected, unavailableTwice } from "#test/internal/traits.ts";
+import { email } from "#test/email.ts";
+import { development, rejected, unavailableTwice } from "#test/traits.ts";
 
 for (const kind of ["Confirm", "Reset"] as const) {
 	email.it(

@@ -5,7 +5,7 @@ import { inspectionOperation } from "#server/adapters/inspectionOperation.ts";
 import { inspectionSnapshot } from "#server/adapters/inspectionSnapshot.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { QueueDefinition } from "#server/definition.ts";
-import { quotedSchema } from "#server/internal/storedRows.ts";
+import { quotedSchema } from "#server/storedRows.ts";
 
 const Busy = Schema.Struct({ busy: Schema.Boolean });
 export function inspectionReads(client: PgBossClient, schema: string) {

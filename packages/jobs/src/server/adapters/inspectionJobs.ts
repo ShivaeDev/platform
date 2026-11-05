@@ -2,7 +2,7 @@ import { Effect, type Schema } from "effect";
 import type { JobReadOptions, PgBossClient } from "#server/client.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
-import { decodeStoredData } from "#server/internal/storedRows.ts";
+import { decodeStoredData } from "#server/storedRows.ts";
 
 export function inspectionJobs(client: PgBossClient) {
 	function storedJobs(queue: { readonly name: string }, options?: JobReadOptions) {

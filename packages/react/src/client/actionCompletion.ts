@@ -4,8 +4,8 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
-import { NoticeContext } from "#internal/NoticeContext.ts";
-import { publishNotice } from "#internal/noticeStore.ts";
+import { NoticeContext } from "#NoticeContext.ts";
+import { publishNotice } from "#noticeStore.ts";
 import type { NoticeFeedback } from "#notices.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
 

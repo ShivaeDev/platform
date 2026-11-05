@@ -1,1 +1,1 @@
-import "@shivaedev/contract/internal/queryFailure.ts";
+import "@shivaedev/contract/queryFailure.ts";

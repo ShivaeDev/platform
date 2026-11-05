@@ -220,7 +220,7 @@ The entire wrapped Effect, including readiness checks and retry delays, uses liv
 
 ### API
 
-Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath, including modules under `internal/`.
+Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath.
 - `@shivaedev/test/adapters/it.ts`: `it`, with generator-aware `effect` and `live` testers.
 - `@shivaedev/test/adapters/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
 - `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.

@@ -4,8 +4,8 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
-import { diagnosticError } from "#server/internal/diagnostics.ts";
-import { receive } from "#server/internal/receive.ts";
+import { diagnosticError } from "#server/diagnostics.ts";
+import { receive } from "#server/receive.ts";
 import type { WebhookSource } from "#server/registration.ts";
 import { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 

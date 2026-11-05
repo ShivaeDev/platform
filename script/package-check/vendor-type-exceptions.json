@@ -73,10 +73,10 @@
 		"files": [
 			"dist/client/QueryView.d.ts",
 			"dist/client/sessionBoundary.d.ts",
-			"dist/internal/NoticeContext.d.ts",
-			"dist/internal/PermissionContext.d.ts",
-			"dist/internal/RecheckContext.d.ts",
-			"dist/internal/SignOutRegistryContext.d.ts",
+			"dist/NoticeContext.d.ts",
+			"dist/PermissionContext.d.ts",
+			"dist/RecheckContext.d.ts",
+			"dist/SignOutRegistryContext.d.ts",
 			"dist/notices.d.ts"
 		],
 		"name": "native-react-components-and-contexts",
@@ -85,12 +85,7 @@
 	},
 	{
 		"dependency": "vitest",
-		"files": [
-			"dist/internal/mergeAttempt.d.ts",
-			"dist/internal/refuseDeclaredRetries.d.ts",
-			"dist/internal/snapshot.d.ts",
-			"dist/internal/SnapshotFiles.d.ts"
-		],
+		"files": ["dist/mergeAttempt.d.ts", "dist/refuseDeclaredRetries.d.ts", "dist/snapshot.d.ts", "dist/SnapshotFiles.d.ts"],
 		"name": "native-vitest-rerun-state",
 		"package": "@shivaedev/vitest-rerun",
 		"reason": "The Vitest plugin merges runner attempts and snapshots through native Vitest test modules, state and snapshot environments."

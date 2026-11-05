@@ -1,7 +1,7 @@
 import { Effect, Exit } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import { transact } from "@shivaedev/sql/transact.ts";
-import { connectionLimitHint } from "#server/internal/connectionLimitHint.ts";
+import { connectionLimitHint } from "#server/connectionLimitHint.ts";
 
 function isTestExit<A, E>(value: Exit.Exit<A, E> | SqlError): value is Exit.Exit<A, E> {
 	return Exit.isExit(value);

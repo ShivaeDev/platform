@@ -1,1 +1,1 @@
-import "@shivaedev/jobs/server/internal/deadlineOf.ts";
+import "@shivaedev/jobs/server/deadlineOf.ts";

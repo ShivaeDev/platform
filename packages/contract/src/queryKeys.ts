@@ -1,11 +1,11 @@
 import { Effect, Option } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { QueryServices } from "#contract.ts";
-import { queryReadKeys } from "#internal/queryReadKeys.ts";
-import { resolveQueries } from "#internal/resolveQueries.ts";
 import type { QueryShape } from "#operation.ts";
+import { queryReadKeys } from "#queryReadKeys.ts";
 import { checkQuery, type Viewer } from "#readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { resolveQueries } from "#resolveQueries.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 
 export function queryKeys<const TQueries extends readonly QueryShape[]>(

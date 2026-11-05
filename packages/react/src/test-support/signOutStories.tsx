@@ -4,7 +4,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
+import { SignOutRegistryContext } from "#SignOutRegistryContext.ts";
 import { SignOutControls } from "./SignOutControls.tsx";
 import { screenKit } from "./screenKit.ts";
 

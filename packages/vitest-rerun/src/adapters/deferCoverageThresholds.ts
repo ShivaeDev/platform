@@ -1,7 +1,7 @@
 import { Effect, FileSystem, Schema } from "effect";
 import { BaseCoverageProvider, type CoverageProvider, type Vitest } from "vitest/node";
 import { failWith } from "#error.ts";
-import { attemptPaths } from "#internal/reportPaths.ts";
+import { attemptPaths } from "#reportPaths.ts";
 
 const CoverageReport = Schema.Struct({ coverageMap: Schema.optional(Schema.Unknown) });
 const decodeCoverage = Schema.decodeUnknownEffect(Schema.fromJsonString(CoverageReport));

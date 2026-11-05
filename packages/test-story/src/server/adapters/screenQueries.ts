@@ -1,7 +1,7 @@
 import { isInaccessible } from "dom-accessibility-api";
-import { screenText } from "#server/internal/screenText.ts";
-import { targetName } from "#server/internal/targetName.ts";
 import type { ScreenTarget } from "#server/screenDriver.ts";
+import { screenText } from "#server/screenText.ts";
+import { targetName } from "#server/targetName.ts";
 import { accessibility, isRendered } from "./screenAccessibility.ts";
 import { screenDialogs } from "./screenDialogs.ts";
 

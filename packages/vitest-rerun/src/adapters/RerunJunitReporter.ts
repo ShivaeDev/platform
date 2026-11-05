@@ -1,6 +1,6 @@
 import { relative } from "node:path";
 import { JUnitReporter, type Vitest } from "vitest/node";
-import { junitClassname } from "#internal/junitClassname.ts";
+import { junitClassname } from "#junitClassname.ts";
 
 export class RerunJunitReporter extends JUnitReporter {
 	unhandledErrors: NonNullable<Parameters<JUnitReporter["onTestRunEnd"]>[1]> = [];

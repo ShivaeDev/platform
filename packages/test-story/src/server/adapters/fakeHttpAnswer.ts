@@ -1,8 +1,8 @@
 import type { ServerResponse } from "node:http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpSend, fakeHttpStrike } from "#server/adapters/fakeHttpSend.ts";
+import type { fakeHttpControls } from "#server/fakeHttpControls.ts";
 import type { FakeHttpReply, FakeHttpRequest, FakeHttpRoute } from "#server/fakeHttpService.ts";
-import type { fakeHttpControls } from "#server/internal/fakeHttpControls.ts";
 
 function pageReply(route: FakeHttpRoute, request: FakeHttpRequest): FakeHttpReply {
 	if (route.reply) {

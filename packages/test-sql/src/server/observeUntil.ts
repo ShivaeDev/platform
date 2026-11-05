@@ -1,6 +1,6 @@
 import { Data, Duration, Effect, Formatter, Option } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { CatalogClock } from "#server/internal/clocks.ts";
+import { CatalogClock } from "#server/clocks.ts";
 
 export interface ObserveOptions {
 	readonly clock?: "live" | "test";

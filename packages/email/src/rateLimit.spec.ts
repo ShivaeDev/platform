@@ -1,6 +1,6 @@
 import { expect } from "vitest";
-import { email } from "#test/internal/email.ts";
-import { rateLimited } from "#test/internal/traits.ts";
+import { email } from "#test/email.ts";
+import { rateLimited } from "#test/traits.ts";
 
 const AT = "Sun, 01 Nov 2099 10:00:00 GMT";
 email.it(

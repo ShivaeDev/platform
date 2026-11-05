@@ -2,7 +2,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { experimental_getRunnerTask, JsonReporter, type TestModule } from "vitest/node";
 import { VitestRerunError } from "#error.ts";
-import { writeTimedReport } from "#internal/writeTimedReport.ts";
+import { writeTimedReport } from "#writeTimedReport.ts";
 
 export class TimedJsonReporter extends JsonReporter {
 	override async onTestRunEnd(modules: readonly TestModule[]) {

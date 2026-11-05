@@ -130,7 +130,7 @@
 	],
 	"vitest-rerun": [
 		{
-			"entries": ["./error.ts", "./flakyTests.ts", "./internal/attempt.ts", "./internal/reportPaths.ts", "./options.ts", "./rerun.ts"],
+			"entries": ["./error.ts", "./flakyTests.ts", "./attempt.ts", "./reportPaths.ts", "./options.ts", "./rerun.ts"],
 			"fixtures": [],
 			"omitOptionalPeers": false,
 			"run": []

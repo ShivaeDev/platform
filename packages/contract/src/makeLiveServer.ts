@@ -1,9 +1,9 @@
 import { Effect, Queue, Random, Scheduler, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, readKeys } from "@shivaedev/changes/keys.ts";
-import { compareQueries } from "#internal/compareQueries.ts";
-import { liveHintQueue } from "#internal/liveHintQueue.ts";
+import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
+import { liveHintQueue } from "#liveHintQueue.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
 import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";

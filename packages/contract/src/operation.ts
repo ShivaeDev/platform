@@ -1,7 +1,7 @@
 import type { Option, Schema } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
-import { type Declaration, type Loose, operation, type QueryDeclaration } from "#internal/operationDeclaration.ts";
+import { type Declaration, type Loose, operation, type QueryDeclaration } from "#operationDeclaration.ts";
 import type { QueryServerReads } from "#QueryServerReads.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
 import type { Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";

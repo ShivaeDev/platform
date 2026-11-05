@@ -1,1 +1,1 @@
-import "@shivaedev/react/internal/noticeEntry.ts";
+import "@shivaedev/react/noticeEntry.ts";

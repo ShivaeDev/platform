@@ -1,7 +1,7 @@
 import { type Context, Effect } from "effect";
 import type { PgBossClient } from "#server/client.ts";
+import type { JobEngine } from "#server/engine.ts";
 import { toPgBossError } from "#server/error.ts";
-import type { JobEngine } from "#server/internal/engine.ts";
 import { listJobs } from "./listJobs.ts";
 import { queueAdministration } from "./queueAdministration.ts";
 import { settleDeferral } from "./settleDeferral.ts";

@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
-import { quotedSchema } from "#server/internal/storedRows.ts";
 import type { WorkerJob } from "#server/job.ts";
+import { quotedSchema } from "#server/storedRows.ts";
 
 const Count = Schema.Struct({ count: Schema.NumberFromString });
 

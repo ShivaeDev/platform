@@ -2,7 +2,7 @@ import { Context, Effect, Exit, Layer, Scope } from "effect";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import { PgBossInspection, type PgBossInspectionService } from "@shivaedev/jobs/server/inspection.ts";
 import { PgBoss } from "@shivaedev/jobs/server/PgBoss.ts";
-import type { TestingWork } from "#jobs/internal/testingIdle.ts";
+import type { TestingWork } from "#jobs/testingIdle.ts";
 import type { InspectionSignal } from "./testingSignal.ts";
 
 const settleBatches = Effect.fnUntraced(function* (inspection: PgBossInspectionService, work: TestingWork) {

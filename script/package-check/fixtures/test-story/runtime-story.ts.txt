@@ -1,4 +1,4 @@
-import "@shivaedev/test-story/server/internal/compose.ts"
+import "@shivaedev/test-story/server/compose.ts"
 import { PassThrough } from "node:stream"
 import { genreTags } from "@shivaedev/test-story/server/genreTags.ts"
 import { createVitest } from "vitest/node"

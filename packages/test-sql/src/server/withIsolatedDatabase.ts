@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { connectionLimitHint } from "#server/internal/connectionLimitHint.ts";
+import { connectionLimitHint } from "#server/connectionLimitHint.ts";
 import { PostgresTestDatabase, type PostgresTestTemplate } from "./database.ts";
 
 export function withIsolatedDatabase<A, E, R>(effect: Effect.Effect<A, E, R>, options?: { readonly template?: PostgresTestTemplate }) {

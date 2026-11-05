@@ -3,7 +3,7 @@ import { inspectionOperation } from "#server/adapters/inspectionOperation.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { SnapshotQueue, UnfinishedJob } from "#server/inspection.ts";
-import { decodeStoredData, quotedSchema } from "#server/internal/storedRows.ts";
+import { decodeStoredData, quotedSchema } from "#server/storedRows.ts";
 
 const Rows = Schema.Array(
 	Schema.Struct({

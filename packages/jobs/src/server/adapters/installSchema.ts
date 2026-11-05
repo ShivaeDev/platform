@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import type { Connection } from "effect/sql/SqlConnection";
 import { getConstructionPlans, getMigrationPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
-import { jobStorePlans } from "#server/internal/jobStorePlans.ts";
+import { jobStorePlans } from "#server/jobStorePlans.ts";
 import type { PgBossSchemaOptions } from "#server/schema.ts";
 import { runSchemaPlan } from "./runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "./schemaIndexBuilds.ts";

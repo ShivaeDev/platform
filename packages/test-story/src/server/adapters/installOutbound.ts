@@ -1,5 +1,5 @@
 import { isIP } from "node:net";
-import { unrouted } from "#server/internal/errors.ts";
+import { unrouted } from "#server/errors.ts";
 
 interface DispatchOptions {
 	readonly origin: string | URL;

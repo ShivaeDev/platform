@@ -3,8 +3,8 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
-import { registerLiveWindow } from "#internal/registerLiveWindow.ts";
-import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
+import { registerLiveWindow } from "#registerLiveWindow.ts";
+import { recheckUnauthorized } from "#sessionRecheck.ts";
 
 function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Option<Cause.Cause<unknown>>) {
 	const error = Option.flatMap(failure, Cause.findErrorOption);

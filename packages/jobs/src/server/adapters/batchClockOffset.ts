@@ -1,7 +1,7 @@
 import { Clock, Effect, Schema } from "effect";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
-import { quotedSchema } from "#server/internal/storedRows.ts";
+import { quotedSchema } from "#server/storedRows.ts";
 
 export const batchClockOffset = Effect.fnUntraced(function* (client: PgBossClient, schema: string, name: string) {
 	const { rows } = yield* Effect.tryPromise({

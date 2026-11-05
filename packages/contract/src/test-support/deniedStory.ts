@@ -5,7 +5,7 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
-import { socketIdentity } from "#internal/rpcClient.ts";
+import { socketIdentity } from "#rpcClient.ts";
 import { shown } from "./answers.ts";
 import { records } from "./deniedContract.ts";
 import { type DeniedEngine, deniedEngine } from "./deniedEngine.ts";

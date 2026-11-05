@@ -1,2 +1,2 @@
 {"path":"packages/test-kits/src/contract/testing.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/test-kits/src/jobs/internal/testingOperation.ts","rule":"effect/boundary","count":1}
+{"path":"packages/test-kits/src/jobs/testingOperation.ts","rule":"effect/boundary","count":1}

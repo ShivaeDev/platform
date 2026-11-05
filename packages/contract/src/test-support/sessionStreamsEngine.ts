@@ -7,8 +7,8 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { bind, makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
-import { socketIdentity } from "#internal/rpcClient.ts";
 import { stream } from "#operation.ts";
+import { socketIdentity } from "#rpcClient.ts";
 import { storyRuntime } from "./storyRuntime.ts";
 
 export type StreamPerson = "alice" | "bob";

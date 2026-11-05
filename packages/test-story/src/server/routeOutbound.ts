@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import { installOutbound } from "#server/adapters/installOutbound.ts";
-import { inDom } from "#server/internal/domDocument.ts";
+import { inDom } from "#server/domDocument.ts";
 
 export function routeOutbound(routes: Readonly<Record<string, string>>, options: { readonly passthrough?: boolean } = {}) {
 	return Effect.acquireRelease(

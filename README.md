@@ -42,7 +42,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 
 Work Board, Work Fleet and the Work Board plugin are applications built on these packages, maintained in [ShivaeDev/work-apps](https://github.com/ShivaeDev/work-apps). This repository's plugin marketplace still installs the plugin with `/plugin install workboard --marketplace ShivaeDev/platform`; it builds the plugin from that repository.
 
-No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder. The test, test-story, test-sql and vitest-rerun packages also export their `internal/` modules. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 

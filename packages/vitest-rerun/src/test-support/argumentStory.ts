@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { VitestRunner } from "#adapters/VitestRunner.ts";
-import { runAttempt } from "#internal/runAttempt.ts";
+import { runAttempt } from "#runAttempt.ts";
 
 export const argumentStory = storyKit({
 	create: () => Effect.void,

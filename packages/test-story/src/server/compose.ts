@@ -1,0 +1,52 @@
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import type { AnyTestLayer } from "@shivaedev/test/types.ts";
+import { engineSummary } from "#server/adapters/engineSummary.ts";
+import { type KitList, kitDefinition } from "#server/compositionTypes.ts";
+import { hooked } from "#server/hooked.ts";
+import { runUntil } from "#server/runUntil.ts";
+import type { LooseDefinition } from "#server/seed.ts";
+
+export function compose(name: string, kits: KitList): LooseDefinition {
+	const definitions = kits.map((kit) => kit[kitDefinition]);
+	const around = definitions.reduceRight<NonNullable<LooseDefinition["around"]>>(
+		(wrap, definition) => (effect) => definition.around?.(wrap(effect)) ?? wrap(effect),
+		(effect) => effect,
+	);
+	return {
+		after: Object.assign({}, ...definitions.map((definition) => definition.after)),
+		around,
+		clock: definitions.find((definition) => definition.clock !== undefined)?.clock ?? "test",
+		*create() {
+			const engine = {};
+			for (const definition of definitions) {
+				Object.defineProperties(engine, Object.getOwnPropertyDescriptors(yield* hooked(definition.create)));
+			}
+			return engine;
+		},
+		inspect: (engine) =>
+			Effect.forEach(definitions, (definition) =>
+				hooked(() => (definition.inspect === undefined ? engineSummary(engine) : definition.inspect(engine))).pipe(
+					Effect.map((value) => [definition.name, value] as const),
+				),
+			).pipe(Effect.map(Object.fromEntries)),
+		layer: definitions.reduce<AnyTestLayer>((layer, definition) => Layer.merge(layer, definition.layer ?? Layer.empty), Layer.empty),
+		name,
+		outbound: Object.assign({}, ...definitions.map((definition) => definition.outbound)),
+		outboundPassthrough: definitions.some((definition) => definition.outboundPassthrough === true),
+		runIf: definitions.every((definition) => definition.runIf !== false),
+		stages: definitions.flatMap((definition) => definition.stages),
+		verbs: (engine, story) => {
+			const verbs = {};
+			for (const definition of definitions) {
+				const featureStory = {
+					...story,
+					runUntil: (until: Parameters<typeof story.runUntil>[0], options: Parameters<typeof story.runUntil>[1]) =>
+						runUntil({ engine, name: definition.name, run: definition.run, tell: story.tell }, until, options),
+				};
+				Object.defineProperties(verbs, Object.getOwnPropertyDescriptors(definition.verbs(engine, featureStory)));
+			}
+			return verbs;
+		},
+	};
+}

@@ -1,8 +1,8 @@
 import { Context, Effect, type Option } from "effect";
 import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { policyContext } from "#internal/policyContext.ts";
-import { queryReadKeys } from "#internal/queryReadKeys.ts";
+import { policyContext } from "#policyContext.ts";
+import { queryReadKeys } from "#queryReadKeys.ts";
 import { checkQuery, type PolicyChannels, type Viewer } from "#readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { ChangesQueries, type QueryReference, type QueryRequest } from "#serverMetadata.ts";
