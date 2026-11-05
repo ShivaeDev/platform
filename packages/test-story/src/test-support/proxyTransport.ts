@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer, Queue } from "effect";
 import * as Socket from "effect/socket/Socket";
 
@@ -29,7 +29,7 @@ export const proxyTransport = Effect.gen(function* () {
 			};
 			return socket;
 		}),
-	).pipe(Layer.provide(layerWebSocketConstructorWS));
+	).pipe(Layer.provide(layerWebSocketConstructor));
 	return {
 		addresses: () => [...addresses],
 		buffered: Queue.take(buffered),

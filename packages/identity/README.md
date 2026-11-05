@@ -90,7 +90,7 @@ export const auth = createAuthClient({ plugins: [preferencesClient()] });
 
 The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
 
-`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Register that Layer in the host's `requestServices` slot and `AccountPreferencesStore.layer` in global `services`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` is a per-request service. Its Layer requires `Subject`, and its initializer captures that subject's saved timezone. Register that Layer in the host's `requestServices` slot and `AccountPreferencesStore.layer` in global `services`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
 ```ts
 import { DateTime, Effect, Layer } from "effect";
@@ -136,7 +136,7 @@ The application's `auth` owns its storage and session configuration. A null look
 
 ### Local owners and machine callers
 
-`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect `Crypto` service:
+`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect's `SecureRandom` and `Digest` services from `effect/crypto`:
 
 ```ts
 import { Layer, Redacted } from "effect";

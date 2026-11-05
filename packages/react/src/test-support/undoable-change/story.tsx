@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -29,7 +29,7 @@ export const undoableChangeStory = storyKit({
 			loadedVersion: "build-a",
 			reload: () => undefined,
 			url: host.url,
-			webSocketConstructor: layerWebSocketConstructorWS,
+			webSocketConstructor: layerWebSocketConstructor,
 		});
 		const state: { view?: Rendered } = {};
 		return { activations, props: { client: changeClient(), registry, update }, screen, state };

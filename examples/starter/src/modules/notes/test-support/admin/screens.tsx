@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { act } from "react";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -52,7 +52,7 @@ export const adminScreens = storyKit({
 				story.tell(`${actor} assigns ${target} the ${role} role from another client`);
 				const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, {
 					headers: { cookie: engine.accounts.get(actor)?.headers.get("cookie") ?? "", origin: engine.host.origin },
-					webSocketConstructor: layerWebSocketConstructorWS,
+					webSocketConstructor: layerWebSocketConstructor,
 				});
 				yield* (yield* client.client)["admin.users.changeRole"]({ role, userId: engine.accounts.get(target)?.user.id ?? "missing" });
 			}),

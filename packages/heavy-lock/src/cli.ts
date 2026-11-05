@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, FileSystem, Runtime, Schema } from "effect";
@@ -35,6 +36,6 @@ const main = Effect.gen(function* () {
 	yield* Command.run(cli, { version });
 });
 
-NodeRuntime.runMain(main.pipe(Effect.provide(NodeServices.layer)), {
+NodeRuntime.runMain(main.pipe(Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom])), {
 	teardown: (exit, onExit) => (commandExitCode === undefined ? Runtime.defaultTeardown(exit, onExit) : onExit(commandExitCode)),
 });

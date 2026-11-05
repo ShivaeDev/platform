@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Cause, Console, Effect, FileSystem, Option, Schema } from "effect";
@@ -42,6 +43,6 @@ program.pipe(
 		const error = Cause.squash(cause);
 		return Console.error(error instanceof CreateAppError && error.cause === undefined ? `create-app: ${error.message}` : Cause.pretty(cause));
 	}),
-	Effect.provide(NodeServices.layer),
+	Effect.provide([NodeServices.layer, NodeCrypto.layerSecureRandom]),
 	NodeRuntime.runMain({ disableErrorReporting: true }),
 );

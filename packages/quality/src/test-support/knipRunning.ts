@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Deferred, Effect, Fiber, Stream } from "effect";
+import { Deferred, Effect, Fiber, Predicate, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { type Lifecycle, qualityLifecycle, type RunningTool, startQuality } from "./qualityLifecycle.ts";
 
@@ -33,11 +33,12 @@ export default {};
 			spawn: (command) =>
 				Effect.gen(function* () {
 					const child = yield* spawner.spawn(command);
-					if (command._tag !== "StandardCommand" || !command.args.includes("--tsConfig")) {
+					const args = command._tag === "StandardCommand" ? command.args.filter(Predicate.isString) : [];
+					if (!args.includes("--tsConfig")) {
 						return child;
 					}
-					const config = command.args[command.args.indexOf("--config") + 1];
-					const sourceConfig = command.args[command.args.indexOf("--tsConfig") + 1];
+					const config = args[args.indexOf("--config") + 1];
+					const sourceConfig = args[args.indexOf("--tsConfig") + 1];
 					if (config === undefined || sourceConfig === undefined) {
 						return yield* Effect.die(new Error("knip started without quality's generated configs"));
 					}

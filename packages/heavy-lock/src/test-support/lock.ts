@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
-import { ConfigProvider, Crypto, Effect, FileSystem, Option } from "effect";
+import { ConfigProvider, Effect, FileSystem, Option } from "effect";
+import { SecureRandom } from "effect/crypto";
 import type { HeavyLockOptions } from "#acquire.ts";
 import { decodeHolder, type Holder } from "#holder.ts";
 import { reclaim, release, tryAcquire } from "#lockFile.ts";
@@ -37,7 +38,6 @@ export const createLock = Effect.gen(function* () {
 		cliOptions,
 		cliRuns,
 		commands,
-		crypto: yield* Crypto.Crypto,
 		directory,
 		env,
 		fileSystem: fs,
@@ -49,6 +49,7 @@ export const createLock = Effect.gen(function* () {
 		omitsCommand: false,
 		options,
 		paths,
+		random: yield* SecureRandom.SecureRandom,
 		unreadable: false,
 	};
 });
@@ -85,7 +86,7 @@ export const configured = Effect.fn("LockStory.configured")(function* <A, E, R>(
 	const provider = engine.unreadable ? yield* ConfigProvider.fromDir({ rootPath: engine.directory }) : ConfigProvider.fromEnv({ env: engine.env });
 	return yield* effect.pipe(
 		Effect.provideService(ConfigProvider.ConfigProvider, provider),
-		Effect.provideService(Crypto.Crypto, engine.crypto),
+		Effect.provideService(SecureRandom.SecureRandom, engine.random),
 		Effect.provideService(FileSystem.FileSystem, engine.fileSystem),
 	);
 });

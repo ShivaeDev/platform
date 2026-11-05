@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Cause, Effect, Layer, Option } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
@@ -47,7 +47,7 @@ export const deployStory = storyKit({
 				sockets.push(url);
 				return make(url, options);
 			}),
-		).pipe(Layer.provide(layerWebSocketConstructorWS));
+		).pipe(Layer.provide(layerWebSocketConstructor));
 		const screen = new Screen(() => undefined);
 		return { registry, screen, sockets, state, webSocketConstructor };
 	},

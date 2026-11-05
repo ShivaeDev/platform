@@ -11,7 +11,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { connect, tool } from "#test/requests/client.ts";
 import { startServer } from "#test/requests/startServer.ts";
-import { ResourceAnswer, ResourceFile, resourceTools } from "./tools.ts";
+import { ResourceAnswer, resourceFile, resourceTools } from "./tools.ts";
 
 const start = Effect.fnUntraced(function* (protocol: typeof McpProtocol.v2025_11_25 | typeof McpProtocol.v2026_07_28) {
 	const directory = yield* Effect.acquireRelease(
@@ -65,7 +65,7 @@ const definition = {
 			exitStatus: () => engine.child.exitCode.pipe(Effect.map((code) => (Number(code) === 130 ? "interrupted" : `exited ${code}`))),
 			httpDefinitions: () =>
 				Effect.gen(function* () {
-					const url = yield* startServer(resourceTools.pipe(Layer.provide(Layer.succeed(ResourceFile, engine.file))));
+					const url = yield* startServer(resourceTools.pipe(Layer.provide(resourceFile(engine.file).layer)));
 					const client = yield* connect(url, "alice");
 					return yield* client.listTools();
 				}),

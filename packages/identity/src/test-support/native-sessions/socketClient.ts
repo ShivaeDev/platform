@@ -1,4 +1,4 @@
-import { NodeWS } from "@effect/platform-node/NodeSocket";
+import * as NodeWs from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Layer, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -17,7 +17,7 @@ export const openProfile = Effect.fnUntraced(function* (host: Host, account: Acc
 			throw new Error("The WebView cannot set upgrade headers");
 		}
 		urls.push(url);
-		const socket = new NodeWS.WebSocket(url, options, { origin: NATIVE_ORIGIN });
+		const socket = new NodeWs.WebSocket(url, options, { origin: NATIVE_ORIGIN });
 		socket.addEventListener("close", (event) => Effect.runSync(Deferred.succeed(closed, { code: event.code, reason: event.reason })));
 		return socket;
 	});

@@ -21,8 +21,8 @@ biomeStory.it(
 		repositoryHas({
 			content: [
 				"void Effect.gen(function* () {",
-				"const crypto = yield* Crypto.Crypto;",
-				"yield* crypto.randomBytes(16);",
+				"const random = yield* SecureRandom.SecureRandom;",
+				"yield* random.randomBytes(16);",
 				"yield* Clock.currentTimeMillis;",
 				'yield* Config.string("TOKEN");',
 				"yield* Random.next;",

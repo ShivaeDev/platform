@@ -42,6 +42,7 @@ export const makePostgresClient = Effect.fn("Sql.makePostgresClient")(function* 
 			}),
 		notify: (channel: string, payload: string) =>
 			pool.use((connection) => connection.query("SELECT pg_notify($1, $2)", [channel, payload])).pipe(Effect.asVoid),
+		poolStats: pool.stats,
 	}) satisfies PgClient.PgClient;
 });
 

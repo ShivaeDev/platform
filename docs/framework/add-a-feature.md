@@ -34,17 +34,17 @@ In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` wit
 
 ## 3. Make the repository
 
-In that server module, call `makeRepository(StoredBookmark, { collection: bookmarks, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Import the shared `bookmarks` collection declared in step 5 from `#modules/bookmarks/bookmarks.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description.
+In that server module, call `makeRepository(StoredBookmark, { collection: bookmarks, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Import the shared `bookmarks` collection declared in step 5 from `#modules/bookmarks/bookmarks.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description. Give the repository its own service with `defineRepository` from `@shivaedev/sql/defineRepository.ts`, as the [sql guide](../../packages/sql/README.md#share-a-tables-repository-and-domain-reads-between-services) shows, so services list its tag in `requires` and yield it instead of building it in their initializers.
 
 Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/Service.ts) does. Selecting only public fields keeps the owner out of the response.
 
 ## 4. Declare the service
 
-Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`. Follow [the notes service](../../examples/starter/src/modules/notes/server/Service.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`, and expose `list(userId)` and `create(input, userId)`.
+Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`, following the [service model](../../packages/service/README.md#how-to-think-about-it). Write each operation as an `Effect.fn("Bookmarks.<operation>")` export in its own file beside the service, yielding the repository and every other dependency; list the repository tag, `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`; and use `Effect.void` as `initialize`, because the service owns no state. Operations read the caller by yielding `SessionUser` rather than taking a user id, and a service that does so is built per request. `services` in an `AppModule` is built once for the host, so the bookmarks service registered there exposes `list(userId)` and `create(input, userId)`, and its handlers supply that id from `SessionUser` in step 6.
 
-Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. The repository derives record and bucket keys from the written rows and announces them only when the transaction commits; rollback discards the write and its announcement. Keep ownership explicit in both methods. The notes service also enqueues a word-count job within its write transaction; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
+Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. A single repository write commits on its own: the repository derives record and bucket keys from the written rows and announces them when that write commits. Wrap writes in `transact` from `@shivaedev/sql/transact.ts` only when several must commit together; rollback then discards every write and its announcement. The notes service wraps a note's insert and its word-count job, because jobs' `enqueue` joins the open SQL transaction on the same connection. Bookmarks has one write and no job, so it needs no `transact`. This service refers to the command declaration you add next, so complete both steps before typechecking.
 
-Workers use the same model repository and `transact` path. Only raw-SQL writers declare write keys manually: use `changes` from `@shivaedev/sql/changes.ts` and call its `record()` method inside the write's `transact`, as shown in [the live-update guide](./live-updates.md#raw-sql-writers).
+Workers use the same model repository and the same rule for `transact`. Only raw-SQL writers declare write keys manually: use `changes` from `@shivaedev/sql/changes.ts` and call its `record()` method inside the write's `transact`, as shown in [the live-update guide](./live-updates.md#raw-sql-writers).
 
 ## 5. Declare the contract
 
@@ -56,7 +56,7 @@ Export the operation declarations as `List` and `Create` for the server boundary
 
 ## 6. Register the server module
 
-Create `src/modules/bookmarks/server/registration.ts` following [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts). Build handlers with `Bookmarks.application.toLayer` that obtain the bookmarks service and pass the current `SessionUser` id to each method. Import `SessionUser` from `@shivaedev/identity/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
+Create `src/modules/bookmarks/server/registration.ts` following [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts). Build handlers with `Bookmarks.application.toLayer` that obtain the bookmarks service and call its operations. The service is registered in `services`, which the host builds once, so its handlers read the owner from `SessionUser`, imported from `@shivaedev/identity/identity.ts`, and pass that id. The owner always comes from the session: never accept it from the form, and never capture a user in a Layer the host builds once.
 
 Export an object satisfying `AppModule`. Its required fields are `name`, `group`, `handlers`, `services` and `migrations`. Services and handlers are native Layers; migrations contains a native loader and optional schema `components`.
 
@@ -64,7 +64,7 @@ Export an object satisfying `AppModule`. Its required fields are `name`, `group`
 import { resolve } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -90,7 +90,7 @@ export const bookmarksRegistration = {
 	handlers,
 	services: BookmarksService.layer,
 	migrations: {
-		loader: Migrator.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
+		loader: MigratorFileSystem.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
 	},
 } satisfies AppModule;
 ```

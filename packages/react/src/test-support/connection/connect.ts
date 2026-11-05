@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer, Queue } from "effect";
 import { RpcClient } from "effect/rpc";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
@@ -14,6 +14,6 @@ export const connect = Effect.fnUntraced(function* (url: string) {
 			onDisconnect: Queue.offer(events, "disconnected").pipe(Effect.asVoid),
 		}),
 	);
-	const client = makeClient(Notes, { group: Api, runtime, url, webSocketConstructor: layerWebSocketConstructorWS });
+	const client = makeClient(Notes, { group: Api, runtime, url, webSocketConstructor: layerWebSocketConstructor });
 	return { client, events, summary: bind(Summary, client.Client) };
 });

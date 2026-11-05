@@ -1055,7 +1055,7 @@ const [createdAt] = useState(now);
 const stamp = () => ({ id: newId(), at: now() });
 ```
 
-These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded Crypto. The hooks use native atom suspense while the runtime builds. The supplied Crypto's UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto`, a Web Crypto Layer from `@shivaedev/react/client/adapters/crypto.ts`. Provide that Layer to an application's runtime when it needs browser Crypto; it uses `crypto.getRandomValues` and `crypto.subtle.digest`.
+These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded `SecureRandom`. The hooks use native atom suspense while the runtime builds. `useNewId` reads `SecureRandom` from `effect/crypto`, whose UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto` from `@shivaedev/react/client/adapters/crypto.ts`, which merges Effect's Web Crypto `SecureRandom` and `Digest` Layers. Provide that Layer to an application's runtime when it needs browser crypto.
 
 `usePromiseAction(() => promise, options?)` from `@shivaedev/react/client/adapters/usePromiseAction.ts` returns the same state as `useAction`, with `dispatch()` taking no input. It runs the callback on dispatch, keeps its atom across rerenders and calls the latest committed callback. A promise rejection or synchronous throw becomes `Cause.UnknownError` by default. Supply `catch` to map the unknown cause into an application's typed failure:
 

@@ -12,12 +12,12 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 
 | Job                               | Package                                                                                           | Boundary                                                                                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Declare services                  | [service](../../packages/service/README.md)                                                       | Declare dependencies and initialization; native Context and Layer own composition.                                                                  |
+| Declare services                  | [service](../../packages/service/README.md)                                                       | Declare requirements once; operations yield their dependencies and the caller, and where a Layer is registered sets its lifetime.                   |
 | Persist data and run migrations   | [sql](../../packages/sql/README.md)                                                               | Derive common operations from native models; use explicit SQL for unusual queries.                                                                  |
 | Announce committed changes        | [changes](../../packages/changes/README.md)                                                       | Repositories announce table and row keys at commit; command declarations name additional dependencies.                                              |
 | Declare queries and commands      | [contract](../../packages/contract/README.md)                                                     | Describe payloads, results, rejections, query read policies and record or bucket scopes; native RPC owns handlers and transport.                    |
 | Share expected failures           | [errors](../../packages/errors/README.md)                                                         | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces.                |
-| Resolve identity and permissions  | [identity](../../packages/identity/README.md)                                                     | Use its RPC middleware and server modules; applications decide session, Origin and permission policy.                                               |
+| Resolve identity and permissions  | [identity](../../packages/identity/README.md)                                                     | Its RPC middleware provides the caller to each request; applications decide session, Origin and permission policy.                                  |
 | Declare roles and their grants    | [access](../../packages/access/README.md)                                                         | Declare which permissions each role grants once; identity enforces the grants on the server and react guards routes with them.                      |
 | Receive signed webhooks           | [webhooks](../../packages/webhooks/README.md)                                                     | Verify raw deliveries and record receipts with queued jobs in one SQL transaction; applications register sources, schemas and workers.              |
 | Call outside HTTP APIs            | [http](../../packages/http/README.md)                                                             | Use the native HTTP client with its typed failures, pagination and bounded bodies; applications own retries and credentials.                        |
@@ -37,20 +37,20 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 
 ## Secure invite codes and tokens
 
-Use Effect's native `Crypto` service from `effect/Crypto` for secure values. The application host supplies the Node implementation, including during preflight and deferred application construction. It provides secure random bytes and numbers, UUIDv4/v7 and digests; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
+Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, and `Digest` for hashes. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
 
 ```ts
 import { Effect } from "effect";
-import { Crypto } from "effect/Crypto";
+import { SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 
 const inviteCode = Effect.gen(function* () {
-	const crypto = yield* Crypto;
-	return Hex.encode(yield* crypto.randomBytes(8));
+	const random = yield* SecureRandom.SecureRandom;
+	return Hex.encode(yield* random.randomBytes(8));
 });
 ```
 
-Use `inviteCode` in the command that issues an invite, handling its typed failures through the command’s declared errors. This produces a short, 16-character hexadecimal invite code. Choose the byte count and expiry policy for the application's use. Story kits supply native `TestCrypto` with seed `0`, restarted for each story, so the same command can have an exact token assertion. Test values are deterministic and belong only in tests.
+Use `inviteCode` in the command that issues an invite. This produces a short, 16-character hexadecimal invite code. Choose the byte count and expiry policy for the application's use. Story kits supply a `SecureRandom` seeded with `0`, restarted for each story, so the same command can have an exact token assertion. Test values are deterministic and belong only in tests.
 
 ## Design priorities
 

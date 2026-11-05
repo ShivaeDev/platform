@@ -1,13 +1,13 @@
-import { Crypto, Effect, Option } from "effect";
-import * as Hex from "effect/encoding/Hex";
+import { Effect, Option } from "effect";
+import { Digest as Digests } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
 import { clientCrypto } from "#client/adapters/crypto.ts";
 import { useAction } from "#client/resultState.ts";
 
 const digest = Atom.runtime(clientCrypto).fn<void>()(() =>
 	Effect.gen(function* () {
-		const crypto = yield* Crypto.Crypto;
-		return Hex.encode(yield* crypto.digest("SHA-256", new TextEncoder().encode("hello")));
+		const digests = yield* Digests.Digest;
+		return yield* digests.digestHex(Digests.sha256, new TextEncoder().encode("hello"));
 	}),
 );
 

@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Path } from "effect";
 import { RpcGroup } from "effect/rpc";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
@@ -19,7 +19,7 @@ export function serverRegistration<const TModules extends readonly Pick<AppModul
 		migrations: {
 			components: [pgBossSchema()],
 			loader: Path.Path.pipe(
-				Effect.flatMap((path) => Migrator.fromFileSystem(path.resolve(import.meta.dirname, "migrations"))),
+				Effect.flatMap((path) => MigratorFileSystem.fromFileSystem(path.resolve(import.meta.dirname, "migrations"))),
 				Effect.provide(NodeServices.layer),
 			),
 		},

@@ -1,11 +1,11 @@
 import type { TestContext } from "@effect/vitest";
-import type { Crypto, Effect, Layer, Scope } from "effect";
+import type { Effect, Layer, Scope } from "effect";
 import { compose } from "#server/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/hooked.ts";
 import type { AfterResults, AfterServices, InferredDefinition } from "#server/hookInference.ts";
 import type { LooseDefinition } from "#server/seed.ts";
-import { storyIt } from "#server/storyIt.ts";
+import { type StoryCrypto, storyIt } from "#server/storyIt.ts";
 import type { StoryClock, StoryTestOptions } from "#server/storyOptions.ts";
 import { type Parts, trait, traits } from "#server/traits.ts";
 
@@ -52,7 +52,7 @@ export interface StoryKitDefinition<
 	TDiagnose extends AnyEffect,
 > {
 	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, unknown> };
-	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Crypto.Crypto | Scope.Scope>;
+	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | StoryCrypto | Scope.Scope>;
 	readonly clock?: StoryClock;
 	readonly create: EffectHook<[], TCreate, TEngine>;
 	readonly inspect?: (engine: TEngine) => unknown;
@@ -76,10 +76,10 @@ export type StoryBody<TEngine, TVerbs, TRun extends AnyEffect, TEffect extends A
 ) => Generator<TEffect, unknown, never> | undefined;
 
 export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided> = <
-	TEffect extends Needs<TProvided | Crypto.Crypto | Scope.Scope> = never,
+	TEffect extends Needs<TProvided | StoryCrypto | Scope.Scope> = never,
 >(
 	name: string,
-	given: readonly Trait<TEngine, TStage, TProvided | Crypto.Crypto | Scope.Scope>[],
+	given: readonly Trait<TEngine, TStage, TProvided | StoryCrypto | Scope.Scope>[],
 	body?: StoryBody<TEngine, TVerbs, TRun, TEffect, TStage>,
 	options?: number | StoryTestOptions,
 ) => void;

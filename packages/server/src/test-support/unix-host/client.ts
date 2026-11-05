@@ -1,8 +1,9 @@
 import { connect } from "node:net";
 import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
-import { layerWebSocket } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { Socket } from "effect/socket";
 import { Api } from "./feature.ts";
 
 export function httpClient(path: string) {
@@ -24,7 +25,9 @@ export function httpClient(path: string) {
 }
 export const liveClient = Effect.fnUntraced(function* (path: string) {
 	const context = yield* Layer.build(
-		RpcClient.layerProtocolSocket().pipe(Layer.provide([layerWebSocket(`ws+unix://${path}:/rpc`, { headers: {} }), RpcSerialization.layerNdjson])),
+		RpcClient.layerProtocolSocket().pipe(
+			Layer.provide([Socket.layerWebSocket(`ws+unix://${path}:/rpc`).pipe(Layer.provide(layerWebSocketConstructor)), RpcSerialization.layerNdjson]),
+		),
 	);
 	return yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(context));
 });

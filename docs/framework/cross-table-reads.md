@@ -12,26 +12,26 @@ Use the models' `.fields` schemas for the read result, including their storage c
 
 ## Own the query in the dashboard service
 
-The [dashboard service](../../packages/sql/src/test-support/cross-table/Dashboard.ts) declares its operations and dependencies. Table names are application configuration supplied through `DashboardConfig`; the fixture supplies isolated names. Both repositories and this service use the same native `SqlClient`.
+The dashboard service declares its dependencies once and names its operations. Table names are application configuration supplied through a `DashboardConfig` service. Both repositories and this service use the same native `SqlClient`, which each operation yields like any other dependency:
 
 ```ts
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { DashboardConfig } from "./DashboardConfig.ts";
 import { findReport } from "./findReport.ts";
-import { initializeDashboard } from "./initializeDashboard.ts";
 import { listPullRequests } from "./listPullRequests.ts";
 import { listReports } from "./listReports.ts";
 
 export const Dashboard = defineService({
-	id: "@shivaedev/sql/dashboard/Service",
-	initialize: initializeDashboard,
-	methods: (state) => ({ findReport: findReport(state), listPullRequests: listPullRequests(state), listReports: listReports(state) }),
+	id: "app/Dashboard",
 	requires: [SqlClient.SqlClient, DashboardConfig],
+	initialize: Effect.void,
+	methods: () => ({ findReport, listPullRequests, listReports }),
 });
 ```
 
-The [initializer](../../packages/sql/src/test-support/cross-table/initializeDashboard.ts) reads the SQL client and table configuration once. Each operation gets that private state. The [result schemas](../../packages/sql/src/test-support/cross-table/dashboardRows.ts) compose the models' fields:
+The [result schemas](../../packages/sql/src/test-support/cross-table/dashboardRows.ts) compose the models' fields:
 
 ```ts
 import { Schema } from "effect";
@@ -55,16 +55,18 @@ export const PullRequestWithOptionalReport = Schema.Struct({
 export const Since = Schema.Struct({ since: PullRequest.fields.updated_at });
 ```
 
-The [reported pull-request operation](../../packages/sql/src/test-support/cross-table/listReports.ts) owns its query:
+The reported pull-request operation owns its query:
 
 ```ts
-import type { Effect } from "effect";
-import { SqlSchema } from "effect/sql";
+import { Effect } from "effect";
+import { SqlClient, SqlSchema } from "effect/sql";
+import { DashboardConfig } from "./DashboardConfig.ts";
 import { ReportedPullRequest, Since } from "./dashboardRows.ts";
-import type { initializeDashboard } from "./initializeDashboard.ts";
 
-export function listReports({ sql, tables }: Effect.Success<typeof initializeDashboard>) {
-	return SqlSchema.findAll({
+export const listReports = Effect.fn("Dashboard.listReports")(function* (request: typeof Since.Type) {
+	const sql = yield* SqlClient.SqlClient;
+	const tables = yield* DashboardConfig;
+	const query = SqlSchema.findAll({
 		execute: ({ since }) => sql`
 			select p.id as "pullRequestId", p.title, p.updated_at as "updatedAt",
 			       r.id as "reportId", r.score
@@ -75,7 +77,8 @@ export function listReports({ sql, tables }: Effect.Success<typeof initializeDas
 		Request: Since,
 		Result: ReportedPullRequest,
 	});
-}
+	return yield* query(request);
+});
 ```
 
 `SqlSchema.findAll` accepts the decoded request, encodes it with `Request`, executes the SQL, then decodes every returned row with `Result`. `Since` takes its codec from `PullRequest.fields.updated_at`: the caller supplies a `DateTime.Utc`, and `execute` receives a `Date`. The `${since}` interpolation binds that encoded value as a SQL parameter. Keep the field codec in the request schema rather than converting the filter to SQL text or binding the decoded `DateTime` object directly.

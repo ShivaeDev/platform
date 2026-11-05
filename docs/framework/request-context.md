@@ -36,6 +36,10 @@ Redaction masks common credential shapes in strings (Bearer and Basic credential
 
 `Authenticated` gives handlers `Identity` and fails with `Unauthorized`, `AuthUnavailable` or `Forbidden`. `MaybeAuthenticated` gives `OptionalIdentity`; a provider failure is `AuthUnavailable` in both, never treated as anonymous. An application that needs more than an id, such as a role, calls `resolveSession(headers, rpc)` inside its own `RpcMiddleware`, which runs the same Origin check and provider lookup.
 
+## Services that need the caller
+
+The caller is an ambient service for the request, never an argument. Handlers and service operations that need who asked yield `SessionUser`, `Identity`, `OptionalIdentity` or `Subject`; an operation never takes the acting user's id. A target id, such as the account an administrator acts on, is an ordinary argument. A service whose operations yield the caller lists it in `requires`, so its Layer can only be built where the middleware has provided the caller: per request, never once for the host.
+
 ## Transport headers and message headers
 
 The `headers` that native RpcServer passes to middleware are not the HTTP request headers. For HTTP and WebSocket transports, RpcServer appends the headers carried inside each RPC message to the transport headers, and the message values win. A browser page on any site can send a `text/plain` POST, which needs no CORS preflight, whose body sets `origin`, `cookie` or `authorization` in a message while the browser attaches the victim's cookie to the request itself. Any security decision made from those merged headers can be forged.

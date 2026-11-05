@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Layer, Predicate } from "effect";
 import { RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
@@ -51,7 +51,7 @@ export function transport() {
 			socket.addEventListener("message", (event) => observeResults(incoming, results, event.data));
 			return socket;
 		}),
-	).pipe(Layer.provide(layerWebSocketConstructorWS));
+	).pipe(Layer.provide(layerWebSocketConstructor));
 	return {
 		acknowledgementHeld,
 		layer,

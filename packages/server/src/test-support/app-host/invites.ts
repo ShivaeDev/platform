@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect";
-import { Crypto } from "effect/Crypto";
+import { SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -17,8 +17,8 @@ export function inviteHost(config: HostState["config"]) {
 	const preflight = Layer.effect(
 		Issuer,
 		Effect.gen(function* () {
-			const crypto = yield* Crypto;
-			return Hex.encode(yield* crypto.randomBytes(16));
+			const random = yield* SecureRandom.SecureRandom;
+			return Hex.encode(yield* random.randomBytes(16));
 		}),
 	);
 	return appHost({
@@ -27,9 +27,9 @@ export function inviteHost(config: HostState["config"]) {
 		handlers: Invites.application.toLayer({
 			"invites.create": () =>
 				Effect.gen(function* () {
-					const crypto = yield* Crypto;
-					return { code: Hex.encode(yield* crypto.randomBytes(8)), issuer: yield* Issuer };
-				}).pipe(Effect.orDie),
+					const random = yield* SecureRandom.SecureRandom;
+					return { code: Hex.encode(yield* random.randomBytes(8)), issuer: yield* Issuer };
+				}),
 		}),
 		policy: "loopback",
 		preflight,

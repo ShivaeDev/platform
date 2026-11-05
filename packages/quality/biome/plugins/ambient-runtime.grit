@@ -7,7 +7,7 @@ or {
 		`new Date()` as $match
 	} where { register_diagnostic(span=$match, message="Ambient time is banned. Read time through Effect's Clock service.") },
 	`Math.random()` as $match where {
-		register_diagnostic(span=$match, message="Ambient randomness is banned. Use Effect's Crypto service for secure values and Random for non-secure values.")
+		register_diagnostic(span=$match, message="Ambient randomness is banned. Use Effect's SecureRandom service from effect/crypto for secure values and Random for non-secure values.")
 	},
 	or {
 		`console.$method($...)` as $match,
@@ -44,7 +44,7 @@ or {
 			`globalThis.crypto.randomBytes($...)` as $match,
 			`randomUUID($...)` as $match,
 			`randomBytes($...)` as $match
-		} where { $message = "Ambient cryptographic randomness is banned. Read secure values through Effect's Crypto service." },
+		} where { $message = "Ambient cryptographic randomness is banned. Read secure values through Effect's SecureRandom service from effect/crypto." },
 		`crypto.randomBytes($...)` as $match where {
 			$program <: contains or {
 				`import * as crypto from "node:crypto"`,
@@ -52,7 +52,7 @@ or {
 				`import crypto from "node:crypto"`,
 				`import crypto from "crypto"`
 			},
-			$message = "Ambient cryptographic randomness is banned. Read secure values through Effect's Crypto service."
+			$message = "Ambient cryptographic randomness is banned. Read secure values through Effect's SecureRandom service from effect/crypto."
 		},
 		`performance.now()` as $match where { $message = "Ambient performance time is banned. Read time through Effect's Clock service." },
 		or {

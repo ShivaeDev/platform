@@ -1,4 +1,5 @@
-import { Clock, Crypto, Effect, Layer, Option, Stream } from "effect";
+import { Clock, Effect, Layer, Option, Stream } from "effect";
+import { Digest } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -18,7 +19,7 @@ export const deniedEngine = Effect.gen(function* () {
 	const access: typeof Access.Service = { allowed: false, checks: 0, rejection: "denied" };
 	const attempts: number[] = [];
 	const clock = yield* Clock.Clock;
-	const crypto = yield* Crypto.Crypto;
+	const digest = yield* Digest.Digest;
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	const handlers = Layer.merge(
@@ -41,7 +42,7 @@ export const deniedEngine = Effect.gen(function* () {
 		),
 	).pipe(Layer.provide(Layer.succeed(Access, access)));
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
-	runtime.addGlobalLayer(Layer.mergeAll(Layer.succeed(Clock.Clock, clock), Layer.succeed(Crypto.Crypto, crypto)));
+	runtime.addGlobalLayer(Layer.mergeAll(Layer.succeed(Clock.Clock, clock), Layer.succeed(Digest.Digest, digest)));
 	class Client extends AtomRpc.Service<Client>()("test/DeniedClient", {
 		group: Records,
 		makeEffect: RpcTest.makeClient(Records, { flatten: true }),

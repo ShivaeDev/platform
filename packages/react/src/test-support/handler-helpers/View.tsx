@@ -1,4 +1,5 @@
-import { Cause, type Crypto, Option, Schema } from "effect";
+import { Cause, Option, Schema } from "effect";
+import type { SecureRandom } from "effect/crypto";
 import type * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { useClock } from "#client/adapters/useClock.ts";
@@ -11,7 +12,7 @@ class ClipboardDenied extends Schema.TaggedError<ClipboardDenied>()("ClipboardDe
 export interface Controls {
 	readonly call: (text: string) => Promise<string>;
 	readonly mapFailure: boolean;
-	readonly runtime?: Atom.AtomRuntime<Crypto.Crypto> | undefined;
+	readonly runtime?: Atom.AtomRuntime<SecureRandom.SecureRandom> | undefined;
 	readonly text: string;
 }
 

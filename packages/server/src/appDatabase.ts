@@ -1,7 +1,7 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Config, Context, Crypto, Effect, Layer, Option, Redacted } from "effect";
-import * as Hex from "effect/encoding/Hex";
+import { Clock, Config, Context, Effect, Layer, Option, Redacted } from "effect";
+import { Digest } from "effect/crypto";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
@@ -87,9 +87,9 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 }
 
 const defaultChangesChannel = Effect.fnUntraced(function* (name: string) {
-	const crypto = yield* Crypto.Crypto;
-	const digest = yield* crypto.digest("SHA-256", new TextEncoder().encode(name)).pipe(Effect.orDie);
-	return `changes_${Hex.encode(digest).slice(0, 32)}`;
+	const digest = yield* Digest.Digest;
+	const hash = yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(name));
+	return `changes_${hash.slice(0, 32)}`;
 });
 
 export const appHost: AppHostFactory = <

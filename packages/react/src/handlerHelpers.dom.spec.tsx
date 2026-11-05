@@ -18,7 +18,7 @@ handlers.it("a click generates another id and reads the runtime clock at invocat
 	expect(yield* shown("stamp")).toBe("a5020b20-c736-4396-a6e0-305b30e3f006:125000");
 });
 
-handlers.it("the default client Crypto supplies ids to state initializers", [browserServices], function* ({ shown }) {
+handlers.it("the default client SecureRandom supplies ids to state initializers", [browserServices], function* ({ shown }) {
 	expect(yield* shown("id")).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u);
 });
 
@@ -78,7 +78,7 @@ handlers.it("a synchronous promise-call throw becomes a typed action failure", [
 	expect(yield* shown("failure")).toBe("ClipboardDenied:Error: Clipboard unavailable");
 });
 
-handlers.it("the client Crypto layer runs a digest through a native action", [browserServices], function* ({ click, settle, shown }) {
+handlers.it("the client crypto layer runs a digest through a native action", [browserServices], function* ({ click, settle, shown }) {
 	yield* click("Digest");
 	yield* settle();
 

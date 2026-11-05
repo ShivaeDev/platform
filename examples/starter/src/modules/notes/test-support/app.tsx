@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
@@ -142,7 +142,7 @@ export function notesHostScreen(initial = "/sign-in") {
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		function connect(session: { readonly id: string }) {
 			const client = makeNotesClient(`${engine.baseUrl}/rpc`, {
-				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructorWS } : {}),
+				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructor } : {}),
 			});
 			engine.activity = clientActivity(client);
 			return clientModules(session, [notesRegistration(client)]);
