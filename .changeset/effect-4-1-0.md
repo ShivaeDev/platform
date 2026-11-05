@@ -75,6 +75,7 @@
   - `Migrator.fromFileSystem` moved to `fromFileSystem` in `effect/sql/MigratorFileSystem`.
   - `sql.insert` and `sql.updateValues` take a non-empty array; narrow with `Array.isReadonlyArrayNonEmpty` first.
   - A hand-built `PgClient.PgClient` needs `poolStats`, and `ChildProcess` command `args` may hold `Redacted` values.
+  - Effect's `effect/crypto` declarations name the Web Crypto types `CryptoKey` and `JsonWebKey`. A project that type-checks library declarations (`skipLibCheck: false`) needs `DOM` in its `lib`.
 - `@shivaedev/pr-watch`: Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together.
 - `@shivaedev/quality`: Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. The `ambient-runtime` lint rule now points at `SecureRandom` from `effect/crypto`.
 - `@shivaedev/rate-limit`: Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together.

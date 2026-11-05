@@ -44,7 +44,8 @@ export async function declarationFiles() {
 		await writeFile(
 			join(directory, "tsconfig.json"),
 			JSON.stringify({
-				compilerOptions: { noEmit: true, skipLibCheck: false },
+				// Effect 4.1's crypto declarations name Web Crypto types that only lib.dom declares.
+				compilerOptions: { lib: ["ESNext", "DOM"], noEmit: true, skipLibCheck: false },
 				extends: join(root, "tsconfig.json"),
 				include: ["consumer.ts"],
 			}),
