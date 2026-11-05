@@ -72,7 +72,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 	const Client = AtomRpc.Service<unknown>()(`${name}/Client`, {
 		group,
 		makeEffect: make,
-		protocol: (get) => protocolFor(get(socketIdentity)),
+		protocol: typeof options.protocol === "object" ? protocol : (get) => protocolFor(get(socketIdentity)),
 		runtime: options.runtime,
 	});
 	clientActivities.set(Client, activity);
