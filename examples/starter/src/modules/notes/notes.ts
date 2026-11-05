@@ -19,14 +19,12 @@ export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version:
 const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
-export class NoteReadAccess extends Context.Service<
-	NoteReadAccess,
-	(id: number, userId: string) => Effect.Effect<boolean, NotFound | ServiceUnavailable>
->()("app/NoteReadAccess") {}
+export class NoteReadAccess extends Context.Service<NoteReadAccess, (id: number) => Effect.Effect<boolean, NotFound | ServiceUnavailable>>()(
+	"app/NoteReadAccess",
+) {}
 const Get = query("get", {
 	payload: NoteId,
-	readPolicy: ({ id }, viewer) =>
-		Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id, viewer.value.id)),
+	readPolicy: ({ id }, viewer) => (Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id))),
 	reads: ({ id }) => [notes.item(id)],
 	rejections: { InternalServerError, NotFound, ServiceUnavailable },
 	success: Note.json,

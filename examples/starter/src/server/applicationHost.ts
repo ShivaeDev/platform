@@ -83,6 +83,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
+						requestServices: modules.requestServices,
 						routes: Layer.mergeAll(routes, authEmailRoutes, hostAssets({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
 						services: Layer.merge(Layer.succeedContext(serviceContext), betterAuthUserDirectory(AppAccess, authOptions())),
 						sessions: Layer.succeed(SessionPolicy, sessions),

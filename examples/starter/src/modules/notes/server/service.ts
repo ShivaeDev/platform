@@ -1,5 +1,7 @@
+import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { canReadNote } from "./canRead.ts";
@@ -9,21 +11,21 @@ import { getNote } from "./get.ts";
 import { importNote } from "./import.ts";
 import { NoteJobs } from "./jobs.ts";
 import { listNotes } from "./list.ts";
-import { makeNotesRepository } from "./makeRepository.ts";
+import { NotesRepository } from "./Repository.ts";
 import { NoteSource } from "./Source.ts";
 import { updateNote } from "./update.ts";
 
-export const NotesService = defineService({
+export const notesService = defineService({
 	id: "app/NotesService",
-	initialize: makeNotesRepository,
-	methods: (repository) => ({
-		canRead: canReadNote(repository),
-		create: createNote(repository),
-		delete: deleteNote(repository),
-		get: getNote(repository),
-		import: importNote(repository),
-		list: listNotes(repository),
-		update: updateNote(repository),
+	initialize: Effect.void,
+	methods: () => ({
+		canRead: canReadNote,
+		create: createNote,
+		delete: deleteNote,
+		get: getNote,
+		import: importNote,
+		list: listNotes,
+		update: updateNote,
 	}),
-	requires: [Store, SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs, NoteSource],
+	requires: [NotesRepository, SessionUser, Store, SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs, NoteSource],
 });

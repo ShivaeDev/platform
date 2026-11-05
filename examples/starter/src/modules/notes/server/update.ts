@@ -4,17 +4,15 @@ import type { Update } from "#modules/notes/notes.ts";
 import { changed } from "./changed.ts";
 import { enqueueNote } from "./enqueue.ts";
 import { getNote } from "./get.ts";
-import type { NotesRepository } from "./makeRepository.ts";
+import { NotesRepository } from "./Repository.ts";
 import { notesSqlFailure } from "./sqlFailure.ts";
 
-export function updateNote(repository: NotesRepository) {
-	const get = getNote(repository);
-	return Effect.fn("NotesService.update")(
-		function* (input: typeof Update.payload.Type, userId: string) {
-			const row = yield* get(input.id, userId);
-			return yield* repository.update({ ...row, ...input, wordCount: null }).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
-		},
-		Effect.tap((row) => enqueueNote(row.id)),
-		transact({ onSqlError: notesSqlFailure }),
-	);
-}
+export const updateNote = Effect.fn("NotesService.updateNote")(
+	function* (input: typeof Update.payload.Type) {
+		const repository = yield* NotesRepository;
+		const row = yield* getNote(input.id);
+		return yield* repository.update({ ...row, ...input, wordCount: null }).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
+	},
+	Effect.tap((row) => enqueueNote(row.id)),
+	transact({ onSqlError: notesSqlFailure }),
+);
