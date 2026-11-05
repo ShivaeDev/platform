@@ -16,6 +16,7 @@ export const scriptedPeer = Effect.fn("Codex.scriptedPeer")(function* () {
 	const answered = yield* Queue.unbounded<Frame>();
 	const frames: Frame[] = [];
 	const replies: Frame[] = [];
+	const processEvents: string[] = [];
 	const history: { id: string; status: string; items: unknown[] }[] = [];
 	let line: (text: string) => void = () => {
 		throw new Error("Connect the peer first");
@@ -52,7 +53,10 @@ export const scriptedPeer = Effect.fn("Codex.scriptedPeer")(function* () {
 		}
 	}
 	const peer: LineProcess = {
-		kill: () => exit(),
+		kill: () => {
+			processEvents.push("stopped");
+			exit();
+		},
 		onExit: (listener) => {
 			exit = () => listener(0);
 		},
@@ -152,6 +156,7 @@ export const scriptedPeer = Effect.fn("Codex.scriptedPeer")(function* () {
 			noActiveTurn = true;
 		},
 		notify,
+		processEvents,
 		received,
 		rejectStart: (code: string) => {
 			startRejection = { code: -32_001, data: { codexErrorInfo: code }, message: "Provider capacity refusal" };
@@ -160,7 +165,10 @@ export const scriptedPeer = Effect.fn("Codex.scriptedPeer")(function* () {
 		serverRequest: (method: string, params: unknown) => {
 			line(JSON.stringify({ id: "provider-request", method, params }));
 		},
-		spawn: () => peer,
+		spawn: () => {
+			processEvents.push("started");
+			return peer;
+		},
 		submitted,
 		tool: (threadId = "root") => {
 			toolCount += 1;
