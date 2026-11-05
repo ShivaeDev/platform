@@ -47,7 +47,6 @@ export const vendorDeclarations = storyKit({
 			yield* packArchive({ directory, manifest, tarball });
 		},
 	},
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const directory = yield* fs.makeTempDirectoryScoped({ prefix: "vendor-declarations-" });

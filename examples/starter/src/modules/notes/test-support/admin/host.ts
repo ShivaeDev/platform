@@ -1,5 +1,5 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect, Exit, Layer, Option, Scope } from "effect";
+import { DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -42,7 +42,7 @@ function roleChange(engine: AdminEngine, annotations: Readonly<Record<string, un
 
 export const adminHost = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const engine: AdminEngine = { cookies: new Map(), host, url: host.baseUrl, userIds: new Map() };

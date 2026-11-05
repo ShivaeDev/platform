@@ -6,7 +6,6 @@ import { commits, hookRepository, hookText, withWorktree } from "@shivaedev/qual
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const appSetup = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync(() => {

@@ -63,7 +63,6 @@ function run(root: string, args: readonly string[]) {
 }
 
 export const projectKit = storyKit({
-	clock: "live",
 	create: () => Effect.acquireRelease(Effect.sync(repository), (root) => Effect.sync(() => rmSync(root, { force: true, recursive: true }))),
 	name: "test projects",
 	stages: ["configured"],

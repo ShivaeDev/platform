@@ -11,7 +11,6 @@ import { changeClient } from "./client.ts";
 import { View } from "./View.tsx";
 
 export const undoableChangeStory = storyKit({
-	clock: "live",
 	*create() {
 		const host = yield* Effect.acquireRelease(
 			Effect.promise(() => startHost("build-b")),

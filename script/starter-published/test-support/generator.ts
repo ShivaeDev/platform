@@ -9,7 +9,6 @@ import { generateStarter } from "#starter-published/generate.ts";
 const unpublished = { name: "@shivaedev/sql", version: "999.0.0" };
 
 export const generator = storyKit({
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-generator-story-" });

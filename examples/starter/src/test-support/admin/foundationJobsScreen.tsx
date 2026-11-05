@@ -1,5 +1,5 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -13,7 +13,7 @@ import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 export const foundationJobsScreen = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const { headers } = yield* mintUser(host, "operator", "admin");

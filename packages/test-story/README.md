@@ -136,7 +136,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | `outbound`             | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests.                                                                                                                                                                                                     |
 | `outboundPassthrough`  | Optional. Set to `true` to let unrouted Node fetch requests reach the network. The DOM environment still refuses external hosts without a route.                                                                                                                                                                          |
 | `around(effect)`       | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope.                                                                                                                                                                |
-| `clock`                | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence.                                                                                                                                                                |
+| `clock`                | Optional. `"test"` by default, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence.                                                                                                                                                                                        |
 | `create()`             | A fresh engine. Every story starts from a new one.                                                                                                                                                                                                                                                                        |
 | `layer`                | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
 | `stages`               | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile.                                                                                                                                                                                           |
@@ -626,6 +626,8 @@ accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ rem
 
 ### Pinning time
 
+Stories and kits never wait on real time: use the [controlled clock](#waiting-for-a-timer) for elapsed time and engine signals for completion. Real sleeps, wall-clock polling, `Date.now()` and real timers in test code are forbidden; a deadline that only bounds failure is allowed.
+
 Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it with native `TestClock.adjust` in a kit verb, so the spec names the time that passes:
 
 ```ts
@@ -664,11 +666,9 @@ Acquire hosts, workers and screens in per-story Scope so they inherit the story'
 
 Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(auth, userId)` from `@shivaedev/test-kits/identity/adapters/betterAuth.ts` to mint a fresh session on the caller’s Clock for the same user. Replace the visitor’s headers, or pass its returned cookies to `seedCookies` for a browser. The starter’s app kit exposes `signsInAgain(name)` for this step. Its TestClock starts at the present by default so Better Auth’s wall-clock endpoints accept minted sessions; an explicit story `clock` still takes precedence.
 
-A live-clock kit still runs on real time when a story omits the override.
-
 ### Waiting for a timer
 
-Test-clock stories use `watchedClock` automatically, including stories that pin a UTC instant or override a live kit with `clock: "test"`. It instruments the native TestClock and publishes every sleep start as a native `Duration` through its consuming `sleeps` stream. Starts stay queued until consumed, so a wait can observe a sleep that began before it subscribed. Each story gets its own queue.
+Every story uses `watchedClock` automatically, including stories that pin a UTC instant. It instruments the native TestClock and publishes every sleep start as a native `Duration` through its consuming `sleeps` stream. Starts stay queued until consumed, so a wait can observe a sleep that began before it subscribed. Each story gets its own queue.
 
 Use `untilTimer(interval)` in a kit verb to wait for the next matching sleep start before advancing time. It consumes starts in arrival order, skipping other durations. Equivalent durations such as `"1 second"` and `"1000 millis"` match. A start records that the sleep was called; it does not mean the timer is still pending. `untilTimer` returns the matching `Duration` and never advances virtual time. Its default deadline is five seconds of live time; pass `{ timeout }` to change it. If no matching sleep starts, it fails with `SignalNotReceived`, naming the missing sleep and the last observation.
 
@@ -701,7 +701,7 @@ deliveries.it("delivers after its timer fires", [], function* ({ send, untilDeli
 });
 ```
 
-Outside a story kit, `yield* watchedClock` instruments the active native TestClock within Scope; provide the returned value as `Clock.Clock` within its Scope. It preserves the active clock's time, adjustments and `withLive` behavior. Acquire it under `TestClock.layer()` to retain the native scheduler. Live-clock stories keep their live clock, and sleeps inside `withLive` do not enter the watched queue.
+Outside a story kit, `yield* watchedClock` instruments the active native TestClock within Scope; provide the returned value as `Clock.Clock` within its Scope. It preserves the active clock's time, adjustments and `withLive` behavior. Acquire it under `TestClock.layer()` to retain the native scheduler. Sleeps inside `withLive` do not enter the watched queue.
 
 ### Running the engine
 

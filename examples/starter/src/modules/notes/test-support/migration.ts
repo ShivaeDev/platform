@@ -1,5 +1,5 @@
 import { testUtils } from "better-auth/plugins";
-import { Effect, Redacted } from "effect";
+import { DateTime, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
@@ -18,7 +18,7 @@ import { configured, postgres } from "#test-support/postgres.ts";
 
 export const migration = storyKit({
 	after: { database: (engine) => engine.database.acquire },
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		return { database: yield* storyDatabase(), userId: "" };
 	},

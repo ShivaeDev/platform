@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 - 2026-11-05
+
+### Changed
+
+- Update `@shivaedev/http` from 0.6.1 to 0.7.0.
+
 ## 0.2.1 - 2026-11-04
 
 ### Changed

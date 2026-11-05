@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Clock, DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
@@ -15,7 +15,7 @@ interface DeploymentStoryEngine extends DeploymentEngine {
 
 export const deployment = storyKit({
 	after: { database: (engine) => engine.database.acquire },
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const engine: DeploymentStoryEngine = {
 			...deploymentEngine(yield* Clock.currentTimeMillis),

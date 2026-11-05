@@ -16,7 +16,6 @@ const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "GITHUB_WEB
 
 export const webhooksStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const context = yield* Layer.build(

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.41.0 - 2026-11-05
+
+### Added
+
+- `defineRepository` exposes a repository and its domain operations through one native Effect service and Layer, shared by services that declare it in `requires`. Initialization retains its typed errors, dependencies and Layer-owned scope; repository operations retain caller transactions.
+
+### Breaking
+
+- The worker scheduling port is `WorkerReleaseClock` from `@shivaedev/sql/WorkerReleaseClock.ts`. Replace imports and uses of `WorkerReleaseTesting`; use `hostTime` from test-kits for controlled story time.
+
 ## 0.40.0 - 2026-11-04
 
 ### Added

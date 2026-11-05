@@ -5,7 +5,6 @@ import { removeSeededTrees, type SeedFile, seedTree } from "@shivaedev/quality/t
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const runtimeModules = storyKit({
-	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		return { root: seedTree([]) };

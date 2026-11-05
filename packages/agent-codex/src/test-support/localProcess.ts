@@ -7,7 +7,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { codexLayer } from "#codex.ts";
 import { CodexConfig } from "#config.ts";
 export const localProcess = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.gen(function* () {
 			const logs: unknown[] = [];

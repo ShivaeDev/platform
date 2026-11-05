@@ -1,6 +1,7 @@
-import { Context, Effect, Layer, Option } from "effect";
+import { Context, Effect, Layer, Option, Ref } from "effect";
 import { type Rpc, type RpcGroup, RpcMiddleware } from "effect/rpc";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
+import { CommandResultKeys } from "#CommandResultKeys.ts";
 import { prependMiddleware } from "#prependMiddleware.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
@@ -14,9 +15,18 @@ export function commandGuardLayer(boundary: CommandBoundary): Layer.Layer<Comman
 		const declaration = Context.getOption(rpc.annotations, CommandInvalidation);
 		return Option.isNone(declaration)
 			? effect
-			: Effect.flatMap(CurrentViewer, (viewer) =>
-					boundary(effect, (result) => invalidationKeys(declaration.value.invalidates(payload, result, viewer))),
-				);
+			: Effect.gen(function* () {
+					const viewer = yield* CurrentViewer;
+					const keys = yield* Ref.make<readonly Key[]>([]);
+					const completed = effect.pipe(
+						Effect.provideService(CommandResultKeys, keys),
+						Effect.flatMap((result) => Effect.map(Ref.get(keys), (extra) => ({ extra, result }))),
+					);
+					const published = yield* boundary(completed, ({ extra, result }) =>
+						invalidationKeys([...declaration.value.invalidates(payload, result, viewer), ...extra]),
+					);
+					return published.result;
+				});
 	});
 }
 

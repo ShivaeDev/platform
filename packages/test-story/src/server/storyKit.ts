@@ -1,12 +1,12 @@
 import type { TestContext } from "@effect/vitest";
 import type { Crypto, Effect, Layer, Scope } from "effect";
-import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { compose } from "#server/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/hooked.ts";
 import type { AfterResults, AfterServices, InferredDefinition } from "#server/hookInference.ts";
 import type { LooseDefinition } from "#server/seed.ts";
 import { storyIt } from "#server/storyIt.ts";
+import type { StoryClock, StoryTestOptions } from "#server/storyOptions.ts";
 import { type Parts, trait, traits } from "#server/traits.ts";
 
 export type Trait<TEngine, TStage extends string, R = never> = Parts<TStage, (engine: TEngine) => Effect.Effect<void, unknown, R>>;
@@ -53,7 +53,7 @@ export interface StoryKitDefinition<
 > {
 	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, unknown> };
 	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Crypto.Crypto | Scope.Scope>;
-	readonly clock?: EffectClock;
+	readonly clock?: StoryClock;
 	readonly create: EffectHook<[], TCreate, TEngine>;
 	readonly inspect?: (engine: TEngine) => unknown;
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
@@ -81,7 +81,7 @@ export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEf
 	name: string,
 	given: readonly Trait<TEngine, TStage, TProvided | Crypto.Crypto | Scope.Scope>[],
 	body?: StoryBody<TEngine, TVerbs, TRun, TEffect, TStage>,
-	options?: number | EffectTestOptions,
+	options?: number | StoryTestOptions,
 ) => void;
 
 export interface StoryIt<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided>

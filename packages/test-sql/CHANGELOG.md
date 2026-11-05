@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0 - 2026-11-05
+
+### Breaking
+
+- Replace the fixed-environment `databaseUrl` and `postgres` exports from `@shivaedev/test-sql/server/emptyPostgres.ts` with `emptyPostgres(url)`. Consumers select their URL with `postgresTestUrl(name)`, use its `configured` value for the story kit's `runIf`, and pass the redacted URL to `emptyPostgres`.
+
 ## 0.21.2 - 2026-11-04
 
 ### Changed

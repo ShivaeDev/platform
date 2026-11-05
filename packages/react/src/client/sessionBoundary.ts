@@ -20,6 +20,7 @@ export interface SessionBoundaryProps<TSession, TClient> {
 	readonly navigate?: ((href: string) => void) | undefined;
 	readonly recheck: (() => void) | Effect.Effect<unknown, unknown, AtomRegistry.AtomRegistry>;
 	readonly redirectTo?: string | undefined;
+	readonly runtime?: Pick<Atom.AtomRuntime<never, unknown>, "fn"> | undefined;
 	readonly session: TSession | undefined;
 	readonly signedOut?: ReactNode;
 	readonly signOut?: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>> | undefined;
@@ -29,6 +30,7 @@ export function useSessionRecheck(): () => void {
 }
 export function SessionBoundary<TSession, TClient>({
 	session,
+	runtime,
 	liveCoalesceWindow,
 	identify,
 	connect,
@@ -42,7 +44,7 @@ export function SessionBoundary<TSession, TClient>({
 	const registry = useContext(RegistryContext);
 	const id = session === undefined ? undefined : identify(session);
 	const current = useDraftOwner(id);
-	const retry = useSessionRetry(recheck, id);
+	const retry = useSessionRetry(recheck, id, runtime);
 	if (session === undefined) {
 		return createElement(Fragment, null, signedOut);
 	}

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/agent-opencode",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"description": "OpenCode integration for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/agent-opencode#readme",
 	"bugs": {

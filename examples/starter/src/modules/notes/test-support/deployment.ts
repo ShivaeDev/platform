@@ -1,4 +1,4 @@
-import { Clock, type Duration, Effect, Fiber } from "effect";
+import { Clock, DateTime, type Duration, Effect, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
@@ -37,7 +37,7 @@ function wordCountWords(wordCount: number | null) {
 
 export const notesDeployment = storyKit({
 	after: { database: (engine) => engine.database.acquire },
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const engine: NotesDeploymentEngine = {
 			...deploymentEngine(yield* Clock.currentTimeMillis),

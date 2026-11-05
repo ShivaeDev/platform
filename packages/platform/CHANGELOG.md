@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.39.1 - 2026-11-05
+
+### Fixed
+
+- Stop declaring Vitest and Effect’s Vitest adapter as runtime peers.
+
 ## 0.39.0 - 2026-11-04
 
 ### Breaking

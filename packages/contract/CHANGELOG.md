@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.37.0 - 2026-11-05
+
+### Added
+
+- Hold unsent bound commands for up to ten seconds while the client reconnects, including with supplied native socket protocols. Report `waiting-for-connection` immediately through client activity and React's connection status hook; a connection timeout remains a typed `RpcClientError`.
+- Probe an open default socket with RPC Ping/Pong on visible visibility, online and pageshow events or native resume. Reconnect after 2.5 seconds without a Pong, holding commands during the probe without replaying requests already sent.
+- Add `SocketClock`, a native Clock reference for controlling the default client’s network deadlines independently of application timers. Network time remains real by default.
+- `settledQueries` testing readout observes completed query results within an Effect scope, including failed and equal-value refreshes.
+
+### Breaking
+
+- `ConnectionStatus` includes `waiting-for-connection`. Handle this case alongside `reconnecting` in exhaustive status rendering. Custom `ResumeWindow` implementations must also accept `pageshow` events.
+- Import `settledQueries` and `SettledQueries` from `@shivaedev/test-kits/contract/settledQueries.ts` instead of `@shivaedev/contract/testing.ts`.
+
 ## 0.36.1 - 2026-11-04
 
 ### Changed

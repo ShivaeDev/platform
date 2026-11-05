@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.40.0 - 2026-11-05
+
+### Added
+
+- `untilAtom` waits for a matching native atom value through its registry subscription and reports `AtomFailed` with the signal name and cause when an AsyncResult atom fails.
+- Screen drivers accept a watched `clock` to advance registered sleeps inside the renderer's `act` while waiting for completion. Debounced searches settle without real waits or a duration in the kit verb.
+
 ## 0.39.2 - 2026-11-04
 
 ### Changed

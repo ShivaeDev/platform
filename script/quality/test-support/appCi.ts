@@ -30,7 +30,6 @@ export const appCi = storyKit({
 			);
 		},
 	},
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync(() => {

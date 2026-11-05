@@ -15,7 +15,6 @@ interface Repository {
 }
 
 export const shadcn = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync((): Repository => ({ inventory: undefined, root: seedTree([]), violations: [] })),
