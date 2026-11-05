@@ -12,6 +12,7 @@ import type { QueryOptions } from "#bind.ts";
 import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import { clientActivities } from "#internal/clientActivity.ts";
 import { commandPayload } from "#internal/commandPayload.ts";
+import { waitForConnection } from "#internal/connectionReadiness.ts";
 import { queryReactivity } from "#internal/queryReactivity.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
@@ -79,6 +80,7 @@ function boundCommand(service: ErasedClient, tag: string, command: CommandShape,
 				service,
 				service.use((client) =>
 					commandPayload(command, payload).pipe(
+						Effect.tap(() => waitForConnection(client)),
 						Effect.flatMap((validated) => client(tag, validated)),
 						Effect.tap((result) => invalidate(payload, result)),
 					),

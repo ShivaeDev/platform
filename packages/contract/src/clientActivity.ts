@@ -1,7 +1,7 @@
 import { Effect, Stream } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 
-export type ConnectionStatus = "live" | "reconnecting";
+export type ConnectionStatus = "live" | "reconnecting" | "waiting-for-connection";
 
 export interface ClientActivityState {
 	readonly connectionStatus: ConnectionStatus;

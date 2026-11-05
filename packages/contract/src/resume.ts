@@ -1,8 +1,9 @@
 import * as Atom from "effect/reactivity/Atom";
+import { resumeSources } from "#internal/resumeSources.ts";
 
 export type ResumeSource = (resume: () => void) => () => void;
 
-type ResumeEvent = "online" | "visibilitychange";
+type ResumeEvent = "online" | "visibilitychange" | "pageshow";
 
 export interface ResumeWindow {
 	readonly addEventListener: (type: ResumeEvent, listener: () => void) => void;
@@ -15,21 +16,8 @@ export interface ResumeOptions {
 	readonly window?: ResumeWindow;
 }
 
-function whileVisible(target: ResumeWindow, type: ResumeEvent): ResumeSource {
-	return (resume) => {
-		function visible() {
-			if (target.document.visibilityState === "visible") {
-				resume();
-			}
-		}
-		target.addEventListener(type, visible);
-		return () => target.removeEventListener(type, visible);
-	};
-}
-
-export function resumeSignal({ window, native }: ResumeOptions): Atom.Atom<number> {
-	const browser = window === undefined ? [] : [whileVisible(window, "visibilitychange"), whileVisible(window, "online")];
-	const sources = native === undefined ? browser : [...browser, native];
+export function resumeSignal(options: ResumeOptions): Atom.Atom<number> {
+	const sources = resumeSources(options);
 	return Atom.readable((get) => {
 		let count = 0;
 		function resume() {

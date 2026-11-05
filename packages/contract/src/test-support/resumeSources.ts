@@ -16,7 +16,7 @@ export function syntheticWindow() {
 		},
 	};
 	return {
-		fire: (type: "online" | "visibilitychange", visibility = "visible") => {
+		fire: (type: "online" | "visibilitychange" | "pageshow", visibility = "visible") => {
 			document.visibilityState = visibility;
 			target.dispatchEvent(new Event(type));
 		},

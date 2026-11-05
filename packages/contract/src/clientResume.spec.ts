@@ -21,7 +21,7 @@ for (const source of ["native", "online", "visibilitychange"] as const) {
 }
 
 clientResumeStory.it("disposing makeClient's registry releases both resume sources", [watching], function* ({ dispose, listeners }) {
-	expect(yield* listeners()).toEqual({ browser: 2, native: 1 });
+	expect(yield* listeners()).toEqual({ browser: 6, native: 2 });
 
 	dispose();
 

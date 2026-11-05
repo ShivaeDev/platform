@@ -10,8 +10,8 @@ type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();
 
 export function makeActivity(factory: Atom.RuntimeFactory) {
-	const { activity, change, setConnection } = activityState();
-	const connection = clientConnection(factory, setConnection);
+	const { activity, change, hold, setConnection } = activityState();
+	const connection = clientConnection(factory, setConnection, activity);
 	function begin(key: "rpcCalls" | "liveInvalidations") {
 		change(key, 1);
 		return () => change(key, -1);
@@ -65,6 +65,14 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 	return {
 		activity: Object.assign(activity, { connectionStatus: connection.status }),
 		hint: () => change("liveHints", 1),
+		hold: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+			track(
+				Effect.acquireUseRelease(
+					Effect.sync(hold),
+					() => effect,
+					(end) => Effect.sync(end),
+				),
+			),
 		queued: () => begin("liveInvalidations"),
 		statuses: connection.statuses,
 		track,
