@@ -294,6 +294,29 @@ The dependency rule is deliberately asymmetric:
 
 Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
+#### Server-only command keys
+
+When the affected readers depend on database relationships, return the success through `commandResult` in the server handler. Its `invalidates` keys join the declaration's keys at the command guard. Only `result` becomes the RPC success; the extra keys and the audience used to find them stay on the server.
+
+```ts
+import { commandResult } from "@shivaedev/contract/commandResult.ts";
+
+const move = ({ id, household }) =>
+	Effect.gen(function* () {
+		const before = yield* audienceFor(id);
+		const pot = yield* movePot(id, household);
+		const after = yield* audienceFor(id);
+		return yield* commandResult({
+			result: pot,
+			invalidates: [...before, ...after].map((viewerId) => pots.bucket.viewerId(viewerId)),
+		});
+	}).pipe(transact({ onSqlError: (error) => error }));
+```
+
+Here `audienceFor` reads household members and people who ate from the pot from the application's database, `movePot` performs the write, and `pots` declares a `viewerId` bucket. Read the audience after the write to include new readers, and retain the old audience when the write removes access. Each viewer's list reads its own bucket. Keep these reads and the write in the same transaction when they must describe one change.
+
+Use this helper in hosts from `@shivaedev/server`, or a native RPC host wired with `guardCommands` and `commandGuardLayer`. Keys are isolated per command, deduplicated with declared keys, and published through the existing `@shivaedev/changes` command publication boundary after success. A failed handler discards them. They do not enter the browser's pure `invalidates` callback; live subscriptions receive the server's refresh hints.
+
 ### Host build announcements
 
 `HostVersion` from `@shivaedev/contract/HostVersion.ts` declares the native `platform.hostVersion.watch` string stream shared by the application host and React's deploy controller. The host announces its configured build ID on subscription, including after a host replacement reconnects. It uses the same shared WebSocket connection as other `makeClient` bindings with matching transport options. Applications normally use the controller from `@shivaedev/react/client/deployUpdate.ts` rather than consuming this stream directly.
@@ -784,6 +807,7 @@ Import the module that defines the name; the package has no root entry.
 | `validateReadPolicies.ts` | `validateReadPolicies(group)`, an Effect that fails with `MissingReadPolicies` when any served or subscribable query omits its policy.                                                                                                                                                                                                                                                                                                         |
 | `readPolicyErrors.ts`     | `MissingReadPolicies` (boot), `MissingReadPolicy` (native-server request fallback) and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                                                      |
 | `CommandGuard.ts`         | `guardCommands(group)` places command publication inside viewer-providing middleware; `commandGuardLayer(boundary)` evaluates declared invalidations for that viewer and delegates publication to the host boundary.                                                                                                                                                                                                                           |
+| `commandResult.ts`        | `commandResult({ result, invalidates })` contributes server-only keys from a guarded command handler and returns only its success value.                                                                                                                                                                                                                                                                                                       |
 | `serverMetadata.ts`       | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                                                                                               |
 | `queryKeys.ts`            | `queryKeys(queries, references, viewer?)` authorizes references and resolves payload and server-derived keys using the provided services.                                                                                                                                                                                                                                                                                                      |
 | `QueryServerReads.ts`     | `QueryServerReads<Payload, E, R>`, the server-only resolver type.                                                                                                                                                                                                                                                                                                                                                                              |
