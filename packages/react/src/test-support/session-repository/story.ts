@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Option, Redacted } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -39,7 +39,7 @@ const openScreen = Effect.fnUntraced(function* (address: string, account: string
 		registry: screen.registry,
 		runtime: yield* storyRuntime,
 		url: address,
-		webSocketConstructor: layerWebSocketConstructorWS,
+		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const query = client.api[mode].query({ id: 1 });
 	yield* Effect.promise(() => screen.render(createElement(Note, { query })));

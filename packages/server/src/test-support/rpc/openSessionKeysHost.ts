@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer, Option, Schema } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -106,7 +106,7 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 			connections.push(address);
 			return make(address, options);
 		}),
-	).pipe(Layer.provide(layerWebSocketConstructorWS));
+	).pipe(Layer.provide(layerWebSocketConstructor));
 	function protocol(cookie = "") {
 		return RpcClient.layerProtocolSocket().pipe(
 			Layer.provide([

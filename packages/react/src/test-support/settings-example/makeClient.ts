@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Stream } from "effect";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { live } from "@shivaedev/contract/live.ts";
@@ -9,7 +9,7 @@ export function makeClient(url: string, token: string, entityId: number) {
 		group: SettingsRpc,
 		headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
 		url,
-		webSocketConstructor: layerWebSocketConstructorWS,
+		webSocketConstructor: layerWebSocketConstructor,
 	});
 	const subscription = live(Client.runtime, {
 		resyncKeys: [settings.item(entityId)],

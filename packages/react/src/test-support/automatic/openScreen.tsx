@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -26,7 +26,7 @@ export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 			addresses.push(address);
 			return socket;
 		}),
-	).pipe(Layer.provide(layerWebSocketConstructorWS));
+	).pipe(Layer.provide(layerWebSocketConstructor));
 	const client = connect(url, socketConstructor, runtime);
 	const separate: Awaited<ReturnType<typeof render>>[] = [];
 	let owner: AtomRegistry.AtomRegistry | undefined;

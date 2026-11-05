@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect, Option } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -29,7 +29,7 @@ export const foundationAdmin = storyKit({
 				group: foundation.admin.group,
 				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
 				url: `${engine.host.baseUrl}/rpc`,
-				webSocketConstructor: layerWebSocketConstructorWS,
+				webSocketConstructor: layerWebSocketConstructor,
 			}).client;
 		});
 		return {

@@ -134,7 +134,7 @@ The application's `auth` owns its storage and session configuration. A null look
 
 ### Local owners and machine callers
 
-`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect `Crypto` service:
+`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect's `SecureRandom` and `Digest` services from `effect/crypto`:
 
 ```ts
 import { Layer, Redacted } from "effect";

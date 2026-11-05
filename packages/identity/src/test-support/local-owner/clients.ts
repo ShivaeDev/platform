@@ -1,4 +1,4 @@
-import { NodeWS } from "@effect/platform-node/NodeSocket";
+import * as NodeWs from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -21,7 +21,7 @@ export const socketClient = Effect.fnUntraced(function* (url: string, token: str
 		if (protocols !== undefined && typeof protocols !== "string" && !Array.isArray(protocols)) {
 			throw new Error("The local client cannot set upgrade headers");
 		}
-		const socket = new NodeWS.WebSocket(address, protocols);
+		const socket = new NodeWs.WebSocket(address, protocols);
 		socket.addEventListener("close", (event) => Effect.runSync(Deferred.succeed(closed, { code: event.code, reason: event.reason })));
 		return socket;
 	});

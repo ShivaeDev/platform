@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { Crypto } from "effect/Crypto";
+import { SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { storyKit } from "#server/storyKit.ts";
@@ -8,9 +8,9 @@ const Invites = RpcGroup.make(Rpc.make("createInvite", { success: Schema.String 
 const handlers = Invites.toLayer({
 	createInvite: () =>
 		Effect.gen(function* () {
-			const crypto = yield* Crypto;
-			return Hex.encode(yield* crypto.randomBytes(8));
-		}).pipe(Effect.orDie),
+			const random = yield* SecureRandom.SecureRandom;
+			return Hex.encode(yield* random.randomBytes(8));
+		}),
 });
 
 export const invites = storyKit({

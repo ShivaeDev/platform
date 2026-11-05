@@ -37,20 +37,20 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 
 ## Secure invite codes and tokens
 
-Use Effect's native `Crypto` service from `effect/Crypto` for secure values. The application host supplies the Node implementation, including during preflight and deferred application construction. It provides secure random bytes and numbers, UUIDv4/v7 and digests; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
+Use Effect's native `effect/crypto` services for secure values: `SecureRandom` for random bytes, integers, UUIDv4/v7 and ULIDs, and `Digest` for hashes. The application host supplies the Node implementations from `NodeCrypto.layer`, including during preflight and deferred application construction; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
 
 ```ts
 import { Effect } from "effect";
-import { Crypto } from "effect/Crypto";
+import { SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 
 const inviteCode = Effect.gen(function* () {
-	const crypto = yield* Crypto;
-	return Hex.encode(yield* crypto.randomBytes(8));
+	const random = yield* SecureRandom.SecureRandom;
+	return Hex.encode(yield* random.randomBytes(8));
 });
 ```
 
-Use `inviteCode` in the command that issues an invite, handling its typed failures through the command’s declared errors. This produces a short, 16-character hexadecimal invite code. Choose the byte count and expiry policy for the application's use. Story kits supply native `TestCrypto` with seed `0`, restarted for each story, so the same command can have an exact token assertion. Test values are deterministic and belong only in tests.
+Use `inviteCode` in the command that issues an invite. This produces a short, 16-character hexadecimal invite code. Choose the byte count and expiry policy for the application's use. Story kits supply a `SecureRandom` seeded with `0`, restarted for each story, so the same command can have an exact token assertion. Test values are deterministic and belong only in tests.
 
 ## Design priorities
 

@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Exit, Fiber, Layer, PubSub, Scope, Stream } from "effect";
 import { RpcClient } from "effect/rpc";
 import { browserReads } from "#server/browserReads.ts";
@@ -10,7 +10,7 @@ export const subscriptionClients = storyKit({
 	*create() {
 		const { url, held, opened } = yield* readPageHost;
 		const openings = yield* PubSub.subscribe(opened);
-		const observed = yield* browserReads({ contracts: [ReadPage], url, webSocketConstructor: layerWebSocketConstructorWS });
+		const observed = yield* browserReads({ contracts: [ReadPage], url, webSocketConstructor: layerWebSocketConstructor });
 		const context = yield* Layer.build(observed.protocol(undefined));
 		const clients = new Map<string, Scope.Closeable>();
 		return { clients, context, held, observed, openings };

@@ -1,4 +1,5 @@
-import { Clock, Crypto, Effect, Layer } from "effect";
+import { Clock, Effect, Layer } from "effect";
+import { SecureRandom } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
@@ -18,7 +19,7 @@ export const handlers = storyKit({
 	*create() {
 		yield* TestClock.setTime(123_000);
 		const clock = yield* Clock.Clock;
-		const crypto = yield* Crypto.Crypto;
+		const random = yield* SecureRandom.SecureRandom;
 		const state = {
 			browser: false,
 			mapFailure: true,
@@ -26,7 +27,7 @@ export const handlers = storyKit({
 			text: "first clipboard text",
 			throws: false,
 		};
-		const runtime = Atom.runtime(Layer.merge(Layer.succeed(Clock.Clock, clock), Layer.succeed(Crypto.Crypto, crypto)));
+		const runtime = Atom.runtime(Layer.merge(Layer.succeed(Clock.Clock, clock), Layer.succeed(SecureRandom.SecureRandom, random)));
 		const screen = new Screen(() => undefined);
 		function call(text: string) {
 			if (state.throws) {

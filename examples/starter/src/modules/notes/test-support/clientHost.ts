@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -26,7 +26,7 @@ export const notesClientHost = Effect.fnUntraced(function* (
 		return yield* Effect.die("Expected a TCP notes host");
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
-	const observed = yield* browserReads({ contracts: [Notes], url, webSocketConstructor: layerWebSocketConstructorWS });
+	const observed = yield* browserReads({ contracts: [Notes], url, webSocketConstructor: layerWebSocketConstructor });
 	const client = makeClient(Notes, { protocol: observed.protocol, url });
 	return { api: client.api, observed, runtime: client.runtime, [Activity]: clientActivity(client) };
 });

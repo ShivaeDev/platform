@@ -1,4 +1,4 @@
-import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
 import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -19,7 +19,7 @@ export const foundationJobsScreen = storyKit({
 		const { headers } = yield* mintUser(host, "operator", "admin");
 		const client = makeFoundationClient(`${host.baseUrl}/rpc`, {
 			headers: { cookie: headers.get("cookie") ?? "", origin: host.origin },
-			webSocketConstructor: layerWebSocketConstructorWS,
+			webSocketConstructor: layerWebSocketConstructor,
 		});
 		const surface: ScreenSurface = { activity: client.activity, view: undefined };
 		return { client, surface };

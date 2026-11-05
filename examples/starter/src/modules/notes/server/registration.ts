@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Path } from "effect";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -34,7 +34,7 @@ export const notesRegistration = {
 	group: Notes,
 	handlers,
 	migrations: {
-		loader: Effect.flatMap(Path.Path, (path) => Migrator.fromFileSystem(path.join(import.meta.dirname, "migrations"))).pipe(
+		loader: Effect.flatMap(Path.Path, (path) => MigratorFileSystem.fromFileSystem(path.join(import.meta.dirname, "migrations"))).pipe(
 			Effect.provide(NodeServices.layer),
 		),
 	},

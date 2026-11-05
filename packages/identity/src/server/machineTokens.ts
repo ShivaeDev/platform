@@ -1,4 +1,5 @@
-import { Crypto, Effect, Option, Redacted, Schema } from "effect";
+import { Effect, Option, Redacted, Schema } from "effect";
+import { Digest, SecureRandom } from "effect/crypto";
 import * as Hex from "effect/encoding/Hex";
 import { Model } from "effect/schema";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
@@ -17,19 +18,20 @@ export const machineTokens = Effect.fn("Identity.machineTokens")(function* (opti
 	readonly owner: Pick<SessionUserValue, "id" | "name" | "email">;
 	readonly roles: RoleSet;
 }) {
-	const crypto = yield* Crypto.Crypto;
+	const random = yield* SecureRandom.SecureRandom;
+	const hashes = yield* Digest.Digest;
 	const repository = yield* makeRepository(MachineToken, {
 		idColumn: "id",
 		spanPrefix: "MachineTokens",
 		tableName: "identity_machine_tokens",
 	});
 	function digest(token: string) {
-		return crypto.digest("SHA-256", new TextEncoder().encode(token)).pipe(Effect.map(Hex.encode));
+		return hashes.digestHex(Digest.sha256, new TextEncoder().encode(token));
 	}
 	return {
 		issue: Effect.fn("MachineTokens.issue")(function* (input: { readonly name: string; readonly scope: string }) {
 			yield* options.roles.resolve(input.scope);
-			const token = Hex.encode(yield* crypto.randomBytes(32));
+			const token = Hex.encode(yield* random.randomBytes(32));
 			const id = yield* digest(token);
 			yield* repository.insertVoid({ id, name: input.name, ownerId: options.owner.id, scope: input.scope });
 			return { id, ...input, token: Redacted.make(token) };

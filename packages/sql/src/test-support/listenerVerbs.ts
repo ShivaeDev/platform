@@ -118,6 +118,7 @@ export function listenerVerbs(engine: ChangeFeedEngine, tell: (line: string) => 
 		listenerReconnects: () =>
 			Effect.gen(function* () {
 				tell("the retry delay passes, and the listener listens again and answers its heartbeat");
+				yield* Queue.take(events.retries);
 				yield* TestClock.adjust(engine.timing.retryDelay);
 				yield* Queue.take(events.listeners);
 				yield* Queue.take(events.recoveries);
@@ -126,6 +127,7 @@ export function listenerVerbs(engine: ChangeFeedEngine, tell: (line: string) => 
 			Effect.gen(function* () {
 				tell(`the retry delay passes, the listener listens again, and its heartbeat is answered ${delay} later`);
 				controls.muted = true;
+				yield* Queue.take(events.retries);
 				yield* TestClock.adjust(engine.timing.retryDelay);
 				yield* Queue.take(events.listeners);
 				yield* TestClock.adjust(delay);
@@ -143,6 +145,7 @@ export function listenerVerbs(engine: ChangeFeedEngine, tell: (line: string) => 
 		reconnectFails: () =>
 			Effect.gen(function* () {
 				tell("the retry delay passes, and the listener fails to reconnect");
+				yield* Queue.take(events.retries);
 				yield* TestClock.adjust(engine.timing.retryDelay);
 				yield* Queue.take(events.reconnectFailures);
 			}),

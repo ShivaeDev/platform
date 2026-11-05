@@ -1,4 +1,4 @@
-import { Effect, Redacted } from "effect";
+import { Array as Arr, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -31,6 +31,9 @@ const registerInMigration = Effect.gen(function* () {
 		return yield* Effect.die(`Migration sign-up failed with HTTP ${response.status}: ${yield* Effect.promise(() => response.text())}`);
 	}
 	const users = yield* storage.userRoles;
+	if (!Arr.isReadonlyArrayNonEmpty(users)) {
+		return yield* Effect.die("Migration sign-up stored no user roles");
+	}
 	yield* sql`insert into migrated_registrations ${sql.insert(users)}`;
 }).pipe(Effect.scoped);
 

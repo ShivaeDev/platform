@@ -1,11 +1,10 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, Predicate } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
 import { qualityLifecycle, startQuality } from "./qualityLifecycle.ts";
 
 function biomeCheckArgs(command: ChildProcess.Command): readonly string[] | undefined {
-	return command._tag === "StandardCommand" && command.args.includes("check") && command.args.some((arg) => arg.endsWith("/biome/bin/biome"))
-		? command.args
-		: undefined;
+	const args = command._tag === "StandardCommand" ? command.args.filter(Predicate.isString) : [];
+	return args.includes("check") && args.some((arg) => arg.endsWith("/biome/bin/biome")) ? args : undefined;
 }
 
 export const biomeRunning = qualityLifecycle.trait(

@@ -1,4 +1,5 @@
-import { Crypto, Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
+import { Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
+import { SecureRandom } from "effect/crypto";
 import type { ChildProcessSpawner } from "effect/process";
 import { currentProcess } from "#adapters/currentProcess.ts";
 import { currentBranch } from "./currentBranch.ts";
@@ -44,8 +45,8 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	const self = yield* currentProcess;
 	const branch = yield* currentBranch.pipe(Effect.mapError(failWith("Could not read this process's Git branch.")));
 	const processStartedAt = yield* ownStartTime(self.pid);
-	const crypto = yield* Crypto.Crypto;
-	const holderId = yield* crypto.randomUUIDv4().pipe(Effect.mapError(failWith("Could not create the heavy-process lock id.")));
+	const random = yield* SecureRandom.SecureRandom;
+	const holderId = yield* random.uuidV4();
 	const holder = yield* waitForLock(
 		settings.lock,
 		{
@@ -61,7 +62,7 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	return heldBy(holder.id, settings.lock);
 });
 
-export type HeavyLockServices = Crypto.Crypto | FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
+export type HeavyLockServices = SecureRandom.SecureRandom | FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
 
 export function acquireHeavyLock(options: HeavyLockOptions = {}): Effect.Effect<HeldLockShape, HeavyLockError, Scope.Scope | HeavyLockServices> {
 	return Effect.flatMap(Effect.serviceOption(HeldLock), (held) => (Option.isSome(held) ? Effect.succeed(held.value) : acquire(options)));

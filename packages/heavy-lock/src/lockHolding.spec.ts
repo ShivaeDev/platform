@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { acquiredInScope, ci, heldBy, idBytes, inheritsHolderIdOf, layerBuilt, lockStory, running } from "#test/kit.ts";
 
-lockStory.it("ready records the lock id supplied by Effect's Crypto service", [idBytes(17)], function* ({ protocol, starts }) {
+lockStory.it("ready records the lock id supplied by Effect's SecureRandom service", [idBytes(17)], function* ({ protocol, starts }) {
 	yield* starts("ready");
 
 	expect(yield* protocol.recordedHolder()).toMatchObject({ id: "11111111-1111-4111-9111-111111111111" });

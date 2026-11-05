@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { basename, join, resolve } from "node:path";
-import { Console, Crypto, Effect, FileSystem } from "effect";
+import { Console, Effect, FileSystem } from "effect";
+import { SecureRandom } from "effect/crypto";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { databaseName } from "./appFiles.ts";
 import { CreateAppError } from "./CreateAppError.ts";
@@ -28,8 +29,8 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	yield* writeGeneration(target, { ...(options.minimal ? { minimal: true } : {}), name, version: options.version });
 	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
 	const database = databaseName(name);
-	const crypto = yield* Crypto.Crypto;
-	const secret = Buffer.from(yield* crypto.randomBytes(32)).toString("base64url");
+	const random = yield* SecureRandom.SecureRandom;
+	const secret = Buffer.from(yield* random.randomBytes(32)).toString("base64url");
 	yield* fs.writeFileString(
 		join(target, ".env.local"),
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${secret}\n`,

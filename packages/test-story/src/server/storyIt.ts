@@ -1,8 +1,9 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import type { TestContext } from "@effect/vitest";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as TestCrypto from "effect/testing/TestCrypto";
+import * as Random from "effect/Random";
 import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 import type { EffectTest } from "@shivaedev/test/types.ts";
 import { declareGenre } from "#server/adapters/declareGenre.ts";
@@ -14,6 +15,17 @@ import type { LooseDefinition, LooseTrait } from "#server/seed.ts";
 import { start } from "#server/start.ts";
 import type { StoryTestOptions } from "#server/storyOptions.ts";
 import { withWatchedClock } from "#server/withWatchedClock.ts";
+
+export type StoryCrypto = Layer.Success<typeof NodeCrypto.layer>;
+
+const seededRandom = Effect.gen(function* () {
+	const random = yield* Random.Random;
+	return SecureRandom.make((size) => Uint8Array.from({ length: size }, () => Math.floor(random.nextDoubleUnsafe() * 256)));
+});
+
+function storyCrypto(seed: number): Layer.Layer<StoryCrypto> {
+	return Layer.merge(NodeCrypto.layer, Layer.effect(SecureRandom.SecureRandom, Random.withSeed(seededRandom, seed)));
+}
 
 type LooseBody = (told: object, context: TestContext) => Generator<AnyEffect, unknown, never> | undefined;
 
@@ -48,7 +60,7 @@ export function storyIt(definition: LooseDefinition): LooseIt {
 					yield* routeOutbound(outbound, { passthrough: definition.outboundPassthrough === true });
 				}
 				return yield* definition.around?.(effect) ?? effect;
-			}).pipe(Effect.provide(TestCrypto.layer(0).pipe(Layer.provide(NodeCrypto.layer))), withWatchedClock),
+			}).pipe(Effect.provide(storyCrypto(0)), withWatchedClock),
 		clock: definition.clock,
 		layer: definition.layer ?? Layer.empty,
 		makeHarness: () => Effect.void,

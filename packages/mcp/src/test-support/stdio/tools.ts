@@ -6,6 +6,10 @@ export class ResourceFile extends Context.Service<ResourceFile, string>()("@shiv
 
 export const ResourceAnswer = Schema.Struct({ text: Schema.String });
 
+export function resourceFile(file: string) {
+	return McpServer.middleware<{ provides: ResourceFile }>()((effect) => Effect.provideService(effect, ResourceFile, file));
+}
+
 const Tools = Toolkit.make(
 	Tool.make("readResource", { dependencies: [ResourceFile], success: ResourceAnswer }),
 	Tool.make("holdResource", { dependencies: [ResourceFile], success: ResourceAnswer }),

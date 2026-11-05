@@ -71,11 +71,13 @@ Use `mcpStdio` from `@shivaedev/mcp/stdio.ts` when an MCP client starts your int
 ```ts
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Logger } from "effect";
+import { McpServer } from "effect/ai";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { mcpStdio } from "@shivaedev/mcp/stdio.ts";
 
-mcpStdio({ name: "Local integration", version: "1", tools: userTools }).pipe(
-	Layer.provide(Layer.succeed(Identity, { id: "local-user" })),
+const localUser = McpServer.middleware<{ provides: Identity }>()((effect) => Effect.provideService(effect, Identity, { id: "local-user" }));
+
+mcpStdio({ name: "Local integration", version: "1", tools: userTools.pipe(Layer.provide(localUser.layer)) }).pipe(
 	Layer.launch,
 	Effect.provideService(Logger.LogToStderr, true),
 	Effect.provide(NodeServices.layer),
@@ -85,7 +87,7 @@ mcpStdio({ name: "Local integration", version: "1", tools: userTools }).pipe(
 
 `userTools` is the toolkit Layer declared above. The stdio entry point requires Effect's `Stdio` service, supplied here by `NodeServices.layer` from `@effect/platform-node`. Keep stdout for MCP messages and direct application logs to stderr. The server supports MCP `2026-07-28` and `2025-11-25` over newline-delimited JSON-RPC. Its Layer scope owns the transport and handlers: cancelling a tool call releases its scoped resources, and closing the client stops the child process and releases in-flight tool resources.
 
-Stdio uses the services supplied by the local application. It does not run the HTTP session policy or select permission-based audiences; the application chooses which toolkits and identity services to provide to its local client.
+Stdio uses the services supplied by the local application. It does not run the HTTP session policy or select permission-based audiences; the application chooses which toolkits to serve and supplies the identity its tools read. Services a tool declares in `dependencies` are request-level in Effect's `McpServer`: supply them through `McpServer.middleware` provided to the toolkit Layer, as `localUser` does here, because `Layer.provide` with the service itself does not satisfy them.
 
 ### Connect OAuth to identity and the host
 

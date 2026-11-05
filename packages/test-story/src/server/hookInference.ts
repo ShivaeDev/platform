@@ -1,5 +1,6 @@
-import type { Context, Crypto, Layer, Scope } from "effect";
+import type { Context, Layer, Scope } from "effect";
 import type { AnyEffect, HookEffects, HookValue, ServicesOf } from "#server/hooked.ts";
+import type { StoryCrypto } from "#server/storyIt.ts";
 import type { StoryKitDefinition } from "#server/storyKit.ts";
 
 export type AfterResults<TStage extends string> = {
@@ -9,9 +10,9 @@ export type AfterResults<TStage extends string> = {
 type ContextServices<T> = T extends Context.Context<infer R> ? R : never;
 export type AfterServices<TAfter> = { [TKey in keyof TAfter]: ContextServices<HookValue<TAfter[TKey]>> }[keyof TAfter];
 
-type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope | Crypto.Crypto>] extends [TProvided]
+type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope | StoryCrypto>] extends [TProvided]
 	? unknown
-	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope | Crypto.Crypto>, unknown, never> };
+	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope | StoryCrypto>, unknown, never> };
 
 export type InferredDefinition<
 	TCreate extends () => unknown,

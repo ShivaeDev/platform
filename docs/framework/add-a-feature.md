@@ -64,7 +64,7 @@ Export an object satisfying `AppModule`. Its required fields are `name`, `group`
 import { resolve } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
-import { Migrator } from "effect/sql";
+import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -90,7 +90,7 @@ export const bookmarksRegistration = {
 	handlers,
 	services: BookmarksService.layer,
 	migrations: {
-		loader: Migrator.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
+		loader: MigratorFileSystem.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
 	},
 } satisfies AppModule;
 ```
