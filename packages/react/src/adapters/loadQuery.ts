@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
+import { recheckUnauthorized } from "#sessionRecheck.ts";
 import { keepLoaderQuery } from "./queryHandoff.ts";
 
 export async function loadQuery<A, E>(

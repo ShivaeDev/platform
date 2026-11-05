@@ -10,7 +10,7 @@ const domEnvironment: Environment = {
 		const load = createRequire(import.meta.url);
 		const { documentTransport }: typeof import("#server/adapters/documentTransport.ts") = load("#server/adapters/documentTransport.ts");
 		const { installOutbound }: typeof import("#server/adapters/installOutbound.ts") = load("#server/adapters/installOutbound.ts");
-		const { installDomTimers }: typeof import("#server/internal/installDomTimers.ts") = load("#server/internal/installDomTimers.ts");
+		const { installDomTimers }: typeof import("#server/installDomTimers.ts") = load("#server/installDomTimers.ts");
 		const native = Object.fromEntries(
 			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),
 		);

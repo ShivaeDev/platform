@@ -1,10 +1,10 @@
 import { Clock, Context, Effect, Layer, type Redacted, type Scope } from "effect";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+import { connectionLimitHint } from "#server/connectionLimitHint.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "#server/database.ts";
-import { connectionLimitHint } from "#server/internal/connectionLimitHint.ts";
-import { databaseCleanup } from "#server/internal/databaseCleanup.ts";
-import { database } from "#server/internal/databases.ts";
+import { databaseCleanup } from "#server/databaseCleanup.ts";
+import { database } from "#server/databases.ts";
 
 export type PostgresTestLoader<E = never, R = never> = (
 	url: Redacted.Redacted<string>,

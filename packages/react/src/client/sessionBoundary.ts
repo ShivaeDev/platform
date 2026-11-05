@@ -9,8 +9,8 @@ import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
 import { SessionSignOut } from "#client/adapters/SessionSignOut.ts";
 import { useSessionRetry } from "#client/adapters/useSessionRetry.ts";
-import { RecheckContext } from "#internal/RecheckContext.ts";
-import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
+import { RecheckContext } from "#RecheckContext.ts";
+import { SignOutRegistryContext } from "#SignOutRegistryContext.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;

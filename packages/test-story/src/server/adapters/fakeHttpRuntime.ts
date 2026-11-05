@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
+import { fakeHttpControls } from "#server/fakeHttpControls.ts";
 import type { FakeHttpRequestRecord, FakeHttpServiceOptions } from "#server/fakeHttpService.ts";
-import { fakeHttpControls } from "#server/internal/fakeHttpControls.ts";
-import { fakeHttpSignals } from "#server/internal/fakeHttpSignals.ts";
+import { fakeHttpSignals } from "#server/fakeHttpSignals.ts";
 import { fakeHttpReceive } from "./fakeHttpReceive.ts";
 import { loopbackServer } from "./loopback.ts";
 

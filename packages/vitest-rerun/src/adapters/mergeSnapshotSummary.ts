@@ -1,5 +1,5 @@
 import type { SnapshotSummary } from "vitest";
-import type { Snapshot } from "#internal/snapshot.ts";
+import type { Snapshot } from "#snapshot.ts";
 
 export function mergeSnapshotSummary(previous: Snapshot["summary"], current: SnapshotSummary): SnapshotSummary {
 	return {

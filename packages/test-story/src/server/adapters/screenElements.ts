@@ -1,6 +1,6 @@
-import { screenText } from "#server/internal/screenText.ts";
-import { targetName } from "#server/internal/targetName.ts";
 import type { ScreenTarget } from "#server/screenDriver.ts";
+import { screenText } from "#server/screenText.ts";
+import { targetName } from "#server/targetName.ts";
 import { isRendered } from "./screenAccessibility.ts";
 import { screenQueries } from "./screenQueries.ts";
 

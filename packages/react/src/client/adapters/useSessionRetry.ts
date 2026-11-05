@@ -3,8 +3,8 @@ import { Effect, Layer, Schedule } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useMemo } from "react";
+import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import type { SessionBoundaryProps } from "#client/sessionBoundary.ts";
-import { useLatestCallback } from "#internal/adapters/useLatestCallback.ts";
 
 const defaultRuntime = Atom.runtime(Layer.empty);
 

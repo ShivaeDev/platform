@@ -1,6 +1,6 @@
 import { Effect, Option, Ref } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { CommandResultKeys } from "#internal/CommandResultKeys.ts";
+import { CommandResultKeys } from "#CommandResultKeys.ts";
 
 export const commandResult = Effect.fnUntraced(function* <A>(value: {
 	readonly result: A;

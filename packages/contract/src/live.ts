@@ -4,13 +4,13 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Key } from "@shivaedev/changes/keys.ts";
 import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "#clientKeys.ts";
-import { liveAttempt } from "#internal/liveAttempt.ts";
-import { invalidateLive } from "#internal/liveInvalidation.ts";
-import { livePending } from "#internal/livePending.ts";
-import { liveRetry } from "#internal/liveRetry.ts";
-import { retryOnChange } from "#internal/retryOnChange.ts";
+import { liveAttempt } from "#liveAttempt.ts";
+import { invalidateLive } from "#liveInvalidation.ts";
+import { livePending } from "#livePending.ts";
+import { liveRetry } from "#liveRetry.ts";
 import type { SubscriptionHint } from "#queryUpdate.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
+import { retryOnChange } from "#retryOnChange.ts";
 
 export const LiveHint = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key), queryIndexes: Schema.optional(Schema.Array(Schema.Number)) }),

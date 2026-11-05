@@ -23,6 +23,6 @@ export interface BrowserReadsOptions {
 }
 
 export const browserReads = Effect.fn("BrowserStory.browserReads")(function* (options: BrowserReadsOptions) {
-	const { observeBrowser } = yield* Effect.promise(() => import("#server/internal/observeBrowser.ts"));
+	const { observeBrowser } = yield* Effect.promise(() => import("#server/observeBrowser.ts"));
 	return yield* observeBrowser(options);
 });

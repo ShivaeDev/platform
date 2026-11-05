@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import type { TestContext } from "vitest";
 import type { FailedTest } from "#server/adapters/failureReport.ts";
-import { describeFailure } from "#server/internal/render.ts";
+import { describeFailure } from "#server/render.ts";
 
 export type FailureContext = Pick<TestContext, "onTestFailed" | "task">;
 

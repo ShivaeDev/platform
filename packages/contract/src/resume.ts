@@ -1,5 +1,5 @@
 import * as Atom from "effect/reactivity/Atom";
-import { resumeSources } from "#internal/resumeSources.ts";
+import { resumeSources } from "#resumeSources.ts";
 
 export type ResumeSource = (resume: () => void) => () => void;
 

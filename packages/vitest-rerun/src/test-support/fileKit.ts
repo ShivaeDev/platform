@@ -3,8 +3,8 @@ import { serialize } from "node:v8";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { readSnapshot } from "#internal/snapshot.ts";
-import { writeTimedReport } from "#internal/writeTimedReport.ts";
+import { readSnapshot } from "#snapshot.ts";
+import { writeTimedReport } from "#writeTimedReport.ts";
 
 export const filesStory = storyKit({
 	create: () =>

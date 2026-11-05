@@ -26,7 +26,7 @@ export async function receiveOtlp(
 			response.writeHead(HttpStatus.fromLiteral("UnsupportedMediaType")).end();
 			return;
 		}
-		const { otlpReadout } = await import("#server/internal/otlpReadout.ts");
+		const { otlpReadout } = await import("#server/otlpReadout.ts");
 		for (const span of otlpReadout(body, contentType)) {
 			record(span);
 		}

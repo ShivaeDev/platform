@@ -5,7 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { vi } from "@effect/vitest";
 import { Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
-import { main } from "#internal/main.ts";
+import { main } from "#main.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));

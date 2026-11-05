@@ -1,5 +1,5 @@
 import { Cause, Data, Redacted } from "effect";
-import { failureOutput } from "#server/internal/failureOutput.ts";
+import { failureOutput } from "#server/failureOutput.ts";
 
 export type PgBossOperation =
 	| "counts"

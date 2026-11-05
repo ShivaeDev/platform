@@ -4,12 +4,12 @@ import type * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { directScreenAct, screenAct, screenPerform } from "#server/adapters/screenAct.ts";
 import { screenElements } from "#server/adapters/screenElements.ts";
-import { nextScreenHint } from "#server/internal/nextScreenHint.ts";
-import { screenInteractions } from "#server/internal/screenInteractions.ts";
-import { screenReadouts } from "#server/internal/screenReadouts.ts";
-import { screenWaits } from "#server/internal/screenWaits.ts";
-import { targetName } from "#server/internal/targetName.ts";
+import { nextScreenHint } from "#server/nextScreenHint.ts";
+import { screenInteractions } from "#server/screenInteractions.ts";
+import { screenReadouts } from "#server/screenReadouts.ts";
 import type { ScreenSignal } from "#server/screenSignal.ts";
+import { screenWaits } from "#server/screenWaits.ts";
+import { targetName } from "#server/targetName.ts";
 import type { SignalNotReceived } from "#server/until.ts";
 import type { ScreenClock } from "#server/watchedClock.ts";
 

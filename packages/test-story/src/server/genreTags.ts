@@ -1,4 +1,4 @@
-import { genreOf } from "#server/internal/genre.ts";
+import { genreOf } from "#server/genre.ts";
 
 export interface GenreTag {
 	readonly description: string;

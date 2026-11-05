@@ -1,6 +1,6 @@
 import { Duration, Effect } from "effect";
 import { TestClock } from "effect/testing";
-import { CatalogClock } from "#server/internal/clocks.ts";
+import { CatalogClock } from "#server/clocks.ts";
 
 export const withCatalogClock = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const clock = yield* TestClock.make();

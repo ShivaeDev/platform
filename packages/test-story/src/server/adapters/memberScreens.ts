@@ -2,9 +2,9 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as Scope from "effect/Scope";
+import { memberFetch } from "#server/adapters/memberFetch.ts";
 import { type DomCookie, seedCookies } from "#server/adapters/seedCookies.ts";
 import { domFetch } from "#server/domFetch.ts";
-import { memberFetch } from "#server/internal/adapters/memberFetch.ts";
 
 export interface MemberScreen {
 	readonly fetch: typeof globalThis.fetch;

@@ -7,10 +7,10 @@ import { RpcTest } from "effect/rpc";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
-import { socketIdentity } from "#internal/rpcClient.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
+import { socketIdentity } from "#rpcClient.ts";
 import { Access, Guard, Records } from "./deniedContract.ts";
 import { syntheticNative } from "./resumeSources.ts";
 

@@ -2,7 +2,7 @@ import { Clock, DateTime, Deferred, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Receipt } from "#server/internal/Receipt.ts";
+import { Receipt } from "#server/Receipt.ts";
 import { auditQueue } from "#test/fixture.ts";
 import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
 import { configured, postgresLayer } from "#test/postgresLayer.ts";

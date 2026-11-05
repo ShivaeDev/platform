@@ -5,7 +5,7 @@ import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { WorkerJob } from "@shivaedev/jobs/server/job.ts";
 import { testingEngine } from "#jobs/adapters/testingEngine.ts";
 import { testingExpirations } from "#jobs/adapters/testingExpirations.ts";
-import type { TestingBatch, TestingWork } from "#jobs/internal/testingIdle.ts";
+import type { TestingBatch, TestingWork } from "#jobs/testingIdle.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;

@@ -1,9 +1,9 @@
 import { Deferred, Effect } from "effect";
 import { RpcMessage, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
-import { ConnectionReadiness } from "#internal/connectionReadiness.ts";
-import { resumeSources } from "#internal/resumeSources.ts";
+import { ConnectionReadiness } from "#connectionReadiness.ts";
 import type { ResumeOptions } from "#resume.ts";
+import { resumeSources } from "#resumeSources.ts";
 
 export const resumeSocket = Effect.fnUntraced(function* (options: ResumeOptions) {
 	const socket = yield* Socket.Socket;

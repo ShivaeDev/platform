@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { send } from "#server/internal/log-mailer/send.ts";
+import { send } from "#server/log-mailer/send.ts";
 
 export const Mailer = defineService({
 	id: "@shivaedev/email/Mailer",

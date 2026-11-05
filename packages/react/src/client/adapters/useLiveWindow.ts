@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect } from "react";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
-import { registerLiveWindow } from "#internal/registerLiveWindow.ts";
+import { registerLiveWindow } from "#registerLiveWindow.ts";
 
 export function useLiveWindow(atom: Atom.Atom<unknown>, window: Duration.Input | undefined): void {
 	const registry = useContext(RegistryContext);

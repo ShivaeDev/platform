@@ -3,11 +3,11 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Console, Effect, FileSystem, Option } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { ATTEMPT_REPORT, attemptPaths, reportPaths } from "#internal/reportPaths.ts";
-import { failedFiles, readSnapshot } from "#internal/snapshot.ts";
 import type { RerunOptions } from "#options.ts";
+import { ATTEMPT_REPORT, attemptPaths, reportPaths } from "#reportPaths.ts";
+import { failedFiles, readSnapshot } from "#snapshot.ts";
 
-const ATTEMPT_MODULE = fileURLToPath(import.meta.resolve("#internal/attempt.ts"));
+const ATTEMPT_MODULE = fileURLToPath(import.meta.resolve("#attempt.ts"));
 
 const removeReports = Effect.fn("VitestRerun.removeReports")(function* (outputDir: string) {
 	const fs = yield* FileSystem.FileSystem;

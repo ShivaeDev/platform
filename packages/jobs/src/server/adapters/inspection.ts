@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { jobEngine } from "#server/adapters/jobEngine.ts";
 import type { PgBossClient } from "#server/client.ts";
+import { countsFor } from "#server/countsFor.ts";
+import { JobEngine } from "#server/engine.ts";
+import { healthFor } from "#server/healthFor.ts";
 import type { PgBossInspectionService } from "#server/inspection.ts";
-import { countsFor } from "#server/internal/countsFor.ts";
-import { JobEngine } from "#server/internal/engine.ts";
-import { healthFor } from "#server/internal/healthFor.ts";
-import { jobControl } from "#server/internal/jobControl.ts";
-import { jobListings } from "#server/internal/jobListings.ts";
+import { jobControl } from "#server/jobControl.ts";
+import { jobListings } from "#server/jobListings.ts";
 import { inspectionChanges } from "./inspectionChanges.ts";
 import { inspectionReads } from "./inspectionReads.ts";
 

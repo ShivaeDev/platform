@@ -1,7 +1,7 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
 import { Effect, type Scope } from "effect";
 import type { TestAPI } from "vitest";
-import { type Body, effectOf } from "#internal/effectOf.ts";
+import { type Body, effectOf } from "#effectOf.ts";
 import type { EffectClock, EffectIt, EffectItTest, EffectItTester } from "#types.ts";
 import { runEffectTest } from "./runEffectTest.ts";
 

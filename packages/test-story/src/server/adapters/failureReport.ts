@@ -2,9 +2,9 @@ import { relative } from "node:path";
 import process from "node:process";
 import { locate } from "#server/adapters/callSite.ts";
 import { engineSnapshot } from "#server/adapters/engineSnapshot.ts";
-import type { Narration, Subject } from "#server/internal/narration.ts";
-import { describeValue } from "#server/internal/render.ts";
-import { explained, WIDTH, wrap } from "#server/internal/wrap.ts";
+import type { Narration, Subject } from "#server/narration.ts";
+import { describeValue } from "#server/render.ts";
+import { explained, WIDTH, wrap } from "#server/wrap.ts";
 
 export interface FailedTest {
 	readonly file: string;

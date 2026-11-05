@@ -1,5 +1,5 @@
 import { isInaccessible } from "dom-accessibility-api";
-import { screenText } from "#server/internal/screenText.ts";
+import { screenText } from "#server/screenText.ts";
 import { isRendered } from "./screenAccessibility.ts";
 import { screenQueries } from "./screenQueries.ts";
 

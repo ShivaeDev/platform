@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { hooked } from "#server/internal/hooked.ts";
+import { hooked } from "#server/hooked.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { attempt } from "./attempt.ts";
 

@@ -1,7 +1,7 @@
 import process from "node:process";
 import { type Context, Deferred, Effect, Exit, Fiber, Layer, Queue, type Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseId } from "#server/internal/databaseOwner.ts";
+import { databaseId } from "#server/databaseOwner.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "#server/postgres.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";

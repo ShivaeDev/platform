@@ -1,8 +1,8 @@
 import { Clock, Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { CleanupClock } from "#server/clocks.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
-import { CleanupClock } from "#server/internal/clocks.ts";
 import { observeUntil } from "#server/observeUntil.ts";
 import type { CleanupEngine } from "./cleanup.ts";
 import { attempt } from "./outcome.ts";

@@ -1,13 +1,13 @@
 import { Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware } from "effect/rpc";
-import { declarationError, type Unique } from "#internal/declarationError.ts";
-import { subjectMiddleware } from "#internal/subjectMiddleware.ts";
+import { declarationError, type Unique } from "#declarationError.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
 import type { SubjectDeclaration, WithSubject } from "#subject.ts";
+import { subjectMiddleware } from "#subjectMiddleware.ts";
 
 export type QueryServices<TQuery> = TQuery extends QueryShape<unknown, infer R> ? R : never;
 

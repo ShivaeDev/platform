@@ -1,9 +1,9 @@
 import { engineSummary } from "#server/adapters/engineSummary.ts";
 import type { FailedTest } from "#server/adapters/failureReport.ts";
 import { writeSnapshot } from "#server/adapters/writeSnapshot.ts";
-import type { Subject } from "#server/internal/narration.ts";
-import { describeValue, toJson } from "#server/internal/render.ts";
-import { WIDTH, wrap, wrapJson } from "#server/internal/wrap.ts";
+import type { Subject } from "#server/narration.ts";
+import { describeValue, toJson } from "#server/render.ts";
+import { WIDTH, wrap, wrapJson } from "#server/wrap.ts";
 
 const INLINE_CHARACTERS = 2000;
 

@@ -3,7 +3,7 @@ import type { PgBossClient } from "#server/client.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
 import { deadLetterQueueName } from "#server/health.ts";
-import { registrationNames } from "#server/internal/register.ts";
+import { registrationNames } from "#server/register.ts";
 
 export const retireJobs = Effect.fnUntraced(function* (client: PgBossClient, jobs: readonly JobRegistration[], retired: readonly string[]) {
 	yield* Effect.try({

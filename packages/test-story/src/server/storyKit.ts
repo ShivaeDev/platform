@@ -1,13 +1,13 @@
 import type { TestContext } from "@effect/vitest";
 import type { Crypto, Effect, Layer, Scope } from "effect";
-import { compose } from "#server/internal/compose.ts";
-import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/internal/compositionTypes.ts";
-import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/internal/hooked.ts";
-import type { AfterResults, AfterServices, InferredDefinition } from "#server/internal/hookInference.ts";
-import type { LooseDefinition } from "#server/internal/seed.ts";
-import { storyIt } from "#server/internal/storyIt.ts";
-import { type Parts, trait, traits } from "#server/internal/traits.ts";
+import { compose } from "#server/compose.ts";
+import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/compositionTypes.ts";
+import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/hooked.ts";
+import type { AfterResults, AfterServices, InferredDefinition } from "#server/hookInference.ts";
+import type { LooseDefinition } from "#server/seed.ts";
+import { storyIt } from "#server/storyIt.ts";
 import type { StoryClock, StoryTestOptions } from "#server/storyOptions.ts";
+import { type Parts, trait, traits } from "#server/traits.ts";
 
 export type Trait<TEngine, TStage extends string, R = never> = Parts<TStage, (engine: TEngine) => Effect.Effect<void, unknown, R>>;
 

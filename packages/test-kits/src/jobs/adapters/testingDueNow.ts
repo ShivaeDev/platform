@@ -1,6 +1,6 @@
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
-import { testingOperation } from "#jobs/internal/testingOperation.ts";
+import { testingOperation } from "#jobs/testingOperation.ts";
 import { quotedSchema } from "./quotedSchema.ts";
 
 export function testingDueNow(client: () => EngineClient, schema: () => string, changed: () => void) {

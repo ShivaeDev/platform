@@ -1,6 +1,6 @@
 import type { Effect, Schema } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
-import type { subjectMiddleware } from "#internal/subjectMiddleware.ts";
+import type { subjectMiddleware } from "#subjectMiddleware.ts";
 
 export interface SubjectDeclaration {
 	readonly error: Schema.Top;

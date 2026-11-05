@@ -1,7 +1,7 @@
 import { Clock, Duration, Effect, Schema } from "effect";
 import type { QueueDisplay, SubjectColumn } from "#display.ts";
+import { maxDeferrals, nativeQueueOptions } from "#server/definitionOptions.ts";
 import type { ScheduleOptions } from "#server/enqueueOptions.ts";
-import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOptions.ts";
 import type { WorkerJob } from "#server/job.ts";
 import type { QueueOptions, QueuePolicy } from "#server/queueOptions.ts";
 import type { WorkerOptions } from "#server/workerOptions.ts";

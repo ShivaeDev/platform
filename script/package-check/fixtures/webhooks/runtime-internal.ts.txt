@@ -1,1 +1,1 @@
-import "@shivaedev/webhooks/server/internal/Receipt.ts";
+import "@shivaedev/webhooks/server/Receipt.ts";

@@ -1,12 +1,12 @@
 import { Cause, Clock, Effect, Exit } from "effect";
 import { batchClockOffset } from "#server/adapters/batchClockOffset.ts";
 import type { PgBossClient } from "#server/client.ts";
+import { deadlineOf } from "#server/deadlineOf.ts";
+import { deferredAttempt } from "#server/deferral.ts";
 import { toPgBossError } from "#server/error.ts";
-import { deadlineOf } from "#server/internal/deadlineOf.ts";
-import { deferredAttempt } from "#server/internal/deferral.ts";
-import { failureOutput } from "#server/internal/failureOutput.ts";
-import { waitForBatchExpiry } from "#server/internal/waitForBatchExpiry.ts";
+import { failureOutput } from "#server/failureOutput.ts";
 import type { WorkerJob } from "#server/job.ts";
+import { waitForBatchExpiry } from "#server/waitForBatchExpiry.ts";
 
 function settleAttempt(
 	complete: NonNullable<PgBossClient["complete"]>,

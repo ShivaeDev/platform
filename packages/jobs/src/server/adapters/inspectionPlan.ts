@@ -1,4 +1,4 @@
-import { quotedSchema } from "#server/internal/storedRows.ts";
+import { quotedSchema } from "#server/storedRows.ts";
 
 export function inspectionChannel(schema: string): string {
 	return `jobs:${schema}`;

@@ -1,7 +1,7 @@
 import { type Context, type Effect, Layer } from "effect";
 import { Rpc, type RpcGroup, type RpcMiddleware } from "effect/rpc";
-import { SUBJECT_TYPE_ID } from "#internal/subjectMiddleware.ts";
 import type { SubjectDeclaration } from "#subject.ts";
+import { SUBJECT_TYPE_ID } from "#subjectMiddleware.ts";
 
 type Middleware<R extends Rpc.Any> = R extends { readonly middlewares: ReadonlySet<infer TMiddleware> }
 	? Extract<TMiddleware, { readonly [SUBJECT_TYPE_ID]: SubjectDeclaration }>

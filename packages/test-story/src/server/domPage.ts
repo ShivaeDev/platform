@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as SubscriptionRef from "effect/SubscriptionRef";
-import { pageFetch } from "#server/internal/adapters/pageFetch.ts";
+import { pageFetch } from "#server/adapters/pageFetch.ts";
 
 export const domPage = Effect.fn("BrowserStory.domPage")(function* (url: string) {
 	const pending = yield* SubscriptionRef.make(false);

@@ -1,1 +1,1 @@
-import "@shivaedev/test/internal/environmentFor.ts"
+import "@shivaedev/test/environmentFor.ts"

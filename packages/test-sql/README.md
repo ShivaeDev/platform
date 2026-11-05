@@ -330,7 +330,7 @@ For teardown stories, pass `{ holdDisconnects: true }`: `disconnecting` signals 
 
 ### API
 
-Import each name from the module that defines it. The package has no root entry. Every source module is available through its `.ts` subpath, including modules under `server/internal/`.
+Import each name from the module that defines it. The package has no root entry. Every source module is available through its `.ts` subpath.
 
 | Module                                               | Exports                                                                                                                                                                                                                                                     |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

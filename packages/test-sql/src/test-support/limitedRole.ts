@@ -1,6 +1,6 @@
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseId } from "#server/internal/databaseOwner.ts";
+import { databaseId } from "#server/databaseOwner.ts";
 import { adminUrl } from "./postgres.ts";
 
 export const limitedRole = Effect.fn("ConnectionBudget.limitedRole")(function* (limit = 1) {

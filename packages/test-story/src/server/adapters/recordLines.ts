@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline";
 import type { Readable } from "node:stream";
 import * as Effect from "effect/Effect";
-import { recordedSignals } from "#server/internal/recordedSignals.ts";
+import { recordedSignals } from "#server/recordedSignals.ts";
 
 export const recordLines = Effect.fnUntraced(function* (output: Readable) {
 	const signals = recordedSignals<string, Error>();

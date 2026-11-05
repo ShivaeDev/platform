@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Scope from "effect/Scope";
-import { effectOf } from "#internal/effectOf.ts";
+import { effectOf } from "#effectOf.ts";
 import type {
 	AnyTestLayer,
 	EffectClock,

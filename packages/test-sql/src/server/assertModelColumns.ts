@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Data, Effect, Option } from "effect";
 import type { Model } from "effect/schema";
-import { modelColumnProblems } from "#server/internal/modelColumnProblems.ts";
+import { modelColumnProblems } from "#server/modelColumnProblems.ts";
 import type { PostgresColumn } from "./tableColumns.ts";
 
 export class ModelColumnMismatch extends Data.TaggedError("ModelColumnMismatch")<{

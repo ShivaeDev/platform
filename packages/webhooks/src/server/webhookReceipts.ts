@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { pendingPostgresMigrations } from "@shivaedev/sql/pendingPostgresMigrations.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
-import { receiptMigrations } from "#server/internal/receiptMigrations.ts";
+import { receiptMigrations } from "#server/receiptMigrations.ts";
 
 export interface WebhookReceiptsOptions {
 	readonly schema?: string | undefined;

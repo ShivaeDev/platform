@@ -1,10 +1,10 @@
 import { Context, type Effect, Schema } from "effect";
 import { Rpc, type RpcSchema } from "effect/rpc";
+import { changesSuccess } from "#changesSuccess.ts";
 import type { QueryServices } from "#contract.ts";
-import { changesSuccess } from "#internal/changesSuccess.ts";
-import { resolveQueries } from "#internal/resolveQueries.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { resolveQueries } from "#resolveQueries.ts";
 import { WebSocketRequired } from "#WebSocketRequired.ts";
 
 export class QueryDefinition extends Context.Service<QueryDefinition, { readonly definition: QueryShape }>()("@shivaedev/contract/QueryDefinition") {}

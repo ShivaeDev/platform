@@ -9,13 +9,13 @@ import type { Rpc, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
 import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
+import { clientOperations } from "#clientOperations.ts";
 import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared } from "#contract.ts";
-import { clientOperations } from "#internal/clientOperations.ts";
-import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Tag } from "#operationRpc.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
+import { type RpcSource, rpcClient } from "#rpcClient.ts";
 
 export type Failure<R extends Rpc.Any> =
 	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>

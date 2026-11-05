@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as VitestNode from "vitest/node";
 import { failWith } from "#error.ts";
-import type { Snapshot } from "#internal/snapshot.ts";
+import type { Snapshot } from "#snapshot.ts";
 import { deferCoverageThresholds } from "./deferCoverageThresholds.ts";
 import { mergeSnapshotSummary } from "./mergeSnapshotSummary.ts";
 import { RerunJunitReporter } from "./RerunJunitReporter.ts";
