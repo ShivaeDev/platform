@@ -39,6 +39,8 @@ function operationValues(checker: ts.TypeChecker, expression: ts.Expression, see
 	return [value];
 }
 
+type OperationLocations = Map<string, Map<string, ts.Node>>;
+
 interface OperationProblem {
 	readonly message: string;
 	readonly node: ts.Node;
@@ -58,6 +60,7 @@ function operationProblems(
 	member: ts.ObjectLiteralElementLike,
 	service: string | undefined,
 	file: string,
+	locations: OperationLocations,
 ): readonly OperationProblem[] {
 	const name = member.name;
 	if (name === undefined || !(ts.isIdentifier(name) || ts.isStringLiteral(name))) {
@@ -66,6 +69,14 @@ function operationProblems(
 	const expression = serviceProperty(object, name.text);
 	const span = `${service ?? "Service"}.${name.text}`;
 	const values = expression === undefined ? [member] : operationValues(checker, expression);
+	for (const value of values) {
+		const path = value.getSourceFile().fileName.replaceAll("\\", "/");
+		if (path !== file && posix.dirname(path) === posix.dirname(file)) {
+			const operations = locations.get(path) ?? new Map<string, ts.Node>();
+			operations.set(name.text, member);
+			locations.set(path, operations);
+		}
+	}
 	const found: OperationProblem[] = [];
 	if (service === undefined || !values.every((value) => tracedOperation(checker, value, span))) {
 		found.push({
@@ -77,11 +88,11 @@ function operationProblems(
 		expression !== undefined
 		&& values.some((value) => {
 			const path = value.getSourceFile().fileName.replaceAll("\\", "/");
-			return posix.dirname(path) !== posix.dirname(file) || posix.basename(path) !== `${name.text}.ts`;
+			return path === file || posix.dirname(path) !== posix.dirname(file);
 		})
 	) {
 		found.push({
-			message: `Keep the ${name.text} operation export in ${name.text}.ts beside this service's service.ts, one operation per file.`,
+			message: `Keep the ${name.text} operation export in a sibling file beside this service's service.ts, one operation per file.`,
 			node: member,
 		});
 	}
@@ -98,13 +109,23 @@ export function serviceOperationProblems(checker: ts.TypeChecker, config: ts.Obj
 	}
 	const factory = resolvedValue(checker, methods);
 	const records = ts.isFunctionLike(factory) ? returnValues(factory) : [methods];
-	return records.flatMap((record) => {
+	const locations: OperationLocations = new Map();
+	const findings = records.flatMap((record) => {
 		if (record === undefined) {
 			return [];
 		}
 		const object = resolvedValue(checker, record);
 		return ts.isObjectLiteralExpression(object)
-			? object.properties.flatMap((member) => operationProblems(checker, object, member, service, file))
+			? object.properties.flatMap((member) => operationProblems(checker, object, member, service, file, locations))
 			: [];
 	});
+	const shared = [...locations].flatMap(([path, operations]) =>
+		operations.size > 1
+			? [...operations.values()].map((node) => ({
+					message: `Keep one operation export per file beside service.ts. ${posix.basename(path)} holds more than one operation.`,
+					node,
+				}))
+			: [],
+	);
+	return [...findings, ...shared];
 }

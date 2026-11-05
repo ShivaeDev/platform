@@ -22,7 +22,7 @@ Next steps:
 
 The package contains a snapshot of the starter made when it is packed. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
 
-Generated apps start with an empty Quality baseline. Client code imports supported UI, routing and styling libraries directly; I/O and external-state integrations stay in `adapters/`.
+Setup records retained template findings in the generated app’s Quality baseline. New findings fail the gate; review adopted findings and tighten the baseline as you repair them. Client code imports supported UI, routing and styling libraries directly; I/O and external-state integrations stay in `adapters/`.
 
 The generated starter keeps the signed-in screen during unreachable session checks, retries authentication rechecks automatically, and unmounts signed-in routes during sign-out until the session refetch answers.
 

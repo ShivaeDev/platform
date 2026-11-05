@@ -61,7 +61,55 @@ ruleStory.it(
 		const findings = yield* check(serviceModel);
 
 		expect(findings).toEqual([
-			expect.objectContaining({ message: "Keep the read operation export in read.ts beside this service's service.ts, one operation per file." }),
+			expect.objectContaining({
+				message: "Keep the read operation export in a sibling file beside this service's service.ts, one operation per file.",
+			}),
+		]);
+	},
+);
+
+ruleStory.it(
+	"operation filenames may use their service folder as an export-name prefix",
+	[
+		effectResolves(),
+		serviceResolves(),
+		repositoryHas(
+			...modelFiles("Effect.void", 'Effect.fn("Inventory.readInventory")(() => Effect.void)', "readInventory").map((file) => ({
+				...file,
+				content: file.content
+					.replace("import { read }", "import { readInventory }")
+					.replace("read: readInventory", "readInventory")
+					.replace("export const read =", "export const readInventory ="),
+			})),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(serviceModel);
+
+		expect(findings).toEqual([]);
+	},
+);
+
+ruleStory.it(
+	"each operation has its own file even when both spans are correct",
+	[
+		effectResolves(),
+		serviceResolves(),
+		repositoryHas(
+			...modelFiles().map((file) => ({
+				...file,
+				content: file.path.endsWith("read.ts")
+					? `${file.content}\nexport const write = Effect.fn("Inventory.write")(() => Effect.void);`
+					: file.content.replace("import { read }", "import { read, write }").replace("read: read", "read, write"),
+			})),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(serviceModel);
+
+		expect(findings).toEqual([
+			expect.objectContaining({ message: "Keep one operation export per file beside service.ts. read.ts holds more than one operation." }),
+			expect.objectContaining({ message: "Keep one operation export per file beside service.ts. read.ts holds more than one operation." }),
 		]);
 	},
 );
