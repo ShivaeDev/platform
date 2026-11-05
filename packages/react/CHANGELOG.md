@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.44.1 - 2026-11-05
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.39.0 to 0.40.0.
+- Update `@shivaedev/identity` from 0.27.0 to 0.28.0.
+
 ## 0.44.0 - 2026-11-05
 
 ### Breaking
