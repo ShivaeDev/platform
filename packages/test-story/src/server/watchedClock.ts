@@ -10,25 +10,52 @@ export interface WatchedClock extends TestClock.TestClock {
 	readonly sleeps: Stream.Stream<Duration.Duration>;
 }
 
+export interface ScreenClock extends WatchedClock {
+	readonly advanceNext: Effect.Effect<boolean>;
+}
+
 export const watchedClock = TestClock.testClockWith((clock) =>
 	Effect.gen(function* () {
+		const deadlines = new Map<object, number>();
 		const starts = yield* Effect.acquireRelease(Queue.unbounded<Duration.Duration>(), Queue.shutdown);
 		const sleep = clock.sleep;
-		const previous = Object.getOwnPropertyDescriptor(clock, "sleeps");
+		const previous = {
+			advanceNext: Object.getOwnPropertyDescriptor(clock, "advanceNext"),
+			sleeps: Object.getOwnPropertyDescriptor(clock, "sleeps"),
+		};
 		const watching = {
-			sleep: (duration: Duration.Duration) => Queue.offer(starts, duration).pipe(Effect.andThen(sleep(duration))),
+			advanceNext: Effect.suspend(() => {
+				const next = Math.min(...deadlines.values());
+				return Number.isFinite(next) ? clock.setTime(next).pipe(Effect.as(true)) : Effect.succeed(false);
+			}),
+			sleep: (duration: Duration.Duration) =>
+				Effect.acquireUseRelease(
+					Effect.gen(function* () {
+						const now = yield* Clock.currentTimeMillis.pipe(Effect.provideService(Clock.Clock, clock));
+						const token = {};
+						deadlines.set(token, now + Duration.toMillis(duration));
+						return token;
+					}),
+					() => Queue.offer(starts, duration).pipe(Effect.andThen(sleep(duration))),
+					(token) =>
+						Effect.sync(() => {
+							deadlines.delete(token);
+						}),
+				),
 			sleeps: Stream.fromEffectRepeat(Queue.take(starts)),
 		};
 		// Native TestClock tracks its live clock by instance identity.
 		return yield* Effect.acquireRelease(
-			Effect.sync((): WatchedClock => Object.assign(clock, watching)),
+			Effect.sync((): ScreenClock => Object.assign(clock, watching)),
 			() =>
 				Effect.sync(() => {
 					Object.assign(clock, { sleep });
-					if (previous === undefined) {
-						Reflect.deleteProperty(clock, "sleeps");
-					} else {
-						Object.defineProperty(clock, "sleeps", previous);
+					for (const [name, descriptor] of Object.entries(previous)) {
+						if (descriptor === undefined) {
+							Reflect.deleteProperty(clock, name);
+						} else {
+							Object.defineProperty(clock, name, descriptor);
+						}
 					}
 				}),
 		);
