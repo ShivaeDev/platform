@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { VitestRunner } from "#adapters/VitestRunner.ts";
 import { parseOptions } from "#options.ts";
 import { runAttempt } from "#runAttempt.ts";
+import { vitestRunnerLayer } from "#vitest-runner/layer.ts";
 
 export const argumentStory = storyKit({
 	create: () => Effect.void,
@@ -14,7 +14,7 @@ export const argumentStory = storyKit({
 		attempt: (...vitestArgs: string[]) => {
 			story.tell(`an attempt runs with ${vitestArgs.join(" ")}`);
 			return runAttempt({ attempt: 1, outputDir: ".", vitestArgs }).pipe(
-				Effect.provide(VitestRunner.layer),
+				Effect.provide(vitestRunnerLayer),
 				Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "completed" }),
 			);
 		},

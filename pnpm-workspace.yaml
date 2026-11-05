@@ -60,7 +60,6 @@ catalog:
   yaml: 2.9.1
   vitest: 5.0.5
   "@vitest/coverage-v8": 5.0.5
-  "@shivaedev/work-fleet": 0.35.2
 
 catalogs:
   claude-code:

@@ -20,7 +20,7 @@ import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { permissionLayer } from "#server/permissions.ts";
+import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 
 const Access = roleSet(declareRole("user", []), declareRole("admin", [ReadUsers, AssignRoles]), declareRole("delegate", [ReadUsers, AssignRoles]));

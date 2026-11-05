@@ -18,7 +18,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
-import { permissionLayer } from "#server/permissions.ts";
+import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { ManageSessions, SessionsPermission } from "#sessionPermissions.ts";

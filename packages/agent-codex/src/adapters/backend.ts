@@ -3,8 +3,8 @@ import type { ConfiguredBackend } from "@shivaedev/agent/backend.ts";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
 import type { EngineState } from "#adapters/initializeEngine.ts";
 
-export function backend(state: EngineState) {
-	const configured: ConfiguredBackend = {
+export function backend(state: EngineState): ConfiguredBackend {
+	return {
 		backend: "codex",
 		events: (receipt) =>
 			Stream.unwrap(
@@ -25,5 +25,4 @@ export function backend(state: EngineState) {
 		reconcile: state.reconcile,
 		start: state.start,
 	};
-	return Effect.fn("Codex.backend")(() => Effect.succeed(configured));
 }

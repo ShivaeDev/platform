@@ -7,9 +7,9 @@ import { publicOrder } from "./public.ts";
 import { OrdersRepository } from "./repository.ts";
 import { unavailable } from "./unavailable.ts";
 
-export const save = Effect.fn("OrderService.save")((userId: string, input: SaveOrderInput) =>
+export const save = Effect.fn("OrderService.save")((input: SaveOrderInput) =>
 	Effect.gen(function* () {
-		const found = yield* owned(userId, input.id);
+		const found = yield* owned(input.id);
 		const name = input.name.trim();
 		if (name.length === 0) {
 			return yield* SaveOrder.reject.OrderValidation({ field: "name", message: "Enter an order name" });

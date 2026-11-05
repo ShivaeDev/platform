@@ -270,4 +270,4 @@ Install `@shivaedev/admin` with its required `effect` peer. Registry, contract a
 
 Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the optional default Jobs, Users and Sessions views under `/client/adapters` use React. Applications own route composition and styling.
 
-This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.
+This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissionLayer.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

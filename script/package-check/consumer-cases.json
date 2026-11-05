@@ -72,7 +72,7 @@
 	],
 	"pr-watch": [
 		{
-			"entries": ["./Watcher.ts", "./GitHub.ts", "./GitHubHttp.ts", "./StateFile.ts"],
+			"entries": ["./watcher/service.ts", "./watcher/poll.ts", "./github/service.ts", "./github-http/service.ts", "./state-file/service.ts"],
 			"fixtures": ["watch.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": ["watch.ts"]

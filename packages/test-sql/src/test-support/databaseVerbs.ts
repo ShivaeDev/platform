@@ -4,9 +4,9 @@ import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { observeUntil } from "#server/observeUntil.ts";
+import { Items } from "#test/items/service.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { databaseQueries } from "./databaseQueries.ts";
-import { Items } from "./Items.ts";
 import { inPlace } from "./inPlace.ts";
 import { writeItem } from "./writeItem.ts";
 

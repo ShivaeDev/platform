@@ -10,9 +10,9 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { AccountPreferences } from "#accountPreferences.ts";
-import { AccountClock } from "#server/AccountClock.ts";
-import { AccountPreferencesStore } from "#server/AccountPreferencesStore.ts";
+import { AccountClock } from "#server/account-clock/service.ts";
 import { AccountDayStart, LogicalDay } from "#server/account-clock/settings.ts";
+import { accountPreferencesStore } from "#server/account-preferences/store.ts";
 import { accountPreferencesHandlers } from "#server/accountPreferencesHandlers.ts";
 import { accountPreferencesMigration } from "#server/adapters/accountPreferencesMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -85,7 +85,7 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 			handlers,
 			requestServices,
 			routes: mounted.routes,
-			services: AccountPreferencesStore.layer,
+			services: accountPreferencesStore,
 			sessions,
 		}),
 	);

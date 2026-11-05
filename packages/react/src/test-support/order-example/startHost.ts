@@ -3,11 +3,11 @@ import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
+import { type OrderServerOptions, orderHandlers } from "#test/order-example/adapters/runtime.ts";
 import { Orders } from "./contract.ts";
 import { migrations } from "./postgres.ts";
 import { makeOrdersRepository, OrdersRepository } from "./repository.ts";
-import { type OrderServerOptions, orderHandlers } from "./runtime.ts";
-import { OrderService } from "./Service.ts";
+import { OrderService } from "./service.ts";
 
 export const ORDER_CHANGES = "order_changes";
 
@@ -30,7 +30,8 @@ export const startHost = Effect.fn("Orders.startHost")(function* (
 			group: Orders,
 			handlers: orderHandlers(options),
 			migrations,
-			services: OrderService.layer.pipe(Layer.provide(Layer.effect(OrdersRepository, makeOrdersRepository))),
+			requestServices: OrderService.layer,
+			services: Layer.effect(OrdersRepository, makeOrdersRepository),
 			sessions: Layer.succeed(SessionPolicy, {
 				origin: () => true,
 				provider: {

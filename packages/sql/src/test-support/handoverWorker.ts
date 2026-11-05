@@ -4,7 +4,7 @@ import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
-import { WorkerRelease } from "#WorkerRelease.ts";
+import { WorkerRelease } from "#worker-release/service.ts";
 import { postgresOptions } from "./postgres.ts";
 
 export const handoverWorker = Effect.fnUntraced(function* (

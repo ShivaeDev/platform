@@ -3,7 +3,7 @@ import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { migrationSteps } from "#server/migrationSteps.ts";
-import { MigrationStepsDependency as Dependency } from "#test/MigrationStepsDependency.ts";
+import { MigrationStepsDependency as Dependency } from "#test/migration-steps-dependency/service.ts";
 import { migrations } from "#test/migrationSteps.ts";
 
 const steps = migrationSteps({

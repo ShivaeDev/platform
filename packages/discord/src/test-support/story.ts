@@ -1,13 +1,14 @@
-import { Context, Layer, Queue, Redacted } from "effect";
+import { Context, Effect, Layer, Queue, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { fakeDiscord } from "@shivaedev/test-kits/discord/fake.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { DiscordConfig } from "#DiscordConfig.ts";
-import { DiscordGateway } from "#DiscordGateway.ts";
-import { DiscordRest } from "#DiscordRest.ts";
 import { DiscordToken } from "#DiscordToken.ts";
 import { GatewayTransport } from "#GatewayTransport.ts";
+import { DiscordGateway } from "#gateway/service.ts";
 import type { GatewayDispatch } from "#gatewayProtocol.ts";
+import { layer as restLayer } from "#rest/layer.ts";
+import { DiscordRest } from "#rest/service.ts";
 import { gatewayVerbs } from "./gatewayVerbs.ts";
 import { restVerbs } from "./restVerbs.ts";
 
@@ -16,19 +17,17 @@ export const discord = storyKit({
 	*create() {
 		const fake = yield* fakeDiscord();
 		const events = yield* Queue.unbounded<GatewayDispatch>();
-		const context = yield* Layer.build(
-			Layer.mergeAll(DiscordRest.layer, DiscordGateway.layer).pipe(
-				Layer.provide(
-					Layer.mergeAll(
-						FetchHttpClient.layer,
-						Layer.succeed(DiscordConfig)({ apiUrl: fake.server.url, gatewayUrl: "wss://gateway.discord.test", intents: 513 }),
-						Layer.succeed(DiscordToken)(Redacted.make("story-discord-token")),
-						Layer.succeed(GatewayTransport)(fake.gateway.transport),
-					),
-				),
-			),
+		const dependencies = Layer.mergeAll(
+			FetchHttpClient.layer,
+			Layer.succeed(DiscordConfig)({ apiUrl: fake.server.url, gatewayUrl: "wss://gateway.discord.test", intents: 513 }),
+			Layer.succeed(DiscordToken)(Redacted.make("story-discord-token")),
+			Layer.succeed(GatewayTransport)(fake.gateway.transport),
 		);
-		return { ...fake, context, events, gatewayClient: Context.get(context, DiscordGateway), rest: Context.get(context, DiscordRest) };
+		const context = yield* Layer.build(Layer.mergeAll(restLayer, DiscordGateway.layer).pipe(Layer.provide(dependencies)));
+		const independentRest = Layer.build(Layer.fresh(restLayer.pipe(Layer.provide(dependencies)))).pipe(
+			Effect.map((built) => Context.get(built, DiscordRest)),
+		);
+		return { ...fake, context, events, gatewayClient: Context.get(context, DiscordGateway), independentRest };
 	},
 	name: "Discord bot",
 	stages: ["provider"],

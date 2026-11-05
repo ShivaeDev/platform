@@ -3,10 +3,10 @@ import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
+import { handlers } from "#test/settings-example/adapters/handlers.ts";
 import { SettingsRpc } from "./contract.ts";
-import { handlers } from "./handlers.ts";
 import { migrations, repositories } from "./repository.ts";
-import { SettingsService } from "./Service.ts";
+import { SettingsService } from "./service.ts";
 
 export const startHost = Effect.fn("Settings.startHost")(function* (
 	databaseUrl: Redacted.Redacted<string>,
@@ -22,7 +22,8 @@ export const startHost = Effect.fn("Settings.startHost")(function* (
 			group: SettingsRpc,
 			handlers: handlers(beforeCommit),
 			migrations,
-			services: SettingsService.layer.pipe(Layer.provide(repositories)),
+			requestServices: SettingsService.layer,
+			services: repositories,
 			sessions: Layer.succeed(SessionPolicy, {
 				origin: () => true,
 				provider: {

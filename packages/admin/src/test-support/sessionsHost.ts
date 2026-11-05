@@ -15,7 +15,7 @@ import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapt
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";

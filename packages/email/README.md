@@ -43,14 +43,14 @@ Provide `producerLayer` to the web process and `workerLayer` to the worker proce
 ```ts
 import { Layer } from "effect";
 import { resendMailerLayer } from "@shivaedev/email/server/adapters/resendMailerLayer.ts";
-import { logMailerLayer } from "@shivaedev/email/server/Mailer.ts";
+import { Mailer } from "@shivaedev/email/server/log-mailer/service.ts";
 
 const producer = Confirmation.producerLayer;
 const worker = Confirmation.workerLayer.pipe(Layer.provide(resendMailerLayer()));
-const developmentWorker = Confirmation.workerLayer.pipe(Layer.provide(logMailerLayer));
+const developmentWorker = Confirmation.workerLayer.pipe(Layer.provide(Mailer.layer));
 ```
 
-`Mailer` is a service defined through `@shivaedev/service`. Its `send(email, idempotencyKey)` method reports typed `MailerError` or native jobs `RetryAt` failures. `resendMailerLayer()` reads `RESEND_API_KEY` with `Config.Redacted`; its options accept an already redacted `apiKey` for scoped configuration. `logMailerLayer` writes the rendered message and key to the development log instead of sending it. The jobs redactor masks sensitive URL parameters in worker logs.
+`Mailer` from `@shivaedev/email/server/log-mailer/service.ts` is a service defined through `@shivaedev/service`. Its `send(email, idempotencyKey)` method reports typed `MailerError` or native jobs `RetryAt` failures. Its default implementation owns no initializer state and declares no dependencies; the development send operation is traced as `Mailer.send`. `resendMailerLayer()` reads `RESEND_API_KEY` with `Config.Redacted`; its options accept an already redacted `apiKey` for scoped configuration. The Resend SDK bridge stays in the adapter, and consumers provide one mailer Layer. `Mailer.layer` writes the rendered message and key to the development log instead of sending it. The jobs redactor masks sensitive URL parameters in worker logs.
 
 The email worker sends its job id as Resend's idempotency key on every attempt. Ordinary failures retry with the jobs engine's exponential backoff. A Resend 429 uses `Retry-After` seconds or HTTP date as a native timed deferral without consuming an ordinary retry; a missing or invalid header uses a short timed fallback. `MailerError` keeps the provider response redacted and uses a fixed message in recorded failures.
 

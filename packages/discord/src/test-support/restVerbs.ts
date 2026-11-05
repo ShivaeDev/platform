@@ -1,10 +1,10 @@
 import type { Context } from "effect";
-import { Effect, Fiber, Schema } from "effect";
+import { Effect, Fiber, Schema, type Scope } from "effect";
 import type { fakeDiscord } from "@shivaedev/test-kits/discord/fake.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import type { DiscordGateway } from "#DiscordGateway.ts";
-import type { DiscordRest } from "#DiscordRest.ts";
+import type { DiscordGateway } from "#gateway/service.ts";
 import { request } from "#request.ts";
+import { DiscordRest } from "#rest/service.ts";
 
 const Message = Schema.Struct({ channelId: Schema.String, content: Schema.String, id: Schema.String }).pipe(
 	Schema.encodeKeys({ channelId: "channel_id" }),
@@ -12,6 +12,7 @@ const Message = Schema.Struct({ channelId: Schema.String, content: Schema.String
 
 type Engine = Effect.Success<ReturnType<typeof fakeDiscord>> & {
 	context: Context.Context<Context.Service.Identifier<typeof DiscordRest> | Context.Service.Identifier<typeof DiscordGateway>>;
+	independentRest: Effect.Effect<typeof DiscordRest.Service, never, Scope.Scope>;
 };
 
 export function restVerbs(engine: Engine, tell: (line: string) => void) {
@@ -20,7 +21,15 @@ export function restVerbs(engine: Engine, tell: (line: string) => void) {
 	}
 	let pending: Fiber.Fiber<Effect.Success<ReturnType<typeof send>>, Effect.Error<ReturnType<typeof send>>> | undefined;
 	return {
+		cancelMessage: () => (pending === undefined ? Effect.die("Start a message first") : Fiber.interrupt(pending)),
 		createMessage: (content: string, channel?: string) => send(content, channel),
+		createMessageWithIndependentClient: (content: string) =>
+			Effect.scoped(
+				Effect.gen(function* () {
+					const rest = yield* engine.independentRest;
+					return yield* request("POST", "/channels/111/messages", Message, { content }).pipe(Effect.provideService(DiscordRest, rest));
+				}),
+			),
 		editMessage: (id: string, content: string) =>
 			request("PATCH", `/channels/111/messages/${id}`, Message, { content }).pipe(Effect.provide(engine.context)),
 		editMissingMessage: () =>

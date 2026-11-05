@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ImportCompiler } from "#adapters/ImportCompiler.ts";
+import { ImportCompiler } from "#adapters/import-compiler/service.ts";
 import type { RuleInputs } from "#rule.ts";
 import type { SpecifierSite } from "./specifiers.ts";
 import { workspacePackages } from "./workspace.ts";
