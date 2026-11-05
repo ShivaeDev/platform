@@ -1,3 +1,4 @@
+import type ts from "typescript";
 import { labelOf, outgoing, type Reached, type Trail, walkFrom } from "#imports/fences/reach.ts";
 import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";
@@ -7,6 +8,7 @@ import { parse } from "#rules/parse.ts";
 import { usesDom } from "#rules/test-names/usesDom.ts";
 import { engineOf } from "./engineOf.ts";
 import { pureNetImport } from "./pureNetImport.ts";
+import { unitRuntime } from "./unitRuntime.ts";
 import { type Stand, standIns } from "./unitSyntax.ts";
 
 const RELATIVE = /^[./#]/u;
@@ -43,7 +45,7 @@ function reachFinding(file: string, reached: Reached<string>): Finding {
 function standMessage(stand: Stand): string {
 	return stand.why === "mocks"
 		? `mocks with ${stand.what}. A unit test calls real code with real values and stands nothing in for a collaborator.`
-		: `provides services with ${stand.what}. A unit test runs only requirement-free code, such as Effect.runSync on an Effect that needs nothing.`;
+		: `provides services with ${stand.what}. A unit test uses plain Vitest it and pure APIs without an Effect runner or clock.`;
 }
 
 function where(file: string, module: string, trail: Trail): string {
@@ -75,10 +77,19 @@ function syntaxFindings(file: string, module: string, trail: Trail, source: Sour
 	return [...stands, ...dom];
 }
 
-export function unitTests(graph: ImportGraph, sources: readonly SourceFile[]): (file: string) => readonly Finding[] {
+export function unitTests(
+	graph: ImportGraph,
+	sources: readonly SourceFile[],
+	origins: { readonly checker: ts.TypeChecker; readonly source: (path: string) => ts.SourceFile | undefined },
+): (file: string) => readonly Finding[] {
 	const byPath = new Map(sources.map((source) => [source.path, source]));
 	const edgesFrom = runtimeEdges(graph, byPath);
+	const runtime = unitRuntime(origins.checker, origins.source, edgesFrom);
 	return (file) => {
+		const reachedRuntime = runtime(file);
+		if (reachedRuntime !== undefined) {
+			return [reachedRuntime];
+		}
 		const walked = walkFrom(file, edgesFrom, engineOf);
 		const checked = [...walked.visited].filter(([module]) => module === file || isTestSupport(module));
 		return [

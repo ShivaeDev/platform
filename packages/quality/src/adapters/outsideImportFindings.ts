@@ -1,46 +1,16 @@
 import { Effect } from "effect";
-import ts from "typescript";
 import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";
 import { packageOf } from "#imports/workspace.ts";
+import { testName } from "#naming/testName.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
-import { parse } from "#rules/parse.ts";
-
-function onlyInlineTypes(statement: ts.Statement): boolean {
-	if (ts.isImportDeclaration(statement)) {
-		const clause = statement.importClause;
-		const bindings = clause?.namedBindings;
-		return (
-			clause?.name === undefined
-			&& bindings !== undefined
-			&& ts.isNamedImports(bindings)
-			&& bindings.elements.length > 0
-			&& bindings.elements.every((item) => item.isTypeOnly)
-		);
-	}
-	const exports = ts.isExportDeclaration(statement) ? statement.exportClause : undefined;
-	return exports !== undefined && ts.isNamedExports(exports) && exports.elements.length > 0 && exports.elements.every((item) => item.isTypeOnly);
-}
-
-function inlineTypes(inputs: RuleInputs): ReadonlySet<string> {
-	const sites = new Set<string>();
-	for (const file of inputs.sources) {
-		const source = parse(file);
-		if (source === undefined) {
-			continue;
-		}
-		for (const statement of source.statements.filter(onlyInlineTypes)) {
-			sites.add(`${file.path}:${source.getLineAndCharacterOfPosition(statement.getStart(source)).line + 1}`);
-		}
-	}
-	return sites;
-}
 
 function exempt(path: string, name: string): boolean {
 	return (
 		/(?:^|\/)(?:adapters|test-support)\//u.test(path)
+		|| (name === "vitest" && testName(path)?.modifiers.includes("unit") === true)
 		|| name === "effect"
 		|| name.startsWith("@effect/")
 		|| name.startsWith("@shivaedev/")
@@ -67,7 +37,6 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 			{ concurrency: "unbounded" },
 		),
 	);
-	const types = inlineTypes(inputs);
 	const workspace = new Set(graph.packages.map((owner) => owner.name));
 	const sites = [
 		...graph.edges.flatMap((edge) => (edge.to.kind === "external" ? [{ ...edge, name: edge.to.package }] : [])),
@@ -81,7 +50,6 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 			workspace.has(site.name)
 			|| site.type
 			|| site.kind !== "import"
-			|| types.has(`${site.from}:${site.line}`)
 			|| exempt(site.from, site.name)
 			|| !(site.name.startsWith("node:") || runtime.get(directory)?.has(site.name))
 		) {

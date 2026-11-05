@@ -62,7 +62,7 @@ export const storySpecs = defineRule({
 		const graph = yield* importGraph(inputs);
 		const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, graph.packages));
 		const origins = storyOrigins(inputs, graph);
-		const unit = unitTests(graph, inputs.sources);
+		const unit = unitTests(graph, inputs.sources, origins);
 		return inputs.sources.flatMap((file) => {
 			const name = testName(file.path);
 			if (name?.modifiers.includes("unit") === true) {

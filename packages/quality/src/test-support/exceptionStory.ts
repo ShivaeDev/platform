@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { decodeExceptions } from "#exceptions/declaration.ts";
+import { decodeRegistry } from "#exceptions/registry.ts";
 import { quality } from "#testing/adapters/cli.ts";
 import { git } from "#testing/adapters/git.ts";
 import { writes } from "#testing/adapters/hookRepository.ts";
@@ -73,6 +75,14 @@ export const exceptionStory = storyKit({
 	verbs: (engine, story) => ({
 		...cliVerbs(engine, story.tell),
 		config: (file = "quality.config.ts") => Effect.sync(() => exportedConfig(engine.root, file)),
+		decodeDeclarations: (value: unknown) => {
+			story.tell("quality decodes exception declarations");
+			return Effect.promise(() => decodeExceptions(value));
+		},
+		decodeRegistry: (raw: string | undefined) => {
+			story.tell("quality decodes the exception registry file");
+			return Effect.promise(() => decodeRegistry(raw));
+		},
 		files: () => Effect.sync(() => textsIn(engine.root)),
 		reads: (path: string) => Effect.sync(() => (existsSync(join(engine.root, path)) ? readFileSync(join(engine.root, path), "utf8") : undefined)),
 		writes: (file: SeedFile) =>

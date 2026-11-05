@@ -8,7 +8,7 @@ const UNIT = "src/orders.unit.test.ts";
 const KIT = "Drive the engine through the package's story kit in a story, or, if the code under test is pure,";
 
 ruleStory.it(
-	"tests/story-specs accepts a unit test of a pure function with its pure relative imports, JSON fixtures and requirement-free Effects",
+	"tests/story-specs accepts a unit test of a pure function with its pure relative imports, JSON fixtures",
 	[
 		repositoryHas(
 			ordersPackage,
@@ -18,11 +18,10 @@ ruleStory.it(
 			unitSpec(
 				[
 					'import { expect, it } from "vitest";',
-					'import { Effect } from "effect";',
 					'import data from "./test-support/amounts.json" with { type: "json" };',
 					'import { amounts } from "./test-support/amounts.ts";',
 					'import { total } from "./orders.ts";',
-					'it("adds", () => { expect(Effect.runSync(Effect.succeed(total(amounts)))).toEqual(total(data.amounts)); });',
+					'it("adds", () => { expect(total(amounts)).toEqual(total(data.amounts)); });',
 				].join("\n"),
 			),
 		),
@@ -44,6 +43,8 @@ for (const declaration of ['import type { Client } from "pg";', 'export type { S
 
 for (const [specifier, label, engine] of [
 	["node:fs/promises", "node:fs/promises", "the file system"],
+	["@shivaedev/test/adapters/it.ts", "@shivaedev/test/adapters/it.ts", "an Effect test runner"],
+	["@shivaedev/test/adapters/makeEffectIt.ts", "@shivaedev/test/adapters/makeEffectIt.ts", "an Effect test runner"],
 	["node:https", "node:https", "the network"],
 	["effect/http", "effect/http", "the network"],
 	["@effect/platform-node", "@effect/platform-node", "the network"],

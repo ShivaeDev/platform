@@ -1514,9 +1514,6 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

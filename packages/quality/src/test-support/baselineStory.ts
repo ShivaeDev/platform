@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { decodeBaseline } from "#baseline/format.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
 import { git, mergeBranch } from "#testing/adapters/git.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
@@ -30,6 +31,10 @@ export const baselineStory = storyKit({
 		const cli = cliVerbs(engine, story.tell);
 		return {
 			...cli,
+			decode: (raw: string | undefined) => {
+				story.tell("quality decodes the baseline file");
+				return Effect.promise(() => decodeBaseline(raw));
+			},
 			lastLine: () => Effect.map(cli.stdout(), (stdout) => stdout.trimEnd().split("\n").at(-1)),
 			lengthens: (path: string, lines: number) =>
 				Effect.sync(() => {

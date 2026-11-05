@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { VitestRunner } from "#adapters/VitestRunner.ts";
 import { runAttempt } from "#internal/runAttempt.ts";
+import { parseOptions } from "#options.ts";
 
 export const argumentStory = storyKit({
 	create: () => Effect.void,
@@ -16,6 +17,10 @@ export const argumentStory = storyKit({
 				Effect.provide(VitestRunner.layer),
 				Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "completed" }),
 			);
+		},
+		parse: (...args: string[]) => {
+			story.tell(`the wrapper parses ${args.join(" ")}`);
+			return parseOptions(args, "/project");
 		},
 	}),
 });

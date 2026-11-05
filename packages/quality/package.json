@@ -70,7 +70,6 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
