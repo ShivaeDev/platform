@@ -59,7 +59,6 @@ const scoped = storyKit({
     yield* Effect.addFinalizer(() => Effect.void)
     return yield* effect
   }),
-  clock: "live",
   *create() { return yield* Effect.acquireRelease(Effect.succeed({}), () => Effect.void) },
   after: { *built() { yield* Effect.addFinalizer(() => Effect.void) } },
   name: "scoped",
