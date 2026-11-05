@@ -1,15 +1,13 @@
 import { testUtils } from "better-auth/plugins";
-import { Clock, ConfigProvider, Effect, Layer, Schema } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
-import { Migrator, SqlClient } from "effect/sql";
+import { ConfigProvider, Effect, Layer, Schema } from "effect";
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { RpcClient, RpcSerialization } from "effect/rpc";
+import { Migrator } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { AccountPreferences } from "#accountPreferences.ts";
 import { AccountClock } from "#server/AccountClock.ts";
@@ -21,7 +19,6 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
-import { subjectResolverLayer } from "#server/subjectResolverLayer.ts";
 import { selfSubject } from "#subject.ts";
 
 const ClockApi = contract("clock", {
@@ -63,41 +60,41 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 	);
-	const sql = yield* SqlClient.SqlClient;
-	const clock = yield* Clock.Clock;
 	const config: { dayStart: number | undefined } = { dayStart: 240 };
-	function clockLayer() {
-		return config.dayStart === undefined
-			? AccountClock.layer
-			: AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, config.dayStart)));
-	}
-
-	const handlers = Layer.mergeAll(
-		hostChanges(Api),
+	const requestServices = AccountClock.layer.pipe(
+		Layer.provide(
+			Layer.effect(
+				AccountDayStart,
+				Effect.sync(() => config.dayStart ?? 0),
+			),
+		),
+		Layer.orDie,
+	);
+	const handlers = Layer.merge(
 		accountPreferencesHandlers,
 		ClockApi.application.toLayer({
-			"clock.day": ({ instant }) =>
-				Effect.flatMap(AccountClock, (account) => account.logicalDay(instant)).pipe(Effect.provide(clockLayer()), Effect.orDie),
-			"clock.range": ({ day }) => Effect.flatMap(AccountClock, (account) => account.dayRange(day)).pipe(Effect.provide(clockLayer()), Effect.orDie),
+			"clock.day": ({ instant }) => Effect.flatMap(AccountClock, (account) => account.logicalDay(instant)),
+			"clock.range": ({ day }) => Effect.flatMap(AccountClock, (account) => account.dayRange(day)).pipe(Effect.orDie),
 		}),
-	).pipe(Layer.provide(AccountPreferencesStore.layer));
+	);
 	const sessions = Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true });
-	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, subjectLayers(Api).pipe(Layer.provide(subjectResolverLayer())), RpcSerialization.layerNdjson]),
+	const services = yield* Layer.build(
+		appHost({
+			config: { disablePreemptiveShutdown: true, port: 0 },
+			group: Api,
+			handlers,
+			requestServices,
+			routes: mounted.routes,
+			services: AccountPreferencesStore.layer,
+			sessions,
+		}),
 	);
-	const app = HttpRouter.toWebHandler(
-		Layer.merge(mounted.routes, rpc).pipe(
-			Layer.provide([
-				sessions,
-				LiveServer.layer.pipe(Layer.provide(Reactivity.layer)),
-				Reactivity.layer,
-				Layer.succeed(SqlClient.SqlClient, sql),
-				Layer.succeed(Clock.Clock, clock),
-			]),
-		),
-		{ disableLogger: true },
-	);
-	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
+	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(services));
+	if (!NetAddress.isInetAddress(server.address)) {
+		return yield* Effect.die("Expected TCP address");
+	}
+	const url = `http://127.0.0.1:${server.address.port}`;
+
 	return {
 		auth: mounted.auth,
 		client: (headers: Headers) =>
@@ -105,15 +102,16 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 				Effect.provide(
 					RpcClient.layerProtocolHttp({
 						transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders(Object.fromEntries(headers))),
-						url: `${ORIGIN}/rpc`,
-					}).pipe(
-						Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-						Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
-					),
+						url: `${url}/rpc`,
+					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 				),
 			),
 		config,
-		fetch: (input: string | URL | Request, init?: RequestInit) => app.handler(new Request(input, init)),
+		fetch: (input: string | URL | Request, init?: RequestInit) => {
+			const request = new Request(input, init);
+			const target = new URL(request.url);
+			return fetch(new Request(`${url}${target.pathname}${target.search}`, request));
+		},
 	};
 });
 

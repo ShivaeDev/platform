@@ -7,7 +7,17 @@ import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
 
 export type HostRouteRequirements = HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>;
 
-export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> = {
+export type HostCoreOptions<
+	TRpcs extends Rpc.Any,
+	THandlers,
+	THandlerError,
+	THandlerRequirements,
+	TServices,
+	TServiceError,
+	TServiceRequirements,
+	TRequestServices = never,
+	TRequestRequirements = never,
+> = {
 	readonly assets?: string | AssetOptions;
 	readonly browserErrors?: BrowserErrorOptions;
 	readonly config?: {
@@ -21,6 +31,7 @@ export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THa
 		readonly disablePreemptiveShutdown?: boolean;
 		readonly gracefulShutdownTimeout?: Duration.Input;
 	};
+	readonly requestServices?: Layer.Layer<TRequestServices, never, TRequestRequirements>;
 	readonly nativeOrigins?: readonly string[];
 	readonly rpcPath?: HttpRouter.PathInput;
 } & (
@@ -46,7 +57,19 @@ export type HostOptions<
 	TServiceRequirements,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
-> = HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	TRequestServices = never,
+	TRequestRequirements = never,
+> = HostCoreOptions<
+	TRpcs,
+	THandlers,
+	THandlerError,
+	THandlerRequirements,
+	TServices,
+	TServiceError,
+	TServiceRequirements,
+	TRequestServices,
+	TRequestRequirements
+> &
 	HostRoutes<TRouteError, TRouteRequirements>;
 
 export type HostPolicy =

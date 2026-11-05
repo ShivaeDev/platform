@@ -38,7 +38,7 @@ An **Origin policy** is a function of the transport request's origin, headers an
 
 ### Declared request subjects
 
-A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`, so service methods can read the caller without an actor argument.
+A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`. A `defineService` that needs the caller declares those services in `requires`, yields them in its operations and registers its Layer in the host's `requestServices` slot. The host builds it after session middleware, once per RPC call. Its callers yield the service and call its methods without providing dependencies or passing the acting user's id. Global services yield global dependencies; caller-dependent services belong in the request slot.
 
 ```ts
 import { Effect, Schema } from "effect";
@@ -90,20 +90,22 @@ export const auth = createAuthClient({ plugins: [preferencesClient()] });
 
 The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
 
-`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Register that Layer in the host's `requestServices` slot and `AccountPreferencesStore.layer` in global `services`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
 ```ts
 import { DateTime, Effect, Layer } from "effect";
 import { AccountClock } from "@shivaedev/identity/server/AccountClock.ts";
 import { AccountDayStart } from "@shivaedev/identity/server/account-clock/settings.ts";
 
-const clockLayer = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)));
+export const requestServices = AccountClock.layer.pipe(Layer.provide(Layer.succeed(AccountDayStart, 240)), Layer.orDie);
 const today = Effect.gen(function* () {
 	const clock = yield* AccountClock;
 	const day = yield* clock.logicalDay(yield* DateTime.now);
 	return yield* clock.dayRange(day);
-}).pipe(Effect.provide(clockLayer));
+});
 ```
+
+Pass `requestServices` beside `services` and `handlers` to `appHost`, or put it on the feature's `AppModule`. The example chooses defects for clock initialization failures; handlers use the registered clock without rebuilding its Layer.
 
 `logicalDay(instant)` returns an ISO calendar date; omitting the instant uses Effect's current clock. `dayRange(day)` returns UTC `DateTime` values `{ start, end }`, with an inclusive start and exclusive end. Endpoints are constructed separately in local calendar time: a 04:00 New York day spanning spring DST lasts 23 hours, and one spanning autumn DST lasts 25 hours. The exact boundary belongs to the new logical day. Applications use `timestamp >= start && timestamp < end` when grouping records. Day starts within a DST gap use Effect's compatible disambiguation (later in a gap, earlier in an overlap).
 
