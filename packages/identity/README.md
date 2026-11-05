@@ -38,7 +38,7 @@ An **Origin policy** is a function of the transport request's origin, headers an
 
 ### Declared request subjects
 
-A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser`, so service methods can read the caller without an actor argument.
+A **subject** is the account whose data this request acts on. The actor remains the session user. `Subject` from `@shivaedev/identity/subject.ts` provides `{ id: SubjectId }`, where `SubjectId` is a branded string. `selfSubject` resolves it from the session, ignoring account-selection headers. It also provides `Identity` and `SessionUser` for the request. Code that needs the caller yields these services rather than taking the actor's id as an argument; a service whose operations yield them requires them in its Layer, so that Layer is built per request.
 
 ```ts
 import { Effect, Schema } from "effect";
@@ -90,7 +90,7 @@ export const auth = createAuthClient({ plugins: [preferencesClient()] });
 
 The browser sends its `Intl.DateTimeFormat` timezone and locale to the auth mount. A successful first sign-in captures those values with metric units. After redirect-based sign-in, the browser's first `getSession` captures them. Missing or invalid browser timezone data leaves preferences uncaptured; a later browser session can capture them. Other clients can call the `capture` contract with their own defaults.
 
-`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` reads the current subject's saved timezone when its Layer is built. Build that Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
+`AccountClock` from `@shivaedev/identity/server/AccountClock.ts` is a per-request service. Its Layer requires `Subject`, and its initializer captures that subject's saved timezone, so build the Layer within the subject's request, providing `AccountPreferencesStore.layer`. Each new request sees the current saved timezone. Configure `AccountDayStart` from `@shivaedev/identity/server/account-clock/settings.ts` in minutes after local midnight; it defaults to zero and accepts integers from 0 through 1439. The same module exports `LogicalDay`.
 
 ```ts
 import { DateTime, Effect, Layer } from "effect";
