@@ -5,7 +5,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import type { NeverSettled } from "#server/observeUntil.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
-import { RaceDependency as Dependency } from "#test/RaceDependency.ts";
+import { RaceDependency as Dependency } from "#test/race-dependency/service.ts";
 
 const race = raceWithLock({
 	effects: [

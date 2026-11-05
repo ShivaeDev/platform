@@ -2,7 +2,7 @@ import { Effect, type Schema } from "effect";
 import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { MigrationLoaderDependency as Dependency } from "#test/MigrationLoaderDependency.ts";
+import { MigrationLoaderDependency as Dependency } from "#test/migration-loader-dependency/service.ts";
 import { Item, migrations, types } from "#test/migrationUpgrade.ts";
 import { assertModelColumns, type ModelColumnMismatch } from "./assertModelColumns.ts";
 import { migrationUpgrade } from "./migrationUpgrade.ts";
