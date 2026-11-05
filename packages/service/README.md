@@ -1,82 +1,95 @@
 # @shivaedev/service
 
-Declare an Effect service's dependencies once, initialize its private state, and call its methods without supplying those dependencies again. The service remains a native Context service with a native Layer; its methods remain Effects with their own result, failure and caller scope types.
+Declare once what an Effect service requires, and write its operations as ordinary `Effect.fn` exports that `yield*` their dependencies and the caller. Callers use the service without providing those dependencies again. The service remains a native Context service with a native Layer, and its Layer is its lifetime.
 
 ## Why you want this
 
-A service should explain what it needs and what callers can do with it. When every method binds dependencies separately, that explanation is scattered across setup and application code. Put the dependency list, private initialization and public methods in one definition:
+A service should say what it needs and what callers can do with it. When operations take a repository, a client or the user's id as arguments, that knowledge spreads into every caller and every caller can get it wrong. Here each operation reads what it needs from the environment, including who asked:
 
 ```ts
-import { defineService } from "@shivaedev/service/defineService.ts";
-import { greet } from "#greetings/greet.ts";
-import { initializeGreetings } from "#greetings/initialize.ts";
-import { Prefix } from "#Prefix.ts";
+import { Effect } from "effect";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { BookmarkRows } from "#bookmarks/BookmarkRows.ts";
 
-const Greetings = defineService({
-	id: "app/Greetings",
-	requires: [Prefix],
-	initialize: initializeGreetings,
-	methods: (state) => ({ greet: greet(state) }),
+export const list = Effect.fn("Bookmarks.list")(function* () {
+	const user = yield* SessionUser;
+	const rows = yield* BookmarkRows;
+	return yield* rows.ownedBy(user.id);
 });
 ```
 
-`Prefix` is an Effect service. Provide it to `Greetings.layer` once; callers ask for `Greetings` and call `greet(name)`. The punctuation stays private, the prefix stays bound to the service's dependency, and each caller sees an ordinary Effect instead of dependency plumbing.
+The service lists its requirements once and names its operations:
+
+```ts
+import { Effect } from "effect";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { add } from "#bookmarks/add.ts";
+import { BookmarkRows } from "#bookmarks/BookmarkRows.ts";
+import { list } from "#bookmarks/list.ts";
+
+export const Bookmarks = defineService({
+	id: "app/Bookmarks",
+	requires: [BookmarkRows, SessionUser],
+	initialize: Effect.void,
+	methods: () => ({ add, list }),
+});
+```
+
+A handler yields `Bookmarks` and calls `list()`. It passes no user id and no repository, so nothing a caller passes can make it list another account's bookmarks.
 
 ## Using it
 
 ### How to think about it
 
-A **service definition** has four parts: an identity, a list of required services, an initialization Effect, and a function that turns its private state into methods. `defineService` returns the native Context service callers yield and its `.layer`, which applications compose with the dependencies' Layers.
+A **service definition** has four parts: an identity, the services it requires, an initialization Effect for the state it owns, and its operations. `defineService` returns the native Context service callers yield and its `.layer`, which the application composes with the dependencies' Layers.
 
-A **declared dependency** is a service tag in `requires`. The Layer supplies those services to initialization and binds them to each method. The public method's type removes their requirements. If a caller provides a different value for a declared dependency around a method call, the method still uses the value supplied when the service was initialized.
+An **operation** is an `Effect.fn("Service.operation")` export in its own file, in the service's folder beside its `service.ts`. It reads every dependency with `yield*`: repositories, `SqlClient`, HTTP clients, config, other services and the caller. A dependency never arrives as a parameter, a closure capture or a bundle, and the acting user's id is never an argument. A target id, such as the account an administrator acts on, is an ordinary argument.
 
-**Private initialization state** is the value returned by `initialize`. The method factory receives it, but a caller receives only the methods. Within one provided Layer's lifetime, initialization and the method factory each run once, and two reads of the service share the same state.
+A **declared dependency** is a service tag in `requires`. The Layer supplies those services to initialization and binds them to each operation, and the public operation's type no longer requires them. If a caller provides a different value for a declared dependency around a call, the operation still uses the value supplied when the Layer was built.
 
-**Caller scope** is different from initialization scope. The Layer owns initialization resources: their finalizers run once when its scope closes or its owner is interrupted, including when initialization is still running. A method that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live. Interrupting a method call in `Effect.scoped` interrupts the call and releases its resources without ending the service's lifetime.
+The **lifetime** of a service is its Layer's. Each build of the Layer runs `initialize` once, and every call on that build shares its state. Where the Layer is registered decides the lifetime: built once by the host, the service is global; built for each request, it is per request and may require the caller, such as `SessionUser` or `Subject`, which the host provides for that request; built with `Layer.fresh` or for a single use, it is fresh each time. A service that requires the caller cannot be built globally, because nothing global provides the caller.
+
+**Owned state** is the value `initialize` returns: caches, refs, locks, and values captured from the context at setup, such as the caller a per-request service captures. It never holds a dependency. A caller receives only the operations. When reaching a dependency seems to need a closure or a factory, the dependency should be a service of its own; add it instead.
+
+**Caller scope** is different from initialization scope. The Layer owns initialization resources: their finalizers run once when its scope closes or its owner is interrupted, including when initialization is still running. An operation that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live. Interrupting a call in `Effect.scoped` interrupts the call and releases its resources without ending the service's lifetime.
 
 The work has three parts:
-1. Once at the application boundary, compose service Layers with their dependencies.
-2. Once per service, define its dependency list, private state and methods.
-3. In application code, yield the service and call its methods.
+1. Once at the application boundary, register each service Layer where its lifetime belongs and compose it with its dependencies' Layers.
+2. Once per service, write its operations and assemble its definition.
+3. In application code, yield the service and call its operations.
 
-### 1. Assemble the service from focused files
+### 1. Write operations and assemble the service
 
-A service file is an inventory: a top-level `defineService` call lists `id`, `requires`, `initialize` and `methods` directly. Keep each initializer and operation in its own focused file and import its named export. Use `Effect.void` when there is no initialization state. The methods arrow returns the operation record directly. Each entry names an imported operation or calls an imported state factory; `genericMethod` may wrap either form.
+A service file is an inventory: a top-level `defineService` call lists `id`, `requires`, `initialize` and `methods` directly. Keep each operation in its own file and import its named export. Use `Effect.void` when the service owns no state; the methods arrow then takes no argument and returns the record of imported operations.
 
-Quality enforces this with `effect/service-definition-assembly`, including adapters and tests. It rejects a configuration hidden behind a variable, spreads or computed configuration members, hidden method records, inline operations, local implementation references and implementation bodies beside the assembly. Keep setup inside the imported initializer or operation factory. Existing Quality span checks apply to the implementations: use names such as `Greetings.greet`, with an operation matching its binding. No second span convention applies to service assemblies.
+Quality enforces this with `effect/service-definition-assembly`, including adapters and tests. It rejects a configuration hidden behind a variable, spreads or computed configuration members, hidden method records, inline operations, local implementation references and implementation bodies beside the assembly. Quality's span checks apply to the operations: name each span after the service and the operation, such as `Greetings.greet`, with the operation matching its binding.
 
-The initializer module exports its Effect:
-
-```ts
-import { Effect } from "effect";
-
-export const initializeGreetings = Effect.succeed({ punctuation: "!" });
-```
-
-The operation module exports a state factory; its returned function is the public method:
+An operation yields its dependencies. `Prefix` is a separate native Context service:
 
 ```ts
 import { Effect } from "effect";
 import { Prefix } from "#Prefix.ts";
 
-export function greet(state: { readonly punctuation: string }) {
-	return Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`));
-}
+export const greet = Effect.fn("Greetings.greet")(function* (name: string) {
+	const prefix = yield* Prefix;
+	return `${prefix}${name}`;
+});
 ```
 
-The service module imports those exports. `Prefix` is a separate native Context service:
+The service module imports it:
 
 ```ts
+import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { greet } from "#greetings/greet.ts";
-import { initializeGreetings } from "#greetings/initialize.ts";
 import { Prefix } from "#Prefix.ts";
 
-const Greetings = defineService({
+export const Greetings = defineService({
 	id: "app/Greetings",
 	requires: [Prefix],
-	initialize: initializeGreetings,
-	methods: (state) => ({ greet: greet(state) }),
+	initialize: Effect.void,
+	methods: () => ({ greet }),
 });
 ```
 
@@ -93,15 +106,46 @@ const greeting = Effect.gen(function* () {
 }).pipe(Effect.provide(live));
 ```
 
-The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the method. An initialization failure fails the Layer build with that typed error and runs finalizers registered before the failure. A method failure reaches the caller as that method's typed error, and the same service instance can handle the next call. A method defect remains a defect.
+The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no `Prefix` from that caller. Its argument and success type are inferred from the operation. An initialization failure fails the Layer build with that typed error and runs finalizers registered before the failure. An operation failure reaches the caller as that operation's typed error, and the same service instance can handle the next call. An operation defect remains a defect.
 
-`initialize` and ordinary methods may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. For an ordinary method, the diagnostic names the method and its missing service types, such as `MethodHasUndeclaredServiceRequirements<"write", Reactivity>`. When a method is missing several services, the diagnostic includes their union; declared services and caller scope are excluded. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
+`initialize` and ordinary operations may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. For an ordinary operation, the diagnostic names the operation and its missing service types, such as `MethodHasUndeclaredServiceRequirements<"write", Reactivity>`. When an operation is missing several services, the diagnostic includes their union; declared services and caller scope are excluded. Scope is supplied by the Layer or the caller, so `Scope.Scope` itself cannot appear in `requires`.
 
 Native `Context.Reference` keys can appear in `requires`. Their defaults make them requirement-free in Effect, so they add no Layer dependency, including when the reference's value is a scope.
 
-Return functions from the method factory, each producing an Effect. An Effect value placed directly in the method record is rejected. Keep the private state behind those functions; it is absent from the emitted public service declaration.
+The method record holds functions, each producing an Effect. An Effect value placed directly in the record is rejected.
 
-### 2. Annotate generators when inference needs help
+### 2. Keep owned state in the initializer
+
+A service that owns state for its lifetime returns it from `initialize`, and the operations that use it are exported as state factories: functions of the state that return the `Effect.fn` operation. Use this only for state the service owns, never to reach a dependency.
+
+A per-request service can cache a lookup within its request. The initializer builds the cache once per Layer build; `loadTodayWater` is an operation that yields its own dependencies, such as the caller and a repository:
+
+```ts
+import { Effect } from "effect";
+import { loadTodayWater } from "#water/loadTodayWater.ts";
+
+export const initializeWater = Effect.gen(function* () {
+	return { today: yield* Effect.cached(loadTodayWater()) };
+});
+```
+
+The operation reads the cache from the state:
+
+```ts
+import { Effect } from "effect";
+import type { initializeWater } from "#water/initialize.ts";
+
+export function todayTotal(state: Effect.Success<typeof initializeWater>) {
+	return Effect.fn("Water.todayTotal")(function* () {
+		const entries = yield* state.today;
+		return entries.reduce((sum, entry) => sum + entry.millilitres, 0);
+	});
+}
+```
+
+The assembly passes the state on: `methods: (state) => ({ todayTotal: todayTotal(state) })`. Every call within one build of the Layer shares the cached result; a request that builds its own Layer loads again.
+
+### 3. Annotate generators when inference needs help
 
 For an explicitly annotated `Effect.fn` generator, `ServiceRequirements` expresses the declared services without repeating their union:
 
@@ -127,9 +171,9 @@ export const initializeIdentity = Effect.fn("Identity.initializeIdentity")(funct
 })();
 ```
 
-The alias is `Effect.fn.Return<Success, Failure, declared services | CallerScope>`. The last parameter can be `Scope.Scope` when the generator acquires a scoped resource; it cannot add another undeclared service. The annotation describes the implementation's requirements. `defineService` removes declared dependencies from the public methods' requirements.
+The alias is `Effect.fn.Return<Success, Failure, declared services | CallerScope>`. The last parameter can be `Scope.Scope` when the generator acquires a scoped resource; it cannot add another undeclared service. The annotation describes the implementation's requirements. `defineService` removes declared dependencies from the public operations' requirements.
 
-### 3. Give method resources a caller scope
+### 4. Give operation resources a caller scope
 
 ```ts
 import { Effect, Ref } from "effect";
@@ -139,7 +183,7 @@ export function open(released: Ref.Ref<number>) {
 }
 ```
 
-The assembly imports `open`, a `released` state factory and an initializer that returns `Ref.make(0)`. Its methods inventory is `(state) => ({ open: open(state), released: released(state) })`. A caller can then use:
+The counter is state the service owns. The assembly imports `open`, a `released` state factory and an initializer that returns `Ref.make(0)`. Its methods inventory is `(state) => ({ open: open(state), released: released(state) })`. A caller can then use:
 
 ```ts
 const useResource = Effect.gen(function* () {
@@ -149,11 +193,11 @@ const useResource = Effect.gen(function* () {
 }).pipe(Effect.provide(Resources.layer));
 ```
 
-`open()` requires a caller scope. `Effect.scoped` supplies it and closes it before the next method call. The finalizer updates the private counter while the service is still available. An initializer that registers a finalizer instead ties that finalizer to the service Layer's scope.
+`open()` requires a caller scope. `Effect.scoped` supplies it and closes it before the next call. The finalizer updates the private counter while the service is still available. An initializer that registers a finalizer instead ties that finalizer to the service Layer's scope.
 
 ### Replace a service at an external test boundary
 
-A native Layer can provide the method interface directly:
+A native Layer can provide the operation interface directly:
 
 ```ts
 const testGreetings = Layer.succeed(Greetings, {
@@ -161,7 +205,7 @@ const testGreetings = Layer.succeed(Greetings, {
 });
 ```
 
-The replacement provides the public method interface, rather than private initialization state. The compiler rejects a replacement that leaves a required method out. Keep the real service in tests of its behavior; use a replacement where the service represents an external boundary.
+The replacement provides the public operation interface, rather than owned state. The compiler rejects a replacement that leaves a required operation out. Keep the real service in tests of its behavior; use a replacement where the service represents an external boundary.
 
 ### Preserve a generic method's signature
 
@@ -208,9 +252,9 @@ The wrapped Effect still requires `Caller`, which the caller supplies separately
 
 A generic method's remaining requirements follow native Effect rules: execution without them is a compile error. Composing the call into a Layer retains those dependencies until they are provided; an initializer cannot use the call unless its service declares those dependencies.
 
-Marked generic methods also work with declared initializer dependencies. Their signatures keep all caller requirements unchanged; unlike ordinary methods, they do not subtract declared dependencies from the public signature. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures. Use initialization state to close over bound dependencies in generic methods.
+Marked generic methods also work with declared initializer dependencies. Their signatures keep all caller requirements unchanged; unlike ordinary methods, they do not subtract declared dependencies from the public signature. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures.
 
-Dependency binding wraps the method's outer returned Effect. A Stream returned as its value retains its own service requirements; provide them when running the Stream.
+Dependency binding wraps the operation's outer returned Effect. A Stream returned as its value retains its own service requirements; provide them when running the Stream.
 
 ### API
 
@@ -224,12 +268,12 @@ Import the module that defines the name:
 
 The definition's fields are:
 
-| Field            | Meaning                                                                                                                     |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | The Context service identity, also retained in the Layer's output type.                                                     |
-| `requires`       | A readonly list of service tags available to initialization and ordinary methods.                                           |
-| `initialize`     | The Effect producing private state; its failure type becomes the Layer's failure type.                                      |
-| `methods(state)` | A function returning the public method record, with declared dependencies removed from ordinary methods' requirement types. |
+| Field            | Meaning                                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `id`             | The Context service identity, also retained in the Layer's output type.                                               |
+| `requires`       | A readonly list of service tags available to initialization and ordinary operations.                                  |
+| `initialize`     | The Effect producing owned state, or `Effect.void`; its failure type becomes the Layer's failure type.                |
+| `methods(state)` | A function returning the public operation record, with declared dependencies removed from ordinary operations' types. |
 
 ### Install and limits
 
@@ -238,5 +282,5 @@ pnpm add @shivaedev/service effect
 ```
 
 `effect` is a peer dependency, and the package needs Node.js 24 or later.
-- Keep request identity at the request boundary when it changes per call. Pass it as a method argument rather than binding it into a service intended to live across requests.
-- Choose service Layer lifetimes at the application's composition boundary; keep initialization resource ownership separate from a method caller's scope.
+- `defineService` does not choose a lifetime. The application decides it by where it registers the service's Layer; a Layer that requires the caller can only be built where the caller is provided.
+- Initialization resources belong to the Layer's scope, never to an operation caller's scope.
