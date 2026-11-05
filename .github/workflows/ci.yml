@@ -74,10 +74,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          postgres: "true"
       - name: Install Chromium system libraries for the local tool stories
         run: pnpm --filter @shivaedev/browser-check exec playwright install-deps chromium
       - name: Prove screenshots and smoke checks against a started host
         run: pnpm --filter @shivaedev/browser-check test src/browser.slow.spec.ts --project slow --testTimeout=120000
+      - run: pnpm db:setup
+      - name: Prove Better Auth cookie sign-in against the starter on isolated PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test
+        run: pnpm --filter @shivaedev/starter test src/server/browserSignIn.slow.spec.ts --project slow --maxWorkers=1 --testTimeout=120000
 
   typecheck:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
