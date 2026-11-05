@@ -189,6 +189,93 @@ class Receipt extends Model.Class<Receipt>("Receipt")({
 
 `jsonb` uses native `PgTypes.jsonb` parameters. The supplied schema encodes nested values for storage and decodes PostgreSQL's returned object through the repository, including projections. Here `amount` is a number in application code and a string inside the stored JSON. Invalid input or stored data fails with `SchemaError`. Use `jsonb(Schema.NullOr(Details))` for a nullable column: a null input binds SQL `NULL`. The application still owns the column's DDL.
 
+### Share a table's repository and domain reads between services
+
+Use `defineRepository` from `@shivaedev/sql/defineRepository.ts` to give the table's repository and its domain operations one native Effect service and Layer. Its initializer returns the whole public shape: values, repositories and functions are all allowed. Services declare that repository tag in `requires`, then read it from the environment. Keep repository construction out of each service's initializer.
+
+For a pot with `id`, `amount` and `pending` integer fields, its repository module can own loading and replaying pending portions:
+
+```ts
+import { Effect } from "effect";
+import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { Pot } from "#pots/Pot.ts";
+
+const initializePots = Effect.gen(function* () {
+	const rows = yield* makeRepository(Pot, {
+		idColumn: "id",
+		spanPrefix: "Pots",
+		tableName: "pots",
+	});
+	const load = Effect.fn("Pots.load")((id: number) => rows.findById(id));
+	const settle = Effect.fn("Pots.settle")(function* (id: number) {
+		const pot = yield* load(id);
+		return yield* rows.update({ ...pot, amount: pot.amount + pot.pending, pending: 0 });
+	});
+	return { rows, load, settle };
+});
+
+export const Pots = defineRepository({ id: "app/Pots", initialize: initializePots });
+```
+
+`Pots.layer` requires the initializer's services, including `SqlClient`. Its initialization errors stay in the Layer's error type, and resources acquired by initialization belong to the Layer's scope. The returned operations keep their own types and caller requirements; `defineRepository` does not bind their dependencies. Here `load` and `settle` close over `rows`, which captures the native SQL client.
+
+Put service operations in their operation modules, reading the shared tag:
+
+```ts
+import { Effect } from "effect";
+import { Pots } from "#pots/Pots.ts";
+
+export const loadPot = Effect.fn("Plates.loadPot")(function* (id: number) {
+	return yield* (yield* Pots).load(id);
+});
+
+export const settlePot = Effect.fn("PotLifecycle.settlePot")(function* (id: number) {
+	return yield* (yield* Pots).settle(id);
+});
+```
+
+Keep each operation in its own module. The two service assemblies import those operations:
+
+```ts
+import { Effect, Layer } from "effect";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { loadPot } from "#pots/loadPot.ts";
+import { Pots } from "#pots/Pots.ts";
+import { settlePot } from "#pots/settlePot.ts";
+
+const Plates = defineService({
+	id: "app/Plates",
+	requires: [Pots],
+	initialize: Effect.void,
+	methods: () => ({ loadPot }),
+});
+const PotLifecycle = defineService({
+	id: "app/PotLifecycle",
+	requires: [Pots],
+	initialize: Effect.void,
+	methods: () => ({ settlePot }),
+});
+
+const features = Layer.merge(Plates.layer, PotLifecycle.layer).pipe(Layer.provide(Pots.layer));
+```
+
+Provide the application's PostgreSQL Layer to `features` once. Both services receive the same repository instance within that Layer build. Reuse the same `Pots.layer` value so native Layer memoization shares construction; `Layer.fresh` and separate builds intentionally create separate lifetimes. The repository does not open another pool or a transaction. Wrap work spanning both services in `transact`; repository reads and writes keep the caller's transaction and savepoints, and a failure rolls back the work across both services. The application chooses concurrency and locking for a read followed by an update. Closing the Layer scope releases its repository initialization resources.
+
+```ts
+import { transact } from "@shivaedev/sql/transact.ts";
+
+const application = features.pipe(Layer.provideMerge(database));
+const settleAndLoad = Effect.gen(function* () {
+	const lifecycle = yield* PotLifecycle;
+	const plates = yield* Plates;
+	yield* lifecycle.settlePot(1);
+	return yield* plates.loadPot(1);
+}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(application));
+```
+
+`database` is the application's `postgresLayer`. `Layer.provideMerge` also keeps its SQL and Reactivity services available to the outer `transact`.
+
 ### 2. Per feature: write and query through the model
 
 ```ts
@@ -917,6 +1004,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
+- `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
