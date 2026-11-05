@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Exit, Layer, Logger, Redacted, Scope } from "effect";
+import { Effect, Exit, Layer, Logger, Redacted, Scope } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization } from "effect/observability";
 import { Reactivity } from "effect/reactivity";
@@ -54,7 +54,9 @@ export function otlpReadoutApp(protobuf: boolean, immediate = false, postgres = 
 			}
 			const contexts = { "document-worker": yield* tracing("document-worker"), "story-readouts": yield* tracing("story-readouts") };
 			const sql = postgres
-				? yield* PgClient.makeClient({ url: yield* Config.Redacted("PLATFORM_TEST_SQL_TEST_DATABASE_URL") }).pipe(Effect.provide(Reactivity.layer))
+				? yield* PgClient.makeClient({ url: Redacted.make(database.url ?? "postgresql://integration-tests-disabled") }).pipe(
+						Effect.provide(Reactivity.layer),
+					)
 				: undefined;
 			return { contexts, receiver, scope, sql };
 		},

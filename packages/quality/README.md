@@ -657,6 +657,8 @@ export default defineConfig({
 
 A skipped test proves nothing. `noSkippedTests` reports unconditional skips as errors, and its automatic fix is disabled: repair the test or remove a claim it cannot prove. Slow tests belong in the slow project.
 
+`tests/database-url` reports direct `Config` string, redacted and URL reads and `process.env` reads of names ending in `DATABASE_URL` inside `test-support/`. It follows imports and static const aliases, including bracket access and environment destructuring. Use `postgresTestUrl` instead. Environment writes, child-app source strings and forwarding the environment to a generated app are accepted.
+
 The **PostgreSQL URL gate** is the only permitted skip convention: a test that needs real PostgreSQL registers conditionally on its `PLATFORM_*_TEST_DATABASE_URL`. Use `postgresTestUrl(name)` from `@shivaedev/test-sql/server/adapters/postgresTestUrl.ts` at collection time. It returns `{ url, configured }`, treats absent and empty URLs as missing, and throws when a URL is missing and `CI` is nonempty. With a URL, execute the body against PostgreSQL and let connection or setup failures fail the test. Nothing else may skip. Keep the condition next to the database setup, either in the test file or its shared `test-support` module:
 
 ```ts
