@@ -43,7 +43,7 @@ function reachFinding(file: string, reached: Reached<string>): Finding {
 function standMessage(stand: Stand): string {
 	return stand.why === "mocks"
 		? `mocks with ${stand.what}. A unit test calls real code with real values and stands nothing in for a collaborator.`
-		: `provides services with ${stand.what}. A unit test runs only requirement-free code, such as Effect.runSync on an Effect that needs nothing.`;
+		: `provides services with ${stand.what}. A unit test uses plain Vitest it and pure APIs without an Effect runner or clock.`;
 }
 
 function where(file: string, module: string, trail: Trail): string {
@@ -75,10 +75,18 @@ function syntaxFindings(file: string, module: string, trail: Trail, source: Sour
 	return [...stands, ...dom];
 }
 
-export function unitTests(graph: ImportGraph, sources: readonly SourceFile[]): (file: string) => readonly Finding[] {
+export function unitTests(
+	graph: ImportGraph,
+	sources: readonly SourceFile[],
+	runtime: (file: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>) => Finding | undefined,
+): (file: string) => readonly Finding[] {
 	const byPath = new Map(sources.map((source) => [source.path, source]));
 	const edgesFrom = runtimeEdges(graph, byPath);
 	return (file) => {
+		const reachedRuntime = runtime(file, edgesFrom);
+		if (reachedRuntime !== undefined) {
+			return [reachedRuntime];
+		}
 		const walked = walkFrom(file, edgesFrom, engineOf);
 		const checked = [...walked.visited].filter(([module]) => module === file || isTestSupport(module));
 		return [

@@ -9,7 +9,7 @@ const KIT = "Drive the engine through the package's story kit in a story, or, if
 const WITHOUT_STAND_INS = `${KIT} test it in the .unit file without stand-ins.`;
 const WITHOUT_DOM = `A unit test runs without one. ${KIT} test it in the .unit file without the DOM.`;
 const REAL_VALUES = "A unit test calls real code with real values and stands nothing in for a collaborator.";
-const REQUIREMENT_FREE = "A unit test runs only requirement-free code, such as Effect.runSync on an Effect that needs nothing.";
+const PURE_APIS = "A unit test uses plain Vitest it and pure APIs without an Effect runner or clock.";
 
 const GLOBAL_VI = "";
 
@@ -52,7 +52,7 @@ ruleStory.it(
 );
 
 for (const [imports, call, provider] of [
-	['import { Effect } from "effect";', "Effect.runSync(program.pipe(Effect.provide(live)));", "Effect.provide"],
+	['import { Effect } from "effect";', "program.pipe(Effect.provide(live));", "Effect.provide"],
 	['import { Effect } from "effect";', "Effect.provideService(Prices, prices);", "Effect.provideService"],
 	['import { Layer } from "effect";', "Layer.succeed(Prices, prices);", "Layer.succeed"],
 	['import * as Layers from "effect/Layer";', "Layers.empty;", "Layers.empty"],
@@ -63,14 +63,14 @@ for (const [imports, call, provider] of [
 	['import * as testing from "@effect/vitest";', "testing.layer(live);", "testing.layer"],
 ] as const) {
 	ruleStory.it(
-		`tests/story-specs reports a unit test that provides services with ${provider} and asks for requirement-free code`,
+		`tests/story-specs reports a unit test that provides services with ${provider} and asks for pure APIs`,
 		[repositoryHas(ordersPackage, pureOrders, unitSpec(`${imports}\n${call}`))],
 		function* ({ check }) {
 			const findings = yield* check(storySpecs);
 
 			yield* assertThat(findings, (actual) =>
 				actual.toEqual([
-					{ file: UNIT, line: 2, message: `Is a unit test but provides services with ${provider}. ${REQUIREMENT_FREE} ${WITHOUT_STAND_INS}` },
+					{ file: UNIT, line: 2, message: `Is a unit test but provides services with ${provider}. ${PURE_APIS} ${WITHOUT_STAND_INS}` },
 				]),
 			);
 		},
@@ -80,14 +80,7 @@ for (const [imports, call, provider] of [
 for (const [lookalike, lines] of [
 	["Vitest's mock resets", ["vi.restoreAllMocks(); vi.clearAllMocks(); vi.resetAllMocks.bind(vi);"]],
 	["a Layer of a local module", ['import { Layer } from "./layers.ts";', "Layer.succeed(1);"]],
-	[
-		"requirement-free Effects",
-		[
-			'import { Effect, Schema } from "effect";',
-			"Effect.succeed(1); Effect.runSync(Effect.void); Schema.String; Effect.runSync(Effect.service(Prices));",
-		],
-	],
-	["it.effect of Effect's Vitest", ['import { it } from "@effect/vitest";', 'it.effect("runs", function* () {});']],
+	["Effect data constructors", ['import { Effect, Schema } from "effect";', "Effect.succeed(1); Schema.String;"]],
 ] as const) {
 	ruleStory.it(
 		`tests/story-specs leaves ${lookalike} in a unit test alone`,

@@ -24,12 +24,26 @@ function lineAt(source: ts.SourceFile, position: number): number {
 	return source.getLineAndCharacterOfPosition(position).line + 1;
 }
 
+function typeBindings(bindings: ts.NamedImportBindings | ts.NamedExportBindings | undefined, defaultName?: ts.Identifier): boolean {
+	return (
+		defaultName === undefined
+		&& bindings !== undefined
+		&& (ts.isNamedImports(bindings) || ts.isNamedExports(bindings))
+		&& bindings.elements.length > 0
+		&& bindings.elements.every((element) => element.isTypeOnly)
+	);
+}
+
 function declared(statement: ts.Statement): Found | undefined {
 	if (ts.isImportDeclaration(statement)) {
-		return { kind: "import", node: statement.moduleSpecifier, type: statement.importClause?.isTypeOnly === true };
+		return {
+			kind: "import",
+			node: statement.moduleSpecifier,
+			type: statement.importClause?.isTypeOnly === true || typeBindings(statement.importClause?.namedBindings, statement.importClause?.name),
+		};
 	}
 	if (ts.isExportDeclaration(statement)) {
-		return { kind: "import", node: statement.moduleSpecifier, type: statement.isTypeOnly };
+		return { kind: "import", node: statement.moduleSpecifier, type: statement.isTypeOnly || typeBindings(statement.exportClause) };
 	}
 	if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
 		return { kind: "import", node: statement.moduleReference.expression, type: statement.isTypeOnly };

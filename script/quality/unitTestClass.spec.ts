@@ -22,7 +22,7 @@ ruleKit.it(
 );
 
 ruleKit.it(
-	"a unit test may run a requirement-free Effect and import an engine's types",
+	"a requirement-free Effect runner fails alongside type-only engine imports",
 	[
 		repositoryHas(
 			ordersPackage,
@@ -33,7 +33,9 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		expect(yield* check(storySpecs)).toEqual([
+			{ file: "src/orders.unit.test.ts", line: 4, message: expect.stringContaining("This `.unit` test reaches `Effect.runSync`") },
+		]);
 	},
 );
 
@@ -128,7 +130,7 @@ ruleKit.it(
 					'import { Effect, Layer } from "effect";',
 					'import { it as effect, layer } from "@effect/vitest";',
 					"const Live = Layer.succeed(Prices, prices);",
-					'it("prices", () => Effect.runSync(program.pipe(Effect.provide(Live))));',
+					'it("prices", () => program.pipe(Effect.provide(Live)));',
 					'layer(Live)("orders", (it) => {});',
 					'effect.layer(Live)("orders", (it) => {});',
 				].join("\n"),
@@ -193,14 +195,12 @@ ruleKit.it(
 			{ content: 'import { vi } from "vitest";\nexport const prices = vi.fn();', path: "src/test-support/prices.ts" },
 			unitSpec(
 				[
-					'import { it as effect } from "@effect/vitest";',
 					'import { ManagedRuntime } from "effect";',
 					'import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";',
 					'import { prices } from "./test-support/prices.ts";',
 					'vi.stubEnv("TZ", "UTC"); vi.stubGlobal("fetch", prices); vi.useFakeTimers();',
 					"ManagedRuntime.make(live);",
 					'document.body.append("total");',
-					'effect.effect("totals", function* () {});',
 				].join("\n"),
 			),
 		),
@@ -209,16 +209,16 @@ ruleKit.it(
 		const findings = yield* check(storySpecs);
 		expect(findings.map((finding) => [finding.line, finding.message.slice(0, finding.message.indexOf(". "))])).toEqual([
 			[
-				3,
+				2,
 				"Is a unit test but reaches a story engine (@shivaedev/test-story/server/storyKit.ts) through src/orders.unit.test.ts -> @shivaedev/test-story/server/storyKit.ts",
 			],
-			[5, "Is a unit test but mocks with vi.stubEnv"],
-			[5, "Is a unit test but mocks with vi.stubGlobal"],
-			[5, "Is a unit test but mocks with vi.useFakeTimers"],
-			[6, "Is a unit test but provides services with ManagedRuntime.make"],
+			[4, "Is a unit test but mocks with vi.stubEnv"],
+			[4, "Is a unit test but mocks with vi.stubGlobal"],
+			[4, "Is a unit test but mocks with vi.useFakeTimers"],
+			[5, "Is a unit test but provides services with ManagedRuntime.make"],
 			[1, "Is a unit test but uses the DOM"],
 			[
-				4,
+				3,
 				"Is a unit test but in src/test-support/prices.ts, which it imports through src/orders.unit.test.ts -> src/test-support/prices.ts, mocks with vi.fn",
 			],
 		]);
