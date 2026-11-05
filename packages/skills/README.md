@@ -97,7 +97,7 @@ shivaedev-skills: The shared skills are out of sync:
 Run `shivaedev-skills sync` and commit the result.
 ```
 
-Keep formatters away from managed copies. Formatting changes their bytes just as a hand edit does, so the next check reports drift.
+`@shivaedev/quality` reads the ownership manifest and skips managed copies and their Claude links during lint, formatting and fixes. Local skills beside them remain checked. Keep other formatters away from managed copies: formatting changes their bytes just as a hand edit does, so the next skills check reports drift.
 
 ### Optional: sync from a pull request workflow
 

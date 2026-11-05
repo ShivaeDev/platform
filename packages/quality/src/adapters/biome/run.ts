@@ -1,10 +1,13 @@
 import { createRequire } from "node:module";
+import { relative } from "node:path";
 import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { posix } from "#inventory/ignoreScope.ts";
 import { shadcnFiles } from "#inventory/shadcnFiles.ts";
+import { skillCopies } from "#inventory/skillCopies.ts";
 
 export interface BiomeRun {
 	readonly code: number;
@@ -21,10 +24,11 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 	nonEffectFolders: readonly string[] = [],
 ) {
 	const files = yield* shadcnFiles(root);
+	const copies = (yield* skillCopies(root)).paths.map((file) => posix(relative(root, file)));
 	const toolOwned: readonly ExceptionDeclaration[] = [
 		{
-			files: ["**", "!**/pnpm-lock.yaml", ...files.map((file) => `!${file}`)],
-			reason: "pnpm writes its lockfiles; canonical shadcn component filenames in the configured UI folder belong to its CLI.",
+			files: ["**", "!**/pnpm-lock.yaml", ...[...files, ...copies].map((file) => `!${file}`)],
+			reason: "pnpm, shadcn and the skills tool own their generated files and copies.",
 			rules: ["biome/files/includes"],
 		},
 	];

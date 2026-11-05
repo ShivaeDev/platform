@@ -6,19 +6,20 @@ import { manifestReader } from "#adapters/manifestReader.ts";
 import type { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
+import { skillCopies } from "#inventory/skillCopies.ts";
 import { walk } from "#inventory/walk.ts";
 import type { RuleServices } from "#rule.ts";
 
 export type Sorting = { readonly _tag: "Sorted" } | { readonly _tag: "Unsorted"; readonly sorted: string };
 
-export function manifestsIn(root: string): Effect.Effect<readonly string[], FilesystemFailure | SetupFailure, RuleServices> {
-	return Effect.map(walk(root), (paths) =>
-		paths
-			.filter((path) => basename(path) === "package.json")
-			.map((path) => posix(relative(root, path)))
-			.sort(),
-	);
-}
+export const manifestsIn = Effect.fn("Manifests.manifestsIn")(function* (root: string) {
+	const copies = yield* skillCopies(root);
+	return (yield* walk(root))
+		.filter((path) => basename(path) === "package.json")
+		.filter((path) => !copies.owns(path))
+		.map((path) => posix(relative(root, path)))
+		.sort();
+});
 
 export function sortingOf(text: string): Sorting {
 	const sorted = sortPackageJson(text);

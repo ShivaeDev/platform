@@ -2,6 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { VitestRunner } from "#adapters/VitestRunner.ts";
+import { parseOptions } from "#options.ts";
 import { runAttempt } from "#runAttempt.ts";
 
 export const argumentStory = storyKit({
@@ -16,6 +17,10 @@ export const argumentStory = storyKit({
 				Effect.provide(VitestRunner.layer),
 				Effect.match({ onFailure: (error) => `${error._tag}: ${error.message}`, onSuccess: () => "completed" }),
 			);
+		},
+		parse: (...args: string[]) => {
+			story.tell(`the wrapper parses ${args.join(" ")}`);
+			return parseOptions(args, "/project");
 		},
 	}),
 });
