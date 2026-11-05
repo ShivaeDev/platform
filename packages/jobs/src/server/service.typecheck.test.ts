@@ -3,7 +3,9 @@ import { expectTypeOf } from "vitest";
 import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue, type JobContext } from "#server/definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
+import { PgBossInspection } from "#server/inspection.ts";
 import type { Job } from "#server/job.ts";
+import type { PgBoss } from "#server/PgBoss.ts";
 import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#server/service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@shivaedev/jobs/test/HandlerDependency") {}
@@ -127,3 +129,7 @@ expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/Email
 defineQueue({ name: "batch", schema: Schema.Struct({}), worker: { batchSize: 5, localConcurrency: 3, pollingIntervalSeconds: 1 } });
 // @ts-expect-error pg-boss concurrency remains numeric.
 defineQueue({ name: "invalid-concurrency", schema: Schema.Struct({}), worker: { localConcurrency: "3" } });
+
+expectTypeOf<Layer.Services<typeof PgBossInspection.layer>>().toEqualTypeOf<PgBoss>();
+const inspected = Effect.flatMap(PgBossInspection, (inspection) => inspection.snapshot([RequiresDecode]));
+expectTypeOf<Effect.Services<typeof inspected>>().toEqualTypeOf<"@shivaedev/jobs/PgBossInspection" | HandlerDependency>();

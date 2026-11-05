@@ -1,8 +1,6 @@
-import { Effect, type Schema } from "effect";
+import { Effect } from "effect";
 import type { JobReadOptions, PgBossClient } from "#server/client.ts";
-import type { JobPayloadSchema } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
-import { decodeStoredData } from "#server/storedRows.ts";
 
 export function inspectionJobs(client: PgBossClient) {
 	function storedJobs(queue: { readonly name: string }, options?: JobReadOptions) {
@@ -16,13 +14,5 @@ export function inspectionJobs(client: PgBossClient) {
 			},
 		});
 	}
-	function jobs<TName extends string, TPayload extends JobPayloadSchema | typeof Schema.Null>(
-		queue: { readonly name: TName; readonly schema: TPayload },
-		options?: JobReadOptions,
-	) {
-		return storedJobs(queue, options).pipe(
-			Effect.flatMap((rows) => Effect.forEach(rows, (job) => decodeStoredData(queue, job.data).pipe(Effect.map((data) => ({ ...job, data }))))),
-		);
-	}
-	return { jobs, storedJobs };
+	return { storedJobs };
 }

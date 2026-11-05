@@ -1,12 +1,12 @@
-import { type Context, Effect, Option, Redacted, Schema } from "effect";
+import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
-import { JobEngine, type Listing } from "#server/engine.ts";
+import type { Listing } from "#server/engine.ts";
 import { type PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions } from "#server/health.ts";
 import { readJobFailure } from "#server/readJobFailure.ts";
-import type { PgBossService } from "#server/service.ts";
+import { PgBossOperations } from "#server/services/operations/service.ts";
 import { decodeStoredData } from "#server/storedRows.ts";
 
 const Cursor = Schema.StringFromBase64Url.pipe(
@@ -42,29 +42,33 @@ const Row = Schema.Struct({
 
 const Rows = Schema.Array(Row);
 
-export const jobListings = Effect.gen(function* () {
-	const engine = yield* JobEngine;
-	const failedJobs: PgBossService["failedJobs"] = (queue, options) =>
-		listJobs(engine, "failedJobs", queue, options).pipe(
-			Effect.map(({ jobs, next }) => ({ jobs: jobs.map(({ sourceId: _id, sourceOutput: _output, ...job }) => job), next })),
-		);
-	const deadLetteredJobs: PgBossService["deadLetteredJobs"] = (queue, options) =>
-		listJobs(engine, "deadLetteredJobs", queue, options).pipe(
-			Effect.map(({ jobs, next }) => ({ jobs: jobs.map((job) => ({ ...job, sourceQueue: queue.name })), next })),
-		);
-	return { deadLetteredJobs, failedJobs };
+export const failedJobs = Effect.fnUntraced(function* <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
+	queue: { readonly name: TName; readonly schema: TPayload },
+	options: JobPageOptions,
+) {
+	return yield* listJobs("failedJobs", queue, options).pipe(
+		Effect.map(({ jobs, next }) => ({ jobs: jobs.map(({ sourceId: _id, sourceOutput: _output, ...job }) => job), next })),
+	);
+});
+export const deadLetteredJobs = Effect.fnUntraced(function* <
+	const TName extends string,
+	const TPayload extends JobPayloadSchema | typeof Schema.Null,
+>(queue: { readonly name: TName; readonly schema: TPayload }, options: JobPageOptions) {
+	return yield* listJobs("deadLetteredJobs", queue, options).pipe(
+		Effect.map(({ jobs, next }) => ({ jobs: jobs.map((job) => ({ ...job, sourceQueue: queue.name })), next })),
+	);
 });
 
 const listJobs = Effect.fnUntraced(function* <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
-	engine: Context.Service.Shape<typeof JobEngine>,
 	listing: Listing,
 	queue: { readonly name: TName; readonly schema: TPayload },
 	options: JobPageOptions,
 ): Effect.fn.Return<
 	JobPage<Omit<DeadLetteredJob<unknown>, "sourceQueue">>,
 	PgBossError | PgBossPayloadError | Schema.SchemaError,
-	TPayload["DecodingServices"]
+	TPayload["DecodingServices"] | "@shivaedev/jobs/PgBossOperations"
 > {
+	const engine = yield* PgBossOperations;
 	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(PageOptions)(options);
 	const page = yield* keysetPage({
 		after,

@@ -81,7 +81,7 @@ runtime.it(
 );
 
 runtime.it(
-	"a job enqueued from inside a scheduled run links its own job span to the run's job span",
+	"enqueue inside a scheduled run traces storage and links the next job span to the run's job span",
 	[running("app", [scheduled(Nightly, { enqueues: (jobs) => jobs.enqueue(Orders, { id: 1 }) }), worker(Orders, "succeeds")])],
 	function* ({ deliver, sent, spans }) {
 		yield* deliver("nightly", [{ data: null, id: "nightly-run" }]);
@@ -91,6 +91,7 @@ runtime.it(
 
 		expect((yield* spans()).map(({ links, name }) => ({ links, name }))).toEqual([
 			{ links: [], name: "nightly" },
+			{ links: [], name: "PgBossOperations.enqueue" },
 			{ links: ["nightly"], name: "orders" },
 		]);
 	},

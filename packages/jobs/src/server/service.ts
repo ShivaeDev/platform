@@ -1,6 +1,7 @@
 import { Context, type Effect, Layer, type Option, type Redacted, type Schema } from "effect";
 import { acquireClient } from "#server/acquireClient.ts";
 import { clientEngine } from "#server/adapters/lifecycle.ts";
+import { pgBossDefinitionLayer } from "#server/adapters/pgBossDefinitionLayer.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { ClientOptions, StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements, ScheduleDefinition } from "#server/definition.ts";
@@ -18,7 +19,6 @@ import type { PgBossInspectionService } from "#server/inspection.ts";
 import type { Job } from "#server/job.ts";
 import { ClientEngine } from "#server/lifecycle.ts";
 import { PgBoss } from "#server/PgBoss.ts";
-import { pgBossDefinitionLayer } from "#server/pgBossDefinitionLayer.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;

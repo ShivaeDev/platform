@@ -57,7 +57,7 @@ database.it(
 		yield* untilIdle("app");
 		yield* untilJobSpanEnds("job 42");
 
-		expect((yield* spans()).map(({ events, name, outcome }) => ({ events, name, outcome }))).toEqual([
+		expect((yield* spans()).filter(({ name }) => name === Deferring.name).map(({ events, name, outcome }) => ({ events, name, outcome }))).toEqual([
 			{ events: [expect.stringMatching(/^job\.deferred \{"at":"[^"]+","reason":"Provider quota"\}$/u)], name: "deferring", outcome: "succeeded" },
 		]);
 	},

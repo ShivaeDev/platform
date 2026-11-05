@@ -1,20 +1,19 @@
 import { Effect, Redacted, Schema } from "effect";
 import { deferralCount } from "#server/adapters/deferralCount.ts";
 import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
-import type { PgBossClient } from "#server/client.ts";
 import { type JobPayloadSchema, jobContext, type QueueWorker } from "#server/definition.ts";
 import { PgBossPayloadError } from "#server/error.ts";
 import type { WorkerJob } from "#server/job.ts";
+import { PgBoss } from "#server/PgBoss.ts";
 import { payloadOf } from "#server/tracing.ts";
 
-export function runQueueWorker<R>(
+export const runQueueWorker = Effect.fnUntraced(function* <R>(
 	worker: QueueWorker<JobPayloadSchema & { readonly DecodingServices: R }, R>,
 	job: WorkerJob<unknown>,
 	deadline: number,
-	client: PgBossClient,
-	schema: string,
 ) {
-	return Schema.decodeUnknownEffect(Schema.toCodecJson(worker.queue.schema))(payloadOf(job.data)).pipe(
+	const { client, schema = "pgboss" } = yield* PgBoss;
+	return yield* Schema.decodeUnknownEffect(Schema.toCodecJson(worker.queue.schema))(payloadOf(job.data)).pipe(
 		Effect.mapError(
 			(error) =>
 				new PgBossPayloadError({
@@ -28,4 +27,4 @@ export function runQueueWorker<R>(
 		),
 		workerDiagnostics,
 	);
-}
+});

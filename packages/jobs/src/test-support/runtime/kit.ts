@@ -3,11 +3,12 @@ import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { PgBossService } from "#server/service.ts";
+import { CodecQueue } from "#test/CodecQueue.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { spanTree } from "#test/spanTree.ts";
-import { type Registration, untilWork } from "#test/workers.ts";
+import { ApplicationLog, type Registration, untilWork } from "#test/workers.ts";
 import { delivered, finished } from "./delivery.ts";
 import { described, type Fetched, type Options, provided, type RuntimeEngine, runningIn, runtimeEngine, startRuntime } from "./engine.ts";
 import { errorReportingVerbs } from "./errorReporting.ts";
@@ -65,6 +66,15 @@ export const runtime = storyKit({
 			return Effect.sync(() => {
 				engine.client.errors.emit("error", error);
 			});
+		},
+		enqueueUsingCallerServices: (name: string) => {
+			story.tell(`${name} enqueues a payload using its caller's encoding service`);
+			return provided(
+				engine,
+				runningIn(engine, name)
+					.jobs.enqueue(CodecQueue, { value: 42 })
+					.pipe(Effect.provideService(ApplicationLog, (line) => engine.applicationLog.push(`caller ${line}`))),
+			);
 		},
 		errorListeners: () => Effect.sync(() => engine.client.errors.listenerCount("error")),
 		failClientStart: (message: string) => {
@@ -263,3 +273,7 @@ export const errorsReported = runtime.trait("client", "the application reports p
 export function connectionTerminated(): Error {
 	return Object.assign(new Error("terminating connection due to administrator command: password=client-secret"), { code: "57P01" });
 }
+
+export const callerHasAnotherClient = runtime.trait("client", "the caller provides a different pg-boss client", (engine) => {
+	engine.callerClient = new FakeClient();
+});
