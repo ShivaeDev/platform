@@ -16,13 +16,13 @@ export interface ScreenClock extends WatchedClock {
 
 export const watchedClock = TestClock.testClockWith((clock) =>
 	Effect.gen(function* () {
-		if (isScreenClock(clock)) {
-			return clock;
-		}
 		const deadlines = new Map<object, number>();
 		const starts = yield* Effect.acquireRelease(Queue.unbounded<Duration.Duration>(), Queue.shutdown);
 		const sleep = clock.sleep;
-		const previous = Object.getOwnPropertyDescriptor(clock, "sleeps");
+		const previous = {
+			advanceNext: Object.getOwnPropertyDescriptor(clock, "advanceNext"),
+			sleeps: Object.getOwnPropertyDescriptor(clock, "sleeps"),
+		};
 		const watching = {
 			advanceNext: Effect.suspend(() => {
 				const next = Math.min(...deadlines.values());
@@ -50,11 +50,12 @@ export const watchedClock = TestClock.testClockWith((clock) =>
 			() =>
 				Effect.sync(() => {
 					Object.assign(clock, { sleep });
-					Reflect.deleteProperty(clock, "advanceNext");
-					if (previous === undefined) {
-						Reflect.deleteProperty(clock, "sleeps");
-					} else {
-						Object.defineProperty(clock, "sleeps", previous);
+					for (const [name, descriptor] of Object.entries(previous)) {
+						if (descriptor === undefined) {
+							Reflect.deleteProperty(clock, name);
+						} else {
+							Object.defineProperty(clock, name, descriptor);
+						}
 					}
 				}),
 		);
@@ -63,10 +64,6 @@ export const watchedClock = TestClock.testClockWith((clock) =>
 
 function isWatchedClock(clock: Clock.Clock): clock is WatchedClock {
 	return "sleeps" in clock;
-}
-
-function isScreenClock(clock: Clock.Clock): clock is ScreenClock {
-	return isWatchedClock(clock) && "advanceNext" in clock;
 }
 
 export function untilTimer(interval: Duration.Input, options?: Omit<UntilOptions, "name">) {
