@@ -22,7 +22,7 @@ Add `"browser-check": "browser-check"` to your package scripts and `.browser-che
 
 `pnpm install` does not download browsers. The first browser-check run announces and installs Chromium through Playwright; later runs announce reuse of the cached browser. On Linux, Playwright's Chromium system libraries must be available on the machine.
 
-To sign in as an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your local environment. The command posts to the host's `/api/auth/sign-in/email` Better Auth endpoint and uses the resulting session cookies for the pages. It does not create accounts.
+To sign in as an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your local environment. The command posts once to the host's `/api/auth/sign-in/email` Better Auth endpoint and shares its cookie session across the checked pages. This supports the starter's email/password sign-in on a local HTTP host. It does not create accounts.
 
 ```sh
 pnpm browser-check --page /admin --text "Users"
@@ -30,7 +30,7 @@ pnpm browser-check --page /admin --text "Users"
 
 ## Application scenarios
 
-Compose application checks with the `Browser` service from `@shivaedev/browser-check/Browser.ts` and provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts`. Open a scoped session, sign in through its HTTP endpoint when needed, and create pages with `session.newPage`. Pages support visits, text checks, screenshots, labelled fields, role locators, navigation counts and WebSocket waits. Each page shares the session's cookies. Scenario code owns application selectors and wire formats.
+Compose application checks with the `Browser` service from `@shivaedev/browser-check/Browser.ts` and provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts`. Open a scoped session, sign in through its HTTP endpoint when needed, and create pages with `session.newPage`. Pages support visits, text checks, screenshots, labelled fields, role locators, navigation counts and WebSocket waits. The command reuses its signed-in session across the checked paths. Scenario code owns application selectors and wire formats.
 
 The starter keeps its two-tab notes check in the application. See its [local browser check](https://github.com/ShivaeDev/platform/tree/main/examples/starter#look-at-the-running-app).
 
