@@ -40,7 +40,7 @@ function fileFindings(file: SourceFile): readonly Finding[] {
 export const serviceDefinitionAssembly = defineRule({
 	check: ({ sources }) => sources.flatMap(fileFindings),
 	description:
-		"Keep defineService declarations as top-level operation inventories: list id, requires, initialize and methods directly. Import a named initializer (or use Effect.void) and named operations or state factories from focused files; genericMethod may wrap those references. Move implementation bodies out of the assembly file. Effect.fn span names follow the existing Biome checks. Includes adapters and tests; no config exceptions or inline suppressions.",
+		"Keep defineService declarations as top-level operation inventories: list id, requires, initialize and methods directly. Import a named initializer (or use Effect.void) and named Effect.fn operations from focused files; state factories capture only owned lifetime state; genericMethod may wrap those references. Move implementation bodies out of the assembly file. The service-model rule verifies tracing and owned state. Includes adapters and tests; no config exceptions or inline suppressions.",
 	id: "effect/service-definition-assembly",
 	registrable: false,
 });

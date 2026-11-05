@@ -1,3 +1,8 @@
+{"path":"packages/sql/src","rule":"effect/service-folders","count":1}
+{"path":"packages/sql/src/WorkerRelease.ts","rule":"effect/service-model","count":2}
+{"path":"packages/sql/src/coordinateWorkerRelease.ts","rule":"effect/context-capture","count":1}
 {"path":"packages/sql/src/databaseAddress.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/listenForChanges.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/test-support/cross-table/dashboard/service.ts","rule":"effect/service-model","count":3}
+{"path":"packages/sql/src/test-support/diary","rule":"effect/service-folders","count":1}
 {"path":"packages/sql/src/test-support/revisions.ts","rule":"effect/failure-honesty","count":1}

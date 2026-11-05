@@ -79,3 +79,39 @@ ruleStory.it(
 		expect(yield* locations()).toEqual([]);
 	},
 );
+
+ruleStory.it(
+	"service folders discovers defineService declarations outside services grouping",
+	[repositoryHas(serviceFolderFile('export const Mail = service({ id: "app/Mail" });', "src/mail/Mail.ts"))],
+	function* ({ check }) {
+		const findings = yield* check(serviceFolders);
+
+		expect(findings).toEqual([
+			{
+				file: "src/mail",
+				message: "Give this service folder a service.ts that exports its defineService declaration. Keep operations in focused sibling files.",
+			},
+		]);
+	},
+);
+
+ruleStory.it(
+	"a service folder cannot hide another declaration beside service.ts",
+	[
+		repositoryHas(
+			serviceFolderFile('export const Mail = service({ id: "app/Mail" });', "src/mail/service.ts"),
+			serviceFolderFile('export const Other = service({ id: "app/Other" });', "src/mail/Other.ts"),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(serviceFolders);
+
+		expect(findings).toEqual([
+			{
+				file: "src/mail/Other.ts",
+				message:
+					"Give each service its own folder and move this declaration to its service.ts. Keep that service's operations in focused sibling files.",
+			},
+		]);
+	},
+);

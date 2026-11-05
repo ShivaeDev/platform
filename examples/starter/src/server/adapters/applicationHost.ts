@@ -19,10 +19,10 @@ import { authEmailRoutes } from "#server/authEmailRoutes.ts";
 import { authEmails } from "#server/authEmails.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { JobsClientFactory } from "./JobsClientFactory.ts";
-import { jobsLayer } from "./jobsLayer.ts";
-import { serverModules } from "./modules.ts";
-import type { PoolSizes } from "./PoolSizes.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
+import { jobsLayer } from "#server/jobsLayer.ts";
+import { serverModules } from "#server/modules.ts";
+import type { PoolSizes } from "#server/PoolSizes.ts";
 
 const ownerSeed = accountRoleSeed(AppAccess, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
 

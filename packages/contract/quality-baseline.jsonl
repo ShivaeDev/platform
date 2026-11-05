@@ -1,4 +1,7 @@
 {"path":"packages/contract/package.json","rule":"code/unused","count":1}
+{"path":"packages/contract/src","rule":"effect/service-folders","count":1}
+{"path":"packages/contract/src/LiveServer.ts","rule":"effect/service-model","count":7}
+{"path":"packages/contract/src/makeLiveServer.ts","rule":"effect/context-capture","count":1}
 {"path":"packages/contract/src/prependMiddleware.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native RPC middleware order keeps read policy inside identity middleware; removing mutation requires rebuilding the group without changing authorization order (likelihood 3 x severity 6 = 18)."}
 {"path":"packages/contract/src/adapters/bindingOwner.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/automaticLive.ts","rule":"effect/boundary","count":2}
@@ -13,3 +16,6 @@
 {"path":"packages/contract/src/queryReactivity.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/queryReactivity.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/live.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/contract/src/querySubscription.ts","rule":"effect/context-capture","count":3}
+{"path":"packages/contract/src/readPolicy.ts","rule":"effect/context-capture","count":1}
+{"path":"packages/contract/src/rpcClient.ts","rule":"effect/context-capture","count":1}
