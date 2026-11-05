@@ -1,5 +1,5 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { act } from "react";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -22,7 +22,7 @@ export interface AdminScreen extends ScreenSurface {
 
 export const adminScreens = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create(): Generator<ReturnType<typeof startHost>, AdminScreen, never> {
 		return { accounts: new Map(), host: yield* startHost(), view: undefined };
 	},

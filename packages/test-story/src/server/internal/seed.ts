@@ -3,13 +3,14 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
 import * as Tracer from "effect/Tracer";
-import type { AnyTestLayer, EffectClock } from "@shivaedev/test/types.ts";
+import type { AnyTestLayer } from "@shivaedev/test/types.ts";
 import { refusal } from "#server/internal/errors.ts";
 import { type AnyEffect, type EffectHook, hooked } from "#server/internal/hooked.ts";
 import { type Narration, tellGiven } from "#server/internal/narration.ts";
 import type { LooseRunHooks } from "#server/internal/runUntil.ts";
 import type { Parts } from "#server/internal/traits.ts";
 import type { Story } from "#server/storyKit.ts";
+import type { StoryClock } from "#server/storyOptions.ts";
 
 export type LooseTrait = Parts<string, (engine: unknown) => Effect.Effect<void, unknown, unknown>>;
 
@@ -18,7 +19,7 @@ export type LooseStory = Story<unknown, AnyEffect, string>;
 export interface LooseDefinition {
 	readonly after?: Readonly<Partial<Record<string, EffectHook<[engine: unknown], AnyEffect, unknown>>>>;
 	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | Scope.Scope>;
-	readonly clock?: EffectClock;
+	readonly clock?: StoryClock;
 	readonly create: EffectHook<[], AnyEffect, unknown>;
 	readonly inspect?: (engine: unknown) => unknown;
 	readonly layer?: AnyTestLayer;

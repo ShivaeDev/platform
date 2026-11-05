@@ -1,5 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, FileSystem, Layer, Path } from "effect";
+import { DateTime, Effect, FileSystem, Layer, Path } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -11,7 +11,7 @@ const assetLayer = Layer.merge(postgres, NodeServices.layer);
 
 export const assets = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;

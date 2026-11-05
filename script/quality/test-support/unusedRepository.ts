@@ -35,7 +35,6 @@ function repository() {
 }
 
 export const unusedRepository = storyKit({
-	clock: "live",
 	create: () => Effect.acquireRelease(Effect.sync(repository), (root) => Effect.sync(() => rmSync(root, { force: true, recursive: true }))),
 	name: "Quality unused code",
 	stages: ["repository"],

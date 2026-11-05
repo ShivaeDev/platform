@@ -21,7 +21,6 @@ function activate(state: { readonly failActivation: boolean; readonly activation
 }
 
 export const deployStory = storyKit({
-	clock: "live",
 	*create() {
 		const host = yield* Effect.promise(() => startHost("build-a"));
 		const registry = AtomRegistry.make();

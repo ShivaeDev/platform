@@ -11,7 +11,6 @@ export const archiveRegressions = storyKit({
 			yield* command(directory, "tar", ["-czf", tarball, "package"]);
 		},
 	},
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const fixture = yield* PackedFixture;

@@ -46,7 +46,6 @@ const start = Effect.fnUntraced(function* (protocol: typeof McpProtocol.v2025_11
 type Engine = Effect.Success<ReturnType<typeof start>>;
 
 const definition = {
-	clock: "live" as const,
 	inspect: (engine: Engine) => ({ resource: engine.file }),
 	layer: NodeServices.layer,
 	name: "MCP tools over stdio",

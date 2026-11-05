@@ -10,7 +10,6 @@ import { FetchPage } from "./FetchPage.tsx";
 expectNoReactWarnings();
 
 export const fetchScreen = storyKit({
-	clock: "live",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const requests = new Map(

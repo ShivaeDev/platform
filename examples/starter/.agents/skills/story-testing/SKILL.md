@@ -30,15 +30,31 @@ Good: check the posted PR comment's text. Bad: check a comment row and assume th
 
 DOM classes or a fake renderer are not visual proof. React render tests prove UI behaviour through the repository's happy-dom pattern; claims about browser appearance need a headless browser check of the real UI and a description of what was seen. For example, a Board code block having a highlighting class or receiving coloured markup from a fake renderer does not prove readable syntax colours in the Board's actual theme.
 
-## Set up through the boundary and explain each step
+## State the givens and explain each step
 
-Traits drive the engine through events or requests, then settle until the resulting observable work completes. Never call module internals to seed state: doing so skips the wiring and rules the story needs to exercise. The named fake preconditions below apply only outside the behaviour being proved; a trait's name does not make internal seeding acceptable.
+Traits state the scenario's givens. They may establish them directly when that is how the world is: the database already holds rows, data has been loaded, or a simulation is in a particular state. A trait's name says what is true, including the boundary where the story starts and any behaviour the setup bypasses. The behaviour under test is always driven and observed through public boundaries, with the real engine running behind the package's story kit; never seed the result being proved.
+
+For a story about reading existing notes, the kit can seed the stored rows directly. Here `notes` is the application's story kit, `storedNotes` is its real repository, and `get` calls the running application's HTTP boundary:
+
+```ts
+export function noteStored(title: string) {
+	return notes.trait("rows", `the database holds a note titled ${title}`, ({ storedNotes }) => storedNotes.insertVoid({ title }));
+}
+
+notes.it("the notes response includes the stored title", [noteStored("Shopping")], function* ({ get }) {
+	const response = yield* get("/notes");
+
+	expect(response).toEqual({ status: 200, body: [{ title: "Shopping" }] });
+});
+```
+
+A signed-in user, a minted session, or an outside service's permissions and tokens can also be givens. Never spend slow work such as an OAuth round trip or password hashing on a precondition. Keep one baseline story per real sign-in flow, plus one story per owned admission, origin, hook or failure policy. Drive those policies through the real sign-in boundary; other feature stories start signed in. This keeps feature stories fast without discarding the application's sign-in responsibilities.
 
 Every setup step shows why it is there, with no unexplained repeats or magic values. Plumbing such as Deferreds, forks and `Effect.never` lives in the kit's traits and verbs under a domain name, such as a `saveInFlight()` trait for a save the server has not answered yet.
 
 Each actor has one name, used in the title, traits, verbs, story lines and readouts: `alice` everywhere, not Alice in one place, `user` in another and a generated id in a third. Three spellings make the reader prove they are the same person, so a readout maps generated ids back to the name.
 
-Good: deliver the repository event and wait for the resulting check. Bad: call an internal repository method to insert the check that the event should create.
+Good: a note-reading story starts with stored notes, and an event-delivery story delivers the event and waits for its check. Bad: insert the check that the event-delivery story claims the event creates.
 
 ## Separate actions, observations and expectations
 
@@ -85,20 +101,40 @@ A nested partial expectation can be `{ account: { sessions: atMost(0) } }`, and 
 
 ## Settle on the engine's signals
 
-A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`. Never sleep, poll, use `eventually` or install fake timers: each guesses when the work is done, and the story slows down or flakes when the guess is wrong.
+A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`.
+
+Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date.now()`, real timers, `eventually` and fake timers in test code are forbidden. Drive elapsed time through the kit's [controlled clock](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#waiting-for-a-timer). If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
 
 A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.
 
 PostgreSQL catalog waits are the one sanctioned polling exception: catalog views such as `pg_stat_activity` send no completion signal. Use `observeUntil` from `@shivaedev/test-sql/server/observeUntil.ts` for these waits, with a predicate for the required state. Do not write a local polling loop or use this exception to poll application rows, job storage or UI state.
 
-When time passing is the behaviour, a kit verb advances the clock, names the interval and waits for the work it triggers:
+A kit verb names the interval, advances the controlled clock and waits for the work it triggers. In this session kit, the real engine offers to `checked` after revalidation, and `request` calls its public boundary:
 
 ```ts
-revalidationIntervalPasses: () => {
-	const interval = engine.state.interval ?? DEFAULT_INTERVAL;
-	story.tell(`${interval} pass and the session is checked again`);
-	return TestClock.adjust(interval).pipe(Effect.andThen(Queue.take(engine.checked)));
-},
+import { Effect, Queue } from "effect";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+
+verbs: (engine, story) => ({
+	revalidationIntervalPasses: () => {
+		story.tell("one minute passes and the session is checked again");
+		return untilTimer("1 minute").pipe(Effect.andThen(passes("1 minute", Queue.take(engine.checked))));
+	},
+}),
+```
+
+```ts
+sessions.it(
+	"alice loses access when revalidation finds her permission revoked",
+	[sessions.signedIn("alice"), sessions.providerPermissionRevoked("alice")],
+	function* ({ request, revalidationIntervalPasses }) {
+		expect(yield* request("alice")).toBe("authorized");
+
+		yield* revalidationIntervalPasses();
+
+		expect(yield* request("alice")).toBe("unauthorized");
+	},
+);
 ```
 
 ## Observe the job's result
@@ -134,14 +170,6 @@ Good: compare the received request's destination and body with the intended mess
 Hand-made infrastructure decoders, settle heuristics and schema SQL in a test kit are framework gaps. Report the missing capability to the framework owner rather than building a workaround in the kit. Duplicated infrastructure drifts from the framework and makes every application carry the same defect. Use existing supported APIs; do not hide a missing one behind a helper. Translating a supported typed result into a domain readout remains the kit's responsibility.
 
 Good: report that the framework cannot wait for the required observable completion. Bad: poll queue tables or add arbitrary sleeps to guess when the app is settled.
-
-## Fake preconditions, exercise the behaviour
-
-A setup may start from a faked precondition: John is already signed in and admin of this repo, a session is minted for the story, or the fake service has the needed permissions and tokens. Only the behaviour under test must be driven and asserted from outside. Name the precondition and its boundary so it is clear where the story starts and which behaviour it bypasses. Configure a fake outside service or use a supported test fixture; never reach into owned module internals to seed the result being proved.
-
-Never spend slow work such as an OAuth round trip or password hashing on a precondition. Keep one baseline story per real sign-in flow, plus one story per owned admission, origin, hook or failure policy. Drive those policies through the real sign-in boundary; other feature stories start signed in. This keeps feature stories fast without discarding the application's sign-in responsibilities.
-
-Good: a note-editing story starts with a minted session; baseline OAuth and owned admission-policy stories drive the real callback through a fake provider. Bad: every note story completes OAuth or hashes a password before editing.
 
 ## Isolate full apps by database
 

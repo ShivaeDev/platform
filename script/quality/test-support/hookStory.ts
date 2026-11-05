@@ -9,7 +9,6 @@ import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const hookStory = storyKit({
-	clock: "live",
 	create: () => {
 		const repository = hookRepository({ folder: "app", scripts: { typecheck: logs("quality") } });
 		const global = join(seedTree([]), "global config");

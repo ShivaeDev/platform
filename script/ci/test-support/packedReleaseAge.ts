@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem } from "effect";
+import { DateTime, Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { releaseAgeRegistry } from "#ci/test-support/releaseAgeRegistry.ts";
 import { packArchive } from "#package-check/archive.ts";
@@ -12,7 +12,7 @@ import { localConsumerWorkspace } from "#package-check/test-support/localConsume
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 export const packedReleaseAge = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-release-age-" });

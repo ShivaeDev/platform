@@ -207,7 +207,7 @@ This distinction applies under both clocks. The helper preserves the Effect's su
 
 ### Waiting in live time without advancing TestClock
 
-Use `withLive(effect)` from `@shivaedev/test/withLive.ts` for a real-time sleep or readiness poll in a harness, hook or story step. Under TestClock it delegates to native `TestClock.withLive`; under a live clock it runs the Effect directly. The surrounding clock is restored afterward, so waiting for external work does not move virtual token expiry.
+Use `withLive(effect)` from `@shivaedev/test/withLive.ts` for a real-time sleep or readiness poll in a low-level test harness or hook. Stories instead use their [controlled clock and engine signals](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#pinning-time). Under TestClock it delegates to native `TestClock.withLive`; under a live clock it runs the Effect directly. The surrounding clock is restored afterward, so waiting for external work does not move virtual token expiry.
 
 ```ts
 import { withLive } from "@shivaedev/test/withLive.ts";
@@ -216,7 +216,7 @@ yield* withLive(Effect.sleep("10 millis"));
 yield* withLive(eventually(queueIsEmpty, { interval: "10 millis", times: 100 }));
 ```
 
-The entire wrapped Effect, including readiness checks and retry delays, uses live time. The same call works when a kit defaults to a live clock and one story opts into TestClock. Success, typed failure and service requirements are preserved.
+The entire wrapped Effect, including readiness checks and retry delays, uses live time. The same call works when a `makeEffectIt` fixture defaults to a live clock and one test opts into TestClock. Success, typed failure and service requirements are preserved.
 
 ### API
 

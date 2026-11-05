@@ -7,7 +7,6 @@ import { command, writeJson } from "#package-check/io.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 export const installer = storyKit({
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-installer-story-" });

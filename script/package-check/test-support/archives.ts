@@ -16,7 +16,6 @@ export const archives = storyKit({
 				yield* prepareArchives(yield* workspaceArchives(root, directory), directory);
 			}).pipe(Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromUnknown({ "GITHUB_SHA": "expected" }))),
 	},
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "package-check-story-" });

@@ -40,7 +40,6 @@ function NumberScreen({ model }: { readonly model: ReturnType<typeof makeNumbers
 }
 
 export const numberScreen = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(() => render(createElement(NumberScreen, { model: makeNumbers() }))),

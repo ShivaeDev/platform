@@ -1,5 +1,5 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect, Option } from "effect";
+import { DateTime, Effect, Option } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -13,7 +13,7 @@ import { sessionPermissions } from "./session.ts";
 
 export const foundationAdmin = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost({ jobsTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) });
 		return { cookies: new Map<string, string>(), host, workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) };

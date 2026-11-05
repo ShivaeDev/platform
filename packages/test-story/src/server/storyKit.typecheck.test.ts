@@ -1,6 +1,7 @@
-import { Context, Data, Effect, Layer } from "effect";
+import { Context, Data, type DateTime, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
 import { type Story, type StoryKit, type StoryTest, storyKit, type Trait } from "#server/storyKit.ts";
+import type { StoryClock, StoryTestOptions } from "#server/storyOptions.ts";
 
 class Library extends Context.Service<Library, { readonly lend: Effect.Effect<void, Overdue> }>()("@shivaedev/test-story/types/Library") {}
 
@@ -153,4 +154,14 @@ it("takes only the stages the kit declares", () => {
 		stages: ["built"],
 		verbs: () => ({}),
 	});
+});
+
+it("restricts kit and per-story clocks to controlled time", () => {
+	expectTypeOf<StoryClock>().toEqualTypeOf<"test" | DateTime.Utc>();
+	expectTypeOf<StoryTestOptions["clock"]>().toEqualTypeOf<StoryClock | undefined>();
+
+	// @ts-expect-error Stories cannot select wall time.
+	shelf.it("counts", [], undefined, { clock: "live" });
+	// @ts-expect-error Kits cannot select wall time.
+	storyKit({ clock: "live", create: () => ({}), name: "live", stages: [], verbs: () => ({}) });
 });

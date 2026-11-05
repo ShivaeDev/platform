@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { Deferred, Effect, Exit, Scope } from "effect";
+import { DateTime, Deferred, Effect, Exit, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { developmentServer } from "./developmentServer.ts";
 
@@ -20,7 +20,7 @@ function running(engine: LifecycleEngine) {
 }
 
 export const developmentLifecycle = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create(): Effect.fn.Return<LifecycleEngine> {
 		return { blocked: yield* Deferred.make<void>(), running: undefined, stderr: [], stdout: [] };
 	},

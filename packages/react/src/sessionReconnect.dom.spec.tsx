@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { atLeast, lessThan } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
+import { lessThan } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { reconnectSessions } from "#test/reconnect/sessions.tsx";
 
@@ -8,7 +8,7 @@ reconnectSessions.it("a dropped socket keeps alice's account through a server ou
 	yield* story.serverUnavailable();
 
 	yield* story.dropSocket();
-	yield* story.nextHandshake();
+	yield* story.reconnectIntervalPasses();
 
 	yield* outcomes([
 		["screen during outage", story.shown, expect.stringContaining("Alice's account")],
@@ -32,17 +32,18 @@ reconnectSessions.it(
 		yield* story.refuseReconnect();
 
 		yield* story.dropSocket();
+		yield* story.reconnectIntervalPasses();
 		yield* story.nextCheck();
-		yield* story.nextCheck();
-		yield* story.nextCheck();
+		yield* story.retryIntervalPasses("1 second");
+		yield* story.retryIntervalPasses("2 seconds");
 
 		yield* outcomes([
 			["retained screen", story.shown, expect.stringContaining("Alice's account")],
-			["retry intervals", story.checkIntervals, [atLeast(900), atLeast(1800)]],
+			["retry intervals", story.checkIntervals, [1000, 2000]],
 		]);
 
 		yield* story.restoreSessionChecks();
-		yield* story.nextCheck();
+		yield* story.retryIntervalPasses("4 seconds");
 
 		expect(yield* story.shown()).toContain("Alice's account");
 	},
@@ -56,6 +57,7 @@ for (const event of ["online", "visibilitychange"] as const) {
 			yield* story.failSessionChecks();
 			yield* story.refuseReconnect();
 			yield* story.dropSocket();
+			yield* story.reconnectIntervalPasses();
 			yield* story.nextCheck();
 			expect(yield* story.shown()).toContain("Alice's account");
 			yield* story.signedOutAnswer();
@@ -131,6 +133,7 @@ reconnectSessions.it("foreground restarts an in-flight session check and keeps a
 	yield* story.holdSessionChecks();
 	yield* story.refuseReconnect();
 	yield* story.dropSocket();
+	yield* story.reconnectIntervalPasses();
 	yield* story.nextSessionRequest();
 	expect(yield* story.shown()).toContain("Alice's account");
 

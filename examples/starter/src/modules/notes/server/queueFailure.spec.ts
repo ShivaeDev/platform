@@ -24,7 +24,6 @@ for (const [write, send] of writes) {
 				["alice's notes", () => notesOf("alice").list(), []],
 			]);
 		},
-		{ clock: "live" },
 	);
 }
 
@@ -46,7 +45,6 @@ app.it(
 			["alice's note", () => notesOf("alice").open(note), counted],
 		]);
 	},
-	{ clock: "live" },
 );
 
 app.it(
@@ -60,5 +58,4 @@ app.it(
 			["alice's notes", () => notesOf("alice").list(), []],
 		]);
 	},
-	{ clock: "live" },
 );

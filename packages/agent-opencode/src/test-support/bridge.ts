@@ -28,7 +28,6 @@ const Configuration = Schema.fromJsonString(
 	Schema.Struct({ mcp: Schema.Struct({ platform: Schema.Struct({ url: Schema.String }) }), plugin: Schema.Array(Schema.String) }),
 );
 export const bridge = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.gen(function* () {
 			const peer = yield* scriptedPeer;

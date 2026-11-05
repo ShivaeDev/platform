@@ -12,7 +12,6 @@ function input(text: string) {
 	return { parts: [{ text, type: "text" as const }] as const };
 }
 export const openCode = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.gen(function* () {
 			const peer = yield* scriptedPeer;
