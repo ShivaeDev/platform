@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ImportCompiler } from "#adapters/ImportCompiler.ts";
+import { ImportCompiler } from "#adapters/import-compiler/service.ts";
 import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
 import type { Endpoint } from "./Endpoint.ts";
 import type { ImportKind } from "./extract.ts";
