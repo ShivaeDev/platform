@@ -1,5 +1,6 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { Effect, Option } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo } from "react";
 import type { AtomServices } from "#AtomServices.ts";
@@ -18,16 +19,41 @@ export interface UndoableNotice<TInput, A> {
 	readonly value: A;
 }
 
+export interface UndoableChange<TInput, A, E, TInverse extends readonly unknown[]> {
+	readonly notice: Option.Option<UndoableNotice<TInput, A>>;
+	readonly pending: boolean;
+	readonly remove: (input: TInput, ...inverse: TInverse) => void;
+	readonly removeResult: AsyncResult.AsyncResult<A, E>;
+	readonly removing: boolean;
+	readonly undo: () => void;
+	readonly undoing: boolean;
+	readonly undoResult: AsyncResult.AsyncResult<A, E>;
+}
+
+export function useUndoableChange<TInput, A, E, R, TRuntimeError>(
+	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
+	options: {
+		readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string;
+		readonly undoInput: (value: NoInfer<A>, input: NoInfer<TInput>) => NoInfer<TInput>;
+	},
+): UndoableChange<TInput, A, E | TRuntimeError, []>;
 export function useUndoableChange<TInput extends { readonly expectedVersion: number }, A extends { readonly version: number }, E, R, TRuntimeError>(
 	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
 	options: { readonly describe: (value: NoInfer<A>, input: NoInfer<TInput>) => string },
+): UndoableChange<TInput, A, E | TRuntimeError, [inverse: Omit<TInput, "expectedVersion">]>;
+export function useUndoableChange<TInput, A extends { readonly version: number }, E, R, TRuntimeError>(
+	command: VersionedChangeCommand<TInput, A, E, R, TRuntimeError>,
+	options: {
+		readonly describe: (value: A, input: TInput) => string;
+		readonly undoInput?: (value: A, input: TInput) => TInput;
+	},
 ) {
 	const { run, runtime, update } = command;
 	const registry = useContext(RegistryContext);
-	type Entry = UndoableNotice<TInput, A> & { readonly inverse: Omit<TInput, "expectedVersion"> };
+	type Entry = UndoableNotice<TInput, A> & { readonly inverse: TInput };
 	interface Removal {
 		readonly input: TInput;
-		readonly inverse: Omit<TInput, "expectedVersion">;
+		readonly inverse: Omit<TInput, "expectedVersion"> | undefined;
 		readonly sequence: number;
 	}
 	const owner = useMemo(
@@ -44,12 +70,13 @@ export function useUndoableChange<TInput extends { readonly expectedVersion: num
 		[owner],
 	);
 	const removeRun = useMemo(() => (request: Removal) => execute(request.input), [execute]);
-	const undoRun = useMemo(() => (entry: Entry) => execute({ ...entry.input, ...entry.inverse, expectedVersion: entry.value.version }), [execute]);
+	const undoRun = useMemo(() => (entry: Entry) => execute(entry.inverse), [execute]);
 	const removal = useAction(owner.runtime, removeRun, {
 		concurrent: true,
 		onSuccess: (value, { input, inverse, sequence }) => {
 			if (sequence === owner.sequence) {
-				owner.registry.set(owner.notice, Option.some({ input, inverse, message: options.describe(value, input), value }));
+				const undoInput = options.undoInput ? options.undoInput(value, input) : { ...input, ...inverse, expectedVersion: value.version };
+				owner.registry.set(owner.notice, Option.some({ input, inverse: undoInput, message: options.describe(value, input), value }));
 			}
 		},
 	});
@@ -64,7 +91,7 @@ export function useUndoableChange<TInput extends { readonly expectedVersion: num
 	return {
 		notice,
 		pending: removal.pending || restoration.pending,
-		remove: (input: TInput, inverse: Omit<TInput, "expectedVersion">) => {
+		remove: (input: TInput, inverse?: Omit<TInput, "expectedVersion">) => {
 			owner.sequence += 1;
 			removal.dispatch({ input, inverse, sequence: owner.sequence });
 		},
