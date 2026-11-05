@@ -2,7 +2,6 @@ import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
-import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
 import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
@@ -17,42 +16,57 @@ import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
 import { hostVersionLayer } from "#hostVersionLayer.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
+import type { RequestRequirements } from "#requestServices.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import { socketRpc } from "#socketRpc.ts";
 import { UnixSocketRequest } from "#UnixSocketRequest.ts";
 
-type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = ReturnType<
-	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>
+type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never> = ReturnType<
+	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>
 >;
-type RouteOptions<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = {
+type RouteOptions<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never> = {
 	readonly config?: { readonly buildVersion?: string };
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, TError, TRequirements>;
+	readonly requestServices?: Layer.Layer<TRequestServices, never, TRequestRequirements>;
 	readonly rpcPath?: HttpRouter.PathInput;
 } & HostPolicy;
 
-export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
-	options: RouteOptions<TRpcs, THandlers, TError, TRequirements> & { readonly policy: "loopback" },
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never>(
+	options: RouteOptions<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements> & { readonly policy: "loopback" },
 	transport: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ): Layer.Layer<
-	Layer.Success<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>,
-	Layer.Error<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>,
-	| TRequirements
+	Layer.Success<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+	Layer.Error<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+	| Exclude<TRequirements, TRequestServices>
+	| RequestRequirements<TRpcs, TRequestRequirements>
 	| Exclude<Rpc.ServicesServer<TRpcs>, THandlers>
-	| Exclude<Layer.Services<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>, SessionPolicy | HttpRouter.Request<"Requires", SessionPolicy>>
+	| Exclude<
+			Layer.Services<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+			SessionPolicy | HttpRouter.Request<"Requires", SessionPolicy> | TRequestServices | TRequestRequirements
+	  >
 >;
-export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
-	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>>
-): BuiltRoutes<TRpcs, THandlers, TError, TRequirements>;
-export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
-	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>>
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never>(
+	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>
+): Layer.Layer<
+	Layer.Success<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+	Layer.Error<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+	| Exclude<
+			Layer.Services<BuiltRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>,
+			TRequestServices | TRequestRequirements
+	  >
+	| Exclude<TRequirements, TRequestServices>
+	| RequestRequirements<TRpcs, TRequestRequirements>
+>;
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never>(
+	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>>
 ) {
 	return buildRpcRoutes(...args);
 }
 
-function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
-	options: RouteOptions<TRpcs, THandlers, TError, TRequirements>,
+function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TRequestServices = never, TRequestRequirements = never>(
+	options: RouteOptions<TRpcs, THandlers, TError, TRequirements, TRequestServices, TRequestRequirements>,
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
@@ -66,10 +80,10 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
-			const group = options.group.merge(HostVersion.application);
-			const handler = yield* hostRpc(group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const group = options.group;
+			const handler = yield* hostRpc(group, false, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
-			const websocket = yield* hostRpc(group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const websocket = yield* hostRpc(group, true, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",
 				options.rpcPath ?? "/rpc",

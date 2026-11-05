@@ -8,9 +8,10 @@ import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import type { AppModule, ModuleAdmin, ModuleLayer } from "#AppModule.ts";
 import { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
+import type { GlobalServices } from "#requestServices.ts";
 
 type ModuleField<TModules, TKey extends PropertyKey> = TModules extends unknown ? (TKey extends keyof TModules ? TModules[TKey] : never) : never;
-type Layers<TModules extends readonly AppModule[], TKey extends "handlers" | "services" | "ports" | "workers"> = Extract<
+type Layers<TModules extends readonly AppModule[], TKey extends "handlers" | "services" | "ports" | "workers" | "requestServices"> = Extract<
 	ModuleField<TModules[number], TKey>,
 	Layer.Any
 >;
@@ -19,13 +20,15 @@ type Handlers<TModules extends readonly AppModule[]> = Layers<TModules, "handler
 type Pages<TModules extends readonly AppModule[]> = Extract<ModuleField<Admin<TModules>, "pages">, readonly AdminPage[]>;
 type Queues<TModules extends readonly AppModule[]> = Extract<ModuleField<TModules[number], "queues">, readonly { readonly name: string }[]>[number];
 type Ports<TModules extends readonly AppModule[]> = Layers<TModules, "ports">;
+type RequestLayer<TModule> = TModule extends { readonly requestServices: infer TLayer extends Layer.Any } ? TLayer : never;
+type RequestServices<TModules extends readonly AppModule[]> = RequestLayer<TModules[number]>;
 type Services<TModules extends readonly AppModule[]> = Layers<TModules, "services">;
 type MigrationRequirements<TModules extends readonly AppModule[]> = Effect.Services<TModules[number]["migrations"]["loader"]>;
 type Components<T> = T extends readonly (infer TComponent extends SchemaComponent<unknown, unknown>)[] ? TComponent : never;
 type ModuleComponents<TModules extends AppModule> = Components<ModuleField<TModules["migrations"], "components">>;
 
 export function appModules<const TModules extends readonly AppModule[], R = never, E = never, TRequirements = never>(
-	modules: TModules,
+	modules: TModules & GlobalServices<Layer.Services<Services<NoInfer<TModules>>>, Layer.Success<RequestServices<NoInfer<TModules>>>>,
 	options?: { readonly replacements?: Layer.Layer<R, E, TRequirements> },
 ): Effect.Effect<
 	{
@@ -38,6 +41,11 @@ export function appModules<const TModules extends readonly AppModule[], R = neve
 		readonly admin: AdminRegistry<readonly Pages<TModules>[number][]>;
 		readonly group: RpcGroup.RpcGroup<RpcGroup.Rpcs<TModules[number]["group"] | ModuleField<Admin<TModules>, "group">>>;
 		readonly handlers: Layer.Layer<Layer.Success<Handlers<TModules>>, Layer.Error<Handlers<TModules>>, Layer.Services<Handlers<TModules>>>;
+		readonly requestServices: Layer.Layer<
+			Layer.Success<Layers<TModules, "requestServices">>,
+			never,
+			Layer.Services<Layers<TModules, "requestServices">>
+		>;
 		readonly services: Layer.Layer<
 			Layer.Success<Services<TModules> | Ports<TModules>> | R,
 			Layer.Error<Services<TModules> | Ports<TModules>> | E,
@@ -61,6 +69,7 @@ export function appModules(
 		readonly group: RpcGroup.Any;
 		readonly handlers: ModuleLayer;
 		readonly migrations: MigrationOptions<unknown, unknown>;
+		readonly requestServices: Layer.Layer<never, never, unknown>;
 		readonly services: ModuleLayer;
 	},
 	DuplicateModuleQueue
@@ -93,6 +102,7 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 			loader: Effect.all(modules.map((module) => module.migrations.loader)).pipe(Effect.map((entries) => entries.flat())),
 		},
 		queues,
+		requestServices: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.requestServices ?? Layer.empty)),
 		services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services)).pipe(Layer.provideMerge(ports)),
 		workers: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.workers ?? Layer.empty)),
 	};

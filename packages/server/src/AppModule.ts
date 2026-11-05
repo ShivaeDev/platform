@@ -14,6 +14,7 @@ export interface AppModule {
 	readonly name: string;
 	readonly ports?: ModuleLayer;
 	readonly queues?: readonly { readonly name: string }[];
+	readonly requestServices?: Layer.Layer<never, never, unknown>;
 	readonly services: ModuleLayer;
 	readonly workers?: ModuleLayer;
 }

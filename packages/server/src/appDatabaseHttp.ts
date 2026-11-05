@@ -18,6 +18,8 @@ export function migratedHost<
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	options: HostOptions<
 		TRpcs,
@@ -28,7 +30,9 @@ export function migratedHost<
 		TServiceError,
 		TServiceRequirements,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TRequestServices,
+		TRequestRequirements
 	> &
 		HostPolicy & {
 			readonly migrations: MigrationOptions<TMigrations, TMigrationError>;
@@ -53,6 +57,8 @@ export function deferredHost<
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	application: Effect.Effect<
 		AppHttpHostOptions<
@@ -67,7 +73,9 @@ export function deferredHost<
 			never,
 			never,
 			TRouteError,
-			TRouteRequirements
+			TRouteRequirements,
+			TRequestServices,
+			TRequestRequirements
 		>,
 		TApplicationError,
 		TApplicationRequirements
