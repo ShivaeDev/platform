@@ -6,9 +6,9 @@ import { owned } from "./owned.ts";
 import { SettingsRepository } from "./repository.ts";
 import { unavailable } from "./unavailable.ts";
 
-export const save = Effect.fn("SettingsService.save")((userId: string, input: typeof EntitySettings.Type) =>
+export const save = Effect.fn("SettingsService.save")((input: typeof EntitySettings.Type) =>
 	Effect.gen(function* () {
-		yield* owned(userId, input.entityId);
+		yield* owned(input.entityId);
 		if (!Number.isInteger(input.pageSize) || input.pageSize < 1 || input.pageSize > 100) {
 			return yield* SaveSettings.reject.InvalidSettings({
 				field: "pageSize",

@@ -2,17 +2,15 @@ import { Effect, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
-import { Identity } from "@shivaedev/identity/identity.ts";
-import { ApplicationOrders, type Order, orders, type Rejected } from "./contract.ts";
-import { OrderService } from "./OrderService.ts";
+import { ApplicationOrders, type Order, orders } from "#test/postgres-example/contract.ts";
+import { OrderService } from "#test/postgres-example/service.ts";
 
-export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | "quantity">[]>, beforeCommit?: Effect.Effect<void, Rejected>) {
+export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | "quantity">[]>) {
 	const publications: string[] = [];
 	const delivered: Array<readonly Pick<Order, "name" | "quantity">[]> = [];
 	const reads: number[] = [];
 	const handlers = ApplicationOrders.toLayer(
 		Effect.gen(function* () {
-			const service = yield* OrderService;
 			const reactivity = yield* Reactivity.Reactivity;
 			const live = yield* LiveServer;
 			yield* Effect.acquireRelease(
@@ -29,13 +27,13 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						reads.push(id);
-						return yield* service.get((yield* Identity).id, id);
+						return yield* OrderService.use((service) => service.get(id));
 					}),
-				"orders.save": (input) => Effect.flatMap(Identity, ({ id }) => service.save(id, input, beforeCommit)),
+				"orders.save": (input) => OrderService.use((service) => service.save(input)),
 				subscribe: ({ id }) =>
 					Stream.unwrap(
 						Effect.gen(function* () {
-							yield* service.get((yield* Identity).id, id);
+							yield* OrderService.use((service) => service.get(id));
 							yield* observe();
 							return Stream.unwrap(live.stream([orders.item(id)])).pipe(Stream.tap((hint) => (hint._tag === "Changed" ? observe() : Effect.void)));
 						}),
