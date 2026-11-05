@@ -31,7 +31,6 @@ export function inspectionReads(client: PgBossClient, schema: string) {
 				);
 				return Schema.decodeUnknownSync(Busy)(rows[0]).busy;
 			}),
-		...inspectionJobs(client),
 		queue: (queue: Pick<QueueDefinition, "name">) => inspectionOperation(() => client.getQueue(queue.name), queue.name),
 		schedules: (name?: string, key?: string) =>
 			inspectionOperation(() => {
@@ -47,9 +46,7 @@ export function inspectionReads(client: PgBossClient, schema: string) {
 				}
 				return client.schemaVersion();
 			}),
-		snapshot: inspectionSnapshot(
-			() => client,
-			() => schema,
-		),
+		snapshot: inspectionSnapshot(client, schema),
+		storedJobs: inspectionJobs(client).storedJobs,
 	};
 }

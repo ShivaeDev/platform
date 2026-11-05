@@ -4,6 +4,7 @@ import type { Connection } from "effect/sql/SqlConnection";
 import { getConstructionPlans, getMigrationPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import { jobStorePlans } from "#server/jobStorePlans.ts";
+import { SchemaConnection } from "#server/SchemaConnection.ts";
 import type { PgBossSchemaOptions } from "#server/schema.ts";
 import { runSchemaPlan } from "./runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "./schemaIndexBuilds.ts";
@@ -26,7 +27,7 @@ async function installNativeSchema(
 		schema,
 	});
 	if (!(await client.isInstalled())) {
-		await runSchemaPlan(connection, construction, run);
+		await run(runSchemaPlan(construction).pipe(Effect.provideService(SchemaConnection, connection)));
 		return;
 	}
 	const version = await client.schemaVersion();
@@ -43,10 +44,12 @@ async function installNativeSchema(
 		const partitionTables = Schema.decodeUnknownSync(Partitions)(
 			await run(connection.executeUnprepared(`SELECT table_name AS "tableName", policy FROM ${schema}.queue WHERE partition = true`, [], undefined)),
 		);
-		await runSchemaPlan(connection, getMigrationPlans(schema, version, { partitionTables: Array.from(partitionTables) }), run, {
-			schema,
-			version: pgBossPackage.pgboss.schema,
-		});
+		await run(
+			runSchemaPlan(getMigrationPlans(schema, version, { partitionTables: Array.from(partitionTables) }), {
+				schema,
+				version: pgBossPackage.pgboss.schema,
+			}).pipe(Effect.provideService(SchemaConnection, connection)),
+		);
 		await resumeSchemaIndexes(client, schema);
 	}
 }

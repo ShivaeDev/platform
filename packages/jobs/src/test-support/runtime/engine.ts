@@ -2,6 +2,7 @@ import { Cause, type Clock, Context, Deferred, Effect, Exit, Layer, Logger, Opti
 import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
+import { PgBoss } from "#server/PgBoss.ts";
 import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
@@ -28,6 +29,7 @@ export interface RuntimeEngine {
 	readonly applicationLog: string[];
 	batchAnswer: string;
 	batchFailureMessage: string;
+	callerClient: FakeClient | undefined;
 	client: FakeClient;
 	clientsConstructed: number;
 	readonly errorReport: ReturnType<typeof errorReportState>;
@@ -62,6 +64,7 @@ export function runtimeEngine(clock: Clock.Clock): RuntimeEngine {
 		applicationLog: [],
 		batchAnswer: "not delivered",
 		batchFailureMessage: "no failure",
+		callerClient: undefined,
 		client,
 		clientsConstructed: 0,
 		errorReport: errorReportState(),
@@ -91,7 +94,11 @@ export function described(value: unknown): unknown {
 
 export function provided<A, E, R>(engine: RuntimeEngine, effect: Effect.Effect<A, E, R>) {
 	const logger = Logger.layer([Logger.make(({ logLevel, message }) => engine.logs.push({ level: logLevel, message: logMessage(message) }))]);
-	return effect.pipe(
+	const ambient =
+		engine.callerClient === undefined
+			? effect
+			: effect.pipe(Effect.provideService(PgBoss, { client: engine.callerClient, reused: false, schema: "caller", stop: undefined }));
+	return ambient.pipe(
 		Effect.provide(logger),
 		Effect.provideService(References.MinimumLogLevel, "Debug"),
 		Effect.provideService(ApplicationLog, (line) => engine.applicationLog.push(line)),

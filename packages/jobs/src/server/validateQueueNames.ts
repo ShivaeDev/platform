@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { registrationName } from "#server/adapters/register.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { PgBossQueueNamesError } from "#server/error.ts";
-import { registrationName } from "./register.ts";
 
 export const validateQueueNames = Effect.fnUntraced(function* (jobs: readonly JobRegistration[], declared: readonly string[] | undefined) {
 	if (declared === undefined) {

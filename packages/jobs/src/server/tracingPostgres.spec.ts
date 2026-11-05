@@ -15,15 +15,16 @@ const Traced = defineQueue({
 const firstAttempt = { "job.attempt": 1, "job.id": "job 42", "job.name": "tracing", "job.queue": "tracing", "job.retry_count": 0 };
 
 database.it(
-	"a job enqueued outside any span runs under a root job span with its job attributes, and its step runs under that span",
+	"enqueue traces storage while a job outside a caller span runs under a root job span with its job attributes and step",
 	[enqueuedEarlier(Traced, { id: 42 }, { as: "job 42" })],
 	function* ({ spans, start, untilJob }) {
-		expect(yield* spans()).toEqual([]);
+		expect((yield* spans()).map(({ name }) => name)).toEqual(["PgBossOperations.enqueue"]);
 
 		yield* start("worker", [worker(Traced, { next: "succeeds", step: "Tracing.step" })]);
 		yield* untilJob("job 42", "completed");
 
 		expect(yield* spans()).toEqual([
+			expect.objectContaining({ name: "PgBossOperations.enqueue", outcome: "succeeded", parent: "no parent", trace: "trace 1" }),
 			{
 				attributes: expect.objectContaining(firstAttempt),
 				events: [],
@@ -31,24 +32,25 @@ database.it(
 				name: "tracing",
 				outcome: "succeeded",
 				parent: "no parent",
-				trace: "trace 1",
+				trace: "trace 2",
 			},
-			expect.objectContaining({ name: "Tracing.step", outcome: "succeeded", parent: "tracing", trace: "trace 1" }),
+			expect.objectContaining({ name: "Tracing.step", outcome: "succeeded", parent: "tracing", trace: "trace 2" }),
 		]);
 	},
 );
 
 database.it(
-	"a job enqueued under a request span links to that request after its producer has stopped",
+	"enqueue traces storage under its request and the job links to that request after its producer has stopped",
 	[enqueuedEarlier(Traced, { id: 42 }, { as: "job 42", underSpan: "request" })],
 	function* ({ spans, start, untilJob }) {
-		expect((yield* spans()).map(({ name }) => name)).toEqual(["request"]);
+		expect((yield* spans()).map(({ name }) => name)).toEqual(["request", "PgBossOperations.enqueue"]);
 
 		yield* start("worker", [worker(Traced, "succeeds")]);
 		yield* untilJob("job 42", "completed");
 
 		expect((yield* spans()).map(({ links, name, parent, trace }) => ({ links, name, parent, trace }))).toEqual([
 			{ links: [], name: "request", parent: "no parent", trace: "trace 1" },
+			{ links: [], name: "PgBossOperations.enqueue", parent: "request", trace: "trace 1" },
 			{ links: ["request"], name: "tracing", parent: "no parent", trace: "trace 2" },
 		]);
 	},

@@ -31,6 +31,8 @@ A **schedule definition** describes a queue with a cron trigger. `schedule.run(e
 
 The application creates one jobs service with `makePgBoss(identifier, queueNames?)`. Its Layer reads the shared `PgBoss` service, registers the job list and captures the services those workers need. One `pgBossLayer` owns the client and pool for the application; feature registrations drain before that Layer closes its client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, read queue health and live counts, or list failed and dead-lettered jobs.
 
+The client, inspection reads and registered queue names are Layer-provided services. Core operations yield those services from the environment and keep no dependencies in initializer state. `Jobs.layer(...)` and the standalone `PgBossInspection.layer` provide their internal services together; applications need no additional Layers. Client operations emit `PgBossOperations.*` and `PgBossInspectionReads.*` spans. Enqueueing captures the caller’s span before the storage operation, so a worker still links to the request or job that queued it.
+
 Use a distinct literal identifier for each jobs service. The service and its Layer keep that identifier in their types, so providing a Layer for a different identifier leaves the required jobs service unprovided at compile time.
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
@@ -40,10 +42,20 @@ The work separates naturally: declare the application services once, define a qu
 `jobModule` from `@shivaedev/jobs/server/jobModule.ts` returns `queues` and `workers` fields for an `AppModule` in `@shivaedev/server`. Its queue declarations come from the same registrations its worker Layer runs:
 
 ```ts
+import { Effect } from "effect";
 import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
 import { Jobs, SendEmail, Mail } from "./app.ts";
 
-const jobs = jobModule(Jobs.layer, { jobs: [SendEmail.handle(({ userId }) => Mail.send(userId))] });
+const jobs = jobModule(Jobs.layer, {
+	jobs: [
+		SendEmail.handle(({ userId }) =>
+			Effect.gen(function* () {
+				const mail = yield* Mail;
+				yield* mail.send(userId);
+			}),
+		),
+	],
+});
 ```
 
 Spread these fields into the owning module. Keep the producer's jobs Layer in its services or ports. The application builds `appModules` once and passes its result to `appHost` or `workerHost`; both hosts provide the module's services and ports to their work. Queue definitions without handlers and scheduled workers can also appear in the registration list.
@@ -131,29 +143,50 @@ After installation, pass the same schema and `migrate: false` to `pgBossLayer` t
 
 ### Once per application: the jobs service
 
-Define the application's jobs service and worker dependencies in `services.ts`:
+Define the application's jobs service and worker dependencies in `services.ts`. The application's `#mail` alias points to its mail service folder:
 
 ```ts
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { Mail } from "#mail/service.ts";
+
+export { Mail };
+export const Jobs = makePgBoss("@app/Jobs");
+export const MailLive = Mail.layer;
+```
+
+`Jobs` is the service that callers yield. `Mail` is a separate domain service that workers use. Its `service.ts` declares its requirements once and inventories operations imported from sibling files:
+
+```ts
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
-
-export const Jobs = makePgBoss("@app/Jobs");
+import { removeExpired } from "./removeExpired.ts";
+import { send } from "./send.ts";
 
 export const Mail = defineService({
 	id: "@app/Mail",
 	requires: [],
 	initialize: Effect.void,
-	methods: () => ({
-		send: (userId: number) => Effect.log({ event: "send_email", userId }),
-		removeExpired: () => Effect.log({ event: "remove_expired_mail" }),
-	}),
+	methods: () => ({ removeExpired, send }),
 });
-
-export const MailLive = Mail.layer;
 ```
 
-`Jobs` is the service that callers yield. `Mail` is a separate domain service that workers use. The example implementation logs calls so the wiring is complete; an application supplies its own implementation of those methods. The jobs package does not need a provider-specific interface.
+`send.ts` holds one traced operation:
+
+```ts
+import { Effect } from "effect";
+
+export const send = Effect.fn("Mail.send")((userId: number) => Effect.log({ event: "send_email", userId }));
+```
+
+`removeExpired.ts` holds the other operation:
+
+```ts
+import { Effect } from "effect";
+
+export const removeExpired = Effect.fn("Mail.removeExpired")(() => Effect.log({ event: "remove_expired_mail" }));
+```
+
+The example logs domain calls; the application supplies its mail implementation. An operation that needs another service yields it from the environment, and `requires` declares that service on `Mail`. Its initializer holds only owned lifetime state. The jobs package does not need a provider-specific interface.
 
 Registration collections retain their workers' handler, payload-decoding and scheduled-effect service requirements in `Jobs.layer`. Use `satisfies readonly JobRegistration[]` to check a reusable collection while preserving its inferred requirements, or annotate it as `readonly JobRegistration<Services>[]` with the union of services it needs. A plain `JobRegistration[]` leaves requirements `unknown`. Queue workers require both their queue and handler; scheduled workers require both their schedule and effect. Incomplete registrations are TypeScript errors. Producer-only queue definitions need no handler or decoding services at startup.
 

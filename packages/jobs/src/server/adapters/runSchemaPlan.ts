@@ -1,13 +1,9 @@
-import type { Effect } from "effect";
-import type { Connection } from "effect/sql/SqlConnection";
+import { Effect } from "effect";
+import { SchemaConnection } from "#server/SchemaConnection.ts";
 import { pendingIndexInserts } from "./schemaIndexBuilds.ts";
 
-export async function runSchemaPlan(
-	connection: Connection,
-	plan: string,
-	run: <A, E>(effect: Effect.Effect<A, E>) => Promise<A>,
-	upgrade?: { readonly schema: string; readonly version: number },
-): Promise<void> {
+export const runSchemaPlan = Effect.fnUntraced(function* (plan: string, upgrade?: { readonly schema: string; readonly version: number }) {
+	const connection = yield* SchemaConnection;
 	// Native exported plans append concurrent index DDL after the migration transaction.
 	const parts = /^\s*BEGIN;(?<body>[\s\S]*)\n {4}COMMIT;(?<concurrent>[\s\S]*)$/u.exec(plan);
 	if (parts?.groups === undefined) {
@@ -23,10 +19,10 @@ export async function runSchemaPlan(
 		.filter((statement) => statement.trim() !== "");
 	const pending = upgrade === undefined ? "" : pendingIndexInserts(upgrade.schema, upgrade.version, commands, quote);
 	// Effect SQL uses the extended protocol, which accepts one statement per command.
-	await run(connection.executeRaw(`DO ${quote(`BEGIN EXECUTE ${quote(`${body}\n${pending}`)}; END`)}`, []));
+	yield* connection.executeRaw(`DO ${quote(`BEGIN EXECUTE ${quote(`${body}\n${pending}`)}; END`)}`, []);
 	if (upgrade === undefined) {
 		for (const statement of commands) {
-			await run(connection.executeRaw(statement, []));
+			yield* connection.executeRaw(statement, []);
 		}
 	}
-}
+});

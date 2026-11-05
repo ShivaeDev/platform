@@ -16,11 +16,11 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 	name: string,
 	options: WorkerOptions,
 	run: (job: WorkerJob<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
-	scope: Scope.Scope,
 	schema: string,
 	maxDeferrals: number,
 	stop?: StopOptions,
 ) {
+	const scope = yield* Effect.scope;
 	const execute = Effect.runPromiseWith(yield* Effect.context<R>());
 	const workerScope = yield* Scope.fork(scope);
 	const fibers = yield* Scope.fork(workerScope);
