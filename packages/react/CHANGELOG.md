@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.43.0 - 2026-11-05
+
+### Added
+
+- `SessionBoundary` accepts a native atom `runtime` for its session-recheck retry loop. Supply a runtime carrying the story Clock to drive recovery backoff without real waits.
+
+### Fixed
+
+- Story examples use the controlled clock.
+
+### Breaking
+
+- Remove `internal/` from module imports, including imports of its adapters.
+
 ## 0.42.0 - 2026-11-05
 
 ### Added

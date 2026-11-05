@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2 - 2026-11-05
+
+### Fixed
+
+- Story-testing guidance points to the controlled clock and states which real-time waits are forbidden.
+
 ## 0.7.1 - 2026-11-04
 
 ### Changed

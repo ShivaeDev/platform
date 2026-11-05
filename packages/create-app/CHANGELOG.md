@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.41.3 - 2026-11-05
+
+### Changed
+
+- Generated apps omit the sample notes browser scenario and its dedicated command. Use `pnpm browser-check --page / --text "Sign in"` for local screenshots and visible-text checks; live updates remain covered by the changes, contract and react stories.
+
+### Fixed
+
+- Generate full and minimal starter apps with an empty Quality baseline; keep the Better Auth client bridge in adapters and use native Effect paths for migration loading.
+- Starter and generated application stories use controlled clocks.
+
 ## 0.41.2 - 2026-11-05
 
 ### Fixed

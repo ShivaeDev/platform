@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-11-05
+
+### Breaking
+
+- Remove `internal/` from module imports.
+
 ## 0.7.1 - 2026-11-04
 
 ### Changed

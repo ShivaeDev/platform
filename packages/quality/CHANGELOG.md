@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.64.0 - 2026-11-05
+
+### Fixed
+
+- Accept supported UI, routing and styling libraries directly in client code while keeping I/O and external-state integrations in adapters.
+
+### Breaking
+
+- `tests/wait-on-events` also reports wall-clock reads and real timer APIs in stories and reachable kits, and accepts no config exceptions. Replace real waits with controlled clock verbs and engine signals; deadlines that only fail an unfinished wait remain allowed.
+- The `files/folder-names` rule rejects folders named `internal`, including module, package, content, tool-owned and route folders. Move their files into the parent folder or a folder named after their job.
+
 ## 0.63.0 - 2026-11-05
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-05
+
+### Breaking
+
+- Replace `server/internal/` with `server/` in module imports.
+
 ## 0.9.0 - 2026-11-05
 
 ### Breaking
