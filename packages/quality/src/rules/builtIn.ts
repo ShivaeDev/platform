@@ -35,6 +35,7 @@ import { importsRuntime } from "#rules/imports/runtime.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
 import { authSql } from "#rules/stories/authSql.ts";
+import { databaseUrl } from "#rules/stories/databaseUrl.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
@@ -130,6 +131,7 @@ export const builtInRules = [
 	storySpecs,
 	adapterOnlyFakes,
 	globalRetries,
+	databaseUrl,
 	storyEngine,
 	queueSql,
 	queueReadouts,

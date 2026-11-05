@@ -1,11 +1,12 @@
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Config, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
+import { Clock, Deferred, Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { TestClock } from "effect/testing";
 import { acknowledgeHostSignal, reportHostReady } from "@shivaedev/test-kits/host/processChild.ts";
 import { hostProcessReadouts } from "@shivaedev/test-kits/host/processReadouts.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 
@@ -40,7 +41,10 @@ NodeRuntime.runMain(
 		);
 		const services =
 			process.argv[2] === "database"
-				? PgClient.layer({ applicationName: `host-process-${process.pid}`, url: yield* Config.Redacted("DATABASE_URL") })
+				? PgClient.layer({
+						applicationName: `host-process-${process.pid}`,
+						url: Redacted.make(postgresTestUrl("DATABASE_URL").url ?? "postgresql://integration-tests-disabled"),
+					})
 				: Layer.empty;
 		const context = yield* Layer.buildWithScope(
 			appHost({ config: { disablePreemptiveShutdown: true, port: 0 }, group: Ping, handlers: pingHandlers, policy: "loopback", routes, services }),

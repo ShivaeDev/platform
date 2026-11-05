@@ -9,7 +9,7 @@ export const lockProcess = Effect.fn("LockStory.lockProcess")(function* (url: Re
 		Effect.sync(() =>
 			fork(fileURLToPath(new URL("./lockProcessChild.ts", import.meta.url)), [], {
 				env: { "DATABASE_URL": target.toString(), "LOCK_KEY": key },
-				execArgv: ["--conditions=source"],
+				execArgv: ["--conditions=@shivaedev/source"],
 				stdio: ["ignore", "ignore", "inherit", "ipc"],
 			}),
 		),

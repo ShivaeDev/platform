@@ -1,10 +1,11 @@
-import { Config, type Context, Deferred, Effect, Layer, Schema, type Scope } from "effect";
+import { type Context, Deferred, Effect, Layer, Schema, type Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { WorkerRelease } from "#WorkerRelease.ts";
+import { postgresOptions } from "./postgres.ts";
 
 export const handoverWorker = Effect.fnUntraced(function* (
 	name: string,
@@ -15,7 +16,7 @@ export const handoverWorker = Effect.fnUntraced(function* (
 	drained: Deferred.Deferred<void>,
 	timeline: string[],
 ) {
-	const connectionString = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
+	const connectionString = postgresOptions.url;
 	const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 	const started = yield* Deferred.make<void>();
 	const queue = defineQueue({ name: "handover", schema: Schema.Struct({ hold: Schema.Boolean }), worker: { pollingIntervalSeconds: 0.5 } });

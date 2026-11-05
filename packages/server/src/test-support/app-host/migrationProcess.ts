@@ -1,15 +1,16 @@
 import process from "node:process";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Config, Effect, Layer } from "effect";
+import { Config, Effect, Layer, Redacted } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { appDatabase } from "#appDatabase.ts";
 import { migrationLoader } from "./migrationLoader.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {
 		const table = yield* Config.String("HOST_MIGRATION_TABLE");
-		const databaseUrl = yield* Config.Redacted("DATABASE_URL");
+		const databaseUrl = Redacted.make(postgresTestUrl("DATABASE_URL").url ?? "postgresql://integration-tests-disabled");
 		const schema = yield* Config.String("HOST_JOBS_SCHEMA").pipe(Config.withDefault(""));
 		yield* Layer.build(
 			appDatabase({
