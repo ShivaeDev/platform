@@ -11,12 +11,14 @@ import { screenWaits } from "#server/internal/screenWaits.ts";
 import { targetName } from "#server/internal/targetName.ts";
 import type { ScreenSignal } from "#server/screenSignal.ts";
 import type { SignalNotReceived } from "#server/until.ts";
+import type { ScreenClock } from "#server/watchedClock.ts";
 
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
 	readonly activity?: ScreenSignal;
+	readonly clock?: ScreenClock;
 	readonly loadingTimeoutMs?: number;
 	readonly pending?: (() => boolean) | Stream.Stream<boolean> | ScreenSignal;
 	readonly root: HTMLElement | (() => HTMLElement);

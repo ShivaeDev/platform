@@ -2,9 +2,9 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import type { ScreenDriverOptions } from "#server/screenDriver.ts";
 
-export function screenAct<E>(act: NonNullable<ScreenDriverOptions["act"]>, action: Effect.Effect<void, E>) {
-	return Effect.callback<void, E>((resume, signal) => {
-		let outcome: Exit.Exit<void, E> = Exit.void;
+export function screenAct<E, A = void>(act: NonNullable<ScreenDriverOptions["act"]>, action: Effect.Effect<A, E>) {
+	return Effect.callback<A, E>((resume, signal) => {
+		let outcome: Exit.Exit<A, E>;
 		const completed = Promise.resolve(
 			act(async () => {
 				// A rejected callback leaves React's act queue open, so deliver failure after act closes.
@@ -12,7 +12,7 @@ export function screenAct<E>(act: NonNullable<ScreenDriverOptions["act"]>, actio
 			}),
 		);
 		completed.then(
-			() => resume(Exit.isFailure(outcome) ? Effect.failCause(outcome.cause) : Effect.void),
+			() => resume(Exit.isFailure(outcome) ? Effect.failCause(outcome.cause) : Effect.succeed(outcome.value)),
 			(error: unknown) => resume(Effect.die(error)),
 		);
 		return Effect.promise(() => completed);

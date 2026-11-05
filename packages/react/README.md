@@ -999,6 +999,31 @@ const minutesAgo = Math.floor((now - savedAt) / 60_000);
 
 Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
 
+#### Debounce and delay on the runtime clock
+
+`useDebouncedValue(value, duration, runtime?)` from `@shivaedev/react/client/useDebouncedValue.ts` returns the initial value immediately, then retains the previous value until input stops changing for the duration. A changed value or duration restarts the pending window. The timer runs on the atom runtime's Effect `Clock`, and its observed native `AsyncResult` stays waiting throughout that window, so `screenPending()` includes it when settling a story.
+
+```tsx
+import { useDebouncedValue } from "@shivaedev/react/client/useDebouncedValue.ts";
+import { useDelay } from "@shivaedev/react/client/useDelay.ts";
+
+const query = useDebouncedValue(search, "300 millis", client.runtime);
+const press = useDelay("450 millis", client.runtime);
+
+<button
+	onPointerDown={() => press.start(() => selectRow(id))}
+	onPointerUp={press.cancel}
+	onPointerLeave={press.cancel}
+	onPointerCancel={press.cancel}
+>
+	Select row
+</button>;
+```
+
+`useDelay(duration, runtime?)` schedules one callback with `start(callback)` and exposes `pending` and `cancel()`. Starting again replaces the pending callback. Changing the duration cancels it. Unmounting cancels both hooks' timers. Without a runtime, each hook uses a native empty atom runtime with Effect's default Clock. Pass the application's runtime so stories can control the same clock, and cancel a long press on the pointer events appropriate for the application's interaction.
+
+In a story kit, acquire `watchedClock` from `@shivaedev/test-story/server/watchedClock.ts` and pass it both to the atom runtime's Clock Layer and the screen driver's `clock` option. With `pending: screenPending()` for that registry and React's `act`, typing followed by `settle()` advances registered sleeps inside `act` until the debounce and resulting work finish. Kit verbs need no debounce duration. To check a long-press boundary explicitly, run that clock's `adjust(duration)` inside `act` in a verb that accepts the elapsed duration.
+
 #### Ids, time and promises in callbacks
 
 `useNewId(runtime?)` from `@shivaedev/react/client/adapters/useNewId.ts` returns a UUIDv4 generator. `useClock(runtime?)` from `@shivaedev/react/client/adapters/useClock.ts` returns a `now()` callback that reads epoch milliseconds when called. Both read services from the supplied atom runtime in the current registry and can be used in state initializers and event handlers:

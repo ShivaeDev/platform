@@ -8,6 +8,7 @@ import { observeScreen } from "./observeScreen.ts";
 
 type WaitOptions = Required<Pick<ScreenDriverOptions, "act">> & {
 	readonly activity?: ScreenDriverOptions["activity"];
+	readonly clock?: ScreenDriverOptions["clock"];
 	readonly pending?: ScreenDriverOptions["pending"];
 	readonly transport?: ScreenDriverOptions["transport"];
 	readonly root: () => HTMLElement;
@@ -28,6 +29,9 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>(options: WaitOpt
 			if (Result.isSuccess(result)) {
 				return result.success;
 			}
+		}
+		if (options.clock !== undefined && (yield* screenAct(act, options.clock.advanceNext))) {
+			continue;
 		}
 		yield* supplied ? screenAct(act, Queue.take(changes)) : Queue.take(changes);
 	} while (true);
