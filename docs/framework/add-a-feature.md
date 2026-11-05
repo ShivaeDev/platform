@@ -30,17 +30,17 @@ Declare a native migration loader on the server registration, as shown in step 6
 
 In `src/modules/bookmarks/bookmarks.ts`, define `Bookmark` with native `Model.Class`, following `Note` in [`notes.ts`](../../examples/starter/src/modules/notes/notes.ts). Use the same `Model.Field` variants for the generated id: it is present in JSON, selects and updates, and absent from inserts. Use `Schema.NonEmptyString` for the title and derive `BookmarkFields` with `Schema.Struct({ title: Bookmark.fields.title })` for the create payload and form.
 
-In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` with the same public fields plus `userId: bucket(Schema.String)`, importing `bucket` from `@shivaedev/changes/buckets.ts`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model. The bucket metadata lets repository writes announce changes to each affected owner's list.
+In `src/modules/bookmarks/server/Repository.ts`, define `StoredBookmark` with the same public fields plus `userId: bucket(Schema.String)`, importing `bucket` from `@shivaedev/changes/buckets.ts`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/Repository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model. The bucket metadata lets repository writes announce changes to each affected owner's list.
 
 ## 3. Make the repository
 
 In that server module, call `makeRepository(StoredBookmark, { collection: bookmarks, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Import the shared `bookmarks` collection declared in step 5 from `#modules/bookmarks/bookmarks.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description. Give the repository its own service with `defineRepository` from `@shivaedev/sql/defineRepository.ts`, as the [sql guide](../../packages/sql/README.md#share-a-tables-repository-and-domain-reads-between-services) shows, so services list its tag in `requires` and yield it instead of building it in their initializers.
 
-Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/Service.ts) does. Selecting only public fields keeps the owner out of the response.
+Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/service.ts) does. Selecting only public fields keeps the owner out of the response.
 
 ## 4. Declare the service
 
-Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`, following the [service model](../../packages/service/README.md#how-to-think-about-it). Write each operation as an `Effect.fn("Bookmarks.<operation>")` export in its own file beside the service, yielding the repository and every other dependency; list the repository tag, `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`; and use `Effect.void` as `initialize`, because the service owns no state. Operations read the caller by yielding `SessionUser` rather than taking a user id, and a service that does so is built per request. `services` in an `AppModule` is built once for the host, so the bookmarks service registered there exposes `list(userId)` and `create(input, userId)`, and its handlers supply that id from `SessionUser` in step 6.
+Create `src/modules/bookmarks/server/service.ts` with `defineService` from `@shivaedev/service/defineService.ts`, following the [service model](../../packages/service/README.md#how-to-think-about-it). Write each operation as an `Effect.fn("Bookmarks.<operation>")` export in its own file beside the service, yielding the repository and every other dependency; list the repository tag and `SessionUser` in `requires`; and use `Effect.void` as `initialize`, because the service owns no state. Operations read the caller by yielding `SessionUser` rather than taking a user id, and a service that does so is built per request. Register its Layer in the host’s `requestServices` slot, and register the repository Layer in `services`. Handlers call `list()` and `create(input)`; the host supplies the caller to the request Layer.
 
 Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. A single repository write commits on its own: the repository derives record and bucket keys from the written rows and announces them when that write commits. Wrap writes in `transact` from `@shivaedev/sql/transact.ts` only when several must commit together; rollback then discards every write and its announcement. The notes service wraps a note's insert and its word-count job, because jobs' `enqueue` joins the open SQL transaction on the same connection. Bookmarks has one write and no job, so it needs no `transact`. This service refers to the command declaration you add next, so complete both steps before typechecking.
 
@@ -56,9 +56,9 @@ Export the operation declarations as `List` and `Create` for the server boundary
 
 ## 6. Register the server module
 
-Create `src/modules/bookmarks/server/registration.ts` following [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts). Build handlers with `Bookmarks.application.toLayer` that obtain the bookmarks service and call its operations. The service is registered in `services`, which the host builds once, so its handlers read the owner from `SessionUser`, imported from `@shivaedev/identity/identity.ts`, and pass that id. The owner always comes from the session: never accept it from the form, and never capture a user in a Layer the host builds once.
+Create `src/modules/bookmarks/server/registration.ts` following [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts). Build handlers with `Bookmarks.application.toLayer` that obtain the bookmarks service and call its operations. The service is registered in `requestServices`, so its operations yield `SessionUser`, imported from `@shivaedev/identity/identity.ts`, to read the owner. The owner comes from the session, never the form. Each operation is an `Effect.fn` export in its own file beside `service.ts`.
 
-Export an object satisfying `AppModule`. Its required fields are `name`, `group`, `handlers`, `services` and `migrations`. Services and handlers are native Layers; migrations contains a native loader and optional schema `components`.
+Export an object satisfying `AppModule`. Its required fields are `name`, `group`, `handlers`, `services` and `migrations`; `requestServices` registers caller-dependent Layers. Services and handlers are native Layers; migrations contains a native loader and optional schema `components`.
 
 ```ts
 import { resolve } from "node:path";
@@ -67,28 +67,31 @@ import { Effect } from "effect";
 import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { Bookmarks, Create, List } from "#modules/bookmarks/bookmarks.ts";
-import { BookmarksService } from "./Service.ts";
+import { BookmarksRepository } from "./Repository.ts";
+import { bookmarksService } from "./service.ts";
 
 const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
-const handlers = Bookmarks.application.toLayer(
-	Effect.gen(function* () {
-		const service = yield* BookmarksService;
-		return Bookmarks.application.of({
-			"bookmarks.create": (input) =>
-				Effect.flatMap(SessionUser, ({ id }) => service.create(input, id).pipe(rpcBoundary(Create.error, boundaryOptions))),
-			"bookmarks.list": () => Effect.flatMap(SessionUser, ({ id }) => service.list(id).pipe(rpcBoundary(List.error, boundaryOptions))),
-		});
-	}),
-);
+const handlers = Bookmarks.application.toLayer({
+	"bookmarks.create": (input) =>
+		Effect.gen(function* () {
+			const service = yield* bookmarksService;
+			return yield* service.create(input);
+		}).pipe(rpcBoundary(Create.error, boundaryOptions)),
+	"bookmarks.list": () =>
+		Effect.gen(function* () {
+			const service = yield* bookmarksService;
+			return yield* service.list();
+		}).pipe(rpcBoundary(List.error, boundaryOptions)),
+});
 
 export const bookmarksRegistration = {
 	name: "bookmarks",
 	group: Bookmarks,
 	handlers,
-	services: BookmarksService.layer,
+	requestServices: bookmarksService.layer,
+	services: BookmarksRepository.layer,
 	migrations: {
 		loader: MigratorFileSystem.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
 	},

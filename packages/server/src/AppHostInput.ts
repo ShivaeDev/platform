@@ -22,6 +22,8 @@ export type AppHostInput<
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	(
 		| (AppDatabaseOptions<TMigrations, TMigrationError> & {
@@ -38,13 +40,15 @@ export type AppHostInput<
 						never,
 						never,
 						TRouteError,
-						TRouteRequirements
+						TRouteRequirements,
+						TRequestServices,
+						TRequestRequirements
 					>,
 					TApplicationError,
 					TApplicationRequirements
 				>;
 		  })
-		| AppHostOptions<
+		| (HostCoreOptions<
 				TRpcs,
 				THandlers,
 				THandlerError,
@@ -52,44 +56,12 @@ export type AppHostInput<
 				TServices,
 				TServiceError,
 				TServiceRequirements,
-				TMigrations,
-				TPreflight,
-				TPreflightError,
-				TPreflightRequirements,
-				TRouteError,
-				TRouteRequirements,
-				TMigrationError
-		  >
-		| AppLocalHostOptions<
-				TRpcs,
-				THandlers,
-				THandlerError,
-				THandlerRequirements,
-				TServices,
-				TServiceError,
-				TServiceRequirements,
-				TMigrations,
-				TPreflight,
-				TPreflightError,
-				TPreflightRequirements,
-				TRouteError,
-				TRouteRequirements,
-				TMigrationError
-		  >
-		| AppHttpHostOptions<
-				TRpcs,
-				THandlers,
-				THandlerError,
-				THandlerRequirements,
-				TServices,
-				TServiceError,
-				TServiceRequirements,
-				TPreflight,
-				TPreflightError,
-				TPreflightRequirements,
-				TRouteError,
-				TRouteRequirements
-		  >
+				TRequestServices,
+				TRequestRequirements
+		  > &
+				HostRoutes<TRouteError, TRouteRequirements> &
+				HostPolicy &
+				(AppDatabaseOptions<TMigrations, TMigrationError> | { readonly migrations?: undefined }))
 	);
 
 export type AppHostOptions<
@@ -107,8 +79,20 @@ export type AppHostOptions<
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostCoreOptions<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TRequestServices,
+		TRequestRequirements
+	> &
 	HostRoutes<TRouteError, TRouteRequirements> &
 	HostPolicy & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
@@ -131,8 +115,20 @@ export type AppLocalHostOptions<
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostCoreOptions<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TRequestServices,
+		TRequestRequirements
+	> &
 	HostRoutes<TRouteError, TRouteRequirements> & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
 		readonly config?: AppDatabaseOptions["config"];

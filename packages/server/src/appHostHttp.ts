@@ -26,6 +26,8 @@ export function appHostHttp<
 	TServiceRequirements,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	options: HostOptions<
 		TRpcs,
@@ -36,7 +38,9 @@ export function appHostHttp<
 		TServiceError,
 		TServiceRequirements,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TRequestServices,
+		TRequestRequirements
 	> &
 		HostPolicy,
 ) {

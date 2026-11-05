@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.42.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. Stories get the `effect/crypto` services of `NodeCrypto.layer` with a seeded `SecureRandom` instead of `TestCrypto`. Kits that named `Crypto.Crypto` use `StoryCrypto` from `server/storyIt.ts`.
+
 ## 0.41.0 - 2026-11-05
 
 ### Breaking

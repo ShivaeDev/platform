@@ -1,14 +1,14 @@
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { DashboardConfig } from "./DashboardConfig.ts";
+import { DashboardConfig } from "./Config.ts";
 import { findReport } from "./findReport.ts";
-import { initializeDashboard } from "./initializeDashboard.ts";
 import { listPullRequests } from "./listPullRequests.ts";
 import { listReports } from "./listReports.ts";
 
-export const Dashboard = defineService({
+export const dashboardService = defineService({
 	id: "@shivaedev/sql/dashboard/Service",
-	initialize: initializeDashboard,
-	methods: (state) => ({ findReport: findReport(state), listPullRequests: listPullRequests(state), listReports: listReports(state) }),
+	initialize: Effect.void,
+	methods: () => ({ findReport, listPullRequests, listReports }),
 	requires: [SqlClient.SqlClient, DashboardConfig],
 });

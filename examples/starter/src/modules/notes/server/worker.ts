@@ -1,17 +1,16 @@
 import { Effect } from "effect";
 import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
-import { transact } from "@shivaedev/sql/transact.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
-import { makeNotesRepository } from "./makeRepository.ts";
+import { NotesRepository } from "./Repository.ts";
 
 const countWords = CountWords.handle(({ noteId }) =>
 	Effect.gen(function* () {
-		const repository = yield* makeNotesRepository;
+		const repository = yield* NotesRepository;
 		const rows = yield* repository.findMany({ where: { id: noteId, wordCount: null } });
 		for (const row of rows) {
 			yield* repository.update({ ...row, wordCount: row.title.split(/\s+/u).length });
 		}
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
+	}).pipe(Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
 export const notesWorker = jobModule(NoteJobs.layer, {

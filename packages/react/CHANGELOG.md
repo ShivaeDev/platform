@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.44.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. `clientCrypto` provides `SecureRandom` and `Digest` from `effect/crypto` instead of `Crypto`, and `useNewId` needs an atom runtime with `SecureRandom`. Replace `Crypto.Crypto` in handler and runtime types with those services.
+
 ## 0.43.0 - 2026-11-05
 
 ### Added

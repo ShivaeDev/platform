@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/discord",
-	"version": "0.2.2",
+	"version": "0.3.0",
 	"description": "Discord integrations for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/discord#readme",
 	"bugs": {

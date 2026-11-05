@@ -109,6 +109,8 @@ export const appHost: AppHostFactory = <
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	options: AppHostInput<
 		TRpcs,
@@ -126,7 +128,9 @@ export const appHost: AppHostFactory = <
 		TPreflightRequirements,
 		TRouteError,
 		TRouteRequirements,
-		TMigrationError
+		TMigrationError,
+		TRequestServices,
+		TRequestRequirements
 	>,
 ) => {
 	const preflight = hostPreflight(options.preflight, "application" in options ? Effect.succeed(isSensitiveKey) : hostSensitiveKeys(options));

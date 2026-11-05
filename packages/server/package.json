@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/server",
-	"version": "0.26.1",
+	"version": "0.27.0",
 	"description": "The Effect application host: HTTP and RPC serving, health, OTLP export, database and migrations, and development mode",
 	"keywords": [
 		"effect"
@@ -68,6 +68,7 @@
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/rate-limit": "workspace:*",
+		"@shivaedev/service": "workspace:*",
 		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

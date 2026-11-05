@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.42.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. Read migration folders with `MigratorFileSystem.fromFileSystem` from `effect/sql/MigratorFileSystem`; `migrationsFromDirectory` is unchanged.
+
 ## 0.41.0 - 2026-11-05
 
 ### Added

@@ -20,8 +20,20 @@ export type AppHttpHostOptions<
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TRequestServices = never,
+	TRequestRequirements = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostCoreOptions<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TRequestServices,
+		TRequestRequirements
+	> &
 	HostRoutes<TRouteError, TRouteRequirements> &
 	HostPolicy & { readonly migrations?: undefined };
 function buildHttpHost<
@@ -37,6 +49,8 @@ function buildHttpHost<
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	options: AppHttpHostOptions<
 		TRpcs,
@@ -50,7 +64,9 @@ function buildHttpHost<
 		TPreflightError,
 		TPreflightRequirements,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TRequestServices,
+		TRequestRequirements
 	>,
 ) {
 	return appHostHttp(options).pipe(Layer.provideMerge(hostPreflight(options.preflight, hostSensitiveKeys(options))), Layer.provide(NodeCrypto.layer));
@@ -69,6 +85,8 @@ type HttpHostFactory = <
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TRequestServices = never,
+	TRequestRequirements = never,
 >(
 	options: AppHttpHostOptions<
 		TRpcs,
@@ -82,7 +100,9 @@ type HttpHostFactory = <
 		TPreflightError,
 		TPreflightRequirements,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TRequestServices,
+		TRequestRequirements
 	>,
 ) => ReturnType<
 	typeof buildHttpHost<
@@ -97,7 +117,9 @@ type HttpHostFactory = <
 		NoInfer<TPreflightError>,
 		NoInfer<TPreflightRequirements>,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TRequestServices,
+		TRequestRequirements
 	>
 >;
 

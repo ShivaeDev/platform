@@ -7,30 +7,33 @@ import { Effect } from "effect";
 import * as MigratorFileSystem from "effect/sql/MigratorFileSystem";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { Create, List, ${pascal}Contract } from "#modules/${name}/${name}.ts";
-import { ${pascal}Service } from "./Service.ts";
+import { ${pascal}Repository } from "./Repository.ts";
+import { ${camel}Service } from "./service.ts";
 
 const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
 
-const handlers = ${pascal}Contract.application.toLayer(
-	Effect.gen(function* () {
-		const service = yield* ${pascal}Service;
-		return ${pascal}Contract.application.of({
-			"${name}.create": (input) =>
-				Effect.flatMap(SessionUser, ({ id }) => service.create(input, id).pipe(rpcBoundary(Create.error, boundaryOptions))),
-			"${name}.list": () => Effect.flatMap(SessionUser, ({ id }) => service.list(id).pipe(rpcBoundary(List.error, boundaryOptions))),
-		});
-	}),
-);
+const handlers = ${pascal}Contract.application.toLayer({
+	"${name}.create": (input) =>
+		Effect.gen(function* () {
+			const service = yield* ${camel}Service;
+			return yield* service.create(input);
+		}).pipe(rpcBoundary(Create.error, boundaryOptions)),
+	"${name}.list": () =>
+		Effect.gen(function* () {
+			const service = yield* ${camel}Service;
+			return yield* service.list();
+		}).pipe(rpcBoundary(List.error, boundaryOptions)),
+});
 
 export const ${camel}Registration = {
 	group: ${pascal}Contract,
 	handlers,
 	migrations: { loader: MigratorFileSystem.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)) },
 	name: "${name}",
-	services: ${pascal}Service.layer,
+	requestServices: ${camel}Service.layer,
+	services: ${pascal}Repository.layer,
 } satisfies AppModule;
 `;
 }

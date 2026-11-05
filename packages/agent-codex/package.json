@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/agent-codex",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"description": "Codex integration for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/agent-codex#readme",
 	"bugs": {
