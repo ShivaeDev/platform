@@ -1,90 +1,29 @@
-import { Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import type { OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
-import { transact } from "@shivaedev/sql/transact.ts";
-import type { Create, Delete, Import, Update } from "#modules/notes/notes.ts";
-import { CountWords, NoteJobs } from "./jobs.ts";
+import { canReadNote } from "./canRead.ts";
+import { createNote } from "./create.ts";
+import { deleteNote } from "./delete.ts";
+import { getNote } from "./get.ts";
+import { importNote } from "./import.ts";
+import { NoteJobs } from "./jobs.ts";
+import { listNotes } from "./list.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
 import { NoteSource } from "./Source.ts";
-import { notesSqlFailure } from "./sqlFailure.ts";
-
-function changed(cause: OptimisticConcurrencyError) {
-	return Effect.fail(Object.assign(new Conflict({ message: "This note changed. Refresh and review your draft before trying again." }), { cause }));
-}
+import { updateNote } from "./update.ts";
 
 export const NotesService = defineService({
 	id: "app/NotesService",
 	initialize: makeNotesRepository,
-	methods: (repository) => {
-		function get(id: number, userId: string) {
-			return Effect.gen(function* () {
-				const row = yield* repository
-					.findOne({ where: { id, userId } })
-					.pipe(Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error))));
-				return yield* Option.match(row, {
-					onNone: () => Effect.fail(new NotFound({ message: "Note not found" })),
-					onSome: Effect.succeed,
-				});
-			});
-		}
-		function enqueue(noteId: number) {
-			return Effect.gen(function* () {
-				const jobs = yield* NoteJobs;
-				yield* jobs.enqueue(CountWords, { noteId });
-			});
-		}
-		function create({ title }: typeof Create.payload.Type, userId: string) {
-			return rateLimit({ key: `notes.create:${userId}`, per: 10, window: "1 minute" }).pipe(
-				Effect.andThen(
-					repository.insert({ title, userId, wordCount: null }).pipe(
-						Effect.tap((row) => enqueue(row.id)),
-						transact({ onSqlError: notesSqlFailure }),
-					),
-				),
-			);
-		}
-		return {
-			canRead: (id: number, userId: string) =>
-				get(id, userId).pipe(
-					Effect.as(true),
-					Effect.mapError((cause) =>
-						cause._tag === "NotFound" || cause._tag === "ServiceUnavailable"
-							? cause
-							: Object.assign(new ServiceUnavailable({ message: "Could not check note access" }), { cause }),
-					),
-				),
-			create,
-			delete: (input: typeof Delete.payload.Type, userId: string) =>
-				Effect.gen(function* () {
-					yield* get(input.id, userId);
-					yield* repository.delete(input.id, input.version).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
-				}).pipe(transact({ onSqlError: notesSqlFailure })),
-			get,
-			import: (input: typeof Import.payload.Type, userId: string) =>
-				Effect.gen(function* () {
-					const source = yield* NoteSource;
-					const title = yield* source.title(input.id);
-					return yield* create({ title }, userId);
-				}),
-			list: (userId: string) =>
-				repository
-					.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title", "wordCount", "version"], where: { userId } })
-					.pipe(Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error)))),
-			update: (input: typeof Update.payload.Type, userId: string) =>
-				Effect.gen(function* () {
-					const row = yield* get(input.id, userId);
-					const saved = yield* repository.update({ ...row, ...input, wordCount: null }).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
-					return saved;
-				}).pipe(
-					Effect.tap((row) => enqueue(row.id)),
-					transact({ onSqlError: notesSqlFailure }),
-				),
-		};
-	},
+	methods: (repository) => ({
+		canRead: canReadNote(repository),
+		create: createNote(repository),
+		delete: deleteNote(repository),
+		get: getNote(repository),
+		import: importNote(repository),
+		list: listNotes(repository),
+		update: updateNote(repository),
+	}),
 	requires: [Store, SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs, NoteSource],
 });

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { type Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
@@ -19,3 +19,5 @@ export const makeNotesRepository = makeRepository(StoredNote, {
 	tableName: "notes",
 	versionColumn: "version",
 });
+
+export type NotesRepository = Effect.Success<typeof makeNotesRepository>;
