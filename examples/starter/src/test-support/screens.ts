@@ -1,10 +1,11 @@
+import { DateTime, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ScreenSurface } from "#test-support/screenState.ts";
 import { themeScreenVerbs } from "./themeScreenVerbs.tsx";
 import { uiScreenVerbs } from "./uiScreenVerbs.ts";
 
 export const screens = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	create: (): ScreenSurface => ({ view: undefined }),
 	name: "app controls",
 	stages: ["storage", "screen"],

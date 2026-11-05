@@ -1,4 +1,4 @@
-import { Effect, Redacted } from "effect";
+import { DateTime, Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
@@ -9,8 +9,8 @@ import { configured, postgres } from "#test-support/postgres.ts";
 import { secret } from "./host.ts";
 
 export const authStartup = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	create: () => ({ validation: "not started" }),
 	layer: postgres,
 	name: "authentication startup",

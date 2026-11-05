@@ -107,7 +107,7 @@ A deadline bounds a failure but never proves completion. Put it around a wait fo
 
 PostgreSQL catalog waits are the one sanctioned polling exception: catalog views such as `pg_stat_activity` send no completion signal. Use `observeUntil` from `@shivaedev/test-sql/server/observeUntil.ts` for these waits, with a predicate for the required state. Do not write a local polling loop or use this exception to poll application rows, job storage or UI state.
 
-Stories always drive time through the kit's controlled clock and never wait on real time. If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
+Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date.now()` and real timers in test code are forbidden; a deadline that only bounds failure is allowed. Drive elapsed time through the kit's [controlled clock](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#waiting-for-a-timer). If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
 
 A kit verb names the interval, advances the controlled clock and waits for the work it triggers. In this session kit, the real engine offers to `checked` after revalidation, and `request` calls its public boundary:
 

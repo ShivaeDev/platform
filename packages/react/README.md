@@ -1091,7 +1091,6 @@ const Add = command("add", { invalidates: () => [notes.list], payload: { title: 
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 
 export const notesScreen = storyKit({
-	clock: "live",
 	*create() {
 		const handlers = Notes.toLayer(
 			Effect.gen(function* () {

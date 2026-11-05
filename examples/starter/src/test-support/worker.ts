@@ -1,4 +1,4 @@
-import { Config, ConfigProvider, Effect, Layer } from "effect";
+import { Config, ConfigProvider, DateTime, Effect, Layer } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -12,8 +12,8 @@ import { testPoolSizes } from "./poolSizes.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 export const worker = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const env: Record<string, string> = {};

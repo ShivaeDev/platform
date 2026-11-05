@@ -27,8 +27,6 @@ const fs = require("node:fs");
 const { join } = require("node:path");
 const args = process.argv.slice(2);
 const command = args.join(" ");
-const started = performance.now();
-process.on("exit", () => console.error("[generated app timing] pnpm " + command + ": " + (performance.now() - started).toFixed(0) + " ms"));
 if (${scriptsOnly} && args[0] === "run") {
   if (args[1] === "format") process.exit(0);
   if (args[1] === "setup") args.splice(0, args.length, "install");

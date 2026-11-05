@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { notes } from "#modules/notes/notes.ts";
@@ -11,8 +11,8 @@ import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { appScreen } from "./appScreen.tsx";
 
 export const signedInApp = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const screen = yield* appScreen({ account: { name: "alice" }, route: "/" });
 		const bob = yield* mintUser(screen, "bob");

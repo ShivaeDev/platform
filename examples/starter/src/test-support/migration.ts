@@ -1,5 +1,5 @@
 import { testUtils } from "better-auth/plugins";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
@@ -20,8 +20,8 @@ const migrationStepsWithApp = Effect.fn("AppStory.migrationStepsWithApp")(functi
 });
 
 export const migration = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	after: { database: (engine) => engine.database.acquire },
-	clock: "live",
 	*create() {
 		return { database: yield* storyDatabase() };
 	},

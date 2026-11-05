@@ -15,7 +15,6 @@ app.it(
 
 		expect(yield* notesOf("alice").list()).toEqual([{ ...note, title: "Replacement source title" }]);
 	},
-	{ clock: "live" },
 );
 
 app.it(
@@ -31,7 +30,6 @@ app.it(
 			["alice's notes", () => notesOf("alice").list(), [first]],
 		]);
 	},
-	{ clock: "live" },
 );
 
 app.it(
@@ -45,5 +43,4 @@ app.it(
 			["alice's notes", () => notesOf("alice").list(), []],
 		]);
 	},
-	{ clock: "live" },
 );

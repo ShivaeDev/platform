@@ -1,4 +1,4 @@
-import { ConfigProvider, Effect } from "effect";
+import { ConfigProvider, DateTime, Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -8,8 +8,8 @@ import { admittedHost } from "./admittedHost.ts";
 import { gitHub, gitHubSignIn } from "./gitHub.ts";
 
 export const admittedApp = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const github = gitHub();
 		const provider = yield* github.provider;

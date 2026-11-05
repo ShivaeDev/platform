@@ -42,7 +42,6 @@ function FoodScreen({ model }: { readonly model: ReturnType<typeof makeFood> }) 
 }
 
 export const groupedScreen = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(() => render(createElement(FoodScreen, { model: makeFood() }))),

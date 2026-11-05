@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -9,8 +9,8 @@ import { mintUser } from "./sessionPrecondition.ts";
 const decodeSession = Schema.decodeUnknownSync(Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String }) })));
 
 export const cookieApp = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		return yield* createCookieHost();
 	},

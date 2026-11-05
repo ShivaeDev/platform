@@ -1,6 +1,6 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
@@ -28,8 +28,8 @@ import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 const alice = credentials("alice");
 
 export const notesApp = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* createCookieHost();

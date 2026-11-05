@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
@@ -20,7 +20,7 @@ import { notesUiVerbs } from "./uiVerbs.ts";
 expectNoReactWarnings();
 
 export const screens = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	create: createScreen,
 	inspect: (engine) => ({
 		reads: engine.client.observed.reads(),

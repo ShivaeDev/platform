@@ -1,12 +1,12 @@
 import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { build, createServer } from "vite";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
 export const stylesheets = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	create: () => ({ css: "" }),
 	name: "application stylesheets",
 	stages: [],

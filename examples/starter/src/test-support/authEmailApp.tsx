@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { ConfigProvider, Effect, Layer, Schema } from "effect";
+import { ConfigProvider, DateTime, Effect, Layer, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
@@ -22,8 +22,8 @@ import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 const decodeSession = Schema.decodeUnknownSync(Schema.Struct({ user: Schema.Struct({ emailVerified: Schema.Boolean }) }));
 
 export const authEmailApp = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const mail = yield* inbox();
 		const host = yield* startHost();

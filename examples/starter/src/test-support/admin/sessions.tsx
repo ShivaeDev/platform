@@ -1,4 +1,4 @@
-import { Effect, Predicate } from "effect";
+import { DateTime, Effect, Predicate } from "effect";
 import { act } from "react";
 import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -21,8 +21,8 @@ interface Engine extends ScreenSurface {
 }
 
 export const adminSessions = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create(): Generator<ReturnType<typeof startHost>, Engine, never> {
 		return { host: yield* startHost(), role: "admin", view: undefined };
 	},

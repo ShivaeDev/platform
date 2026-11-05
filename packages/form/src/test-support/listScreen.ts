@@ -9,7 +9,6 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 export const listScreen = storyKit({
-	clock: "live",
 	create: () =>
 		Effect.acquireRelease(
 			Effect.promise(() => render(createElement(QuickAmounts, { model: makeQuickAmounts() }))),

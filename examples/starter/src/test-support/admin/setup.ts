@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, Effect, Redacted } from "effect";
+import { ConfigProvider, DateTime, Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
@@ -25,8 +25,8 @@ interface Engine {
 }
 
 export const adminSetup = storyKit({
+	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
-	clock: "live",
 	create: (): Engine => ({ cookie: "", host: undefined }),
 	inspect: ({ host }) => ({ baseUrl: host?.baseUrl }),
 	layer: postgres,

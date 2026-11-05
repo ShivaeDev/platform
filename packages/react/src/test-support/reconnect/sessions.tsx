@@ -8,7 +8,6 @@ import { makeAuth } from "./auth.ts";
 import { openHost } from "./openHost.ts";
 
 export const reconnectSessions = storyKit({
-	clock: "live",
 	*create() {
 		const host = yield* openHost;
 		const auth = yield* makeAuth;

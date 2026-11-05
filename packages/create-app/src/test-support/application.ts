@@ -8,7 +8,6 @@ import { skillActions } from "#test/skillActions.ts";
 import { scriptOutcome } from "./answers.ts";
 import { appReadouts } from "./appReadouts.ts";
 import { appFolder } from "./cli.ts";
-import { commandTiming } from "./commandTiming.ts";
 import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./environment.ts";
 import { createAppIn } from "./generate.ts";
@@ -81,7 +80,6 @@ export const application = storyKit({
 				),
 			pnpm: (...args: readonly string[]) =>
 				script(`pnpm ${args.join(" ")}`, () => {
-					const started = performance.now();
 					const result = spawnSync(
 						"env",
 						[
@@ -96,7 +94,6 @@ export const application = storyKit({
 							encoding: "utf8",
 						},
 					);
-					commandTiming(`pnpm ${args.join(" ")}`, started, result.stderr);
 					return result;
 				}),
 			ready: () => script("the app runs pnpm ready against workspace packages", () => readyAgainstWorkspace(target(), engine.source.starter)),

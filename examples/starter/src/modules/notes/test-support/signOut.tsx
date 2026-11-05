@@ -1,5 +1,5 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { act } from "react";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
@@ -17,7 +17,7 @@ import { screenAuth } from "./screenAuth.ts";
 const warnings = expectNoReactWarnings();
 
 export const signOut = storyKit({
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const response = Promise.withResolvers<{ readonly data: object; readonly error: null }>();
 		const requested = Promise.withResolvers<void>();
