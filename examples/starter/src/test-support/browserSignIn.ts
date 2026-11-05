@@ -22,12 +22,12 @@ export const browserSignIn = storyKit({
 	*create() {
 		const host = yield* startHost();
 		const fs = yield* FileSystem.FileSystem;
-		const root = yield* fs.makeTempDirectoryScoped({ prefix: "starter-browser-sign-in-" });
+		const root = yield* fs.makeTempDirectoryScoped({ prefix: "browser-sign-in-" });
 		return { host, requests: yield* browserAuthRequests(host.baseUrl), root };
 	},
 	inspect: ({ requests }) => requests.adoption(),
 	layer: browserPostgres,
-	name: "browser-check starter sign-in",
+	name: "browser-check password sign-in",
 	runIf: configured,
 	stages: ["account"],
 	verbs: ({ host, requests, root }, story) => ({

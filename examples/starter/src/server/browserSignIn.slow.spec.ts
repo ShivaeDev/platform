@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { aliceHasPasswordAccount, browserSignIn } from "#test-support/browserSignIn.ts";
 
 browserSignIn.it(
-	"browser-check signs in as alice once and both starter session pages receive exactly one copy of her issued cookie",
+	"browser-check signs in as alice once and both session pages receive exactly one copy of her issued cookie",
 	[aliceHasPasswordAccount],
 	function* ({ checksSessionPages, cookieAdoption }) {
 		expect(yield* cookieAdoption()).toEqual({ requests: [], signIns: [] });
@@ -18,7 +18,7 @@ browserSignIn.it(
 );
 
 browserSignIn.it(
-	"browser-check rejects alice's incorrect password with the starter's HTTP 401 and opens no session pages",
+	"browser-check rejects alice's incorrect password with the app's HTTP 401 and opens no session pages",
 	[aliceHasPasswordAccount],
 	function* ({ checksSessionPages, cookieAdoption }) {
 		const run = yield* checksSessionPages("incorrect-password");
