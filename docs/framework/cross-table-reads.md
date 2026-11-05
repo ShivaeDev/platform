@@ -4,7 +4,7 @@ A dashboard can read tables owned by different repositories without adding joins
 
 ## Compose the models' field schemas
 
-The [pull-request module](../../packages/sql/src/test-support/cross-table/pullRequests.ts) describes `id: Schema.Int`, `title: Schema.String` and `updated_at: Schema.DateTimeUtcFromDate`. The [report module](../../packages/sql/src/test-support/cross-table/reports.ts) describes `id: Schema.Int`, `pull_request_id: Schema.Int` and `score: Schema.NumberFromString.check(Schema.isFinite())`. Each passes its model to `makeRepository` for its own table.
+The [pull-request module](../../packages/sql/src/test-support/cross-table/dashboard/pullRequests.ts) describes `id: Schema.Int`, `title: Schema.String` and `updated_at: Schema.DateTimeUtcFromDate`. The [report module](../../packages/sql/src/test-support/cross-table/dashboard/reports.ts) describes `id: Schema.Int`, `pull_request_id: Schema.Int` and `score: Schema.NumberFromString.check(Schema.isFinite())`. Each passes its model to `makeRepository` for its own table.
 
 PostgreSQL stores the IDs in `integer` columns, the title and score in `text` columns, and `updated_at` in a UTC `timestamptz` column. Reports have a unique foreign key to a pull request, so a pull request has at most one report. There are no JSON columns. The score codec deliberately makes the stored text a finite number in application code; the timestamp codec turns the driver's `Date` into `DateTime.Utc`.
 
@@ -12,26 +12,26 @@ Use the models' `.fields` schemas for the read result, including their storage c
 
 ## Own the query in the dashboard service
 
-The dashboard service declares its dependencies once and names its operations. Table names are application configuration supplied through a `DashboardConfig` service. Both repositories and this service use the same native `SqlClient`, which each operation yields like any other dependency:
+The dashboard [service](../../packages/sql/src/test-support/cross-table/dashboard/service.ts) declares its dependencies once and names its operations. Each operation is an `Effect.fn("Dashboard.<operation>")` export in its own file beside `service.ts`; the initializer owns no state. Table names are application configuration supplied through a `DashboardConfig` service. Both repositories and this service use the same native `SqlClient`, which each operation yields like any other dependency:
 
 ```ts
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { DashboardConfig } from "./DashboardConfig.ts";
+import { DashboardConfig } from "./Config.ts";
 import { findReport } from "./findReport.ts";
 import { listPullRequests } from "./listPullRequests.ts";
 import { listReports } from "./listReports.ts";
 
-export const Dashboard = defineService({
-	id: "app/Dashboard",
+export const dashboardService = defineService({
+	id: "@shivaedev/sql/dashboard/Service",
 	requires: [SqlClient.SqlClient, DashboardConfig],
 	initialize: Effect.void,
 	methods: () => ({ findReport, listPullRequests, listReports }),
 });
 ```
 
-The [result schemas](../../packages/sql/src/test-support/cross-table/dashboardRows.ts) compose the models' fields:
+The [result schemas](../../packages/sql/src/test-support/cross-table/dashboard/rows.ts) compose the models' fields:
 
 ```ts
 import { Schema } from "effect";
@@ -60,8 +60,8 @@ The reported pull-request operation owns its query:
 ```ts
 import { Effect } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { DashboardConfig } from "./DashboardConfig.ts";
-import { ReportedPullRequest, Since } from "./dashboardRows.ts";
+import { DashboardConfig } from "./Config.ts";
+import { ReportedPullRequest, Since } from "./rows.ts";
 
 export const listReports = Effect.fn("Dashboard.listReports")(function* (request: typeof Since.Type) {
 	const sql = yield* SqlClient.SqlClient;
@@ -91,12 +91,12 @@ Provide the service's layer from the application database layer, then call it fr
 
 ```ts
 const recentReports = Effect.gen(function* () {
-	const dashboard = yield* Dashboard;
+	const dashboard = yield* dashboardService;
 	return yield* dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") });
-}).pipe(Effect.provide(Dashboard.layer), Effect.provideService(DashboardConfig, { pullRequests: "pull_requests", reports: "reports" }));
+}).pipe(Effect.provide(dashboardService.layer), Effect.provideService(DashboardConfig, { pullRequests: "pull_requests", reports: "reports" }));
 ```
 
-This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`, and `Dashboard` and `DashboardConfig` from their defining modules. Authorization and any caller-specific filters belong in this application service.
+This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`, and `dashboardService` and `DashboardConfig` from their defining modules. Authorization and any caller-specific filters belong in this application service.
 
 ## Keep the boundary explicit
 

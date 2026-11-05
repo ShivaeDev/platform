@@ -52,7 +52,7 @@ application.it(
 			["module list", () => file("src/server/modules.ts"), modules],
 			["contract", () => file("src/modules/bookmarks/bookmarks.ts"), "custom contract\n"],
 			["client", () => file("src/modules/bookmarks/client/make.ts"), "custom client\n"],
-			["service", () => exists("src/modules/bookmarks/server/Service.ts"), false],
+			["service", () => exists("src/modules/bookmarks/server/service.ts"), false],
 		]);
 	},
 );

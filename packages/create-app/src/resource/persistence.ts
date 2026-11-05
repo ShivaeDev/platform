@@ -4,48 +4,39 @@ export function resourceRepository({ name, pascal, table }: ResourceNames) {
 	return `import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
+import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { Item, keys } from "#modules/${name}/${name}.ts";
 
-export class StoredItem extends Model.Class<StoredItem>("Stored${pascal}Item")({
+class StoredItem extends Model.Class<StoredItem>("Stored${pascal}Item")({
 	...Model.fields(Item),
 	userId: bucket(Schema.String),
 }) {}
 
-export const make${pascal}Repository = makeRepository(StoredItem, {
+const make${pascal}Repository = makeRepository(StoredItem, {
 	collection: keys,
 	idColumn: "id",
 	spanPrefix: "${pascal}",
 	tableName: "${table}",
 });
+
+export const ${pascal}Repository = defineRepository({ id: "app/${pascal}Repository", initialize: make${pascal}Repository });
 `;
 }
 
-export function resourceService({ name, pascal }: ResourceNames) {
+export function resourceService({ camel, pascal }: ResourceNames) {
 	return `import { Effect } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { SqlClient } from "effect/sql";
-import type { SqlError } from "effect/sql/SqlError";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { transact } from "@shivaedev/sql/transact.ts";
-import type { Create } from "#modules/${name}/${name}.ts";
-import { make${pascal}Repository } from "./makeRepository.ts";
+import { create } from "./create.ts";
+import { list } from "./list.ts";
+import { ${pascal}Repository } from "./Repository.ts";
 
-const unavailable = (cause: SqlError) => Object.assign(new ServiceUnavailable({ message: "Could not reach the ${name} database" }), { cause });
-
-export const ${pascal}Service = defineService({
+export const ${camel}Service = defineService({
 	id: "app/${pascal}Service",
-	initialize: make${pascal}Repository,
-	methods: (repository) => ({
-		create: (input: typeof Create.payload.Type, userId: string) =>
-			repository.insert({ ...input, userId }).pipe(transact({ onSqlError: unavailable })),
-		list: (userId: string) =>
-			repository
-				.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title"], where: { userId } })
-				.pipe(Effect.catchTag("SqlError", (cause) => Effect.fail(unavailable(cause)))),
-	}),
-	requires: [SqlClient.SqlClient, Reactivity.Reactivity],
+	initialize: Effect.void,
+	methods: () => ({ create, list }),
+	requires: [${pascal}Repository, SessionUser],
 });
 `;
 }
