@@ -1,5 +1,5 @@
 import { Effect, Stream } from "effect";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { BeforeCommit } from "@shivaedev/sql/transact.ts";
 import { SettingsApplication, settings } from "./contract.ts";

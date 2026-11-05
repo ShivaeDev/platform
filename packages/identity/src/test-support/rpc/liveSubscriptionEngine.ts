@@ -6,7 +6,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
@@ -44,7 +45,7 @@ export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hi
 		],
 	}).middleware(AuthenticatedUser);
 	const reactivity = yield* Reactivity.make;
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)))));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)))));
 	const clock = yield* Clock.Clock;
 	const services = yield* Layer.build(
 		appHost({

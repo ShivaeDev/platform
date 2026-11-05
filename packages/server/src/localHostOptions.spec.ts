@@ -1,7 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failedRoute, lifecycleServices, rpcPath } from "#test/app-host/options.ts";
 import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";

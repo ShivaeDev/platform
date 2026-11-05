@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, type Redacted, Schema, Stream } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { appDatabase } from "#appDatabase.ts";
 import { followHints } from "#test/rpc/followHints.ts";

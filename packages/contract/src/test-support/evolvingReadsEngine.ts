@@ -10,7 +10,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
-import { LiveServer } from "#LiveServer.ts";
+import { liveServerLayer } from "#live-server/layer.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { Guard, TimelineData, Unavailable } from "./derivedReadsContract.ts";
@@ -77,7 +77,7 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 				Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, Option.some({ id: "alice" }))),
 			),
 			policy: "loopback",
-			services: Layer.merge(data, LiveServer.layer.pipe(Layer.provideMerge(Layer.succeed(Reactivity.Reactivity, tracked)))),
+			services: Layer.merge(data, liveServerLayer.pipe(Layer.provideMerge(Layer.succeed(Reactivity.Reactivity, tracked)))),
 		}),
 	);
 	const server = Context.get(services, HttpServer.HttpServer);

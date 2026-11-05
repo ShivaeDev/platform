@@ -2,7 +2,7 @@ import { Clock, Context, Duration, Effect, Layer, Redacted, Schema, Stream } fro
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";

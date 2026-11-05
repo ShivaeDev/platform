@@ -2,7 +2,8 @@ import { Context, Effect, Layer, Option, Stream } from "effect";
 import { Headers } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { subscribe as subscribeQueries } from "@shivaedev/contract/live-server/subscribe.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { currentSessionContext } from "@shivaedev/identity/server/currentSessionContext.ts";
@@ -64,7 +65,11 @@ function subscribe(
 			const read = rerunQuery(group, options);
 			type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
 			const stream = Option.isSome(changes)
-				? Stream.unwrap(changes.value.subscribe<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, read))
+				? Stream.unwrap(
+						subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, read).pipe(
+							Effect.provideService(LiveServer, changes.value),
+						),
+					)
 				: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 			if (Option.isNone(sessions) || Option.isNone(viewer)) {
 				return stream;

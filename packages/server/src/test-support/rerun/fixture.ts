@@ -3,7 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
@@ -85,7 +85,7 @@ export function rerunHost(state: RerunState) {
 				return effect;
 			}),
 		),
-		services: Layer.mergeAll(Layer.succeed(Store, state), LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer))),
+		services: Layer.mergeAll(Layer.succeed(Store, state), liveServerLayer.pipe(Layer.provideMerge(Reactivity.layer))),
 		sessions: Layer.succeed(SessionPolicy, {
 			origin: () => true,
 			provider: { get: (headers) => Effect.succeed(Option.fromUndefinedOr(headers.authorization).pipe(Option.map((id) => ({ user: { id } })))) },

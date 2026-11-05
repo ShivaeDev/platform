@@ -6,7 +6,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -54,7 +54,7 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean, custom = f
 						),
 					),
 					policy: "loopback",
-					services: live ? LiveServer.layer.pipe(Layer.provide(Reactivity.layer)) : Layer.empty,
+					services: live ? liveServerLayer.pipe(Layer.provide(Reactivity.layer)) : Layer.empty,
 				}).pipe(Layer.provideMerge(Layer.succeed(Clock.Clock, clock))),
 			),
 		),

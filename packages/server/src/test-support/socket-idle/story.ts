@@ -6,7 +6,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
@@ -57,7 +57,7 @@ export const socketIdleStory = storyKit({
 				config: { port: 0 },
 				group: Api,
 				handlers: Api.application.toLayer({ "idleSession.get": () => Effect.succeed("Ready") }),
-				services: LiveServer.layer.pipe(Layer.provide(Reactivity.layer)),
+				services: liveServerLayer.pipe(Layer.provide(Reactivity.layer)),
 				sessions,
 			}),
 		);

@@ -5,7 +5,8 @@ import { ConfigProvider, Duration, Effect, Exit, Layer, Logger, Scope } from "ef
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
@@ -54,7 +55,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		streamRevalidationInterval: REVALIDATION_INTERVAL,
 	};
 	const logs: unknown[] = [];
-	const changes = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
+	const changes = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(Reactivity.layer))));
 	const receiver = yield* otlpReceiver({});
 	const hostScope = yield* Scope.make();
 	const stop = Scope.close(hostScope, Exit.void);

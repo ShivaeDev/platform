@@ -9,7 +9,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
-import { LiveServer } from "#LiveServer.ts";
+import { liveServerLayer } from "#live-server/layer.ts";
 import { query } from "#operation.ts";
 import { storyRuntime } from "./storyRuntime.ts";
 
@@ -44,7 +44,7 @@ export const completionEngine = Effect.gen(function* () {
 			group: Records,
 			handlers: Records.application.toLayer({ "completion-records.hints": () => read, "completion-records.pushed": () => read }),
 			policy: "loopback",
-			services: LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
+			services: liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
 		}),
 	);
 	const server = Context.get(services, HttpServer.HttpServer);

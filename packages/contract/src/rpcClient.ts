@@ -3,6 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import { withClientProtocol } from "#adapters/withClientProtocol.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
 import type { ResumeWindow } from "#resume.ts";
@@ -75,12 +76,9 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		runtime: options.runtime,
 	});
 	clientActivities.set(Client, activity);
-	const directClient = Effect.flatMap(Layer.build(protocol), (context) =>
-		make.pipe(
-			Effect.map((flat) =>
-				Object.fromEntries([...group.requests.keys()].map((tag) => [tag, (payload: never, callOptions: never) => flat(tag, payload, callOptions)])),
-			),
-			Effect.provideContext(context),
+	const directClient = withClientProtocol(protocol, make).pipe(
+		Effect.map((flat) =>
+			Object.fromEntries([...group.requests.keys()].map((tag) => [tag, (payload: never, callOptions: never) => flat(tag, payload, callOptions)])),
 		),
 	);
 	const layer = Layer.effect(Client, make).pipe(Layer.provide(protocol));
