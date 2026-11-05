@@ -1,8 +1,8 @@
 import { Effect, Fiber, Layer, Option, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { GitHub } from "@shivaedev/github/github/service.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";

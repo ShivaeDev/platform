@@ -1,5 +1,5 @@
 import { type Context, Effect, type Layer } from "effect";
-import type { GitHub } from "@shivaedev/github/GitHub.ts";
+import type { GitHub } from "@shivaedev/github/github/service.ts";
 import { fixtureWorkspace } from "./fixtureWorkspace.ts";
 import type { vitestFixture } from "./vitestFixture.ts";
 
