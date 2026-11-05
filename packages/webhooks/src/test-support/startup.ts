@@ -2,7 +2,7 @@ import { Cause, Config, Effect, Exit, Layer } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hostLayer, inboxState } from "#test/host.ts";
-import { postgresLayer } from "#test/postgresLayer.ts";
+import { configured, postgresLayer } from "#test/postgresLayer.ts";
 
 function startupOutcome(exit: Exit.Exit<unknown, unknown>) {
 	return Exit.isSuccess(exit)
@@ -20,6 +20,7 @@ export const startup = storyKit({
 	create: () => inboxState(undefined),
 	layer: postgresLayer,
 	name: "webhook startup",
+	runIf: configured,
 	stages: ["configuration"],
 	verbs: (state, story) => ({
 		buildHost: () => {

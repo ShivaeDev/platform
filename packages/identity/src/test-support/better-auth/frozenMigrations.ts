@@ -1,13 +1,13 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { authMigrationFiles } from "./migrationFiles.ts";
 import { authMigrationSchema } from "./migrationSchema.ts";
 

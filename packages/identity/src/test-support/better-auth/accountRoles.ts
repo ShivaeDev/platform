@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { fakeGitHub } from "#test/sign-in-policy/github.ts";
 import { accountRoleHost, type Person, type SeedRole } from "./accountRoleHost.ts";
 import { mappedTables, pluginMappedTables } from "./mappedTables.ts";

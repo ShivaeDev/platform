@@ -5,9 +5,9 @@ import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { clientIpHost } from "./clientIpHost.ts";
 
 export const signInLimits = storyKit({

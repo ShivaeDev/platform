@@ -1,12 +1,12 @@
 import { Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl } from "#test/postgres.ts";
 import { compositionHost, compositionOptions, signUpAlice } from "./compositionHost.ts";
 
 const postgres = makePostgresTestLayer({

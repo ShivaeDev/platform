@@ -1,9 +1,9 @@
 import { Effect, Redacted } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeEmail } from "#client/adapters/changeEmail.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { emailChangeHost } from "./emailChangeHost.ts";
 
 export const emailChanges = storyKit({

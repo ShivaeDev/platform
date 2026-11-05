@@ -2,10 +2,10 @@ import { Effect, Queue, Result } from "effect";
 import type { Observation } from "@shivaedev/changes/observe.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { directoryHost } from "./directoryHost.ts";
 import { mappedTables, pluginMappedTables } from "./mappedTables.ts";
 

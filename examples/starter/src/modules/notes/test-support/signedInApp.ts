@@ -5,7 +5,7 @@ import { notes } from "#modules/notes/notes.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { appScreen } from "./appScreen.tsx";
@@ -22,6 +22,7 @@ export const signedInApp = storyKit({
 	inspect: ({ history, observed, view }) => ({ heardKeys: observed.heardKeys(), route: history.location.pathname, text: view.container.textContent }),
 	layer: postgres,
 	name: "signed-in app",
+	runIf: configured,
 	stages: [],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),

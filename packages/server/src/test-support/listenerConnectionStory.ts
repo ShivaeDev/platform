@@ -7,12 +7,12 @@ import { PostgresListenerError } from "@shivaedev/sql/PostgresListenerError.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { DatabaseConfig } from "#appDatabase.ts";
 import { appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
 const notes = collection("notes", Schema.Number);

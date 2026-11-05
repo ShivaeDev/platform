@@ -1,14 +1,14 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Redacted } from "effect";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 
-export const postgres = Layer.unwrap(
-	Effect.map(Config.Redacted("TEST_DATABASE_URL"), (url) =>
-		makePostgresTestLayer({
-			...clientOptions({ url }),
-			initialize: (templateUrl) => migrateDatabase(templateUrl).pipe(Effect.provide(NodeCrypto.layer)),
-		}),
-	),
-);
+const { url, configured } = postgresTestUrl("TEST_DATABASE_URL");
+
+export { configured };
+export const postgres = makePostgresTestLayer({
+	...clientOptions({ url: Redacted.make(url ?? "postgresql://integration-tests-disabled") }),
+	initialize: (templateUrl) => migrateDatabase(templateUrl).pipe(Effect.provide(NodeCrypto.layer)),
+});

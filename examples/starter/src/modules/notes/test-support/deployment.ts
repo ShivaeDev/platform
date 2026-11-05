@@ -13,7 +13,7 @@ import {
 	releaseEnv,
 	webAddress,
 } from "#test-support/deploymentProcesses.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { holdJob } from "./holdJob.ts";
 import { watchedNote } from "./live.ts";
 import { type NotesRequests, notesRequests } from "./requests.ts";
@@ -52,6 +52,7 @@ export const notesDeployment = storyKit({
 	inspect: ({ accounts, address, processes }) => ({ accounts: [...accounts.keys()], address, processes: [...processes.keys()] }),
 	layer: postgres,
 	name: "notes deployment",
+	runIf: configured,
 	stages: ["database", "release", "web", "accounts"],
 	verbs: (engine, story) => {
 		engine.tell = story.tell;

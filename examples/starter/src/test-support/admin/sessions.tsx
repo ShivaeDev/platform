@@ -8,7 +8,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
 import { appScreen } from "#test-support/appScreen.tsx";
 import { startHost } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 
@@ -29,6 +29,7 @@ export const adminSessions = storyKit({
 	inspect: (engine) => ({ text: engine.view?.container.textContent }),
 	layer: postgres,
 	name: "admin sessions page",
+	runIf: configured,
 	stages: ["viewer", "screen"],
 	verbs: (engine, story) => {
 		function driver() {

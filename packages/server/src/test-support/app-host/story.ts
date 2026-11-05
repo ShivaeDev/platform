@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { start, teardown } from "./lifecycle.ts";
 import { emptyHost, type HostState } from "./state.ts";
 import { hostVerbs } from "./verbs.ts";

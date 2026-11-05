@@ -8,7 +8,7 @@ import { Receipt } from "#server/internal/Receipt.ts";
 import createReceipts from "#server/migrations/0001_create_receipts.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { hostLayer, inboxState, startHost } from "#test/host.ts";
-import { postgresLayer } from "#test/postgresLayer.ts";
+import { configured, postgresLayer } from "#test/postgresLayer.ts";
 
 function startup(exit: Exit.Exit<unknown, unknown>) {
 	if (Exit.isSuccess(exit)) {
@@ -24,6 +24,7 @@ export const schemaInbox = storyKit({
 	create: () => inboxState("check"),
 	layer: postgresLayer,
 	name: "webhook receipt migrations",
+	runIf: configured,
 	stages: ["database", "host"],
 	verbs: (state, story) => ({
 		applyReceipts: () => {

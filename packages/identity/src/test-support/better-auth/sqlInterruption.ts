@@ -1,11 +1,11 @@
 import { Deferred, Effect, Fiber, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { vi } from "vitest";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl } from "#test/postgres.ts";
 import { type AuthCall, sqlInterruptHost } from "./sqlInterruptHost.ts";
 
 const postgres = makePostgresTestLayer({

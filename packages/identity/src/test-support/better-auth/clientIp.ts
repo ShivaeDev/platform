@@ -1,10 +1,10 @@
 import { request } from "node:http";
 import { Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {

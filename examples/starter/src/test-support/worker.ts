@@ -7,8 +7,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { testPoolSizes } from "./poolSizes.ts";
-import { postgres } from "./postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 export const worker = storyKit({
@@ -22,6 +22,7 @@ export const worker = storyKit({
 	inspect: () => ({}),
 	layer: postgres,
 	name: "foundation worker",
+	runIf: configured,
 	stages: ["configuration", "sessions"],
 	verbs: (engine, story) => ({
 		schedules: () => engine.testing.schedules(),

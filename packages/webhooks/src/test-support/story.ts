@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Receipt } from "#server/internal/Receipt.ts";
 import { auditQueue } from "#test/fixture.ts";
 import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
-import { postgresLayer } from "#test/postgresLayer.ts";
+import { configured, postgresLayer } from "#test/postgresLayer.ts";
 import { collectTelemetry, privacyVerbs } from "#test/privacy.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
@@ -37,6 +37,7 @@ export const inbox = storyKit({
 	inspect: ({ answers, handled }) => ({ answers, handled }),
 	layer: postgresLayer,
 	name: "webhook inbox",
+	runIf: configured,
 	stages: ["host", "inbox"],
 	verbs: (state, story) => ({
 		...privacyVerbs(state),

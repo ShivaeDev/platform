@@ -5,10 +5,10 @@ import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Api, openHost } from "#test/host-clock/feature.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { followHints } from "#test/rpc/followHints.ts";
 
 export const hostClock = storyKit({

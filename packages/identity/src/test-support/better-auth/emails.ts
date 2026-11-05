@@ -3,10 +3,10 @@ import { TestClock } from "effect/testing";
 import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
 import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { emailHost } from "./emailHost.ts";
 import { type EmailEngine, emailEngineHost, requestEmail } from "./emailRequests.ts";
 

@@ -7,7 +7,6 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUser } from "#identity.ts";
@@ -21,6 +20,7 @@ import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 type Person = "alice" | "bob";
 const Roles = roleSet(role("admin", [ManageSessions]));

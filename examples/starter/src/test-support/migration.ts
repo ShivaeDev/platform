@@ -13,7 +13,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 
 const migrationStepsWithApp = Effect.fn("AppStory.migrationStepsWithApp")(function* () {
 	return yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
@@ -27,6 +27,7 @@ export const migration = storyKit({
 	},
 	layer: postgres,
 	name: "app authentication schema",
+	runIf: configured,
 	stages: ["database", "schema"],
 	verbs: (_engine, story) => ({
 		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(authOptions(), { defaultRole: User.name }), "accepted")),

@@ -15,7 +15,7 @@ import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 
@@ -53,6 +53,7 @@ export const authEmailApp = storyKit({
 	},
 	layer: postgres,
 	name: "auth emails",
+	runIf: configured,
 	stages: [],
 	verbs: (engine, story) => {
 		const { host, mail, testing, surface, auth } = engine;

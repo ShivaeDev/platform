@@ -6,11 +6,11 @@ import { TestClock } from "effect/testing";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { workerHost } from "#workerHost.ts";
 import { indexingModule, Published, Publisher, PublishingApi, publishingModule } from "./jobs.ts";
 

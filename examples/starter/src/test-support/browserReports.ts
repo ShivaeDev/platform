@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { startHost } from "./host.ts";
-import { postgres } from "./postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 export const browserReports = storyKit({
@@ -15,6 +15,7 @@ export const browserReports = storyKit({
 	},
 	layer: postgres,
 	name: "browser reports",
+	runIf: configured,
 	stages: [],
 	verbs: ({ host, headers, user }, story) => ({
 		recordedReports: () =>

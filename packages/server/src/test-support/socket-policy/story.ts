@@ -1,8 +1,8 @@
 import { Effect, Stream } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { type Feed, followHints } from "#test/rpc/followHints.ts";
 import { openHost } from "./openHost.ts";
 

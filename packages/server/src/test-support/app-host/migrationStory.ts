@@ -8,12 +8,12 @@ import { TestClock } from "effect/testing";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered, causeWords, countWords, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BootedHost, bootMigrations } from "#test/app-host/bootMigrations.ts";
 import { migrationLoader } from "#test/app-host/migrationLoader.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 export interface MigrationState {
 	booted?: BootedHost;

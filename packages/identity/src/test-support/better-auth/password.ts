@@ -3,13 +3,13 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect, Redacted, Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { databaseUrl } from "#test/postgres.ts";
 
 const ORIGIN = "http://localhost:3000";
 const credentials = { email: "ada@password.test", password: "correct-horse-battery-staple" };

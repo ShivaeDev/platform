@@ -2,11 +2,11 @@ import { DateTime, Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import * as TestClock from "effect/testing/TestClock";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AccountPreferenceValues } from "#accountPreferences.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { preferencesHost } from "./host.ts";
 
 export const preferences = storyKit({
