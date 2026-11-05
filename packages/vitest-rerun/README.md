@@ -90,6 +90,8 @@ Every source module is available through its `.ts` subpath.
 
 The command line is a thin wrapper over two Effect functions. `parseOptions(args, cwd)` from `@shivaedev/vitest-rerun/options.ts` turns command-line arguments into `RerunOptions`, with the output directory resolved against `cwd`, the directory every attempt runs in, failing with a `VitestRerunError` from `/error.ts` for an invalid rerun count or an incomplete `--reruns` or `--output-dir` option. The CLI prints the error and exits with code 2 before Vitest starts. `rerun(options)` from `/rerun.ts` performs the run and succeeds with its exit code; it needs `FileSystem` and `ChildProcessSpawner`, which `NodeServices.layer` from `@effect/platform-node` provides.
 
+`runAttempt(input)` from `/runAttempt.ts` runs one attempt and requires `VitestRunner` from `/vitest-runner/service.ts`. Provide `vitestRunnerLayer` from `/vitest-runner/layer.ts` alongside `NodeServices.layer`. This Layer binds the Vitest runtime once; `open` yields it from the environment, and each opened session closes with its caller’s scope. `VitestRunner.layer` is the service-only Layer for hosts that supply their own `VitestRuntime` from `/VitestRuntime.ts`. The session types `RunOptions`, `Selection` and `AttemptRunner` are also exported from `/VitestRuntime.ts`.
+
 ### Install and limits
 
 ```sh
