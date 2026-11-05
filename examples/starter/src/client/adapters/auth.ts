@@ -6,7 +6,7 @@ import { authSession as readSession } from "@shivaedev/identity/client/adapters/
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { authSession } from "@shivaedev/react/client/authSession.ts";
-import type { Credentials } from "./Credentials.ts";
+import type { Credentials } from "#client/Credentials.ts";
 
 export type AppSession = PermissionSession & { readonly user: { readonly id: string }; readonly session?: { readonly id: string } };
 

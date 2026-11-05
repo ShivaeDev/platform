@@ -2,7 +2,7 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
-import type { AuthActions } from "#client/auth.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
 import type { Note } from "#modules/notes/notes.ts";

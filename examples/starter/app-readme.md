@@ -14,6 +14,8 @@ Client modules declare optional `menu` and `overlays` arrays of React nodes and 
 
 Server registrations satisfy `AppModule` and carry `{ name, migrations, group, handlers, services }`. Use native Layers for services and handlers and a native migration loader in `migrations.loader`; the foundation combines the registered loaders. Optional `admin`, `ports`, `queues` and `workers` stay on that same registration. The server Jobs inventory comes from these queues; `src/admin/foundation.ts` keeps only the browser-safe queue schemas and page declarations.
 
+Client code imports rendering libraries such as Lucide, Base UI, TanStack Router and the `cn` styling helper directly. Integrations that perform I/O or manage external state stay in `adapters/`; the Better Auth client bridge lives in `src/client/adapters/auth.ts`. The starter and generated apps start with an empty Quality baseline.
+
 ## Develop and test
 
 Use Node 24 or newer and pnpm. After cloning, run:

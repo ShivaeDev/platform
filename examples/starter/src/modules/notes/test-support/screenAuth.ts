@@ -1,6 +1,6 @@
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import type { AuthActions } from "#client/auth.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 
 export function screenAuth(): AuthActions {
 	function unavailable(): Promise<never> {

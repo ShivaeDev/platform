@@ -6,7 +6,7 @@ import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { AuthActions } from "#client/auth.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";

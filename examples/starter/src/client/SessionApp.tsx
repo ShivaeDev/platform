@@ -1,10 +1,10 @@
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
 import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
 import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
-import type { AppSession, AuthActions } from "./auth.ts";
 import type { ClientConnection } from "./Module.ts";
 import { clientModules } from "./modules.ts";
 

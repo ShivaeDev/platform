@@ -6,7 +6,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { makeAuth } from "#client/auth.ts";
+import { makeAuth } from "#client/adapters/auth.ts";
 import type { Note } from "#modules/notes/notes.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";

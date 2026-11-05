@@ -4,8 +4,8 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { ReactElement } from "react";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
-import type { AuthActions } from "./auth.ts";
 
 export function Home({ auth }: { readonly auth: AuthActions }): ReactElement {
 	const signOut = useSignOut(auth.signOut, { signIn: "/sign-in" });

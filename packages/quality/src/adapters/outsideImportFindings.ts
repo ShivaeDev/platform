@@ -7,6 +7,19 @@ import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 
+const CLIENT_RENDERING_LIBRARIES = new Set([
+	"react",
+	"react-dom",
+	"lucide-react",
+	"@base-ui/react",
+	"@tanstack/react-router",
+	"@tanstack/react-table",
+	"class-variance-authority",
+	"cn",
+	"clsx",
+	"tailwind-merge",
+]);
+
 function exempt(path: string, name: string): boolean {
 	return (
 		/(?:^|\/)(?:adapters|test-support)\//u.test(path)
@@ -14,7 +27,7 @@ function exempt(path: string, name: string): boolean {
 		|| name === "effect"
 		|| name.startsWith("@effect/")
 		|| name.startsWith("@shivaedev/")
-		|| ((name === "react" || name === "react-dom") && /(?:^|\/)client\//u.test(path))
+		|| (CLIENT_RENDERING_LIBRARIES.has(name) && /(?:^|\/)client\//u.test(path))
 	);
 }
 

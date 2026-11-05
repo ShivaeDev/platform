@@ -8,7 +8,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
-import { makeAuth } from "#client/auth.ts";
+import { makeAuth } from "#client/adapters/auth.ts";
 import { LoginScreen } from "#client/LoginScreen.tsx";
 import { clientModules } from "#client/modules.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
