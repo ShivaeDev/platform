@@ -20,6 +20,5 @@ screen.it("runs DOM stories", [], function* ({ click, text }) { click(); expect(
 	"tsconfig.json": '{ "extends": "@shivaedev/quality/tsconfig/app.json", "include": ["src/main.tsx"] }',
 	"vite.config.ts": `import { appViteConfig } from "@shivaedev/quality/appViteConfig.ts";
 export default appViteConfig([{ name: "application", transformIndexHtml: (html: string) => html.replace("Application shell", "Application plugin") }], ["@shivaedev/source"]);`,
-	"vitest.config.ts":
-		'import { appTestConfig } from "@shivaedev/test-kits/quality/appTestConfig.ts"; export default appTestConfig(["@shivaedev/source"]);',
+	"vitest.config.ts": 'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts"; export default appTestConfig(["@shivaedev/source"]);',
 };

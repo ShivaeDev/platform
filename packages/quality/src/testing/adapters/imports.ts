@@ -2,12 +2,12 @@ import { mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
-import { setManifestFiles } from "@shivaedev/quality/adapters/manifestInventory.ts";
-import { services } from "@shivaedev/quality/cli/runMain.ts";
-import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
-import { readOptionalText } from "@shivaedev/quality/inventory/filesystem.ts";
-import type { Findings, Rule, RuleInputs } from "@shivaedev/quality/rule.ts";
-import { run } from "#quality/adapters/run.ts";
+import { setManifestFiles } from "#adapters/manifestInventory.ts";
+import { services } from "#cli/runMain.ts";
+import { collectInventory } from "#inventory/collect.ts";
+import { readOptionalText } from "#inventory/filesystem.ts";
+import type { Findings, Rule, RuleInputs } from "#rule.ts";
+import { run } from "#testing/adapters/run.ts";
 
 const EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 

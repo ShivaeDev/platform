@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
-import { makeRuleStory } from "@shivaedev/test-kits/quality/ruleStory.ts";
+import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeFeed } from "./changeFeed.ts";
 

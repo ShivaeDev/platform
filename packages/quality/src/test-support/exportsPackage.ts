@@ -1,5 +1,5 @@
 import sortPackageJson from "sort-package-json";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const SOURCE_EXPORTS = { "./*.ts": "./src/*.ts" };
 

@@ -1,4 +1,5 @@
 {"path":"packages/quality/package.json","rule":"code/unused","count":1}
+{"path":"packages/quality/src/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/baseline/legacy.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/biome/recognizeDiagnostics.ts","rule":"effect/adapter-imports","count":1}
@@ -11,6 +12,8 @@
 {"path":"packages/quality/src/docs/documentedModule.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/docs/isDocument.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/docs/linkFindings.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/adapter-imports","count":4}
+{"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/engine/baselineFile.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/engine/runRules.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/exceptions/migrateBiome.ts","rule":"effect/boundary","count":2}
@@ -87,4 +90,6 @@
 {"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/rules/test-names/colocated.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/test-names/follow.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/vitest.config.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":5}
+{"path":"packages/quality/vitest.config.ts","rule":"effect/adapter-imports","count":2}

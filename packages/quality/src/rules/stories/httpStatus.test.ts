@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, branch] of [
 	["comparison", 'if (error.status === HttpStatus.fromLiteral("NotFound")) recover();'],

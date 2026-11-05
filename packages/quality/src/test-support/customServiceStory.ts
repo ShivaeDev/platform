@@ -1,11 +1,11 @@
 import { rmSync } from "node:fs";
 import { ConfigProvider, Console, Effect, Layer } from "effect";
-import { capturing, type Output } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { qualityTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { isolatedEnvironment } from "@shivaedev/test-kits/quality/adapters/git.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { lint } from "#cli/lint.ts";
 import { services } from "#cli/runMain.ts";
+import { capturing, type Output } from "#testing/adapters/cli.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
+import { qualityTree } from "#testing/adapters/qualityTree.ts";
 import { LineAllowance } from "./customServiceRule.ts";
 
 const RULE_URL = new URL("./customServiceRule.ts", import.meta.url).href;

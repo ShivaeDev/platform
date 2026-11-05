@@ -1,8 +1,8 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { manifestsNoTestKits } from "#rules/manifestsNoTestKits.ts";
 import { exportsPackage } from "#test/exportsPackage.ts";
 import { publishedTestingFiles, RUNTIME_MANIFEST } from "#test/publishedTestingFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 ruleStory.it(
 	"a runtime package with only development test dependencies and unexported testing code passes",
@@ -77,13 +77,17 @@ for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]
 }
 
 ruleStory.it(
-	"test packages and private applications may publish testing modules and depend on test packages",
+	"test-tooling packages and private applications may publish testing modules and depend on test packages",
 	[
 		repositoryHas(
 			...publishedTestingFiles({ dependencies: { "@shivaedev/test-kits": "workspace:*" }, private: true }, "testing.ts"),
-			...["test", "test-story", "test-sql", "test-kits", "vitest-rerun"].map((name) =>
+			...["test", "test-story", "test-sql", "test-kits", "vitest-rerun", "quality"].map((name) =>
 				exportsPackage(
-					{ exports: { "./testing": "./src/testing.ts" }, name: `@shivaedev/${name}`, peerDependencies: { vitest: "catalog:" } },
+					{
+						exports: { "./testing": "./src/testing.ts" },
+						name: `@shivaedev/${name}`,
+						peerDependencies: { "@shivaedev/test-story": "workspace:*", vitest: "catalog:" },
+					},
 					`packages/${name}/package.json`,
 				),
 			),

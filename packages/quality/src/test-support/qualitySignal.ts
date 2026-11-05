@@ -1,11 +1,11 @@
 import process from "node:process";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { qualityArgs } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { isolatedEnvironment } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { defaultTree, removeSeededTrees } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
+import { qualityArgs } from "#testing/adapters/cli.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
+import { defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 export const qualitySignal = storyKit({
 	*create() {

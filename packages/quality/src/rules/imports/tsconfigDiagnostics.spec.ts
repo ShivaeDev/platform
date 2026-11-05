@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SOURCES = repositoryHas(
 	{ content: "export const first = 1;", path: "src/first.ts" },

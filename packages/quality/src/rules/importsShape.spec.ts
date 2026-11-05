@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { exportsWorkspace, LIBRARY_MANIFEST, packageImports } from "@shivaedev/test-kits/quality/adapters/packageExports.ts";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { exportsWorkspace, LIBRARY_MANIFEST, packageImports } from "#testing/adapters/packageExports.ts";
 
 const ROOT_TARGETS = { "@shivaedev/source": "./src/*.ts", default: "./dist/*.js", types: "./dist/*.d.ts" };
 

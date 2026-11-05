@@ -1,11 +1,11 @@
 import { chmodSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { runQuality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { qualityTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
-import { packageRoot } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { commitAll, git } from "@shivaedev/quality/testing/adapters/git.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { qualityTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
+import { packageRoot } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 function source(lines: number): string {

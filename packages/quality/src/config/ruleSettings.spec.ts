@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { builtInRules } from "#rules/builtIn.ts";
 import { configFile, configLoading } from "#test/configLoading.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const TODO_RULE =
 	'import { defineRule } from "@shivaedev/quality/rule.ts";\nconst todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });\n';

@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { type TestProjectsOptions, testProjects } from "#quality/adapters/testProjects.ts";
+import { type TestProjectsOptions, testProjects } from "#adapters/testProjects.ts";
 
 export function appTestConfig(conditions: string[] = [], options: TestProjectsOptions = {}) {
 	return defineConfig({

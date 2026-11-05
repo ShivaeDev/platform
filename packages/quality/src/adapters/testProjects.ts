@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { coverageConfigDefaults, defaultExclude, type TestUserConfig } from "vitest/config";
-import type { Environment } from "@shivaedev/quality/naming/testName.ts";
+import type { Environment } from "#naming/testName.ts";
 import { TestOutput } from "./TestOutput.ts";
 
 const EXTENSION = "?(c|m)[jt]s?(x)";
@@ -44,7 +44,7 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 	const { coverage = false } = options;
 	const output = Effect.runSync(TestOutput.pipe(Effect.provide(TestOutput.layer)));
 	return {
-		execArgv: ["--import", fileURLToPath(import.meta.resolve("#quality/adapters/compileCache.config.ts"))],
+		execArgv: ["--import", fileURLToPath(import.meta.resolve("#adapters/compileCache.config.ts"))],
 		maxWorkers: workerCount(options),
 		...(coverage === false
 			? {}
@@ -75,13 +75,13 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 					exclude: excluding(),
 					include: [named("unit")],
 					name: "pure",
-					setupFiles: [fileURLToPath(import.meta.resolve("#quality/unitIoGuard.config.ts"))],
+					setupFiles: [fileURLToPath(import.meta.resolve("#unitIoGuard.config.ts"))],
 				},
 			},
 			{
 				extends: true,
 				test: {
-					environment: fileURLToPath(import.meta.resolve("#quality/adapters/domEnvironment.config.ts")),
+					environment: fileURLToPath(import.meta.resolve("#domEnvironment.config.ts")),
 					exclude: excluding(named("slow")),
 					include: [named("dom")],
 					name: "dom",

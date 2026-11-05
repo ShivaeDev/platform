@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { runQuality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { git, mergeBranch } from "@shivaedev/test-kits/quality/adapters/git.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { runQuality } from "#testing/adapters/cli.ts";
+import { git, mergeBranch } from "#testing/adapters/git.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "./recordedDebt.ts";
 

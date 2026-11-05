@@ -1,6 +1,6 @@
-import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { branchOff } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { linkPackage } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { branchOff } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 import { baselineStory, setupRun } from "./baselineStory.ts";
 import { writeAll } from "./recordedDebt.ts";
 

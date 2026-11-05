@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { linkPackage } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { commitAll, git } from "#testing/adapters/git.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 import { baselineStory } from "./baselineStory.ts";
 import { writeAll } from "./recordedDebt.ts";
 

@@ -1,7 +1,7 @@
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nonEffectFixFiles } from "#test/nonEffectFixFiles.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
 	"Quality fix formats non-Effect code while keeping async functions and ambient time",

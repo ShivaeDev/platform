@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { emptyFolders, importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const DIRECT = [
 	"window",

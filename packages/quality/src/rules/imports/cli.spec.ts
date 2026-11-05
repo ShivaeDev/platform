@@ -1,10 +1,10 @@
-import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { config } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { runtimeFolders } from "#test/runtimeFolders.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const REASON = "The play screen previews CMS drafts until the preview service lands.";
 

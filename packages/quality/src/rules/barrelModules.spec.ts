@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["src/index.ts", "src/nested/index.tsx"]) {
 	ruleStory.it(

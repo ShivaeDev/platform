@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import rawTrees from "#test/fixtures/import-trees.json" with { type: "json" };
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export interface Fixture {
 	readonly files: readonly SeedFile[];

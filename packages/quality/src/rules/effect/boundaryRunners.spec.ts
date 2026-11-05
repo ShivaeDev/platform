@@ -1,8 +1,8 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const marker of [
 	'import * as NodeRuntime from "@effect/platform-node/NodeRuntime"; NodeRuntime.runMain(work);',

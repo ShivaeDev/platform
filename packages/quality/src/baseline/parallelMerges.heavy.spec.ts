@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { ALPHA_SHARD, branchEdits, driverInstalled, merged, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"baseline install-driver adds the merge.quality-baseline.driver setting to the repository's local config and changes nothing else",

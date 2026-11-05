@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { CLI_EXIT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { CLI_EXIT } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { appSetup, enclosedApp, unversionedApp, worktreeApp } from "#quality/test-support/appSetup.ts";
 
 appSetup.it("installs the active commit gate for an application", [], function* ({ setup, commit, hook }) {

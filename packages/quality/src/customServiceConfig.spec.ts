@@ -1,5 +1,5 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { customServiceStory } from "#test/customServiceStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 customServiceStory.it("quality reports findings from a typed rule with a supplied custom service", [], function* ({ checks, report }) {
 	yield* checks();

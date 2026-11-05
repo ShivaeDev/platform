@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { markdown } from "#test/docsRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const PINNED_INSTALLS = [
 	{

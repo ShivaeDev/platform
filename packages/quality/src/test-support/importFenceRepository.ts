@@ -1,4 +1,4 @@
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 const FENCE_CONFIG = [
 	'import { defineConfig } from "@shivaedev/quality/config.ts";',

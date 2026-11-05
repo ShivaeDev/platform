@@ -1,5 +1,5 @@
 import { Cause, Effect } from "effect";
-import { makeRuleStory } from "@shivaedev/test-kits/quality/ruleStory.ts";
+import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
 
 export const ruleKit = makeRuleStory();
 export const { repositoryHas, repositoryLinks } = ruleKit;

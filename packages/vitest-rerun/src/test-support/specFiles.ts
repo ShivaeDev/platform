@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 const vitest = JSON.stringify(fileURLToPath(import.meta.resolve("vitest")));
-const compileCache = fileURLToPath(import.meta.resolve("@shivaedev/test-kits/quality/adapters/compileCache.config.ts"));
+const compileCache = fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"));
 
 export const RAN = "ran.txt";
 export const FLAKY = "checkout > recovers only in a fresh process";

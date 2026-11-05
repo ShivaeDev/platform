@@ -40,7 +40,6 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/releases": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
-		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@shivaedev/work-fleet": "catalog:",
 		"@types/node": "catalog:",

@@ -3,12 +3,12 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber } from "effect";
 import { ChildProcessSpawner } from "effect/process";
-import { capturing, type Output, qualityArgs } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { isolatedEnvironment } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { config, defaultTree, removeSeededTrees } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
+import { capturing, type Output, qualityArgs } from "#testing/adapters/cli.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
+import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 export interface RunningTool {

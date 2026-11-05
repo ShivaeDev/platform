@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { CHILD_DECISION, jsxAccepted, jsxDecisions } from "#test/jsxConditionalFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const { code, findings, name } of jsxDecisions) {
 	ruleStory.it(

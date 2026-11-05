@@ -3,8 +3,8 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { draftRule } from "#test/draftRule.ts";
 import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const RULE_URL = import.meta.resolve("#test/draftRule.ts");
-const CLOCK_RULE_URL = import.meta.resolve("#test/clockRule.ts");
+const RULE_URL = new URL("../test-support/draftRule.ts", import.meta.url).href;
+const CLOCK_RULE_URL = new URL("../test-support/clockRule.ts", import.meta.url).href;
 
 ruleStory.it(
 	"custom rules run on the story's clock and reject the gate until the author repairs the source",

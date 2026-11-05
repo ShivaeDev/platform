@@ -1,4 +1,4 @@
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const ordersPackage: SeedFile = { content: '{"name":"@example/orders","type":"module"}', path: "package.json" };
 

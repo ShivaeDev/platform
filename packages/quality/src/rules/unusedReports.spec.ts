@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { repositoryStory } from "#test/repositoryStory.ts";
 import { unusedToolConfiguration } from "#test/unusedToolConfiguration.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const code of [0, 1, 2]) {
 	repositoryStory.it(

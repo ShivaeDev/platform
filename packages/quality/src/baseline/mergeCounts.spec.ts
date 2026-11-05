@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { ALPHA_SHARD, branchEdits, driverInstalled, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"the driver keeps an entry removed on one branch removed when the other branch lowers it",

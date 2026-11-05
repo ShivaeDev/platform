@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { movedWithGit, shortened } from "#test/debtRecorded.ts";
 import { ALPHA_SHARD, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const BETA_SHARD = "packages/beta/quality-baseline.jsonl";
 const CLEAN_SHARD = "packages/clean/quality-baseline.jsonl";

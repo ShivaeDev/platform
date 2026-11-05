@@ -1,8 +1,8 @@
-import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adoption, baselinedFindings, jsxFixture, newRuleDebt } from "#test/adoption.ts";
 import { conciseView, conditionalView, fragmentView, manualViews, mixedView, retainedView } from "#test/conditionalFixes.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 adoption.it(
 	"recording a new rule's findings through the baseline script records them and makes the gate pass",

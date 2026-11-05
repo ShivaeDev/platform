@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { locationOf } from "@shivaedev/test-kits/quality/ruleStory.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import type { Findings, Rule } from "#rule.ts";
+import { locationOf } from "#testing/ruleStory.ts";
 import { inputsOf } from "./inputs.ts";
 
 interface ListedEngine {

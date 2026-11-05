@@ -1,6 +1,6 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { exceptionConfig } from "./exceptionConfig.ts";
 
 const REASON = "The external format requires it.";

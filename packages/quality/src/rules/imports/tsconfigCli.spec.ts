@@ -1,7 +1,7 @@
-import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
 	"quality lint rejects an invalid tsconfig with an import finding that names its compiler diagnostic and repair",

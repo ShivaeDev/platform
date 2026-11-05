@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { nativeCastTypes } from "#test/nativeCastTypes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, content, repair] of [
 	["annotated JSON.parse", 'const value: { id: string } = JSON.parse("{}");', "Schema.decodeUnknownEffect"],

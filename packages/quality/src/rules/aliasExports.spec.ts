@@ -1,8 +1,8 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { DEFAULT_FILES, packageRoot } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { biome } from "#rules/biome.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { importForms, localAliasFacade, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
+import { DEFAULT_FILES, packageRoot } from "#testing/adapters/tree.ts";
 import { noBarrel } from "./noBarrel.ts";
 
 const PRESET = [

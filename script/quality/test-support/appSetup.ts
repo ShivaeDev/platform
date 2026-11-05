@@ -1,8 +1,8 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { runQuality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { commits, hookRepository, hookText, withWorktree } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { commits, hookRepository, hookText, withWorktree } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const appSetup = storyKit({

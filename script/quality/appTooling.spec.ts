@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { CLI_EXIT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { CLI_EXIT } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { appTooling } from "#quality/test-support/appTooling.ts";
 
 appTooling.it("typechecks React and browser code with the shared app preset", [], function* ({ typecheck }) {

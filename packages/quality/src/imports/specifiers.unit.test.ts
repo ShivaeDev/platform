@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { specifierSites } from "#imports/specifiers.ts";
 import { sourceSyntax } from "#test/sourceSyntax.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("specifier sites", () => {
 	it.effect("finds CommonJS assignments, import types and test loaders, and leaves an application's own calls alone", function* () {

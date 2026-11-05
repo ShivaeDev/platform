@@ -1,7 +1,7 @@
-import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, committed, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
 	"first adoption records synchronous IO and each throwing guard call as effect/boundary debt",

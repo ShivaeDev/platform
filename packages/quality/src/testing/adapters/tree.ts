@@ -8,7 +8,7 @@ export interface SeedFile {
 	readonly path: string;
 }
 
-export const packageRoot = fileURLToPath(new URL("./", import.meta.resolve("@shivaedev/quality/package.json")));
+export const packageRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 const seeded: string[] = [];
 
@@ -26,7 +26,6 @@ export function seedTree(...groups: ReadonlyArray<readonly SeedFile[]>): string 
 export function linkPackage(root: string): void {
 	mkdirSync(join(root, "node_modules", "@shivaedev"), { recursive: true });
 	symlinkSync(packageRoot, join(root, "node_modules", "@shivaedev", "quality"), "dir");
-	symlinkSync(fileURLToPath(new URL("../../../", import.meta.url)), join(root, "node_modules", "@shivaedev", "test-kits"), "dir");
 }
 
 export const DEFAULT_FILES: readonly SeedFile[] = [

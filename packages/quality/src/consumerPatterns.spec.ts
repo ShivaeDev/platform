@@ -1,9 +1,9 @@
-import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { config } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { consumerPatterns, outsideConsumerPatterns } from "#test/consumerPatterns.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 repositoryStory.it(
 	"Quality lints a browser entry, router throwing adapters and a column helper bound to a feature without findings",

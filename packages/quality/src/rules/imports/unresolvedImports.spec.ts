@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 importStory.it(
 	"imports/resolvable reports every import it cannot resolve, and resolves builtins, assets, declared modules and type imports of declaration files",

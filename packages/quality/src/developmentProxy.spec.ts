@@ -1,5 +1,5 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { development } from "#test/development.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["/health?probe=dev", "/api/auth/session", "/rpc"]) {
 	development.it(

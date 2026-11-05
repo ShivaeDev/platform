@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { ambientModules } from "#imports/ambient.ts";
 import { sourceSyntax } from "#test/sourceSyntax.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const declared = ambientModules([{ path: "src/env.d.ts", syntax: sourceSyntax('declare module "virtual:config" {}') }]);
 

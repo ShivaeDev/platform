@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { runQuality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { runQuality } from "#testing/adapters/cli.ts";
 import { repositoryStory } from "./repositoryStory.ts";
 
 export function findingsBaselined() {

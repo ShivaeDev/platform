@@ -1,7 +1,7 @@
-import { quality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
-import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { defaultTree, removeSeededTrees } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { quality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { formatTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
+import { defaultTree, removeSeededTrees } from "@shivaedev/quality/testing/adapters/tree.ts";
 
 const rule = new URL("./draftRule.ts", import.meta.url).href;
 const root = defaultTree(

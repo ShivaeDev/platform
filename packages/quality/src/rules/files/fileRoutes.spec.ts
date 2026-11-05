@@ -1,9 +1,9 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { APP, fileRoutedApp, ROUTE_CONTENT, viteRoutedApp } from "#test/fileRoutedApp.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [name, folder, app] of [
 	["tsr.config.json", "src/pages", fileRoutedApp('{"routesDirectory":"./src/pages"}', "src/pages")],

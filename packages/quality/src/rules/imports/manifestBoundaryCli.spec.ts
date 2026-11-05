@@ -1,10 +1,10 @@
-import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { config } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { manifestTree } from "#test/manifestTree.ts";
 import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const UNDECLARED = 'Imports workspace package "plain-kit" without declaring it in modules/app/package.json';
 

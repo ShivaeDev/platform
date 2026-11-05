@@ -2,11 +2,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Console, Effect } from "effect";
-import { capturing, type Output } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { settle, snapshotOf } from "#cli/fix.ts";
 import { services } from "#cli/runMain.ts";
+import { capturing, type Output } from "#testing/adapters/cli.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 type Pass = () => number;
 

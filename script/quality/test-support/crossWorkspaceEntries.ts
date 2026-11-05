@@ -1,4 +1,4 @@
-import { writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
 import { unusedRepository } from "./unusedRepository.ts";
 
 export const crossWorkspaceEntries = unusedRepository.trait("repository", "scripts run files across workspace boundaries", (root) => {

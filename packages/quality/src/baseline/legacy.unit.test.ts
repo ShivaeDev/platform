@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { convertLegacy } from "#baseline/legacy.ts";
 import { violation } from "#test/violations.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("convertLegacy", () => {
 	it.effect("turns a measure into the violations above the rule's current threshold", function* () {

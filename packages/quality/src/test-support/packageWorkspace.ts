@@ -1,8 +1,8 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
-import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { linkPackage, packageRoot } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { commitAll, git } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { linkPackage, packageRoot } from "#testing/adapters/tree.ts";
 import { baselineStory, setupRun } from "./baselineStory.ts";
 import { editedShard, editsPhrase, readOrUndefined, type ShardEdits, sourceOf, writeAll } from "./recordedDebt.ts";
 

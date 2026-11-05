@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
 import { ruleStory } from "#test/ruleStory.ts";
+import { commitAll, git } from "#testing/adapters/git.ts";
 
 export function unusedWorktree() {
 	return ruleStory.trait(

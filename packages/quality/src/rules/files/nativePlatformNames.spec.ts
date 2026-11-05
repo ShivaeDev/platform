@@ -1,9 +1,9 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { capacitorFiles } from "#test/capacitorFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const capacitorElsewhere = capacitorFiles.map((file) => ({
 	...file,

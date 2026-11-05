@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { ownExports } from "#naming/ownExports.ts";
 import { sourceSyntax } from "#test/sourceSyntax.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("ownExports", () => {
 	it.effect("marks a signed literal as a constant and a declared value without an initializer as not one", function* () {

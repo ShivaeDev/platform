@@ -1,6 +1,6 @@
-import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { packageBuild, packageExtendsQualityConfig, packageHas } from "#test/packageBuild.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 
 packageBuild.it(
 	"the supported TypeScript 7 CLI emits a package declaration whose inferred type imports a relative module with its extension through a # alias, without diagnostics",

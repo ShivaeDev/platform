@@ -1,9 +1,9 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { runQuality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
-import { defaultTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
-import { writePackageExports } from "@shivaedev/test-kits/quality/adapters/writePackageExports.ts";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { defaultTree } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { writePackageExports } from "@shivaedev/quality/testing/adapters/writePackageExports.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const filePathExports = {

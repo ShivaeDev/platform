@@ -1,5 +1,5 @@
-import { expect } from "@effect/vitest";
 import { Effect, Option, Schema } from "effect";
+import { expect } from "vitest";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { PgBossTesting } from "#jobs/testing.ts";

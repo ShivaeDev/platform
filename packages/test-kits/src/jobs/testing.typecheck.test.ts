@@ -1,5 +1,5 @@
-import { expectTypeOf } from "@effect/vitest";
 import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { expectTypeOf } from "vitest";
 import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";

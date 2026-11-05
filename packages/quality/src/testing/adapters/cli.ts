@@ -3,9 +3,9 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { format } from "node:util";
 import { Config, ConfigProvider, Console, Effect, Option } from "effect";
-import { program } from "@shivaedev/quality/cli/program.ts";
-import { exitCode, explained, services } from "@shivaedev/quality/cli/runMain.ts";
-import { ISOLATED_ENV, isolatedEnvironment } from "#quality/adapters/git.ts";
+import { program } from "#cli/program.ts";
+import { exitCode, explained, services } from "#cli/runMain.ts";
+import { ISOLATED_ENV, isolatedEnvironment } from "#testing/adapters/git.ts";
 
 export interface Run {
 	readonly status: number | null;
@@ -14,7 +14,7 @@ export interface Run {
 }
 
 const SOURCE = import.meta.url.endsWith(".ts");
-const CLI = fileURLToPath(new URL(SOURCE ? "./src/cli.ts" : "./dist/cli.js", import.meta.resolve("@shivaedev/quality/package.json")));
+const CLI = fileURLToPath(new URL(SOURCE ? "../../cli.ts" : "../../cli.js", import.meta.url));
 const OPTIONS = SOURCE ? ["--conditions=@shivaedev/source"] : [];
 
 export const CLI_TIMEOUT = 60_000;

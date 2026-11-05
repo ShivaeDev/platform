@@ -1,7 +1,7 @@
-import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { exceptionConfigStory, qualityInstalled, rootConfig } from "#test/exceptionConfigStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const REASON = "The external format requires it.";
 

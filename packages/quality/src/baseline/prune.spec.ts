@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { branchedFromMain, debtRecorded, moveCommitted, shortened } from "#test/debtRecorded.ts";
 import { remoteBranches } from "#test/remoteBranches.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const RECORDED = ["src/long.ts structure/max-lines 1", "src/longer.ts structure/max-lines 3"];
 

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { removeSeededTrees, seedTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { biomeReport } from "#biome/report.ts";
 import { services } from "#cli/runMain.ts";
+import { removeSeededTrees, seedTree } from "#testing/adapters/tree.ts";
 
 export const biomeReports = storyKit({
 	*create() {

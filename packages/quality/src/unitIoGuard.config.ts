@@ -3,7 +3,7 @@ import { createRequire, syncBuiltinESMExports } from "node:module";
 import "node:process";
 
 const load = createRequire(import.meta.url);
-const installed = Symbol.for("@shivaedev/test-kits/quality/unitIoGuard");
+const installed = Symbol.for("@shivaedev/quality/unitIoGuard");
 let loading = 0;
 
 function assertUnitIoAllowed(call: string, boundary: (...args: never[]) => unknown): void {

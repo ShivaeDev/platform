@@ -1,9 +1,9 @@
 import { mkdirSync, symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import type { Finding } from "#rule.ts";
 import { ruleStory } from "#test/ruleStory.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const SERVICE_DECLARATION =
 	'import { Context, Effect } from "effect"; export interface StoreShape { readonly read: () => Effect.Effect<string> } export class Store extends Context.Service<Store, StoreShape>()("Store") {}';

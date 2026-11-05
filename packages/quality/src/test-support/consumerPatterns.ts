@@ -1,4 +1,4 @@
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const consumerPatterns: readonly SeedFile[] = [
 	{ content: '<script src="/src/client/entry.tsx" type="module"></script>\n', path: "index.html" },

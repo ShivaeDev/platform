@@ -1,6 +1,6 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SUITES = { suites: [{ glob: "tests/smoke/", reason: "This suite covers several modules." }] };
 

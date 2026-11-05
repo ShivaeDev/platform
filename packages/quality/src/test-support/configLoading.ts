@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
-import { linkPackage } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import type { SetupFailure } from "#failure.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 
 interface ConfigEngine {
 	loaded: ResolvedConfig | undefined;

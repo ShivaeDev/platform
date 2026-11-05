@@ -1,9 +1,9 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { fence } from "#imports/fence.ts";
 import { files, folders, packages } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { gameFences, gameRepository } from "#test/gameFences.ts";
 import { importStory } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["packages/game/src/play.ts", "packages/simulation/src/step.ts", "packages/cms/src/edit.ts"]) {
 	importStory.it(`imports/fences refuses a demonstration after its file ${path} is deleted`, [gameRepository], function* ({ removes, refusal }) {

@@ -2,11 +2,11 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Cause, Effect, Schema } from "effect";
-import { linkPackage } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
 import { services } from "#cli/runMain.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 
 interface Seen {
 	readonly configPath: string | undefined;

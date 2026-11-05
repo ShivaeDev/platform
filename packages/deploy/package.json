@@ -52,7 +52,6 @@
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test-kits": "workspace:*",
 		"@types/node": "catalog:",
 		"railway": "catalog:",
 		"typescript": "catalog:",

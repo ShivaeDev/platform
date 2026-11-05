@@ -54,7 +54,6 @@
 		"@effect/vitest": "catalog:",
 		"@modelcontextprotocol/sdk": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",

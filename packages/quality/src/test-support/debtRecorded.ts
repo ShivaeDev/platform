@@ -1,9 +1,9 @@
 import { renameSync } from "node:fs";
 import { join } from "node:path";
-import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
-import { branchOff, commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import { linkPackage, type SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { trees } from "#test/trees.ts";
+import { branchOff, commitAll, git } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { baselineStory, setupRun } from "./baselineStory.ts";
 import { sourceOf, writeAll } from "./recordedDebt.ts";
 

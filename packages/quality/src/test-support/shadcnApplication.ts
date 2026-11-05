@@ -1,4 +1,4 @@
-import { config, type SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { config, type SeedFile } from "#testing/adapters/tree.ts";
 
 const BROKEN = `import "./missing.ts";
 // @ts-ignore

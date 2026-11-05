@@ -3,13 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import { git } from "@shivaedev/test-kits/quality/adapters/git.ts";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import { collectInventory, type Inventory, type InventoryScope } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText, writeText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
+import { git } from "#testing/adapters/git.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 interface InventoryEngine {
 	failure: string | undefined;

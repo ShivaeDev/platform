@@ -1,4 +1,4 @@
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const nonEffectFixFiles: readonly SeedFile[] = [
 	{ content: 'export default { nonEffectFolders: ["src/simulation"], sources: ["src"] };', path: "quality.config.ts" },

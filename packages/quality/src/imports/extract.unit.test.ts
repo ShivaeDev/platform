@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsOf } from "#imports/extract.ts";
 import { sourceSyntax } from "#test/sourceSyntax.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("import requests", () => {
 	it.effect("reads CommonJS import assignments and keeps a type-only assignment type-only", function* () {

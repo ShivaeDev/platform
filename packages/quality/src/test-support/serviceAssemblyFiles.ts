@@ -1,7 +1,7 @@
 import { symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 import { repositoryStory } from "./repositoryStory.ts";
 
 export function serviceInstalled() {

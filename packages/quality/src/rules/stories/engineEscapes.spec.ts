@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { kitFiles } from "@shivaedev/test-kits/quality/adapters/storySpecFiles.ts";
 import { engineBody, engineBodyFiles } from "#test/engineBodyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
 import { storyEngine } from "./engine.ts";
 
 for (const [code, reason] of [

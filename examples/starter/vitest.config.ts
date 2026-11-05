@@ -1,3 +1,3 @@
-import { appTestConfig } from "@shivaedev/test-kits/quality/appTestConfig.ts";
+import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
 
 export default appTestConfig(["@shivaedev/source"]);

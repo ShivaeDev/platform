@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gitTracks, importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const UNRESOLVABLE = repositoryHolds(fixtureTree("unresolvable"));
 

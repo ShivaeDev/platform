@@ -1,5 +1,5 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { inventoryStory, repositoryHas, repositoryHasFolder } from "#test/inventoryStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 inventoryStory.it("quality saves a baseline into folders that do not exist yet", [], function* ({ onDisk, saves }) {
 	yield* assertThat(yield* onDisk("quality/nested/baseline.jsonl"), (actual) => actual.toBe("absent"));

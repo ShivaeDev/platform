@@ -1,7 +1,7 @@
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { aliasRepository } from "#test/aliasRepository.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const REPAIRS = [
 	[

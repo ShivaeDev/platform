@@ -1,7 +1,7 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { globMatcher } from "#imports/globMatcher.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("globMatcher", () => {
 	it.effect("matches *, **, ?, braces and character classes the way pnpm does, never a dot segment unless the pattern names the dot", function* () {

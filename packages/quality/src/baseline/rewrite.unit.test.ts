@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { type BaselineEntry, encodeBaseline } from "#baseline/format.ts";
 import { rewriteBaseline } from "#baseline/rewrite.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 function lines(...rows: readonly string[]): string {
 	return rows.map((row) => `${row}\n`).join("");

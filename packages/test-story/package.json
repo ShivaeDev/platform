@@ -60,7 +60,6 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/react": "workspace:*",
-		"@shivaedev/test-kits": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
