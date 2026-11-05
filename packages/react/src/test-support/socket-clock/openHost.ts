@@ -52,6 +52,13 @@ export const openHost = Effect.gen(function* () {
 			),
 		),
 	);
+	yield* Effect.addFinalizer(() =>
+		Effect.sync(() => {
+			for (const socket of sockets) {
+				socket.destroy();
+			}
+		}).pipe(Effect.andThen(Deferred.succeed(release, undefined))),
+	);
 	const { address } = Context.get(context, HttpServer.HttpServer);
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die(new Error("Expected a TCP host"));
@@ -64,7 +71,14 @@ export const openHost = Effect.gen(function* () {
 					socket.destroy();
 				}
 			}),
-		release: Deferred.succeed(release, undefined),
+		release: Effect.sync(() => {
+			state.hold = false;
+		}).pipe(Effect.andThen(Deferred.succeed(release, undefined))),
+		silence: Effect.sync(() => {
+			for (const socket of sockets) {
+				socket.pause();
+			}
+		}),
 		state,
 		url: `http://127.0.0.1:${address.port}/rpc`,
 		waiting: Deferred.await(waiting),

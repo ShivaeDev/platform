@@ -1,12 +1,17 @@
-import { Clock, type Context, Effect, Layer, Schedule, Stream } from "effect";
+import { type Context, Effect, Layer, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
-import * as Socket from "effect/socket/Socket";
+import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
+import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
-import { authenticateSocket } from "#socketAuthentication.ts";
+import type { ResumeWindow } from "#resume.ts";
 import { clientActivities, makeActivity } from "./clientActivity.ts";
+import { connectionProtocol, protocolConnections } from "./connectionProtocol.ts";
+import { commandConnections } from "./connectionReadiness.ts";
+import { socketProtocol } from "./socketProtocol.ts";
+
+declare const window: ResumeWindow | undefined;
 
 export interface RpcSource {
 	readonly annotations: Context.Context<never>;
@@ -21,15 +26,28 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 			bearerToken: options.bearerToken,
 			headers: options.headers,
 			identity,
+			resume: options.resume,
+			resumeWindow: options.resumeWindow ?? (typeof window === "undefined" ? undefined : window),
+			runtimeClock: options.runtime !== undefined,
 			url: options.url.replace(/^http/u, "ws"),
 			webSocketConstructor: options.webSocketConstructor,
 		});
 	}
-	const customProtocol = options.protocol;
-	const protocolFor = typeof customProtocol === "function" ? customProtocol : sharedProtocol;
-	const protocol = typeof customProtocol === "function" ? customProtocol(undefined) : (customProtocol ?? sharedProtocol());
-	function observeClient<T extends (...args: never[]) => unknown>(client: T): T {
-		return new Proxy(client, {
+	function configuredProtocol() {
+		const custom = options.protocol;
+		if (custom === undefined) {
+			return sharedProtocol;
+		}
+		if (typeof custom === "function") {
+			return Atom.family((identity: string | undefined) => connectionProtocol(custom(identity)));
+		}
+		const layer = connectionProtocol(custom);
+		return () => layer;
+	}
+	const protocolFor = configuredProtocol();
+	const protocol = protocolFor(undefined);
+	function observeClient(client: RpcClient.RpcClient.Flat<Rpc.Any, RpcClientError>, wait: Effect.Effect<void, RpcClientError>) {
+		const observed = new Proxy(client, {
 			apply(target, receiver, args) {
 				const result = Reflect.apply(target, receiver, args);
 				if (String(args[0]).endsWith(".$changes") && Stream.isStream(result)) {
@@ -41,12 +59,20 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 				return Effect.isEffect(result) && !args[2]?.asQueue ? activity.track(result) : result;
 			},
 		});
+		commandConnections.set(observed, wait);
+		return observed;
 	}
-	const make = RpcClient.make(group, { flatten: true }).pipe(Effect.map(observeClient));
+	const make = Effect.gen(function* () {
+		const transport = yield* RpcClient.Protocol;
+		const connection = protocolConnections.get(transport);
+		const wait = connection === undefined ? Effect.void : Effect.suspend(() => (connection.isReady() ? Effect.void : activity.hold(connection.wait)));
+		const native = yield* RpcClient.make<Rpc.Any, true>(group, { flatten: true });
+		return observeClient(native, wait);
+	});
 	const Client = AtomRpc.Service<unknown>()(`${name}/Client`, {
 		group,
 		makeEffect: make,
-		protocol: typeof customProtocol === "object" ? customProtocol : (get) => protocolFor(get(socketIdentity)),
+		protocol: (get) => protocolFor(get(socketIdentity)),
 		runtime: options.runtime,
 	});
 	clientActivities.set(Client, activity);
@@ -63,34 +89,3 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 }
 
 export const socketIdentity = Atom.make<string | undefined>(undefined);
-
-const socketMemoMap = Layer.makeMemoMapUnsafe();
-const socketProtocol = Atom.family(
-	(options: {
-		readonly bearerToken: ClientOptions["bearerToken"];
-		readonly url: string;
-		readonly headers: ClientOptions["headers"];
-		readonly identity: string | undefined;
-		readonly webSocketConstructor: ClientOptions["webSocketConstructor"];
-	}) => {
-		let url = options.url;
-		if (options.bearerToken !== undefined) {
-			const address = new URL(url);
-			address.searchParams.set("auth", "frame");
-			url = address.toString();
-		}
-		const raw = Socket.layerWebSocket(url, { headers: options.headers });
-		const socket = (
-			options.bearerToken === undefined ? raw : Layer.effect(Socket.Socket, authenticateSocket(options.bearerToken)).pipe(Layer.provide(raw))
-		).pipe(Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal));
-		const protocol = RpcClient.layerProtocolSocket({
-			retryPolicy: Schedule.jittered(Schedule.min([Schedule.exponential(500, 1.5), Schedule.spaced(5000)])),
-		}).pipe(
-			Layer.provide(socket),
-			Layer.provide(RpcSerialization.layerNdjson),
-			// Socket deadlines follow network time even when application time is simulated.
-			Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())),
-		);
-		return Layer.effectContext(Effect.flatMap(Effect.scope, (scope) => Layer.buildWithMemoMap(protocol, socketMemoMap, scope)));
-	},
-);
