@@ -19,7 +19,6 @@ function listenBackend(): Promise<ReturnType<typeof createServer>> {
 }
 
 export const appTooling = storyKit({
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "quality-app-tooling-" });

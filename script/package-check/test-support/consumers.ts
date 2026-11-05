@@ -17,7 +17,6 @@ export const consumers = storyKit({
 				}
 			}),
 	},
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "consumer-story-" });

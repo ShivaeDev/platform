@@ -35,7 +35,6 @@ function repository(): string {
 }
 
 export const baselineWorkspace = storyKit({
-	clock: "live",
 	create: () => Effect.acquireRelease(Effect.sync(repository), (root) => Effect.sync(() => rmSync(root, { force: true, recursive: true }))),
 	name: "quality baseline workspace",
 	stages: ["recorded"],

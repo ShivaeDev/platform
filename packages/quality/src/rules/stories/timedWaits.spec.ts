@@ -13,6 +13,10 @@ const NO_IMPORT = 'import { expect } from "vitest";';
 for (const [imports, wait] of [
 	['import { Effect } from "effect";', 'yield* Effect.sleep("50 millis");'],
 	[NO_IMPORT, "setTimeout(ship, 10);"],
+	[NO_IMPORT, "Date.now();"],
+	[NO_IMPORT, "while (Date.now() < expires) { yield* Effect.yieldNow; }"],
+	[NO_IMPORT, 'globalThis.Date["now"]();'],
+	['import { setTimeout as sleep } from "node:timers/promises";', "yield* Effect.promise(() => sleep(10));"],
 	[NO_IMPORT, "globalThis.setInterval(poll, 10);"],
 	['import { eventually } from "@shivaedev/test/eventually.ts";', 'yield* eventually(() => expect(status()).toBe("shipped"));'],
 	[VI, "vi.useFakeTimers();"],

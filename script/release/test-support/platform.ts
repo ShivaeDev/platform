@@ -28,7 +28,6 @@ const create = Effect.fn("ReleaseStory.create")(function* () {
 });
 
 export const platform = storyKit({
-	clock: "live",
 	create,
 	layer: NodeServices.layer,
 	name: "Platform release",

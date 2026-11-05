@@ -17,7 +17,6 @@ interface Repository {
 }
 
 export const migrationFiles = storyKit({
-	clock: "live",
 	create: (): Repository => ({ defaultExports: [], root: seedTree([]), violations: [] }),
 	layer: services,
 	name: "tool-owned migration files",

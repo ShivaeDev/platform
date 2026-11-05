@@ -12,7 +12,6 @@ import { localConsumerWorkspace } from "#package-check/test-support/localConsume
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 export const packedReleaseAge = storyKit({
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-release-age-" });

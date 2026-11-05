@@ -11,7 +11,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 const biome = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 
 export const qualityKit = storyKit({
-	clock: "live",
 	create: () => Effect.acquireRelease(Effect.sync(defaultTree), (root) => Effect.sync(() => rmSync(root, { force: true, recursive: true }))),
 	name: "Quality repository",
 	stages: ["repository"],

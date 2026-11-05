@@ -35,7 +35,6 @@ const create = Effect.fn("ReleasePullRequest.create")(function* () {
 });
 
 export const releasePullRequest = storyKit({
-	clock: "live",
 	create,
 	layer: NodeServices.layer,
 	name: "Release pull request automation",

@@ -21,7 +21,6 @@ export const app = storyKit({
 			yield* fs.symlink(join(process.cwd(), "node_modules/vitest/vitest.mjs"), join(engine.directory, "node_modules/.bin/vitest"));
 		},
 	},
-	clock: "live",
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "published-starter-story-" });

@@ -67,7 +67,6 @@ const create = Effect.fn("ReleaseRepository.create")(function* () {
 });
 
 export const repository = storyKit({
-	clock: "live",
 	create,
 	layer: NodeServices.layer,
 	name: "Repository release policy",
