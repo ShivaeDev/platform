@@ -598,6 +598,21 @@ function RemoveNote({ note }: { readonly note: { id: string; version: number } }
 
 `api`, `NotesClient`, the soft-removal payload and `update` belong to the application. `remove(input, inverse)` captures the inverse domain fields. `undo()` sends those fields through the same command with `expectedVersion` set to the successful removal's returned `version`. The server must enforce that version and declare its typed conflict; a later edit then refuses Undo without overwriting the row. `removeResult` and `undoResult` preserve the native `AsyncResult`, including typed failures. Successful Undo clears its notice; a failed Undo leaves it available.
 
+For a batch command, supply `undoInput(value, input)` to build the complete inverse payload from its successful result and original input. This overload accepts any command payload and success shape and uses `remove(input)` with no second argument:
+
+```tsx
+const change = useUndoableChange(
+	{ ...api.editEntries, runtime: DiaryClient.runtime, update },
+	{
+		describe: () => "Changed diary entries",
+		undoInput: (saved) => ({ _tag: "undo" as const, token: saved.undo }),
+	},
+);
+change.remove({ _tag: "edit", rows: selectedVersions, scale: 0.5, copies: true });
+```
+
+`api.editEntries`, `DiaryClient` and the payload shape belong to the application. The hook captures the inverse when the command succeeds and submits it unchanged through the same command on Undo. The result can carry a set of row versions with their previous values, or an opaque server-issued undo token; neither requires a top-level `expectedVersion` or `version`. The server owns the transaction: restore each changed row under its own returned version, remove rows the batch created under their own guards, and reject the whole inverse with a typed conflict if any guard is stale. React stories exercise portion scaling, copy removal and stale guards against PostgreSQL; the hook supplies no database undo engine.
+
 `notice` is a native `Option` containing `message`, the submitted `input` and returned `value`. Only the most recently dispatched removal can publish it, even when replies arrive in reverse order. An older Undo cannot clear a newer notice. `removing` and `undoing` describe the two writes, and `pending` includes either. Each invocation holds `update.block` for its whole Effect lifetime, so overlapping writes hold deployment activation until all finish. The hook keeps UI wording and inverse domain data in the app; no `NoticeHost` is needed.
 
 #### Commands with a pending display value
