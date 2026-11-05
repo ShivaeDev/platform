@@ -1,6 +1,6 @@
 # Editing a record and creating one
 
-`useEditor` (`@shivaedev/react/client/editor.ts`) and `useCreate` (`@shivaedev/react/client/create.ts`) join three existing pieces: a query atom (for example `api.get.query({ id })` from an `@shivaedev/contract` binding), an `@shivaedev/form` form, and a save Effect (`api.save.run(...)`). They add no cache, no mutation atom and no second form model. Those two modules need the optional `@shivaedev/form` peer; the other `@shivaedev/react` modules do not load it.
+`useEditor` (`@shivaedev/react/client/editor.ts`) and `useCreate` (`@shivaedev/react/client/create.ts`) join three existing pieces: a query atom (for example `api.get.query({ id })` from an `@shivaedev/contract` binding), an `@shivaedev/form` form, and a save Effect (`api.save.run(...)`). They add no cache, no mutation atom and no second form model. `@shivaedev/react` depends directly on `@shivaedev/form`; `SessionBoundary` also uses form's draft session context to own persisted drafts.
 
 ```ts
 const editor = useEditor({
