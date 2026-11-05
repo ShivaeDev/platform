@@ -62,13 +62,6 @@
 		"reason": "Quality rule helpers consume native TypeScript nodes, symbols and checkers so custom analysis composes with the compiler without a second AST model."
 	},
 	{
-		"dependency": "vitest",
-		"files": ["dist/quality/domEnvironment.config.d.ts"],
-		"name": "native-vitest-dom-environment",
-		"package": "@shivaedev/test-kits",
-		"reason": "The DOM environment preset is a native Vitest configuration that consumers compose with their runner configuration."
-	},
-	{
 		"dependency": "react",
 		"files": [
 			"dist/client/QueryView.d.ts",
@@ -97,9 +90,9 @@
 	},
 	{
 		"dependency": "vite",
-		"files": ["dist/appTestConfig.d.ts"],
+		"files": ["dist/quality/appTestConfig.d.ts"],
 		"name": "native-vitest-app-config",
-		"package": "@shivaedev/quality",
+		"package": "@shivaedev/test-kits",
 		"reason": "The Vitest application configuration builder preserves the native Vite configuration accepted by Vitest, including Vite plugin types."
 	},
 	{

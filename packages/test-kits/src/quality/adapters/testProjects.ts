@@ -81,7 +81,7 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 			{
 				extends: true,
 				test: {
-					environment: fileURLToPath(import.meta.resolve("#quality/domEnvironment.config.ts")),
+					environment: fileURLToPath(import.meta.resolve("#quality/adapters/domEnvironment.config.ts")),
 					exclude: excluding(named("slow")),
 					include: [named("dom")],
 					name: "dom",

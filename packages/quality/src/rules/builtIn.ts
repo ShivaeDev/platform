@@ -62,6 +62,7 @@ import { biome } from "./biome.ts";
 import { manifestsApplication } from "./manifestsApplication.ts";
 import { manifestsDependencyPins } from "./manifestsDependencyPins.ts";
 import { manifestsExportsShape } from "./manifestsExportsShape.ts";
+import { manifestsNoTestKits } from "./manifestsNoTestKits.ts";
 import { manifestsSorted } from "./manifestsSorted.ts";
 import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
 import { manifestsValid } from "./manifestsValid.ts";
@@ -117,6 +118,7 @@ export const builtInRules = [
 	manifestsSorted,
 	manifestsSourceFirst,
 	manifestsExportsShape,
+	manifestsNoTestKits,
 	manifestsApplication,
 	namedAfterExport,
 	folderNames,

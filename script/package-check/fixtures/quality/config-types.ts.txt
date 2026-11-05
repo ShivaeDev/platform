@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect"
 import { defineConfig } from "@shivaedev/quality/config.ts"
 import { defineRule } from "@shivaedev/quality/rule.ts"
-import domEnvironment from "@shivaedev/test-kits/quality/domEnvironment.config.ts"
+import domEnvironment from "@shivaedev/test-kits/quality/adapters/domEnvironment.config.ts"
 import type storyDomEnvironment from "@shivaedev/test-story/server/adapters/domEnvironment.config.ts"
 
 export const dom: typeof storyDomEnvironment = domEnvironment
