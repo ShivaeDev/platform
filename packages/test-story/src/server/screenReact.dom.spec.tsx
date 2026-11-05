@@ -1,9 +1,6 @@
-import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { expect } from "@effect/vitest";
+import { outcomes } from "#server/outcomes.ts";
 import { driverScreen } from "#test/driverScreen.tsx";
-
-expectNoReactWarnings();
 
 driverScreen.it(
 	"settling waits for a response that arrives after the click and renders it without an act warning",

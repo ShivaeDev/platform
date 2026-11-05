@@ -1,14 +1,8 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import {
-	automatic,
-	firstRenamedByAnotherHost,
-	notesShown,
-	secondHiddenThenRenamed,
-	separateScreenOpen,
-	socketDropped,
-} from "#test/automatic/automatic.ts";
+import { automatic } from "#test/automatic/automatic.ts";
+import { firstRenamedByAnotherHost, notesShown, secondHiddenThenRenamed, separateScreenOpen, socketDropped } from "#test/automatic/traits.ts";
 
 expectNoReactWarnings();
 

@@ -1,20 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import {
-	conflictingUndoWaiting,
-	noticeScreen,
-	notifications,
-	removalNoticed,
-	twoRemovalNotices,
-	twoRemovalsHeld,
-	undoHeldAcrossSessionChange,
-	undoInterruptedByClosingHost,
-	undoWaiting,
-} from "#test/notices/story.tsx";
+import { noticesStory } from "#test/notices/story.tsx";
+import { noticeScreen, removalNoticed, twoRemovalNotices, twoRemovalsHeld } from "#test/notices/traits.ts";
+import { conflictingUndoWaiting, undoHeldAcrossSessionChange, undoInterruptedByClosingHost, undoWaiting } from "#test/notices/undoTraits.ts";
 
 const ONE_MINUTE = 60_000;
 
-notifications.it("each held removal publishes its own notice when it completes", [twoRemovalsHeld(true)], function* ({ completeRemove, notices }) {
+noticesStory.it("each held removal publishes its own notice when it completes", [twoRemovalsHeld(true)], function* ({ completeRemove, notices }) {
 	expect(yield* notices()).toEqual(["Removed second"]);
 
 	yield* completeRemove("first");
@@ -22,19 +14,19 @@ notifications.it("each held removal publishes its own notice when it completes",
 	expect(yield* notices()).toEqual(["Removed second", "Removed first"]);
 });
 
-notifications.it("closing the screens inside the notice host keeps their notices", [twoRemovalNotices()], function* ({ closeScreens, notices }) {
+noticesStory.it("closing the screens inside the notice host keeps their notices", [twoRemovalNotices()], function* ({ closeScreens, notices }) {
 	yield* closeScreens();
 
 	expect(yield* notices()).toEqual(["Removed second", "Removed first"]);
 });
 
-notifications.it("dismissing a notice removes only that notice", [twoRemovalNotices()], function* ({ dismiss, notices }) {
+noticesStory.it("dismissing a notice removes only that notice", [twoRemovalNotices()], function* ({ dismiss, notices }) {
 	yield* dismiss("Removed second");
 
 	expect(yield* notices()).toEqual(["Removed first"]);
 });
 
-notifications.it(
+noticesStory.it(
 	"Undo sends the application's expected version and shows itself pending",
 	[removalNoticed("first")],
 	function* ({ notice, restoreCalls, undo }) {
@@ -47,7 +39,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a completed Undo shows its outcome on its notice and the restored row",
 	[undoWaiting("first")],
 	function* ({ completeRestore, notice, rows }) {
@@ -60,7 +52,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a conflicting Undo shows its conflict on its own notice and restores nothing",
 	[conflictingUndoWaiting()],
 	function* ({ completeRestore, notice, notices, rows }) {
@@ -74,7 +66,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"closing the notice host interrupts a pending Undo and removes its notice",
 	[undoWaiting("first")],
 	function* ({ closeHost, notices, restoresReleased }) {
@@ -87,7 +79,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"opening the notice host again shows no notice its closing released",
 	[undoInterruptedByClosingHost()],
 	function* ({ notices, reopenHost }) {
@@ -97,7 +89,7 @@ notifications.it(
 	},
 );
 
-notifications.it("dismissing a notice interrupts its pending Undo", [undoWaiting("first")], function* ({ dismiss, notices, restoresReleased }) {
+noticesStory.it("dismissing a notice interrupts its pending Undo", [undoWaiting("first")], function* ({ dismiss, notices, restoresReleased }) {
 	yield* dismiss("Removed first");
 
 	yield* outcomes([
@@ -106,7 +98,7 @@ notifications.it("dismissing a notice interrupts its pending Undo", [undoWaiting
 	]);
 });
 
-notifications.it(
+noticesStory.it(
 	"a notice with a pending Undo is still shown one millisecond before its minute passes on the host's clock",
 	[undoWaiting("first", { expiresIn: ONE_MINUTE })],
 	function* ({ hostClockAdvances, notices, restoresReleased }) {
@@ -119,7 +111,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a notice whose minute passes on the host's clock expires and interrupts its pending Undo",
 	[undoWaiting("first", { expiresIn: ONE_MINUTE })],
 	function* ({ noticeExpires, notices, restoresReleased }) {
@@ -132,7 +124,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"an Undo that finishes after bob's session replaced alice's publishes nothing",
 	[undoHeldAcrossSessionChange()],
 	function* ({ completeRestore, notices, restoresReleased }) {
@@ -147,7 +139,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a command without a notice host completes and publishes nothing",
 	[noticeScreen({ host: false })],
 	function* ({ commandShown, completeRemove, notices, remove }) {
@@ -162,7 +154,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a query's failed first load publishes once, even across renders",
 	[noticeScreen({ queryFailure: true })],
 	function* ({ notices, renderAgain }) {
@@ -174,13 +166,13 @@ notifications.it(
 	},
 );
 
-notifications.it("a failed command publishes its failure notice", [noticeScreen()], function* ({ notices, remove }) {
+noticesStory.it("a failed command publishes its failure notice", [noticeScreen()], function* ({ notices, remove }) {
 	yield* remove("blocked");
 
 	expect(yield* notices()).toEqual(["Command failed"]);
 });
 
-notifications.it(
+noticesStory.it(
 	"a failed form submission publishes its failure notice through the submission",
 	[noticeScreen()],
 	function* ({ notices, submitForm }) {
