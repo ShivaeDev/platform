@@ -6,7 +6,7 @@ import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { logMailerLayer } from "#server/Mailer.ts";
+import { Mailer } from "#server/log-mailer/service.ts";
 import { configured, Emails, postgres } from "./fixture.ts";
 
 export const email = storyKit({
@@ -81,7 +81,7 @@ export const email = storyKit({
 				story.tell("start the email worker");
 				yield* Layer.build(
 					Emails.workerLayer.pipe(
-						Layer.provide(engine.useLog ? logMailerLayer : engine.mail.mailerLayer),
+						Layer.provide(engine.useLog ? Mailer.layer : engine.mail.mailerLayer),
 						Layer.provide(pgBossLayer({ clientFactory: engine.testing.clientFactory, connectionString: engine.database.url })),
 						Layer.provide(Logger.layer([Logger.make(({ message }) => engine.logs.push(message))])),
 					),
