@@ -15,7 +15,7 @@ export function appTemplate(template: Template, minimal = false): Template {
 		return files;
 	}
 	return files
-		.filter((entry) => !(entry.path.startsWith("src/modules/notes/") || entry.path.startsWith("tooling/notes/")))
+		.filter((entry) => !entry.path.startsWith("src/modules/notes/"))
 		.map((entry) => {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
@@ -102,11 +102,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 			cataloged,
 		),
 		devDependencies: frameworkDependencies(manifest.devDependencies, registryDependencies(manifest.devDependencies, versions), cataloged),
-		scripts: Object.fromEntries(
-			Object.entries(scripts)
-				.filter(([name]) => !minimal || name !== "browser-check:live-notes")
-				.map(([name, script]) => [name, script.replaceAll("--conditions=@shivaedev/source ", "")]),
-		),
+		scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=@shivaedev/source ", "")])),
 	};
 	return manifestJson(prepared);
 }

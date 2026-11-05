@@ -28,10 +28,8 @@ To sign in as an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHEC
 pnpm browser-check --page /admin --text "Users"
 ```
 
-## Application scenarios
+## Programmatic use
 
-Compose application checks with the `Browser` service from `@shivaedev/browser-check/Browser.ts` and provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts`. Open a scoped session, sign in through its HTTP endpoint when needed, and create pages with `session.newPage`. Pages support visits, text checks, screenshots, labelled fields, role locators, navigation counts and WebSocket waits. Each page shares the session's cookies. Scenario code owns application selectors and wire formats.
-
-The starter keeps its two-tab notes check in the application. See its [local browser check](https://github.com/ShivaeDev/platform/tree/main/examples/starter#look-at-the-running-app).
+Compose page checks with the `Browser` service from `@shivaedev/browser-check/Browser.ts` and provide the `playwright` Layer from `@shivaedev/browser-check/adapters/playwright.ts`. Open a scoped session, sign in through its HTTP endpoint when needed, and create pages with `session.newPage`. Pages support visits, text checks and screenshots. Each page shares the session's cookies.
 
 End-to-end browser tests do not belong in an app's CI: they cost CI minutes on private repositories. Prove behavior with stories. Browser check is for looking at the app locally; keep it out of CI and `pnpm ready`/`ci`.
