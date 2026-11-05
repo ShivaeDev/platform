@@ -87,7 +87,7 @@ Main push runs skip the shard planner, the package build, the test shards, the p
 
 Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID. Coverage for a commit on main comes from its `merge_group` run; the first line of `measured-commits.txt` is that merge commit, and the second is its first parent.
 
-`pnpm fleet` runs the published [Work Fleet](https://github.com/ShivaeDev/work-apps/tree/main/packages/work-fleet) release pinned in the root catalog against this repository's Board, such as `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`, with one foreground supervisor per Board directory.
+[Work Fleet](https://github.com/ShivaeDev/work-apps/tree/main/packages/work-fleet) and the Work Board run from a checkout of their own repository, with its own dependency pins, so this repository does not install them. Start a Fleet for this Board from this repository's root with that checkout's `script/work-fleet`, such as `script/work-fleet up .work`, with one foreground supervisor per Board directory.
 
 ### Heavy runs
 
