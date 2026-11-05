@@ -1,6 +1,6 @@
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRef from "effect/reactivity/AtomRef";
-import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, untouched } from "./draftValues.ts";
+import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, settledBaseline, untouched } from "./draftValues.ts";
 import type { Persistence, StoredValues } from "./persistence.ts";
 
 export function draft<TValues extends Entries>(initial: TValues, persistence?: Persistence<TValues>) {
@@ -44,7 +44,7 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 	}
 	function store(value: Draft<TValues>, sameInput = refreshing) {
 		const edited = Object.keys({ ...value.baseline, ...value.current }).filter((name) => !untouched(value, name));
-		persistence?.write({ ...value.baseline, ...value.settled }, value.current, edited, sameInput);
+		persistence?.write(settledBaseline(value), value.current, edited, sameInput);
 	}
 	if (persistence) {
 		state.subscribe((value) => {

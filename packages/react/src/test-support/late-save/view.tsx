@@ -59,7 +59,7 @@ function Controls({
 			<button onClick={() => refresh?.()} type="button">
 				Refresh
 			</button>
-			<button onClick={() => form.values.set({ name: form.values.value.name })} type="button">
+			<button onClick={() => form.omit("note")} type="button">
 				Remove note
 			</button>
 			<output data-has-note={Object.hasOwn(form.values.value, "note")} data-saving={current.saving}>
