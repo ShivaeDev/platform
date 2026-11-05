@@ -9,7 +9,8 @@ import { shadcnFolders } from "#inventory/shadcnFolders.ts";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
 import { entryPointFindings } from "./entryPointFindings.ts";
-import { KNIP_ISSUES, knipFindings } from "./findings.ts";
+import { KNIP_ISSUES } from "./findings.ts";
+import { knipReport } from "./report.ts";
 import { sourceConfig } from "./sourceConfig.ts";
 
 const API = createRequire(import.meta.url).resolve("knip");
@@ -65,12 +66,7 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 				{ concurrency: "unbounded" },
 			);
-			const report = yield* Effect.try(() => knipFindings(stdout)).pipe(
-				Effect.mapError(() => new Error(`knip exited ${code} without a valid report:\n${stderr || stdout || "No output."}`)),
-			);
-			if (Number(code) !== (report.length > 0 ? 1 : 0)) {
-				return yield* Effect.fail(new Error(`knip exited ${code} inconsistently with its report:\n${stderr || stdout}`));
-			}
+			const report = knipReport(stdout, stderr, Number(code));
 			return report.filter((finding) => checked.has(finding.file));
 		}),
 	);

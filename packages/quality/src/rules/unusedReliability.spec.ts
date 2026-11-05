@@ -14,11 +14,11 @@ repositoryStory.it(
 			{ content: "console.log(1);", path: "src/main.ts" },
 		),
 	],
-	function* ({ runs, stderr }) {
+	function* ({ runs, stdout }) {
 		const answer = yield* runs("lint");
 
-		yield* assertThat(answer.outcome, (actual) => actual.toBe("invalid"));
-		const error = yield* stderr();
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("rejected"));
+		const error = yield* stdout();
 		yield* assertThat(error, (actual) => actual.toContain("knip exited 1 without a valid report:"));
 		yield* assertThat(error, (actual) => actual.toContain("missing-base.json"));
 		yield* assertThat(error, (actual) => actual.not.toContain("SchemaError"));

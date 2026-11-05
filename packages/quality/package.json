@@ -60,6 +60,7 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/heavy-lock": "workspace:*",
 		"@shivaedev/service": "workspace:*",
+		"@shivaedev/skills": "workspace:*",
 		"@vitest/coverage-v8": "catalog:",
 		"ignore": "catalog:",
 		"knip": "catalog:",

@@ -1489,6 +1489,9 @@ importers:
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
+      '@shivaedev/skills':
+        specifier: workspace:*
+        version: link:../skills
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)
