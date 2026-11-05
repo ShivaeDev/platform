@@ -1,5 +1,0 @@
-{"path":"packages/pr-watch/src","rule":"effect/service-folders","count":1}
-{"path":"packages/pr-watch/src/GitHub.ts","rule":"effect/service-model","count":6}
-{"path":"packages/pr-watch/src/GitHubHttp.ts","rule":"effect/service-model","count":6}
-{"path":"packages/pr-watch/src/StateFile.ts","rule":"effect/service-model","count":2}
-{"path":"packages/pr-watch/src/Watcher.ts","rule":"effect/service-model","count":6}

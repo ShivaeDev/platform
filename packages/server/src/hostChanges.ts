@@ -5,7 +5,7 @@ import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts"
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
-import { currentSessionContext } from "@shivaedev/identity/server/currentSessionContext.ts";
+import { currentSessionContext } from "@shivaedev/identity/server/adapters/currentSessionContext.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";

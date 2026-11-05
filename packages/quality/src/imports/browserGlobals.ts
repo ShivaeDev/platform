@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import { ImportCompiler } from "#adapters/ImportCompiler.ts";
+import { ImportCompiler } from "#adapters/import-compiler/service.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { browserNames } from "./browserNames.ts";

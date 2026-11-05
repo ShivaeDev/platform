@@ -1,7 +1,10 @@
 import { Clock, Deferred, Duration, Effect, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
+import { PostgresChangeListener } from "./PostgresChangeListener.ts";
+import { PostgresChangeResync } from "./PostgresChangeResync.ts";
 import { PostgresListenerError } from "./PostgresListenerError.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
 
@@ -12,10 +15,15 @@ function listenerScope(timeout: Duration.Input) {
 	);
 }
 
-export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(function* (options: PostgresChangesOptions) {
+export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(function* (
+	options: Omit<PostgresChangesOptions, "client" | "listenerClient" | "resync">,
+) {
 	const ready = yield* Deferred.make<void, SqlError | PostgresListenerError>();
 	const reactivity = yield* Reactivity.Reactivity;
-	const { client, channel, resync } = options;
+	const client = yield* SqlClient.SqlClient;
+	const listener = yield* PostgresChangeListener;
+	const { resync } = yield* PostgresChangeResync;
+	const { channel } = options;
 	const timeout = options.heartbeatTimeout ?? "10 seconds";
 	function deadline<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(
@@ -29,7 +37,7 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 	const attempt = Effect.scoped(
 		Effect.gen(function* () {
 			const scope = yield* listenerScope(timeout);
-			const notifications = yield* (options.listenerClient ?? client).listen(channel).pipe(Scope.provide(scope), deadline);
+			const notifications = yield* listener.listen(channel).pipe(Scope.provide(scope), deadline);
 			const interval = Duration.toMillis(Duration.fromInputUnsafe(options.heartbeatInterval ?? "5 seconds"));
 			const lifetime = Duration.toMillis(Duration.fromInputUnsafe(options.connectionTTL ?? Duration.infinity));
 			const renewAt = (yield* Clock.currentTimeMillis) + (lifetime === 0 ? interval : lifetime);

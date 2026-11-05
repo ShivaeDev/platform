@@ -101,3 +101,29 @@ discord.it("a missing message retains the typed HTTP not-found failure", [], fun
 
 	expect(result).toBe("message not found");
 });
+
+discord.it(
+	"a fresh REST Layer sends without inheriting another build's exhausted bucket",
+	[bucketExhausted],
+	function* ({ createMessage, createMessageWithIndependentClient }) {
+		yield* createMessage("earlier");
+
+		const created = yield* createMessageWithIndependentClient("independent pacing");
+
+		expect(created).toMatchObject({ channelId: "111", content: "independent pacing" });
+	},
+);
+
+discord.it(
+	"interrupting a paced request leaves the bot available for another channel",
+	[rateLimited],
+	function* ({ cancelMessage, createMessage, startMessage, waitForRateLimit }) {
+		yield* startMessage("cancel me");
+		yield* waitForRateLimit();
+
+		yield* cancelMessage();
+
+		const created = yield* createMessage("after cancellation", "222");
+		expect(created).toMatchObject({ channelId: "222", content: "after cancellation" });
+	},
+);

@@ -12,7 +12,7 @@ import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { permissionLayer } from "#server/permissions.ts";
+import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";

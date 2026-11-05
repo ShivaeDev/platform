@@ -13,7 +13,7 @@ import { readKeys } from "@shivaedev/changes/keys.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { AssignRoles } from "#roles.ts";
-import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
+import { accountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";

@@ -68,6 +68,10 @@ Seed a `quality.config.ts` that registers the custom rule to test the whole gate
 
 For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. Yield `runQuality(root, "lint")` as an Effect in the kit so it uses the story's controlled clock. These helpers use the same engine as the rule story kit.
 
+### Import compiler service
+
+Import `ImportCompiler` from `@shivaedev/quality/adapters/import-compiler/service.ts`. Its Layer supplies the compiler operations through one `ImportCompiler.layer`; callers yield the service and call `graph`, `departures` or `browserChecker`. Each operation lives beside the service declaration and traces as `ImportCompiler.graph`, `ImportCompiler.departures` or `ImportCompiler.browserChecker`. The service owns no initializer state and requires no additional services.
+
 ### Dependency pins and repository hygiene
 
 `manifests/no-test-kits` rejects runtime packages that expose a `testing` module or declare `@shivaedev/test`, `@shivaedev/test-story`, `@shivaedev/test-sql`, `@shivaedev/test-kits` or `vitest` in dependencies, optional dependencies or peers. It checks explicit export names and targets, including conditions and fallback arrays, and inventoried testing modules exposed through wildcards. Blocked exports and development dependencies pass. Private applications and the test-tooling packages quality, vitest-rerun, test, test-story, test-sql and test-kits are exempt. Move reusable runtime-package helpers into test-kits and keep test dependencies in development dependencies.

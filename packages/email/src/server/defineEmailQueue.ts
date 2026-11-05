@@ -2,7 +2,7 @@ import { Effect, type Schema } from "effect";
 import { defineQueue, type JobPayloadSchema } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import type { Email } from "#Email.ts";
-import { Mailer } from "./Mailer.ts";
+import { Mailer } from "#server/log-mailer/service.ts";
 
 type Render<TSchema extends JobPayloadSchema, E, R> = (message: Schema.Schema.Type<TSchema>) => Effect.Effect<Email, E, R>;
 

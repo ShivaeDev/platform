@@ -1,11 +1,12 @@
 import { Effect } from "effect";
-import { type AttemptRunner, type Selection, VitestRunner } from "#adapters/VitestRunner.ts";
 import { writeFlakyTests } from "#flakyTests.ts";
 import { mergeAttempt } from "#mergeAttempt.ts";
 import { refuseDeclaredRetries } from "#refuseDeclaredRetries.ts";
 import { attemptPaths, reportPaths } from "#reportPaths.ts";
 import { failedFiles, hasSuiteErrors, readSnapshot, type Snapshot, saveSnapshot, tests } from "#snapshot.ts";
 import { summaryLine } from "#summaryLine.ts";
+import type { AttemptRunner, Selection } from "#VitestRuntime.ts";
+import { VitestRunner } from "#vitest-runner/service.ts";
 
 export interface Attempt {
 	readonly attempt: number;

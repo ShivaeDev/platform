@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { AccountPreferences } from "#accountPreferences.ts";
-import { AccountPreferencesStore } from "#server/AccountPreferencesStore.ts";
+import { AccountPreferencesStore } from "#server/account-preferences/service.ts";
 import { Subject } from "#subject.ts";
 
 export const accountPreferencesHandlers = AccountPreferences.application.toLayer({

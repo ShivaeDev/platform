@@ -1,6 +1,7 @@
-import { Context, Deferred, type Duration, Effect, Option, type Scope } from "effect";
+import { Context, type Duration, Effect, Option, type Scope } from "effect";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
+import { socketMonitor } from "#server/adapters/socketMonitor.ts";
 import type { SessionShape } from "./session.ts";
 
 export type SessionSnapshot = SessionShape & { readonly user: { readonly permissions?: readonly Permission[] } };
@@ -32,21 +33,7 @@ export const makeSocketSession = Effect.fnUntraced(function* (interval: Duration
 				}
 				return yield* batch;
 			}),
-		monitor: <E, R>(check: Effect.Effect<void, E, R>) =>
-			Effect.gen(function* () {
-				const context = yield* Effect.context<R>();
-				const ended = yield* Deferred.make<never, E>();
-				const run = check.pipe(
-					Effect.provideContext(context),
-					Effect.catchCause((cause) => Deferred.failCause(ended, cause)),
-					Effect.asVoid,
-				);
-				yield* Effect.acquireRelease(
-					Effect.sync(() => checks.add(run)),
-					() => Effect.sync(() => checks.delete(run)),
-				);
-				return yield* Deferred.await(ended);
-			}),
+		monitor: socketMonitor(checks),
 	});
 });
 

@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
-import { GitHubHttp } from "#GitHubHttp.ts";
+import { GitHubHttp } from "#github-http/service.ts";
 import { type Options, WatchError } from "#model.ts";
 
 const Check = Schema.Struct({ conclusion: Schema.NullOr(Schema.String), nodeId: Schema.String, status: Schema.String }).pipe(
