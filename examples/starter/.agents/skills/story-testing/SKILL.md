@@ -101,13 +101,13 @@ A nested partial expectation can be `{ account: { sessions: atMost(0) } }`, and 
 
 ## Settle on the engine's signals
 
-A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`. Never sleep, poll, use `eventually` or install fake timers: each guesses when the work is done, and the story slows down or flakes when the guess is wrong.
+A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`.
+
+Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date.now()`, real timers, `eventually` and fake timers in test code are forbidden. Drive elapsed time through the kit's [controlled clock](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#waiting-for-a-timer). If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
 
 A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.
 
 PostgreSQL catalog waits are the one sanctioned polling exception: catalog views such as `pg_stat_activity` send no completion signal. Use `observeUntil` from `@shivaedev/test-sql/server/observeUntil.ts` for these waits, with a predicate for the required state. Do not write a local polling loop or use this exception to poll application rows, job storage or UI state.
-
-Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date.now()` and real timers in test code are forbidden; a deadline that only bounds failure is allowed. Drive elapsed time through the kit's [controlled clock](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#waiting-for-a-timer). If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
 
 A kit verb names the interval, advances the controlled clock and waits for the work it triggers. In this session kit, the real engine offers to `checked` after revalidation, and `request` calls its public boundary:
 
