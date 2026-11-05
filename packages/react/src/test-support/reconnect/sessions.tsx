@@ -49,7 +49,8 @@ export const reconnectSessions = storyKit({
 					auth.state.hold = true;
 				}),
 			nextCheck: () => settleOnSignal("the session check finishes", Queue.take(auth.checked), { clock, root: view.container, tell: story.tell }),
-			nextSessionRequest: () => screen.act("the next session request starts", () => Effect.runPromise(Queue.take(auth.started))),
+			nextSessionRequest: () =>
+				settleOnSignal("the next session request starts", Queue.take(auth.started), { clock, root: view.container, tell: story.tell }),
 			queryErrors: () => Effect.sync(() => [...errors]),
 			reconnectIntervalPasses: () =>
 				settleOnSignal("the socket reconnect interval passes", Queue.take(host.handshakes), { clock, root: view.container, tell: story.tell }),
