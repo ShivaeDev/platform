@@ -14,7 +14,7 @@ const ASSET_DECLARATION = /\.d(?<extension>\.[^./]+)\.ts$/u;
 
 const DECLARATION = /\.d\.[cm]?ts$/u;
 
-const QUERY = /\?.*$/u;
+const QUERY = /(?<=\.wasm)\?init$|\?(?:(?:shared)?worker(?:&(?:inline|url))?|raw|url(?:&(?:no-)?inline)?|(?:no-)?inline)$/u;
 
 const PACKAGE_IMPORT = "#";
 
