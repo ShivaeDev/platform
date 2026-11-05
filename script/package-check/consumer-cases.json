@@ -29,7 +29,7 @@
 	],
 	"github": [
 		{
-			"entries": ["./GitHub.ts", "./GitHubToken.ts", "./GitHubConfig.ts", "./errors.ts"],
+			"entries": ["./github/service.ts", "./GitHubToken.ts", "./GitHubConfig.ts", "./errors.ts"],
 			"fixtures": ["client.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["client.ts"]
