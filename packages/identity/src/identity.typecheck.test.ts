@@ -5,7 +5,7 @@ import { expectTypeOf } from "vitest";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
-import { permissionLayer } from "#server/permissions.ts";
+import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";

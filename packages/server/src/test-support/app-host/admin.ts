@@ -3,11 +3,12 @@ import { join } from "node:path";
 import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Option, Schema, Stream } from "effect";
-import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
+import { HttpRouter, HttpServerRequest, HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { AuthUnavailable, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { permissionLayer, permissionRoute } from "@shivaedev/identity/server/permissions.ts";
+import { permissionRoute } from "@shivaedev/identity/server/adapters/permissionRoute.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { TestRoles, ToolsPermission, UseTools } from "#test/permissions.ts";
@@ -49,11 +50,12 @@ function adminRoutes(root: string, state: HostState) {
 			yield* router.add(
 				"*",
 				"/admin/*",
-				permissionRoute(UseTools)((request) =>
-					Effect.andThen(
-						Effect.sync(() => state.calls.push(request.url)),
-						spa,
-					).pipe(Effect.catch(HttpServerRespondable.toResponse)),
+				permissionRoute(UseTools)(
+					Effect.gen(function* () {
+						const request = yield* HttpServerRequest.HttpServerRequest;
+						state.calls.push(request.url);
+						return yield* spa.pipe(Effect.catch(HttpServerRespondable.toResponse));
+					}),
 				),
 			);
 		}),

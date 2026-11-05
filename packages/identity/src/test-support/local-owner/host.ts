@@ -3,7 +3,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { localOwner } from "#server/localOwner.ts";
-import { permissionLayer } from "#server/permissions.ts";
+import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { Access, Api, handlers, OwnerOnly, owner } from "./api.ts";

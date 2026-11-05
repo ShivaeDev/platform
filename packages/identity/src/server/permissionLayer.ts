@@ -1,11 +1,8 @@
 import { type Context, Effect, Layer, Option } from "effect";
-import { type HttpServerRequest, HttpServerResponse } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { forbidden } from "@shivaedev/access/refusal.ts";
 import { requirePermission } from "@shivaedev/access/requirePermission.ts";
-import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
@@ -41,31 +38,4 @@ export function permissionLayer<TMiddleware>(
 			return guard;
 		}),
 	);
-}
-function rejection(error: Unauthorized | Forbidden | AuthUnavailable) {
-	return HttpServerResponse.empty({
-		headers: { "cache-control": "private, no-store" },
-		status: {
-			AuthUnavailable: HttpStatus.fromLiteral("ServiceUnavailable"),
-			Forbidden: HttpStatus.fromLiteral("Forbidden"),
-			Unauthorized: HttpStatus.fromLiteral("Unauthorized"),
-		}[error._tag],
-	});
-}
-
-export function permissionRoute(permission: Permission) {
-	return <E, R>(handler: (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
-		(
-			request: HttpServerRequest.HttpServerRequest,
-		): Effect.Effect<HttpServerResponse.HttpServerResponse, E, SessionPolicy | Exclude<R, Identity | SessionUser>> =>
-			Effect.andThen(
-				Effect.flatMap(SessionUser, (user) => requirePermission(user, permission)),
-				Effect.context<Identity | SessionUser>(),
-			).pipe(
-				withSessionUser(request.headers, request.url),
-				Effect.matchEffect({
-					onFailure: (error) => Effect.succeed(rejection(error)),
-					onSuccess: (context) => Effect.provideContext(handler(request), context),
-				}),
-			);
 }

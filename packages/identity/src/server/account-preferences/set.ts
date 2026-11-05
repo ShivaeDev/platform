@@ -1,12 +1,11 @@
 import { Effect } from "effect";
 import type { AccountPreferenceValues } from "#accountPreferences.ts";
 import { providerFailure } from "#server/providerFailure.ts";
-import type { PreferencesRepository } from "./initialize.ts";
+import { AccountPreferenceRows } from "./Rows.ts";
 
-export function set(repository: PreferencesRepository) {
-	return Effect.fnUntraced(function* (id: string, values: typeof AccountPreferenceValues.Type) {
-		return yield* repository
-			.upsert({ id, ...values }, { updateColumns: ["locale", "timezone", "units"] })
-			.pipe(Effect.asVoid, Effect.catch(providerFailure));
-	});
-}
+export const set = Effect.fn("AccountPreferencesStore.set")(function* (id: string, values: typeof AccountPreferenceValues.Type) {
+	const repository = yield* AccountPreferenceRows;
+	return yield* repository
+		.upsert({ id, ...values }, { updateColumns: ["locale", "timezone", "units"] })
+		.pipe(Effect.asVoid, Effect.catch(providerFailure));
+});

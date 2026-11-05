@@ -2,7 +2,7 @@ import { Context, Layer } from "effect";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import type { IdentityFailures } from "@shivaedev/identity/middleware.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import type { AnyAdminRegistry } from "#registry.ts";
 
 export function pagePermissions(registry: AnyAdminRegistry) {
