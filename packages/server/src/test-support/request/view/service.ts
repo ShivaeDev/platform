@@ -6,7 +6,7 @@ import { initialize } from "./initialize.ts";
 import { read } from "./read.ts";
 
 export const requestViewService = defineService({
-	id: "@shivaedev/server/test/requestViewService",
+	id: "@shivaedev/server/test/RequestViewService",
 	initialize,
 	methods: (state) => ({ read: read(state) }),
 	requires: [Shared, SessionUser, Identity, Subject],
