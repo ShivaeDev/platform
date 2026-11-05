@@ -8,7 +8,7 @@ import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { LiveServer } from "#LiveServer.ts";
+import { liveServerLayer } from "#live-server/layer.ts";
 import { Documents, ReadAccess, readAccess } from "./policyServicesContract.ts";
 
 export type Person = "alice" | "bob";
@@ -55,7 +55,7 @@ export const policyServicesEngine = Effect.gen(function* () {
 			config: { port: 0 },
 			group: Documents,
 			handlers,
-			services: LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
+			services: liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
 			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),
 	);

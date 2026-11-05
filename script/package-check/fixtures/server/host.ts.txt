@@ -1,4 +1,4 @@
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts"
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts"
 import { Effect, Layer, Option, Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
 import { Migrator } from "effect/sql"

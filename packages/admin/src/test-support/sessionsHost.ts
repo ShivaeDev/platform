@@ -8,7 +8,8 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
@@ -69,7 +70,7 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		roles: Access,
 	};
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(Reactivity.layer))));
 	const handlers = Layer.merge(sessionsHandlers, hostChanges(SessionsPage.contract)).pipe(
 		Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live), Reactivity.layer]),
 	);

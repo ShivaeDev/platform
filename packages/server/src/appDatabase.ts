@@ -4,7 +4,8 @@ import { Clock, Config, Context, Effect, Layer, Option, Redacted } from "effect"
 import { Digest } from "effect/crypto";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
@@ -44,7 +45,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			postgresLayer(url, config).pipe(Layer.provide(clock)),
 		),
 	);
-	const live = LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer));
+	const live = liveServerLayer.pipe(Layer.provideMerge(Reactivity.layer));
 	const migrations = options.migrations;
 	const worker =
 		migrations.mode === "wait" && migrations.release !== undefined

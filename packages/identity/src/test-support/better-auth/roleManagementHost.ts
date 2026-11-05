@@ -9,7 +9,8 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { ReadUsers, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
 import { usersPage } from "@shivaedev/admin/users/page.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -50,7 +51,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const bob = yield* signedInUser(mounted.auth, { email: "bob@roles.test", name: "bob", role: "user" });
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
 	const handlers = Layer.merge(usersHandlers(Page), hostChanges(Page.contract)).pipe(
 		Layer.provide(betterAuthUserDirectory(Access)),
 		Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),

@@ -5,7 +5,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -32,7 +33,7 @@ const Restricted = adminPage({
 export const adminEngine = Effect.gen(function* () {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const failed = yield* Ref.make<readonly string[]>(["mail-42"]);
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(Reactivity.layer))));
 	const jobsModule = registerAdmin(adminRegistry(Jobs), {
 		jobs: Jobs.contract.application.toLayer({
 			"admin.jobs.failed": () => Ref.get(failed),

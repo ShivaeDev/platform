@@ -7,7 +7,8 @@ import { SqlClient } from "effect/sql";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -46,7 +47,7 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
 	const handlers = Layer.mergeAll(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }), hostChanges(Api));
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([

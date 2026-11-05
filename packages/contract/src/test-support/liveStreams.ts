@@ -110,21 +110,31 @@ export const liveHints = storyKit({
 	}),
 });
 
-export function watcher(name: string, keys: readonly Key[], server: HintServer = "the first server") {
-	return liveHints.trait("watchers", `${name} streams hints for ${keys.length} keys from ${server} and has heard its first resync`, (engine) =>
-		Effect.gen(function* () {
-			const hints = yield* Queue.unbounded<LiveHint>();
-			const resyncs = yield* SubscriptionRef.make(0);
-			const fiber = yield* engine.servers[server].stream([...keys, barrierOf(name)]).pipe(
-				Stream.runForEach((hint) =>
-					(hint._tag === "Resync" ? SubscriptionRef.update(resyncs, (count) => count + 1) : Effect.void).pipe(
-						Effect.andThen(Queue.offer(hints, hint)),
+export function watcher(
+	name: string,
+	keys: readonly Key[],
+	server: HintServer = "the first server",
+	consumer: "server environment" | "another environment" = "server environment",
+) {
+	return liveHints.trait(
+		"watchers",
+		`${name} consumes hints for ${keys.length} keys from ${server} in ${consumer} and has heard its first resync`,
+		(engine) =>
+			Effect.gen(function* () {
+				const hints = yield* Queue.unbounded<LiveHint>();
+				const resyncs = yield* SubscriptionRef.make(0);
+				const consumerReactivity = consumer === "another environment" ? yield* Reactivity.make : engine.reactivity;
+				const fiber = yield* engine.servers[server].stream([...keys, barrierOf(name)]).pipe(
+					Stream.runForEach((hint) =>
+						(hint._tag === "Resync" ? SubscriptionRef.update(resyncs, (count) => count + 1) : Effect.void).pipe(
+							Effect.andThen(Queue.offer(hints, hint)),
+						),
 					),
-				),
-				Effect.forkScoped,
-			);
-			yield* Queue.take(hints);
-			engine.watchers.set(name, { fiber, hints, resyncs, server });
-		}),
+					Effect.provideService(Reactivity.Reactivity, consumerReactivity),
+					Effect.forkScoped,
+				);
+				yield* Queue.take(hints);
+				engine.watchers.set(name, { fiber, hints, resyncs, server });
+			}),
 	);
 }

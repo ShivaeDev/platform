@@ -3,7 +3,7 @@ import { Context, Effect, Exit, FileSystem, Layer, Path, Queue, Scope, Stream } 
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { httpClient, liveClient } from "./client.ts";
@@ -12,7 +12,7 @@ import { staleSocket } from "./staleSocket.ts";
 
 const openHost = Effect.fnUntraced(function* (path: string, tcp: boolean) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const services = LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer), Layer.merge(Note.layer));
+	const services = liveServerLayer.pipe(Layer.provideMerge(Reactivity.layer), Layer.merge(Note.layer));
 	const context = yield* Layer.buildWithScope(
 		appHost({
 			config: { socketPath: path, ...(tcp ? { port: 0 } : {}), disablePreemptiveShutdown: true },

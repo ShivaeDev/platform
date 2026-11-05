@@ -70,7 +70,7 @@ Host option types include this HTTP-only shape. A wrapper that reads native RPC 
 
 ### Host the application
 
-`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
+`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` to those Layers.
 
 For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, `group`, `handlers`, `services` and `migrations: { loader, components? }`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
 
@@ -205,7 +205,7 @@ Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before ch
 
 Preflight logs pass through the host's redaction, including logged failure causes and annotations. The original typed failure remains available to callers. Direct hosts derive the policy from their RPC schemas and `config.sensitiveKeys`; deferred hosts use the default credential policy during preflight, before their application's schemas are available. Ordinary startup messages and annotations remain intact.
 
-When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
+When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
 const host = appHost({

@@ -2,7 +2,7 @@ import { Clock, ConfigProvider, Effect, Fiber, Layer, Queue, Redacted, Schema, S
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { PostgresListenerError } from "@shivaedev/sql/PostgresListenerError.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";

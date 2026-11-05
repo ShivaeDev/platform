@@ -3,7 +3,8 @@ import { FetchHttpClient, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
@@ -75,7 +76,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 		}),
 	]);
 	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(reactivity))));
+	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(reactivity))));
 	const registration = registerAdmin(adminRegistry(Page), { users: usersHandlers(Page) });
 	const handlers = Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(
 		Layer.provide(Layer.succeed(LiveServer, live)),

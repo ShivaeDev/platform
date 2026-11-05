@@ -1,8 +1,8 @@
 import { Context, Effect, Option, type Stream, type Types } from "effect";
 import type { Rpc } from "effect/rpc";
+import { withPolicyContext } from "#adapters/withPolicyContext.ts";
 import type { QueryShape } from "#operation.ts";
 import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
-import { policyContext } from "#policyContext.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { QueryDefinition } from "#serverMetadata.ts";
 
@@ -49,8 +49,7 @@ export function authorizeReads(
 	return Effect.fnUntraced(function* () {
 		const definition = Context.getOption(request.rpc.annotations, QueryDefinition);
 		if (Option.isSome(definition)) {
-			const context = yield* policyContext(request.rpc);
-			yield* checkQuery(definition.value.definition, request.payload, viewer).pipe(Effect.provideContext(context));
+			yield* withPolicyContext(request.rpc, checkQuery(definition.value.definition, request.payload, viewer));
 		}
 		return yield* Effect.provideService(effect, CurrentViewer, viewer);
 	})();

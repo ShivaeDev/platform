@@ -2,7 +2,7 @@ import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Clock, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { awaitHostStart, reportHostReady } from "@shivaedev/test-kits/host/processChild.ts";
 import { appHost } from "#appHost.ts";
 import { RestartNotes } from "./Notes.ts";
@@ -18,7 +18,7 @@ NodeRuntime.runMain(
 					"restartNotes.get": ({ id, tab }) => Effect.map(Clock.currentTimeMillis, (readAt) => ({ id, pid: process.pid, readAt, tab })),
 				}),
 				policy: "loopback",
-				services: LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)),
+				services: liveServerLayer.pipe(Layer.provideMerge(Reactivity.layer)),
 			}),
 		);
 		yield* reportHostReady.pipe(Effect.provideContext(context));

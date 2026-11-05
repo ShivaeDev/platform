@@ -11,7 +11,8 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
-import { LiveServer } from "#LiveServer.ts";
+import { LiveServer } from "#live-server/service.ts";
+import { subscribe } from "#live-server/subscribe.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "./collectionContract.ts";
@@ -62,7 +63,7 @@ export const collectionEngine = Effect.gen(function* () {
 						Effect.gen(function* () {
 							const viewer = yield* CurrentViewer;
 							const subscription = yield* querySubscription(rpc, queries, viewer);
-							return yield* live.subscribe(subscription);
+							return yield* subscribe(subscription).pipe(Effect.provideService(LiveServer, live));
 						}),
 					),
 		),

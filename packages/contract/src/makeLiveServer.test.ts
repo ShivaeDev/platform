@@ -62,3 +62,13 @@ liveHints.it(
 		expect(yield* heard("the watcher")).toEqual(["resync"]);
 	},
 );
+
+liveHints.it(
+	"a stream consumed with another Reactivity still hears changes from its server",
+	[watcher("the watcher", [notes.item(1)], "the first server", "another environment")],
+	function* ({ heard, invalidate }) {
+		yield* invalidate(invalidationKeys([notes.item(1)]));
+
+		expect(yield* heard("the watcher")).toEqual(["changed notes 1"]);
+	},
+);

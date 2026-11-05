@@ -1,7 +1,7 @@
 import { Effect, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/changes/keys.ts";
-import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { ApplicationOrders, type Order, orders } from "#test/postgres-example/contract.ts";
 import { OrderService } from "#test/postgres-example/service.ts";
 
