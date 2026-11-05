@@ -2,20 +2,13 @@ import { Effect } from "effect";
 import * as VitestNode from "vitest/node";
 import { failWith } from "#error.ts";
 import type { Snapshot } from "#snapshot.ts";
+import type { RunOptions, Selection } from "#VitestRuntime.ts";
 import { deferCoverageThresholds } from "./deferCoverageThresholds.ts";
 import { mergeSnapshotSummary } from "./mergeSnapshotSummary.ts";
 import { RerunJunitReporter } from "./RerunJunitReporter.ts";
 import { TimedJsonReporter } from "./TimedJsonReporter.ts";
 import type { Files } from "./tasks.ts";
-import type { Selection } from "./VitestRunner.ts";
 import { writeMergedReports } from "./writeMergedReports.ts";
-
-export interface RunOptions {
-	readonly cacheDir?: string;
-	readonly reports: { readonly json: string; readonly junit: string };
-	readonly rerun: boolean;
-	readonly vitestArgs: readonly string[];
-}
 
 function promise<A>(message: string, run: () => Promise<A>) {
 	return Effect.tryPromise({ catch: failWith(message), try: run });
