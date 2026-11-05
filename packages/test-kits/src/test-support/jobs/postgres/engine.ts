@@ -5,7 +5,7 @@ import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import type { JobRegistration } from "@shivaedev/jobs/server/definition.ts";
 import { PgBossError } from "@shivaedev/jobs/server/error.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { failureOf } from "#test/jobs/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/jobs/workers.ts";

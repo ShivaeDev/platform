@@ -6,7 +6,7 @@ import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { runSchemaComponent } from "#SchemaComponent.ts";
-import { WorkerRelease } from "#WorkerRelease.ts";
+import { WorkerRelease } from "#worker-release/service.ts";
 
 class ComponentUnavailable extends Data.TaggedError("ComponentUnavailable")<{ readonly message: string }> {}
 
