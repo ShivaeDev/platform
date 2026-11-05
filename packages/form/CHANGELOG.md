@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.0 - 2026-11-05
+
+### Added
+
+- `omit(name)` and `omitAt(path)` remove optional keys while preserving sibling values.
+
+### Fixed
+
+- Dirty tracking, receive, revert and save distinguish missing keys from present `undefined`. Schema-permitted explicit `undefined` remains an assigned value.
+
+### Breaking
+
+- Remove the unused `withoutField` export from `@shivaedev/form/messages.ts`. Consumers that remove a field's message should filter the entries of their own message record with `Object.entries` and rebuild it with `Object.fromEntries`.
+- Paths no longer traverse optional or nullable parents. Read the parent ref to observe absence and use `change` or `changeAt` to supply the complete group, including required siblings.
+
 ## 0.17.1 - 2026-11-04
 
 ### Changed

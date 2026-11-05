@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-11-05
+
+### Added
+
+- Publish host process and controlled clock helpers, settled query observations and signed webhook delivery helpers.
+- Publish `fakeOauthProvider` for application sign-in stories over real HTTP, with OAuth authorization codes, consent refusal, controlled expiry, profiles and OIDC discovery with signed ID tokens.
+
 ## 0.5.0 - 2026-11-04
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-05
+
+### Breaking
+
+- Import webhook delivery helpers and types from `@shivaedev/test-kits/webhooks/deliver.ts` instead of `@shivaedev/webhooks/server/testing.ts`. The signing adapter moves from `@shivaedev/webhooks/server/adapters/githubHeaders.ts` to `@shivaedev/test-kits/webhooks/adapters/githubHeaders.ts`.
+
 ## 0.8.3 - 2026-11-04
 
 ### Changed
