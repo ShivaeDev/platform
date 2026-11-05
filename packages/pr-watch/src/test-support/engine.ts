@@ -4,7 +4,7 @@ import { Clock, ConfigProvider, Context, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type { Options } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
-import { Watcher } from "#Watcher.ts";
+import { Watcher } from "#watcher/service.ts";
 import { makeIo } from "./io.ts";
 import { makeOutput } from "./makeOutput.ts";
 import { startServer } from "./server.ts";
