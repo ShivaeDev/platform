@@ -22,8 +22,8 @@ import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 const decodeSession = Schema.decodeUnknownSync(Schema.Struct({ user: Schema.Struct({ emailVerified: Schema.Boolean }) }));
 
 export const authEmailApp = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const mail = yield* inbox();
 		const host = yield* startHost();

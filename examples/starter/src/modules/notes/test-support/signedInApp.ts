@@ -11,8 +11,8 @@ import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { appScreen } from "./appScreen.tsx";
 
 export const signedInApp = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const screen = yield* appScreen({ account: { name: "alice" }, route: "/" });
 		const bob = yield* mintUser(screen, "bob");

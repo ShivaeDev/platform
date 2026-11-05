@@ -1,8 +1,9 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { Accounts } from "./feature.ts";
 
-export function connect(url: string, registry: AtomRegistry.AtomRegistry) {
-	return makeClient(Accounts, { registry, url, webSocketConstructor: layerWebSocketConstructorWS }).api;
+export function connect(url: string, registry: AtomRegistry.AtomRegistry, runtime: Atom.RuntimeFactory) {
+	return makeClient(Accounts, { registry, runtime, url, webSocketConstructor: layerWebSocketConstructorWS }).api;
 }

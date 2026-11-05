@@ -21,8 +21,8 @@ export interface AdminScreen extends ScreenSurface {
 }
 
 export const adminScreens = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create(): Generator<ReturnType<typeof startHost>, AdminScreen, never> {
 		return { accounts: new Map(), host: yield* startHost(), view: undefined };
 	},

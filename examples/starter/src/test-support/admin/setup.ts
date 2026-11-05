@@ -25,8 +25,8 @@ interface Engine {
 }
 
 export const adminSetup = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	create: (): Engine => ({ cookie: "", host: undefined }),
 	inspect: ({ host }) => ({ baseUrl: host?.baseUrl }),
 	layer: postgres,

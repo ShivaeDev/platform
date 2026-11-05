@@ -21,8 +21,8 @@ interface Engine extends ScreenSurface {
 }
 
 export const adminSessions = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create(): Generator<ReturnType<typeof startHost>, Engine, never> {
 		return { host: yield* startHost(), role: "admin", view: undefined };
 	},

@@ -12,8 +12,8 @@ import { testPoolSizes } from "./poolSizes.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 export const worker = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const env: Record<string, string> = {};

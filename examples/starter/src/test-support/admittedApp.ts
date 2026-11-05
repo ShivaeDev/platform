@@ -8,8 +8,8 @@ import { admittedHost } from "./admittedHost.ts";
 import { gitHub, gitHubSignIn } from "./gitHub.ts";
 
 export const admittedApp = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const github = gitHub();
 		const provider = yield* github.provider;

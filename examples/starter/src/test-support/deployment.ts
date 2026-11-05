@@ -14,8 +14,8 @@ interface DeploymentStoryEngine extends DeploymentEngine {
 }
 
 export const deployment = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	after: { database: (engine) => engine.database.acquire },
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const engine: DeploymentStoryEngine = {
 			...deploymentEngine(yield* Clock.currentTimeMillis),

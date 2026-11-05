@@ -9,8 +9,8 @@ import { configured, postgres } from "#test-support/postgres.ts";
 import { secret } from "./host.ts";
 
 export const authStartup = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	create: () => ({ validation: "not started" }),
 	layer: postgres,
 	name: "authentication startup",

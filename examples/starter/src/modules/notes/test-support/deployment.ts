@@ -36,8 +36,8 @@ function wordCountWords(wordCount: number | null) {
 }
 
 export const notesDeployment = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	after: { database: (engine) => engine.database.acquire },
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const engine: NotesDeploymentEngine = {
 			...deploymentEngine(yield* Clock.currentTimeMillis),

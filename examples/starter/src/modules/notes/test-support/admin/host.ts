@@ -41,8 +41,8 @@ function roleChange(engine: AdminEngine, annotations: Readonly<Record<string, un
 }
 
 export const adminHost = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const engine: AdminEngine = { cookies: new Map(), host, url: host.baseUrl, userIds: new Map() };

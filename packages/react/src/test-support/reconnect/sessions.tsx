@@ -1,30 +1,38 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Effect, Queue } from "effect";
+import { type Duration, Effect, Queue } from "effect";
+import { act } from "react";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { passes, untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 import { App } from "./App.tsx";
 import { makeAuth } from "./auth.ts";
 import { openHost } from "./openHost.ts";
+import { settleOnSignal } from "./settleOnSignal.ts";
 
 export const reconnectSessions = storyKit({
 	*create() {
+		const clock = yield* watchedClock;
+		const runtime = yield* storyRuntime;
+		const run = Effect.runPromiseWith(yield* Effect.context());
 		const host = yield* openHost;
 		const auth = yield* makeAuth;
 		const screen = new Screen(() => undefined);
 		const errors: string[] = [];
 		const history = createMemoryHistory({ initialEntries: ["/"] });
-		const view = yield* screen.open(<App auth={auth} errors={errors} history={history} url={host.url} />);
+		const view = yield* screen.open(<App auth={auth} errors={errors} history={history} runtime={runtime} url={host.url} />);
 		yield* settleScreen(view.container, () => view.container.querySelector('[data-live="live"][data-pending="false"]') === null, screen.tell);
 		yield* Queue.take(host.handshakes);
 		yield* Queue.take(auth.checked);
 		yield* Queue.take(auth.started);
-		return { auth, errors, history, host, screen, view };
+		return { auth, clock, errors, history, host, run, screen, view };
 	},
 	inspect: ({ auth, host, view }) => ({ auth: auth.state, host: host.state, html: view.container.innerHTML }),
 	name: "session recovery over a dropped WebSocket",
 	stages: ["screen"],
-	verbs: ({ auth, errors, history, host, screen, view }, story) => {
+	verbs: ({ auth, clock, errors, history, host, run, screen, view }, story) => {
 		screen.tell = story.tell;
 		return {
 			checkIntervals: () => Effect.sync(() => auth.state.checks.slice(2).map(({ at }, index) => at - (auth.state.checks[index + 1]?.at ?? at))),
@@ -40,10 +48,11 @@ export const reconnectSessions = storyKit({
 					story.tell("the session server holds its next response");
 					auth.state.hold = true;
 				}),
-			nextCheck: () => screen.act("the session check finishes", () => Effect.runPromise(Queue.take(auth.checked))),
-			nextHandshake: () => screen.act("the next socket handshake reaches the server", () => Effect.runPromise(Queue.take(host.handshakes))),
+			nextCheck: () => settleOnSignal("the session check finishes", Queue.take(auth.checked), { clock, root: view.container, tell: story.tell }),
 			nextSessionRequest: () => screen.act("the next session request starts", () => Effect.runPromise(Queue.take(auth.started))),
 			queryErrors: () => Effect.sync(() => [...errors]),
+			reconnectIntervalPasses: () =>
+				settleOnSignal("the socket reconnect interval passes", Queue.take(host.handshakes), { clock, root: view.container, tell: story.tell }),
 			refusedAccountRequests: () => Effect.sync(() => [...host.state.failures]),
 			refuseReconnect: () =>
 				Effect.sync(() => {
@@ -62,6 +71,10 @@ export const reconnectSessions = storyKit({
 					auth.state.reachable = true;
 				}),
 			resume: (event: "online" | "visibilitychange") => screen.act(`the browser emits ${event}`, () => window.dispatchEvent(new Event(event))),
+			retryIntervalPasses: (interval: Duration.Input) =>
+				screen.act(`${interval} pass before the next session check`, () =>
+					run(untilTimer(interval).pipe(Effect.andThen(passes(interval, Queue.take(auth.checked))))),
+				),
 			serverReturns: () =>
 				Effect.sync(() => {
 					story.tell("the RPC server returns");
@@ -90,7 +103,13 @@ export const reconnectSessions = storyKit({
 			signOutRefused: () => screen.act("the auth server refuses sign-out", () => auth.signOutResponse.reject("Sign-out unavailable")),
 			visitSignIn: () => screen.act("the route moves to sign-in before the refetch answers", () => history.push("/sign-in")),
 			waitForLive: () =>
-				settleScreen(view.container, () => view.container.querySelector('[data-live="live"][data-pending="false"]') === null, story.tell),
+				screenDriver({
+					act,
+					clock,
+					pending: () => view.container.querySelector('[data-live="live"][data-pending="false"]') === null,
+					root: view.container,
+					tell: story.tell,
+				}).settle(),
 		};
 	},
 });

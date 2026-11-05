@@ -6,8 +6,8 @@ import { startHost } from "./host.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 export const browserReports = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const { headers, user } = yield* mintUser(host, "alice");

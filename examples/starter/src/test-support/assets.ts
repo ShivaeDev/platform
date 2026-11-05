@@ -10,8 +10,8 @@ import { mintUser } from "./sessionPrecondition.ts";
 const assetLayer = Layer.merge(postgres, NodeServices.layer);
 
 export const assets = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;

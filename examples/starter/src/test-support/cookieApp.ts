@@ -9,8 +9,8 @@ import { mintUser } from "./sessionPrecondition.ts";
 const decodeSession = Schema.decodeUnknownSync(Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String }) })));
 
 export const cookieApp = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		return yield* createCookieHost();
 	},

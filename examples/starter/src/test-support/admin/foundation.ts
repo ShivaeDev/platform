@@ -12,8 +12,8 @@ import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { sessionPermissions } from "./session.ts";
 
 export const foundationAdmin = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost({ jobsTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) });
 		return { cookies: new Map<string, string>(), host, workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) };

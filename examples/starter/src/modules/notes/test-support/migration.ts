@@ -17,8 +17,8 @@ import { secret } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 
 export const migration = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	after: { database: (engine) => engine.database.acquire },
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		return { database: yield* storyDatabase(), userId: "" };
 	},

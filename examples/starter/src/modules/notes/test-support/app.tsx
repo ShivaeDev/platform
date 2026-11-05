@@ -28,8 +28,8 @@ import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 const alice = credentials("alice");
 
 export const notesApp = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* createCookieHost();

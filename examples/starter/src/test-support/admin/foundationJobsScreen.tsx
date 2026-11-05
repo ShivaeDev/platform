@@ -12,8 +12,8 @@ import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 export const foundationJobsScreen = storyKit({
-	clock: Effect.runSync(DateTime.now),
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		const { headers } = yield* mintUser(host, "operator", "admin");
