@@ -2,8 +2,8 @@ import type { BetterAuthOptions } from "better-auth";
 import { Effect, Layer, type Scope } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
-import { AccountPreferencesStore } from "#server/AccountPreferencesStore.ts";
-import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
+import { accountPreferencesStore } from "#server/account-preferences/store.ts";
+import type { AccountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
 import { closeRoleEndpoints } from "#server/better-auth/adapters/closeRoleEndpoints.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
@@ -62,7 +62,7 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const gate = yield* signInGate(policy);
 	const runtime = yield* hookRuntime<R>();
 	const preferences =
-		mount.accountPreferences === true ? yield* accountPreferenceOptions(options).pipe(Effect.provide(AccountPreferencesStore.layer)) : options;
+		mount.accountPreferences === true ? yield* accountPreferenceOptions(options).pipe(Effect.provide(accountPreferencesStore)) : options;
 	const reset = passwordResetOptions(preferences, mount.onPasswordReset, runtime);
 	const hooked = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), mount.databaseHooks, runtime);
 	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);

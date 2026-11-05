@@ -10,7 +10,7 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import {
 	authenticatedUserLayer,

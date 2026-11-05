@@ -1,12 +1,12 @@
 import { Effect, Schema, Stream } from "effect";
-import { HttpRouter, HttpServerResponse } from "effect/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { AuthUnavailable, Forbidden, isAuthUnavailable, isForbidden, isUnauthorized, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
-import { permissionRoute } from "#server/permissions.ts";
+import { permissionRoute } from "#server/adapters/permissionRoute.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission, UseTools } from "#test/auth/permissions.ts";
 
@@ -54,8 +54,9 @@ const routeErrors = {
 
 export function adminRoutes(state: { handlerRequests: string[] }) {
 	const guarded = permissionRoute(UseTools);
-	const tools = guarded((request) =>
+	const tools = guarded(
 		Effect.gen(function* () {
+			const request = yield* HttpServerRequest.HttpServerRequest;
 			state.handlerRequests.push(request.method);
 			const user = yield* SessionUser;
 			const identity = yield* Identity;
@@ -69,8 +70,10 @@ export function adminRoutes(state: { handlerRequests: string[] }) {
 		Effect.all([
 			router.add("GET", "/admin-tools", tools),
 			router.add("POST", "/admin-tools", tools),
-			router.add("GET", "/admin-failure", (request) =>
-				guarded(() => Effect.fail(new Forbidden({ message: "Handler failure" })))(request).pipe(
+			router.add(
+				"GET",
+				"/admin-failure",
+				guarded(Effect.fail(new Forbidden({ message: "Handler failure" }))).pipe(
 					Effect.catchIf(isForbidden, (error) =>
 						Effect.succeed(HttpServerResponse.text(error.message, { status: HttpStatus.fromLiteral("UnprocessableEntity") })),
 					),

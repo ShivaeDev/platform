@@ -7,7 +7,7 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authSession } from "#client/authSession.ts";
 import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";

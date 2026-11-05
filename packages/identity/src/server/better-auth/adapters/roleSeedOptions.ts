@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { Effect, Exit } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { authRefusals } from "#authRefusal.ts";
-import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
+import type { AccountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 
 export function roleSeedOptions<E>(options: BetterAuthOptions, seed: AccountRoleSeed<E> | undefined): BetterAuthOptions {
 	if (seed === undefined) {

@@ -1,8 +1,7 @@
 import { Effect } from "effect";
-import type { HttpServerRequest } from "effect/http";
-import { HttpRouter, HttpServerResponse } from "effect/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { permissionRoute } from "@shivaedev/identity/server/permissions.ts";
+import { permissionRoute } from "@shivaedev/identity/server/adapters/permissionRoute.ts";
 import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
 import type { AnyAdminRegistry } from "#registry.ts";
 
@@ -18,7 +17,7 @@ export function adminDocuments<E, R>(
 				const route = matchAdminRoute(routes, path);
 				return route === undefined
 					? Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") }))
-					: permissionRoute(route.permission)(handler)(request);
+					: permissionRoute(route.permission)(Effect.flatMap(HttpServerRequest.HttpServerRequest, handler));
 			});
 		}),
 	);

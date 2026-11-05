@@ -1,7 +1,7 @@
 import { Effect, type Option } from "effect";
 import { type Rpc, RpcSchema } from "effect/rpc";
 import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { currentSessionContext } from "./currentSessionContext.ts";
+import { currentSessionContext } from "#server/adapters/currentSessionContext.ts";
 import { SessionPolicy } from "./SessionPolicy.ts";
 import type { SessionShape } from "./session.ts";
 import { revalidateSession } from "./socketSession.ts";
