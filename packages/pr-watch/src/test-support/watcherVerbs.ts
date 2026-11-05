@@ -3,7 +3,8 @@ import { Context, Deferred, Effect, Fiber, Layer, Schema } from "effect";
 import { State } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
-import { Watcher } from "#Watcher.ts";
+import { poll } from "#watcher/poll.ts";
+import { Watcher } from "#watcher/service.ts";
 import type { Engine } from "./engine.ts";
 import { GRAPHQL, REPOSITORY } from "./githubModel.ts";
 import { type FileOperation, type Gate, makeGate } from "./io.ts";
@@ -27,7 +28,7 @@ export function pollOnce(engine: Engine) {
 	return Effect.gen(function* () {
 		engine.roundStart = engine.github.requests.length;
 		const state = yield* engine.watcher.load(engine.options);
-		yield* engine.github.observeRound(engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine)));
+		yield* engine.github.observeRound(poll(engine.options, state, emitTo(engine), diagnosticTo(engine)).pipe(Effect.provide(engine.context)));
 		return "polled";
 	}).pipe(
 		Effect.catch((error) =>
@@ -97,7 +98,9 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 				const gate = yield* makeGate;
 				engine.io.control.rename = gate;
 				const state = yield* engine.watcher.load(engine.options);
-				const running = yield* Effect.forkChild(engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine)));
+				const running = yield* Effect.forkChild(
+					poll(engine.options, state, emitTo(engine), diagnosticTo(engine)).pipe(Effect.provide(engine.context)),
+				);
 				yield* interruptedAt(running, gate);
 				engine.io.control.rename = undefined;
 			}),

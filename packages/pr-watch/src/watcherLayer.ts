@@ -3,10 +3,10 @@ import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
-import { GitHub } from "#GitHub.ts";
-import { GitHubHttp } from "#GitHubHttp.ts";
-import { StateFile } from "#StateFile.ts";
-import { Watcher } from "#Watcher.ts";
+import { GitHub } from "#github/service.ts";
+import { GitHubHttp } from "#github-http/service.ts";
+import { StateFile } from "#state-file/service.ts";
+import { Watcher } from "#watcher/service.ts";
 
 export const watcherLayer = Watcher.layer.pipe(
 	Layer.provide(

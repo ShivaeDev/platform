@@ -3,7 +3,8 @@ import type { Emit } from "#health.ts";
 import type { Options } from "#model.ts";
 import { pollRetries } from "#pollRetries.ts";
 import { requestFailure } from "#requestFailure.ts";
-import { Watcher } from "#Watcher.ts";
+import { poll } from "#watcher/poll.ts";
+import { Watcher } from "#watcher/service.ts";
 
 export const polling = Effect.fn("PrWatch.polling")(function* <E, R, TDiagnosticError, TDiagnosticRequirements>(
 	options: Options,
@@ -17,7 +18,7 @@ export const polling = Effect.fn("PrWatch.polling")(function* <E, R, TDiagnostic
 	while (true) {
 		yield* retries.check;
 		report.reset();
-		const result = yield* Effect.result(watcher.poll(options, state, output.emit, report.error));
+		const result = yield* Effect.result(poll(options, state, output.emit, report.error));
 		if (result._tag === "Failure") {
 			const error = requestFailure(result.failure);
 			if (once || error.retryable !== true) {
