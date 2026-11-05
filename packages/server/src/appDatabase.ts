@@ -9,7 +9,7 @@ import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
-import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
 import { deferredHost, migratedHost } from "#appDatabaseHttp.ts";

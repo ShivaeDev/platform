@@ -7,7 +7,7 @@ import { listPullRequests } from "./listPullRequests.ts";
 import { listReports } from "./listReports.ts";
 
 export const dashboardService = defineService({
-	id: "@shivaedev/sql/dashboard/Service",
+	id: "@shivaedev/sql/dashboard/Dashboard",
 	initialize: Effect.void,
 	methods: () => ({ findReport, listPullRequests, listReports }),
 	requires: [SqlClient.SqlClient, DashboardConfig],

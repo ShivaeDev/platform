@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Pots } from "./Pots.ts";
+import { Pots } from "#test/diary/Pots.ts";
 
 export const addPortion = Effect.fn("Plates.addPortion")(function* (id: number, amount: number) {
 	const pots = yield* Pots;
