@@ -1,5 +1,5 @@
 import * as HttpStatus from "effect/http/HttpStatus";
-import { makeAuth } from "#client/auth.ts";
+import { makeAuth } from "#client/adapters/auth.ts";
 
 export function appAuth(options: {
 	readonly baseUrl: string;

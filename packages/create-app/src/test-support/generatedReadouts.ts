@@ -43,13 +43,18 @@ export function generatedReadouts(engine: Engine, target: () => string) {
 	function at(path: string) {
 		return join(target(), path);
 	}
+	function baselineEntries() {
+		return (existsSync(at("quality-baseline.jsonl")) ? lines(readFileSync(at("quality-baseline.jsonl"), "utf8")) : []).map((line) =>
+			BaselineEntry(line),
+		);
+	}
 	return {
 		authSecret: () =>
 			Effect.sync(() => /^BETTER_AUTH_SECRET=(?<secret>.*)$/mu.exec(readFileSync(at(".env.local"), "utf8"))?.groups?.secret ?? "none"),
+		baselineEntries: () => Effect.sync(baselineEntries),
 		baselineEntriesFor: (path: string) =>
 			Effect.sync(() =>
-				(existsSync(at("quality-baseline.jsonl")) ? lines(readFileSync(at("quality-baseline.jsonl"), "utf8")) : [])
-					.map((line) => BaselineEntry(line))
+				baselineEntries()
 					.filter((entry) => entry.path === path)
 					.map(({ count, rule }) => ({ count, rule })),
 			),

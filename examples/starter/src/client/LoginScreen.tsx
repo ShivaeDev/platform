@@ -5,9 +5,9 @@ import * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import type { AuthFailureCode } from "@shivaedev/identity/client/AuthFailureCode.ts";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
-import type { AuthActions } from "./auth.ts";
 
 export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActions; readonly onAuthenticated: () => void }) {
 	const id = useId();

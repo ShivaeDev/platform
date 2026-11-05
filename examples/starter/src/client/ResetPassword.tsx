@@ -2,9 +2,9 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useId, useState } from "react";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
+import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
-import type { AuthActions } from "./auth.ts";
 
 export function ResetPassword({ auth, token }: { readonly auth: AuthActions; readonly token: string }) {
 	const id = useId();

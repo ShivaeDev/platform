@@ -23,6 +23,8 @@ To remove the example, delete `src/modules/notes` and its imports and entries in
 
 Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements.
 
+Client code imports rendering libraries such as Lucide, Base UI, TanStack Router and the `cn` styling helper directly. Integrations that perform I/O or manage external state stay in `adapters/`; the Better Auth client bridge lives in `src/client/adapters/auth.ts`. The starter and generated apps start with an empty Quality baseline.
+
 ## Create or run it
 
 Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md). Generated apps already have a git-ignored `.env.local` with a fresh authentication secret and development and test database URLs. In this repository, run `bash ./script/update` at the root, copy `.env.example` to `.env.local` here, and replace the example secret with the output of `openssl rand -base64 32`. Run `pnpm dev` and open `http://127.0.0.1:5173`.

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
-import { makeAuth } from "#client/auth.ts";
+import { makeAuth } from "#client/adapters/auth.ts";
 import { type RunningHost, startHost } from "#test-support/host.ts";
 
 export const createCookieHost = Effect.fn("CookieStory.createCookieHost")(function* (existing?: RunningHost) {
