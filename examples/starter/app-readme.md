@@ -8,7 +8,7 @@ const query = useQuery(client.api.list.query());
 
 A module’s shared contract lives beside its implementation, such as `<module>/notes.ts` in the notes example. Server code lives in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
-To remove the example, delete `src/modules/notes` and `tooling/notes` and remove the module’s imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, remove the `browser-check:live-notes` script from `package.json`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
+To remove the example, delete `src/modules/notes` and remove the module’s imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
 
 Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements.
 
@@ -101,7 +101,5 @@ To add a page, follow the note-statistics pattern (included with the notes examp
 ## Look at the running app
 
 With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for a local screenshot and smoke check. It installs Chromium on the first run and reuses the cached browser after that; `pnpm install` never downloads browsers. Screenshots stay in the git-ignored `.browser-check/` folder. For an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your shell, then choose the page and visible text to check. See [browser-check](https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme) for options.
-
-With those credentials set for a disposable account, run `pnpm browser-check:live-notes` to check two tabs sharing one session. It creates a note through the first tab, requires the second tab to receive its socket hint and display the note without navigation, then signs out in the first tab and requires the second tab's live socket and private notes to disappear. Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The note remains in the disposable account. Run with `--url http://127.0.0.1:3000` against `pnpm build && pnpm start` to check the production socket path too. This local check covers awake Chromium tabs, not tab sleep or other browsers.
 
 End-to-end browser tests do not belong in an app's CI because they cost CI minutes on private repositories. Stories prove behavior; browser check is for looking at the app locally. It is opt-in and stays out of CI and `pnpm ready`/`ci`.
