@@ -1,8 +1,8 @@
 import { Deferred, Effect, Exit, Scope } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { type SettledQueries, settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type SettledQueries, settledQueries } from "#testing.ts";
 import { shown } from "./answers.ts";
 import { completionEngine, records } from "./completionEngine.ts";
 

@@ -1,6 +1,6 @@
 import { Clock, Effect, Option, Random, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { WorkerReleaseTesting } from "#testing/WorkerRelease.ts";
+import { WorkerReleaseClock } from "#WorkerReleaseClock.ts";
 
 export const releaseWorkers = Effect.fn("EffectSql.releaseWorkers")(function* (
 	release: string,
@@ -10,7 +10,7 @@ export const releaseWorkers = Effect.fn("EffectSql.releaseWorkers")(function* (
 	const sql = yield* SqlClient.SqlClient;
 	const processId = `${yield* Random.nextInt}:${yield* Random.nextInt}`;
 	const workers = `${table}_workers`;
-	const testing = yield* Effect.serviceOption(WorkerReleaseTesting);
+	const testing = yield* Effect.serviceOption(WorkerReleaseClock);
 	const now = Option.isSome(testing)
 		? Clock.currentTimeMillis.pipe(
 				Effect.provideService(Clock.Clock, testing.value.clock),

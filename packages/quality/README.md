@@ -70,6 +70,8 @@ For an existing kit, compose the lower-level helpers through its local test-supp
 
 ### Dependency pins and repository hygiene
 
+`manifests/no-test-kits` rejects runtime packages that expose a `testing` module or declare `@shivaedev/test`, `@shivaedev/test-story`, `@shivaedev/test-sql`, `@shivaedev/test-kits` or `vitest` in dependencies, optional dependencies or peers. It checks explicit export names and targets, including conditions and fallback arrays, and inventoried testing modules exposed through wildcards. Blocked exports and development dependencies pass. Private applications and the test-tooling packages quality, vitest-rerun, test, test-story, test-sql and test-kits are exempt. Move reusable runtime-package helpers into test-kits and keep test dependencies in development dependencies.
+
 `manifests/dependency-pins` checks dependencies, development dependencies, optional dependencies and peers in every inventoried package manifest. External dependencies use exact versions, including npm aliases. Workspace, file and link dependencies stay local. Quality finds the nearest `pnpm-workspace.yaml` at or above its config folder. When that workspace declares a default or named catalog, external dependencies use `catalog:` or `catalog:<name>`, and the referenced catalog must contain that dependency. Catalog entries themselves use exact versions. Write catalogs as indented block mappings; inline mappings and YAML aliases receive findings instead of escaping the check.
 
 `files/ascii` is opt-in by file selection. It checks the bytes of selected text files, including a UTF-8 BOM, and reports each line containing non-ASCII bytes. Other files are left alone. Supply repository-relative glob patterns:

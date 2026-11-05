@@ -1,7 +1,7 @@
 import { STATUS_CODES } from "node:http";
 import { ConfigProvider, Effect } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { deliverWebhook, type WebhookSigner } from "#server/testing.ts";
+import { deliverWebhook, type WebhookSigner } from "@shivaedev/test-kits/webhooks/deliver.ts";
 import { MAX_BODY_BYTES, PRIVATE_FIELD, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import type { InboxState } from "#test/host.ts";
 import { TIMESTAMPED_SECRET, timestampedHeaders, timestampedSource } from "#test/timestampedSource.ts";

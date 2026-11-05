@@ -1,12 +1,12 @@
 import { type Duration, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
-import { WorkerReleaseTesting } from "@shivaedev/sql/testing/WorkerRelease.ts";
+import { WorkerReleaseClock } from "@shivaedev/sql/WorkerReleaseClock.ts";
 
 export const hostTime = Effect.fn("HostTime.hostTime")(function* () {
 	const clock = yield* TestClock.testClockWith(Effect.succeed);
-	const ticks = new Set<Parameters<typeof WorkerReleaseTesting.Service.register>[0]>();
+	const ticks = new Set<Parameters<typeof WorkerReleaseClock.Service.register>[0]>();
 	return {
-		layer: Layer.succeed(WorkerReleaseTesting, {
+		layer: Layer.succeed(WorkerReleaseClock, {
 			clock,
 			register: (tick) =>
 				Effect.acquireRelease(

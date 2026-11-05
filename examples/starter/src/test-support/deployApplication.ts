@@ -4,7 +4,7 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import { TestClock } from "effect/testing";
-import { hostTime } from "@shivaedev/server/testing/hostTime.ts";
+import { hostTime } from "@shivaedev/test-kits/host/time.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { runWorker } from "#server/runWorker.ts";

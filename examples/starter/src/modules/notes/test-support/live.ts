@@ -5,7 +5,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { SubscriptionHint } from "@shivaedev/contract/queryUpdate.ts";
-import { settledQueries } from "@shivaedev/contract/testing.ts";
+import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { Notes } from "#modules/notes/notes.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";

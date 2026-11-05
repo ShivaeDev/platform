@@ -69,6 +69,7 @@
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
+		"@shivaedev/webhooks": "workspace:*",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg-boss": "catalog:"

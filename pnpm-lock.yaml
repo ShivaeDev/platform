@@ -1359,9 +1359,6 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.7(effect@4.0.7)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
@@ -1437,9 +1434,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/pr-watch:
     dependencies:
@@ -2008,6 +2002,9 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      '@shivaedev/webhooks':
+        specifier: workspace:*
+        version: link:../webhooks
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)

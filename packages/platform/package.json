@@ -45,14 +45,12 @@
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
-		"@effect/vitest": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg-boss": "catalog:",
 		"react": "catalog:",
-		"react-dom": "catalog:",
-		"vitest": "catalog:"
+		"react-dom": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"@effect/atom-react": {
@@ -62,9 +60,6 @@
 			"optional": true
 		},
 		"@effect/sql-pg": {
-			"optional": true
-		},
-		"@effect/vitest": {
 			"optional": true
 		},
 		"@tanstack/react-router": {
@@ -80,9 +75,6 @@
 			"optional": true
 		},
 		"react-dom": {
-			"optional": true
-		},
-		"vitest": {
 			"optional": true
 		}
 	},

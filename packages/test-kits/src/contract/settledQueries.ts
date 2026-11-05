@@ -2,7 +2,7 @@ import { Effect, Queue } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { querySignals } from "#querySignals.ts";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 
 export interface SettledQueries<A, E> {
 	readonly latest: Effect.Effect<AsyncResult.AsyncResult<A, E>>;

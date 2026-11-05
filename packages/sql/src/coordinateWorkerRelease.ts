@@ -1,6 +1,6 @@
 import { Duration, Effect, Exit, Option, Predicate, Schedule, Scope } from "effect";
 import { isSqlError } from "effect/sql/SqlError";
-import { WorkerReleaseTesting } from "#testing/WorkerRelease.ts";
+import { WorkerReleaseClock } from "#WorkerReleaseClock.ts";
 import { makeWorkerRelease } from "./makeWorkerRelease.ts";
 import { readPostgresRelease } from "./postgresRelease.ts";
 import { releaseWorkers } from "./releaseWorkers.ts";
@@ -66,7 +66,7 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 	yield* loop("heartbeat", rows.heartbeat);
 	yield* tick("poll", poll).pipe(Scope.provide(scope));
 	yield* loop("poll", poll);
-	const testing = yield* Effect.serviceOption(WorkerReleaseTesting);
+	const testing = yield* Effect.serviceOption(WorkerReleaseClock);
 	if (Option.isSome(testing)) {
 		const context = yield* Effect.context<Effect.Services<typeof poll>>();
 		yield* testing.value.register({ heartbeat: rows.heartbeat, poll: poll.pipe(Effect.provideContext(context)) }).pipe(Scope.provide(scope));

@@ -735,12 +735,12 @@ The URL identifies the client configuration; the in-memory protocol opens no soc
 
 ### Settled queries in stories
 
-Use `settledQueries` from `@shivaedev/contract/testing.ts` in a story kit's scoped setup to observe a bound query:
+Use `settledQueries` from `@shivaedev/test-kits/contract/settledQueries.ts` in a story kit's scoped setup to observe a bound query:
 
 ```ts
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { settledQueries } from "@shivaedev/contract/testing.ts";
+import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 
 const results = yield* settledQueries(client.api.list.query()).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 const first = yield* results.next;

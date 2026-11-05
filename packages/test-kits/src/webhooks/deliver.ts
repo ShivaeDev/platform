@@ -1,7 +1,7 @@
 import { Effect, type Redacted } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
-import { githubHeaders } from "#server/adapters/githubHeaders.ts";
-import type { WebhookSource } from "#server/registration.ts";
+import type { WebhookSource } from "@shivaedev/webhooks/server/registration.ts";
+import { githubHeaders } from "#webhooks/adapters/githubHeaders.ts";
 
 export type WebhookSigner<E = never, R = never> = (
 	body: string,

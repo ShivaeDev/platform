@@ -159,7 +159,7 @@ Use `deliverWebhook` from the separate testing entry point to send a signed body
 
 ```ts
 import { FetchHttpClient } from "effect/http";
-import { deliverWebhook } from "@shivaedev/webhooks/server/testing.ts";
+import { deliverWebhook } from "@shivaedev/test-kits/webhooks/deliver.ts";
 
 const response = yield* deliverWebhook({
 	url: `${appUrl}/webhooks/github`,
