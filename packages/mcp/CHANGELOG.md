@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. A tool's `dependencies` are request-level in Effect 4.1.0, so `Layer.provide` of the service no longer satisfies them. Supply them through `McpServer.middleware<{ provides: Service }>()((effect) => Effect.provideService(effect, Service, value)).layer` provided to the tools layer.
+
 ## 0.8.5 - 2026-11-05
 
 ### Changed

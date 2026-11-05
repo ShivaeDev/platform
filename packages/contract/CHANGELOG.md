@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.39.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. Live query rerun-and-compare now requires Effect's `Digest` service from `effect/crypto` instead of `Crypto`; `@shivaedev/server` and `clientCrypto` from `@shivaedev/react` provide it.
+
 ## 0.38.0 - 2026-11-05
 
 ### Added
