@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.40.0 - 2026-11-05
+
+### Breaking
+
+- Require Effect 4.1.0 and its matching companion packages. Move `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/sql-pg`, `@effect/sql-sqlite-node`, `@effect/atom-react` and `@effect/vitest` to exactly 4.1.0 together. Then migrate the Effect 4.1.0 breaks:
+  - `Crypto` from `effect` and `effect/testing/TestCrypto` are gone. Read random bytes and UUIDs from `SecureRandom` and hashes from `Digest` in `effect/crypto` (`random.randomBytes(n)`, `random.uuidV4()`, `digest.digestHex(Digest.sha256, bytes)`); these no longer fail, so drop their `Effect.orDie`.
+  - `NodeServices.layer` no longer provides crypto. Add `NodeCrypto.layer` (every `effect/crypto` service) or `NodeCrypto.layerSecureRandom` from `@effect/platform-node`.
+  - `NodeSocket.layerWebSocketConstructorWS` and `NodeSocket.NodeWS` moved to `@effect/platform-node/NodeWS` as `layerWebSocketConstructor` and the module itself. `NodeSocket.layerWebSocketConstructor` and `NodeSocket.layerWebSocket` now always use Node's global WebSocket, so a client that needs `ws`, such as one on a `ws+unix://` URL, uses `Socket.layerWebSocket(url).pipe(Layer.provide(NodeWS.layerWebSocketConstructor))`.
+  - `Migrator.fromFileSystem` moved to `fromFileSystem` in `effect/sql/MigratorFileSystem`.
+  - `sql.insert` and `sql.updateValues` take a non-empty array; narrow with `Array.isReadonlyArrayNonEmpty` first.
+  - A hand-built `PgClient.PgClient` needs `poolStats`, and `ChildProcess` command `args` may hold `Redacted` values.
+  - Effect's `effect/crypto` declarations name the Web Crypto types `CryptoKey` and `JsonWebKey`. A project that type-checks library declarations (`skipLibCheck: false`) needs `DOM` in its `lib`.
+
 ## 0.39.2 - 2026-11-05
 
 ### Changed
