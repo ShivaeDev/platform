@@ -2,12 +2,12 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { Deferred, Effect, Fiber, FileSystem } from "effect";
 import { systemError } from "effect/PlatformError";
+import { seedTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Findings } from "#rule.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
-import { seedTree } from "#testing/adapters/tree.ts";
 
 interface RuleRun {
 	fiber: Fiber.Fiber<unknown, unknown> | undefined;

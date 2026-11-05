@@ -1,3 +1,6 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { logs } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import {
@@ -10,9 +13,6 @@ import {
 	projectIn,
 	withoutConfig,
 } from "#test/linkedWorktree.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
-import { logs } from "#testing/adapters/hookRepository.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";

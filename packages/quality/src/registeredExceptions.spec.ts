@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { trees } from "#test/trees.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const EXCEPTIONS = {
 	content:

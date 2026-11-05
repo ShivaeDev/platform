@@ -2,10 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { git } from "@shivaedev/test-kits/quality/adapters/git.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
-import { git } from "#testing/adapters/git.ts";
-import type { SeedFile } from "#testing/adapters/tree.ts";
 import type { Fixture } from "./fixtureTree.ts";
 import { type ImportEngine, importVerbs, writeAll } from "./importVerbs.ts";
 

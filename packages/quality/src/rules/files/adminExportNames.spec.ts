@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	for (const module of ["inbox", "admin/inbox"]) {

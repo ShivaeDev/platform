@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const folder of ["adapters", "nested/adapters", "router-adapters", "test-support"]) {
 	const adapter = folder.split("/").includes("adapters");

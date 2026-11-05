@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { decodeBaseline, encodeBaseline } from "#baseline/format.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const entries = [
 	{ count: 262, file: "src/b.ts", rule: "structure/max-lines" },

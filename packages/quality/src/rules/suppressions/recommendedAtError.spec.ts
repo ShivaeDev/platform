@@ -1,7 +1,7 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRecommends, EXTENDS_QUALITY, qualityPreset } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const PRESET = "node_modules/@shivaedev/quality/biome/preset.json";
 

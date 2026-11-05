@@ -54,7 +54,7 @@ export async function runStories({
 			config: false,
 			env: { ...env },
 			...(environment === undefined ? {} : { environment }),
-			execArgv: ["--import", fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"))],
+			execArgv: ["--import", fileURLToPath(import.meta.resolve("@shivaedev/test-kits/quality/adapters/compileCache.config.ts"))],
 			experimental: { importDurations: { limit: guardImports ? 10_000 : 0 } },
 			include: [include],
 			reporters: [],

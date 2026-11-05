@@ -1,8 +1,8 @@
 import { mkdirSync, realpathSync, symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
-import { linkPackage } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
+import { linkPackage } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 
 const load = createRequire(import.meta.url);
 
@@ -15,7 +15,7 @@ export function seedCiApplication(root: string, failing: boolean): void {
 	writes(
 		root,
 		"vitest.config.ts",
-		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"], { coverage: { enabled: false, include: ["src/double.ts"] } });\n',
+		'import { appTestConfig } from "@shivaedev/test-kits/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"], { coverage: { enabled: false, include: ["src/double.ts"] } });\n',
 	);
 	writes(
 		root,

@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [folder, name] of [
 	["packages/glass/client", "@antumbra/glass-client"],

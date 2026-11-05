@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
+import { testProjects } from "@shivaedev/test-kits/quality/adapters/testProjects.ts";
 
 export default defineConfig({
 	resolve: { conditions: ["@shivaedev/source", "module", "browser", "development|production"] },

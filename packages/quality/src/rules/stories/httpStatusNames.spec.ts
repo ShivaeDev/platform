@@ -1,9 +1,9 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { inStory } from "@shivaedev/test-kits/quality/adapters/storySpecFiles.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 

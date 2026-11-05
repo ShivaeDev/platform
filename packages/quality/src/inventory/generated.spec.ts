@@ -1,8 +1,8 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { config } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryTracks } from "#test/repositoryTracks.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { config } from "#testing/adapters/tree.ts";
 
 const GENERATED_IGNORED = { content: "node_modules/\nsrc/generated/\n", path: ".gitignore" };
 

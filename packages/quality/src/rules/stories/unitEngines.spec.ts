@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { orders, ordersPackage, pureOrders, unitSpec } from "#test/unitFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 

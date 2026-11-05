@@ -1,3 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { inStory, kitFiles } from "@shivaedev/test-kits/quality/adapters/storySpecFiles.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
@@ -6,8 +8,6 @@ import { positiveRefusals } from "#rules/stories/positiveRefusals.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const STORY = [
 	'import { Effect } from "effect"; import { MAX_ORDERS } from "./limits.ts"; function place() {}',

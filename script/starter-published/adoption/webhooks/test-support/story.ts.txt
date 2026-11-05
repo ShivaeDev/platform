@@ -4,7 +4,7 @@ import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { deliverWebhook } from "@shivaedev/webhooks/server/testing.ts";
+import { deliverWebhook } from "@shivaedev/test-kits/webhooks/deliver.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";

@@ -1,10 +1,10 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
 import { knipRunning } from "#test/knipRunning.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 qualityLifecycle.it(
 	"interrupting quality while Biome checks ends the run as interrupted without an error, stops Biome and removes quality's temporary Biome config",

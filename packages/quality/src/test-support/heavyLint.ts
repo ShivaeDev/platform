@@ -2,12 +2,12 @@ import { existsSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber, Queue } from "effect";
 import { ChildProcessSpawner } from "effect/process";
+import { capturing } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { config, defaultTree, removeSeededTrees } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, services } from "#cli/runMain.ts";
-import { capturing } from "#testing/adapters/cli.ts";
-import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 interface Run {
 	biomeStarted: boolean;

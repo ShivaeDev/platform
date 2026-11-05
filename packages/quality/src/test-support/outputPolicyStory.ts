@@ -3,9 +3,9 @@ import { rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { ConfigProvider, Effect } from "effect";
+import { TestOutput } from "@shivaedev/test-kits/quality/adapters/TestOutput.ts";
+import { packageRoot, seedTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { TestOutput } from "#adapters/TestOutput.ts";
-import { packageRoot, seedTree } from "#testing/adapters/tree.ts";
 
 interface OutputEngine {
 	ci: string;

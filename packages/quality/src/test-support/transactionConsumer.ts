@@ -1,4 +1,4 @@
-import type { SeedFile } from "#testing/adapters/tree.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 
 export function transactionConsumer(code: string, path = "src/consumer.ts"): SeedFile {
 	return {

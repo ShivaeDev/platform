@@ -1,6 +1,6 @@
 import { afterEach, expect } from "vitest";
-import { CLI_EXIT } from "@shivaedev/quality/testing/adapters/cli.ts";
-import { removeSeededTrees } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { CLI_EXIT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { removeSeededTrees } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { chainingPreCommit, pushDestination, RECORDING_COMMIT_MESSAGE, RECORDING_PUSH } from "#quality/test-support/globalHookFixtures.ts";
 import { globalHook, hookStory } from "#quality/test-support/hookStory.ts";
 

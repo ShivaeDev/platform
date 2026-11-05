@@ -1,8 +1,8 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { kitFiles } from "@shivaedev/test-kits/quality/adapters/storySpecFiles.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = {
 	content: 'import { app } from "#test/index.ts"; app.it("ships", [], function* ({ ship }) { yield* ship(); });',

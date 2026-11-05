@@ -1,4 +1,4 @@
-import type { SeedFile } from "#testing/adapters/tree.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 
 export const stylesheetImports = {
 	importing: (path: string, specifier: string): SeedFile => ({ content: `import "${specifier}";\n`, path }),

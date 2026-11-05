@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { echo, maxFiles, todo } from "#test/definedRules.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const THREE_FILES = [
 	{ content: "export const a = 1;\n", path: "src/a.ts" },

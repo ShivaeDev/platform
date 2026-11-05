@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { inStory } from "@shivaedev/test-kits/quality/adapters/storySpecFiles.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 for (const load of ['import "./test-support/wait.ts";', 'await import("./test-support/wait.ts");', 'require("./test-support/wait.ts");']) {
 	ruleStory.it(

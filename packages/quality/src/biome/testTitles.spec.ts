@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { helperNamed, invalidTestTitle } from "#test/titleInputs.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const name of ["describe", "it", "test"]) {
 	biomeStory.it(

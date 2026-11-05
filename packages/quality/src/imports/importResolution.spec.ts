@@ -1,8 +1,8 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { conditionalWorkspace, legacyWorkspace } from "#test/compilerResolution.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 importStory.it(
 	"the import graph resolves a tsconfig path, a package.json import, a workspace package's source export, a JSON file and require",

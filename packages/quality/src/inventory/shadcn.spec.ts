@@ -1,7 +1,7 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { shadcnApplication } from "#test/shadcnApplication.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 for (const [extension, packageImports] of [
 	["tsx", false],

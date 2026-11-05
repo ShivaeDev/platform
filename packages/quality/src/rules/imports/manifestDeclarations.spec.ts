@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SHIPPED = { content: 'import "plain-kit";', path: "modules/app/src/app.ts" };
 

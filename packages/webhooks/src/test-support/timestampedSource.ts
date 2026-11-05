@@ -1,7 +1,7 @@
 import { Clock, Config, Effect } from "effect";
-import { githubHeaders } from "#server/adapters/githubHeaders.ts";
+import { githubHeaders } from "@shivaedev/test-kits/webhooks/adapters/githubHeaders.ts";
+import type { WebhookSigner } from "@shivaedev/test-kits/webhooks/deliver.ts";
 import { githubStrategy } from "#server/github.ts";
-import type { WebhookSigner } from "#server/testing.ts";
 import { WebhookUnauthorized } from "#server/WebhookUnauthorized.ts";
 import { sources } from "#test/fixture.ts";
 

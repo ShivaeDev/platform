@@ -1,8 +1,8 @@
+import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { added, branchedFromMain, debtRecorded, lengthened, staged } from "#test/debtRecorded.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const HINT = "For moved files, carry their existing debt with `quality baseline prune --against <base>`.";
 const RECORDED = ["src/long.ts structure/max-lines 1", "src/longer.ts structure/max-lines 3"];

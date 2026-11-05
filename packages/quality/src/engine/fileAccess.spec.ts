@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestReadPending, scanFileAccess, scanRunning, unavailableRead } from "#test/scanFileAccess.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 scanFileAccess.it(
 	"interrupting a scan stops its pending manifest read without reading the next manifest",

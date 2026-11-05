@@ -1,8 +1,8 @@
 import { Effect, Redacted, Schema } from "effect";
-import { forkHost, type HostProcessOptions, hostResponse, receiveHostMessage, stopHost } from "#testing/adapters/hostProcess.ts";
-import { collectHostReadouts } from "#testing/adapters/hostProcessReadouts.ts";
-import { HostProcessError } from "./HostProcessError.ts";
-import { HostPrepared, HostReady, HostSignal } from "./hostProcessProtocol.ts";
+import { forkHost, type HostProcessOptions, hostResponse, receiveHostMessage, stopHost } from "#host/adapters/process.ts";
+import { collectHostReadouts } from "#host/adapters/processReadouts.ts";
+import { HostProcessError } from "./ProcessError.ts";
+import { HostPrepared, HostReady, HostSignal } from "./processProtocol.ts";
 
 export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* <E = never, R = never>(
 	options: HostProcessOptions & { readonly beforeStart?: Effect.Effect<void, E, R> },

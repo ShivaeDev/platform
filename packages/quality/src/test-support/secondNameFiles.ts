@@ -1,4 +1,4 @@
-import type { SeedFile } from "#testing/adapters/tree.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 
 export const secondNameFiles: readonly (SeedFile & { readonly shape: string })[] = [
 	{ content: 'import type { Original } from "./owner.ts";\nexport type Alias = Original;\n', path: "src/type.ts", shape: "type alias" },

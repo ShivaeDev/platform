@@ -3,12 +3,12 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
+import { quality } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
+import { git } from "@shivaedev/test-kits/quality/adapters/git.ts";
+import { writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { quality } from "#testing/adapters/cli.ts";
-import { git } from "#testing/adapters/git.ts";
-import { writes } from "#testing/adapters/hookRepository.ts";
-import { formatTree } from "#testing/adapters/qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 interface ExceptionEngine {

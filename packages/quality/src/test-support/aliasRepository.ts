@@ -1,4 +1,4 @@
-import type { SeedFile } from "#testing/adapters/tree.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import type { Fixture } from "./fixtureTree.ts";
 
 function json(path: string, value: unknown): SeedFile {

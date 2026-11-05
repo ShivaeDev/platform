@@ -55,6 +55,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

@@ -50,9 +50,11 @@
 	},
 	"dependencies": {
 		"@shivaedev/test-sql": "workspace:*",
-		"@shivaedev/test-story": "workspace:*"
+		"@shivaedev/test-story": "workspace:*",
+		"sort-package-json": "catalog:"
 	},
 	"devDependencies": {
+		"@effect/vitest": "catalog:",
 		"@shivaedev/github": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
@@ -62,16 +64,21 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/discord": "workspace:*",
 		"@shivaedev/email": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
+		"@shivaedev/webhooks": "workspace:*",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg-boss": "catalog:"
+		"pg-boss": "catalog:",
+		"vitest": "catalog:"
 	},
 	"engines": {
 		"node": ">=24"

@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, constants, existsSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { qualityArgs } from "@shivaedev/quality/testing/adapters/cli.ts";
-import { ISOLATED_ENV } from "@shivaedev/quality/testing/adapters/git.ts";
-import { hookPath } from "@shivaedev/quality/testing/adapters/hookPath.ts";
-import { checksLog, hookMode, hookRepository, logs, withScripts, writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
-import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { qualityArgs } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { ISOLATED_ENV } from "@shivaedev/test-kits/quality/adapters/git.ts";
+import { hookPath } from "@shivaedev/test-kits/quality/adapters/hookPath.ts";
+import { checksLog, hookMode, hookRepository, logs, withScripts, writes } from "@shivaedev/test-kits/quality/adapters/hookRepository.ts";
+import { seedTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const hookStory = storyKit({

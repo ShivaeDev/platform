@@ -1,12 +1,12 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Cause, Effect, Exit } from "effect";
+import { scanned } from "@shivaedev/test-kits/quality/adapters/imports.ts";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { configureRegistered } from "#adapters/rule.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import type { Finding, Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
-import { scanned } from "#testing/adapters/imports.ts";
-import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export interface ImportEngine {
 	findings: Findings | undefined;

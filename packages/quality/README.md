@@ -36,12 +36,12 @@ Interrupting a run stops pending manifest reads and its Biome and knip processes
 
 ### Testing a custom rule
 
-Create a kit with `makeRuleStory` from the published testing module, and declare it at module level in your local test-support facade. Use it with `@shivaedev/test-story` and Vitest. `repositoryHas` seeds files in a scoped temporary repository, and `check` runs a rule against Quality's real inventory. The optional third argument selects a directory within the fixture; the default is the fixture root. `findings`, `locations` and `messages` read the last check's results. Specs state the expectations.
+Create a kit with `makeRuleStory` from `@shivaedev/test-kits/quality/ruleStory.ts`, and declare it at module level in your local test-support facade. Use it with `@shivaedev/test-story` and Vitest. `repositoryHas` seeds files in a scoped temporary repository, and `check` runs a rule against Quality's real inventory. The optional third argument selects a directory within the fixture; the default is the fixture root. `findings`, `locations` and `messages` read the last check's results. Specs state the expectations.
 
 ```ts
 import { expect } from "vitest";
 import { defineRule } from "@shivaedev/quality/rule.ts";
-import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
+import { makeRuleStory } from "@shivaedev/test-kits/quality/ruleStory.ts";
 
 const ruleStory = makeRuleStory();
 const { repositoryHas } = ruleStory;
@@ -64,11 +64,13 @@ ruleStory.it(
 );
 ```
 
-Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, `gateReport()` reads its output, and `gateReports(prefix)` reads the finding sections whose rule starts with that prefix. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/quality/testing/adapters/cli.ts` to spawn a fresh command after changing a config.
+Seed a `quality.config.ts` that registers the custom rule to test the whole gate. `gate()` runs `quality lint`; `gateOutcome()` reads `passed`, `rejected` or `invalid`, `gateReport()` reads its output, and `gateReports(prefix)` reads the finding sections whose rule starts with that prefix. `writes(...)` changes fixture files and `removes(path)` deletes them. Use the kit’s `qualityInstalled()` trait when a fixture imports Quality or its tooling presets. It links the installed package into that fixture. The kit removes its temporary repository when the scope closes. Config imports are cached within the process, so use `quality` from `@shivaedev/test-kits/quality/adapters/cli.ts` to spawn a fresh command after changing a config.
 
-For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/quality/testing/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/quality/testing/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/quality/testing/adapters/cli.ts` runs commands in process. Yield `runQuality(root, "lint")` as an Effect in the kit so it uses the story's controlled clock. These helpers use the same engine as the rule story kit.
+For an existing kit, compose the lower-level helpers through its local test-support facade: `seedTree` and `removeSeededTrees` from `@shivaedev/test-kits/quality/adapters/tree.ts` manage fixture files; `scanned` and `findingsIn` from `@shivaedev/test-kits/quality/adapters/imports.ts` collect inventory and run a configured rule; `runQuality` from `@shivaedev/test-kits/quality/adapters/cli.ts` runs commands in process. Yield `runQuality(root, "lint")` as an Effect in the kit so it uses the story's controlled clock. These helpers use the same engine as the rule story kit.
 
 ### Dependency pins and repository hygiene
+
+`manifests/no-test-kits` rejects published packages that expose a `testing` module or declare `@shivaedev/test`, `@shivaedev/test-story`, `@shivaedev/test-sql`, `@shivaedev/test-kits` or `vitest` in dependencies, optional dependencies or peers. It checks explicit export names and targets, including conditions and fallback arrays, and inventoried testing modules exposed through wildcards. Blocked exports, development dependencies, private packages and the test packages themselves are exempt. Move reusable helpers into test-kits and keep test dependencies in development dependencies.
 
 `manifests/dependency-pins` checks dependencies, development dependencies, optional dependencies and peers in every inventoried package manifest. External dependencies use exact versions, including npm aliases. Workspace, file and link dependencies stay local. Quality finds the nearest `pnpm-workspace.yaml` at or above its config folder. When that workspace declares a default or named catalog, external dependencies use `catalog:` or `catalog:<name>`, and the referenced catalog must contain that dependency. Catalog entries themselves use exact versions. Write catalogs as indented block mappings; inline mappings and YAML aliases receive findings instead of escaping the check.
 
@@ -508,9 +510,7 @@ Import names from their defining module; there is no root entry. The package's `
 | `imports/fence.ts`            | `fence`                                                                                                                |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`                      |
 | `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`                           |
-| `adapters/testProjects.ts`    | `testProjects`, `TestProjectsOptions`                                                                                  |
 | `appViteConfig.ts`            | `appViteConfig`                                                                                                        |
-| `appTestConfig.ts`            | `appTestConfig`                                                                                                        |
 | `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                                   |
 
 #### Config
@@ -607,7 +607,7 @@ export default appViteConfig([tailwindcss(), react()]);
 Use this in `vite.config.ts`. Plugins belong to the app. The web server port defaults to `VITE_PORT`, then 5173. The API port defaults to `PORT`, then 3000. These variables come from the process environment. Pass `{ webPort: 5273, apiPort: 3100 }` as the fourth argument to override either port, for example `appViteConfig(plugins, [], ["/health"], { webPort: 5273, apiPort: 3100 })`. The shared server proxies `/api/auth` and `/rpc` to the API port on `127.0.0.1`, preserving the request Host. Pass extra host routes as the third argument to proxy them to the same host during development. It enables TypeScript path resolution. Client routes, including administration pages, stay on Vite.
 
 ```ts
-import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
+import { appTestConfig } from "@shivaedev/test-kits/quality/appTestConfig.ts";
 
 export default appTestConfig();
 ```
@@ -617,7 +617,7 @@ Use this in `vitest.config.ts`. It composes `testProjects` with browser and serv
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 
 ```ts
-import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
+import { testProjects } from "@shivaedev/test-kits/quality/adapters/testProjects.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({ test: testProjects() });
@@ -643,7 +643,7 @@ Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provi
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 
 ```ts
-import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
+import { testProjects } from "@shivaedev/test-kits/quality/adapters/testProjects.ts";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({

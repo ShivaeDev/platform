@@ -1,8 +1,8 @@
 import type { ChildProcess } from "node:child_process";
 import process from "node:process";
 import { Option, Predicate, Schema } from "effect";
-import { HostReadouts } from "#testing/hostProcessProtocol.ts";
-import { receiveHostMessage } from "./hostProcess.ts";
+import { HostReadouts } from "#host/processProtocol.ts";
+import { receiveHostMessage } from "./process.ts";
 
 export function listenHostReadouts(read: () => typeof HostReadouts.Type) {
 	function requested(message: unknown) {

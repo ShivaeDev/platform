@@ -1,7 +1,7 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { hookCommand, shellWords } from "#hooks/command.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const PRE_COMMIT = ["hooks", "pre-commit"];
 

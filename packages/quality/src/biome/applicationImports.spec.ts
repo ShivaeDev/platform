@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { generatedApplication } from "#test/applicationFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const BROUGHT = [
 	{ content: 'import { repository } from "@shivaedev/sql/repository.ts";\n\nexport const app = repository;\n', path: "src/app.ts" },

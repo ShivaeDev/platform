@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { nonEffectConfig, nonEffectFiles } from "#test/nonEffectFiles.ts";
 import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const REPOSITORY = [qualityInstalled(), effectResolves(), repositoryHas(...nonEffectFiles)];
 

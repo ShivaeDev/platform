@@ -1,5 +1,5 @@
 import { Effect, Layer, Scope } from "effect";
-import type { hostProcessReadouts } from "#testing/hostProcessReadouts.ts";
+import type { hostProcessReadouts } from "@shivaedev/test-kits/host/processReadouts.ts";
 
 export function observeFinalizers(readouts: Effect.Success<typeof hostProcessReadouts>, names: ReadonlyMap<object, string>): Layer.MemoMap {
 	const memo = Layer.makeMemoMapUnsafe();

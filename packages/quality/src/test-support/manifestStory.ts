@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
+import { config, linkPackage, type SeedFile, seedTree } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
-import { config, linkPackage, type SeedFile, seedTree } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 interface ManifestEngine {

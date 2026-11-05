@@ -1,7 +1,7 @@
+import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestIsDirectory, manifestStory, repositoryHas } from "#test/manifestStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const BROKEN = "packages/broken/package.json";
 

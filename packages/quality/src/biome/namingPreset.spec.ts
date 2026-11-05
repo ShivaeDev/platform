@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { expectedPlugins, type Line, namingSource } from "#test/namingFindings.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const IMPORTS: Line = ['import { Effect, Layer, Schema } from "effect";'];
 

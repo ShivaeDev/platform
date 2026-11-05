@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { headingAnchors } from "#docs/headingAnchors.ts";
 import { markdownLines } from "#docs/markdownLines.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 function anchorsOf(...lines: readonly string[]): readonly string[] {
 	return [...headingAnchors(markdownLines(lines.join("\n")))];

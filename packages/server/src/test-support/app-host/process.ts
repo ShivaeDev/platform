@@ -4,9 +4,9 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Config, Deferred, Effect, Exit, Fiber, Layer, Scope } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { TestClock } from "effect/testing";
+import { acknowledgeHostSignal, reportHostReady } from "@shivaedev/test-kits/host/processChild.ts";
+import { hostProcessReadouts } from "@shivaedev/test-kits/host/processReadouts.ts";
 import { appHost } from "#appHost.ts";
-import { acknowledgeHostSignal, reportHostReady } from "#testing/hostProcessChild.ts";
-import { hostProcessReadouts } from "#testing/hostProcessReadouts.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 
 NodeRuntime.runMain(

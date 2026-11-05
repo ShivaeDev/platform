@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { lines } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { maxLines } from "#rules/maxLines.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { lines } from "#testing/adapters/tree.ts";
 
 ruleStory.it(
 	"structure/max-lines reports a source file over 150 lines with the number of lines over the limit",

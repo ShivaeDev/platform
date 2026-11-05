@@ -1,9 +1,9 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { fence } from "#imports/fence.ts";
 import { external, folders, modules } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { emptyFolders, importStory, repositoryHas, workspaceInstalled } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const BROWSER_FENCE = fence("legacy-browser-stays-off-disk")
 	.because("The existing browser code needs no Node.")

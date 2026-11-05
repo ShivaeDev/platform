@@ -1,5 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { environmentPorts, viteConfig } from "#test/viteConfig.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const { name, env, options, webPort, apiPort } of [
 	{ apiPort: 3000, env: {}, name: "defaults", options: {}, webPort: 5173 },

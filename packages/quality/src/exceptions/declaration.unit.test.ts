@@ -1,7 +1,7 @@
 import { describe } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/test/adapters/it.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { decodeExceptions } from "./declaration.ts";
 
 const REASON = "The parser owns the external format.";

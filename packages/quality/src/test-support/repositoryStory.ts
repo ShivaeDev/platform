@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { formatTree } from "@shivaedev/test-kits/quality/adapters/formatTree.ts";
+import { commitAll, git } from "@shivaedev/test-kits/quality/adapters/git.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { commitAll, git } from "#testing/adapters/git.ts";
-import { formatTree } from "#testing/adapters/qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 interface RepositoryEngine {

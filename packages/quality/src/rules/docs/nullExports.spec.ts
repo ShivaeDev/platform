@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, markdown, noModule } from "#test/docsRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const OPEN_MANIFEST = {
 	content: JSON.stringify({ exports: { "./*.ts": { "@shivaedev/source": "./src/*.ts" } }, name: "@acme/lib" }),

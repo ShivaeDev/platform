@@ -1,8 +1,8 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { evaluate, passes } from "#engine/evaluate.ts";
 import { levels, violation } from "#test/violations.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const known = levels({ "local/todo": "error", "structure/max-lines": "error" });
 

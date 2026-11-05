@@ -339,6 +339,9 @@ importers:
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:packages/sql
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:packages/test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:packages/test-story
@@ -479,6 +482,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -579,6 +585,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -613,6 +622,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -644,6 +656,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -681,6 +696,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -712,6 +730,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -743,6 +764,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -764,6 +788,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -856,6 +883,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -880,6 +910,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -972,6 +1005,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1003,6 +1039,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1037,6 +1076,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1119,6 +1161,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1143,6 +1188,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1280,6 +1328,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1359,9 +1410,6 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.7(effect@4.0.7)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
@@ -1437,9 +1485,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/pr-watch:
     dependencies:
@@ -1465,6 +1510,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1523,6 +1571,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1551,6 +1602,9 @@ importers:
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1670,6 +1724,9 @@ importers:
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1703,6 +1760,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1730,6 +1790,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1833,6 +1896,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1863,6 +1929,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1939,6 +2008,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1963,6 +2035,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1981,6 +2056,12 @@ importers:
 
   packages/test-kits:
     dependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.7(effect@4.0.7)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared':
+        specifier: 4.0.7
+        version: 4.0.7(effect@4.0.7)
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
@@ -2008,10 +2089,19 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      '@shivaedev/webhooks':
+        specifier: workspace:*
+        version: link:../webhooks
       pg-boss:
         specifier: 'catalog:'
         version: 12.38.0(@opentelemetry/api@1.9.1)
+      sort-package-json:
+        specifier: 'catalog:'
+        version: 4.1.0
     devDependencies:
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.7(effect@4.0.7)(vitest@5.0.5)
       '@shivaedev/github':
         specifier: workspace:*
         version: link:../github
@@ -2113,6 +2203,9 @@ importers:
       '@shivaedev/react':
         specifier: workspace:*
         version: link:../react
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -2171,6 +2264,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-kits':
+        specifier: workspace:*
+        version: link:../test-kits
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

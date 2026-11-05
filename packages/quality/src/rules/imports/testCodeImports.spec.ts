@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const REPAIR = "Move the shared code into a production module and import it from both production and tests.";
 

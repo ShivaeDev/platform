@@ -1,7 +1,7 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { builtInRules } from "#rules/builtIn.ts";
 import { configFile, configLinksToMissingFile, configLoading } from "#test/configLoading.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const DEFAULT_SETTINGS = {
 	baseline: "quality-baseline.jsonl",

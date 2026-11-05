@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { draftRule } from "./draftRule.js";
-import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
+import { makeRuleStory } from "@shivaedev/test-kits/quality/ruleStory.ts";
 
 const ruleStory = makeRuleStory();
 const { qualityInstalled, repositoryHas } = ruleStory;

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpServer } from "effect/http";
-import { sendHostMessage, sendHostReady, waitForHostStart } from "#testing/adapters/hostProcess.ts";
-import { HostProcessError } from "#testing/HostProcessError.ts";
+import { sendHostMessage, sendHostReady, waitForHostStart } from "#host/adapters/process.ts";
+import { HostProcessError } from "#host/ProcessError.ts";
 
 export const awaitHostStart = Effect.tryPromise({
 	catch: (cause) => new HostProcessError({ cause, operation: "launch" }),

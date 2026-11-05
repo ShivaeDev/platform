@@ -1,5 +1,5 @@
+import { expect } from "@effect/vitest";
 import { Schema } from "effect";
-import { expect } from "vitest";
 import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";

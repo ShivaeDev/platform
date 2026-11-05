@@ -1,2 +1,5 @@
 {"path":"packages/test-kits/src/contract/testing.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/test-kits/src/jobs/internal/testingOperation.ts","rule":"effect/boundary","count":1}
+{"path":"packages/test-kits/src/quality/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/test-kits/src/quality/unitIoGuard.config.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/test-kits/src/quality/unitIoGuard.config.ts","rule":"effect/boundary","count":5}

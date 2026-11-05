@@ -1,5 +1,5 @@
+import { expect } from "@effect/vitest";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { expect } from "vitest";
 import { githubConsumer, QUERY } from "#test/githubConsumer.ts";
 
 githubConsumer.it(

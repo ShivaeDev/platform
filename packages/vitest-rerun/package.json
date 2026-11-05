@@ -57,6 +57,7 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "catalog:",

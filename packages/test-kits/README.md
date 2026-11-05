@@ -174,6 +174,14 @@ yield* testing.untilJob(SendEmail, id, "completed", { within: "5 seconds" });
 // Gave up after 5s waiting until job <id> in send-email is completed; last seen: retry
 ```
 
+### Quality fixtures and runner configuration
+
+Use `makeRuleStory` from `@shivaedev/test-kits/quality/ruleStory.ts` to drive Quality against fixture repositories. Its traits seed files, its verbs check rules or run the gate, and specs assert on findings. The [Quality guide](https://github.com/ShivaeDev/platform/tree/main/packages/quality#testing-a-custom-rule) describes the kit. Vitest configuration uses `testProjects` from `@shivaedev/test-kits/quality/adapters/testProjects.ts` or `appTestConfig` from `@shivaedev/test-kits/quality/appTestConfig.ts`.
+
+### Host processes and query observations
+
+Import `hostProcess`, `hostProcessReadouts`, `hostTime` and the child IPC helpers from their modules under `@shivaedev/test-kits/host/`. The [host guide](https://github.com/ShivaeDev/platform/tree/main/packages/server#readme) describes real-process setup and lifecycle observations. `hostTime` provides SQL’s `WorkerReleaseClock` scheduling port with the story’s controlled clock. Query observations use `settledQueries` from `@shivaedev/test-kits/contract/settledQueries.ts`; signed webhook senders use `deliverWebhook` from `@shivaedev/test-kits/webhooks/deliver.ts`.
+
 ### Development setup
 
 Install `@shivaedev/test-kits` as a development dependency alongside `effect`, Better Auth and the runtime packages used by the kit. The package depends on `@shivaedev/test-story` and `@shivaedev/test-sql`; runtime packages are peers. The [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) describes how to compose an application's facade and prove its behavior.

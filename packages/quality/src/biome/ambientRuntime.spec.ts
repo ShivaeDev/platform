@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { AMBIENT_RUNTIME_CASES, ambientFiles } from "#test/ambientRuntimeFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, expression] of AMBIENT_RUNTIME_CASES) {
 	biomeStory.it(

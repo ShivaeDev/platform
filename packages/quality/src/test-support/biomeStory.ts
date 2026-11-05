@@ -2,14 +2,14 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { scanned } from "@shivaedev/test-kits/quality/adapters/imports.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
+import { locationOf } from "@shivaedev/test-kits/quality/ruleStory.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { recommendedRules } from "#biome/recommendedRules.ts";
 import { services } from "#cli/runMain.ts";
 import type { Findings } from "#rule.ts";
 import { biome } from "#rules/biome.ts";
-import { scanned } from "#testing/adapters/imports.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
-import { locationOf } from "#testing/ruleStory.ts";
 import { pluginOf } from "./namingFindings.ts";
 
 interface BiomeEngine {

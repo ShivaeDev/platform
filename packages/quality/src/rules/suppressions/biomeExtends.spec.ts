@@ -1,8 +1,8 @@
+import { assertThat, withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { ACME, acmePackage, extending, weak } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const CONFIGS = { "a.json": weak("a"), "b.json": weak("b"), "configs/strict.json": weak("strict") };
 

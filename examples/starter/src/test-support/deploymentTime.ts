@@ -1,7 +1,7 @@
 import process from "node:process";
 import { createInterface } from "node:readline";
 import { Effect, Schema, Stream } from "effect";
-import type { hostTime } from "@shivaedev/server/testing/hostTime.ts";
+import type { hostTime } from "@shivaedev/test-kits/host/time.ts";
 
 const PassTime = Schema.fromJsonString(Schema.Struct({ milliseconds: Schema.Number, poll: Schema.Boolean }));
 

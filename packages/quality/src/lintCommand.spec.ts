@@ -1,9 +1,9 @@
+import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
+import { config } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { trees } from "#test/trees.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
-import { config } from "#testing/adapters/tree.ts";
 
 const COMMENTED = { content: "/** Adds. */\nexport const a = 1; // TODO\n// three\n", path: "src/a.ts" };
 

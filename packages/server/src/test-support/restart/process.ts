@@ -3,8 +3,8 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Clock, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { awaitHostStart, reportHostReady } from "@shivaedev/test-kits/host/processChild.ts";
 import { appHost } from "#appHost.ts";
-import { awaitHostStart, reportHostReady } from "#testing/hostProcessChild.ts";
 import { RestartNotes } from "./Notes.ts";
 
 NodeRuntime.runMain(

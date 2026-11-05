@@ -1,12 +1,12 @@
 import { Effect, Exit, type Redacted, Result, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
+import { hostProcess } from "@shivaedev/test-kits/host/process.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { hostProcess } from "#testing/hostProcess.ts";
 
 const options = { execArgv: ["--conditions=@shivaedev/source"], module: new URL("./process.ts", import.meta.url) };
 

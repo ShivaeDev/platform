@@ -1,7 +1,7 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { sameWord } from "#naming/words.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("sameWord", () => {
 	it.effect("matches the plural folder name categories to the singular category", function* () {

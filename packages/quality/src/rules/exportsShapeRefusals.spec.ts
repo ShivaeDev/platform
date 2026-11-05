@@ -1,7 +1,13 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import {
+	exportsShapeMessage,
+	exportsWorkspace,
+	FILE_PATH_EXPORTS,
+	LIBRARY_MANIFEST,
+	packageExports,
+} from "@shivaedev/test-kits/quality/adapters/packageExports.ts";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
 
 const NOT_SUBPATH_MAPS = [
 	["a string target", "./dist/index.js"],

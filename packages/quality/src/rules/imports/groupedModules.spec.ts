@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { brokenModuleImports, groupedModules } from "#test/groupedModules.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	const workspace = repositoryHas(

@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualitySignal } from "#test/qualitySignal.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
 	qualitySignal.it(

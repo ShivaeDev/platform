@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
 import { shadcnApplication } from "#test/shadcnApplication.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 inventoryStory.it(
 	"a nested app skips stock shadcn filenames only inside its configured UI folder, keeping helpers, tests and stock names elsewhere",

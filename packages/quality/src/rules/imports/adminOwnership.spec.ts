@@ -1,5 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { adminPaths } from "./adminPaths.ts";
 
 for (const directory of ["", "packages/app/"]) {

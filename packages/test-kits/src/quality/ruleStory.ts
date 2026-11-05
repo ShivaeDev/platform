@@ -1,11 +1,11 @@
 import { Effect, FileSystem, Path } from "effect";
+import { configureRegistered } from "@shivaedev/quality/adapters/rule.ts";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
+import type { Finding, Findings, RegisteredRule, Rule } from "@shivaedev/quality/rule.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { configureRegistered } from "#adapters/rule.ts";
-import { services } from "#cli/runMain.ts";
-import type { Finding, Findings, RegisteredRule, Rule } from "#rule.ts";
-import { type Run, runQuality } from "#testing/adapters/cli.ts";
-import { scanned } from "#testing/adapters/imports.ts";
-import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
+import { type Run, runQuality } from "#quality/adapters/cli.ts";
+import { scanned } from "#quality/adapters/imports.ts";
+import { packageRoot, type SeedFile } from "#quality/adapters/tree.ts";
 
 interface RuleEngine {
 	answer: Run | undefined;

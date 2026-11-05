@@ -1,7 +1,7 @@
+import { withMatchers } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { malformedBiomeVcs, qualityLifecycle } from "#test/qualityLifecycle.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const [setting, value] of [
 	["VCS section that is not an object", false],

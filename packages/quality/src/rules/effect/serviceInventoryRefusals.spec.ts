@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
+import { CLI_TIMEOUT } from "@shivaedev/test-kits/quality/adapters/cli.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { effectInstalled } from "#test/consumerServices.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { ASSEMBLY_INVENTORY, assemblyFiles, serviceAssembly, serviceInstalled } from "#test/serviceAssemblyFiles.ts";
-import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const consumer = [qualityInstalled(), effectInstalled(), serviceInstalled(), repositoryHas(...assemblyFiles)];
 

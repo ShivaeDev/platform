@@ -1,9 +1,9 @@
 import { describe } from "@effect/vitest";
 import { Effect } from "effect";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { applyRegistry, decodeRegistry } from "#exceptions/registry.ts";
 import { levels, violation } from "#test/violations.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const known = levels({ "biome/override": "error", "pragmas/ts-expect-error": "error" });
 const REASON = "Compile-time proof that the types reject the value.";

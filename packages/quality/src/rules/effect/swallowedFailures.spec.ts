@@ -1,5 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { failureHonesty } from "./failureHonesty.ts";
 
 const EFFECT_IMPORT = 'import { Effect as E, FileSystem } from "effect";';

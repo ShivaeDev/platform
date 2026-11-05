@@ -7,7 +7,7 @@ export function runAdminStories(app: string, starter: string, foundationOnly = f
 	writeFileSync(join(app, child), readFileSync(join(starter, child)));
 	writeFileSync(
 		join(app, "admin-stories.config.ts"),
-		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"]);\n',
+		'import { appTestConfig } from "@shivaedev/test-kits/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"]);\n',
 	);
 	return appScript(
 		app,

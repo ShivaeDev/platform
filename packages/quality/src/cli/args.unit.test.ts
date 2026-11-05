@@ -1,7 +1,7 @@
 import { describe } from "@effect/vitest";
 import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { parseCommand } from "#cli/args.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 describe("parseCommand", () => {
 	it.effect.each([

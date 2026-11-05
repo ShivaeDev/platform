@@ -1,5 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { biomeStory } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 biomeStory.it(
 	"Biome's recommended preset lists suspicious/noDebugger, which it enables, and not style/useBlockStatements, which it leaves off",

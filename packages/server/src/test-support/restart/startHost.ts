@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { hostProcess } from "#testing/hostProcess.ts";
+import { hostProcess } from "@shivaedev/test-kits/host/process.ts";
 
 export function startHost(port = 0, beforeStart = Effect.void) {
 	return hostProcess({

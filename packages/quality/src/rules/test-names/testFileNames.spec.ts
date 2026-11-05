@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const CART = { content: "export {};\n", path: "src/cart/cart.ts" };
 const BASKET = { content: "export {};\n", path: "src/cart/Basket.tsx" };

@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
-import { shellWords } from "#hooks/command.ts";
+import { shellWords } from "@shivaedev/quality/hooks/command.ts";
 import { qualityArgs, type Run } from "./cli.ts";
+import { formatTree } from "./formatTree.ts";
 import { commitAll, git, isolatedEnvironment } from "./git.ts";
-import { formatTree } from "./qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile, seedTree } from "./tree.ts";
 
 export interface HookRepository {

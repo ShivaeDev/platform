@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import type { SeedFile } from "@shivaedev/test-kits/quality/adapters/tree.ts";
 import type { Rule } from "#rule.ts";
 import { biomeRecommendedFrom } from "#rules/suppressions/biomeRecommended.ts";
-import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const ACME = "node_modules/@acme/lint";
 

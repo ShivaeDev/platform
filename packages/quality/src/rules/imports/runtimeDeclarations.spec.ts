@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { workerMember } from "#test/workerMember.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const MEMBERS = { content: '{"workspaces":["modules/*"]}', path: "package.json" };
 

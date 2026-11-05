@@ -1,5 +1,5 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { gitTracks, inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GITIGNORES = [
 	{ content: ".worktree/\nbuild/\n*.scratch.ts\n", path: ".gitignore" },

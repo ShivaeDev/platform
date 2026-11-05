@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const scanned = [
 	["ignores comment markers inside strings", "src/a.ts", ['const a = "// TODO";', "const b = '/* TODO */';"], []],

@@ -1,7 +1,7 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { carries, effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 // A Reference whose value is a function, so a parameter of that function type must not count as carrying it.
 const CALLBACK_REFERENCE = [

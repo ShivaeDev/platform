@@ -1,3 +1,4 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import type { Rule } from "#rule.ts";
 import { noBanner } from "#rules/comments/noBanner.ts";
 import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
@@ -6,7 +7,6 @@ import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;

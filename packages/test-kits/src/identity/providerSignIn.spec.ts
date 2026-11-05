@@ -1,5 +1,5 @@
+import { expect } from "@effect/vitest";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { expect } from "vitest";
 import { oauthConsumer } from "#test/oauthConsumer.ts";
 
 for (const basic of [false, true]) {

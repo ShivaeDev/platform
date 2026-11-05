@@ -1,6 +1,6 @@
+import { assertThat } from "@shivaedev/test-kits/quality/adapters/assertThat.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 

@@ -1,8 +1,8 @@
+import { expectTypeOf } from "@effect/vitest";
 import { type Effect, Schema } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { expectTypeOf } from "vitest";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { changes } from "@shivaedev/sql/changes.ts";
 import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
