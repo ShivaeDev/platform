@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, Schema, Stream } from "effect";
+import { Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -38,9 +38,8 @@ const Read = query("read", {
 });
 const Reads = contract("reads", { queries: [Read] }).middleware(Guard);
 const viewer = Option.some({ id: "alice" });
-const layer = Layer.unwrap(
-	Effect.map(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL"), (url) => makePostgresTestLayer({ initialize: Effect.void, url })),
-);
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
+const layer = makePostgresTestLayer({ initialize: Effect.void, url: Redacted.make(url ?? "postgresql://integration-tests-disabled") });
 
 export const readPolicyStory = storyKit({
 	around: withIsolatedDatabase,
@@ -72,7 +71,7 @@ export const readPolicyStory = storyKit({
 	inspect: ({ registry }) => ({ mountedAtoms: registry.getNodes().size, viewer: Option.getOrNull(viewer) }),
 	layer,
 	name: "fallible live read policies",
-	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
+	runIf: configured,
 	stages: [],
 	verbs: ({ api, client, live, registry, sql }, story) => {
 		let finished: Effect.Effect<void, unknown> | undefined;

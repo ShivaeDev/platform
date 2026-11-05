@@ -14,7 +14,7 @@ import { answer } from "#test-support/answers.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { type RunningHost, startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { adminGroup } from "./group.ts";
 
@@ -51,6 +51,7 @@ export const adminHost = storyKit({
 	inspect: ({ host, url }) => ({ baseUrl: host.baseUrl, url }),
 	layer: postgres,
 	name: "admin host",
+	runIf: configured,
 	stages: ["accounts", "development"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("AdminStory.adminOf")(function* (name: string) {

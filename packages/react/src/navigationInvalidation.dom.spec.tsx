@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { loaderScreen, noteLeftAfterShowing } from "#test/loaderScreen.tsx";
+import { loaderScreen } from "#test/loaderScreen.tsx";
+import { noteLeftAfterShowing } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
 	"following the Note link after the note was renamed elsewhere shows the new title from its first render, with one server read per visit",

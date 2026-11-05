@@ -1,12 +1,12 @@
 import { Effect, Fiber, Queue, Redacted, Stream } from "effect";
 import { Migrator } from "effect/sql";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { machineTokenMigration } from "#server/adapters/machineTokenMigration.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl } from "#test/postgres.ts";
 import { httpClient, socketClient } from "./clients.ts";
 import { ownerHost, REVALIDATION_INTERVAL } from "./host.ts";
 

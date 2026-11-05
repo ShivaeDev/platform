@@ -41,7 +41,7 @@ export const email = storyKit({
 	inspect: (engine) => ({ logs: engine.logs }),
 	layer: postgres,
 	name: "transactional email over PostgreSQL and Resend HTTP",
-	runIf: configured !== "",
+	runIf: configured,
 	stages: ["provider"],
 	verbs: (engine, story) => ({
 		delivered: engine.mail.emails,

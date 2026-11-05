@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { type ManagedRole, type Person, type RoleActor, roleManagementHost } from "./roleManagementHost.ts";
 
 export const roleManagement = storyKit({

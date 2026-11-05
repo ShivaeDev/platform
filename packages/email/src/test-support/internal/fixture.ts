@@ -1,5 +1,6 @@
-import { Config, Effect, Redacted, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import { Migrator } from "effect/sql";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { defineEmailQueue } from "#server/defineEmailQueue.ts";
 
@@ -17,9 +18,11 @@ export const Emails = defineEmailQueue(Message, ({ _tag, url }) =>
 	}),
 );
 
-export const configured = Effect.runSync(Config.String("PLATFORM_JOBS_TEST_DATABASE_URL").pipe(Config.withDefault("")));
+const { url: databaseUrl, configured } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
+
+export { configured };
 export const postgres = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
 	prepare: false,
-	url: Redacted.make(configured || "postgresql://integration-tests-disabled"),
+	url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 });

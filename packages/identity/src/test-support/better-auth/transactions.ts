@@ -2,12 +2,12 @@ import { getAdapter } from "better-auth/db/adapter";
 import { getMigrations } from "better-auth/db/migration";
 import { Data, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl } from "#test/postgres.ts";
 
 class Cancelled extends Data.TaggedError("Cancelled")<{ readonly createdName: string }> {}
 const options = { secret: "shared-transaction-story-secret-at-least-32-characters" };

@@ -3,9 +3,9 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { admittedHost } from "./admittedHost.ts";
 import { gitHub, gitHubSignIn } from "./gitHub.ts";
-import { postgres } from "./postgres.ts";
 
 export const admittedApp = storyKit({
 	around: withIsolatedDatabase,
@@ -20,6 +20,7 @@ export const admittedApp = storyKit({
 	},
 	layer: postgres,
 	name: "admitted accounts",
+	runIf: configured,
 	stages: [],
 	verbs: (engine, story) => ({
 		allowAliceAgain: () =>

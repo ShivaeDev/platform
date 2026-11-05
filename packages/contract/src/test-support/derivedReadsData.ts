@@ -1,29 +1,29 @@
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer, Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { lists, records, TimelineData, Unavailable } from "./derivedReadsContract.ts";
 
-export const derivedDatabase = Layer.unwrap(
-	Effect.map(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL"), (url) =>
-		makePostgresTestLayer({
-			migrations: {
-				loader: Migrator.fromRecord({
-					"1_timelines": Effect.gen(function* () {
-						const sql = yield* SqlClient.SqlClient;
-						yield* sql`create table lists (id integer primary key, scope text not null)`;
-						yield* sql`create table records (id integer primary key, list_id integer not null references lists, body text not null)`;
-						yield* sql`insert into lists values (1, 'alice'), (2, 'alice'), (3, 'bob')`;
-						yield* sql`insert into records values (1, 1, 'First'), (2, 2, 'Second'), (3, 3, 'Private')`;
-					}),
-				}),
-				lockTimeout: "5 seconds",
-			},
-			url,
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
+
+export { configured };
+export const derivedDatabase = makePostgresTestLayer({
+	migrations: {
+		loader: Migrator.fromRecord({
+			"1_timelines": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`create table lists (id integer primary key, scope text not null)`;
+				yield* sql`create table records (id integer primary key, list_id integer not null references lists, body text not null)`;
+				yield* sql`insert into lists values (1, 'alice'), (2, 'alice'), (3, 'bob')`;
+				yield* sql`insert into records values (1, 1, 'First'), (2, 2, 'Second'), (3, 3, 'Private')`;
+			}),
 		}),
-	),
-);
+		lockTimeout: "5 seconds",
+	},
+	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
+});
 
 export const derivedReadsData = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

@@ -3,7 +3,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 const decodeSession = Schema.decodeUnknownSync(Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String }) })));
@@ -17,6 +17,7 @@ export const cookieApp = storyKit({
 	inspect: () => ({ authentication: "cookie session" }),
 	layer: postgres,
 	name: "cookie auth",
+	runIf: configured,
 	stages: ["account"],
 	verbs: (engine, story) => {
 		const { baseUrl, fetch } = engine;

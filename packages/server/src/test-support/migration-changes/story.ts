@@ -2,10 +2,10 @@ import { Context, Effect, Layer, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appDatabase.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { migrationChangesLoader } from "./loader.ts";
 import { runMigrationChanges } from "./run.ts";
 

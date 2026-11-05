@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { post } from "#test/app-host/fixture.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {

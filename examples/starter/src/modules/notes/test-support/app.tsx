@@ -19,7 +19,7 @@ import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
 import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
@@ -51,6 +51,7 @@ export const notesApp = storyKit({
 	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view?.container.textContent }),
 	layer: postgres,
 	name: "notes app",
+	runIf: configured,
 	stages: ["account", "transport", "screen"],
 	verbs: (engine, story) => {
 		const quietly = screenActions(engine, () => undefined);

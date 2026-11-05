@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { type DeploymentEngine, deploymentEngine, deploymentVerbs } from "./deploymentProcesses.ts";
 import { holdSchemaCreation } from "./holdSchemaCreation.ts";
 import { startHost } from "./host.ts";
@@ -27,6 +27,7 @@ export const deployment = storyKit({
 	inspect: ({ address, processes }) => ({ address, processes: [...processes.keys()] }),
 	layer: postgres,
 	name: "deployment",
+	runIf: configured,
 	stages: ["database"],
 	verbs: (engine, story) => ({
 		...deploymentVerbs(engine, story.tell),

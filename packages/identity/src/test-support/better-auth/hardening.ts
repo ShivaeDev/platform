@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { BetterAuthHardeningOptions } from "#server/better-auth/adapters/hardening.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { authRequest, type HardeningHost, startHardeningHost } from "./hardeningHost.ts";
 
 interface Engine {

@@ -6,11 +6,11 @@ import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 type Mail = "verification" | "reset";
 

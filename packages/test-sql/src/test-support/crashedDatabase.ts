@@ -1,8 +1,11 @@
 import process from "node:process";
-import { Config, Context, Effect, Layer, Redacted } from "effect";
+import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator } from "effect/sql";
+import { postgresTestUrl } from "#server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { makePostgresTestLayer } from "#server/postgres.ts";
+
+const { url } = postgresTestUrl("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
 
 await Effect.runPromise(
 	Effect.scoped(
@@ -11,7 +14,7 @@ await Effect.runPromise(
 				makePostgresTestLayer({
 					migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
 					prepare: false,
-					url: Redacted.make(yield* Config.String("PLATFORM_TEST_SQL_TEST_DATABASE_URL")),
+					url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 				}),
 			);
 			const database = Context.get(context, PostgresTestDatabase);

@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { loaderScreen, noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderScreen.tsx";
+import { loaderScreen } from "#test/loaderScreen.tsx";
+import { noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
 	"leaving a route whose loader is waiting shows the other screen and releases the query source after the idle window",

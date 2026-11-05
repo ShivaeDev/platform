@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { originVerbs } from "./originVerbs.ts";
 

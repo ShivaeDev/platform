@@ -4,7 +4,6 @@ import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { accountExport } from "#server/accountExport.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -12,6 +11,7 @@ import { betterAuthUserDataExport } from "#server/better-auth/adapters/userDataE
 import { mappedExportUser, storedExportAccount } from "#server/better-auth/test-support/exportAccounts.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 function domainExport(table: string) {
 	return {

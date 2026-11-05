@@ -8,7 +8,7 @@ import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { startHost } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { applicationVerbs, runningHost } from "./applicationVerbs.ts";
 import type { Engine } from "./Engine.ts";
@@ -43,6 +43,7 @@ export const app = storyKit({
 	inspect: (engine) => ({ accounts: [...engine.accounts.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",
+	runIf: configured,
 	stages: ["hosting", "accounts", "development", "notes"],
 	verbs: applicationVerbs,
 });

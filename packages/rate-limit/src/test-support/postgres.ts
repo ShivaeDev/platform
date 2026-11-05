@@ -1,9 +1,10 @@
-import { Config, Context, Effect, Layer, Option, Redacted, Result } from "effect";
+import { Context, Effect, Layer, Redacted, Result } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { advisoryXactLock } from "@shivaedev/sql/advisoryXactLock.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
@@ -16,11 +17,7 @@ import { rateLimit } from "#rateLimit.ts";
 import { Store } from "#Store.ts";
 import { limit, makeLimiter } from "./makeLimiter.ts";
 
-const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_SQL_TEST_DATABASE_URL"))));
-const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));
-if (url === undefined && ci !== "") {
-	throw new Error("CI requires PLATFORM_SQL_TEST_DATABASE_URL; PostgreSQL tests must not skip.");
-}
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 
 const database = makePostgresTestLayer({
 	...clientOptions({ url: Redacted.make(url ?? "postgresql://integration-tests-disabled") }),
@@ -39,7 +36,7 @@ export const postgres = storyKit({
 	},
 	layer: database,
 	name: "PostgreSQL rate limits",
-	runIf: url !== undefined,
+	runIf: configured,
 	stages: [],
 	verbs: ({ limiter, local, remote, sql, storage }) => ({
 		attempt: limiter.attempt,

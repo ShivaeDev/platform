@@ -92,8 +92,6 @@ export const testing = storyKit({
 			},
 			shown: (mount: "first" | "second" = "first") => Effect.sync(() => (mount === "first" ? first(state) : second(state)).container.textContent),
 			storyTime: () => Clock.currentTimeMillis,
-
-			warn: () => run("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
 		};
 	},
 });
