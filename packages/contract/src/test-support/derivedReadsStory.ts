@@ -3,13 +3,12 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
 import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
-import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { answered } from "#test/answers.ts";
-import { derivedDatabase } from "./derivedReadsData.ts";
+import { configured, derivedDatabase } from "#test/derivedReadsData.ts";
 import { derivedReadsEngine } from "./derivedReadsEngine.ts";
 
 export const derivedReadsStory = storyKit({
@@ -18,7 +17,7 @@ export const derivedReadsStory = storyKit({
 	create: () => derivedReadsEngine,
 	layer: derivedDatabase,
 	name: "server-derived timeline reads",
-	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
+	runIf: configured,
 	stages: ["adapter", "data", "view"],
 	verbs: ({ client, query, registry, sql }, story) => ({
 		coalescingWindowPasses: () => {

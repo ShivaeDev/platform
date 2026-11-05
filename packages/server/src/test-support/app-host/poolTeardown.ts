@@ -2,10 +2,10 @@ import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appDatabase.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,

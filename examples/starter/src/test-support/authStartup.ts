@@ -5,8 +5,8 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authOptions } from "#server/authOptions.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { secret } from "./host.ts";
-import { postgres } from "./postgres.ts";
 
 export const authStartup = storyKit({
 	around: withIsolatedDatabase,
@@ -14,6 +14,7 @@ export const authStartup = storyKit({
 	create: () => ({ validation: "not started" }),
 	layer: postgres,
 	name: "authentication startup",
+	runIf: configured,
 	stages: [],
 	verbs: (engine) => ({
 		closeAuthenticationScope: Effect.fn("AuthStartupStory.closeAuthenticationScope")(function* () {

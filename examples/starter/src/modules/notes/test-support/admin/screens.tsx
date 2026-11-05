@@ -8,7 +8,7 @@ import type { AppAccess } from "#AppAccess.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { startHost } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
@@ -29,6 +29,7 @@ export const adminScreens = storyKit({
 	inspect: (engine) => ({ accounts: [...engine.accounts.keys()], baseUrl: engine.host.baseUrl, text: engine.view?.container.textContent }),
 	layer: postgres,
 	name: "admin screen",
+	runIf: configured,
 	stages: ["accounts", "notes", "screen"],
 	verbs: (engine, story) => {
 		const ui = uiScreenVerbs(engine, story.tell);

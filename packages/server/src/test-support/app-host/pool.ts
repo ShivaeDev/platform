@@ -3,11 +3,11 @@ import * as PgPool from "@effect/sql-pg/PgPool";
 import { Context, Deferred, Effect, Fiber, Layer, Predicate } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { postgres, databaseUrl as testDatabaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
+import { postgres, databaseUrl as testDatabaseUrl } from "#test/postgres.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 
 interface PoolState {

@@ -4,11 +4,11 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { completePublication } from "#test/completePublication.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { followHints } from "#test/rpc/followHints.ts";
 import { Api, handlers, migrations } from "./feature.ts";
 

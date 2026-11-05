@@ -14,7 +14,7 @@ import userForeignKey from "#modules/notes/server/migrations/0003_user_foreign_k
 import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
 import { secret } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 
 export const migration = storyKit({
 	after: { database: (engine) => engine.database.acquire },
@@ -24,6 +24,7 @@ export const migration = storyKit({
 	},
 	layer: postgres,
 	name: "notes schema",
+	runIf: configured,
 	stages: ["database", "schema"],
 	verbs: (engine, story) => ({
 		addNotes: Effect.fn("NotesStory.addNotes")(function* () {

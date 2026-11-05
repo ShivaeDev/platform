@@ -4,7 +4,6 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, SessionUser, type SessionUserValue } from "#identity.ts";
@@ -16,6 +15,7 @@ import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
 import { UserDirectory } from "#server/UserDirectory.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl } from "#test/postgres.ts";
 
 const roles = roleSet(role("reader", []), role("owner", [AssignRoles]));
 const authOptions = {

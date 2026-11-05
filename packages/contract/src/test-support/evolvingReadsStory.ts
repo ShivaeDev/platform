@@ -1,14 +1,13 @@
 import { Effect, Fiber, Match, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { readKeys } from "@shivaedev/changes/keys.ts";
-import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
+import { configured, derivedDatabase } from "#test/derivedReadsData.ts";
 import { answered } from "./answers.ts";
 import { records } from "./derivedReadsContract.ts";
-import { derivedDatabase } from "./derivedReadsData.ts";
 import type { Delivery } from "./evolvingReadsContract.ts";
 import { evolvingReadsEngine } from "./evolvingReadsEngine.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
@@ -35,7 +34,7 @@ export const evolvingReadsStory = storyKit({
 	inspect: ({ registrations }) => ({ registrations: [...registrations] }),
 	layer: derivedDatabase,
 	name: "evolving timeline dependencies over PostgreSQL and WebSocket",
-	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
+	runIf: configured,
 	stages: ["view"],
 	verbs: (engine, story) => ({
 		addRecord: (listId: number, id: number, body: string) => {

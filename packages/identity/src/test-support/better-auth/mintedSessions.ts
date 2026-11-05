@@ -4,7 +4,6 @@ import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
@@ -17,6 +16,7 @@ import { authenticatedUserLayer } from "#server/session.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "#test/auth/adminApi.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 export const mintedSessions = storyKit({
 	around: withIdentityDatabase,

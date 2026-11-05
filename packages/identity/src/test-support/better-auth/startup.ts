@@ -1,13 +1,13 @@
 import { Context, Deferred, Effect, Fiber, Layer, Logger } from "effect";
 import { SqlClient } from "effect/sql";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { countQueries } from "#test/auth/countQueries.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 
 class Mounted extends Context.Service<Mounted, void>()("@shivaedev/identity/test/authStartup/Mounted") {}
 

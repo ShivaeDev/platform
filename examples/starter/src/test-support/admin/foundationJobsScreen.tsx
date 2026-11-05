@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { startHost } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
@@ -27,6 +27,7 @@ export const foundationJobsScreen = storyKit({
 	inspect: ({ surface }) => ({ text: surface.view?.container.textContent }),
 	layer: postgres,
 	name: "foundation jobs screen",
+	runIf: configured,
 	stages: ["screen"],
 	verbs: ({ surface }, story) => ({
 		...uiScreenVerbs(surface, story.tell),

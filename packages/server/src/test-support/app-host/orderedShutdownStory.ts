@@ -2,10 +2,10 @@ import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Deferred, Effect, Fiber, Layer, Stream } from "effect";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { type OtlpSpan, otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { hostProcess } from "#testing/hostProcess.ts";
 import { DRAINING_MILLIS, ShutdownApi } from "./orderedShutdownApi.ts";
 

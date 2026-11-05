@@ -5,11 +5,11 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase, type DatabaseConfig } from "#appDatabase.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { type Feed, followHints } from "#test/rpc/followHints.ts";
 
 interface State {

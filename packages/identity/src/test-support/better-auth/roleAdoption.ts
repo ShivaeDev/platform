@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { type Person, roleAdoptionHost } from "./roleAdoptionHost.ts";
 
 export const roleAdoption = storyKit({

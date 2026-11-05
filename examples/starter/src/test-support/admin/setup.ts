@@ -15,7 +15,7 @@ import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { type RunningHost, secret, startHost } from "#test-support/host.ts";
-import { postgres } from "#test-support/postgres.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { adminCommand } from "./command.ts";
 import { signedInAccount } from "./session.ts";
 
@@ -31,6 +31,7 @@ export const adminSetup = storyKit({
 	inspect: ({ host }) => ({ baseUrl: host?.baseUrl }),
 	layer: postgres,
 	name: "admin setup",
+	runIf: configured,
 	stages: ["accounts"],
 	verbs: (engine, story) => {
 		function host() {

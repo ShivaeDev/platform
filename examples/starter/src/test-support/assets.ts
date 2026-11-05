@@ -3,8 +3,8 @@ import { Effect, FileSystem, Layer, Path } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { configured, postgres } from "#test-support/postgres.ts";
 import { deployChild } from "./deployChild.ts";
-import { postgres } from "./postgres.ts";
 import { mintUser } from "./sessionPrecondition.ts";
 
 const assetLayer = Layer.merge(postgres, NodeServices.layer);
@@ -28,6 +28,7 @@ export const assets = storyKit({
 	inspect: ({ url }) => ({ url }),
 	layer: assetLayer,
 	name: "assets",
+	runIf: configured,
 	stages: ["accounts"],
 	verbs: (engine, story) => ({
 		request: (pathname: string, name = "visitor") => {
