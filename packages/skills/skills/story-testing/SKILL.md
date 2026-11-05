@@ -103,6 +103,8 @@ A nested partial expectation can be `{ account: { sessions: atMost(0) } }`, and 
 
 A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`. Never sleep, poll, use `eventually` or install fake timers: each guesses when the work is done, and the story slows down or flakes when the guess is wrong.
 
+Screen settling observes the whole document, so portalled sheets and dialogs settle without extra kit setup.
+
 A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.
 
 PostgreSQL catalog waits are the one sanctioned polling exception: catalog views such as `pg_stat_activity` send no completion signal. Use `observeUntil` from `@shivaedev/test-sql/server/observeUntil.ts` for these waits, with a predicate for the required state. Do not write a local polling loop or use this exception to poll application rows, job storage or UI state.

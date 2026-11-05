@@ -34,7 +34,7 @@ resumeStory.it(
 	"disposing the registry removes the resume signal's two browser listeners and its native listener",
 	[watching(1)],
 	function* ({ dispose, listeners }) {
-		expect(yield* listeners()).toEqual({ browser: 2, native: 1 });
+		expect(yield* listeners()).toEqual({ browser: 3, native: 1 });
 
 		dispose();
 

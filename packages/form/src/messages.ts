@@ -86,19 +86,6 @@ export function messageAtPath(
 	return undefined;
 }
 
-export function withoutField(messages: FieldMessages, name: string): FieldMessages {
-	if (!Object.hasOwn(messages, name)) {
-		return messages;
-	}
-	const next: Record<string, string> = Object.create(null);
-	for (const [key, message] of Object.entries(messages)) {
-		if (key !== name) {
-			next[key] = message;
-		}
-	}
-	return next;
-}
-
 export function literalChoices(input: SchemaAST.AST): readonly SchemaAST.LiteralValue[] | undefined {
 	const ast = SchemaAST.toEncoded(input);
 	if (ast._tag !== "Union") {

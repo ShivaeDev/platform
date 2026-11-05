@@ -405,16 +405,17 @@ Import the module that defines a name; there is no root entry.
 
 `form` takes a `Schema.Struct` and this configuration:
 
-| Option           | Type or role                                                                                                                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `initialValues`  | `Encoded<F>`                                                                                                                                              |
-| `runtime`        | Optional when no application services are needed; otherwise an atom runtime for handler/check and schema decoding services                                |
-| `onSubmit`       | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot                    |
-| `savedValues`    | Optional `(saved: A) => Encoded<F>`; normalizes successful submissions while preserving later edits and newer received baselines                          |
-| `checks`         | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined`                                                               |
-| `arrayKeys`      | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |
-| `debounce`       | Optional Effect `Duration.Input` for checks                                                                                                               |
-| `persistedDraft` | Optional `{ key, now, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies session ownership                                  |
+| Option             | Type or role                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialValues`    | `Encoded<F>`                                                                                                                                               |
+| `runtime`          | Optional when no application services are needed; otherwise an atom runtime for handler/check and schema decoding services                                 |
+| `onSubmit`         | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot                     |
+| `savedValues`      | Optional `(saved: A) => Encoded<F>`; normalizes successful submissions while preserving later edits and newer received baselines                           |
+| `requiredMessages` | Optional string messages keyed by top-level string field; customizes empty `Schema.NonEmptyString` feedback while explicit schema messages take precedence |
+| `checks`           | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined`                                                                |
+| `arrayKeys`        | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering  |
+| `debounce`         | Optional Effect `Duration.Input` for checks                                                                                                                |
+| `persistedDraft`   | Optional `{ key, now, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies session ownership                                   |
 
 The returned form exposes:
 
@@ -455,7 +456,7 @@ For React bindings:
 pnpm add @effect/atom-react react
 ```
 
-The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.
+The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers of `@shivaedev/form`; the core modules do not import them. `@shivaedev/react` depends on `@shivaedev/form` directly for its editor, create and session integrations. The package needs Node 24 or newer.
 - String field names are top-level schema keys. `fieldAt`, `changeAt` and `useFieldAt` accept nested path tuples. `useList` edits top-level arrays.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.
