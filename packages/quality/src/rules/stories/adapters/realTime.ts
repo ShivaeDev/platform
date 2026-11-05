@@ -1,7 +1,7 @@
 import ts from "typescript";
+import type { ImportBinding } from "#rules/stories/importBindings.ts";
+import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 import { rejectingTimer } from "./failureDeadline.ts";
-import type { ImportBinding } from "./importBindings.ts";
-import { memberName, unwrapped } from "./syntax.ts";
 
 const TIMERS = new Set(["setTimeout", "setInterval", "requestAnimationFrame"]);
 const TIMER_MODULES = new Set(["node:timers", "timers", "node:timers/promises", "timers/promises"]);

@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { isTestSupport } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
-import { failingSleep } from "./failureDeadline.ts";
+import { failingSleep } from "#rules/stories/adapters/failureDeadline.ts";
+import { realTime } from "#rules/stories/adapters/realTime.ts";
 import { bindsModule, type ImportBinding, importBindings } from "./importBindings.ts";
-import { realTime } from "./realTime.ts";
 import { storyWaitSources } from "./sources.ts";
 import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
 

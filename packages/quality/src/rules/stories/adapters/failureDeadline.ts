@@ -1,6 +1,6 @@
 import ts from "typescript";
-import { bindsModule, type ImportBinding } from "./importBindings.ts";
-import { memberName, unwrapped } from "./syntax.ts";
+import { bindsModule, type ImportBinding } from "#rules/stories/importBindings.ts";
+import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 
 function terminal(body: ts.ConciseBody): ts.Expression | undefined {
 	if (!ts.isBlock(body)) {
