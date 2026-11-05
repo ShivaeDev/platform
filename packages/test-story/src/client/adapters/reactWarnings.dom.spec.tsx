@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterAll, expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { outcomes } from "#server/outcomes.ts";
 import { warningScreen } from "#test/warningScreen.tsx";
 
 const originalError = console.error;
@@ -46,7 +46,7 @@ warningScreen.it(
 		);
 
 		yield* outcomes([
-			["alert", () => alert(), "Screen unavailable"],
+			["alert", () => alert(), "Expected screen failure"],
 			["warnings", () => warnings(), { caughtErrors: [], consoleErrors: [] }],
 		]);
 	},

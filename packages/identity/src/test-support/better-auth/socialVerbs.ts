@@ -2,24 +2,16 @@ import { Effect } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
-import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { readProviderAccounts } from "./providerAccounts.ts";
 import type { socialEngine } from "./socialEngine.ts";
+import { socialSignInVerbs } from "./socialSignInVerbs.ts";
 
 type SocialEngine = Effect.Success<ReturnType<typeof socialEngine>>;
 
 export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
-	const { auth, baseUrl, fetch, storage, provider, client, minted } = engine;
-	provider.narrate(story.tell);
-	function signInWithGitHub() {
-		return Effect.promise(async () => {
-			const result = await client.signIn.social({ "callbackURL": `${baseUrl}/signed-in`, provider: "github" });
-			if (result.error !== null) {
-				throw new Error(`Social sign-in failed: ${JSON.stringify(result.error)}`);
-			}
-		});
-	}
+	const { auth, baseUrl, fetch, storage, minted } = engine;
+
 	function currentSession() {
 		return Effect.promise(
 			async (): Promise<{ readonly user?: { readonly email: string; readonly id: string } } | null> => (await fetch("/api/auth/get-session")).json(),
@@ -32,14 +24,8 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 	}
 
 	return {
+		...socialSignInVerbs(engine, story),
 		accountLookupUsers: () => Effect.promise(() => Promise.all(engine.accountRequests().map(accountLookupUser))),
-		aliceSignsInWithGitHub: () => {
-			story.tell("Alice signs in with GitHub and the browser follows GitHub's redirect back");
-			return Effect.andThen(
-				signInWithGitHub(),
-				Effect.promise(() => domNavigate()),
-			);
-		},
 		expireBeforeAccountLookup: () => {
 			story.tell("the session expires between identity resolution and the account lookup");
 			return Effect.sync(engine.expireBeforeAccountLookup);

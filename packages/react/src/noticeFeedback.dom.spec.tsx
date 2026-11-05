@@ -1,33 +1,30 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { formSubmitted, noticeScreen, notifications, refreshFailed, removalHeldAcrossSessionChange } from "#test/notices/story.tsx";
+import { noticesStory } from "#test/notices/story.tsx";
+import { formSubmitted, noticeScreen, refreshFailed, removalHeldAcrossSessionChange } from "#test/notices/traits.ts";
 
-notifications.it(
-	"a failed refresh publishes Refresh failed and keeps the shown notes",
-	[noticeScreen()],
-	function* ({ breakRefresh, notices, rows }) {
-		yield* breakRefresh();
+noticesStory.it("a failed refresh publishes Refresh failed and keeps the shown notes", [noticeScreen()], function* ({ breakRefresh, notices, rows }) {
+	yield* breakRefresh();
 
-		yield* outcomes([
-			["notices", () => notices(), ["Refresh failed"]],
-			["rows", () => rows(), "existing"],
-		]);
-	},
-);
+	yield* outcomes([
+		["notices", () => notices(), ["Refresh failed"]],
+		["rows", () => rows(), "existing"],
+	]);
+});
 
-notifications.it("rendering again after a failed refresh publishes nothing more", [refreshFailed()], function* ({ notices, renderAgain }) {
+noticesStory.it("rendering again after a failed refresh publishes nothing more", [refreshFailed()], function* ({ notices, renderAgain }) {
 	yield* renderAgain();
 
 	expect(yield* notices()).toEqual(["Refresh failed"]);
 });
 
-notifications.it("a second failed refresh publishes its own notice", [refreshFailed()], function* ({ notices, refresh }) {
+noticesStory.it("a second failed refresh publishes its own notice", [refreshFailed()], function* ({ notices, refresh }) {
 	yield* refresh();
 
 	expect(yield* notices()).toEqual(["Refresh failed", "Refresh failed"]);
 });
 
-notifications.it(
+noticesStory.it(
 	"a completed form submission publishes a notice that offers Undo",
 	[formSubmitted("created")],
 	function* ({ completeRemove, notice }) {
@@ -37,7 +34,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a form notice's Undo sends the application's payload",
 	[formSubmitted("created")],
 	function* ({ completeRemove, restoreCalls, undo }) {
@@ -49,7 +46,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"a removal that completes after bob's session replaced alice's publishes nothing",
 	[removalHeldAcrossSessionChange()],
 	function* ({ completeRemove, notices }) {
@@ -59,7 +56,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"after the session change, bob's own removal publishes its notice",
 	[removalHeldAcrossSessionChange()],
 	function* ({ completeRemove, notices, remove }) {
@@ -72,7 +69,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"an editor save publishes its notice through its submission",
 	[noticeScreen({ editor: true })],
 	function* ({ completeRemove, notices, saveEditor }) {
@@ -84,7 +81,7 @@ notifications.it(
 	},
 );
 
-notifications.it(
+noticesStory.it(
 	"an editor's failed refresh publishes its query notice and keeps the shown notes",
 	[noticeScreen({ editor: true })],
 	function* ({ breakRefresh, notices, rows }) {

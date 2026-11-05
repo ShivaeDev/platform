@@ -1,11 +1,10 @@
-import { createHash } from "node:crypto";
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Deferred, Effect, Queue, Redacted } from "effect";
+import { Effect, Redacted } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { type WatchedClock, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
+import { notifications } from "./notifications.ts";
 import { openHost } from "./openHost.ts";
 import { openScreen } from "./openScreen.tsx";
 import { openWorker } from "./openWorker.ts";
@@ -36,34 +35,7 @@ export function* open() {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	const clock = yield* watchedClock;
 	const database = yield* PostgresTestDatabase;
-	const name = yield* Config.String("APP_NAME").pipe(Config.withDefault(new URL(Redacted.value(database.url)).pathname));
-	const channel = `changes_${createHash("sha256").update(name).digest("hex").slice(0, 32)}`;
-	const pg = yield* PgClient.PgClient;
-	const incoming = yield* pg.listen(channel);
-	const notifications: string[] = [];
-	const barriers = new Map<string, Deferred.Deferred<void>>();
-	yield* Effect.forever(
-		Queue.take(incoming).pipe(
-			Effect.tap((message) =>
-				Effect.sync(() => {
-					const barrier = barriers.get(message.payload);
-					if (barrier) {
-						Deferred.doneUnsafe(barrier, Effect.void);
-					} else if (message.payload.startsWith("[")) {
-						notifications.push(message.payload);
-					}
-				}),
-			),
-		),
-	).pipe(Effect.forkScoped);
-	const delivered = Effect.gen(function* () {
-		const payload = `barrier ${barriers.size}`;
-		const barrier = Deferred.makeUnsafe<void>();
-		barriers.set(payload, barrier);
-		yield* pg.notify(channel, payload).pipe(Effect.orDie);
-		yield* Deferred.await(barrier);
-		return notifications.map((notification): unknown => JSON.parse(notification));
-	});
+	const delivered = yield* notifications;
 	const host = yield* Effect.acquireRelease(
 		Effect.promise(() => openHost(database.url)),
 		(value) => Effect.promise(value.close),

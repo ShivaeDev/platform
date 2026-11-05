@@ -2,11 +2,12 @@ import { useAtomValue } from "@effect/atom-react";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, useState } from "react";
-import { render } from "@shivaedev/test-story/client/adapters/react.ts";
-import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { expectNoReactWarnings, render } from "#client/adapters/react.ts";
+import { screenDriver } from "#server/screenDriver.ts";
+import { storyKit } from "#server/storyKit.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
 
 export const driverScreen = storyKit({
 	clock: "test",

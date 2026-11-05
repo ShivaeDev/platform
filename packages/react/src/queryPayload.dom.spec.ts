@@ -1,17 +1,11 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import {
-	keptPayloadRefreshing,
-	payloadChanging,
-	queries,
-	queryAnswered,
-	refreshSupersededByPayload,
-	retentionTurnedOff,
-} from "#test/queryStories.ts";
+import { keptPayloadRefreshing, payloadChanging, queryAnswered, refreshSupersededByPayload, retentionTurnedOff } from "#test/queryRetentionTraits.ts";
+import { queryStories } from "#test/queryStories.ts";
 
 const kept = { keepPreviousData: true };
 
-queries.it(
+queryStories.it(
 	"with keepPreviousData, changing the payload keeps showing the last answer while the new one loads",
 	[queryAnswered("First payload", kept)],
 	function* ({ changePayload, shown }) {
@@ -21,7 +15,7 @@ queries.it(
 	},
 );
 
-queries.it(
+queryStories.it(
 	"with keepPreviousData, a new payload that fails shows its failure beside the last answer",
 	[payloadChanging()],
 	function* ({ fail, shown }) {
@@ -31,7 +25,7 @@ queries.it(
 	},
 );
 
-queries.it(
+queryStories.it(
 	"with keepPreviousData, a payload change during a refresh interrupts the refresh's read and keeps the last answer on screen",
 	[keptPayloadRefreshing()],
 	function* ({ changePayload, interruptedReads, shown }) {
@@ -46,7 +40,7 @@ queries.it(
 	},
 );
 
-queries.it(
+queryStories.it(
 	"a superseded read that answers after the newest payload does not replace its answer",
 	[refreshSupersededByPayload()],
 	function* ({ answer, shown }) {
@@ -60,7 +54,7 @@ queries.it(
 for (const options of [{}, { keepPreviousData: false }]) {
 	const retention = options.keepPreviousData === undefined ? "by default" : "with keepPreviousData false";
 
-	queries.it(
+	queryStories.it(
 		`${retention}, changing the payload clears the last answer while the new one loads`,
 		[queryAnswered("First payload", options)],
 		function* ({ changePayload, shown }) {
@@ -70,14 +64,14 @@ for (const options of [{}, { keepPreviousData: false }]) {
 		},
 	);
 
-	queries.it(`${retention}, a new payload that fails leaves no answer on screen`, [payloadChanging(options)], function* ({ fail, shown }) {
+	queryStories.it(`${retention}, a new payload that fails leaves no answer on screen`, [payloadChanging(options)], function* ({ fail, shown }) {
 		yield* fail("second", "Offline");
 
 		expect(yield* shown()).toEqual({ data: "none", failure: "Unavailable: Offline", status: "settled" });
 	});
 }
 
-queries.it(
+queryStories.it(
 	"with keepPreviousData, moving the query to another registry clears the retained answer",
 	[queryAnswered("Previous owner", kept)],
 	function* ({ moveToAnotherRegistry, shown }) {
@@ -87,7 +81,7 @@ queries.it(
 	},
 );
 
-queries.it(
+queryStories.it(
 	"turning keepPreviousData off drops the inherited answer while the new payload loads",
 	[payloadChanging()],
 	function* ({ changePayload, shown }) {
@@ -99,7 +93,7 @@ queries.it(
 	},
 );
 
-queries.it(
+queryStories.it(
 	"after keepPreviousData is turned off, refreshing keeps the current payload's own answer on screen",
 	[retentionTurnedOff()],
 	function* ({ answer, refresh, shown }) {
