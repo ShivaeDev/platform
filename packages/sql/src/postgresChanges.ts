@@ -5,6 +5,8 @@ import type { SqlError } from "effect/sql/SqlError";
 import { CommandPublication, CommandPublicationError, type CommandPublisher } from "@shivaedev/changes/commandPublication.ts";
 import { listenForChanges } from "./listenForChanges.ts";
 import { encodeKeys, resyncPayload } from "./notifyPayload.ts";
+import { PostgresChangeListener } from "./PostgresChangeListener.ts";
+import { PostgresChangeResync } from "./PostgresChangeResync.ts";
 import { BeforeCommit, CommittedSink, invalidateOnCommit, transact } from "./transact.ts";
 
 export interface PostgresNotification {
@@ -30,7 +32,11 @@ export interface PostgresChangesOptions {
 export function postgresChanges(options: PostgresChangesOptions) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
-			yield* listenForChanges(options);
+			yield* listenForChanges(options).pipe(
+				Effect.provideService(SqlClient.SqlClient, options.client),
+				Effect.provideService(PostgresChangeListener, options.listenerClient ?? options.client),
+				Effect.provideService(PostgresChangeResync, { resync: options.resync }),
+			);
 			const notify = Effect.fn("PostgresChanges.notify")(function* (keys: readonly unknown[]) {
 				const sql = yield* SqlClient.SqlClient;
 				if (sql.transactionService !== options.client.transactionService) {

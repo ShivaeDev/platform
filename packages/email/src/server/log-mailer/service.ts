@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { send } from "#server/log-mailer/send.ts";
+import { send } from "./send.ts";
 
 export const Mailer = defineService({
 	id: "@shivaedev/email/Mailer",
@@ -8,5 +8,3 @@ export const Mailer = defineService({
 	methods: () => ({ send }),
 	requires: [],
 });
-
-export const logMailerLayer = Mailer.layer;

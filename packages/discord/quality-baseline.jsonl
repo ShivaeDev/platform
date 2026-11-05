@@ -1,3 +1,0 @@
-{"path":"packages/discord/src","rule":"effect/service-folders","count":1}
-{"path":"packages/discord/src/DiscordGateway.ts","rule":"effect/service-model","count":1}
-{"path":"packages/discord/src/DiscordRest.ts","rule":"effect/service-model","count":2}

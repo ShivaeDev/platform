@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import { Pots } from "#test/diary/Pots.ts";
 import { addPortion } from "./addPortion.ts";
 import { loadPot } from "./loadPot.ts";
-import { Pots } from "./Pots.ts";
 
 export const Plates = defineService({
 	id: "@shivaedev/sql/shared-pots/Plates",

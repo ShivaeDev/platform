@@ -2,7 +2,7 @@ import { Effect, Fiber, Queue, Stream } from "effect";
 import type { fakeDiscord } from "@shivaedev/test-kits/discord/fake.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import type { DiscordGateway } from "#DiscordGateway.ts";
+import type { DiscordGateway } from "#gateway/service.ts";
 import type { GatewayDispatch } from "#gatewayProtocol.ts";
 
 type Fake = Effect.Success<ReturnType<typeof fakeDiscord>>;

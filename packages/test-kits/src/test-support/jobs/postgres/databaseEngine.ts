@@ -4,7 +4,7 @@ import { type PgBoss, TestClock } from "pg-boss";
 import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import type { JobPayloadSchema } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
-import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import type { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { recordingTracer } from "#test/jobs/recordingTracer.ts";

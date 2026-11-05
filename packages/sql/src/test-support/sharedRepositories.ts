@@ -1,10 +1,10 @@
 import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Plates } from "#test/diary/Plates.ts";
-import { PotLifecycle } from "#test/diary/PotLifecycle.ts";
 import { PotStorage } from "#test/diary/PotStorage.ts";
 import { Pots } from "#test/diary/Pots.ts";
+import { Plates } from "#test/diary/plates/service.ts";
+import { PotLifecycle } from "#test/diary/pot-lifecycle/service.ts";
 import { onPostgres } from "#test/engines.ts";
 import { endingOf } from "#test/outcome.ts";
 import { uniqueTable } from "#test/writeTables.ts";

@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { parseRetryAfter } from "@shivaedev/http/parseRetryAfter.ts";
 import { RetryAt } from "@shivaedev/jobs/server/definition.ts";
 import type { Email } from "#Email.ts";
-import { Mailer } from "#server/Mailer.ts";
+import { Mailer } from "#server/log-mailer/service.ts";
 import { MailerError } from "#server/MailerError.ts";
 
 export function resendMailerLayer(options: { readonly apiKey?: Redacted.Redacted<string> } = {}) {
