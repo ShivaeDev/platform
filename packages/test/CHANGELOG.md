@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0 - 2026-11-05
+
+### Fixed
+
+- Documentation directs stories to controlled time and engine signals.
+
+### Breaking
+
+- Remove `internal/` from module imports.
+
 ## 0.15.1 - 2026-11-04
 
 ### Changed

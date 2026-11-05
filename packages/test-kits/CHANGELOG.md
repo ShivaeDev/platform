@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-11-05
+
+### Breaking
+
+- Replace `jobs/internal/` with `jobs/` in module imports.
+
 ## 0.6.0 - 2026-11-05
 
 ### Added

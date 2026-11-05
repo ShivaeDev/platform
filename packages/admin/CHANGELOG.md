@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.5 - 2026-11-05
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.37.0 to 0.38.0.
+- Update `@shivaedev/identity` from 0.26.2 to 0.26.3.
+- Update `@shivaedev/jobs` from 0.37.1 to 0.38.0.
+- Update `@shivaedev/react` from 0.42.0 to 0.43.0.
+
 ## 0.20.4 - 2026-11-05
 
 ### Changed

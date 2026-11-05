@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-05
+
+### Breaking
+
+- Import development mail rendering from `server/log-mailer/send.ts` instead of `server/internal/log-mailer/send.ts`.
+
 ## 0.4.4 - 2026-11-05
 
 ### Changed

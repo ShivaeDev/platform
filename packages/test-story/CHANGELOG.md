@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.41.0 - 2026-11-05
+
+### Breaking
+
+- Story kits and per-story options no longer accept `clock: "live"`. Remove that option to use the controlled clock, or supply a UTC `DateTime` to pin its start. Advance elapsed time through kit verbs using `TestClock.adjust` or `passes`, drive any outside engine's clock too, and await the engine's completion signal. Type shared story options with `StoryTestOptions` from `@shivaedev/test-story/server/storyOptions.ts`.
+- Replace `server/internal/` with `server/` in module imports, including imports of its adapters.
+
 ## 0.40.0 - 2026-11-05
 
 ### Added

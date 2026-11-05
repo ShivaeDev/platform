@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-05
+
+### Breaking
+
+- Removes `BrowserLocator`, `BrowserSocket` and the `BrowserPage` methods `click`, `fill`, `waitFor`, `socket` and `navigationCount`. Use `BrowserPage.visit`, `checkText` and `screenshot` for local page checks, and application stories for behavior. Consumers that need arbitrary browser interactions or WebSocket inspection can use Playwright directly.
+
 ## 0.4.1 - 2026-11-04
 
 ### Changed
