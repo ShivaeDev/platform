@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { importFrom } from "./importOrigin.ts";
+import { importFrom } from "#rules/stories/importOrigin.ts";
 
 export interface RuntimeName {
 	readonly module: string;
@@ -10,8 +10,16 @@ export function runtimeImport(module: string | undefined, path: readonly string[
 	if (module === undefined || !(module === "effect" || module.startsWith("effect/") || module === "@effect/vitest")) {
 		return undefined;
 	}
-	const subpath = /^effect\/(?<name>Effect|Clock|TestClock)$/u.exec(module)?.groups?.name;
-	return subpath === undefined ? { module, path } : { module: "effect", path: [subpath, ...path] };
+	const subpath = /^effect\/(?:testing\/)?(?<name>Effect|Clock|TestClock)$/u.exec(module)?.groups?.name;
+	return subpath === undefined ? { module: module === "effect/testing" ? "effect" : module, path } : { module: "effect", path: [subpath, ...path] };
+}
+
+function assignedRuntime(node: ts.ImportEqualsDeclaration): RuntimeName | undefined {
+	if (node.isTypeOnly || !ts.isExternalModuleReference(node.moduleReference)) {
+		return undefined;
+	}
+	const module = node.moduleReference.expression;
+	return module !== undefined && ts.isStringLiteralLike(module) ? runtimeImport(module.text, []) : undefined;
 }
 
 export function importedRuntime(node: ts.Node): RuntimeName | undefined {
@@ -21,7 +29,7 @@ export function importedRuntime(node: ts.Node): RuntimeName | undefined {
 	if (ts.isNamespaceImport(node)) {
 		return node.parent.isTypeOnly ? undefined : runtimeImport(importFrom(node), []);
 	}
-	return undefined;
+	return ts.isImportEqualsDeclaration(node) ? assignedRuntime(node) : undefined;
 }
 
 export function exportedRuntime(node: ts.ExportSpecifier | ts.NamespaceExport): RuntimeName | undefined {

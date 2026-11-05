@@ -1,5 +1,5 @@
+import { PURE_REPAIR } from "#adapters/units/runtime.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
-import { PURE_REPAIR } from "#rules/stories/unitRuntime.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, unitSpec } from "#test/unitFiles.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
@@ -20,8 +20,13 @@ for (const [imports, use, clock] of [
 	['import "effect/Clock";', "", "Clock"],
 	['export * from "effect/TestClock";', "", "TestClock"],
 	['const Time = require("effect/Clock");', "", "Clock"],
+	['import Time = require("effect/Clock");', "Time.make();", "Clock"],
+	['import * as Time from "effect/testing/TestClock";', "Time.make();", "TestClock"],
+	['import { make as clock } from "effect/testing/TestClock";', "clock();", "TestClock.make"],
+	['import { TestClock as Time } from "effect/testing";', "Time.setTime(0);", "TestClock"],
+	['import * as E from "effect/testing";', "E.TestClock.adjust(1);", "TestClock.adjust"],
 ] as const) {
-	const line = imports.includes('* as E from "effect"') ? 2 : 1;
+	const line = imports === 'import * as E from "effect";' || imports === 'import * as E from "effect/testing";' ? 2 : 1;
 	ruleStory.it(
 		`tests/story-specs rejects a unit clock through ${imports}`,
 		[repositoryHas(ordersPackage, unitSpec(`${imports}\n${use}`))],
@@ -39,7 +44,10 @@ for (const content of [
 	'import type { Clock, TestClock, Effect } from "effect";\ntype Program = Effect.Effect<void>;',
 	'import { type Clock, type TestClock } from "effect";',
 	'import type * as Clock from "effect/Clock";',
+	'import type * as Time from "effect/testing/TestClock";',
+	'import { type TestClock } from "effect/testing";',
 	'export type { Clock } from "effect";',
+	'import type Clock = require("effect/Clock");',
 	'export { type TestClock } from "effect";',
 	"const Clock = { currentTimeMillis: 1 }; Clock.currentTimeMillis;",
 	"const TestClock = { adjust: () => 1 }; TestClock.adjust();",

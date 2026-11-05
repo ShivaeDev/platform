@@ -7,11 +7,7 @@ import { firstRuntimeUse, type RuntimeUse } from "./runtimeUse.ts";
 
 export const PURE_REPAIR = "Exercise the Effect behaviour through the package story kit, or test an existing pure API without the runner.";
 
-export function unitRuntime(
-	checker: ts.TypeChecker,
-	source: (path: string) => ts.SourceFile | undefined,
-	edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>,
-) {
+export function runtime(checker: ts.TypeChecker, source: (path: string) => ts.SourceFile | undefined) {
 	const origin = runtimeOrigins(checker);
 	const known = new Map<string, RuntimeUse | undefined>();
 
@@ -42,7 +38,7 @@ export function unitRuntime(
 		return found;
 	}
 
-	return (file: string): Finding | undefined => {
+	return (file: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>): Finding | undefined => {
 		const own = findings(file, new Map([[file, { line: 0, path: [file] }]]));
 		const imported = (edgesFrom.get(file) ?? []).flatMap((edge) => {
 			if (edge.to.kind !== "file") {

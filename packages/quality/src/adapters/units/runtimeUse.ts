@@ -22,14 +22,6 @@ function moduleRuntime(node: ts.Node): string | undefined {
 	return runtimeOf(runtimeImport(module, []));
 }
 
-function exportedVariable(node: ts.Node): boolean {
-	return (
-		ts.isVariableDeclaration(node)
-		&& ts.isVariableStatement(node.parent.parent)
-		&& node.parent.parent.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true
-	);
-}
-
 function runtimeAt(node: ts.Node, origin: (node: ts.Node) => RuntimeName | undefined): string | undefined {
 	const fromModule = moduleRuntime(node);
 	if (fromModule !== undefined) {
@@ -38,11 +30,7 @@ function runtimeAt(node: ts.Node, origin: (node: ts.Node) => RuntimeName | undef
 	if (ts.isCallExpression(node)) {
 		return runtimeOf(origin(node.expression)) ?? runtimeOf(origin(node));
 	}
-	const name = origin(node);
-	if (ts.isImportSpecifier(node) || ts.isNamespaceImport(node) || ts.isExportSpecifier(node) || exportedVariable(node)) {
-		return runtimeOf(name);
-	}
-	return name?.module === "effect" && ["Clock", "TestClock"].includes(name.path[0] ?? "") ? runtimeOf(name) : undefined;
+	return runtimeOf(origin(node));
 }
 
 export interface RuntimeUse {
@@ -50,20 +38,31 @@ export interface RuntimeUse {
 	readonly what: string;
 }
 
+function typeOnly(node: ts.Node): boolean {
+	if (ts.isTypeNode(node)) {
+		return true;
+	}
+	return ts.isImportClause(node)
+		|| ts.isExportDeclaration(node)
+		|| ts.isImportEqualsDeclaration(node)
+		|| ts.isImportSpecifier(node)
+		|| ts.isExportSpecifier(node)
+		? node.isTypeOnly
+		: false;
+}
+
 export function firstRuntimeUse(source: ts.SourceFile, origin: (node: ts.Node) => RuntimeName | undefined): RuntimeUse | undefined {
 	let first: RuntimeUse | undefined;
 	function visit(node: ts.Node): void {
-		if (
-			first !== undefined
-			|| ts.isTypeNode(node)
-			|| (ts.isImportClause(node) && node.isTypeOnly)
-			|| (ts.isExportDeclaration(node) && node.isTypeOnly)
-		) {
+		if (first !== undefined || typeOnly(node) || (ts.isIdentifier(node) && ts.isImportClause(node.parent))) {
 			return;
 		}
 		const what = runtimeAt(node, origin);
 		if (what !== undefined) {
 			first = { line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, what };
+			return;
+		}
+		if (ts.isImportSpecifier(node) || ts.isNamespaceImport(node) || ts.isImportEqualsDeclaration(node) || ts.isExportSpecifier(node)) {
 			return;
 		}
 		ts.forEachChild(node, visit);

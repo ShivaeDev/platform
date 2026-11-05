@@ -1,6 +1,6 @@
 import ts from "typescript";
+import { memberName } from "#rules/stories/syntax.ts";
 import { exportedRuntime, importedRuntime, type RuntimeName, runtimeImport } from "./runtimeImports.ts";
-import { memberName } from "./syntax.ts";
 
 function member(receiver: RuntimeName | undefined, name: string): RuntimeName | undefined {
 	return receiver === undefined ? undefined : { ...receiver, path: [...receiver.path, name] };
@@ -23,13 +23,6 @@ export function runtimeOrigins(checker: ts.TypeChecker): (node: ts.Node) => Runt
 		return direct ?? (value !== undefined && value.flags & ts.SymbolFlags.Alias ? symbol(checker.getAliasedSymbol(value)) : undefined);
 	}
 
-	function exported(node: ts.ExportSpecifier): RuntimeName | undefined {
-		if (node.isTypeOnly || node.parent.parent.isTypeOnly) {
-			return undefined;
-		}
-		return exportedRuntime(node) ?? symbol(checker.getExportSpecifierLocalTargetSymbol(node));
-	}
-
 	function binding(node: ts.BindingElement): RuntimeName | undefined {
 		if (!ts.isObjectBindingPattern(node.parent)) {
 			return undefined;
@@ -40,7 +33,7 @@ export function runtimeOrigins(checker: ts.TypeChecker): (node: ts.Node) => Runt
 
 	function declaration(node: ts.Node): RuntimeName | undefined {
 		if (ts.isExportSpecifier(node)) {
-			return exported(node);
+			return exportedRuntime(node);
 		}
 		if (ts.isNamespaceExport(node)) {
 			return exportedRuntime(node);

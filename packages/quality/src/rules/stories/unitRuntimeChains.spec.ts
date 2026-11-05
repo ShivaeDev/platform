@@ -1,5 +1,5 @@
+import { PURE_REPAIR } from "#adapters/units/runtime.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
-import { PURE_REPAIR } from "#rules/stories/unitRuntime.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, unitSpec } from "#test/unitFiles.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
@@ -12,7 +12,8 @@ for (const [terminal, what, line] of [
 	['export { runSync as check } from "effect/Effect";', "Effect.runSync", 1],
 	['export * from "effect/Effect";', "Effect.run*", 1],
 	['import { Effect } from "effect";\nexport const check = Effect.runPromise;', "Effect.runPromise", 2],
-	['import { Effect } from "effect";\nconst run = Effect.runSync;\nexport { run as check };', "Effect.runSync", 3],
+	['import { Effect } from "effect";\nconst run = Effect.runSync;\nexport { run as check };', "Effect.runSync", 2],
+	['import { Effect } from "effect";\nexport const check = (programs) => programs.map(Effect.runPromise);', "Effect.runPromise", 2],
 ] as const) {
 	ruleStory.it(
 		`tests/story-specs reports a transitive production helper reaching ${what}: ${terminal}`,
@@ -75,13 +76,22 @@ for (const declaration of [
 	'import type { Check } from "./checkRule.ts";',
 	'import { type Check } from "./checkRule.ts";',
 	'export { type Check } from "./checkRule.ts";',
+	'import { type Clock } from "./checkRule.ts";',
+	'export { type Clock } from "./checkRule.ts";',
+	'import type { Clock } from "./checkRule.ts";',
+	'import { type runPromise } from "./checkRule.ts";',
+	'export { type runPromise } from "./checkRule.ts";',
 ]) {
 	ruleStory.it(
 		`tests/story-specs ignores a type-only import chain: ${declaration}`,
 		[
 			repositoryHas(
 				ordersPackage,
-				{ content: 'import { Effect, Clock } from "effect";\nexport type Check = typeof Clock; Effect.runSync(program);', path: "src/checkRule.ts" },
+				{
+					content:
+						'import { Effect, Clock } from "effect";\nexport type Check = typeof Clock; Effect.runSync(program);\nexport { Clock }; export { runPromise } from "effect/Effect";',
+					path: "src/checkRule.ts",
+				},
 				unitSpec(declaration),
 			),
 		],

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import ts from "typescript";
+import { runtime } from "#adapters/units/runtime.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
@@ -62,7 +63,7 @@ export const storySpecs = defineRule({
 		const graph = yield* importGraph(inputs);
 		const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, graph.packages));
 		const origins = storyOrigins(inputs, graph);
-		const unit = unitTests(graph, inputs.sources, origins);
+		const unit = unitTests(graph, inputs.sources, runtime(origins.checker, origins.source));
 		return inputs.sources.flatMap((file) => {
 			const name = testName(file.path);
 			if (name?.modifiers.includes("unit") === true) {

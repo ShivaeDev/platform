@@ -1,5 +1,5 @@
+import { PURE_REPAIR } from "#adapters/units/runtime.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
-import { PURE_REPAIR } from "#rules/stories/unitRuntime.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, unitSpec } from "#test/unitFiles.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
@@ -46,8 +46,11 @@ for (const [content, runner, line] of [
 	['import { it as test } from "@effect/vitest";\ntest.effect("works", () => program);', "it.effect", 2],
 	['import { Effect } from "effect";\nEffect.runSync(Effect.succeed(1)); Effect.runPromise(Effect.void);', "Effect.runSync", 2],
 	['const E = await import("effect");\nE.Effect.runPromise(program);', "Effect.runPromise", 2],
-	['const { runSync: run } = require("effect/Effect");\nrun(program);', "Effect.runSync", 2],
+	['const { runSync: run } = require("effect/Effect");\nrun(program);', "Effect.runSync", 1],
 	['import { Effect } from "effect";\nconst method = "runPromise"; Effect[method](program);', "Effect.runPromise", 2],
+	['import { Effect } from "effect";\nprograms.map(Effect.runPromise);', "Effect.runPromise", 2],
+	['import { Effect } from "effect";\nconst choose = () => Effect.runSync; choose()(program);', "Effect.runSync", 2],
+	['import E = require("effect/Effect");\nE.runSync(program);', "Effect.runSync", 2],
 ] as const) {
 	ruleStory.it(
 		`tests/story-specs reports the first runtime use once: ${content}`,

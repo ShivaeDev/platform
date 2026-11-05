@@ -1,4 +1,3 @@
-import type ts from "typescript";
 import { labelOf, outgoing, type Reached, type Trail, walkFrom } from "#imports/fences/reach.ts";
 import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";
@@ -8,7 +7,6 @@ import { parse } from "#rules/parse.ts";
 import { usesDom } from "#rules/test-names/usesDom.ts";
 import { engineOf } from "./engineOf.ts";
 import { pureNetImport } from "./pureNetImport.ts";
-import { unitRuntime } from "./unitRuntime.ts";
 import { type Stand, standIns } from "./unitSyntax.ts";
 
 const RELATIVE = /^[./#]/u;
@@ -80,13 +78,12 @@ function syntaxFindings(file: string, module: string, trail: Trail, source: Sour
 export function unitTests(
 	graph: ImportGraph,
 	sources: readonly SourceFile[],
-	origins: { readonly checker: ts.TypeChecker; readonly source: (path: string) => ts.SourceFile | undefined },
+	runtime: (file: string, edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>) => Finding | undefined,
 ): (file: string) => readonly Finding[] {
 	const byPath = new Map(sources.map((source) => [source.path, source]));
 	const edgesFrom = runtimeEdges(graph, byPath);
-	const runtime = unitRuntime(origins.checker, origins.source, edgesFrom);
 	return (file) => {
-		const reachedRuntime = runtime(file);
+		const reachedRuntime = runtime(file, edgesFrom);
 		if (reachedRuntime !== undefined) {
 			return [reachedRuntime];
 		}
