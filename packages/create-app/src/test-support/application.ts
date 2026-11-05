@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
+import { quality } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { skillActions } from "#test/skillActions.ts";
@@ -64,7 +65,7 @@ export const application = storyKit({
 				story.tell("create-app --help");
 				return createAppIn(engine, ["--help"]).pipe(Effect.map(() => engine.printed.split("\n").map((line) => line.trim().replaceAll(/\s+/gu, " "))));
 			},
-			lintStarter: () => script("the starter runs its Quality gate", () => appScript(engine.source.starter, "lint")),
+			lintStarter: () => script("the starter runs its Quality gate", () => quality(engine.source.starter, "lint")),
 			migrate: () =>
 				script("the app applies its registered migrations", () =>
 					appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]),
