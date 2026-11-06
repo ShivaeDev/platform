@@ -15,6 +15,7 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
+		"#biome-preset": "./biome/preset.json",
 		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"@shivaedev/source": "./src/*.ts",

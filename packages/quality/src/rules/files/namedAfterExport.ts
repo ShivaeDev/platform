@@ -1,9 +1,11 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
+import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
 import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { programmaticEntries } from "#inventory/programmaticEntries.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
@@ -15,15 +17,7 @@ import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 
-const DEFAULT_TOOL_OWNED: readonly string[] = [
-	"*.config.*",
-	"*.d.ts",
-	"*.d.mts",
-	"*.d.cts",
-	"**/.railway/railway.ts",
-	"**/.railway/railway.py",
-	"**/.railway/railway.go",
-];
+const DEFAULT_TOOL_OWNED: readonly string[] = ["*.d.ts", "*.d.mts", "*.d.cts"];
 
 const TEST = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 
@@ -101,17 +95,29 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 }
 
 export const namedAfterExport = defineRule({
-	check: ({ files, options, readText, root, sources }) =>
+	check: (inputs) =>
 		Effect.gen(function* () {
-			const layout = yield* packageLayout({ files, readText });
+			const { options, root, sources } = inputs;
+			const layout = yield* packageLayout(inputs);
+			const entries = yield* programmaticEntries(inputs);
 			const routes = yield* routeFiles(root);
 			const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
 			return sources
-				.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || routes.files.has(file.path) || toolOwned.ignores(file.path)))
+				.filter(
+					(file) =>
+						!(
+							entries.has(file.path)
+							|| isToolConfig(file.path)
+							|| TEST.test(file.path)
+							|| isMigrationFile(file.path)
+							|| routes.files.has(file.path)
+							|| toolOwned.ignores(file.path)
+						),
+				)
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
 		parseOptions: { errors: "all", onExcessProperty: "error" },
