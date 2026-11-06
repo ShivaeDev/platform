@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { piEfforts } from "#adapters/effort.ts";
 import { unavailable } from "#adapters/failure.ts";
 import { loadSdk } from "#adapters/runtime.ts";
+import { piEfforts } from "#adapters/thinkingLevel.ts";
 
 export const listPiModels = loadSdk.pipe(
 	Effect.flatMap((sdk) => Effect.tryPromise({ catch: unavailable, try: async () => (await sdk.ModelRuntime.create()).getAvailable() })),

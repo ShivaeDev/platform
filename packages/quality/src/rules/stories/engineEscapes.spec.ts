@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { engineBody, engineBodyFiles } from "#test/engineBodyFiles.ts";
+import { engineBody, engineBodyFiles } from "#test/engineBody.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
 import { storyEngine } from "./engine.ts";

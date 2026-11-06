@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.43.2 - 2026-11-06
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.43.1 - 2026-11-06
+
+### Changed
+
+- Update `@shivaedev/sql` from 0.43.0 to 0.44.0.
+
 ## 0.43.0 - 2026-11-05
 
 ### Changed

@@ -144,7 +144,7 @@ export const mixedSubscription = rerunStory.trait("page", "alice subscribes to a
 					{ payload: { title: "One" }, query: "hinted" },
 				],
 			}),
-			(all) => all.some((update) => update._tag === "Resync"),
+			(all) => all.some((update) => update._tag === "Result" && update.query === "hinted"),
 		);
 		engine.mixed = listener.updates;
 	}),

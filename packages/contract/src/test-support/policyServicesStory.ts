@@ -33,7 +33,7 @@ export const policyServicesStory = storyKit({
 					}),
 			);
 		},
-		firstHint: (person: Person) => {
+		firstResult: (person: Person) => {
 			story.tell(`${person} subscribes to the team's document over WebSocket`);
 			return answered(
 				Effect.flatMap(engine.open(person, "socket"), (client) =>
@@ -75,16 +75,9 @@ export const policyServicesStory = storyKit({
 	}),
 });
 
-export const listening = policyServicesStory.trait("listeners", "alice has heard the first hint for the team's document", (engine) =>
+export const listening = policyServicesStory.trait("listeners", "alice has heard the first result for the team's document", (engine) =>
 	Effect.gen(function* () {
 		const client = yield* engine.open("alice", "socket");
-		engine.listeners.set(
-			"alice",
-			yield* watchHints(
-				client("documents.$changes", { queries: [{ payload: { account: "team" }, query: "get" }] }).pipe(
-					Stream.filter((update) => update._tag !== "Result" && update._tag !== "Unchanged"),
-				),
-			),
-		);
+		engine.listeners.set("alice", yield* watchHints(client("documents.$changes", { queries: [{ payload: { account: "team" }, query: "get" }] })));
 	}),
 );

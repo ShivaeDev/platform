@@ -12,7 +12,7 @@ export function queryHint(hint: SubscriptionHint, tracked: readonly { readonly k
 	}
 	const invalidated = invalidationKeys(hint.keys);
 	return {
-		_tag: "Changed",
+		...hint,
 		keys: [
 			...hint.keys,
 			...tracked.flatMap(({ keys }, index) => {

@@ -43,11 +43,11 @@ function storyRows(narration: Narration, test: FailedTest): string[] {
 		(line, index) => `${narration.refused?.index === index ? "✗" : " "} ${index < narration.given ? "given" : "     "}  ${line}`,
 	);
 	if (narration.refused !== undefined) {
-		const where = locate(narration.sites[narration.refused.index]?.stack, test.file);
+		const where = locate(narration.sites[narration.refused.index], test.file);
 		rows.splice(narration.refused.index + 1, 0, ...(where === undefined ? [] : [`         refused at ${where}`]));
 		return rows;
 	}
-	const where = locate(test.stack, test.file) ?? locate(narration.at?.stack, test.file);
+	const where = locate(test.stack, test.file) ?? locate(narration.at, test.file);
 	return [
 		...rows,
 		`✗        the test failed ${rows.length === 0 ? "before the story told a line" : "after the line above"}`,

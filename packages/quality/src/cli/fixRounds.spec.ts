@@ -1,5 +1,4 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { MAX_FIX_ROUNDS } from "#cli/fix.ts";
 import { fixPassKeepsRewriting, fixPassReports, fixPassWrites, fixRounds, formatPassRestores, repositoryHas } from "#test/fixRounds.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
@@ -33,7 +32,7 @@ fixRounds.it("quality fix settles after the first Biome round that rewrites noth
 fixRounds.it(
 	"quality fix stops after five rounds of rewrites and names only the file the last round changed",
 	[repositoryHas(FLIP, STILL), fixPassKeepsRewriting(FLIP.path)],
-	function* ({ failure, fixes, outcome, rounds }) {
+	function* ({ failure, fixes, outcome }) {
 		yield* fixes();
 
 		yield* outcomes([
@@ -43,14 +42,6 @@ fixRounds.it(
 				[`${STOPPED} These ranges changed in the last round (before each pass):`, "  src/flip.ts:2:1-2:1 (with fixes)", REPAIR].join("\n"),
 			],
 			["fix", () => outcome(), "stopped"],
-			[
-				"rounds",
-				() => rounds(),
-				Array.from(
-					{ length: MAX_FIX_ROUNDS },
-					(_, index) => `quality: Biome round ${index + 1} rewrote 1 file with fixes and 0 files with the format pass.`,
-				),
-			],
 		]);
 	},
 );

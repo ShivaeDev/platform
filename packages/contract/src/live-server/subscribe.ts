@@ -25,7 +25,7 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read?: Qu
 				let compare = compareQueries(subscription, read);
 				const next = Effect.fnUntraced(function* (hint: LiveHint) {
 					if (!(yield* subscription.authorized)) {
-						compare = compareQueries(subscription, read);
+						compare = compareQueries(subscription, read, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
 					const updates = yield* compare(hint, scopes);

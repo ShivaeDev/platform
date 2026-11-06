@@ -3,7 +3,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import type { ProviderAccountValue } from "#identity.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import type { Revocation, SignInAnswer } from "./answers.ts";
-import { type fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
+import { type fakeGitHub, type GitHubAccount, ORGANIZATION } from "./fakeGitHub.ts";
 import type { PolicyHost } from "./host.ts";
 import type { policyProbe } from "./requestWork.ts";
 

@@ -3,13 +3,13 @@ import process from "node:process";
 
 const FRAMES = 50;
 
-// V8 formats a stack only when it is read, so a site costs little until a test fails.
-export function callSite(): Error {
+// Retaining the Error also retains V8's stack frames and their closed-over values.
+export function callSite(): string | undefined {
 	const limit = Error.stackTraceLimit;
 	Error.stackTraceLimit = FRAMES;
 	const site = new Error("call site");
 	Error.stackTraceLimit = limit;
-	return site;
+	return site.stack;
 }
 
 export function locate(stack: string | undefined, testFile: string): string | undefined {

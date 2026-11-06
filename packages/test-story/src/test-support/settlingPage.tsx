@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber, Queue, Stream, SubscriptionRef } from "effect";
 import { act } from "react";
-import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { expectNoReactWarnings } from "#client/adapters/react.ts";
 import { domPage } from "#server/domPage.ts";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
@@ -47,7 +47,7 @@ export const settlingPage = storyKit({
 	stages: [],
 	verbs: ({ files, host, raw, transport, view }, story) => {
 		const { app } = view;
-		const activity = activityScreenSignal(clientActivity(app.client));
+		const activity = activityScreenSignal(clientActivity(app.client), isClientIdle);
 		const screen = screenDriver({
 			act,
 			activity,

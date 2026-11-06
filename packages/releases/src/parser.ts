@@ -1,8 +1,8 @@
 import { Result, Schema } from "effect";
 import { ChangesetError } from "#error.ts";
 import { Bump, type Source } from "#model.ts";
+import { packageAttribution } from "#packageAttribution.ts";
 import { type Entry, parseBody } from "#sections.ts";
-export const packageAttribution = /^- `(?<package>(?:@[^`/\s]+\/)?[^`/\s]+)`: /mu;
 export interface Changeset extends Source {
 	readonly entries: readonly (Entry & { readonly package: string })[];
 	readonly packages: Readonly<Record<string, Bump>>;

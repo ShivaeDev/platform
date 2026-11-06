@@ -50,7 +50,17 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		}
 	}
 	function computation(type: ts.Type): boolean {
-		return ["~effect/Effect", "~effect/Stream"].some((brand) => type.getProperty(brand) !== undefined);
+		const handle = ["~effect/Effect", "~effect/Stream", "~effect/Fiber", "~effect/Scope/Closeable"].some(
+			(brand) => type.getProperty(brand) !== undefined,
+		);
+		const symbol = type.getSymbol();
+		return (
+			handle
+			|| (symbol?.name === "AtomContext"
+				&& (symbol.declarations ?? []).some((declaration) =>
+					/\/effect\/(?:src|dist)\/reactivity\/Atom\.(?:d\.)?ts$/u.test(declaration.getSourceFile().fileName.replaceAll("\\", "/")),
+				))
+		);
 	}
 	function implementation(type: ts.Type): boolean {
 		if (shapes.has(type)) {

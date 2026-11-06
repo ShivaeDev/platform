@@ -1,4 +1,5 @@
-import { Cause, Effect, Layer, Option, Predicate, Ref, Stream } from "effect";
+import { Cause, Effect, Layer, Option, Ref, Stream } from "effect";
+import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
@@ -8,10 +9,15 @@ import { answered } from "#test/answers.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
 import { type RoutePaths, routePages } from "./routePages.ts";
 
-function firstChange<E, R>(changes: Stream.Stream<unknown, E, R>) {
+function firstChange<E, R>(changes: Stream.Stream<QueryUpdate, E, R>) {
 	return changes.pipe(
 		Stream.runHead,
-		Effect.map((first) => (Option.isSome(first) && Predicate.isTagged(first.value, "Resync") ? "resync" : `first change ${JSON.stringify(first)}`)),
+		Effect.map(
+			Option.match({
+				onNone: () => "ended without a result",
+				onSome: (update: QueryUpdate) => (update._tag === "Result" ? update.value : `unexpected ${update._tag}`),
+			}),
+		),
 	);
 }
 

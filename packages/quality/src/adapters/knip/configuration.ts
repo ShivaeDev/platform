@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
@@ -24,7 +25,7 @@ function importPaths(imports: Readonly<Record<string, unknown>>) {
 	);
 }
 
-export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly string[] = []) {
+export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly string[] = [], programmatic: ReadonlySet<string> = new Set()) {
 	const packages = await workspacePackages(inputs);
 	const manifests = await Promise.all(
 		[".", ...packages.map(({ directory }) => directory)].map(async (directory) => {
@@ -32,16 +33,13 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 			return { directory, manifest };
 		}),
 	);
-	const scripted = new Set(
-		manifests.flatMap(({ directory, manifest }) =>
-			Object.values(manifest.scripts ?? {}).flatMap((script) => script.split(/[\s'"`;|&()]+/u).map((word) => posix.join(directory, word))),
-		),
-	);
+	const scripted = new Set(manifests.flatMap(({ directory, manifest }) => scriptPaths(directory, manifest.scripts ?? {})));
 	const workspaces = manifests.map(({ directory, manifest }) => {
 		const sources = inputs.sources
 			.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)
 			.map(({ path }) => posix.relative(directory, path));
 		const scriptEntries = sources.filter((path) => scripted.has(posix.join(directory, path)));
+		const bundled = sources.filter((path) => programmatic.has(posix.join(directory, path)));
 		const bins = exportTargets(manifest.bin).map((target) => target.replace(/^\.\//u, ""));
 		const binaries = sources.filter(
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
@@ -56,7 +54,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 		return [
 			directory,
 			{
-				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...ui, ...styles],
+				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...bundled, ...ui, ...styles],
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },

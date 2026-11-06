@@ -3,7 +3,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adaPassword, adaPrecomputedPassword, passwordAuth } from "#test/better-auth/password.ts";
-import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
+import { CURRENT_PASSWORD } from "#test/passwords.ts";
 
 passwordAuth.it(
 	"ada signs in and reads her session using only the application's one PostgreSQL connection",

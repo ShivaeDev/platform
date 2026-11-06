@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { programmaticEntries } from "#inventory/programmaticEntries.ts";
 import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
@@ -26,7 +27,8 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 		return [];
 	}
 	const files = yield* toolOwnedFiles(inputs.root);
-	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files));
+	const entries = yield* programmaticEntries(inputs);
+	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files, entries));
 	const checked = new Set([...inputs.files, ...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json"))]);
 	const findings = yield* Effect.scoped(
 		Effect.gen(function* () {

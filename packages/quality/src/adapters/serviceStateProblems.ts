@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { initializerDependency } from "#adapters/initializerDependency.ts";
+import { containerDependency } from "#adapters/containerDependency.ts";
 import { serviceProperty } from "#adapters/serviceAssemblySyntax.ts";
-import { effectSuccess, resolvedValue } from "#adapters/serviceModelSyntax.ts";
+import { effectApi, effectSuccess, resolvedValue } from "#adapters/serviceModelSyntax.ts";
 import type { serviceTypes } from "#rules/effect/serviceTypes.ts";
 import { returnValues } from "#rules/stories/returnValues.ts";
 
@@ -12,7 +12,7 @@ function capturesDependency(
 	seen = new Set<ts.Node>(),
 	closing = false,
 ): boolean {
-	if (seen.has(value)) {
+	if (seen.has(value) || ts.isTypeNode(value)) {
 		return false;
 	}
 	seen.add(value);
@@ -27,21 +27,43 @@ function capturesDependency(
 		return false;
 	}
 	if (ts.isCallExpression(value)) {
-		const owner = ts.isPropertyAccessExpression(value.expression) ? value.expression.expression : undefined;
-		return (
-			(owner !== undefined && services.implementation(checker.getTypeAtLocation(owner)))
-			|| value.arguments.some((argument) => capturesDependency(checker, argument, services, seen, closing))
-		);
+		return callDependency(checker, value, services, seen, closing);
 	}
 	if (ts.isIdentifier(value)) {
-		if (services.carries(checker.getTypeAtLocation(value))) {
-			return true;
-		}
-		const resolved = resolvedValue(checker, value);
-		return resolved !== value && capturesDependency(checker, resolved, services, seen, closing);
+		return identifierDependency(checker, value, services, seen, closing);
 	}
 	return (
 		ts.forEachChild(value, (child) => capturesDependency(checker, child, services, seen, closing || ts.isFunctionLike(value)) || undefined) ?? false
+	);
+}
+
+function identifierDependency(
+	checker: ts.TypeChecker,
+	value: ts.Identifier,
+	services: ReturnType<typeof serviceTypes>,
+	seen: Set<ts.Node>,
+	closing: boolean,
+): boolean {
+	const symbol = checker.getSymbolAtLocation(value);
+	const target = symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+	if (target !== undefined && target.flags & ts.SymbolFlags.ValueModule) {
+		return false;
+	}
+	const resolved = resolvedValue(checker, value);
+	return resolved === value ? services.carries(checker.getTypeAtLocation(value)) : capturesDependency(checker, resolved, services, seen, closing);
+}
+
+function callDependency(
+	checker: ts.TypeChecker,
+	value: ts.CallExpression,
+	services: ReturnType<typeof serviceTypes>,
+	seen: Set<ts.Node>,
+	closing: boolean,
+): boolean {
+	const owner = ts.isPropertyAccessExpression(value.expression) ? value.expression.expression : undefined;
+	return (
+		(owner !== undefined && services.implementation(checker.getTypeAtLocation(owner)) && capturesDependency(checker, owner, services, seen, closing))
+		|| value.arguments.some((argument) => capturesDependency(checker, argument, services, seen, closing))
 	);
 }
 
@@ -54,13 +76,16 @@ export function serviceStateProblems(
 	if (initialize === undefined) {
 		return [];
 	}
-	const state = effectSuccess(checker, checker.getTypeAtLocation(initialize));
-	let dependency =
-		services.carries(checker.getTypeAtLocation(initialize))
-		|| (state !== undefined && (services.carries(state) || initializerDependency(checker, state)));
+	const type = checker.getTypeAtLocation(initialize);
+	const state = effectSuccess(checker, type);
+	let dependency = services.carries(type) || (state !== undefined && (services.carries(state) || containerDependency(checker, state, services)));
 	const initializer = resolvedValue(checker, initialize);
 	// A function in state can hide a service even when its public type does not carry it.
 	function inspect(node: ts.Node): void {
+		if (ts.isCallExpression(node) && ["succeed", "as"].some((name) => effectApi(checker, node.expression, name))) {
+			const retained = node.arguments.at(-1);
+			dependency ||= retained !== undefined && capturesDependency(checker, retained, services);
+		}
 		if (ts.isFunctionLike(node)) {
 			for (const value of returnValues(node)) {
 				if (value !== undefined && capturesDependency(checker, value, services)) {

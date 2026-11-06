@@ -44,6 +44,7 @@ export function screenVerbs(engine: Engine, story: { tell: (line: string) => voi
 				Effect.andThen(verbs.settle()),
 			);
 		},
+		requests: () => Effect.sync(() => [...engine.host.requests]),
 		separateRenamed: (title: string) => verbs.anotherHostRenamesShown(2, title, engine.screen.separateContainer),
 		separateShown: () => Effect.sync(() => engine.screen.separateContainer().textContent),
 		shown: (id: number) => Effect.sync(() => engine.screen.container.querySelector(`[data-note="${id}"]`)?.textContent),

@@ -4,7 +4,7 @@ import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { form } from "#form.ts";
 import { FieldFailure, type Invalid, type Snapshot } from "#shape.ts";
-import { PROFILE_KEY } from "#test/ProfileKey.ts";
+import { PROFILE_KEY } from "#test/profileKey.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const Fields = Schema.Struct({ name: Schema.String });

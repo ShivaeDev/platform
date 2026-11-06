@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-06
+
+### Breaking
+
+- Import the rate-limit event adapter from `adapters/rateLimitEvents.ts` instead of `adapters/rateLimits.ts`.
+
 ## 0.5.0 - 2026-11-05
 
 ### Breaking

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.66.0",
+	"version": "0.67.1",
 	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
@@ -15,12 +15,13 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
+		"#biome-preset": "./biome/preset.json",
+		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"@shivaedev/source": "./src/*.ts",
-			"default": "./dist/*.js",
-			"types": "./dist/*.d.ts"
-		},
-		"#test/*": "./src/test-support/*"
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
 	},
 	"exports": {
 		"./*.ts": {
@@ -29,10 +30,10 @@
 			"default": "./dist/*.js"
 		},
 		"./biome/preset.json": "./biome/preset.json",
-		"./package.json": "./package.json",
-		"./tsconfig/app.json": "./tsconfig/app.json",
 		"./tsconfig/base.json": "./tsconfig/base.json",
-		"./tsconfig/package.json": "./tsconfig/package.json"
+		"./tsconfig/package.json": "./tsconfig/package.json",
+		"./package.json": "./package.json",
+		"./tsconfig/app.json": "./tsconfig/app.json"
 	},
 	"bin": {
 		"quality": "./dist/cli.js"

@@ -1,6 +1,6 @@
 import { Deferred, type Duration, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
-import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { mountApp } from "#server/mountApp.ts";
@@ -32,16 +32,36 @@ export const activityPage = storyKit({
 		const activity = clientActivity(client);
 		const pending = activityScreenSignal(activity);
 		const driver = screenDriver({ act, activity: pending, root: view.container, tell: story.tell });
+		const idle = activityScreenSignal(activity, isClientIdle);
+		function startWaiting(signal: typeof pending) {
+			return Effect.gen(function* () {
+				const observing = yield* Deferred.make<void>();
+				const observed = Object.assign(signal.pipe(Stream.tap(() => Deferred.succeed(observing, undefined))), { current: signal.current });
+				const settling = screenDriver({ act, pending: observed, root: view.container, tell: story.tell });
+				const fiber = yield* settling.settle().pipe(Effect.forkScoped({ startImmediately: true }));
+				yield* Effect.raceFirst(Deferred.await(observing), Fiber.join(fiber));
+				return { finish: Fiber.join(fiber), state: Effect.sync(() => (fiber.pollUnsafe() === undefined ? "waiting" : "settled")) };
+			});
+		}
 		return {
 			...driver,
 			activity: () => activity.current,
 			closePage: () => Effect.promise(view.unmount),
 			coalesceFor: (duration: Duration.Input) => Effect.sync(() => view.registry.set(queryCoalesceWindow(client.api.get.query({ id: 1 })), duration)),
 			holdRefresh: () => Effect.sync(host.holdRead),
+			holdSave: () => Effect.sync(host.holdWrite),
 			readMissing: () => raw["page.get"]({ id: 99 }).pipe(Effect.match({ onFailure: (error) => error._tag, onSuccess: (title) => title })),
 			refreshStarted: () => Effect.promise(() => act(() => Effect.runPromise(Queue.take(host.reading)))),
 			releaseRefresh: () => Effect.sync(host.releaseRead),
-			shown: () => driver.settle().pipe(Effect.andThen(Effect.sync(() => driver.text("output")))),
+			releaseSave: () => Effect.sync(host.releaseWrite),
+			releaseSecondPage: () => Deferred.succeed(host.held, "hint"),
+			saved: () => Effect.sync(() => driver.text("[data-saved]")),
+			saveStarted: () => Effect.promise(() => act(() => Effect.runPromise(Queue.take(host.writing)))),
+			secondTitle: () => Effect.sync(() => driver.text("[data-second]")),
+			shown: () =>
+				screenDriver({ act, activity: idle, root: view.container, tell: story.tell })
+					.settle()
+					.pipe(Effect.andThen(Effect.sync(() => driver.text("output")))),
 			startHintWait: () =>
 				Effect.gen(function* () {
 					const fiber = yield* driver.nextLiveHint().pipe(Effect.forkScoped({ startImmediately: true }));
@@ -52,15 +72,8 @@ export const activityPage = storyKit({
 					const fiber = yield* raw["page.get"]({ id: 1 }).pipe(Effect.forkScoped({ startImmediately: true }));
 					return { cancel: Fiber.interrupt(fiber), result: Fiber.join(fiber) };
 				}),
-			startSettling: () =>
-				Effect.gen(function* () {
-					const observing = yield* Deferred.make<void>();
-					const observed = Object.assign(pending.pipe(Stream.tap(() => Deferred.succeed(observing, undefined))), { current: pending.current });
-					const settling = screenDriver({ act, pending: observed, root: view.container, tell: story.tell });
-					const fiber = yield* settling.settle().pipe(Effect.forkScoped({ startImmediately: true }));
-					yield* Effect.raceFirst(Deferred.await(observing), Fiber.join(fiber));
-					return { finish: Fiber.join(fiber), state: Effect.sync(() => (fiber.pollUnsafe() === undefined ? "waiting" : "settled")) };
-				}),
+			startSettling: () => startWaiting(pending),
+			startWaitingForRefresh: () => startWaiting(idle),
 			writeElsewhere: (title: string) => writer["page.write"]({ id: 1, title }),
 		};
 	},

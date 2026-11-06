@@ -90,7 +90,9 @@ export const jobsEngine = Effect.gen(function* () {
 	});
 	const rpc = yield* adminRpc(
 		registration.group,
-		Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
+		hostChanges(registration.group)
+			.pipe(Layer.provideMerge(registration.handlers))
+			.pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
 	);
 
 	return {

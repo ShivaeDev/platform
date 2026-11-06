@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { clientIpHeaders } from "#server/better-auth/adapters/clientIp.ts";
+import { clientIpHeaders } from "#server/better-auth/adapters/clientIpHeaders.ts";
 import { type MountedAuth, type MountRouteOptions, response } from "#server/better-auth/adapters/response.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 

@@ -2,8 +2,8 @@ import { access } from "node:fs/promises";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import { Effect } from "effect";
 import type { StartRequest } from "@shivaedev/agent/run.ts";
-import { thinkingLevel } from "#adapters/effort.ts";
 import { rejected, unavailable } from "#adapters/failure.ts";
+import { thinkingLevel } from "#adapters/thinkingLevel.ts";
 import type { PiOptions } from "#PiOptions.ts";
 
 export const loadSdk = Effect.tryPromise({ catch: unavailable, try: () => import("@earendil-works/pi-coding-agent") });

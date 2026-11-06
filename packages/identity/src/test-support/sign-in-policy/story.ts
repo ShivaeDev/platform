@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
+import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./fakeGitHub.ts";
 import { policyHost } from "./host.ts";
 import { type Engine, entriesOf, host, membershipRule, type Person, people, RECHECK_INTERVAL, UNLISTED_USERS } from "./model.ts";
 import { policyProbe } from "./requestWork.ts";

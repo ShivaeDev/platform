@@ -48,7 +48,8 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
-	const handlers = Layer.mergeAll(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }), hostChanges(Api));
+	const application = Layer.merge(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }));
+	const handlers = hostChanges(Api).pipe(Layer.provideMerge(application));
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([
 			handlers.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live)])),

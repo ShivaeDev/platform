@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-11-06
+
+### Breaking
+
+- Import `DEFAULT_OUTPUT_DIR` and `DEFAULT_RERUNS` from `@shivaedev/vitest-rerun/defaults.ts` instead of `@shivaedev/vitest-rerun/options.ts`.
+
 ## 0.10.0 - 2026-11-05
 
 ### Breaking

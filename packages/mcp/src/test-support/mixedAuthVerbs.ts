@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { POLICY_ONLY_ORIGIN, TRANSPORT_ONLY_ORIGIN } from "./application.ts";
 import { browserIdentity } from "./browserRpc.ts";
 import { connect } from "./client.ts";
 import { type Engine, named, person } from "./host.ts";
+import { POLICY_ONLY_ORIGIN, TRANSPORT_ONLY_ORIGIN } from "./startHost.ts";
 
 export function mixedAuthVerbs(engine: Engine, tell: (line: string) => void) {
 	const origins = { allowed: engine.baseUrl, "policy only": POLICY_ONLY_ORIGIN, "transport only": TRANSPORT_ONLY_ORIGIN };

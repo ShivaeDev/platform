@@ -17,7 +17,12 @@ export const automatic = storyKit({
 	around: withIsolatedDatabase,
 	clock: "test",
 	create: open,
-	inspect: ({ host, screen }) => ({ publications: host.publications, reads: host.reads, text: screen.container.textContent }),
+	inspect: ({ host, screen }) => ({
+		publications: host.publications,
+		reads: host.reads,
+		requests: host.requests,
+		text: screen.container.textContent,
+	}),
 	layer,
 	name: "automatic live queries",
 	runIf: configured,

@@ -29,7 +29,7 @@ adminStory.it(
 	function* ({ failedJobs, jobChanges, profile, userChanges, watchFailedJobs }) {
 		yield* outcomes([
 			["failed jobs", () => failedJobs(), ["mail-42"]],
-			["job changes", () => jobChanges(), "resync"],
+			["job changes", () => jobChanges(), ["mail-42"]],
 			["profile", () => profile(), "forbidden"],
 			["user changes", () => userChanges(), "forbidden"],
 			["watching failed jobs", () => watchFailedJobs(), ["mail-42"]],
@@ -50,7 +50,7 @@ adminStory.it(
 			["job changes", () => jobChanges(), "forbidden"],
 			["profile", () => profile(), "auditor@example.test"],
 			["retry of mail-42", () => retry("mail-42"), "forbidden"],
-			["user changes", () => userChanges(), "resync"],
+			["user changes", () => userChanges(), "auditor@example.test"],
 			["watching failed jobs", () => watchFailedJobs(), "forbidden"],
 		]);
 	},

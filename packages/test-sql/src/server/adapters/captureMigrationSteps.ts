@@ -6,23 +6,23 @@ function invalid(message: string) {
 	return Effect.fail(new Migrator.MigrationError({ kind: "BadState", message }));
 }
 
-const outsideTransaction = Effect.fnUntraced(function* (sql: SqlClient.SqlClient) {
-	if (Option.isSome(yield* Effect.serviceOption(sql.transactionService))) {
-		return yield* invalid("Migration steps must run outside a wrapping transaction.");
-	}
-});
-
 export const captureMigrationSteps = Effect.fnUntraced(function* <R, E = never>(migrations: PostgresMigrationOptions<R, E>) {
 	const sql = yield* SqlClient.SqlClient;
+	const outsideTransaction = Effect.fnUntraced(function* () {
+		if (Option.isSome(yield* Effect.serviceOption(sql.transactionService))) {
+			return yield* invalid("Migration steps must run outside a wrapping transaction.");
+		}
+	});
+
 	const context = yield* Effect.context<R | SqlClient.SqlClient>();
 	yield* sql.onDialectOrElse({ orElse: () => invalid("Migration steps require PostgreSQL."), pg: () => Effect.void });
-	yield* outsideTransaction(sql);
+	yield* outsideTransaction();
 	const resolved = yield* migrations.loader;
 	const ledger = migrations.table ?? "effect_sql_migrations";
 	const identifier = sql`${sql(ledger)}`.compile()[0];
 	function run(options: PostgresMigrationOptions<R, E>, target?: number) {
 		return Effect.gen(function* () {
-			yield* outsideTransaction(sql);
+			yield* outsideTransaction();
 			if (target !== undefined) {
 				const [existing] = yield* sql<{ readonly name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
 				if (existing !== undefined && existing.name !== null) {

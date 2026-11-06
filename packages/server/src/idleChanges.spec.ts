@@ -26,3 +26,7 @@ customHandlerStory.it(
 		expect(yield* firstHint()).toBe("changed Hello");
 	},
 );
+
+hostChangesStory.it("a host without a changes service sends the query result on its subscription", [], function* ({ firstResult }) {
+	expect(yield* firstResult()).toEqual({ _tag: "Result", query: "greet", queryIndex: 0, value: "Hello, Ada" });
+});

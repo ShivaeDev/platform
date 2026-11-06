@@ -6,22 +6,28 @@ import { firstRenamedByAnotherHost, notesShown, secondHiddenThenRenamed, separat
 
 expectNoReactWarnings();
 
-automatic.it("queries from two contracts share one tab socket", [notesShown()], function* ({ reads, sockets }) {
-	yield* outcomes([
-		["reads", () => reads(), [1, 2]],
-		["sockets", () => sockets(), ["tab socket"]],
-	]);
-});
+automatic.it(
+	"queries from two contracts open with one subscription request each on one tab socket",
+	[notesShown()],
+	function* ({ reads, requests, sockets }) {
+		yield* outcomes([
+			["reads", () => reads(), [1, 2]],
+			["requests", () => requests(), ["notes.$changes", "preview.$changes"]],
+			["sockets", () => sockets(), ["tab socket"]],
+		]);
+	},
+);
 
 automatic.it(
-	"showing a hidden query again reads its current title over the same socket without reading the other query",
+	"showing a hidden query again reads its current title in one subscription request over the same socket without reading the other query",
 	[secondHiddenThenRenamed()],
-	function* ({ reads, showSecond, shown, sockets }) {
+	function* ({ reads, requests, showSecond, shown, sockets }) {
 		yield* showSecond();
 
 		yield* outcomes([
 			["note 2", () => shown(2), "While unmounted"],
 			["reads", () => reads(), [1, 2, 2]],
+			["requests", () => requests(), ["notes.$changes", "preview.$changes", "preview.$changes"]],
 			["sockets", () => sockets(), ["tab socket"]],
 		]);
 	},
@@ -64,9 +70,9 @@ automatic.it("a dropped socket shows Reconnecting", [notesShown()], function* ({
 });
 
 automatic.it(
-	"after reconnecting on a new socket, the screen reads the change it missed",
+	"after reconnecting on a new socket, one subscription request delivers the change the screen missed",
 	[socketDropped(true)],
-	function* ({ reads, reconnected, shown, sockets }) {
+	function* ({ reads, reconnected, requests, shown, sockets }) {
 		expect(yield* shown(1)).toBe("First");
 
 		yield* reconnected();
@@ -74,6 +80,7 @@ automatic.it(
 		yield* outcomes([
 			["note 1", () => shown(1), "Changed while disconnected"],
 			["reads", () => reads(), [1, 1, 2]],
+			["requests", () => requests(), ["notes.$changes", "preview.$changes", "notes.$changes"]],
 			["sockets", () => sockets(), ["tab socket", "tab socket"]],
 		]);
 	},
