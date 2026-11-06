@@ -564,7 +564,7 @@ const rename = useAction(ReportsClient.runtime, api.rename.run, {
 
 The command's identity is the native action atom, or the `run` function in the runtime overload. Pass a stable bound function such as `api.rename.run`; memoize wrappers with `useCallback` or `useMemo`. Changing the command on a mounted control keeps `pending` true until its outgoing request settles. Its result, data and cause stay with the outgoing command: a refusal or success from Launch never appears on a replacement Resume control. Resume dispatches its own function and input. Completion callbacks for the outgoing runtime command stop when it is replaced; callbacks for the same command still use the latest committed props.
 
-The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for invalidated queries to refetch. Undo payloads, expected versions and presentation text stay in the application.
+The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for server query reruns and their pushed results. Undo payloads, expected versions and presentation text stay in the application.
 
 A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
 
@@ -623,7 +623,7 @@ change.remove({ _tag: "edit", rows: selectedVersions, scale: 0.5, copies: true }
 
 #### Commands with a pending display value
 
-Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive server reruns:
 
 ```tsx
 import * as Atom from "effect/reactivity/Atom";
@@ -648,7 +648,7 @@ function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly 
 
 Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
 
-The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
+The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose next results the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
 
 `command.value` changes on dispatch and stays at the requested value while the command or any watched query is waiting. `pending` covers that whole interval. After the queries settle, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
 
