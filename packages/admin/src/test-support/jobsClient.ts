@@ -23,5 +23,12 @@ export const jobsClient = Effect.fnUntraced(function* (
 	function run<A, E>(effect: Effect.Effect<A, E, typeof Client.Identifier | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, Client.runtime.atom(effect));
 	}
-	return { activity: clientActivity(transport), api, registry, retryAction: Client.runtime.fn(api.retry.run), run };
+	return {
+		activity: clientActivity(transport),
+		api,
+		registry,
+		retryAction: Client.runtime.fn(api.retry.run),
+		run,
+		runScheduleNowAction: Client.runtime.fn(api.runScheduleNow.run),
+	};
 });

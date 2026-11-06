@@ -31,6 +31,17 @@ export function jobsPageWithRetry<const TQueues extends readonly JobsEntry[]>(..
 						payload: { id: Schema.String, queue: Schema.String },
 						rejections: { ...JobsFailures, Forbidden, JobsNotFailed },
 					}),
+					command("runScheduleNow", {
+						invalidates: ({ queue }) => [
+							jobsKeys.health.list,
+							jobsKeys.counts.item(queue),
+							jobsKeys.failed.item(queue),
+							jobsKeys.deadLettered.item(queue),
+						],
+						payload: { queue: Schema.String },
+						rejections: { ...JobsFailures, Forbidden },
+						success: Schema.OptionFromNullOr(Schema.String),
+					}),
 				],
 				queries: page.contract.declaration.queries,
 			}),
@@ -38,6 +49,6 @@ export function jobsPageWithRetry<const TQueues extends readonly JobsEntry[]>(..
 			permission: JobsPermission,
 			route: page.route,
 		}),
-		{ queues },
+		{ queues, schedules: queues.filter((entry) => !("schema" in entry)) },
 	);
 }

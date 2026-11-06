@@ -31,5 +31,19 @@ export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[]
 				}
 				yield* jobsFailures(runtime.retry(definition, id));
 			}),
+		"admin.jobs.runScheduleNow": ({ queue }) =>
+			Effect.gen(function* () {
+				yield* requirePermission(yield* SessionUser, RetryJobs);
+				const entries: readonly JobsEntry[] = page.queues;
+				const entry = entries.find((candidate) => candidate.name === queue && !("schema" in candidate));
+				if (entry === undefined || "schema" in entry) {
+					return yield* Effect.fail(new JobsQueueUnregistered({ queue }));
+				}
+				const runtime = yield* service;
+				return yield* runtime.runScheduleNow({ name: entry.name, scheduleOptions: entry.scheduleOptions ?? {} }).pipe(
+					Effect.catchTag("PgBossNotFoundError", () => Effect.fail(new JobsQueueUnregistered({ queue }))),
+					Effect.catchTag("PgBossError", (error) => jobsFailures(Effect.fail(error))),
+				);
+			}),
 	});
 }

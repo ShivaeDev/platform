@@ -11,10 +11,11 @@ import { health } from "./health.ts";
 import { listJobs } from "./listJobs.ts";
 import { refreshQueueStats } from "./refreshQueueStats.ts";
 import { retry } from "./retry.ts";
+import { runScheduleNow } from "./runScheduleNow.ts";
 import { unschedule } from "./unschedule.ts";
 export const PgBossOperations = defineService({
 	id: "@shivaedev/jobs/PgBossOperations",
 	initialize: Effect.void,
-	methods: () => ({ counts, deleteQueue, enqueue, getJob, health, listJobs, refreshQueueStats, retry, unschedule }),
+	methods: () => ({ counts, deleteQueue, enqueue, getJob, health, listJobs, refreshQueueStats, retry, runScheduleNow, unschedule }),
 	requires: [PgBoss, JobEngine, JobQueues],
 });

@@ -26,6 +26,7 @@ export const makeService = Effect.fnUntraced(function* (): Effect.fn.Return<
 		inspection: () => Effect.succeed(reads),
 		refreshQueueStats: operations.refreshQueueStats,
 		retry: (queue, id) => operations.retry(queue.name, id),
+		runScheduleNow: operations.runScheduleNow,
 		unschedule: operations.unschedule,
 	};
 });

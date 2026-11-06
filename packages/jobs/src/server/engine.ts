@@ -10,7 +10,7 @@ export type Listing = "deadLetteredJobs" | "failedJobs";
 
 export class JobEngine extends Context.Service<
 	JobEngine,
-	Pick<PgBossService, "deleteQueue" | "refreshQueueStats" | "unschedule"> & {
+	Pick<PgBossService, "deleteQueue" | "refreshQueueStats" | "runScheduleNow" | "unschedule"> & {
 		readonly getJob: (queue: string, id: string) => Effect.Effect<StoredJob | undefined, PgBossError>;
 		readonly retry: (queue: string, id: string) => Effect.Effect<void, PgBossError>;
 		readonly listJobs: (listing: Listing, queue: string, query: KeysetPageQuery) => Effect.Effect<readonly unknown[], PgBossError>;

@@ -14,13 +14,14 @@ export type PgBossOperation =
 	| "register"
 	| "refreshQueueStats"
 	| "retry"
+	| "runScheduleNow"
 	| "settle"
 	| "start"
 	| "stop"
 	| "unschedule";
 
 export class PgBossNotFoundError extends Data.TaggedError("PgBossNotFoundError")<{
-	readonly operation: "deleteQueue" | "unschedule";
+	readonly operation: "deleteQueue" | "runScheduleNow" | "unschedule";
 	readonly queue: string;
 	readonly key?: string;
 }> {
