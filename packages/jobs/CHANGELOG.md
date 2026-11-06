@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.0 - 2026-11-06
+
+### Added
+
+- Run a registered schedule immediately through `runScheduleNow` using its normal queue and handler while preserving its timetable.
+
 ## 0.40.1 - 2026-11-06
 
 ### Changed

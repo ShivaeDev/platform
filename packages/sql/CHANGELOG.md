@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.45.0 - 2026-11-06
+
+### Breaking
+
+- Drop calls and imports of the removed `applyLowMemoryPostgres`. Move desired server values into the host's required `postgresSettings` declaration, typed by `PostgresSettings` from `@shivaedev/sql/postgresSettings.ts`.
+
 ## 0.44.0 - 2026-11-06
 
 ### Breaking
