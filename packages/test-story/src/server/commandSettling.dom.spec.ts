@@ -5,12 +5,10 @@ import { activityPage } from "#test/activityPage.ts";
 activityPage.it(
 	"a command receipt settles while a live query waits for its next result",
 	[],
-	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, enter, click, settle, saved }) {
+	function* ({ shown, holdRefresh, writeElsewhere, refreshStarted, enter, click, settle, saved }) {
 		expect(yield* shown()).toBe("First page");
 		yield* holdRefresh();
-		const hint = yield* startHintWait();
 		yield* writeElsewhere("Another viewer's page");
-		yield* hint.finish;
 		yield* refreshStarted();
 		yield* enter("input", "Saved page");
 

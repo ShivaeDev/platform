@@ -1,6 +1,9 @@
 import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import type { Screen } from "#test/Screen.ts";
 import { Editor } from "./Editor.tsx";
 import { makeClient } from "./makeClient.ts";
@@ -8,9 +11,8 @@ import { makeClient } from "./makeClient.ts";
 export function openScreen(screen: Screen, url: string, token: string, entityId: number, tell: (line: string) => void) {
 	const client = makeClient(url, token, entityId);
 	return screen.open(<Editor client={client} />).pipe(
-		// Each rendered root owns its registry, so writer invalidation cannot refresh another root.
 		Effect.map((root) => {
-			// A hint then invalidates at once instead of after a bare timer that no story can wait on.
+			const signals = querySignals(client.query);
 			return {
 				...root,
 				client,
@@ -26,13 +28,10 @@ export function openScreen(screen: Screen, url: string, token: string, entityId:
 					tell,
 				}),
 				entityId,
-				nextHint: () =>
-					new Promise<void>((resolve) => {
-						const stop = root.registry.subscribe(client.status, () => {
-							stop();
-							resolve();
-						});
-					}),
+				nextResult: () => {
+					const before = root.registry.get(signals).completed;
+					return until(AtomRegistry.toStream(root.registry, signals), ({ completed }) => completed > before, { name: "pushed settings" });
+				},
 			};
 		}),
 	);
