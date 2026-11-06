@@ -12,8 +12,9 @@ for (const [shape, imports, line] of [
 	["an Exit helper", 'import { Exit } from "effect";', "expect(Exit.isFailure(exit)).toBe(true);"],
 	["a Cause helper", 'import { Cause } from "effect";', "expect(Cause.hasDies(cause)).toBe(true);"],
 	["a Result helper from effect/Result", 'import * as Result from "effect/Result";', "expect(Result.isSuccess(result)).toBe(true);"],
-	["a _tag read", VITEST, 'expect(error._tag).toBe("Forbidden");'],
-	["a destructured _tag", VITEST, "const { _tag } = answer;"],
+	["a _tag read", 'import type { Exit } from "effect";', 'const answer: Exit.Exit<string> = received; expect(answer._tag).toBe("Failure");'],
+	["a destructured _tag", 'import type { Exit } from "effect";', "const answer: Exit.Exit<string> = received; const { _tag } = answer;"],
+	["a partial Failure literal", VITEST, 'expect(saved).toMatchObject({ _tag: "Failure" });'],
 	["a Failure literal around a domain tag", VITEST, 'expect(saved).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });'],
 ] as const) {
 	ruleStory.it(
@@ -37,5 +38,22 @@ ruleStory.it(
 	[repositoryHas({ content: `${VITEST}\n${inStory('expect(yield* nextMessage()).toEqual({ _tag: "Resync" });')}`, path: SPEC })],
 	function* ({ check }) {
 		yield* assertThat(yield* check(domainOutcomes), (actual) => actual.toEqual([]));
+	},
+);
+
+ruleStory.it(
+	"domain-outcomes accepts a domain event named Failure and keeps checking an internal outcome in the same story",
+	[
+		repositoryHas({
+			content: `import { Schema } from "effect"; import type { Exit } from "effect";
+const Failed = Schema.TaggedStruct("Failure", { agentId: Schema.String });
+${inStory('expect(Failed.make({ agentId: "one" })._tag).toBe("Failure");', 'const answer: Exit.Exit<string> = received; expect(answer._tag).toBe("Failure");')}`,
+			path: SPEC,
+		}),
+	],
+	function* ({ check, locations }) {
+		yield* check(domainOutcomes);
+
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${SPEC}:5`]));
 	},
 );

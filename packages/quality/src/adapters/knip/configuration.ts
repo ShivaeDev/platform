@@ -2,7 +2,6 @@ import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
-import { SHADCN_FILE_GLOB } from "#inventory/shadcnFiles.ts";
 import type { RuleInputs } from "#rule.ts";
 import { KNIP_ISSUES } from "./findings.ts";
 
@@ -50,9 +49,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
 		// Migration runners load these files from their directory, so no import reaches them.
 		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
-		const ui = toolOwned
-			.filter((folder) => (packageOf(packages, `${folder}/component.ts`)?.directory ?? ".") === directory)
-			.map((folder) => `${posix.relative(directory, folder)}/**/${SHADCN_FILE_GLOB}`);
+		const ui = toolOwned.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory).map((file) => posix.relative(directory, file));
 		const styles = inputs.files
 			.filter((path) => path.endsWith(".css") && (packageOf(packages, path)?.directory ?? ".") === directory)
 			.map((path) => posix.relative(directory, path));

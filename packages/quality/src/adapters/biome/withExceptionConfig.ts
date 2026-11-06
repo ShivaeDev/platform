@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 import { exceptionConfig } from "#biome/exceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
+import { browserOverrides } from "./browserTargets.ts";
 import { parseConfig, relocateConfig } from "./relocateConfig.ts";
 
 export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(function* <TValue, TError, TRequirements>(
@@ -12,7 +13,8 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 	nonEffectFolders: readonly string[] = [],
 ) {
 	const { includes, overrides } = exceptionConfig(declarations);
-	if (includes.length === 0 && overrides.length === 0 && nonEffectFolders.length === 0) {
+	const targets = yield* browserOverrides(root);
+	if (includes.length === 0 && overrides.length === 0 && nonEffectFolders.length === 0 && targets.length === 0) {
 		return yield* run([]);
 	}
 	const { config, text } = yield* Effect.gen(function* () {
@@ -39,7 +41,7 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 	const generated = {
 		...own,
 		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!.worktrees", "!.quality-biome-*"] },
-		overrides: [...previousOverrides, ...overrides],
+		overrides: [...previousOverrides, ...overrides, ...targets],
 	};
 	const path = yield* relocateConfig(root, join(root, config), generated, nonEffectFolders);
 	return yield* run([`--config-path=${path}`]);

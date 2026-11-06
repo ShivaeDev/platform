@@ -6,8 +6,8 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import { shadcnFiles } from "#inventory/shadcnFiles.ts";
 import { skillCopies } from "#inventory/skillCopies.ts";
+import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
 
 export interface BiomeRun {
 	readonly code: number;
@@ -23,7 +23,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 	exceptions: readonly ExceptionDeclaration[] = [],
 	nonEffectFolders: readonly string[] = [],
 ) {
-	const files = yield* shadcnFiles(root);
+	const files = yield* toolOwnedFiles(root);
 	const copies = (yield* skillCopies(root)).paths.map((file) => posix(relative(root, file)));
 	const toolOwned: readonly ExceptionDeclaration[] = [
 		{

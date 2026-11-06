@@ -15,12 +15,12 @@
 	"sideEffects": false,
 	"type": "module",
 	"imports": {
-		"#test/*": "./src/test-support/*",
 		"#*.ts": {
 			"@shivaedev/source": "./src/*.ts",
-			"types": "./dist/*.d.ts",
-			"default": "./dist/*.js"
-		}
+			"default": "./dist/*.js",
+			"types": "./dist/*.d.ts"
+		},
+		"#test/*": "./src/test-support/*"
 	},
 	"exports": {
 		"./*.ts": {
@@ -29,10 +29,10 @@
 			"default": "./dist/*.js"
 		},
 		"./biome/preset.json": "./biome/preset.json",
-		"./tsconfig/base.json": "./tsconfig/base.json",
-		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json",
-		"./tsconfig/app.json": "./tsconfig/app.json"
+		"./tsconfig/app.json": "./tsconfig/app.json",
+		"./tsconfig/base.json": "./tsconfig/base.json",
+		"./tsconfig/package.json": "./tsconfig/package.json"
 	},
 	"bin": {
 		"quality": "./dist/cli.js"
@@ -57,11 +57,13 @@
 	},
 	"dependencies": {
 		"@biomejs/biome": "catalog:",
+		"@mdn/browser-compat-data": "catalog:",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/heavy-lock": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/skills": "workspace:*",
 		"@vitest/coverage-v8": "catalog:",
+		"browserslist": "catalog:",
 		"ignore": "catalog:",
 		"knip": "catalog:",
 		"sort-package-json": "catalog:",

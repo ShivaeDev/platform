@@ -45,7 +45,8 @@ exceptionStory.it(
 				}),
 			),
 			{
-				content: 'import { it } from "vitest";\nit("reads the engine", function* (engine) { yield engine; });\n',
+				content:
+					'import { makeEffectIt } from "./entry.ts"; const it = makeEffectIt();\nit("reads the engine", function* (engine) { yield engine; });\n',
 				path: "src/engine.test.ts",
 			},
 		),

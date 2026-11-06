@@ -55,7 +55,13 @@ biomeStory.it(
 		yield* checks();
 
 		yield* assertThat(yield* reported("lint/style/noDoneCallback"), (actual) =>
-			actual.toEqual(["src/generators.test.ts:4", "src/generators.test.ts:5", "src/generators.test.ts:6", "src/generators.test.ts:8"]),
+			actual.toEqual([
+				"src/generators.test.ts:4",
+				"src/generators.test.ts:5",
+				"src/generators.test.ts:6",
+				"src/generators.test.ts:7",
+				"src/generators.test.ts:8",
+			]),
 		);
 	},
 );

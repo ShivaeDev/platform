@@ -3,7 +3,7 @@ import { shadcnApplication } from "#test/shadcnApplication.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
 inventoryStory.it(
-	"a nested app skips stock shadcn filenames only inside its configured UI folder, keeping helpers, tests and stock names elsewhere",
+	"a nested package skips only declared stock files, keeping helpers, tests and matching names elsewhere",
 	[
 		repositoryHas(
 			...shadcnApplication().map((file) => ({ ...file, path: `apps/web/${file.path}` })),

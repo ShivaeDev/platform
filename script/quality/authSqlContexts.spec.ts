@@ -1,11 +1,12 @@
 import { expect } from "vitest";
 import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
+import { authStorage } from "#quality/test-support/authStorage.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
 ruleKit.it(
 	"SQL expressions may read auth-named columns from app tables",
 	[
-		repositoryHas({
+		repositoryHas(authStorage.file, {
 			content: [
 				'SELECT extract(epoch FROM "session") FROM notes;',
 				'SELECT substring("account" FROM 1 FOR 2) FROM notes;',
@@ -17,7 +18,7 @@ ruleKit.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(authSql)).toEqual([]);
+		expect(yield* check(authSql, { owners: authStorage.owners })).toEqual([]);
 	},
 );
 
@@ -25,6 +26,7 @@ ruleKit.it(
 	"ONLY still reaches auth tables when its target is parenthesized",
 	[
 		repositoryHas(
+			authStorage.file,
 			{
 				content: [
 					'sql`SELECT * FROM ONLY (public."user")`;',
@@ -37,7 +39,7 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map((finding) => finding.file)).toEqual(["src/users.ts", "src/users.ts", "src/users.ts", "src/verification.sql"]);
 	},
 );
@@ -45,7 +47,7 @@ ruleKit.it(
 ruleKit.it(
 	"nested queries, joins and data-changing CTEs still reach auth storage",
 	[
-		repositoryHas({
+		repositoryHas(authStorage.file, {
 			content: [
 				'sql`SELECT (SELECT id FROM "session") FROM notes`;',
 				"sql`SELECT extract(epoch FROM (SELECT created_at FROM account)) FROM notes`;",
@@ -57,7 +59,7 @@ ruleKit.it(
 		}),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5]);
 	},
 );

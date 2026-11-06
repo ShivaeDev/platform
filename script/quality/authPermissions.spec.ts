@@ -1,11 +1,13 @@
 import { expect } from "vitest";
 import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
+import { authStorage } from "#quality/test-support/authStorage.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
 ruleKit.it(
 	"app SQL cannot grant or revoke access to auth tables",
 	[
 		repositoryHas(
+			authStorage.file,
 			{
 				content: 'sql`GRANT SELECT ON "session" TO app_role`; sql`REVOKE ALL ON "account" FROM app_role`;',
 				path: "src/permissions.ts",
@@ -18,7 +20,7 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"src/permissions.ts",
 			"src/permissions.ts",
@@ -32,7 +34,7 @@ ruleKit.it(
 ruleKit.it(
 	"permissions on app tables and other SQL objects do not reach auth storage",
 	[
-		repositoryHas({
+		repositoryHas(authStorage.file, {
 			content: [
 				'GRANT SELECT ON orders TO "session", "user";',
 				'REVOKE ALL ON TABLE orders FROM "account", "verification";',
@@ -46,6 +48,6 @@ ruleKit.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(authSql)).toEqual([]);
+		expect(yield* check(authSql, { owners: authStorage.owners })).toEqual([]);
 	},
 );

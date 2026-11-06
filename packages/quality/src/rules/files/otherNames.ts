@@ -9,7 +9,19 @@ import { stylesheetImporters } from "./stylesheetImporters.ts";
 
 const DEFAULT_TOOL_OWNED: readonly string[] = [".*", "package.json", "tsconfig*.json", "biome.json", "biome.jsonc", "*.config.*"];
 
-const CONVENTIONAL: ReadonlySet<string> = new Set(["AGENTS", "CHANGELOG", "CLAUDE", "CONTRIBUTING", "LICENSE", "README", "SECURITY", "SKILL"]);
+const CONVENTIONAL: ReadonlySet<string> = new Set([
+	"AGENTS",
+	"ARCHITECTURE",
+	"DESIGN",
+	"GLOSSARY",
+	"CHANGELOG",
+	"CLAUDE",
+	"CONTRIBUTING",
+	"LICENSE",
+	"README",
+	"SECURITY",
+	"SKILL",
+]);
 
 const KEBAB_KINDS: ReadonlySet<string> = new Set([
 	"avif",

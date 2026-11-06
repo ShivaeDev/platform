@@ -1,13 +1,15 @@
 import { resolve } from "node:path";
 import ts from "typescript";
+import { browserDiagnostic } from "#adapters/biome/browserDiagnostic.ts";
 import { syntaxOf } from "#adapters/biome/syntaxOf.ts";
+import { vitestEntry } from "#adapters/biome/vitestEntry.ts";
 import { nativeEffectCall } from "./nativeEffectCall.ts";
 import type { Diagnostic } from "./report.ts";
 import { nodeAt, offsetOf, type Syntax } from "./syntax.ts";
 
 const RECOGNIZED: ReadonlySet<string> = new Set(["lint/correctness/noComponentHookFactories", "lint/style/noDoneCallback"]);
 
-function generatorParameter(node: ts.Node): boolean {
+function generatorParameter(node: ts.Node, syntax: Syntax): boolean {
 	const parameter = node.parent;
 	const callback = parameter.parent;
 	return (
@@ -17,6 +19,7 @@ function generatorParameter(node: ts.Node): boolean {
 		&& callback.asteriskToken !== undefined
 		&& ts.isCallExpression(callback.parent)
 		&& callback.parent.arguments.includes(callback)
+		&& !vitestEntry(callback.parent.expression, syntax)
 	);
 }
 
@@ -44,7 +47,7 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 	}
 	switch (diagnostic.category) {
 		case "lint/style/noDoneCallback":
-			return generatorParameter(node);
+			return generatorParameter(node, syntax);
 		case "lint/correctness/noComponentHookFactories":
 			return tagHandler(node, syntax);
 		default:
@@ -54,14 +57,18 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 
 export function recognizeDiagnostics(root: string, diagnostics: readonly Diagnostic[]): readonly Diagnostic[] {
 	const sources = new Map<string, Syntax>();
-	return diagnostics.filter((diagnostic) => {
+	return diagnostics.flatMap((diagnostic) => {
 		const path = diagnostic.location.path;
+		if (diagnostic.category === "lint/suspicious/useBaseline" && path !== undefined) {
+			const recognized = browserDiagnostic(diagnostic, resolve(root, path));
+			return recognized === undefined ? [] : [recognized];
+		}
 		if (!RECOGNIZED.has(diagnostic.category ?? "") || path === undefined) {
-			return true;
+			return [diagnostic];
 		}
 		const file = resolve(root, path);
 		const syntax = sources.get(file) ?? syntaxOf(file);
 		sources.set(file, syntax);
-		return !misclassified(diagnostic, syntax);
+		return misclassified(diagnostic, syntax) ? [] : [diagnostic];
 	});
 }
