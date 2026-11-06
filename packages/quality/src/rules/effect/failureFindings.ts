@@ -24,7 +24,7 @@ function operationFailure(checker: ts.TypeChecker, operation: FailureOperation, 
 		const names = before.map((part) => part.name);
 		const forever = names.indexOf("forever");
 		if (forever !== -1 && names.indexOf("orDie", forever + 1) !== -1) {
-			return "Forked forever loop dies on failure. Catch a named reason within each iteration with a Schedule-bounded retry, or expose an explicit unavailable state and supervise termination.";
+			return "Forked forever loop dies on failure. Catch a named reason within each iteration with a Schedule that paces retries, or expose an explicit unavailable state and supervise termination.";
 		}
 	}
 	return undefined;
@@ -34,7 +34,11 @@ export function failureFindings(checker: ts.TypeChecker, node: ts.CallExpression
 	const findings: FailureFinding[] = [];
 	const name = effectName(checker, node.expression);
 	if (name === "retry" && unboundedRetry(node)) {
-		findings.push({ message: "Retry has while without times or schedule. Use a Schedule-bounded retry and preserve the final typed failure.", node });
+		findings.push({
+			message:
+				"Retry has while without times or schedule. Use a Schedule that paces retries. Use Schedule.spaced(...) without a count for a reconnect loop that must not stop; preserve the typed failure when retries end.",
+			node,
+		});
 	}
 	const handler = node.arguments.at(-1);
 	if (["catch", "catchAll", "catchCause", "catchAllCause"].includes(name ?? "") && handler !== undefined && successRecovery(checker, handler)) {

@@ -2,21 +2,22 @@ import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 import { failureHonesty } from "./failureHonesty.ts";
 
-const EFFECT_IMPORT = 'import { Effect as E, FileSystem } from "effect";';
+const EFFECT_IMPORT = 'import { Effect as E, FileSystem, Schedule } from "effect";';
 
 for (const { name, rejected, accepted, message } of [
 	{
 		accepted:
 			'export const loop = E.forever(work.pipe(E.retry({ times: 3, schedule: spaced }), E.catchTag("Unavailable", reportUnavailable))).pipe(E.forkScoped);',
 		message:
-			"Forked forever loop dies on failure. Catch a named reason within each iteration with a Schedule-bounded retry, or expose an explicit unavailable state and supervise termination.",
+			"Forked forever loop dies on failure. Catch a named reason within each iteration with a Schedule that paces retries, or expose an explicit unavailable state and supervise termination.",
 		name: "a forked forever loop that dies",
 		rejected: "export const loop = E.forever(work).pipe(E.orDie, E.forkScoped);",
 	},
 	{
-		accepted: "export const read = work.pipe(E.retry({ while: isConflict, schedule: boundedSchedule }));",
-		message: "Retry has while without times or schedule. Use a Schedule-bounded retry and preserve the final typed failure.",
-		name: "an unbounded conditional retry",
+		accepted: 'export const read = work.pipe(E.retry({ while: isConflict, schedule: Schedule.spaced("1 second") }));',
+		message:
+			"Retry has while without times or schedule. Use a Schedule that paces retries. Use Schedule.spaced(...) without a count for a reconnect loop that must not stop; preserve the typed failure when retries end.",
+		name: "an unpaced conditional retry",
 		rejected: "export const read = work.pipe(E.retry({ while: isConflict }));",
 	},
 	{

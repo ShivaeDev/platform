@@ -53,7 +53,7 @@ export const failureHonesty = defineRule({
 		return [...groups.values()].flatMap((sources) => checkFailures({ ...inputs, sources }));
 	},
 	description:
-		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without a bound, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule-bounded retry or model an explicit unavailable state. No config exceptions or inline suppressions; baseline existing debt.",
+		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without times or a pacing Schedule, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule that paces retries or model an explicit unavailable state. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/failure-honesty",
 	registrable: false,
 });
