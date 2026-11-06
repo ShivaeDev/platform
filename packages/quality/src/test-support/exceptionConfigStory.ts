@@ -9,8 +9,6 @@ import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { linkPackage } from "#testing/adapters/tree.ts";
 
 interface Seen {
-	readonly configPath: string | undefined;
-	readonly files: readonly string[];
 	readonly generated: string | undefined;
 	readonly rootConfig: string | undefined;
 }
@@ -45,8 +43,6 @@ function recording(engine: MergeEngine) {
 		Effect.sync(() => {
 			const configPath = args[0]?.slice("--config-path=".length);
 			engine.seen = {
-				configPath,
-				files: readdirSync(engine.root).toSorted(),
 				generated: configPath === undefined ? undefined : textOf(configPath),
 				rootConfig: textOf(join(engine.root, engine.rootConfig)),
 			};
@@ -83,9 +79,7 @@ export const exceptionConfigStory = storyKit({
 			);
 		}
 		return {
-			configPath: () => Effect.sync(() => relocated(engine, seen(engine).configPath)),
 			files: () => Effect.sync(() => readdirSync(engine.root).toSorted()),
-			filesDuringCommand: () => Effect.sync(() => seen(engine).files),
 			generatedConfig: () => Effect.sync(() => decodeJson(relocated(engine, seen(engine).generated) ?? "null")),
 			outcome: () => Effect.sync(() => engine.outcome),
 			rootConfigDuringCommand: () => Effect.sync(() => seen(engine).rootConfig),

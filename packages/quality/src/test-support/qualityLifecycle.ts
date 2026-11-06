@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber } from "effect";
 import { ChildProcessSpawner } from "effect/process";
@@ -93,9 +93,10 @@ export const qualityLifecycle = storyKit({
 					return closedReaderRun(engine, args);
 				}),
 			promiseSignalAborted: () => Effect.sync(() => engine.promiseSignal?.aborted),
+			strayBiomeConfigs: () => Effect.sync(() => readdirSync(engine.root).filter((file) => file.startsWith(".quality-biome-"))),
 			temporaryKnipSourceConfigExists: () =>
 				Effect.map(runningTool(engine), ({ sourceConfig }) => sourceConfig !== undefined && existsSync(sourceConfig)),
-			temporaryToolConfigExists: () => Effect.map(runningTool(engine), ({ path }) => existsSync(path)),
+			toolConfigExists: () => Effect.map(runningTool(engine), ({ path }) => existsSync(path)),
 			toolIsRunning: () => Effect.flatMap(runningTool(engine), ({ child }) => child.isRunning),
 		};
 	},

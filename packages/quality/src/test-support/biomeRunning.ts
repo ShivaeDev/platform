@@ -9,7 +9,7 @@ function biomeCheckArgs(command: ChildProcess.Command): readonly string[] | unde
 
 export const biomeRunning = qualityLifecycle.trait(
 	"running",
-	"the author runs quality lint, and Biome has started checking with quality's temporary Biome config and does not finish",
+	"the author runs quality lint, and Biome has started checking with quality's cached Biome config and does not finish",
 	function* (engine) {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const held = ChildProcessSpawner.ChildProcessSpawner.of({
@@ -23,7 +23,7 @@ export const biomeRunning = qualityLifecycle.trait(
 					}
 					const configArgument = args.find((arg) => arg.startsWith("--config-path="));
 					if (configArgument === undefined) {
-						return yield* Effect.die(new Error("Biome started without quality's temporary config"));
+						return yield* Effect.die(new Error("Biome started without quality's cached config"));
 					}
 					yield* Deferred.succeed(engine.started, { child, path: configArgument.slice("--config-path=".length) });
 					return yield* Effect.never;
