@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 - 2026-11-06
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.43.0 to 0.44.0.
+
 ## 0.9.0 - 2026-11-06
 
 ### Changed
