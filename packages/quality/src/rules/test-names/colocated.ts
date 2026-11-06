@@ -1,7 +1,8 @@
 import { posix } from "node:path";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { packageTests } from "#naming/packageTests.ts";
 import { isTestCode, testName } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
@@ -31,11 +32,13 @@ function findingOf(path: string, sourceFolders: ReadonlySet<string>): readonly F
 }
 
 export const testsColocated = defineRule({
-	check: ({ files, options }) => {
+	check: Effect.fn("Tests.check")(function* (inputs) {
+		const { files, options } = inputs;
+		const trees = yield* packageTests(inputs);
 		const suites = ignorePatterns([...globPatterns(options.suites)]);
 		const sourceFolders = new Set(files.filter((path) => !isTestCode(path)).map((path) => posix.dirname(path)));
-		return files.filter((path) => !suites.ignores(path)).flatMap((path) => findingOf(path, sourceFolders));
-	},
+		return files.filter((path) => !suites.ignores(path) && trees.sourcePath(path) === undefined).flatMap((path) => findingOf(path, sourceFolders));
+	}),
 	description:
 		"A test sits beside the code it covers, at its module root or directly beside its module folder. Outside declared suites, __tests__ is always a test folder; test, tests and spec are test folders only when their directly contained checked files are all tests or test support. Shared test support belongs in test-support/.",
 	id: "tests/colocated",
