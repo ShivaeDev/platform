@@ -6,7 +6,7 @@ import { passwordUser, signInAgain } from "@shivaedev/test-kits/identity/adapter
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { preferencesClient } from "#server/better-auth/adapters/preferencesClient.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
-import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwords.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 import { ORIGIN, preferencesHost } from "./host.ts";
 

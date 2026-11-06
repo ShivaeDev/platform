@@ -6,7 +6,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Deferred, Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { starterModules, toolingFiles } from "#quality/test-support/appToolingFiles.ts";
+import { starterModules, toolingFiles } from "#quality/test-support/starterModules.ts";
 
 function listenBackend(): Promise<ReturnType<typeof createServer>> {
 	return new Promise((resolve, reject) => {

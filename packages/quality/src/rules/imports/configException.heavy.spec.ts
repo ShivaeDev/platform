@@ -1,4 +1,4 @@
-import { fenceExceptions, importFenceRepository } from "#test/importFenceRepository.ts";
+import { fenceExceptions, importFenceRepository } from "#test/fenceExceptions.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";

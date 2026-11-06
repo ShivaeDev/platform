@@ -1,4 +1,4 @@
-import { TOOL_SERVER_NAME } from "#adapters/toolServer.ts";
+import { TOOL_SERVER_NAME } from "#adapters/makeToolServer.ts";
 export function toolIdentity(wireName: string): {
 	name: string;
 	providerName?: string;

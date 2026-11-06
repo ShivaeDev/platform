@@ -3,8 +3,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "#repository.ts";
 import type { crossTableReads } from "#test/cross-table/reads.ts";
+import type { Table } from "./createQueryTables.ts";
 import { CopiedRow, InvoiceLine, LatestRun, LedgerEntry, PartialRow, Payment, Sample, SourceRow, TestResult, UtcPayment } from "./queryModels.ts";
-import type { Table } from "./queryTables.ts";
 
 export type Compiled = readonly [string, readonly unknown[]];
 

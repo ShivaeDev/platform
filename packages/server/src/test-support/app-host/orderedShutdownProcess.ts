@@ -9,7 +9,7 @@ import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedCl
 import { appDatabase, appHost } from "#appDatabase.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { observeFinalizers } from "./observeFinalizers.ts";
-import { HTTP_GRACE_MILLIS, ShutdownApi } from "./orderedShutdownApi.ts";
+import { HTTP_GRACE_MILLIS, ShutdownApi } from "./ShutdownApi.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

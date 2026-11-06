@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { expenses, initial } from "#test/expense.ts";
+import { expenses, initial } from "#test/expenses.ts";
 
 const savedWithEditsAfterward = [
 	expenses.edited("quantity", "2"),

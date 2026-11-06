@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { type Body, effectOf } from "./body.ts";
-import { databaseActions } from "./databaseVerbs.ts";
+import { databaseActions } from "./databaseActions.ts";
 import { database, type Engine } from "./engine.ts";
 
 const BATCH_FAILED = "the batch failed";

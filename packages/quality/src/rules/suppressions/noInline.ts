@@ -1,6 +1,6 @@
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { type SourceComment, scanComments } from "#rules/comments/scan.ts";
-import { suppressionIn } from "./directives.ts";
+import { suppressionIn } from "./in.ts";
 import { STYLESHEET, stylesheetComments } from "./stylesheetComments.ts";
 
 const TYPE_TEST = /(?:(?:^|\/)typecheck\.test|\.typecheck\.(?:test|spec))\.[cm]?[jt]sx?$/u;

@@ -39,9 +39,3 @@ hooks pre-commit  Check lint and staged baseline counts, then package.json scrip
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
 --coverage      Collect V8 coverage and JUnit from ci's single test run into coverage/, including failed tests.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
-
-export const SUBCOMMANDS: Readonly<Record<string, string>> = {
-	baseline: "baseline takes write, prune, tighten, migrate, merge or install-driver.",
-	exceptions: "exceptions takes migrate.",
-	hooks: "hooks takes install, uninstall, status or pre-commit.",
-};

@@ -1,7 +1,7 @@
 import { basename, dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Effect, FileSystem } from "effect";
-import { CONFIG_FILE } from "#config/constants.ts";
+import { CONFIG_FILE } from "#config/file.ts";
 import { SetupFailure } from "#failure.ts";
 
 function messageOf(cause: unknown): string {

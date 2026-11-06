@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { listeningUrl } from "#adapters/listeningUrl.ts";
-import { CONSTRAINED_AGENT, TOOL_SERVER_NAME } from "#adapters/toolNames.ts";
+import { CONSTRAINED_AGENT, TOOL_SERVER_NAME } from "#adapters/wireName.ts";
 import { unavailable } from "#failure.ts";
 
 const LOOPBACK = "127.0.0.1";

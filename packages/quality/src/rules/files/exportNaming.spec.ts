@@ -51,7 +51,7 @@ const misnamed = [
 	[
 		"list-copy.ts exporting itemList",
 		"packages/app/src/routers/items/list-copy.ts",
-		"export const itemList = [];\n",
+		"export const itemList = () => [];\n",
 		'"list-copy" does not name its export itemList.',
 	],
 	["order-type.ts exporting Order", "packages/app/src/order-type.ts", "export interface Order {}\n", '"order-type" does not name its export Order.'],
@@ -59,7 +59,7 @@ const misnamed = [
 		"the PascalCase topic file Helpers.ts",
 		"packages/app/src/Helpers.ts",
 		"export function list() {}\nexport function count() {}\n",
-		'"Helpers" exports several things, so it is a topic file named in camelCase, such as limits.ts.',
+		'"Helpers" exports several things, so it is a topic file named in camelCase, such as helpers.ts.',
 	],
 	[
 		"the PascalCase SetupTests.ts that exports nothing",

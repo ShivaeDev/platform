@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { Effect } from "effect";
+import { DEFAULT_OUTPUT_DIR, DEFAULT_RERUNS } from "#defaults.ts";
 import { VitestRerunError } from "#error.ts";
 
 export interface RerunOptions {
@@ -8,9 +9,6 @@ export interface RerunOptions {
 	readonly reruns: number;
 	readonly vitestArgs: readonly string[];
 }
-
-export const DEFAULT_OUTPUT_DIR = "test-results";
-export const DEFAULT_RERUNS = 1;
 
 function option(arg: string, name: string, next: string | undefined): { name: string; value: string | undefined; consumed: number } | undefined {
 	if (arg === name) {

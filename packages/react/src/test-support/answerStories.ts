@@ -3,7 +3,7 @@ import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AnswerList } from "./AnswerList.tsx";
-import { makeAnswerForm } from "./answerForm.ts";
+import { makeAnswerForm } from "./makeAnswerForm.ts";
 import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
