@@ -32,4 +32,8 @@ export const BUILD_SHAPES = [
 		"an explicit working directory",
 		'import { build } from "esbuild"; import { resolve } from "node:path"; build({absWorkingDir: resolve(import.meta.dirname, "../src"), entryPoints: ["entry.ts"]});',
 	],
+	[
+		"an absolute entry computed in the script package",
+		'import { build } from "esbuild"; import { resolve } from "node:path"; build({absWorkingDir: resolve(import.meta.dirname, "../src"), entryPoints: [resolve(process.cwd(), "src/entry.ts")]});',
+	],
 ] as const;

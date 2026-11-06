@@ -30,7 +30,7 @@ function entriesOf(call: ts.CallExpression, file: string, cwd: string): readonly
 		return [];
 	}
 	const entries = buildOption(options, option);
-	return entries === undefined ? [] : buildEntryPaths(entries, posix.resolve(cwd, working), file).map((path) => posix.resolve(cwd, working, path));
+	return entries === undefined ? [] : buildEntryPaths(entries, cwd, file).map((path) => posix.resolve(cwd, working, path));
 }
 
 export function bundlerEntries(file: SourceFile, root: string, directory: string): readonly string[] {
