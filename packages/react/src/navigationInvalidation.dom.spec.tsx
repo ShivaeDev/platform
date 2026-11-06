@@ -4,18 +4,30 @@ import { loaderScreen } from "#test/loaderScreen.tsx";
 import { noteLeftAfterShowing } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
-	"following the Note link after the note was renamed elsewhere shows the new title from its first render, with one server read per visit",
+	"returning after a rename shows the kept title while waiting, then the fresh title",
 	[noteLeftAfterShowing("Original note")],
-	function* ({ clickLink, firstRenders, rename, serverCalls, shownTitle }) {
+	function* ({ firstRenders, nextReadWaits, rename, respond, returnToNote, shownTitle, stale }) {
 		yield* rename("Changed note");
+		yield* nextReadWaits();
 		const before = (yield* firstRenders()).length;
 
-		yield* clickLink("Note");
+		yield* returnToNote();
 
 		yield* outcomes([
-			["renders since the visit", () => Effect.map(firstRenders(), (titles) => [...new Set(titles.slice(before))]), ["Changed note"]],
-			["server calls", () => serverCalls(), ["get", "get"]],
-			["shown title", () => shownTitle(), "Changed note"],
+			["shown title", shownTitle, "Original note"],
+			["stale", stale, true],
+		]);
+
+		yield* respond("Changed note");
+
+		yield* outcomes([
+			[
+				"renders since the visit",
+				() => Effect.map(firstRenders(), (titles) => [...new Set(titles.slice(before))]),
+				["Original note", "Changed note"],
+			],
+			["shown title", shownTitle, "Changed note"],
+			["stale", stale, false],
 		]);
 	},
 );
