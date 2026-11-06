@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { makeAdminClient } from "#modules/notes/client/admin/make.ts";
@@ -14,7 +14,7 @@ const modules = {
 		const admin = makeAdminClient(options.url, { ...options, live: false });
 		return {
 			activity: clientActivity(client),
-			pending: () => !isClientIdle(Effect.runSync(clientActivity(admin).current)),
+			pending: () => !isClientSettled(Effect.runSync(clientActivity(admin).current)),
 			registrations: [notesRegistration(client, admin)],
 		};
 	},

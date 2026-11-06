@@ -1,4 +1,4 @@
-import { type Context, Effect, Layer, Stream } from "effect";
+import { Context, Effect, Layer, Option, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
@@ -7,6 +7,7 @@ import { withClientProtocol } from "#adapters/withClientProtocol.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
 import type { ResumeWindow } from "#resume.ts";
+import { CommandInvalidation } from "#serverMetadata.ts";
 import { clientActivities, makeActivity } from "./clientActivities.ts";
 import { connectionProtocol, protocolConnections } from "./connectionProtocol.ts";
 import { commandConnections } from "./connectionReadiness.ts";
@@ -22,6 +23,9 @@ export interface RpcSource {
 export function rpcClient(name: string, source: RpcSource, options: ClientOptions) {
 	const activity = makeActivity(options.runtime ?? Atom.runtime);
 	const group = RpcGroup.make(...source.requests.values()).annotateMerge(source.annotations);
+	const commands = new Set(
+		[...group.requests].filter(([, rpc]) => Option.isSome(Context.getOption(rpc.annotations, CommandInvalidation))).map(([tag]) => tag),
+	);
 	function sharedProtocol(identity?: string) {
 		return socketProtocol({
 			bearerToken: options.bearerToken,
@@ -56,7 +60,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 						Stream.flatMap((hint) => Stream.concat(Stream.succeed(hint), Stream.fromEffect(Effect.sync(activity.hint)).pipe(Stream.drain))),
 					);
 				}
-				return Effect.isEffect(result) && !args[2]?.asQueue ? activity.track(result) : result;
+				return Effect.isEffect(result) && !args[2]?.asQueue ? activity.track(result, commands.has(args[0])) : result;
 			},
 		});
 		commandConnections.set(observed, wait);

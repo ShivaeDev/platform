@@ -4,7 +4,9 @@ import type * as Atom from "effect/reactivity/Atom";
 export type ConnectionStatus = "live" | "reconnecting" | "waiting-for-connection";
 
 export interface ClientActivityState {
+	readonly commands: number;
 	readonly connectionStatus: ConnectionStatus;
+	readonly initialQueries: number;
 	readonly liveHints: number;
 	readonly liveInvalidations: number;
 	readonly refreshingAtoms: number;
@@ -30,9 +32,13 @@ export function isClientIdle(state: ClientActivityState): boolean {
 	return state.rpcCalls === 0 && state.liveInvalidations === 0 && state.refreshingAtoms === 0;
 }
 
-export function activityScreenSignal(activity: ClientActivity) {
+export function isClientSettled(state: ClientActivityState): boolean {
+	return state.commands === 0 && state.initialQueries === 0;
+}
+
+export function activityScreenSignal(activity: ClientActivity, settled = isClientSettled) {
 	function screenState(state: ClientActivityState) {
-		return { connectionStatus: state.connectionStatus, hints: state.liveHints, pending: !isClientIdle(state) };
+		return { connectionStatus: state.connectionStatus, hints: state.liveHints, pending: !settled(state) };
 	}
 	return Object.assign(Stream.map(activity, screenState), { current: Effect.map(activity.current, screenState) });
 }

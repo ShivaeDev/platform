@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { type ClientActivity, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { type ClientActivity, clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -28,7 +28,7 @@ function driverFor(engine: Engine, tell: (line: string) => void) {
 			await act(action);
 		},
 		pending: () =>
-			!isClientIdle(Effect.runSync(Option.getOrThrow(engine.activity).current)) || screenOf(engine).querySelector('[role="status"]') !== null,
+			!isClientSettled(Effect.runSync(Option.getOrThrow(engine.activity).current)) || screenOf(engine).querySelector('[role="status"]') !== null,
 		root: () => screenOf(engine),
 		tell,
 	});

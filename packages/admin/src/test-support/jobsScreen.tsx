@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
 import { vi } from "vitest";
-import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -14,8 +14,8 @@ import { type JobsScreenEngine, jobsReadouts, screenOf } from "./jobsScreenReado
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
-function driverFor(engine: JobsScreenEngine, tell: (line: string) => void) {
-	return screenDriver({ act, pending: activityScreenSignal(engine.activity), root: () => screenOf(engine), tell });
+function driverFor(engine: JobsScreenEngine, tell: (line: string) => void, settled?: typeof isClientIdle) {
+	return screenDriver({ act, activity: activityScreenSignal(engine.activity, settled), root: () => screenOf(engine), tell });
 }
 
 export const jobsScreen = storyKit({
@@ -46,7 +46,7 @@ export const jobsScreen = storyKit({
 			previousPage: () => Effect.andThen(driver.click({ name: "Previous", role: "button" }), driver.settle()),
 			refresh: (section: "Jobs health" | "Queue counts" | "Job detail" | "Job list") => {
 				const target = section === "Job list" ? '[role="tabpanel"]' : `section[aria-label="${section}"]`;
-				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driver.settle());
+				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle());
 			},
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
