@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-06
+
+### Breaking
+
+- Import `packageAttribution` from `@shivaedev/releases/packageAttribution.ts` instead of `@shivaedev/releases/parser.ts`.
+
 ## 0.12.0 - 2026-11-05
 
 ### Breaking

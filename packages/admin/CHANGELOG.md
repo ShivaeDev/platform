@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0 - 2026-11-06
+
+### Breaking
+
+- Generated page subscriptions return their initial authorized query value. Raw subscription consumers handle `Result` instead of waiting for an initial `Resync`.
+
 ## 0.21.1 - 2026-11-05
 
 ### Changed

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.29.0 - 2026-11-06
+
+### Changed
+
+- Hosted live subscriptions run all initial queries through the existing authorized runner after registration.
+
+### Breaking
+
+- Native hosts building `hostChanges(group)` now provide the group's ordinary RPC handler services with `Layer.provideMerge(handlers)`. `appHost` supplies them automatically.
+
 ## 0.28.0 - 2026-11-05
 
 ### Added
