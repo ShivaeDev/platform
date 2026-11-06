@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.43.0 - 2026-11-06
+
+### Changed
+
+- Keep current query values during transient subscription recovery. Explicit refresh retains the value and reports pending until the fresh pushed result arrives; declared query failures and read denials remain visible.
+- Coalesce each subscription's pending changes into one rerun, including server-side reconciliation after backlog overflow or PostgreSQL listener recovery. Different subscriptions run independently and in parallel. Changed encoded results are pushed; equal reads acknowledge completion with `Unchanged`.
+
+### Breaking
+
+- Live queries always receive server-pushed results. Remove `live: "rerun-and-compare"` from query declarations; query handlers, result shapes and screens need no changes. Deploy matching client and server versions. Custom subscription hosts must supply an authorized query runner to `subscribe`. Raw consumers handle `Result`, `Unchanged` and `QueryReadDenied` instead of change hints. Remove obsolete query and live connection coalescing settings; coalescing now happens on the server.
+
 ## 0.42.0 - 2026-11-06
 
 ### Added

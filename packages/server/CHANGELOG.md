@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.31.0 - 2026-11-06
+
+### Added
+
+- Answer RPC and mounted auth CORS preflights and responses with the exact declared sibling Origin and credentials enabled, retaining native bearer behavior and existing session cookie attributes.
+
+### Breaking
+
+- Every hosted live query reloads its subscriber's session, checks its read policy and reruns its handler on matching changes or server reconciliation. Drop the query's `live` option; application handlers and results stay the same.
+
 ## 0.30.0 - 2026-11-06
 
 ### Breaking

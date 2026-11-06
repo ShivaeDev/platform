@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.0 - 2026-11-06
+
+### Breaking
+
+- Live query screens receive server-pushed values. Remove `SessionBoundary.liveCoalesceWindow` and `QueryOptions.coalesceWindow`; server coalescing applies automatically.
+
 ## 0.45.1 - 2026-11-06
 
 ### Changed
