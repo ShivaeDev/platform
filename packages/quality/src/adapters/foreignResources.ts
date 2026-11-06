@@ -41,12 +41,11 @@ function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewEx
 	return callback !== undefined && constructed(checker, callback, seen);
 }
 
-export function adapterResources(checker: ts.TypeChecker) {
-	const calls = new Map<ts.SourceFile, Map<ts.ParameterDeclaration, ts.Expression[]>>();
-	function argumentsIn(source: ts.SourceFile) {
-		const known = calls.get(source);
-		if (known !== undefined) {
-			return known;
+export function foreignResources(checker: ts.TypeChecker, sources: readonly ts.SourceFile[]) {
+	let calls: Map<ts.ParameterDeclaration, ts.Expression[]> | undefined;
+	function argumentsIn() {
+		if (calls !== undefined) {
+			return calls;
 		}
 		const arguments_ = new Map<ts.ParameterDeclaration, ts.Expression[]>();
 		function visit(node: ts.Node): void {
@@ -63,8 +62,10 @@ export function adapterResources(checker: ts.TypeChecker) {
 			}
 			ts.forEachChild(node, visit);
 		}
-		visit(source);
-		calls.set(source, arguments_);
+		for (const source of sources) {
+			visit(source);
+		}
+		calls = arguments_;
 		return arguments_;
 	}
 	return (parameter: ts.ParameterDeclaration): boolean => {
@@ -76,7 +77,7 @@ export function adapterResources(checker: ts.TypeChecker) {
 		if (!(type.getSymbol()?.declarations ?? []).some(foreign) || type.getProperty("~effect/Context/Service") !== undefined) {
 			return false;
 		}
-		const values = argumentsIn(source).get(parameter) ?? [];
+		const values = argumentsIn().get(parameter) ?? [];
 		return values.length > 0 && values.every((value) => constructed(checker, value));
 	};
 }

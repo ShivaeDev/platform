@@ -1,7 +1,7 @@
 import ts from "typescript";
+import { callbackEscapes } from "#adapters/callbackEscapes.ts";
+import { frameworkOwner } from "#adapters/frameworkOwner.ts";
 import { effectApi, resolvedValue } from "#adapters/serviceModelSyntax.ts";
-import { callbackEscapes } from "#rules/effect/callbackEscapes.ts";
-import { frameworkOwner } from "#rules/effect/frameworkOwner.ts";
 
 function supplied(signature: ts.Signature, local: ReadonlySet<ts.SourceFile>): boolean {
 	return signature.declaration !== undefined && !local.has(signature.declaration.getSourceFile());

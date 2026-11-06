@@ -36,6 +36,25 @@ ruleStory.it(
 );
 
 ruleStory.it(
+	"service parameters rejects an environment resource passed from another adapter module",
+	[
+		effectResolves(),
+		repositoryHas(...adapterServiceFiles, {
+			content: `import { Effect } from "effect";
+import { RendererServer } from "../../../../src/RendererServer.ts";
+import { close } from "./renderer-tooling.ts";
+export const borrowed = Effect.gen(function* () { yield* close(yield* RendererServer); });`,
+			path: "apps/desktop/script/adapters/borrowed.ts",
+		}),
+	],
+	function* ({ check }) {
+		expect(yield* check(serviceParameters)).toEqual([
+			expect.objectContaining({ message: expect.stringContaining("Parameter server carries a service.") }),
+		]);
+	},
+);
+
+ruleStory.it(
 	"service parameters follows a foreign factory through typed promise acquisition",
 	[
 		effectResolves(),

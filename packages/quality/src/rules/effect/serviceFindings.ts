@@ -1,10 +1,10 @@
 import { relative } from "node:path";
 import ts from "typescript";
+import { foreignResources } from "#adapters/foreignResources.ts";
+import { frameworkCallback, parameterSite } from "#adapters/frameworkCallback.ts";
+import { localFunctions } from "#adapters/localFunctions.ts";
 import type { Finding } from "#rule.ts";
-import { adapterResources } from "#rules/effect/adapterResources.ts";
-import { frameworkCallback, parameterSite } from "#rules/effect/frameworkCallback.ts";
 import { layerConstructor } from "#rules/effect/layerConstructor.ts";
-import { localFunctions } from "#rules/effect/localFunctions.ts";
 import { publicFunctions } from "#rules/effect/publicFunctions.ts";
 import type { serviceTypes } from "#rules/effect/serviceTypes.ts";
 
@@ -28,7 +28,7 @@ export function serviceFindings(
 	checker: ts.TypeChecker,
 	services: ReturnType<typeof serviceTypes>,
 ): readonly Finding[] {
-	const resource = adapterResources(checker);
+	const resource = foreignResources(checker, sources);
 	const findings = new Map<ts.ParameterDeclaration, Finding>();
 	const visited = new Set<ts.Type>();
 	const activeSignatures = new Set<NonNullable<ts.Signature["declaration"]>>();

@@ -64,6 +64,28 @@ for (const [name, initialize] of [
 }
 
 ruleStory.it(
+	"service model rejects a service returned by a named initializer factory",
+	[
+		effectResolves(),
+		serviceResolves(),
+		repositoryHas(
+			...modelFiles("acquire()").map((file) => ({
+				...file,
+				content: file.content.replace(
+					"export const initialize",
+					"const acquire = Effect.fnUntraced(function* () { return yield* Store; });\nexport const initialize",
+				),
+			})),
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check(serviceModel)).toEqual([
+			expect.objectContaining({ message: expect.stringContaining("Initializer state carries a dependency.") }),
+		]);
+	},
+);
+
+ruleStory.it(
 	"service model rejects a callable dependency hidden inside caller state",
 	[
 		effectResolves(),

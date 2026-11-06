@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { frameworkCallback } from "#rules/effect/frameworkCallback.ts";
+import { frameworkCallback } from "#adapters/frameworkCallback.ts";
 
 export function localFunctions(sources: readonly ts.SourceFile[], checker: ts.TypeChecker, parameters: (signature: ts.Signature) => void): void {
 	const local = new Set(sources);

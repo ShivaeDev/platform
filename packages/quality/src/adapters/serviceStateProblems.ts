@@ -78,7 +78,7 @@ export function serviceStateProblems(
 	}
 	const type = checker.getTypeAtLocation(initialize);
 	const state = effectSuccess(checker, type);
-	let dependency = services.carries(type) || (state !== undefined && containerDependency(checker, state, services));
+	let dependency = services.carries(type) || (state !== undefined && (services.carries(state) || containerDependency(checker, state, services)));
 	const initializer = resolvedValue(checker, initialize);
 	// A function in state can hide a service even when its public type does not carry it.
 	function inspect(node: ts.Node): void {
