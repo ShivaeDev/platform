@@ -1,6 +1,7 @@
 import type { Redacted } from "effect";
 import type { MigrationOptions } from "@shivaedev/server/MigrationOptions.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
+import { postgresSettings } from "#server/postgresSettings.ts";
 
 export function databaseOptions<R, E>(
 	databaseUrl: Redacted.Redacted<string>,
@@ -11,6 +12,6 @@ export function databaseOptions<R, E>(
 	return {
 		config: clientOptions({ databaseUrl, ...(maxConnections === undefined ? {} : { maxConnections }) }),
 		migrations: { ...migrations, mode, table: "app_migrations" },
-		postgresSettings: {},
+		postgresSettings,
 	};
 }

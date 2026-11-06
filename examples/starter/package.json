@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#*": "./src/*"
+		"#*": "./src/*",
+		"#railway": "./.railway/adapters/project.ts"
 	},
 	"scripts": {
 		"admin:create": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/admin/run.ts",
