@@ -3,6 +3,7 @@ import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { proxyAddresses, proxyMatches } from "#server/adapters/trustedProxy.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 
 type TransportRequest = Pick<HttpServerRequest.HttpServerRequest, "headers" | "remoteAddress">;
 
@@ -71,22 +72,22 @@ export function localTransport(trustedProxy?: string, nativeOrigins: readonly st
 		return (local && (native || sameOrigin(request))) || proxyOrigin(request, isTrustedProxy, native);
 	};
 }
-export function localRpcGuard<E, R>(
+export const localRpcGuard = Effect.fnUntraced(function* <E, R>(
 	effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
 	trustedProxy?: string,
 	nativeOrigins: readonly string[] = [],
 ) {
-	const allowed = localTransport(trustedProxy, nativeOrigins);
-	return Effect.gen(function* () {
-		const request = yield* HttpServerRequest.HttpServerRequest;
-		const serialization = yield* RpcSerialization.RpcSerialization;
-		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
-		const legacyNdjson = serialization.contentType === RpcSerialization.ndjson.contentType && contentType === "application/ndjson";
-		return allowed(request) && (contentType === serialization.contentType || legacyNdjson)
-			? yield* continueHttpTrace(effect)
-			: HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
-	});
-}
+	const request = yield* HttpServerRequest.HttpServerRequest;
+	const policy = yield* Effect.serviceOption(SessionPolicy);
+	const origins = Option.getOrUndefined(policy)?.origin.trustedOrigins ?? [];
+	const allowed = localTransport(trustedProxy, [...nativeOrigins, ...origins]);
+	const serialization = yield* RpcSerialization.RpcSerialization;
+	const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
+	const legacyNdjson = serialization.contentType === RpcSerialization.ndjson.contentType && contentType === "application/ndjson";
+	return allowed(request) && (contentType === serialization.contentType || legacyNdjson)
+		? yield* continueHttpTrace(effect)
+		: HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
+});
 
 const continueHttpTrace = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const request = yield* HttpServerRequest.HttpServerRequest;
