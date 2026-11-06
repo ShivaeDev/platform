@@ -1,5 +1,6 @@
 import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import { SHADCN_FILE_GLOB } from "#inventory/shadcnFiles.ts";
@@ -33,11 +34,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 			return { directory, manifest };
 		}),
 	);
-	const scripted = new Set(
-		manifests.flatMap(({ directory, manifest }) =>
-			Object.values(manifest.scripts ?? {}).flatMap((script) => script.split(/[\s'"`;|&()]+/u).map((word) => posix.join(directory, word))),
-		),
-	);
+	const scripted = new Set(manifests.flatMap(({ directory, manifest }) => scriptPaths(directory, manifest.scripts ?? {})));
 	const workspaces = manifests.map(({ directory, manifest }) => {
 		const sources = inputs.sources
 			.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)

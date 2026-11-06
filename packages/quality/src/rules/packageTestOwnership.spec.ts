@@ -100,12 +100,13 @@ ruleStory.it(
 );
 
 ruleStory.it(
-	"imports/no-test-code follows transitive test composition and propagates a production consumer back through it",
+	"imports/no-test-code follows transitive test composition through cycles and propagates a production consumer back through it",
 	[
 		repositoryHas(
 			...compositionFiles,
 			{ content: '{"name":"@example/harness","private":true}', path: "apps/harness/package.json" },
 			{ content: 'import "../../assembly/src/fixture.ts";', path: "apps/harness/src/harness.ts" },
+			{ content: 'import "../../harness/src/harness.ts";', path: "apps/assembly/src/cycle.ts" },
 			{ content: 'import "../../harness/src/harness.ts";', path: "apps/server/test/assembly.spec.ts" },
 		),
 	],
@@ -152,5 +153,49 @@ ruleStory.it(
 	],
 	function* ({ check }) {
 		yield* assertThat(yield* check(noTestCode), (actual) => actual.toEqual([]));
+	},
+);
+
+for (const start of ["node ./src/fixture.ts", "node ./dist/fixture.js"]) {
+	ruleStory.it(
+		`imports/no-test-code keeps a private application launched by its script production: ${start}`,
+		[
+			repositoryHas(...compositionFiles, {
+				content: JSON.stringify({ imports: { "#test/*": "./src/test-support/*" }, name: "@example/assembly", private: true, scripts: { start } }),
+				path: "apps/assembly/package.json",
+			}),
+		],
+		function* ({ check, locations }) {
+			yield* check(noTestCode);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["apps/assembly/src/fixture.ts:1"]));
+		},
+	);
+}
+
+ruleStory.it(
+	"imports/no-test-code keeps test-composition entry scripts in the test boundary",
+	[
+		repositoryHas(...compositionFiles, {
+			content:
+				'{"name":"@example/assembly","private":true,"imports":{"#test/*":"./src/test-support/*"},"scripts":{"test:fixture":"node ./src/fixture.ts"}}',
+			path: "apps/assembly/package.json",
+		}),
+	],
+	function* ({ check }) {
+		yield* assertThat(yield* check(noTestCode), (actual) => actual.toEqual([]));
+	},
+);
+
+ruleStory.it(
+	"imports/no-test-code recognises a production entry script declared at the workspace root",
+	[
+		repositoryHas(...compositionFiles, {
+			content: '{"workspaces":["apps/*"],"scripts":{"start":"node apps/assembly/dist/fixture.js"}}',
+			path: "package.json",
+		}),
+	],
+	function* ({ check, locations }) {
+		yield* check(noTestCode);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["apps/assembly/src/fixture.ts:1"]));
 	},
 );

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { pureReader } from "#adapters/pureReader.ts";
 import { specReaderSources } from "#adapters/specReaderSources.ts";
 import { defineRule } from "#rule.ts";
-import { pureReader } from "./pureReader.ts";
 import { storySources } from "./sources.ts";
 import { findingAt, topLevelHelpers } from "./syntax.ts";
 
@@ -11,9 +11,9 @@ const MESSAGE =
 export const specHelpers = defineRule({
 	check: (inputs) =>
 		Effect.map(storySources(inputs), (stories) =>
-			specReaderSources(stories).flatMap(({ source, nativeCall }) =>
+			specReaderSources(stories).flatMap(({ source, readCall }) =>
 				topLevelHelpers(source)
-					.filter((node) => !pureReader(node, nativeCall))
+					.filter((node) => !pureReader(node, readCall))
 					.map((node) => findingAt(source, node, MESSAGE)),
 			),
 		),

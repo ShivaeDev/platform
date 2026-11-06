@@ -58,3 +58,31 @@ for (const helper of [
 		},
 	);
 }
+
+for (const imported of [
+	'import { expect as matching } from "vitest"; const correlate = (span) => matching.objectContaining({ traceId: span.traceId });',
+	'import * as testing from "vitest"; const correlate = (span) => testing.expect.not.objectContaining({ parentId: span.id });',
+]) {
+	ruleStory.it(
+		`tests/spec-helpers accepts a pure asymmetric trace matcher: ${imported}`,
+		[repositoryHas({ content: [imported, inStory("expect(span).toEqual(correlate(root));")].join("\n"), path: "src/tracing.spec.ts" })],
+		function* ({ check }) {
+			yield* assertThat(yield* check(specHelpers), (actual) => actual.toEqual([]));
+		},
+	);
+}
+
+for (const helper of [
+	'import { expect as matching } from "vitest"; const correlate = (matching) => matching.objectContaining({});',
+	'import { expect as matching } from "vitest"; const checked = (span) => matching(span.traceId).toEqual("root");',
+	"const render = (span) => <div>{span.traceId}</div>;",
+]) {
+	ruleStory.it(
+		`tests/spec-helpers keeps actions and render helpers out of pure readers: ${helper}`,
+		[repositoryHas({ content: [helper, inStory('expect("ready").toBe("ready");')].join("\n"), path: "src/tracing.dom.spec.tsx" })],
+		function* ({ check, locations }) {
+			yield* check(specHelpers);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/tracing.dom.spec.tsx:1"]));
+		},
+	);
+}

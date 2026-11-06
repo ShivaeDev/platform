@@ -1,7 +1,41 @@
 import ts from "typescript";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { topLevelHelpers } from "#rules/stories/syntax.ts";
+import { topLevelHelpers, unwrapped } from "#rules/stories/syntax.ts";
+import { asymmetricMatcher } from "./asymmetricMatcher.ts";
+
+const READ_METHODS = new Set([
+	"at",
+	"concat",
+	"endsWith",
+	"entries",
+	"every",
+	"filter",
+	"find",
+	"findIndex",
+	"flat",
+	"flatMap",
+	"get",
+	"has",
+	"includes",
+	"indexOf",
+	"join",
+	"keys",
+	"lastIndexOf",
+	"map",
+	"match",
+	"reduce",
+	"replace",
+	"slice",
+	"some",
+	"split",
+	"startsWith",
+	"substring",
+	"toLowerCase",
+	"toUpperCase",
+	"trim",
+	"values",
+]);
 
 export function specReaderSources(files: readonly SourceFile[]) {
 	const sources = files.flatMap((file) => {
@@ -18,7 +52,14 @@ export function specReaderSources(files: readonly SourceFile[]) {
 	host.getSourceFile = (path, ...args) => parsed.get(path) ?? getSourceFile(path, ...args);
 	const program = ts.createProgram([...parsed.keys()], options, host);
 	const checker = program.getTypeChecker();
-	function nativeCall(call: ts.CallExpression): boolean {
+	function readCall(call: ts.CallExpression): boolean {
+		if (asymmetricMatcher(call, checker)) {
+			return true;
+		}
+		const target = unwrapped(call.expression);
+		if (!(ts.isPropertyAccessExpression(target) && READ_METHODS.has(target.name.text))) {
+			return false;
+		}
 		const declaration = checker.getResolvedSignature(call)?.declaration;
 		return (
 			declaration !== undefined
@@ -32,5 +73,5 @@ export function specReaderSources(files: readonly SourceFile[]) {
 			})
 		);
 	}
-	return sources.map((source) => ({ nativeCall, source }));
+	return sources.map((source) => ({ readCall, source }));
 }
