@@ -72,6 +72,50 @@
 	"engines": {
 		"node": ">=24"
 	},
+	"quality": {
+		"toolOwned": [
+			{
+				"glob": "src/client/ui/badge.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/button.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/card.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/dialog.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/input.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/select.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/switch.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/table.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/tabs.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			},
+			{
+				"glob": "src/client/ui/textarea.tsx",
+				"reason": "shadcn owns this stock base-mira registry component."
+			}
+		]
+	},
 	"shivaedevSkills": [
 		"story-testing"
 	]

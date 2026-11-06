@@ -1,11 +1,13 @@
 import { expect } from "vitest";
 import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
+import { authStorage } from "#quality/test-support/authStorage.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
 ruleKit.it(
 	"app migrations may reference the auth user id with a deletion policy",
 	[
 		repositoryHas(
+			authStorage.file,
 			{
 				content: 'sql`create table notes (user_id text references "user" (id) on delete cascade)`;',
 				path: "src/migrations/0001_notes.ts",
@@ -17,20 +19,20 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(authSql)).toEqual([]);
+		expect(yield* check(authSql, { owners: authStorage.owners })).toEqual([]);
 	},
 );
 
 ruleKit.it(
 	"a user foreign key never grants access to auth account data",
 	[
-		repositoryHas({
+		repositoryHas(authStorage.file, {
 			content: 'sql`create table notes (user_id text references "user" (id) on delete cascade)`; sql`SELECT id FROM "user"`;',
 			path: "src/migrations/0001_notes.ts",
 		}),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map(({ file }) => file)).toEqual(["src/migrations/0001_notes.ts"]);
 		expect(findings[0]?.message).toContain("Use platform's auth API");
 	},
@@ -48,9 +50,14 @@ for (const reference of [
 ]) {
 	ruleKit.it(
 		`app migrations cannot reference ${reference}`,
-		[repositoryHas({ content: `create table notes (user_id text references ${reference});`, path: "src/migrations/0001_notes.sql" })],
+		[
+			repositoryHas(authStorage.file, {
+				content: `create table notes (user_id text references ${reference});`,
+				path: "src/migrations/0001_notes.sql",
+			}),
+		],
 		function* ({ check }) {
-			expect((yield* check(authSql)).map(({ file }) => file)).toEqual(["src/migrations/0001_notes.sql"]);
+			expect((yield* check(authSql, { owners: authStorage.owners })).map(({ file }) => file)).toEqual(["src/migrations/0001_notes.sql"]);
 		},
 	);
 }

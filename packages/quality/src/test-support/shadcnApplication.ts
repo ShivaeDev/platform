@@ -14,6 +14,7 @@ export function shadcnApplication(extension = "tsx", packageImports = false): re
 				dependencies: { "@base-ui/react": "1.0.0" },
 				imports: packageImports ? { "#ui/*": "./src/components/ui/*" } : undefined,
 				name: "shadcn-app",
+				quality: { toolOwned: [{ glob: `src/components/ui/button.${extension}`, reason: "The registry owns this unmodified component." }] },
 				scripts: { start: "node src/main.ts" },
 				type: "module",
 			}),

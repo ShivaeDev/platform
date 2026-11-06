@@ -6,7 +6,7 @@ import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { programmaticEntries } from "#inventory/programmaticEntries.ts";
-import { shadcnFolders } from "#inventory/shadcnFolders.ts";
+import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
 import { entryPointFindings } from "./entryPointFindings.ts";
@@ -26,9 +26,9 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 	if ((yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined) {
 		return [];
 	}
-	const folders = yield* shadcnFolders(inputs.root);
+	const files = yield* toolOwnedFiles(inputs.root);
 	const entries = yield* programmaticEntries(inputs);
-	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, folders, entries));
+	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files, entries));
 	const checked = new Set([...inputs.files, ...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json"))]);
 	const findings = yield* Effect.scoped(
 		Effect.gen(function* () {

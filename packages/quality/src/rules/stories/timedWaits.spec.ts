@@ -41,7 +41,7 @@ for (const [imports, wait] of [
 	);
 }
 
-const POLLING = `import { eventually } from "#eventually.ts";\n${inStory("yield* eventually(() => expect(attempts()).toBe(3));")}`;
+const POLLING = `import { eventually } from "@shivaedev/test/eventually.ts";\n${inStory("yield* eventually(() => expect(attempts()).toBe(3));")}`;
 
 ruleStory.it(
 	"tests/wait-on-events leaves the polling story of a package test-story depends on alone and reports the same story elsewhere",
