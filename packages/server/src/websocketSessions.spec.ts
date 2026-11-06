@@ -33,7 +33,7 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 			yield* aliceSignsOut();
 			yield* save("second", "Private after sign-out", { boundary });
 
-			expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["resync"] });
+			expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["result", "result"] });
 		},
 	);
 

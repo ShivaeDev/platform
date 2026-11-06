@@ -52,10 +52,12 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
-	const handlers = Layer.merge(usersHandlers(Page), hostChanges(Page.contract)).pipe(
-		Layer.provide(betterAuthUserDirectory(Access)),
-		Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
-	);
+	const handlers = hostChanges(Page.contract)
+		.pipe(Layer.provideMerge(usersHandlers(Page)))
+		.pipe(
+			Layer.provide(betterAuthUserDirectory(Access)),
+			Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
+		);
 	const rpcRoutes = RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(UsersPermission), RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),

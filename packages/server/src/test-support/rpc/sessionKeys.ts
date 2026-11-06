@@ -136,7 +136,7 @@ export const sessionKeys = storyKit({
 				Effect.gen(function* () {
 					story.tell(`${names[caller]} subscribes to its theme and list through ${boundary}`);
 					const client = yield* state.clients[caller];
-					const subscription = yield* followHints(client(`${boundary}.$changes`, { queries: THEME_AND_LIST }));
+					const subscription = yield* followHints(client(`${boundary}.$changes`, { queries: THEME_AND_LIST }), THEME_AND_LIST.length);
 					state.feeds.set(caller, subscription);
 				}),
 			subscriptionOutcome: (caller: Caller) =>

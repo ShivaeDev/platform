@@ -29,6 +29,8 @@ The browser imports `Account` as it is; the server supplies the session middlewa
 
 ### How to think about it
 
+Application-host query subscriptions return their first authorized value on the stream after registering read keys. Raw consumers handle `Result` alongside later hints and typed denials. Session revocation continues to end established subscriptions through the same session checks.
+
 There are three parts to an authenticated RPC boundary:
 1. **The shared contract** names the middleware tags (`Authenticated`, `MaybeAuthenticated`, `AuthenticatedUser`, permission middleware) and the request-local services they provide. These modules are browser-safe, because the client imports the contract.
 2. **The server composition** implements the tags with Layers from `server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; request tracing supplies a request id and diagnostic context.

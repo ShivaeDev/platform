@@ -44,7 +44,7 @@ ownerStory.it(
 	[],
 	function* ({ openLiveQuery, revalidationIntervalPasses, revoke, subscriptionClosed, subscriptionUpdate }) {
 		yield* openLiveQuery();
-		expect(yield* subscriptionUpdate()).toBe("Resync");
+		expect(yield* subscriptionUpdate()).toBe("Result");
 		yield* revoke();
 		yield* revalidationIntervalPasses();
 		expect(yield* subscriptionClosed()).toEqual({ code: 1008, reason: "Authentication required" });

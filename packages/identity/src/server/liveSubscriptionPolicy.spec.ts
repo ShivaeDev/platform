@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { liveSubscriptionStory, pushedSubscriptionStory } from "#test/rpc/liveSubscriptionStory.ts";
 
 for (const [delivery, story, first] of [
-	["hints", liveSubscriptionStory, "resync"],
+	["hints", liveSubscriptionStory, "alice's document for reader"],
 	["pushed", pushedSubscriptionStory, "alice's document for reader"],
 ] as const) {
 	story.it(`${delivery}: revoking alice's role replaces the next delivery with a denial`, [], function* ({ nextHint, publish, revokeAliceRole }) {

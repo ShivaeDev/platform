@@ -2,6 +2,8 @@
 
 React screens should not rebuild loading, refresh, save and session rules around every native Effect atom. This package gives queries and actions readable state, joins a record to its editable form, and keeps each session's client state together.
 
+Live query screens and route loaders receive their first authorized result on the subscription in one RPC request. Later changes use the contract query’s hint or rerun-and-compare behavior.
+
 ## Why you want this
 
 A refresh should not blank a useful screen. A save response should not erase what someone typed while waiting. Signing in as someone else should not inherit the previous person's draft. These hooks and the session boundary handle those transitions around native atoms and forms:

@@ -421,6 +421,8 @@ const connection = composeBindings(
 
 The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries. Bindings on the same client runtime share this pause state.
 
+Opening a live query checks its policies, registers its read keys, then runs the authorized query and sends its first `Result` on the subscription. The screen and route loaders receive data in one RPC request; they do not send an ordinary query after the first signal. Registration precedes the read because PostgreSQL notifications cannot be replayed. Later changes send hints followed by ordinary query reads, unless the query declares `live: "rerun-and-compare"` to push changed results and acknowledge equal values.
+
 Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary mounts the bindings declared with `composeBindings`, or finds bound APIs returned directly by `connect` or nested in properties such as `client.api.notes`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
 Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
@@ -456,7 +458,7 @@ const changes = Stream.unwrap(
 );
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers call `querySubscription(rpc, references, viewer)` with the native changes RPC definition and pass its authorized result to `makeLiveServer.subscribe(subscription)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
+The contract includes the reserved stream's payload, hints, typed `Result` values and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers call `querySubscription(rpc, references, viewer)` with the native changes RPC definition and pass its authorized result and authorized query runner to `subscribe(subscription, read)`. The runner uses the same query handlers and policies as ordinary reads. Omitting the runner keeps an explicit hint-only stream for custom transports. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
 Custom subscription handlers use `changesHandlerLayer` to derive the reserved handler Layer from the contract:
 
@@ -761,7 +763,7 @@ const client = makeClient(Notes, {
 });
 ```
 
-The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions deliver the server's initial resync and changed hints, and mounted queries refresh from those hints. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
+The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions use the supplied handlers and change source, and mounted queries refresh from their updates. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
 
 ### Settled queries in stories
 
@@ -781,7 +783,7 @@ const current = yield* results.latest;
 
 ### Live hints in stories
 
-Use `watchHints` and `heard` from `@shivaedev/test-kits/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
+Use `watchHints` and `heard` from `@shivaedev/test-kits/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first update, including an initial result, before returning the viewer handle.
 
 ```ts
 const alice = yield* watchHints(aliceChanges);

@@ -48,7 +48,7 @@ await Effect.runPromise(Effect.gen(function* () {
     })) },
     roles: roleSet(role("viewer", []), role("operator", [ReadJobs])),
   });
-  const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(Layer.provide(sessions))));
+  const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(hostChanges(registration.group).pipe(Layer.provideMerge(registration.handlers)).pipe(Layer.provide(sessions))));
   const app = HttpRouter.toWebHandler(adminDocuments(registry, () => Effect.succeed(HttpServerResponse.html("<main>Jobs</main>"))).pipe(
     HttpRouter.provideRequest(sessions),
   ), { disableLogger: true });

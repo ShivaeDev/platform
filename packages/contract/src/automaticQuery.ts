@@ -1,27 +1,15 @@
-import { Cause, type Duration, Option, Predicate } from "effect";
+import { Cause, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import type { LiveBound, LiveConnection } from "#automaticLive.ts";
+import type { AutomaticQueryOptions } from "#AutomaticQueryOptions.ts";
 import type { LiveStatus } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { queryFailure } from "#queryFailure.ts";
 import { recordCompletion, recordSubscription } from "#queryProgress.ts";
 import { queryResult } from "#queryResult.ts";
-import type { QuerySignals } from "#querySignals.ts";
 
-interface GateOptions<A, E> {
+interface GateOptions<A, E> extends AutomaticQueryOptions<A, E> {
 	readonly assertOwner: (get: Atom.AtomContext) => void;
-	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
-	readonly clientStatuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>> | undefined;
-	readonly coalesceWindow: Atom.Writable<Duration.Input>;
-	readonly equivalent: (left: A, right: A) => boolean;
-	readonly paused: Atom.Writable<boolean>;
-	readonly pushed: boolean;
-	readonly ready: Atom.Writable<boolean>;
-	readonly signals: Atom.Writable<QuerySignals>;
-	readonly source: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
-	readonly statuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>>;
-	readonly subscription: LiveBound[typeof LiveConnection];
 }
 export function automaticQuery<A, E>({
 	atom,
@@ -32,15 +20,21 @@ export function automaticQuery<A, E>({
 	paused,
 	pushed,
 	ready,
+	resultVersion,
 	signals,
 	source,
 	statuses,
 	subscription,
+	subscriptionVersion,
 }: GateOptions<A, E>) {
 	const gated = Atom.readable(
 		(get) => {
 			assertOwner(get);
 			get.mount(signals);
+			get.mount(resultVersion);
+			get.mount(subscriptionVersion);
+			const openingVersion = get.once(subscriptionVersion);
+			get.refresh(subscription.connection);
 			const registry = get.registry;
 			const dispatcher = registry.schedulerAsync.makeDispatcher();
 			let denied = false;
@@ -49,7 +43,7 @@ export function automaticQuery<A, E>({
 			get.set(ready, false);
 			get.set(signals, { ...get.once(signals), pending: true, subscription: "opening" });
 			get.once(queryCoalesceWindow(gated));
-			get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
+			get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(source), value), { immediate: true });
 			const token = {};
 			let active = true;
 			function observe(value: LiveStatus<unknown>) {
@@ -61,7 +55,7 @@ export function automaticQuery<A, E>({
 						}
 					}
 				}, 0);
-				if (value.connection === "live") {
+				if (value.connection === "live" && get.once(subscriptionVersion) > openingVersion) {
 					denied = false;
 					registry.set(ready, true);
 				}
@@ -81,22 +75,22 @@ export function automaticQuery<A, E>({
 			get.addFinalizer(registry.subscribe(subscription.status, observe, { immediate: true }));
 			get.addFinalizer(registry.subscribe(coalesceWindow, (value) => registry.set(subscription.coalesceWindow, value), { immediate: true }));
 			let started = false;
+			let deniedVersion = 0;
 			function start() {
 				if (stopSource !== undefined) {
 					return;
 				}
-				started = true;
-				if (!pushed) {
+				if (!pushed && get.once(resultVersion) === deniedVersion) {
 					get.refresh(source);
 				}
+				started = true;
 				const publish = queryResult<A, E>(equivalent, (value) => {
 					if (!denied) {
 						get.setSelf(value);
 						get.set(signals, recordCompletion(get.once(signals), value));
 					}
 				});
-				stopSource = registry.subscribe(source, publish);
-				publish(get.once(source));
+				stopSource = registry.subscribe(source, publish, { immediate: true });
 			}
 			get.once(ready);
 			get.subscribe(ready, (value) => {
@@ -109,6 +103,7 @@ export function automaticQuery<A, E>({
 				(cause) => {
 					if (Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))) {
 						denied = true;
+						deniedVersion = get.once(resultVersion);
 						registry.set(ready, false);
 						stopSource?.();
 						stopSource = undefined;
