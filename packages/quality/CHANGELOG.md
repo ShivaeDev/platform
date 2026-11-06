@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.66.0 - 2026-11-05
+
+### Breaking
+
+- Import `ImportCompiler` from `@shivaedev/quality/adapters/import-compiler/service.ts` instead of `@shivaedev/quality/adapters/ImportCompiler.ts`. Its methods and single Layer remain the same.
+- Replace direct imports of `analyzeGraph`, `analyzeDepartures` and `checkBrowser` from the corresponding `@shivaedev/quality/adapters/imports/` modules with `graph`, `departures` and `browserChecker` from the corresponding `@shivaedev/quality/adapters/import-compiler/` modules. Their spans now match the service operations: `ImportCompiler.graph`, `ImportCompiler.departures` and `ImportCompiler.browserChecker`.
+- Enforce the service model in every `defineService` folder. Move declarations to `service.ts`, keep each operation in its own sibling file, and export it with `Effect.fn("Service.operation")`, including operations returned by owned-state factories. Yield dependencies inside operations instead of keeping them in initializer state; keep context runners in `adapters/` or `test-support/`. Existing consumers can review and record retained debt with Quality's first-adoption baseline command for `effect/service-model`, `effect/service-folders` and `effect/context-capture`.
+
 ## 0.65.0 - 2026-11-05
 
 ### Breaking
