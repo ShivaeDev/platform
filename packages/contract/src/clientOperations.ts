@@ -16,6 +16,7 @@ import { waitForConnection } from "#connectionReadiness.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { queryReactivity } from "#queryReactivity.ts";
 import { shareQuerySignals } from "#querySignals.ts";
+import { retainQuery } from "#retainQuery.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
@@ -34,7 +35,7 @@ function boundQuery(service: ErasedClient, tag: string, query: QueryShape, autom
 	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
-			const atom = service.query(tag, payload, options);
+			const atom = service.query(tag, payload, { ...options, timeToLive: 0 });
 			const existing = cached.get(atom);
 			if (existing !== undefined) {
 				return existing;
@@ -54,7 +55,7 @@ function boundQuery(service: ErasedClient, tag: string, query: QueryShape, autom
 				(source) => reactive(source, clientReadKeys(dependencies, owner?.context), owner?.registry),
 				options.headers,
 			);
-			const tracked = clientActivities.get(service)?.watch(result) ?? result;
+			const tracked = retainQuery(service.runtime, clientActivities.get(service)?.watch(result) ?? result);
 			shareQuerySignals(tracked, result);
 			cached.set(atom, tracked);
 			return tracked;

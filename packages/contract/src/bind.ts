@@ -1,4 +1,4 @@
-import type { Duration, Effect, Layer, Stream } from "effect";
+import type { Effect, Layer, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
@@ -27,7 +27,6 @@ export type RunFailure<R extends Rpc.Any> = Failure<R>;
 export interface QueryOptions {
 	readonly headers?: Headers.Input;
 	readonly serializationKey?: string;
-	readonly timeToLive?: Duration.Input;
 }
 
 export interface BoundQuery<R extends Rpc.Any, TSelf, TSubscription extends Rpc.Any = never> {

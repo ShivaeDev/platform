@@ -1,5 +1,5 @@
 {"path":"packages/react/src/adapters/loadQuery.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/adapters/queryHandoff.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/react/src/adapters/queryHandoff.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/adapters/queryRoute.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/adapters/useLoaderHandoff.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}

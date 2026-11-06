@@ -1,8 +1,7 @@
-import * as Atom from "effect/reactivity/Atom";
+import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 
 interface Handoff {
-	pending: boolean;
 	readonly ready: Promise<void>;
 	readonly release: () => void;
 }
@@ -17,21 +16,12 @@ export function keepLoaderQuery(registry: AtomRegistry.AtomRegistry, atom: Atom.
 	}
 	const readers = atoms.get(atom) ?? new Set<Handoff>();
 	atoms.set(atom, readers);
-	const key = Atom.isSerializable(atom) ? atom[Atom.SerializableTypeId].key : atom;
-	if (atom.initialValueTarget && !registry.getNodes().has(key)) {
-		// A removed reactive wrapper may have missed invalidations while its source stayed idle.
-		registry.refresh(atom);
-	}
 	const unmount = registry.mount(atom);
 	const ready = Promise.withResolvers<void>();
-	const handoff: Handoff = { pending: true, ready: ready.promise, release };
-	function complete() {
-		handoff.pending = false;
-		ready.resolve();
-	}
+	const handoff: Handoff = { ready: ready.promise, release };
 	function release() {
 		if (readers.delete(handoff)) {
-			complete();
+			ready.resolve();
 			signal.removeEventListener("abort", release);
 			unmount();
 		}
@@ -41,20 +31,12 @@ export function keepLoaderQuery(registry: AtomRegistry.AtomRegistry, atom: Atom.
 	if (signal.aborted) {
 		release();
 	}
-	return { complete, release };
-}
-
-export function acceptLoaderQuery(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<unknown>): void {
-	for (const handoff of handoffs.get(registry)?.get(atom) ?? []) {
-		handoff.release();
-	}
+	return { complete: release };
 }
 
 export function pendingLoaderQuery(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<unknown>): Promise<void> | undefined {
 	for (const handoff of handoffs.get(registry)?.get(atom) ?? []) {
-		if (handoff.pending) {
-			return handoff.ready;
-		}
+		return handoff.ready;
 	}
 	return undefined;
 }

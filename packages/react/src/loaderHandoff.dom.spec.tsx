@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { loaderScreen } from "#test/loaderScreen.tsx";
-import { noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderTraits.ts";
+import { noteLeftAfterShowing, noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderTraits.ts";
 
 loaderScreen.it(
 	"leaving a route whose loader is waiting shows the other screen and releases the query source after the idle window",
@@ -21,24 +21,21 @@ loaderScreen.it(
 );
 
 loaderScreen.it(
-	"a route that mounts after the idle window passed renders its loader's value first, with one server read",
+	"a route that mounts after the idle window passed renders its loader's value first and revalidates",
 	[noteMountedAfterIdleWindow("Delayed note")],
 	function* ({ firstRenders, serverCalls }) {
 		yield* outcomes([
 			["first render", () => Effect.map(firstRenders(), (titles) => titles[0]), "Delayed note"],
-			["server calls", () => serverCalls(), ["get"]],
+			["server calls", () => serverCalls(), ["get", "get"]],
 		]);
 	},
 );
 
 loaderScreen.it(
-	"leaving a loaded route before it renders releases its loader's query source once the idle window passes",
+	"a completed loader releases query execution before its route renders",
 	[noteLoadedButNotMounted("Unread note")],
-	function* ({ idleWindowPasses, leave, loaderSource }) {
+	function* ({ leave, loaderSource }) {
 		yield* leave();
-		expect(yield* loaderSource()).toBe("held");
-
-		yield* idleWindowPasses();
 
 		expect(yield* loaderSource()).toBe("released");
 	},
@@ -76,3 +73,25 @@ loaderScreen.it("clicking a removed Home link fails as missing Home link", [note
 
 	expect(outcome).toBe("missing Home link");
 });
+
+loaderScreen.it(
+	"returning to a loaded route shows its stale title before the server answers its revalidation",
+	[noteLeftAfterShowing("Original note")],
+	function* ({ nextReadWaits, returnToNote, shownTitle, stale, respond }) {
+		yield* nextReadWaits();
+
+		yield* returnToNote();
+
+		yield* outcomes([
+			["shown title", shownTitle, "Original note"],
+			["stale", stale, true],
+		]);
+
+		yield* respond("Fresh note");
+
+		yield* outcomes([
+			["shown title", shownTitle, "Fresh note"],
+			["stale", stale, false],
+		]);
+	},
+);
