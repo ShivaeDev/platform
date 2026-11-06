@@ -11,7 +11,7 @@ for (const [removal, action] of [
 		["a change hint", "publish"],
 	] as const) {
 		liveSubscriptionStory.it(`${removal} ends an open WebSocket subscription with Unauthorized after ${trigger}`, [], function* (verbs) {
-			expect(yield* verbs.nextHint()).toBe("resync");
+			expect(yield* verbs.nextHint()).toBe("alice's document for reader");
 			if (detect === "revalidationIntervalPasses") {
 				yield* verbs.revalidationIntervalPasses();
 			}
@@ -24,7 +24,7 @@ for (const [removal, action] of [
 	}
 }
 liveSubscriptionStory.it("a signed-in viewer whose policy refuses receives a denial", [], function* ({ denyAliceRead, nextHint, publish }) {
-	expect(yield* nextHint()).toBe("resync");
+	expect(yield* nextHint()).toBe("alice's document for reader");
 
 	yield* denyAliceRead();
 	yield* publish();
@@ -37,7 +37,7 @@ for (const [trigger, detect] of [
 	["the revalidation interval", "revalidationIntervalPasses"],
 ] as const) {
 	liveSubscriptionStory.it(`a session-store outage ends an open WebSocket subscription with AuthUnavailable after ${trigger}`, [], function* (verbs) {
-		expect(yield* verbs.nextHint()).toBe("resync");
+		expect(yield* verbs.nextHint()).toBe("alice's document for reader");
 
 		yield* verbs.sessionStoreBecomesUnavailable();
 		yield* verbs[detect]();

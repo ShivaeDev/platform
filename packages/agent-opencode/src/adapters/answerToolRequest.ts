@@ -4,8 +4,8 @@ import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/proto
 import type { CallToolRequest, CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Effect, Option, Schema } from "effect";
-import { CALLER_CALL, CALLER_SESSION, TOOL_SERVER_NAME } from "#adapters/toolNames.ts";
 import type { ToolSessions } from "#adapters/toolSessions.ts";
+import { CALLER_CALL, CALLER_SESSION, TOOL_SERVER_NAME } from "#adapters/wireName.ts";
 import type { ToolDefinition } from "#tools.ts";
 
 function listed(tool: ToolDefinition) {

@@ -46,14 +46,17 @@ export const collectionEngine = Effect.gen(function* () {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const registration = registerAdmin(adminRegistry(page), {
 		workspaces: page.contract.application.toLayer({
-			"admin.workspaces.all": () => repository.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(Effect.orDie),
+			"admin.workspaces.all": () =>
+				repository.findMany({ orderBy: { direction: "asc", field: "id" } }).pipe(
+					Effect.map((rows) => rows.map((row) => new Workspace(row))),
+					Effect.orDie,
+				),
 		}),
 	});
 	const policy = { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access };
-	const protocol = Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(
-		Layer.provide(Layer.succeed(SessionPolicy, policy)),
-		Layer.provide(Layer.succeedContext(services)),
-	);
+	const protocol = hostChanges(registration.group)
+		.pipe(Layer.provideMerge(registration.handlers))
+		.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)), Layer.provide(Layer.succeedContext(services)));
 	const runtime = yield* clientRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/AdminCollectionClient", {
 		group: registration.group,

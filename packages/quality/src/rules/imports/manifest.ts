@@ -6,7 +6,7 @@ import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { dependencyNames, type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
-import { isTestCode } from "#naming/testName.ts";
+import { testCode } from "#naming/testCode.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
 import { bundleInputs } from "./bundleInputs.ts";
 
@@ -38,6 +38,7 @@ const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function*
 	owner: WorkspacePackage,
 	graph: ImportGraph,
 	workspace: ReadonlyMap<string, string>,
+	isTestCode: (path: string) => boolean,
 ): Effect.fn.Return<ManifestDependencies> {
 	const path = posix.join(owner.directory, "package.json");
 	const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, path));
@@ -45,7 +46,7 @@ const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function*
 		return yield* Effect.die(new Error("the manifest is missing"));
 	}
 	return {
-		...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
+		...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate, isTestCode)),
 		application: isApplication(manifest),
 		development: new Set(dependencyNames(manifest, "devDependencies")),
 		entryPoints: yield* Effect.promise(() => entryPointsOf(inputs, owner.directory, manifest, workspace)),
@@ -54,15 +55,21 @@ const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function*
 	};
 });
 
-function developmentFile(owner: WorkspacePackage, path: string): boolean {
+function developmentFile(owner: WorkspacePackage, path: string, isTestCode: (path: string) => boolean): boolean {
 	return isTestCode(path) || isTooling(owner.directory, path);
 }
 
-function developmentImport(policy: ManifestDependencies | undefined, owner: WorkspacePackage, path: string, runtime: ReadonlySet<string>) {
+function developmentImport(
+	policy: ManifestDependencies | undefined,
+	owner: WorkspacePackage,
+	path: string,
+	runtime: ReadonlySet<string>,
+	isTestCode: (path: string) => boolean,
+) {
 	if (runtime.has(path)) {
 		return false;
 	}
-	return developmentFile(owner, path) || policy?.privateFiles.has(path);
+	return developmentFile(owner, path, isTestCode) || policy?.privateFiles.has(path);
 }
 
 function declares(policy: ManifestDependencies, target: string, development: boolean): boolean {
@@ -88,6 +95,7 @@ function undeclared(owner: WorkspacePackage, policy: ManifestDependencies | unde
 export const importsManifest = defineRule({
 	check: Effect.fn("Imports.check")(function* (inputs) {
 		const graph = yield* importGraph(inputs);
+		const isTestCode = yield* testCode(inputs);
 		const root: WorkspacePackage | undefined =
 			(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
@@ -96,10 +104,10 @@ export const importsManifest = defineRule({
 			yield* Effect.forEach(
 				owners,
 				(owner) =>
-					Effect.map(manifestDependencies(inputs, owner, graph, workspace), (policy): readonly [WorkspacePackage, ManifestDependencies] => [
-						owner,
-						policy,
-					]),
+					Effect.map(
+						manifestDependencies(inputs, owner, graph, workspace, isTestCode),
+						(policy): readonly [WorkspacePackage, ManifestDependencies] => [owner, policy],
+					),
 				{ concurrency: "unbounded" },
 			),
 		);
@@ -115,7 +123,7 @@ export const importsManifest = defineRule({
 				return [];
 			}
 			const policy = policies.get(owner);
-			const development = developmentImport(policy, owner, request.from, runtime) === true;
+			const development = developmentImport(policy, owner, request.from, runtime, isTestCode) === true;
 			if (policy !== undefined && declares(policy, target.name, development)) {
 				return [];
 			}

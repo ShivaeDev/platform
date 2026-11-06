@@ -5,7 +5,7 @@ import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer }
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import type { BearerSessionsOptions } from "#server/better-auth/adapters/bearerSessions.ts";
-import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIpHeaders.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 
 export const FORWARDED_HEADERS = ["x-forwarded-for", "x-real-ip"] as const;

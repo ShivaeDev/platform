@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
-import { SUBCOMMANDS } from "./messages.ts";
-import { ACCEPTS, misplaced, OPTIONS, type Values } from "./options.ts";
+import { ACCEPTS, misplaced, OPTIONS, type Values } from "./misplaced.ts";
+import { SUBCOMMANDS } from "./subcommands.ts";
 
 export type Command =
 	| { readonly _tag: "Ci"; readonly coverage: boolean }

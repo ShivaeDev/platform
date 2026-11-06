@@ -3,11 +3,11 @@ import { BigDecimal, DateTime, Effect, Exit, Option, Predicate } from "effect";
 import * as Statement from "effect/sql/Statement";
 import { transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
+import { TABLES } from "./createQueryTables.ts";
 import { attempt, outcomeOf } from "./outcome.ts";
 import type { QueryEngine } from "./queryEngine.ts";
 import { copyColumns, payment } from "./queryModels.ts";
 import { queryPlan } from "./queryPlan.ts";
-import { TABLES } from "./queryTables.ts";
 import { onSqlError, Rejected } from "./transactionEngine.ts";
 
 type Engine = QueryEngine;

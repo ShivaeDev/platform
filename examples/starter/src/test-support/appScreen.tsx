@@ -2,7 +2,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
-import { type ClientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { type ClientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { type BrowserReadsOptions, browserReads } from "@shivaedev/test-story/server/browserReads.ts";
@@ -54,7 +54,7 @@ export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 			|| view.registry.get(host.auth.actions.submit).waiting
 			|| view.registry.get(host.auth.actions.signOut).waiting
 			|| (modules?.pending() ?? false)
-			|| !isClientIdle(Effect.runSync(foundationClient.activity.current))
+			|| !isClientSettled(Effect.runSync(foundationClient.activity.current))
 			|| view.container.querySelector('[role="status"]') !== null
 		);
 	}

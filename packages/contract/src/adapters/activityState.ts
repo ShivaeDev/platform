@@ -5,7 +5,15 @@ export function activityState() {
 	let held = 0;
 	let connection: ConnectionStatus = "live";
 	const state = Effect.runSync(
-		SubscriptionRef.make<ClientActivityState>({ connectionStatus: "live", liveHints: 0, liveInvalidations: 0, refreshingAtoms: 0, rpcCalls: 0 }),
+		SubscriptionRef.make<ClientActivityState>({
+			commands: 0,
+			connectionStatus: "live",
+			initialQueries: 0,
+			liveHints: 0,
+			liveInvalidations: 0,
+			refreshingAtoms: 0,
+			rpcCalls: 0,
+		}),
 	);
 	function publish() {
 		const connectionStatus = held > 0 ? "waiting-for-connection" : connection;

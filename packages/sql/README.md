@@ -957,7 +957,7 @@ const migrateOrders = migratePostgres({
 
 Use sequential numbers, not timestamps. Effect's Migrator skips any migration whose ID is not greater than the latest applied ID. A timestamped migration from a branch that merges late could therefore be silently skipped by native Migrator on an already-migrated database. Two branches that choose the same sequential number instead fail loudly with Effect's duplicate-ID `MigrationError` (`kind: "Duplicates"`), forcing the second branch to renumber and re-check. This package also rejects gaps below the latest applied ID, as described below.
 
-`migrationConvention.ts` exports `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` so template packaging and repository quality configuration share the folder and filename convention.
+`migration.ts` exports `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` so template packaging and repository quality configuration share the folder and filename convention.
 
 `migratePostgres` rejects loaded migration IDs at or below the latest applied ID that are missing from the ledger with a typed native `MigrationError` (`kind: "BadState"`) naming those IDs. It also rejects a loaded ID recorded under a different name, matching readiness's ID and name checks. Both checks run before any new migration body, schema component or release publication. Later ledger entries absent from the loader are allowed for older releases.
 
@@ -1018,7 +1018,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/transact.ts`: `transact(effect, options)` or `effect.pipe(transact(options))` — Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`.
 - `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys, options?)` — Records keys for its client, or invalidates immediately outside a transaction.
 - `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
-- `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
+- `@shivaedev/sql/migration.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
 - `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
 - `@shivaedev/sql/migrations.ts`: `migratePostgres(options)` — Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`.
 - `@shivaedev/sql/backfillPostgres.ts`: `backfillPostgres({ batchSize, lock, loadProgress, select, process, saveProgress })` — Bounded transactions with application-owned checkpoints; returns the rows processed in this invocation. `BackfillInsideTransaction` rejects an enclosing transaction.

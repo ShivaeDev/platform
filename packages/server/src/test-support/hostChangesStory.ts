@@ -80,6 +80,12 @@ export const hostChangesStory = storyKit({
 	name: "host change handlers",
 	stages: [],
 	verbs: (state, story) => ({
+		firstResult: () => {
+			story.tell("the client subscribes to a greeting without a changes service");
+			return state
+				.client("idle.$changes", { queries: [{ payload: { name: "Ada" }, query: "greet" }] })
+				.pipe(Stream.runHead, Effect.map(Option.getOrUndefined));
+		},
 		subscribe: () =>
 			Effect.gen(function* () {
 				story.tell("a client subscribes through a host without a changes service");

@@ -54,7 +54,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
-		yield* settleQuery(engine, route === "/" ? "list" : "get");
+		yield* settleQuery(engine);
 	}
 });
 
@@ -143,7 +143,7 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	}).settle();
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
-	yield* settleQuery(engine, "list");
+	yield* settleQuery(engine);
 });
 
 export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
@@ -173,7 +173,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));
-	yield* settleQuery(engine, "list");
+	yield* settleQuery(engine);
 });
 
 export const openCodePreview = Effect.fn("ScreenStory.openCodePreview")(function* (engine: Screen, lines: readonly CodePreviewLine[]) {

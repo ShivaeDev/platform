@@ -6,10 +6,10 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
+import { createProvider, ORIGIN } from "./createProvider.ts";
 import { type Feed, followHints } from "./followHints.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
 import { postChanges } from "./postChanges.ts";
-import { createProvider, ORIGIN } from "./provider.ts";
 import type { Boundary } from "./sessionKeysApi.ts";
 import { upgrade } from "./upgrade.ts";
 
@@ -136,7 +136,7 @@ export const sessionKeys = storyKit({
 				Effect.gen(function* () {
 					story.tell(`${names[caller]} subscribes to its theme and list through ${boundary}`);
 					const client = yield* state.clients[caller];
-					const subscription = yield* followHints(client(`${boundary}.$changes`, { queries: THEME_AND_LIST }));
+					const subscription = yield* followHints(client(`${boundary}.$changes`, { queries: THEME_AND_LIST }), THEME_AND_LIST.length);
 					state.feeds.set(caller, subscription);
 				}),
 			subscriptionOutcome: (caller: Caller) =>

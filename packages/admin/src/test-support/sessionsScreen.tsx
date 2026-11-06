@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { activityScreenSignal } from "@shivaedev/contract/clientActivity.ts";
+import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -18,8 +18,8 @@ function screenOf(engine: Engine) {
 	return engine.screen.container;
 }
 
-function driverFor(engine: Engine, tell: (line: string) => void) {
-	return screenDriver({ act, pending: activityScreenSignal(engine.activity), root: () => screenOf(engine), tell });
+function driverFor(engine: Engine, tell: (line: string) => void, settled?: typeof isClientIdle) {
+	return screenDriver({ act, activity: activityScreenSignal(engine.activity, settled), root: () => screenOf(engine), tell });
 }
 
 export const sessionsScreen = storyKit({
@@ -42,11 +42,13 @@ export const sessionsScreen = storyKit({
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]')?.textContent ?? "no confirmation"),
 			confirmationFocused: () =>
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]') === document.activeElement),
-			confirmRevoke: () => Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driver.settle()),
+			confirmRevoke: () =>
+				Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
 			content: () => Effect.sync(() => screenOf(engine).textContent),
 			nextSessions: () => Effect.andThen(driver.click({ name: "Next sessions", role: "button" }), driver.settle()),
 			previousSessions: () => Effect.andThen(driver.click({ name: "Previous sessions", role: "button" }), driver.settle()),
-			refreshSessions: () => Effect.andThen(driver.click({ name: "Refresh sessions", role: "button" }), driver.settle()),
+			refreshSessions: () =>
+				Effect.andThen(driver.click({ name: "Refresh sessions", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
 			requestRevoke: (name: string) => Effect.andThen(driver.click({ name: `Revoke session for ${name}@app.test`, role: "button" }), driver.settle()),
 			revokeElsewhere: engine.revokeElsewhere,
 			shownEmails: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("li")].map((row) => row.querySelectorAll("p")[1]?.textContent)),

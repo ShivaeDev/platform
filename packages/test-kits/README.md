@@ -89,7 +89,7 @@ Import `withChangeCoverage`, `expectPublished`, `UnannouncedWrites`, `PublishedK
 
 ### Contract subscriptions
 
-Import `watchHints`, `heard`, `layerMemoryProtocol` and the `HintViewer` type from `@shivaedev/test-kits/contract/testing.ts`. `watchHints(stream)` starts a scoped listener and waits for its first hint. `heard(viewer, keys, { within }?)` reports whether a delivered changed hint contains all requested keys, using a one-second Effect-clock deadline by default. `layerMemoryProtocol(group)` connects the native RPC client and server in-process; provide the real group's handlers and middleware.
+Import `watchHints`, `heard`, `layerMemoryProtocol` and the `HintViewer` type from `@shivaedev/test-kits/contract/testing.ts`. `watchHints(stream)` starts a scoped listener and waits for its first update, including a live query’s initial `Result`. Its readout retains results and hints; `heard` matches changed keys. `heard(viewer, keys, { within }?)` reports whether a delivered changed hint contains all requested keys, using a one-second Effect-clock deadline by default. `layerMemoryProtocol(group)` connects the native RPC client and server in-process; provide the real group's handlers and middleware.
 
 ### Jobs
 

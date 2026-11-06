@@ -1,30 +1,10 @@
 import ts from "typescript";
+import { constantType, plainData } from "#naming/adapters/plainData.ts";
 
 export interface OwnExport {
 	readonly constant: boolean;
 	readonly kind: "type" | "value";
 	readonly name: string;
-}
-
-const CONSTANT_CASE = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u;
-
-const PRIMITIVE_LITERALS: ReadonlySet<ts.SyntaxKind> = new Set([
-	ts.SyntaxKind.BigIntLiteral,
-	ts.SyntaxKind.FalseKeyword,
-	ts.SyntaxKind.NoSubstitutionTemplateLiteral,
-	ts.SyntaxKind.NumericLiteral,
-	ts.SyntaxKind.StringLiteral,
-	ts.SyntaxKind.TrueKeyword,
-]);
-
-function isPrimitiveLiteral(node: ts.Expression | undefined): boolean {
-	if (node === undefined) {
-		return false;
-	}
-	if (ts.isPrefixUnaryExpression(node)) {
-		return isPrimitiveLiteral(node.operand);
-	}
-	return PRIMITIVE_LITERALS.has(node.kind);
 }
 
 function isExported(statement: ts.Statement): boolean {
@@ -38,7 +18,7 @@ function variables(statement: ts.VariableStatement): readonly OwnExport[] {
 		ts.isIdentifier(declaration.name)
 			? [
 					{
-						constant: constant && (CONSTANT_CASE.test(declaration.name.text) || isPrimitiveLiteral(declaration.initializer)),
+						constant: constant && plainData(declaration.initializer),
 						kind: "value" as const,
 						name: declaration.name.text,
 					},
@@ -47,12 +27,12 @@ function variables(statement: ts.VariableStatement): readonly OwnExport[] {
 	);
 }
 
-function declared(statement: ts.Statement): readonly OwnExport[] {
+function declared(statement: ts.Statement, constants: readonly string[] = []): readonly OwnExport[] {
 	if (ts.isVariableStatement(statement)) {
 		return variables(statement);
 	}
 	if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) {
-		return [{ constant: false, kind: "type", name: statement.name.text }];
+		return [{ constant: ts.isTypeAliasDeclaration(statement) && constantType(statement.type, constants), kind: "type", name: statement.name.text }];
 	}
 	const named =
 		ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement) || ts.isEnumDeclaration(statement) || ts.isModuleDeclaration(statement)
@@ -61,8 +41,10 @@ function declared(statement: ts.Statement): readonly OwnExport[] {
 	return named !== undefined && ts.isIdentifier(named) ? [{ constant: false, kind: "value", name: named.text }] : [];
 }
 
-export function ownDeclarations(source: ts.SourceFile): readonly OwnExport[] {
-	return source.statements.flatMap(declared);
+function ownDeclarations(source: ts.SourceFile): readonly OwnExport[] {
+	const values = source.statements.flatMap((statement) => (ts.isVariableStatement(statement) ? variables(statement) : []));
+	const constants = values.filter((entry) => entry.constant).map((entry) => entry.name);
+	return source.statements.flatMap((statement) => declared(statement, constants));
 }
 
 function locals(source: ts.SourceFile): ReadonlyMap<string, OwnExport> {
@@ -108,7 +90,8 @@ function defaulted(statement: ts.ExportAssignment, known: ReadonlyMap<string, Ow
 	if (name === undefined) {
 		return [];
 	}
-	return [known.get(name) ?? { constant: false, kind: "value", name }];
+	const local = known.get(name);
+	return [{ constant: local?.constant === true && plainData(statement.expression), kind: local?.kind ?? "value", name }];
 }
 
 function exportsOf(statement: ts.Statement, known: ReadonlyMap<string, OwnExport>): readonly OwnExport[] {
@@ -118,7 +101,7 @@ function exportsOf(statement: ts.Statement, known: ReadonlyMap<string, OwnExport
 	if (ts.isExportAssignment(statement)) {
 		return defaulted(statement, known);
 	}
-	return isExported(statement) ? declared(statement) : [];
+	return isExported(statement) ? declared(statement).map((entry) => known.get(entry.name) ?? entry) : [];
 }
 
 export function ownExports(source: ts.SourceFile): readonly OwnExport[] {

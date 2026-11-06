@@ -25,32 +25,41 @@ for (const [label, custom, shared] of [
 	["shared supplied", true, true],
 ] as const) {
 	commands.it(
-		`${label} protocol holds a reconnecting command and reports waiting until it succeeds`,
+		`${label} protocol keeps screen stories pending for a reconnecting command until it succeeds`,
 		[connected(custom, shared)],
-		function* ({ add, answer, drop, pass, restore, status, untilWaiting }) {
+		function* ({ add, answer, drop, pass, restore, settlement, status, untilWaiting }) {
 			yield* drop();
 			yield* add(2);
 			yield* untilWaiting();
 
-			expect(yield* status()).toBe("waiting-for-connection");
+			yield* outcomes([
+				["connection", status, "waiting-for-connection"],
+				["screen settlement", settlement, "pending"],
+			]);
 
 			yield* restore();
 			yield* pass(1000);
 
-			expect(yield* answer()).toBe("counter: 2");
+			yield* outcomes([
+				["command answer", answer, "counter: 2"],
+				["screen settlement", settlement, "settled"],
+			]);
 		},
 	);
 	commands.it(
-		`${label} protocol times out an unsent command after ten seconds and never sends it later`,
+		`${label} protocol releases screen stories when an unsent command times out and never sends it later`,
 		[connected(custom, shared)],
-		function* ({ add, answer, drop, pass, restore, untilConnected, untilWaiting, value }) {
+		function* ({ add, answer, drop, pass, restore, settlement, untilConnected, untilWaiting, value }) {
 			yield* drop();
 			yield* add(2);
 			yield* untilWaiting();
 
 			yield* pass(10_000);
 
-			expect(yield* answer()).toBe("RpcClientError: SocketOpenError Timeout");
+			yield* outcomes([
+				["command answer", answer, "RpcClientError: SocketOpenError Timeout"],
+				["screen settlement", settlement, "settled"],
+			]);
 
 			yield* restore();
 			yield* pass(1000);
@@ -82,9 +91,9 @@ commands.it(
 );
 
 commands.it(
-	"an interrupted held command leaves waiting status and never reaches the server",
+	"an interrupted held command releases screen stories and never reaches the server",
 	[connected()],
-	function* ({ add, cancel, drop, pass, restore, status, untilConnected, untilWaiting, value }) {
+	function* ({ add, cancel, drop, pass, restore, settlement, status, untilConnected, untilWaiting, value }) {
 		yield* drop();
 		yield* add(5);
 		yield* untilWaiting();
@@ -92,7 +101,10 @@ commands.it(
 
 		yield* cancel();
 
-		expect(yield* status()).toBe("live");
+		yield* outcomes([
+			["connection", status, "live"],
+			["screen settlement", settlement, "settled"],
+		]);
 
 		yield* restore();
 		yield* pass(1000);

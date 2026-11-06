@@ -57,7 +57,7 @@ export const adminEngine = Effect.gen(function* () {
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
 	};
-	const protocol = Layer.mergeAll(registration.handlers, changes).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
+	const protocol = changes.pipe(Layer.provideMerge(registration.handlers)).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const client = yield* RpcTest.makeClient(group).pipe(Effect.provide(protocol));
 	const runtime = yield* clientRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {

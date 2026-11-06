@@ -3,59 +3,68 @@ import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const named = [
-	["src/liveQueryWindow.ts", "export const liveQueryWindow = 30;\n"],
-	["src/timeout.ts", "export const timeout = 30;\n"],
-	["src/liveQueryWindow.ts", "export const liveQueryWindow = { milliseconds: 30 };\n"],
-	["src/liveQueryWindow.ts", "const window = 30;\nexport { window as liveQueryWindow };\n"],
-	["src/queries/window.ts", "export const queryWindow = 30;\n"],
+	["src/migration.ts", "export const MIGRATION_DIRECTORY = 'migrations'; export const MIGRATION_PATTERN = /^[0-9]+/u;"],
+	["src/maxItems.ts", "export const MAX_ITEMS = 10;"],
+	["src/items/max.ts", "export const MAX_ITEMS = 10;"],
+	["src/timeouts.ts", "export const INSPECT_TIMEOUT_MILLIS = 30; export const REMOTE_TIMEOUT_MILLIS = 50;"],
+	["src/limits.ts", "export const MAX_ITEMS = 10; export const MIN_DEPTH = 4; export const RETRY_LIMIT = 3;"],
+	["src/defaults.ts", "export const DEFAULT_ITEMS = 10; export const DEFAULT_DEPTH = 4;"],
+	["src/limits.ts", "export const MAX_ITEMS = 10, MIN_ITEMS = -1;"],
+	["src/profileKey.ts", "const KEY = 'profile'; export { KEY as PROFILE_KEY };"],
+	["src/statuses.ts", "export const STATUSES = ['open', 'closed'] as const; export type Status = (typeof STATUSES)[number];"],
+	["src/statuses.ts", "export const STATUSES = { open: 'open' } as const; export type Status = typeof STATUSES.open;"],
+	["src/statuses.ts", "export const STATUSES = ['open'] as const; export type Status = Extract<(typeof STATUSES)[number], string>;"],
+	["src/messages.ts", "export const messages = { saved: 'Saved', retry: ['Retry', null, true, -1] } as const;"],
+	["src/keys.ts", "export const PROFILE_KEY = KEY; export const REPORTS_KEY = { KEY };"],
+	["src/test-support/timeouts.ts", "export const INSPECT_TIMEOUT = 30; export const REMOTE_TIMEOUT = 50;"],
+	["src/constants.ts", "export const CONSTANT_NAMES = ['first']; export const CONSTANT_VALUES = [1];"],
 ] as const;
 
 for (const [path, content] of named) {
-	ruleStory.it(`files/named-after-export accepts ${path} holding ${content.trim()}`, [repositoryHas({ content, path })], function* ({ check }) {
-		yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
-	});
+	ruleStory.it(
+		`files/named-after-export accepts the constants module ${path}: ${content}`,
+		[repositoryHas({ content, path })],
+		function* ({ check }) {
+			const findings = yield* check(namedAfterExport);
+
+			yield* assertThat(findings, (actual) => actual.toEqual([]));
+		},
+	);
 }
 
 const misnamed = [
-	["src/window.ts", "export const liveQueryWindow = 30;\n", '"window" does not name its export liveQueryWindow.'],
-	["src/maxItems.ts", "export const MAX_ITEMS = 10;\n", '"maxItems" does not name its export MAX_ITEMS.'],
-	["src/queries/queryWindow.ts", "export const queryWindow = 30;\n", '"queryWindow" repeats its folder "queries".'],
-	[
-		"src/Limits.ts",
-		"export const MAX_ITEMS = 10;\nexport const MAX_DEPTH = 4;\n",
-		'"Limits" exports several things, so it is a topic file named in camelCase',
-	],
-	["src/Limits.ts", "export const MAX_ITEMS = 10, MAX_DEPTH = 4;\n", '"Limits" exports several things, so it is a topic file named in camelCase'],
+	["src/ProfileKey.ts", "export const PROFILE_KEY = 'profile';", "Shared words: profile, key."],
+	["src/Limits.ts", "export const MAX_ITEMS = 10, MIN_DEPTH = 4;", "Put MAX_/MIN_ constants in limits.ts"],
+	["src/limits.ts", "export const MAX_ITEMS = 10; export const TIMEOUT = 30;", "every constant must fit the name"],
+	["src/defaults.ts", "export const DEFAULT_DEPTH = 4; export const TIMEOUT = 30;", "every constant must fit the name"],
+	["src/constants.ts", "export const CONFIG_FILE = 'quality.config.ts'; export const DEFAULT_EXTENSIONS = ['.ts'];", "or split it."],
+	["src/test-support/constants.ts", "export const REQUEST_KEY = 'request'; export const DEFAULT_TIMEOUT = 30;", "or split it."],
+	["src/retries.ts", "export const INSPECT_TIMEOUT = 30; export const REMOTE_TIMEOUT = 50;", "Shared words: timeout."],
+	["src/max-items.ts", "export const MAX_ITEMS = 10;", "Name the module in camelCase"],
 ] as const;
 
 for (const [path, content, reason] of misnamed) {
-	ruleStory.it(`files/named-after-export refuses ${path}: ${reason}`, [repositoryHas({ content, path })], function* ({ check, messages }) {
-		yield* check(namedAfterExport);
-
-		yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
-	});
-}
-
-for (const otherExport of ["", "export function available() { return MAX_ITEMS; }\n"]) {
 	ruleStory.it(
-		`files/named-after-export keeps a constant's filename when it becomes private ${otherExport === "" ? "with no remaining export" : "beside a remaining function export"}`,
-		[repositoryHas({ content: `export const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" })],
-		function* ({ check, writes }) {
-			yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
+		`files/named-after-export refuses the constants module ${path}: ${content}`,
+		[repositoryHas({ content, path })],
+		function* ({ check, messages }) {
+			yield* check(namedAfterExport);
 
-			yield* writes({ content: `const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" });
-
-			yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
+			yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
 		},
 	);
 }
 
 ruleStory.it(
-	"files/named-after-export still rejects a private constant's unrelated PascalCase filename",
-	[repositoryHas({ content: "const MAX_ITEMS = 10;\n", path: "src/Limits.ts" })],
-	function* ({ check, locations }) {
+	"unrelated constants receive shared-word examples, limits and defaults guidance, and a request to split",
+	[repositoryHas({ content: "export const PROFILE_KEY = 'profile'; export const DEFAULT_DEPTH = 4;", path: "src/constants.ts" })],
+	function* ({ check, messages }) {
 		yield* check(namedAfterExport);
 
-		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/Limits.ts"]));
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				'"constants" holds only plain-data constants. Name the module in camelCase after a word each constant carries, such as timeouts.ts for INSPECT_TIMEOUT_MILLIS and REMOTE_TIMEOUT_MILLIS, or split it. Put MAX_/MIN_ constants in limits.ts and DEFAULT_ constants in defaults.ts; every constant must fit the name.',
+			]),
+		);
 	},
 );

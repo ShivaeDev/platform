@@ -8,7 +8,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
-import { PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { PASSWORD_HASH } from "#test/passwords.ts";
 import { databaseUrl } from "#test/postgres.ts";
 
 const ORIGIN = "http://localhost:3000";
