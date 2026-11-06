@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { recommendedRules } from "#biome/recommendedRules.ts";
 import { services } from "#cli/runMain.ts";
+import { loadConfig } from "#config/load.ts";
 import type { Findings } from "#rule.ts";
 import { biome } from "#rules/biome.ts";
 import { scanned } from "#testing/adapters/imports.ts";
@@ -53,7 +54,9 @@ export const biomeStory = storyKit({
 			if (configured._tag === "Invalid") {
 				return yield* Effect.die(new Error(`biome refused its options: ${configured.issues.join("; ")}`));
 			}
-			engine.findings = yield* configured.check(yield* Effect.promise(() => scanned(engine.root)));
+			const config = yield* loadConfig(engine.root, undefined);
+			const inputs = yield* Effect.promise(() => scanned(engine.root));
+			engine.findings = yield* configured.check({ ...inputs, exceptions: config.exceptions });
 		}),
 		listsRecommendedRules: () => {
 			story.tell("quality asks Biome for the rules its recommended preset enables");

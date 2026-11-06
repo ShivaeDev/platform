@@ -15,7 +15,7 @@ ruleStory.it(
 				{
 					file: "packages/kit",
 					message:
-						'The folder of the package @demo/ui-kit must be named "ui-kit", in kebab-case after the package name, or its path below the workspace package root must join with "-" to "ui-kit".',
+						'The folder of the package @demo/ui-kit must match a trailing run of its folder path joined with "-" as "ui-kit", with each segment singular or plural.',
 				},
 			]),
 		);

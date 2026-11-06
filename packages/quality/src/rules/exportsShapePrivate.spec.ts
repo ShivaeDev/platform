@@ -7,6 +7,7 @@ import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIF
 for (const file of ["package.json", LIBRARY_MANIFEST]) {
 	for (const [name, exports] of [
 		["source-only", SOURCE_EXPORTS],
+		["extension-preserving source", { "./*": "./src/*" }],
 		["source/types/dist", FILE_PATH_EXPORTS],
 	] as const) {
 		ruleStory.it(
@@ -33,22 +34,6 @@ for (const file of ["package.json", LIBRARY_MANIFEST]) {
 			},
 		);
 	}
-
-	ruleStory.it(
-		`manifests/exports-shape rejects private source-only test imports outside test-support in ${file}`,
-		[repositoryHas(exportsWorkspace, exportsPackage({ imports: { "#*.ts": "./src/*.ts", "#test/*": "./test-support/*" }, private: true }, file))],
-		function* ({ check }) {
-			const findings = yield* check(manifestsExportsShape);
-
-			expect(findings).toEqual([
-				{
-					file,
-					message: 'Import "#test/*" must map to "./src/test-support/*". Keep test helpers under the source root’s test-support folder.',
-					subject: "#test/*",
-				},
-			]);
-		},
-	);
 }
 
 const INVALID_PRIVATE_EXPORTS = [
@@ -66,7 +51,9 @@ for (const [name, exports, subject, reason] of INVALID_PRIVATE_EXPORTS) {
 
 			expect(findings).toEqual([{ file: LIBRARY_MANIFEST, message: expect.stringContaining(reason), subject }]);
 			expect(findings[0]?.message).toContain('source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js"');
-			expect(findings[0]?.message).toContain('For a private package, mapping "./*.ts" directly to "./src/*.ts" is also accepted.');
+			expect(findings[0]?.message).toContain(
+				'For a private package, mapping "./*.ts" directly to "./src/*.ts", or "./*" to "./src/*" to preserve both .ts and .tsx extensions, is also accepted.',
+			);
 		},
 	);
 }

@@ -5,7 +5,7 @@ import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts"
 import { routeFiles } from "#inventory/routeFiles.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
-import { KEBAB, PASCAL } from "#naming/words.ts";
+import { KEBAB, PASCAL, sameWord } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
 const SNAKE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/u;
@@ -38,10 +38,15 @@ function isModule(folder: string, stems: ReadonlySet<string>): boolean {
 
 function packageMessage(folder: string, packageName: string): string | undefined {
 	const expected = packageName.replace(/^@[^/]+\//u, "");
-	const nested = folder.split("/").slice(1).join("-");
-	return posix.basename(folder) === expected || nested === expected
+	const segments = folder.split("/");
+	const matches = segments.some((_, start) => {
+		const tail = segments.slice(start).join("-").split("-");
+		const name = expected.split("-");
+		return tail.length === name.length && tail.every((word, index) => sameWord(word, name[index] ?? ""));
+	});
+	return matches
 		? undefined
-		: `The folder of the package ${packageName} must be named "${expected}", in kebab-case after the package name, or its path below the workspace package root must join with "-" to "${expected}".`;
+		: `The folder of the package ${packageName} must match a trailing run of its folder path joined with "-" as "${expected}", with each segment singular or plural.`;
 }
 
 function groupMessage(name: string): string | undefined {
@@ -66,12 +71,15 @@ function messageFor(folder: string, context: Context): string | undefined {
 	if (name === "internal") {
 		return 'A folder named "internal" implies privacy that export maps do not enforce. Move its files into the parent folder or a folder named after their job.';
 	}
-	if (context.owned.has(folder) || context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
+	if (context.owned.has(folder) || context.toolOwned.ignores(`${folder}/`)) {
 		return undefined;
 	}
 	const packageName = context.names.get(folder);
 	if (packageName !== undefined) {
 		return packageMessage(folder, packageName);
+	}
+	if (isModule(folder, context.stems)) {
+		return undefined;
 	}
 	if (context.content.ignores(`${folder}/`)) {
 		return SNAKE.test(name) ? undefined : `"${name}" holds content, so it is named in snake_case, such as forest_path/.`;
@@ -97,7 +105,7 @@ export const folderNames = defineRule({
 			});
 		}),
 	description:
-		"Folders cannot be named internal. A package folder's final name or its path below the workspace package root joined with hyphens matches its unscoped package name. A module folder is named after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
+		"Folders cannot be named internal. A trailing run of a package's folder path joined with hyphens matches its unscoped name, with each segment singular or plural. A module folder is named after its main file, a content folder in snake_case and every other folder in kebab-case. TanStack Router configuration owns route folder names.",
 	id: "files/folder-names",
 	options: Schema.toStandardSchemaV1(FolderNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,

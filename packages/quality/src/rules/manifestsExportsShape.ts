@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding } from "#rule.ts";
+import { exportImportFindings } from "#rules/exportImportFindings.ts";
 
 const PATTERN = "./*.ts";
 
@@ -13,6 +14,9 @@ function isMap(value: unknown): value is Readonly<Record<string, unknown>> {
 }
 
 function standardPattern(key: string, value: unknown, sourceOnly = false): boolean {
+	if (sourceOnly && key === "./*" && value === "./src/*") {
+		return true;
+	}
 	if (!(key.startsWith("./") && key.endsWith(".ts")) || key.split("*").length !== 2) {
 		return false;
 	}
@@ -38,7 +42,9 @@ function exactAsset(key: string, value: unknown): boolean {
 }
 
 function finding(file: string, subject: string, reason: string, isPrivate: boolean): Finding {
-	const sourceOnly = isPrivate ? ' For a private package, mapping "./*.ts" directly to "./src/*.ts" is also accepted.' : "";
+	const sourceOnly = isPrivate
+		? ' For a private package, mapping "./*.ts" directly to "./src/*.ts", or "./*" to "./src/*" to preserve both .ts and .tsx extensions, is also accepted.'
+		: "";
 	return {
 		file,
 		message: `${reason} Import the module at its file path through the single "${PATTERN}" wildcard (for example, "./server/better-auth/mount.ts" for "./src/server/better-auth/mount.ts"). Map it to source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js"; remove aliases and per-file module exports. Non-code assets must use their exact file paths.${sourceOnly}`,
@@ -75,31 +81,6 @@ function findingsIn(file: string, exports: unknown, isPrivate: boolean): readonl
 	];
 }
 
-function importFindings(file: string, imports: Readonly<Record<string, unknown>> = {}): readonly Finding[] {
-	return Object.entries(imports).flatMap(([key, value]) => {
-		if (key === "#*.ts" && value !== "./src/*.ts" && !standardPattern(PATTERN, value)) {
-			return [
-				{
-					file,
-					message:
-						'Import "#*.ts" must preserve the path from the source root. Map it to "./src/*.ts", or to source "./src/*.ts", types "./dist/*.d.ts" and default "./dist/*.js". Include subfolders in import specifiers, for example "#server/module.ts".',
-					subject: key,
-				},
-			];
-		}
-		if (key === "#test/*" && value !== "./src/test-support/*") {
-			return [
-				{
-					file,
-					message: 'Import "#test/*" must map to "./src/test-support/*". Keep test helpers under the source root’s test-support folder.',
-					subject: key,
-				},
-			];
-		}
-		return [];
-	});
-}
-
 export const manifestsExportsShape = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
@@ -113,14 +94,17 @@ export const manifestsExportsShape = defineRule({
 						if (file === "package.json" && manifest === undefined) {
 							return [];
 						}
-						return [...findingsIn(file, manifest?.exports, manifest?.private === true), ...importFindings(file, manifest?.imports)];
+						return [
+							...findingsIn(file, manifest?.exports, manifest?.private === true),
+							...exportImportFindings(file, manifest?.imports, manifest?.private === true),
+						];
 					}),
 				{ concurrency: "unbounded" },
 			);
 			return findings.flat();
 		}),
 	description:
-		"Packages export modules through one file-preserving wildcard without null blocks; declared #*.ts and #test/* imports preserve the source and test-support roots.",
+		"Packages export modules through one file-preserving wildcard without null blocks; declared #*.ts and #test/* imports preserve the source and test-support roots. Private packages may export ./src/* through ./* and map #test/* into their own test tree.",
 	id: "manifests/exports-shape",
 	registrable: false,
 });
