@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.5 - 2026-11-06
+
+### Fixed
+
+- Preserve the starter's declared Quality ownership facts when packing generated applications.
+
 ## 0.43.4 - 2026-11-06
 
 ### Changed
