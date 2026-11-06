@@ -10,6 +10,7 @@ import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+import { applyPostgresSettings, type PostgresSettings } from "@shivaedev/sql/postgresSettings.ts";
 import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
@@ -24,6 +25,7 @@ import { prepareMigrations } from "#prepareMigrations.ts";
 export interface AppDatabaseOptions<R = never, E = never> {
 	readonly config?: DatabaseConfig;
 	readonly migrations: MigrationOptions<R, E>;
+	readonly postgresSettings: PostgresSettings;
 }
 
 export interface DatabaseConfig extends PostgresOptions {
@@ -56,6 +58,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	const connected = Layer.unwrap(
 		Effect.gen(function* () {
 			const client = yield* PgClient.PgClient;
+			yield* applyPostgresSettings(options.postgresSettings);
 			const hints = yield* LiveServer;
 			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const name = yield* Config.String("APP_NAME").pipe(Config.withDefault(new URL(Redacted.value(url)).pathname));

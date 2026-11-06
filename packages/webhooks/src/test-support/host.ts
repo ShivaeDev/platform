@@ -160,6 +160,7 @@ export function hostLayer(state: InboxState) {
 					...(state.mode === undefined ? {} : { mode: state.mode }),
 					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),
 				},
+				postgresSettings: {},
 			}).pipe(
 				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: signingEnvironment }))),
 				Layer.provide(Layer.succeed(Tracer.Tracer, state.telemetry.tracer)),

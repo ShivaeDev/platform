@@ -78,6 +78,7 @@ export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 			}),
 			migrations: { ...migrations, mode: "wait" },
 			policy: "loopback",
+			postgresSettings: {},
 			services,
 		}),
 	);

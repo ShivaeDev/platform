@@ -14,6 +14,7 @@ NodeRuntime.runMain(
 			appDatabase({
 				config: { changes: { channel: table }, databaseUrl },
 				migrations: { loader: migrationChangesLoader(table, mode === "rollback" ? "rollback" : "migrate"), table: `${table}_ledger` },
+				postgresSettings: {},
 			}),
 		);
 	}).pipe(Effect.scoped, Effect.provide(NodeCrypto.layer)),

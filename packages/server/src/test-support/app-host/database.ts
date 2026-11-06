@@ -19,6 +19,7 @@ export const postgresFeature = postgresHost.trait("configured", "PostgreSQL migr
 	state.config = config;
 	state.build = () =>
 		appHost({
+			postgresSettings: {},
 			...(state.assets === undefined ? {} : { assets: state.assets }),
 			config: state.config,
 			group: Api,
@@ -38,6 +39,7 @@ export const migratedSql = postgresHost.trait("configured", "omitted services re
 			handlers: Ping.toLayer({ ping: () => SqlClient.SqlClient.use((sql) => sql`select 1`).pipe(Effect.orDie, Effect.as("pong")) }),
 			migrations: { loader: Migrator.fromRecord({}) },
 			policy: "loopback",
+			postgresSettings: {},
 		});
 	}
 	state.build = build;
@@ -54,6 +56,7 @@ export const failedMigration = postgresHost.trait("configured", "a failed migrat
 				loader: Migrator.fromRecord({ "001_fail": Effect.fail(new Error("Migration failed")) }),
 				table: "failed_migrations",
 			},
+			postgresSettings: {},
 			services,
 			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
@@ -73,7 +76,9 @@ export function databaseHealth(source: "migrations" | "services") {
 				...(state.assets === undefined ? {} : { assets: state.assets }),
 				sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 			};
-			return source === "migrations" ? appHost({ ...options, migrations }) : appHost({ ...options, services: appDatabase({ config, migrations }) });
+			return source === "migrations"
+				? appHost({ postgresSettings: {}, ...options, migrations })
+				: appHost({ ...options, services: appDatabase({ config, migrations, postgresSettings: {} }) });
 		}
 		state.build = build;
 	});

@@ -17,7 +17,11 @@ export const poolTeardown = storyKit({
 		yield* Effect.addFinalizer(() => Effect.sync(gate.release));
 		const name = `pool-teardown-${crypto.randomUUID()}`;
 		const context = yield* Layer.buildWithScope(
-			appDatabase({ config: { applicationName: name, databaseUrl: Redacted.make(gate.url) }, migrations: { loader: Migrator.fromRecord({}) } }),
+			appDatabase({
+				config: { applicationName: name, databaseUrl: Redacted.make(gate.url) },
+				migrations: { loader: Migrator.fromRecord({}) },
+				postgresSettings: {},
+			}),
 			scope,
 		);
 		const sql = yield* SqlClient.SqlClient.pipe(Effect.provideContext(context));

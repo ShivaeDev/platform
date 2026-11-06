@@ -20,8 +20,6 @@
 		"lint": "node --conditions=@shivaedev/source tooling/heavy.ts -- sh -c 'pnpm lint:skills && quality lint'",
 		"lint:skills": "shivaedev-skills check",
 		"migrate": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/migrate.ts",
-		"postgres:low-memory": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/low-memory-postgres.ts",
-		"postgres:trim-cache": "node --conditions=@shivaedev/source --env-file-if-exists=.env.local src/server/trim-postgres-page-cache.ts",
 		"ready": "pnpm run ci",
 		"setup": "pnpm install && pnpm skills:sync && quality setup",
 		"skills:sync": "shivaedev-skills sync",

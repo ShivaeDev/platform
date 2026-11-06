@@ -28,6 +28,7 @@ function build(config: DatabaseConfig, env: Record<string, string>) {
 				loader: Migrator.fromRecord({ "001_notes": SqlClient.SqlClient.use((sql) => sql`create table notes (id integer primary key)`) }),
 			},
 			policy: "loopback",
+			postgresSettings: {},
 		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
 	);
 }

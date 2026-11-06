@@ -38,8 +38,11 @@ export const pool = storyKit({
 			const databaseUrl = (yield* PostgresTestDatabase).url;
 			const config = { databaseUrl, host: "127.0.0.1", maxConnections: state.limit, port: 0 };
 			const migrations = { loader: Migrator.fromRecord({}) };
-			const database = appDatabase({ config, migrations });
-			const layer = state.mode === "database" ? database : appHost({ config, group: Ping, handlers: pingHandlers, migrations, policy: "loopback" });
+			const database = appDatabase({ config, migrations, postgresSettings: {} });
+			const layer =
+				state.mode === "database"
+					? database
+					: appHost({ config, group: Ping, handlers: pingHandlers, migrations, policy: "loopback", postgresSettings: {} });
 			const context = yield* Layer.build(layer);
 			state.sql = Context.get(context, SqlClient.SqlClient);
 			state.pool = Context.get(context, PgPool.PgPool);

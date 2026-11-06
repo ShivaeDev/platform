@@ -13,6 +13,7 @@ const options = {
 	handlers: Api.application.toLayer({ "changes.read": () => Required }),
 	migrations: { loader: Migrator.fromRecord({}) },
 	policy: "loopback" as const,
+	postgresSettings: {},
 };
 const incomplete = appHost(options);
 const complete = appHost({ ...options, services: Layer.effect(Required, Effect.succeed("ready")) });

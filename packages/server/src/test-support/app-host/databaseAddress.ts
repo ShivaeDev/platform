@@ -24,6 +24,7 @@ export function databaseAddress(source: "authority" | "parameters") {
 				handlers: Ping.toLayer({ ping: () => databaseIdentity.pipe(Effect.map(JSON.stringify), Effect.orDie) }),
 				migrations: { loader: Migrator.fromRecord({}) },
 				policy: "loopback",
+				postgresSettings: {},
 			});
 		}
 		state.build = build;

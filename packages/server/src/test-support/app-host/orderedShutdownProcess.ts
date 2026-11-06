@@ -41,7 +41,7 @@ NodeRuntime.runMain(
 				)
 				.pipe(Effect.andThen(acknowledgeHostSignal("SIGTERM")), Effect.orDie),
 		);
-		const database = appDatabase({ migrations: { loader: Migrator.fromRecord({}) } });
+		const database = appDatabase({ migrations: { loader: Migrator.fromRecord({}) }, postgresSettings: {} });
 		const handlers = ShutdownApi.toLayer({
 			watch: () =>
 				Stream.unwrap(

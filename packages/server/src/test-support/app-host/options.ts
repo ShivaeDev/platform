@@ -60,6 +60,7 @@ export const invalidTrust = host.trait("configured", "trust validation precedes 
 					}),
 				}),
 			},
+			postgresSettings: {},
 			routes: HttpRouter.use(() =>
 				Effect.sync(() => {
 					state.lifecycle.push("routed");

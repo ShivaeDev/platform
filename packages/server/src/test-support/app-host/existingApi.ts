@@ -60,7 +60,9 @@ export function migratedExistingApi(deferred = false) {
 		);
 		state.build = () => {
 			const options = { config, routes, services: services(state.lifecycle, state.calls, greeting) };
-			return deferred ? appHost({ application: Effect.succeed(options), config, migrations }) : appHost({ ...options, migrations });
+			return deferred
+				? appHost({ application: Effect.succeed(options), config, migrations, postgresSettings: {} })
+				: appHost({ postgresSettings: {}, ...options, migrations });
 		};
 	});
 }
