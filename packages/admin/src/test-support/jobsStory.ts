@@ -6,6 +6,7 @@ import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { describeCopy, describeJob, firstPage, idOf, nameCopies, named, nameOf, nextPage, type Page, refused, sourceOf, views } from "./jobsNames.ts";
 import { Mail, Sync } from "./jobsPages.ts";
 import { ScheduledWorker } from "./ScheduledWorker.ts";
+import { scheduleActions } from "./scheduleActions.ts";
 import { Scheduled } from "./scheduled.ts";
 
 export type JobsView = keyof ReturnType<typeof views>;
@@ -22,6 +23,7 @@ export const jobsStory = storyKit({
 	verbs: (engine, story) => {
 		const { client } = engine;
 		return {
+			...scheduleActions(engine, story.tell),
 			counts: (queue: string) => {
 				story.tell(`read the counts of ${queue}`);
 				return refused(engine, client["admin.jobs.counts"]({ queue }));

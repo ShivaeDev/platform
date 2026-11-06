@@ -465,6 +465,13 @@ Automatic migration and `installPgBossSchema` install the queue-change trigger. 
 
 ### Administer queues and schedules
 
+`runScheduleNow(schedule)` enqueues one immediate run using the registered schedule's queue, payload and options, with `startAfter: 0`. Pass the schedule definition, including its `scheduleOptions.key` when keyed. The worker processes it as a normal job, and the cron registration stays unchanged. The result is `Option<string>`, containing the new run's ID when pg-boss accepts it. A missing registration fails with `PgBossNotFoundError`.
+
+```ts
+const jobs = yield* Jobs;
+const runId = yield* jobs.runScheduleNow(Cleanup);
+```
+
 `unschedule(schedule)` removes the registration named by the schedule definition and its `scheduleOptions.key` (the empty key by default). Other keys for that queue stay registered. A missing registration fails with `PgBossNotFoundError`, carrying `operation: "unschedule"`, `queue` and `key`.
 
 `deleteQueue(queue)` stops local workers for that name and deletes the queue through the owned client. Other queues stay in place. A missing queue fails with `PgBossNotFoundError` with `operation: "deleteQueue"` and `queue`; a native refusal, such as deleting a dead-letter queue still in use, fails with `PgBossError`.
@@ -617,7 +624,7 @@ Jobs declares its public types independently of pg-boss. The option fields keep 
 
 Queue and scheduled workers reject `perJobResults: true` and `transactional: true` during Layer acquisition with a registration `PgBossError`; its redacted `original` names the unsupported options. Omit these options or set them to `false`. The adapter settles each job itself and does not expose pg-boss's transaction client to handlers.
 
-`pgBossLayer(options)` accepts `PgBossOptions`, built from jobs-owned `ClientOptions` with a redacted connection string and lifecycle settings. `Jobs.layer(options)` accepts registrations, retired names and `onError`. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; administration uses optional `deleteQueue`, `getSchedule`, `unschedule` and `supervise` capabilities. A requested operation fails with `PgBossError` if its required capability is absent.
+`pgBossLayer(options)` accepts `PgBossOptions`, built from jobs-owned `ClientOptions` with a redacted connection string and lifecycle settings. `Jobs.layer(options)` accepts registrations, retired names and `onError`. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; administration uses optional `deleteQueue`, `getSchedule`, `getSchedules`, `unschedule` and `supervise` capabilities. A requested operation fails with `PgBossError` if its required capability is absent.
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer interrupts pending callbacks and waits for them to end before release completes. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
 

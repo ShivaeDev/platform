@@ -49,6 +49,9 @@ export const jobsScreen = storyKit({
 				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle());
 			},
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
+			runSelectedSchedule: () =>
+				Effect.andThen(driver.click({ name: "Run now", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
+			scheduledRuns: () => Effect.sync(() => [...engine.scheduledRuns]),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
 			sendMail: (id: number) =>
 				Effect.gen(function* () {
@@ -72,7 +75,17 @@ function openJobsView(namesOnly: boolean) {
 			const declarations = pages().pages[0].queues;
 			const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
 			engine.screen = yield* Effect.acquireRelease(
-				Effect.promise(() => render(<JobsView api={engine.api} queues={queues} retry={engine.retryAction} />)),
+				Effect.promise(() =>
+					render(
+						<JobsView
+							api={engine.api}
+							queues={queues}
+							retry={engine.retryAction}
+							runScheduleNow={engine.runScheduleNowAction}
+							schedules={pages().pages[0].schedules}
+						/>,
+					),
+				),
 				(view) => Effect.promise(view.unmount),
 			);
 			yield* driverFor(engine, () => undefined).settle();

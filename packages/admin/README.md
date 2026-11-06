@@ -194,7 +194,7 @@ const jobs = bind(JobsPage.contract, Client);
 <JobsView api={jobs} queues={JobsPage.queues} />;
 ```
 
-For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omitting `retry` leaves the view read-only. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
+For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omit both action props for a read-only view. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
 
 Queue and schedule labels replace internal names in the queue picker and selected queue heading. A queue's `subject` columns select fields from its masked inspection payload; numbers display as decoded values, and missing fields display `—`. Native `Redacted` fields and sensitive keys remain masked. Failed and dead-lettered jobs use the same subject columns, with dead-letter copies under their source queue's tab rather than separate queue choices. String-only queue lists remain supported and show internal names without subject columns. `defineQueue` checks subject field names against its payload Schema; browser-safe declarations can use `SubjectColumn<typeof PayloadSchema>` from `@shivaedev/jobs/display.ts` to check columns before sharing them with the server.
 
@@ -213,9 +213,19 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the handler. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the handler. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. Health retains the runtime monitor's refresh timing.
+
+### Run a schedule now
+
+The retry-enabled page also exposes `admin.jobs.runScheduleNow`, taking `{ queue }` and returning `Option<string>` with the enqueued run ID. Declare a schedule as `{ name, label?, scheduleOptions?: { key? } }` without a payload Schema, or pass its `defineSchedule` definition. The handler calls the jobs service's `runScheduleNow` and requires the same `ReadJobs` and `RetryJobs` permissions as retry. It rejects queues and schedules omitted from the page with `JobsQueueUnregistered`. The schedule's normal handler processes the run and its timetable stays unchanged.
+
+Pass the page's schedule declarations and bound action to show **Run now** for a selected schedule:
+
+```tsx
+<JobsView api={jobs} queues={JobsPage.queues} schedules={JobsPage.schedules} runScheduleNow={Client.runtime.fn(jobs.runScheduleNow.run)} />;
+```
 
 ### Built-in Users page
 

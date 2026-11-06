@@ -44,6 +44,9 @@ export interface PgBossService {
 	readonly inspection: () => Effect.Effect<PgBossInspectionService>;
 	readonly refreshQueueStats: (queue?: Pick<QueueDefinition, "name">) => Effect.Effect<void, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
+	readonly runScheduleNow: (
+		schedule: Pick<ScheduleDefinition, "name" | "scheduleOptions">,
+	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossNotFoundError>;
 	readonly unschedule: (schedule: Pick<ScheduleDefinition, "name" | "scheduleOptions">) => Effect.Effect<void, PgBossError | PgBossNotFoundError>;
 }
 
