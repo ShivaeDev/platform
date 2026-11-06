@@ -1,13 +1,17 @@
-import { type DatabaseConfig, postgres, type VolumeMount } from "railway/iac";
+import type { DatabaseConfig, VolumeMount, VolumeNode } from "railway/iac";
+import { checkPostgresImage } from "./checkPostgresImage.ts";
+import { configurePostgres } from "./configurePostgres.ts";
+import type { PageCacheTrim } from "./postgresStartCommand.ts";
 
 export type DatabaseServiceConfig = DatabaseConfig & {
 	limits: { cpu: number; memoryBytes: number; diskBytes?: number };
+	volume: VolumeNode;
 	backupSchedules?: VolumeMount["backupSchedules"];
+	pageCacheTrim?: PageCacheTrim;
 };
 
-export function databaseService(name: string, { limits, backupSchedules = ["DAILY"], ...config }: DatabaseServiceConfig) {
-	const database = postgres(name, config);
-	database.deploy = { ...database.deploy, limitOverride: { containers: limits } };
-	database.volumeMounts = { "/var/lib/postgresql/data": { backupSchedules } };
+export async function databaseService(name: string, config: DatabaseServiceConfig) {
+	const database = configurePostgres(name, config);
+	await checkPostgresImage(database.image);
 	return database;
 }
