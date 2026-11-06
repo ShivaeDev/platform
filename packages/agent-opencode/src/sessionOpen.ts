@@ -6,7 +6,7 @@ import { SessionResponse } from "#adapters/protocol.ts";
 import { CONSTRAINED_AGENT, wireName } from "#adapters/wireName.ts";
 import { opencodeFailure } from "#failure.ts";
 import type { OpenSessionOptions } from "#options.ts";
-import { Provider, type ProviderPort } from "#Provider.ts";
+import { Provider } from "#Provider.ts";
 
 const decodeSession = Schema.decodeUnknownOption(SessionResponse);
 export interface PromptSettings {
@@ -38,20 +38,21 @@ function onlyGivenTools(tools: OpenSessionOptions["tools"]) {
 		...tools.map((tool) => ({ action: "allow", pattern: "*", permission: wireName(tool.name) })),
 	];
 }
-function withoutOtherTools(server: ProviderPort, tools: OpenSessionOptions["tools"]) {
-	const given = new Set(tools.map((tool) => tool.name));
-	return server.tools.names.filter((name) => !given.has(name)).map((name) => ({ action: "deny", pattern: "*", permission: wireName(name) }));
-}
-function permissions(server: ProviderPort, options: OpenSessionOptions) {
-	return options.constrainedPrompt === undefined ? withoutOtherTools(server, options.tools) : onlyGivenTools(options.tools);
-}
 export const openSession = Effect.fnUntraced(function* (options: OpenSessionOptions) {
 	const server = yield* Provider;
+	function withoutOtherTools(tools: OpenSessionOptions["tools"]) {
+		const given = new Set(tools.map((tool) => tool.name));
+		return server.tools.names.filter((name) => !given.has(name)).map((name) => ({ action: "deny", pattern: "*", permission: wireName(name) }));
+	}
+	function permissions() {
+		return options.constrainedPrompt === undefined ? withoutOtherTools(options.tools) : onlyGivenTools(options.tools);
+	}
+
 	const query = { directory: options.cwd };
 	return yield* Option.match(options.resume, {
 		onNone: () =>
 			server
-				.post({ body: { permission: permissions(server, options) }, path: "/session", query })
+				.post({ body: { permission: permissions() }, path: "/session", query })
 				.pipe(Effect.map((response) => ["POST /session", response] as const)),
 		onSome: (sessionId) =>
 			server

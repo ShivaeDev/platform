@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
+import { composedContext } from "#adapters/composedContext.ts";
 import { effectApi } from "#adapters/serviceModelSyntax.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
@@ -41,7 +42,8 @@ export const contextCaptureFindings = Effect.fn("ContextCapture.contextCaptureFi
 			const syntax = source;
 			const findings: Finding[] = [];
 			function visit(node: ts.Node): void {
-				if (ts.isCallExpression(node) && reprovides(checker, node)) {
+				const environment = ts.isCallExpression(node) ? node.arguments.at(-1) : undefined;
+				if (ts.isCallExpression(node) && reprovides(checker, node) && !(environment !== undefined && composedContext(checker, environment))) {
 					findings.push({
 						file: file.path,
 						line: syntax.getLineAndCharacterOfPosition(node.getStart(syntax)).line + 1,

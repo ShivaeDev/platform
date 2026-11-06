@@ -48,27 +48,23 @@ export const unixHttpServer = Effect.fn("Server.unixHttpServer")(function* (path
 			yield* fs.chmod(pending, 0o600);
 			// Unpublish before Node closes its private bind path.
 			yield* Effect.acquireRelease(fs.rename(pending, path), () => fs.remove(path, { force: true }).pipe(Effect.orDie)).pipe(Scope.provide(scope));
-			return withUnixRequests({ ...server, address: NetAddress.unixPathAddress(path) }, node, options);
+			const published = { ...server, address: NetAddress.unixPathAddress(path) };
+			function beginCloseTimeout() {
+				const deadline = setTimeout(
+					() => node.closeAllConnections(),
+					Duration.toMillis(Duration.fromInputUnsafe(options.gracefulShutdownTimeout ?? "20 seconds")),
+				);
+				node.once("close", () => clearTimeout(deadline));
+			}
+			return HttpServer.make({
+				address: published.address,
+				serve: (handler, middleware) =>
+					Effect.gen(function* () {
+						const unix = handler.pipe(Effect.provideService(UnixSocketRequest, true));
+						yield* middleware === undefined ? published.serve(unix) : published.serve(unix, middleware);
+						yield* Effect.addFinalizer(() => Effect.sync(beginCloseTimeout));
+					}),
+			});
 		}),
 	);
 });
-
-function withUnixRequests(server: HttpServer.HttpServer["Service"], node: ReturnType<typeof createServer>, options: NodeHttpServer.Options) {
-	return HttpServer.make({
-		address: server.address,
-		serve: (handler, middleware) =>
-			Effect.gen(function* () {
-				const unix = handler.pipe(Effect.provideService(UnixSocketRequest, true));
-				yield* middleware === undefined ? server.serve(unix) : server.serve(unix, middleware);
-				yield* Effect.addFinalizer(() =>
-					Effect.sync(() => {
-						const deadline = setTimeout(
-							() => node.closeAllConnections(),
-							Duration.toMillis(Duration.fromInputUnsafe(options.gracefulShutdownTimeout ?? "20 seconds")),
-						);
-						node.once("close", () => clearTimeout(deadline));
-					}),
-				);
-			}),
-	});
-}

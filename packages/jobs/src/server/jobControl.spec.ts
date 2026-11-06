@@ -1,8 +1,7 @@
-import type { Effect } from "effect";
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#server/definition.ts";
-import type { PgBossService } from "#server/service.ts";
+import type { JobRequest } from "#test/JobRequest.ts";
 import { clientFrom, running, runtime, storedJob } from "#test/runtime/kit.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";
@@ -58,7 +57,7 @@ const capabilityless = clientFrom(() => scriptedClient({}), "the custom pg-boss 
 const operations: ReadonlyArray<{
 	readonly operation: string;
 	readonly missing: string;
-	readonly call: (jobs: PgBossService) => Effect.Effect<unknown, unknown>;
+	readonly call: JobRequest;
 }> = [
 	{ call: (jobs) => jobs.counts(Control), missing: "getDb", operation: "counts" },
 	{ call: (jobs) => jobs.deadLetteredJobs(Control, { limit: 1 }), missing: "getDb", operation: "deadLetteredJobs" },

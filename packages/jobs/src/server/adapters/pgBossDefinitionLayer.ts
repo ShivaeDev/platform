@@ -28,31 +28,27 @@ export function pgBossDefinitionLayer<TIdentifier extends string, R, E>(
 ) {
 	return Layer.unwrap(
 		Effect.map(Effect.context<Exclude<R, TIdentifier> | E>(), (dependencies) =>
-			Layer.effect(Service, initializePgBoss(Service, options, dependencies, queueNames)),
+			Layer.effect(
+				Service,
+				Effect.gen(function* () {
+					yield* validateQueueNames(options.jobs, queueNames);
+					const acquired = yield* PgBoss;
+					const workerScope = yield* Scope.make();
+					const services = yield* Layer.build(operationsLayer(options.jobs.map(registrationName)));
+					const service = yield* makeService().pipe(Effect.provide(services));
+					yield* Effect.gen(function* () {
+						const context = yield* Effect.context<R | E>();
+						const reportError = options.onError ?? logClientError;
+						const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
+						const unsubscribe = yield* clientErrorSubscription(acquired.client, report);
+						yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
+						yield* registerReleasedJobs(acquired.client, options.jobs, acquired.reused, acquired.schema, acquired.stop, options.retired).pipe(
+							Effect.provideService(Scope.Scope, workerScope),
+						);
+					}).pipe(Effect.provideService(Service, service), Effect.provide(dependencies));
+					return service;
+				}),
+			),
 		),
 	);
 }
-
-const initializePgBoss = Effect.fnUntraced(function* <TIdentifier extends string, R, E>(
-	Service: Context.Service<TIdentifier, PgBossService>,
-	options: PgBossLayerOptions<readonly JobRegistration<R>[], E>,
-	dependencies: Context.Context<Exclude<R, TIdentifier> | E>,
-	queueNames?: readonly string[],
-) {
-	yield* validateQueueNames(options.jobs, queueNames);
-	const acquired = yield* PgBoss;
-	const workerScope = yield* Scope.make();
-	const services = yield* Layer.build(operationsLayer(options.jobs.map(registrationName)));
-	const service = yield* makeService().pipe(Effect.provide(services));
-	yield* Effect.gen(function* () {
-		const context = yield* Effect.context<R | E>();
-		const reportError = options.onError ?? logClientError;
-		const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
-		const unsubscribe = yield* clientErrorSubscription(acquired.client, report);
-		yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
-		yield* registerReleasedJobs(acquired.client, options.jobs, acquired.reused, acquired.schema, acquired.stop, options.retired).pipe(
-			Effect.provideService(Scope.Scope, workerScope),
-		);
-	}).pipe(Effect.provideService(Service, service), Effect.provide(dependencies));
-	return service;
-});

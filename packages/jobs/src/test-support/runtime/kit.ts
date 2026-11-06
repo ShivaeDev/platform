@@ -2,10 +2,10 @@ import { Clock, Deferred, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#server/client.ts";
-import type { PgBossService } from "#server/service.ts";
 import { CodecQueue } from "#test/CodecQueue.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
+import type { JobRequest } from "#test/JobRequest.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { spanTree } from "#test/spanTree.ts";
 import { ApplicationLog, type Registration, untilWork } from "#test/workers.ts";
@@ -25,7 +25,7 @@ export const runtime = storyKit({
 		...errorReportingVerbs(engine, story.tell),
 		answered: () => Effect.sync(() => engine.answered),
 		applicationLog: () => Effect.sync(() => [...engine.applicationLog]),
-		ask: <A, E>(name: string, request: string, call: (jobs: PgBossService) => Effect.Effect<A, E>) => {
+		ask: <A, E>(name: string, request: string, call: JobRequest<A, E>) => {
 			story.tell(`${name} asks its jobs service to ${request}`);
 			return Effect.suspend(() => provided(engine, call(runningIn(engine, name).jobs))).pipe(
 				Effect.match({ onFailure: failureOf, onSuccess: described }),

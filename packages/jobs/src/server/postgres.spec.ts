@@ -1,9 +1,9 @@
-import { type Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#server/definition.ts";
 import { deadLetterQueueName } from "#server/health.ts";
-import type { PgBossService } from "#server/service.ts";
+import type { JobRequest } from "#test/JobRequest.ts";
 import { database } from "#test/postgres/database.ts";
 import { clientStoppedUnderneath, deletedOutside, running } from "#test/postgres/traits.ts";
 import { worker } from "#test/workers.ts";
@@ -37,7 +37,7 @@ database.it(
 
 const Closed = defineQueue({ name: "closed-database", schema: Schema.Struct({}) });
 
-const operations: readonly { readonly call: (jobs: PgBossService) => Effect.Effect<unknown, unknown>; readonly operation: string }[] = [
+const operations: readonly { readonly call: JobRequest; readonly operation: string }[] = [
 	{ call: (jobs) => jobs.enqueue(Closed, {}), operation: "enqueue" },
 	{ call: (jobs) => jobs.health(), operation: "health" },
 ];

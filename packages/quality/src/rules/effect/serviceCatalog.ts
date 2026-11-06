@@ -6,6 +6,11 @@ import { serviceTypes } from "#rules/effect/serviceTypes.ts";
 export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, packages: readonly string[] = [], initializerState = false) {
 	const prefixes = [servicePackage.name, ...packages].map((name) => `${name.startsWith("@") ? name.split("/")[0] : name}/`);
 	const services = serviceTypes(checker, initializerState);
+	function runtimeSymbol(symbol: ts.Symbol): boolean {
+		return (
+			initializerState || (symbol.declarations ?? []).some((declaration) => !/(?:^|\/)test-support\//u.test(declaration.getSourceFile().fileName))
+		);
+	}
 	function imported(node: ts.ImportSpecifier | ts.NamespaceImport): void {
 		const symbol = checker.getSymbolAtLocation(node.name);
 		if (symbol === undefined) {
@@ -15,7 +20,7 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 		const candidates = target.flags & ts.SymbolFlags.Module ? checker.getExportsOfModule(target) : [target];
 		for (const candidate of candidates) {
 			const resolved = candidate.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(candidate) : candidate;
-			if (serviceOrigin(checker, resolved)) {
+			if (runtimeSymbol(resolved) && serviceOrigin(checker, resolved)) {
 				services.remember(checker.getTypeOfSymbol(resolved), resolved.name);
 			}
 		}
@@ -29,7 +34,9 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 			return;
 		}
 		const target = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-		services.remember(checker.getTypeOfSymbol(target), target.name);
+		if (runtimeSymbol(target)) {
+			services.remember(checker.getTypeOfSymbol(target), target.name);
+		}
 	}
 
 	function named(node: ts.Node): void {
@@ -56,6 +63,9 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, pac
 		ts.forEachChild(node, discover);
 	}
 	for (const source of program.getSourceFiles()) {
+		if (!initializerState && /(?:^|\/)test-support\//u.test(source.fileName)) {
+			continue;
+		}
 		if (!source.fileName.includes("/node_modules/") || prefixes.some((prefix) => source.fileName.includes(`/${prefix}`))) {
 			discover(source);
 		}
