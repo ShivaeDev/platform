@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.0 - 2026-11-06
+
+### Breaking
+
+- Screen drivers using the default contract activity signal wait for commands and first query results. Use `activityScreenSignal(activity, isClientIdle)` for stories that need full finite-work settling, and start `nextLiveHint()` before the outside write when waiting for a live change.
+
 ## 0.42.1 - 2026-11-05
 
 ### Changed

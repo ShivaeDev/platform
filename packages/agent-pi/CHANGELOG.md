@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-06
+
+### Breaking
+
+- Import the thinking-level adapter from `adapters/thinkingLevel.ts` instead of `adapters/effort.ts`.
+
 ## 0.5.0 - 2026-11-05
 
 ### Breaking

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.44.0 - 2026-11-06
+
+### Breaking
+
+- Import `MIGRATIONS_DIRECTORY` and `MIGRATION_FILE_PATTERN` from `@shivaedev/sql/migration.ts` instead of `@shivaedev/sql/migrationConvention.ts`.
+
 ## 0.43.0 - 2026-11-05
 
 ### Breaking
