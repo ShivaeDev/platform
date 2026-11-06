@@ -1,5 +1,6 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Queue, Redacted, SubscriptionRef } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -11,6 +12,7 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 import { connect } from "./connect.ts";
 import { migrations } from "./feature.ts";
+import { independentVerbs } from "./independentVerbs.ts";
 import { openHost } from "./openHost.ts";
 import { openScreen } from "./openScreen.ts";
 import { transport } from "./transport.ts";
@@ -39,9 +41,10 @@ const create = Effect.gen(function* () {
 	);
 	const query = client.api.list.query(undefined);
 	yield* Effect.promise(() => act(async () => void (await Effect.runPromise(AtomRegistry.getResult(screen.registry, query)))));
-	return { client, host, query, screen, wire, writer, writerRegistry };
+	const other: { screen?: Awaited<ReturnType<typeof openScreen>> } = {};
+	return { client, host, other, query, screen, wire, writer, writerRegistry };
 });
-type Engine = Effect.Success<typeof create>;
+export type Engine = Effect.Success<typeof create>;
 
 const commit = Effect.fnUntraced(function* (engine: Engine, id: number, title: string) {
 	const write = engine.writer.Client.runtime.atom(engine.writer.api.rename.run({ id, title }));
@@ -53,9 +56,13 @@ function displayed(engine: Engine, title: string) {
 	return Effect.promise(() =>
 		act(async () => {
 			await Effect.runPromise(
-				until(AtomRegistry.toStreamResult(engine.screen.registry, engine.query), (rows) => rows.some((note) => note.title === title), {
-					name: `pushed title ${title}`,
-				}),
+				until(
+					AtomRegistry.toStream(engine.screen.registry, engine.query),
+					(result) => AsyncResult.isSuccess(result) && result.value.some((note) => note.title === title),
+					{
+						name: `pushed title ${title}`,
+					},
+				),
 			);
 		}),
 	);
@@ -71,6 +78,7 @@ export const comparedPostgres = storyKit({
 	runIf: configured,
 	stages: ["transport"],
 	verbs: (engine, story) => ({
+		...independentVerbs(engine),
 		clientRequests: () => Effect.sync(() => [...engine.wire.requests]),
 		commit: (id: number, title: string) => {
 			story.tell(`a repository command commits note ${id} as ${title}`);
@@ -84,9 +92,39 @@ export const comparedPostgres = storyKit({
 				}
 			});
 		},
+		denied: () =>
+			Effect.promise(() =>
+				act(async () => {
+					await Effect.runPromise(
+						until(AtomRegistry.toStream(engine.screen.registry, engine.query), (result) => AsyncResult.isFailure(result), {
+							name: "subscription denied",
+						}),
+					);
+				}),
+			),
+		denyRead: () =>
+			Effect.sync(() => {
+				engine.host.control.allowed = false;
+			}),
 		displayed: (title: string) => displayed(engine, title),
+		holdNextRead: () =>
+			Effect.sync(() => {
+				engine.host.control.read = engine.host.hold;
+			}),
+		holdPolicy: () =>
+			Effect.sync(() => {
+				engine.host.control.policy = engine.host.hold;
+			}),
 		reads: () => SubscriptionRef.get(engine.host.reads),
+		releaseRerun: () => Effect.promise(() => act(async () => void (await Effect.runPromise(Deferred.succeed(engine.host.released, undefined))))),
+		rerunStarted: () => Deferred.await(engine.host.entered),
 		results: () => Effect.sync(() => [...engine.wire.results]),
+		resultValues: () =>
+			Effect.sync(() =>
+				engine.wire.results.flatMap((update) =>
+					typeof update === "object" && update !== null && "_tag" in update && update._tag === "Result" && "value" in update ? [update.value] : [],
+				),
+			),
 		resume: () => {
 			story.tell("the socket resumes sending the held native RPC acknowledgements");
 			return Effect.promise(() => act(async () => engine.wire.resume()));

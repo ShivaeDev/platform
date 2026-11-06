@@ -17,10 +17,8 @@ export type QueryDeclaration<
 	TSuccess extends Schema.Top,
 	TSpecs extends RejectionSpecs,
 	R,
-	TLive extends "rerun-and-compare" | undefined,
 > = Declaration<TPayload, TSuccess, TSpecs> &
 	CollectionReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R> & {
-		readonly live?: TLive;
 		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly serverReads?: QueryServerReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
 	};

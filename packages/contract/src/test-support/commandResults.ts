@@ -1,9 +1,9 @@
-import { Effect } from "effect";
-import { heard } from "@shivaedev/test-kits/contract/testing.ts";
+import { Effect, SubscriptionRef } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { engine } from "#test/command-results/engine.ts";
-import { configured, database, pots } from "#test/command-results/fixture.ts";
+import { configured, database } from "#test/command-results/fixture.ts";
 
 export const commandResults = storyKit({
 	around: withIsolatedDatabase,
@@ -19,7 +19,10 @@ export const commandResults = storyKit({
 			story.tell(`move pot ${id} to carol's household through HTTP RPC`);
 			return current.viewers.alice.client("pots.move", { household: "new", id, reject: false });
 		},
-		nextHint: (viewer: keyof typeof current.viewers) => heard(current.viewers[viewer].hints, [pots.bucket.viewerId(viewer)]),
+		nextHint: (viewer: keyof typeof current.viewers) =>
+			until(SubscriptionRef.changes(current.viewers[viewer].hints.hints), (updates) => updates.length > 1, { name: "pushed pot list" }).pipe(
+				Effect.as(true),
+			),
 		publications: () => current.publications,
 		rejectMove: () => {
 			story.tell("reject the move after looking up and contributing its audience keys");

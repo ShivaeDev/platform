@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { answerWord, hintWord } from "./hintWords.ts";
+import { answerWord } from "./hintWords.ts";
 import { privateClient } from "./privateClient.ts";
 import { type ProcessEngine, process } from "./processEngine.ts";
 import { startProcess } from "./startProcess.ts";
@@ -41,7 +41,7 @@ export const openPrivateCluster = Effect.fn("PrivateSessions.openPrivateCluster"
 		);
 		engine.privateClients.set(name, client);
 	}
-	yield* Effect.promise(() => Promise.all([...engine.privateClients.values()].map((client) => client.delivered.when((items) => items.length >= 2))));
+	yield* Effect.promise(() => Promise.all([...engine.privateClients.values()].map((client) => client.delivered.when((items) => items.length > 0))));
 	for (const [name, client] of engine.privateClients) {
 		engine.marks.set(name, client.delivered.items.length);
 	}
@@ -69,8 +69,8 @@ export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void
 				await client.delivered.when((items) => items.length > before);
 			}),
 		privateDeliveries: (name: PrivateClient) =>
-			Effect.sync(() => since(engine, name).map(({ hint, list, title }) => `${hintWord(hint).split(" ")[0]}: ${title} / ${list.join(", ")}`)),
-		privateRead: (name: PrivateClient) => Effect.promise(() => privateClientOf(engine, name).read()),
+			Effect.sync(() => since(engine, name).map(({ hint, list, title }) => `${hint._tag.toLowerCase()}: ${title} / ${list.join(", ")}`)),
+		privateRead: (name: PrivateClient) => Effect.sync(() => privateClientOf(engine, name).shown()),
 		privateSave: (title: string) =>
 			Effect.promise(async () => {
 				tell(`Alice saves ${title}`);

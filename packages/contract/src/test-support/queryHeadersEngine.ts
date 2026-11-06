@@ -7,7 +7,6 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import type { ClientOptions } from "#clientOptions.ts";
 import { contract } from "#contract.ts";
@@ -19,7 +18,7 @@ export const records = collection("header-records", Schema.Number);
 class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/contract/test/QueryHeaders") {}
 const definition = { readPolicy: () => Effect.succeed(true), reads: () => [records.item(1)], success: Schema.String };
 const Records = contract("header-records", {
-	queries: [query("hints", definition), query("pushed", { ...definition, live: "rerun-and-compare" })],
+	queries: [query("pushed", { ...definition })],
 }).middleware(Incoming);
 
 export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<ClientOptions, "resume" | "resumeWindow"> = {}) {
@@ -40,7 +39,7 @@ export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<Cli
 			config: { port: 0 },
 			group: Records,
 			handlers: Layer.merge(
-				Records.application.toLayer({ "header-records.hints": read, "header-records.pushed": read }),
+				Records.application.toLayer({ "header-records.pushed": read }),
 				Layer.succeed(Incoming, (effect, { headers, rpc }) => {
 					if (rpc._tag === "header-records.$changes") {
 						subscriptions.push(headers["x-reader"] ?? "default");
@@ -66,6 +65,5 @@ export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<Cli
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	registry.set(client.api[LiveConnection].coalesceWindow, 0);
 	return { api: client.api, reactivity, reads, registry, stored, subscriptions };
 });

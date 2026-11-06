@@ -1,13 +1,12 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { Effect, Queue, Stream } from "effect";
+import { Effect, Queue, Schema, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
-import { Notes } from "#modules/notes/notes.ts";
+import { Note, Notes } from "#modules/notes/notes.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";
 import type { RpcAddress } from "./Engine.ts";
 
@@ -55,7 +54,7 @@ export const noteChangesSubscription = Effect.fn("AppStory.noteChangesSubscripti
 	return yield* refusal(client["notes.$changes"]({ queries: [{ payload: { id }, query: "get" }] }).pipe(Stream.runHead));
 });
 
-export const changeHints = Effect.fn("AppStory.changeHints")(function* (address: RpcAddress, cookie: string, describe: (key: Key) => string) {
+export const changeHints = Effect.fn("AppStory.changeHints")(function* (address: RpcAddress, cookie: string) {
 	const client = yield* changesClient(address, cookie);
 	const hints = yield* Queue.unbounded<QueryUpdate>();
 	yield* client["notes.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
@@ -69,7 +68,11 @@ export const changeHints = Effect.fn("AppStory.changeHints")(function* (address:
 				if (hint._tag === "QueryReadDenied") {
 					return "read denied";
 				}
-				return hint._tag === "Changed" ? `changed ${hint.keys.map(describe).join(", ")}` : hint._tag.toLowerCase();
+				return hint._tag === "Result"
+					? `result ${Schema.decodeUnknownSync(Schema.toType(Schema.Array(Note.json)))(hint.value)
+							.map((note) => note.title)
+							.join(", ")}`
+					: hint._tag.toLowerCase();
 			}),
 	};
 });

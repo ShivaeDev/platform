@@ -1,6 +1,14 @@
 import { Effect, Layer, Ref, Stream, SubscriptionRef } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
+import { liveServerLayer } from "#live-server/layer.ts";
+import { subscribe } from "#live-server/subscribe.ts";
+import { querySubscription } from "#querySubscription.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import type { QueryReference } from "#serverMetadata.ts";
-import { Create, Denied, Get, Guard, Note, Notes, Rename, Session } from "./notes.ts";
+import { Create, Denied, Get, Guard, Note, Notes, notes, Rename, Session } from "./notes.ts";
 
 export const notesServer = Effect.gen(function* () {
 	const stored = yield* Ref.make(
@@ -23,14 +31,15 @@ export const notesServer = Effect.gen(function* () {
 		});
 	}
 	function save(note: Note) {
-		return Effect.as(
-			Ref.update(stored, (all) => new Map([...all, [note.id, note]])),
-			note,
+		return Effect.tap(
+			Effect.as(
+				Ref.update(stored, (all) => new Map([...all, [note.id, note]])),
+				note,
+			),
+			() => reactivity.invalidate(invalidationKeys([notes.item(note.id)])),
 		);
 	}
-	const implementation = Notes.of({
-		"notes.$changes": ({ queries }) =>
-			Stream.unwrap(Effect.as(Ref.set(subscriptions, queries), Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never))),
+	const implementation = Notes.application.of({
 		"notes.create": (draft) =>
 			draft.title === ""
 				? Create.reject.Invalid({ field: "title", message: "Enter a title" })
@@ -46,7 +55,23 @@ export const notesServer = Effect.gen(function* () {
 				? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
 				: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
 	});
-	const handlers = Notes.toLayer(Effect.succeed(implementation));
+	const application = Notes.application.toLayer(Effect.succeed(implementation));
+	const reactivity = yield* Reactivity.make;
+	const changes = changesHandlerLayer(
+		Notes,
+		(rpc) =>
+			({ queries }, options) =>
+				Stream.unwrap(
+					Effect.gen(function* () {
+						yield* Ref.set(subscriptions, queries);
+						const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
+						return yield* subscribe(subscription, rerunQuery(Notes.application.omit("notes.create", "notes.rename"), options));
+					}),
+				),
+	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(
+		Layer.provide(liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)))),
+	);
 	const guard = Layer.succeed(Guard, (effect) =>
 		Effect.flatMap(Ref.get(denied), (isDenied) =>
 			isDenied ? Effect.fail(new Denied()) : Effect.flatMap(Ref.get(session), (identity) => Effect.provideService(effect, Session, identity)),

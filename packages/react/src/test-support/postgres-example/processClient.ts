@@ -1,26 +1,36 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { Effect, ManagedRuntime, Stream } from "effect";
+import { Effect, Layer, ManagedRuntime, Stream } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import type { LiveHint } from "@shivaedev/contract/live.ts";
-import { LiveOrders, Order, Orders } from "./contract.ts";
+import { Order, Orders } from "./contract.ts";
 import { recorded } from "./recorded.ts";
 
-export async function processClient(url: string) {
+export function processClient(url: string) {
+	const registry = AtomRegistry.make();
 	const connection = makeClient(Orders, {
-		group: LiveOrders,
 		headers: { authorization: "Bearer alice-session" },
 		url,
 		webSocketConstructor: layerWebSocketConstructor,
 	});
-	const runtime = ManagedRuntime.make(connection);
-	const client = await runtime.runPromise(connection.Client);
-	const hints = recorded<LiveHint>();
-	runtime.runFork(client("subscribe", { id: 1 }).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint)))));
+	const runtime = ManagedRuntime.make(Layer.empty);
+	const results = recorded<Order>();
+	const query = connection.api.get.query({ id: 1 });
+	runtime.runFork(
+		AtomRegistry.toStream(registry, query).pipe(
+			Stream.filter(AsyncResult.isSuccess),
+			Stream.runForEach((result) => Effect.sync(() => results.push(result.value))),
+		),
+	);
 	return {
-		close: () => runtime.dispose(),
-		get: () => runtime.runPromise(client("orders.get", { id: 1 })),
-		getResult: () => runtime.runPromise(client("orders.get", { id: 1 }).pipe(Effect.result)),
-		hints,
-		save: (name: string) => runtime.runPromise(client("orders.save", new Order({ id: 1, name, quantity: 400 })).pipe(Effect.result)),
+		close: () => runtime.dispose().finally(() => registry.dispose()),
+		results,
+		save: (name: string) =>
+			runtime.runPromise(
+				AtomRegistry.getResult(
+					registry,
+					connection.Client.runtime.atom(connection.api.save.run(new Order({ id: 1, name, quantity: 400 })).pipe(Effect.result)),
+				),
+			),
 	};
 }

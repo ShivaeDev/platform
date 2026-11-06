@@ -1,6 +1,6 @@
 # @shivaedev/contract
 
-You are changing the package that lets a feature declare its queries, commands, expected failures and refresh dependencies once. Repeating those declarations in handlers, clients and cache wiring makes them disagree. This package turns them into native Effect RPC definitions and binds them to native AtomRpc. Its optional live stream asks those same queries to read again; the query remains the source of the value.
+You are changing the package that lets a feature declare its queries, commands, expected failures and refresh dependencies once. Repeating those declarations in handlers, clients and cache wiring makes them disagree. This package turns them into native Effect RPC definitions and binds them to native AtomRpc. Its live stream reruns those same queries on the server and pushes changed results; the query remains the source of the value.
 
 ## Which way to lean
 

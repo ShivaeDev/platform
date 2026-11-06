@@ -10,7 +10,6 @@ export function activityState() {
 			connectionStatus: "live",
 			initialQueries: 0,
 			liveHints: 0,
-			liveInvalidations: 0,
 			refreshingAtoms: 0,
 			rpcCalls: 0,
 		}),

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Order } from "./contract.ts";
-import { answerWord, hintWord } from "./hintWords.ts";
+import { answerWord } from "./hintWords.ts";
 import { client, type ProcessEngine, process } from "./processEngine.ts";
 
 type Client = "a" | "b" | "another";
@@ -27,14 +27,14 @@ function listenerLogs(engine: ProcessEngine, name: string) {
 export function processVerbs(engine: ProcessEngine, tell: (line: string) => void) {
 	function mark() {
 		for (const [name, remote] of engine.clients) {
-			engine.marks.set(name, remote.hints.items.length);
+			engine.marks.set(name, remote.results.items.length);
 		}
 	}
 	function since(name: Client) {
-		return client(engine, name).hints.items.slice(engine.marks.get(name) ?? 0);
+		return client(engine, name).results.items.slice(engine.marks.get(name) ?? 0);
 	}
 	function changedSinceMark(...names: readonly Client[]) {
-		return Promise.all(names.map((name) => client(engine, name).hints.when(() => since(name).some((hint) => hint._tag === "Changed"))));
+		return Promise.all(names.map((name) => client(engine, name).results.when(() => since(name).length > 0)));
 	}
 	async function save(writer: Client, name: string) {
 		engine.answers.push(answerWord(await client(engine, writer).save(name)));
@@ -44,8 +44,8 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 	}
 	return {
 		answers: () => Effect.sync(() => [...engine.answers]),
-		hintsSinceAction: (name: Client) => Effect.sync(() => since(name).map(hintWord)),
-		initialHints: (name: Client) => Effect.sync(() => client(engine, name).hints.items.map(hintWord)),
+		hintsSinceAction: (name: Client) => Effect.sync(() => since(name).map((result) => `result ${result.name}`)),
+		initialHints: (name: Client) => Effect.sync(() => client(engine, name).results.items.map((result) => `result ${result.name}`)),
 		listenerLogs: (name: "first" | "second") => Effect.sync(() => listenerLogs(engine, name)),
 		loseListener: () =>
 			Effect.gen(function* () {
@@ -65,7 +65,14 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 					await changedSinceMark("a", "another");
 				});
 			}),
-		order: (name: Client) => Effect.promise(async () => (await client(engine, name).get()).name),
+		order: (name: Client) =>
+			Effect.sync(() => {
+				const result = client(engine, name).results.items.at(-1);
+				if (result === undefined) {
+					throw new Error("No pushed order");
+				}
+				return result.name;
+			}),
 		rejectWrite: () =>
 			Effect.promise(async () => {
 				tell("the first server rejects a's transaction before commit");

@@ -2,6 +2,8 @@ import { Context, Effect, Layer, Option, Ref, Schema, Stream, SubscriptionRef } 
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
@@ -64,15 +66,7 @@ export const viewerEngine = Effect.gen(function* () {
 			);
 		});
 	}
-	const handlers = Notes.toLayer({
-		"notes.$changes": ({ queries }, { rpc }) =>
-			Stream.unwrap(
-				Effect.gen(function* () {
-					const viewer = yield* CurrentViewer;
-					const subscription = yield* querySubscription(rpc, queries, viewer);
-					return live.subscribe(subscription);
-				}),
-			),
+	const application = Notes.application.toLayer({
 		"notes.get": ({ id }) => Ref.get(stored).pipe(Effect.map((rows) => rows.get(id) ?? new Row({ id, owner: "", title: "Missing" }))),
 		"notes.list": ({ title }) =>
 			Effect.gen(function* () {
@@ -93,6 +87,21 @@ export const viewerEngine = Effect.gen(function* () {
 				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)]));
 			}),
 	});
+	const handlers = Layer.merge(
+		application,
+		changesHandlerLayer(
+			Notes,
+			() =>
+				({ queries }, options) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							const viewer = yield* CurrentViewer;
+							const subscription = yield* querySubscription(options.rpc, queries, viewer);
+							return live.subscribe(subscription, rerunQuery(Notes.application, options));
+						}),
+					),
+		).pipe(Layer.provide(application)),
+	);
 	const services = Layer.merge(Layer.succeed(Rows, stored), Layer.succeed(PolicyChecks, checks));
 	const providedHandlers = handlers.pipe(Layer.provide(services));
 	const layer = Layer.mergeAll(providedHandlers, guard());

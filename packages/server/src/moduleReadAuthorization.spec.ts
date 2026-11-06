@@ -89,13 +89,20 @@ readPolicyHost.it("an anonymous optional-auth read is denied after one policy ch
 	]);
 });
 
-readPolicyHost.it("alice's socket subscription hears only the change to her own document", [], function* ({ listen, nextHint, publish }) {
-	yield* listen("alice");
+readPolicyHost.it(
+	"alice's socket subscription retains only her own document after a shared change",
+	[],
+	function* ({ listen, nextHint, publish, pushed }) {
+		yield* listen("alice");
 
-	yield* publish();
+		yield* publish();
 
-	expect(yield* nextHint("alice")).toBe("changed alice");
-});
+		yield* outcomes([
+			["completed rerun", () => nextHint("alice"), "unchanged"],
+			["alice's pushed document", () => pushed("alice"), "Alice's document"],
+		]);
+	},
+);
 
 readPolicyHost.it("when the read policy denies alice, the next change delivers a denial", [], function* ({ listen, nextHint, publish, revokeRead }) {
 	yield* listen("alice");

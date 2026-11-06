@@ -15,7 +15,8 @@ export const openViewer = Effect.fnUntraced(function* (url: string, viewer: numb
 			Effect.gen(function* () {
 				const results = yield* Queue.unbounded<string>();
 				yield* rpc("costNotes.$changes", { queries: [{ payload: { slot }, query: "get" }] }).pipe(
-					Stream.mapEffect(() => rpc("costNotes.get", { slot })),
+					Stream.filter((update) => update._tag === "Result"),
+					Stream.map((update) => update.value),
 					Stream.runForEach((value) => Queue.offer(results, value)),
 					Effect.forkScoped,
 				);

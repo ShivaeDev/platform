@@ -31,9 +31,9 @@ export const completionStory = storyKit({
 			engine.state.failed = true;
 			return engine.reactivity.invalidate(invalidationKeys([records.item(1)]));
 		},
-		open: (mode: "ordinary" | "hints" | "pushed") => {
+		open: (mode: "ordinary" | "pushed") => {
 			story.tell(`the client opens a ${mode} query`);
-			engine.view = mode === "ordinary" ? engine.ordinary.hints.query() : engine.api[mode].query();
+			engine.view = mode === "ordinary" ? engine.ordinary.pushed.query() : engine.api[mode].query();
 			engine.registry.mount(engine.view);
 		},
 		refreshed: () => reRead(engine.registry, engine.view, engine.mark),
@@ -61,9 +61,9 @@ export const failed = completionStory.trait("access", "the query handler fails w
 	state.failed = true;
 });
 
-export function watching(delivery: "hints" | "pushed") {
-	return completionStory.trait("view", `the client watches the ${delivery} query`, function* (engine) {
-		engine.view = engine.api[delivery].query();
+export function watching() {
+	return completionStory.trait("view", "the client watches the pushed query", function* (engine) {
+		engine.view = engine.api.pushed.query();
 		engine.registry.mount(engine.view);
 		yield* settled(engine.registry, engine.view);
 	});

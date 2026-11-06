@@ -12,7 +12,7 @@ export type QueryRerun<E = unknown, R = never> = (request: QueryRequest) => Effe
 export interface QuerySubscription<E = never, R = never> {
 	readonly authorized: Effect.Effect<boolean, E, R>;
 	readonly keys: readonly Key[];
-	readonly queries?: readonly QueryRequest[];
+	readonly queries: readonly QueryRequest[];
 	readonly readScopes?: Effect.Effect<readonly (readonly Key[])[], E, R>;
 	readonly refresh?: Effect.Effect<Context.Context<never>, E, R>;
 	readonly scopes: readonly (readonly Key[])[];

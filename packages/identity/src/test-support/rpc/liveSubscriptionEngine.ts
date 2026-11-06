@@ -23,7 +23,7 @@ import { liveSubscriptionProvider, ReadDocuments } from "./liveSubscriptionProvi
 
 export const documents = collection("documents", Schema.String);
 
-export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hints" | "pushed" = "hints") {
+export const liveSubscriptionEngine = Effect.fnUntraced(function* () {
 	const provider = yield* liveSubscriptionProvider;
 	const session = yield* signedInUser(provider.auth, { email: "alice@example.test", name: "alice" });
 	const cookie = session.headers.get("cookie");
@@ -36,7 +36,6 @@ export const liveSubscriptionEngine = Effect.fnUntraced(function* (delivery: "hi
 	const Api = contract("documents", {
 		queries: [
 			query("get", {
-				live: delivery === "pushed" ? "rerun-and-compare" : undefined,
 				readPolicy: (_payload, viewer) =>
 					Effect.map(SessionUser, (user) => Option.isSome(viewer) && state.readable && hasPermission(user, ReadDocuments)),
 				reads: () => [documents.item("alice")],
@@ -94,9 +93,5 @@ function updateWords(update: QueryUpdate) {
 			return "unchanged";
 		case "QueryReadDenied":
 			return "read denied";
-		case "Resync":
-			return "resync";
-		case "Changed":
-			return "changed";
 	}
 }

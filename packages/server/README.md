@@ -2,7 +2,7 @@
 
 The application host for Effect apps: one Layer that runs migrations, serves native RPC and static assets over Node HTTP, checks sessions, redacts diagnostics and exports traces. Applications describe their contracts, handlers and session policy; the host owns the process around them.
 
-For live queries, the host checks policies and registers read keys before reading and delivering the first result on the subscription. Default later changes send hints for the client to reread; queries that select rerun-and-compare keep server-side comparison.
+For live queries, the host checks policies and registers read keys before reading and delivering the first result on the subscription. Every later matching change reloads the subscriber’s session and reruns its authorized handler in the process holding the socket. Each subscription keeps a result hash in memory, coalesces one pending rerun while another runs, and pushes changed values without a client read.
 
 ## Why you want this
 

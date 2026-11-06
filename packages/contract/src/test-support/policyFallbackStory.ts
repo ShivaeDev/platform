@@ -1,7 +1,9 @@
 import { Effect, Layer, Option, Schema, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
@@ -24,16 +26,19 @@ export const policyFallbackStory = storyKit({
 		const read = query("read", { readPolicy: signedIn, reads: () => [], success: Schema.String });
 		const Reads = contract("reads", { queries: [read] }).middleware(Guard);
 		const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
-		const handlers = Reads.toLayer({
-			"reads.$changes": ({ queries }, { rpc }) =>
-				Stream.unwrap(
-					Effect.gen(function* () {
-						const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
-						return live.subscribe(subscription);
-					}),
-				),
-			"reads.read": () => Effect.succeed("A note"),
-		});
+		const application = Reads.application.toLayer({ "reads.read": () => Effect.succeed("A note") });
+		const changes = changesHandlerLayer(
+			Reads,
+			() =>
+				({ queries }, options) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+							return live.subscribe(subscription, rerunQuery(Reads.application, options));
+						}),
+					),
+		);
+		const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(Layer.provide(Layer.empty));
 		const guard = Layer.succeed(Guard, (effect, request) =>
 			Effect.provideService(
 				effect,

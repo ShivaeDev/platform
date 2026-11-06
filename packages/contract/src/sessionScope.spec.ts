@@ -4,7 +4,7 @@ import { keptSave, sessionStory, watching } from "#test/sessionStory.ts";
 
 for (const runtime of ["alice", "bob"] as const) {
 	sessionStory.it(
-		`alice's save run through ${runtime}'s runtime refreshes her preferences and list and leaves her preference 1 and bob's preferences unread`,
+		`alice's save run through ${runtime}'s runtime refreshes her preferences and list and keeps bob’s session value separate`,
 		[watching("alice", "preferences", "list", "preference 1"), watching("bob", "preferences")],
 		function* ({ save, shown, timesRead, untilReRead }) {
 			expect(yield* shown("alice", "preferences")).toBe("Alice");
@@ -12,12 +12,13 @@ for (const runtime of ["alice", "bob"] as const) {
 			yield* save("alice", "Changed", runtime);
 			yield* untilReRead("alice", "preferences");
 			yield* untilReRead("alice", "list");
+			yield* untilReRead("bob", "preferences");
 
 			yield* outcomes([
 				["alice's list", () => shown("alice", "list"), ["Changed"]],
 				["alice's preference 1", () => timesRead("alice", "preference 1"), "read once"],
 				["alice's preferences", () => shown("alice", "preferences"), "Changed"],
-				["bob's preferences", () => timesRead("bob", "preferences"), "read once"],
+				["bob's preferences", () => timesRead("bob", "preferences"), "read twice"],
 			]);
 		},
 	);

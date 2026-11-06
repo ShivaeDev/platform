@@ -32,5 +32,5 @@ const policy = Effect.fnUntraced(function* (_payload: unknown, viewer: Option.Op
 });
 const declaration = { readPolicy: policy, reads: () => [records.item(1)], rejections: { NotFound, Rejected }, success: Schema.String };
 export const Records = contract("denied-records", {
-	queries: [query("hints", declaration), query("pushed", { ...declaration, live: "rerun-and-compare" })],
+	queries: [query("pushed", { ...declaration })],
 }).middleware(Guard);

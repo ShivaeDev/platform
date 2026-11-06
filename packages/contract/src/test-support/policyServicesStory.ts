@@ -1,6 +1,6 @@
 import { Effect, Option, Stream, SubscriptionRef } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { type HintViewer, heard, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
+import { type HintViewer, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { answered, updateWords } from "./answers.ts";
@@ -48,7 +48,11 @@ export const policyServicesStory = storyKit({
 		},
 		heardChange: (person: Person) => {
 			const listener = engine.listeners.get(person);
-			return listener === undefined ? Effect.die(`${person} is not listening`) : heard(listener, [documents.item("team")]);
+			return listener === undefined
+				? Effect.die(`${person} is not listening`)
+				: until(SubscriptionRef.changes(listener.hints), (updates) => updates.length > 1, { name: "authorized query completion" }).pipe(
+						Effect.as(true),
+					);
 		},
 		read: (person: Person) => {
 			story.tell(`${person} reads the team's document over HTTP RPC`);

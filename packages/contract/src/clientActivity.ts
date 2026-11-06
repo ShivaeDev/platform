@@ -8,7 +8,6 @@ export interface ClientActivityState {
 	readonly connectionStatus: ConnectionStatus;
 	readonly initialQueries: number;
 	readonly liveHints: number;
-	readonly liveInvalidations: number;
 	readonly refreshingAtoms: number;
 	readonly rpcCalls: number;
 }
@@ -29,7 +28,7 @@ export function clientActivity(client: ActiveClient): ClientActivity {
 }
 
 export function isClientIdle(state: ClientActivityState): boolean {
-	return state.rpcCalls === 0 && state.liveInvalidations === 0 && state.refreshingAtoms === 0;
+	return state.rpcCalls === 0 && state.refreshingAtoms === 0;
 }
 
 export function isClientSettled(state: ClientActivityState): boolean {

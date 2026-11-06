@@ -6,10 +6,12 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { LiveConnection } from "#automaticLive.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { bind } from "#bind.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { queryKeys } from "#queryKeys.ts";
+import { querySubscription } from "#querySubscription.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { Guard, Preferences, preferences, Save, Session } from "#test/sessionContract.ts";
 import type { Mark } from "./reRead.ts";
@@ -41,19 +43,7 @@ export const sessionEngine = Effect.gen(function* () {
 			),
 		);
 	}
-	const handlers = Preferences.toLayer({
-		"preferences.$changes": ({ queries }) =>
-			Stream.unwrap(
-				Effect.gen(function* () {
-					const person = yield* Session;
-					const keys = yield* queryKeys(Preferences.declaration.queries, queries);
-					const subscription: OpenSubscription = { person, queries };
-					yield* SubscriptionRef.update(subscriptions, (all) => [...all, subscription]);
-					return server
-						.stream(keys)
-						.pipe(Stream.ensuring(SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== subscription))));
-				}),
-			),
+	const application = Preferences.application.toLayer({
 		"preferences.get": ({ id }) => read(`get:${id}`),
 		"preferences.list": () => Effect.map(read("list"), (title) => [title]),
 		"preferences.save": ({ title }) =>
@@ -62,10 +52,27 @@ export const sessionEngine = Effect.gen(function* () {
 				: Effect.flatMap(Session, (person) =>
 						Effect.sync(() => {
 							stored.set(person, title);
-						}),
+						}).pipe(Effect.andThen(reactivity.invalidate(invalidationKeys([preferences.item(0)])))),
 					),
 		"preferences.self": () => read("self"),
 	});
+	const changes = changesHandlerLayer(
+		Preferences,
+		() =>
+			({ queries }, options) =>
+				Stream.unwrap(
+					Effect.gen(function* () {
+						const person = yield* Session;
+						const requested = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+						const subscription: OpenSubscription = { person, queries };
+						yield* SubscriptionRef.update(subscriptions, (all) => [...all, subscription]);
+						return server
+							.subscribe(requested, rerunQuery(Preferences.application, options))
+							.pipe(Stream.ensuring(SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== subscription))));
+					}),
+				),
+	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	function open(person: Person) {
 		return Effect.gen(function* () {
 			const registry = yield* Effect.acquireRelease(
@@ -83,9 +90,8 @@ export const sessionEngine = Effect.gen(function* () {
 			}) {}
 			const api = bind(Preferences, Client, { registry });
 			const otherBinding = bind(Preferences, Client, { registry });
-			registry.set(api[LiveConnection].coalesceWindow, 0);
 			function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
-				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(effect)));
+				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(Effect.suspend(() => effect))));
 			}
 			function view(name: PreferenceView): Atom.Atom<AsyncResult.AsyncResult<string | readonly string[], unknown>> {
 				switch (name) {

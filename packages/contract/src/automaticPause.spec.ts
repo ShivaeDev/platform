@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { pausedWithChangeHeld, sessionStory, watching } from "#test/sessionStory.ts";
 
 sessionStory.it(
-	"pausing live reads through another binding of alice's client holds her announced change pending and unread",
+	"pausing live reads through another binding of alice's client holds her announced change pending after the server reruns it",
 	[watching("alice", "preferences")],
 	function* ({ announce, changeQuietly, pauseThroughOtherBinding, shown, status, timesRead, untilPending }) {
 		changeQuietly("alice", "Written while paused");
@@ -14,7 +14,7 @@ sessionStory.it(
 
 		yield* outcomes([
 			["alice's preferences", () => shown("alice", "preferences"), "Alice"],
-			["alice's reads", () => timesRead("alice", "preferences"), "read once"],
+			["alice's reads", () => timesRead("alice", "preferences"), "read twice"],
 			["alice's status", () => status("alice"), { needsResync: true, pending: 1 }],
 		]);
 	},

@@ -6,7 +6,6 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
@@ -28,7 +27,7 @@ export const completionEngine = Effect.gen(function* () {
 		success: Schema.String,
 	};
 	const Records = contract("completion-records", {
-		queries: [query("hints", definition), query("pushed", { ...definition, live: "rerun-and-compare" })],
+		queries: [query("pushed", { ...definition })],
 	});
 	const reactivity = yield* Reactivity.make;
 	const read = Effect.gen(function* () {
@@ -42,7 +41,7 @@ export const completionEngine = Effect.gen(function* () {
 		appHost({
 			config: { port: 0 },
 			group: Records,
-			handlers: Records.application.toLayer({ "completion-records.hints": () => read, "completion-records.pushed": () => read }),
+			handlers: Records.application.toLayer({ "completion-records.pushed": () => read }),
 			policy: "loopback",
 			services: liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
 		}),
@@ -60,12 +59,11 @@ export const completionEngine = Effect.gen(function* () {
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,
 	});
-	registry.set(connection.api[LiveConnection].coalesceWindow, 0);
 	const ordinary = makeClient(Records, {
 		live: false,
 		runtime,
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,
 	});
-	return { answer, api: connection.api, ordinary: ordinary.api, reactivity, received, registry, state, view: connection.api.hints.query() };
+	return { answer, api: connection.api, ordinary: ordinary.api, reactivity, received, registry, state, view: connection.api.pushed.query() };
 });

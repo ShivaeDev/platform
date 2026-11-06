@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Effect, Layer, Logger } from "effect";
+import { Effect, Layer, Logger, Schema } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -54,10 +54,11 @@ export const publicationRecoveryStory = storyKit({
 		errors: () => engine.local.errors,
 		initialHints: () => ({ local: engine.local.feed.hints, remote: engine.remote.feed.hints }),
 		nextHint: (location: "local" | "remote") => engine[location].feed.next,
-		read: (location: "local" | "remote") => engine[location].client("recovery.list", undefined),
 		saveWithOversizedKey: (title: string) => {
 			story.tell(`save ${title} with a declared key exceeding PostgreSQL's notification limit`);
 			return completePublication(engine.local.client("recovery.save", { key: "x".repeat(8000), title }), 2, story.tell);
 		},
+		shown: (location: "local" | "remote") =>
+			Effect.sync(() => Schema.decodeUnknownSync(Schema.Array(Schema.String))(engine[location].feed.values.get(0))),
 	}),
 });

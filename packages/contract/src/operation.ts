@@ -25,7 +25,6 @@ export interface OperationShape {
 
 export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	readonly kind: "query";
-	readonly live?: "rerun-and-compare" | undefined;
 	readonly readPolicy: Bivariant<QueryReadPolicy<unknown, E, R>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
@@ -53,16 +52,9 @@ interface Operation<TName extends string, TPayload extends Schema.Top, TSuccess 
 	readonly success: TSuccess;
 }
 
-export interface Query<
-	TName extends string,
-	TPayload extends Schema.Top,
-	TSuccess extends Schema.Top,
-	TSpecs extends RejectionSpecs,
-	R = never,
-	TLive extends "rerun-and-compare" | undefined = undefined,
-> extends Operation<TName, TPayload, TSuccess, TSpecs> {
+export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs, R = never>
+	extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	readonly kind: "query";
-	readonly live?: TLive;
 	readonly readPolicy: QueryReadPolicy<TPayload["Type"], RejectedBy<TSpecs>, R>;
 	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
@@ -87,15 +79,10 @@ export function query<
 	TSuccess extends Schema.Top = Schema.Void,
 	const TSpecs extends RejectionSpecs = NoRejections,
 	R = never,
-	const TLive extends "rerun-and-compare" | undefined = undefined,
->(
-	name: TName,
-	declaration: QueryDeclaration<TPayload, TSuccess, TSpecs, R, TLive>,
-): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, R, TLive>>;
+>(name: TName, declaration: QueryDeclaration<TPayload, TSuccess, TSpecs, R>): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, R>>;
 export function query(
 	name: string,
 	declaration: Loose & {
-		readonly live?: "rerun-and-compare" | undefined;
 		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy: QueryReadPolicy<unknown, unknown, unknown>;
 		readonly readsCollections?: readonly { readonly name: string }[];
@@ -105,7 +92,6 @@ export function query(
 	const collections: readonly Key[] = declaration.readsCollections?.map((collection) => ({ _tag: "List", collection: collection.name })) ?? [];
 	return {
 		...operation("query", name, declaration),
-		live: declaration.live,
 		readPolicy: declaration.readPolicy,
 		reads: (payload, viewer) => [...declaration.reads(payload, viewer), ...collections],
 		readsCollections: declaration.readsCollections,

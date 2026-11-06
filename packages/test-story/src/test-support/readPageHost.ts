@@ -4,10 +4,15 @@ import { Deferred, Effect, Layer, PubSub, Queue, Schema, Stream } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
+import { compareQueries } from "@shivaedev/contract/compareQueries.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 
 export const ReadPage = contract("page", {
 	commands: [command("write", { invalidates: () => [], payload: { id: Schema.Number, title: Schema.String }, success: Schema.String })],
@@ -20,7 +25,6 @@ export const ReadPage = contract("page", {
 			success: Schema.String,
 		}),
 		query("second", {
-			live: "rerun-and-compare",
 			payload: { id: Schema.Number },
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
@@ -48,34 +52,7 @@ export const readPageHost = Effect.gen(function* () {
 	}
 	const opened = yield* PubSub.unbounded<number>();
 	const changes = yield* PubSub.unbounded<LiveHint>();
-	const handlers = ReadPage.toLayer({
-		"page.$changes": ({ queries }) => {
-			const id = queries[0]?.payload.id ?? 1;
-			const initial = id === 2 ? ({ _tag: "Result", query: "second", queryIndex: 0, value: "Second page" } as const) : ({ _tag: "Resync" } as const);
-			const related = Stream.fromPubSub(changes).pipe(
-				Stream.filter(
-					(hint) => hint._tag === "Changed" && hint.keys.some((key) => key._tag === "Item" && queries.some(({ payload }) => payload.id === key.id)),
-				),
-			);
-			return Stream.unwrap(
-				Effect.gen(function* () {
-					yield* PubSub.publish(opened, id);
-					if (id === 3) {
-						return Stream.fail(new QueryReadDenied({ message: "Private page" }));
-					}
-					if (id === 2) {
-						const reply = yield* Deferred.await(held);
-						if (reply === "empty") {
-							return Stream.empty;
-						}
-						if (reply === "defect") {
-							return Stream.die(new Error("Live page stream failed"));
-						}
-					}
-					return Stream.concat(Stream.succeed(initial), related);
-				}),
-			);
-		},
+	const application = ReadPage.application.toLayer({
 		"page.get": ({ id }) =>
 			Effect.gen(function* () {
 				if (readGate !== undefined) {
@@ -85,7 +62,7 @@ export const readPageHost = Effect.gen(function* () {
 				const title = titles.get(id);
 				return title === undefined ? yield* ReadPage.declaration.queries[0].reject.Missing({ id }) : title;
 			}),
-		"page.second": () => Effect.succeed("Waiting for live data"),
+		"page.second": () => Effect.succeed("Second page"),
 		"page.write": ({ id, title }) =>
 			Effect.gen(function* () {
 				if (writeGate !== undefined) {
@@ -97,6 +74,37 @@ export const readPageHost = Effect.gen(function* () {
 				return title;
 			}),
 	});
+	const handlers = Layer.merge(
+		application,
+		changesHandlerLayer(ReadPage, () => ({ queries }, options) => {
+			const id = queries[0]?.payload.id ?? 1;
+
+			const related = Stream.fromPubSub(changes).pipe(
+				Stream.filter(
+					(hint) => hint._tag === "Changed" && hint.keys.some((key) => key._tag === "Item" && queries.some(({ payload }) => payload.id === key.id)),
+				),
+			);
+			return Stream.unwrap(
+				Effect.gen(function* () {
+					yield* PubSub.publish(opened, id);
+					yield* Effect.fail(new QueryReadDenied({ message: "Private page" })).pipe(Effect.when(Effect.succeed(id === 3)));
+					const reply = id === 2 ? yield* Deferred.await(held) : "hint";
+					if (reply === "empty") {
+						return Stream.empty;
+					}
+					if (reply === "defect") {
+						return Stream.die(new Error("Live page stream failed"));
+					}
+					const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+					const compare = compareQueries(subscription, rerunQuery(ReadPage.application.omit("page.write"), options));
+					return Stream.concat(Stream.succeed({ _tag: "Resync" } as const), related).pipe(
+						Stream.mapEffect((hint) => compare(hint)),
+						Stream.flatMap(Stream.fromIterable),
+					);
+				}),
+			);
+		}).pipe(Layer.provide(application)),
+	);
 	const routes = RpcServer.layerHttp({ group: ReadPage, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);

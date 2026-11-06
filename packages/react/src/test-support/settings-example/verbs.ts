@@ -7,11 +7,14 @@ import { request } from "./request.ts";
 type Editor = "writer" | "reader" | "bob";
 
 const delivered = Effect.fn("SettingsExample.delivered")(function* (engine: Engine, name: Editor, change: Effect.Effect<void>) {
-	const others = [...engine.screens.entries()].filter(([other, view]) => other !== name && view.entityId === screen(engine, name).entityId);
-	const hints = others.map(([, view]) => view.nextHint());
+	const views = [...engine.screens.values()].filter((view) => view.entityId === screen(engine, name).entityId);
+	const results = views.map((view) => view.nextResult());
 	yield* change;
-	yield* Effect.promise(() => act(() => Promise.all(hints).then(() => undefined)));
-	for (const [, view] of others) {
+	if (screen(engine, name).container.querySelector('[role="alert"]')?.textContent) {
+		return;
+	}
+	yield* Effect.promise(() => act(() => Effect.runPromise(Effect.all(results)).then(() => undefined)));
+	for (const view of views) {
 		yield* view.driver.settle();
 	}
 });

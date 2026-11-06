@@ -18,7 +18,6 @@ class Guard extends RpcMiddleware.Service<Guard, { provides: Reader }>()("@shiva
 const Api = contract("custom", {
 	queries: [
 		query("read", {
-			live: "rerun-and-compare",
 			payload: { id: Schema.Number },
 			readPolicy: () => Effect.flatMap(Database, (ready) => (ready ? Effect.succeed(true) : Effect.fail(new Unavailable()))),
 			reads: () => [],
@@ -57,12 +56,15 @@ const initialized = changesHandlerLayer(Api, () =>
 	Effect.gen(function* () {
 		yield* Startup;
 		yield* new Unavailable();
-		return () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Resync" }));
+		return () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Unchanged", queryIndex: 0 }));
 	}),
 );
 expectTypeOf<Layer.Error<typeof initialized>>().toEqualTypeOf<Unavailable>();
 expectTypeOf<Layer.Services<typeof initialized>>().toEqualTypeOf<Database | Reader | Startup>();
-const guarded = changesHandlerLayer(Api.middleware(Guard), () => () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Resync" })));
+const guarded = changesHandlerLayer(
+	Api.middleware(Guard),
+	() => () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Unchanged", queryIndex: 0 })),
+);
 expectTypeOf<Layer.Services<typeof guarded>>().toEqualTypeOf<Database>();
 // @ts-expect-error A custom stream can fail only with the contract's declared failures.
 changesHandlerLayer(Api, () => () => Stream.fail(new Other()));
@@ -76,6 +78,6 @@ const Plain = contract("plain", {
 });
 const partialMiddleware = changesHandlerLayer(
 	Api.middleware(Guard).merge(Plain),
-	() => () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Resync" })),
+	() => () => Stream.fromEffect(Reader).pipe(Stream.as({ _tag: "Unchanged", queryIndex: 0 })),
 );
 expectTypeOf<Layer.Services<typeof partialMiddleware>>().toEqualTypeOf<Database | Reader>();

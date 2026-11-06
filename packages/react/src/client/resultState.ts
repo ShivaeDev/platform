@@ -1,5 +1,5 @@
 import { RegistryContext, useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
-import { Cause, type Duration, type Effect, Option, Predicate } from "effect";
+import { Cause, type Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -9,7 +9,6 @@ import type { AtomServices } from "#AtomServices.ts";
 import { usePermissionFailure } from "#adapters/usePermissionFailure.ts";
 import { useQueryNotice } from "#adapters/useQueryNotice.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
-import { useLiveWindow } from "#client/adapters/useLiveWindow.ts";
 import type { NoticeDescriptor } from "#notices.ts";
 import { type ActionOptions, useActionSource } from "./actionCompletion.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
@@ -45,7 +44,6 @@ export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly stale: boolean;
 }
 export interface QueryOptions<E = unknown> {
-	readonly coalesceWindow?: Duration.Input | undefined;
 	readonly keepPreviousData?: boolean;
 	readonly notice?: (failure: { readonly cause: Cause.Cause<E>; readonly refreshing: boolean }) => NoticeDescriptor | undefined;
 }
@@ -60,7 +58,6 @@ interface HeldQuery<A, E> {
 export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, options: QueryOptions<E> = {}): QueryState<A, E> {
 	const result = useAtomValue(atom);
 	const registry = useContext(RegistryContext);
-	useLiveWindow(atom, options.coalesceWindow);
 	const keepPreviousData = options.keepPreviousData === true;
 	const nativeData = AsyncResult.value(result);
 	const [held, hold] = useState<HeldQuery<A, E>>(() => ({ atom, data: nativeData, dataAtom: atom, keepPreviousData, registry, result }));

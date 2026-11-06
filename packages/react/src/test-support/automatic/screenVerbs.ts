@@ -38,7 +38,7 @@ export function screenVerbs(engine: Engine, story: { tell: (line: string) => voi
 		},
 		renameFromScreen: (title: string) => {
 			story.tell(`rename note 1 to ${title} from the screen`);
-			const read = engine.host.nextRead(1);
+			const read = engine.screen.nextResult(1);
 			return Effect.promise(() => engine.screen.rename(title)).pipe(
 				Effect.andThen(Effect.promise(() => act(() => read))),
 				Effect.andThen(verbs.settle()),

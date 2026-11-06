@@ -1,5 +1,5 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { Effect, ManagedRuntime, Stream } from "effect";
+import { Effect, ManagedRuntime, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
@@ -17,29 +17,35 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);
 	const delivered = recorded<{ readonly hint: QueryUpdate; readonly title: string; readonly list: readonly string[] }>();
+	let title = "";
+	let list: readonly string[] = [];
+	const receive = Effect.fnUntraced(function* (hint: QueryUpdate) {
+		if (hint._tag === "QueryReadDenied") {
+			return yield* hint;
+		}
+		if (hint._tag === "Result") {
+			if (hint.query === "self") {
+				title = Schema.decodeUnknownSync(Schema.String)(hint.value);
+			} else {
+				list = Schema.decodeUnknownSync(Schema.Array(Schema.String))(hint.value);
+			}
+		}
+		if (hint.queryIndex === 1) {
+			delivered.push({ hint, list, title });
+		}
+	});
 	runtime.runFork(
 		client("preferences.$changes", {
 			queries: [
 				{ payload: undefined, query: "self" },
 				{ payload: undefined, query: "list" },
 			],
-		}).pipe(
-			Stream.runForEach((hint) =>
-				Effect.gen(function* () {
-					if (hint._tag === "QueryReadDenied") {
-						return yield* hint;
-					}
-					const title = yield* client("preferences.self", undefined);
-					const list = yield* client("preferences.list", undefined);
-					delivered.push({ hint, list, title });
-				}),
-			),
-		),
+		}).pipe(Stream.runForEach(receive)),
 	);
 	return {
 		close: () => runtime.dispose().finally(() => registry.dispose()),
 		delivered,
-		read: () => runtime.runPromise(client("preferences.self", undefined)),
-		save: (title: string) => runtime.runPromise(client("preferences.save", { title }).pipe(Effect.result)),
+		save: (nextTitle: string) => runtime.runPromise(client("preferences.save", { title: nextTitle }).pipe(Effect.result)),
+		shown: () => title,
 	};
 }

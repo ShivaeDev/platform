@@ -75,7 +75,7 @@ export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (
 				tell(`${name} opens the session-scoped socket changes subscription and receives its first event`);
 				const rpc = yield* client(host, headersOf({ bearer: name }), true);
 				const events = yield* Queue.unbounded<unknown>();
-				subscription = yield* rpc("native.$changes", { queries: [] }).pipe(
+				subscription = yield* rpc("native.$changes", { queries: [{ payload: undefined, query: "accounts" }] }).pipe(
 					Stream.runForEach((event) => Queue.offer(events, event)),
 					Effect.forkScoped,
 				);

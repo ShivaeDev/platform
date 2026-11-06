@@ -15,7 +15,7 @@ for (const source of ["native", "online", "visibilitychange"] as const) {
 			yield* untilRefreshed();
 
 			expect(yield* shown()).toEqual(["default: Changed while away", "default: Changed while away"]);
-			expect(subscriptionsOpened()).toBe("3 streams opened");
+			expect(subscriptionsOpened()).toBe("4 streams opened");
 		},
 	);
 }

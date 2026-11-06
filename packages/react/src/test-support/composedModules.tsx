@@ -1,4 +1,4 @@
-import { type Duration, Effect } from "effect";
+import { Effect } from "effect";
 import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -12,7 +12,7 @@ interface State {
 	view?: Rendered;
 }
 
-function app(window: Duration.Input, selected?: readonly string[]) {
+function app(selected?: readonly string[]) {
 	return (
 		<SessionBoundary
 			connect={(_, registry) => {
@@ -23,7 +23,6 @@ function app(window: Duration.Input, selected?: readonly string[]) {
 				);
 			}}
 			identify={(session) => session}
-			liveCoalesceWindow={window}
 			recheck={() => undefined}
 			session="alice"
 		>
@@ -37,10 +36,10 @@ export const composedModules = storyKit(
 		"composed module bindings",
 		(): State => ({}),
 		(state, screen) => ({
-			open: (window: Duration.Input, selected?: readonly string[]) =>
+			open: (selected?: readonly string[]) =>
 				Effect.gen(function* () {
-					screen.tell(`open Notes and Tasks with a ${window} live window`);
-					state.view = yield* screen.open(app(window, selected));
+					screen.tell("open Notes and Tasks");
+					state.view = yield* screen.open(app(selected));
 					yield* settleScreen(state.view.container, () => state.view?.container.querySelector('[data-pending="true"]') !== null, screen.tell);
 				}),
 			shown: () => Effect.sync(() => [...(state.view?.container.querySelectorAll("output") ?? [])].map((node) => node.textContent)),

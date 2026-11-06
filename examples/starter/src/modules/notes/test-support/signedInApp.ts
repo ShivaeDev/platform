@@ -19,7 +19,7 @@ export const signedInApp = storyKit({
 		const bobClient = yield* notesHttp(screen.baseUrl, bob.headers.get("cookie") ?? "", screen.origin);
 		return { ...screen, bob, bobClient };
 	},
-	inspect: ({ history, observed, view }) => ({ heardKeys: observed.heardKeys(), route: history.location.pathname, text: view.container.textContent }),
+	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view.container.textContent }),
 	layer: postgres,
 	name: "signed-in app",
 	runIf: configured,
@@ -32,7 +32,6 @@ export const signedInApp = storyKit({
 			story.tell(`bob adds ${JSON.stringify(title)} from another client`);
 			return engine.bobClient["notes.create"]({ title });
 		},
-		heardKeys: () => Effect.sync(() => engine.observed.heardKeys()),
 		listKey: (name: "alice" | "bob") => notes.bucket.userId(name === "alice" ? engine.account.user.id : engine.bob.user.id),
 		waitsForHint: () => engine.observed.watchHints(),
 	}),

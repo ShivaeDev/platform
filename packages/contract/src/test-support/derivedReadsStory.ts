@@ -1,12 +1,10 @@
-import { Effect, Ref } from "effect";
+import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { TestClock } from "effect/testing";
 import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { answered } from "#test/answers.ts";
 import { configured, derivedDatabase } from "#test/derivedReadsData.ts";
 import { derivedReadsEngine } from "./derivedReadsEngine.ts";
@@ -20,10 +18,6 @@ export const derivedReadsStory = storyKit({
 	runIf: configured,
 	stages: ["adapter", "data", "view"],
 	verbs: ({ client, query, registry, sql }, story) => ({
-		coalescingWindowPasses: () => {
-			story.tell("the client's 20 millisecond change coalescing window passes");
-			return untilTimer("20 millis").pipe(Effect.andThen(TestClock.adjust("20 millis")));
-		},
 		create: (scope: string, id: number, body: string) => {
 			story.tell(`a writer creates a new list and its first record in ${scope}`);
 			return client("timelines.create", { body, id, scope });
@@ -61,7 +55,3 @@ export const emptyTimeline = derivedReadsStory.trait("data", "alice has no lists
 	yield* sql`delete from records where list_id in (select id from lists where scope = 'alice')`;
 	yield* sql`delete from lists where scope = 'alice'`;
 });
-
-export const projectedKeys = derivedReadsStory.trait("adapter", "the native adapter projects authorized keys with queryKeys", ({ projectKeys }) =>
-	Ref.set(projectKeys, true),
-);

@@ -27,7 +27,7 @@ const definition = {
 	success: Schema.String,
 };
 const Get = query("get", definition);
-const Compare = query("compare", { ...definition, live: "rerun-and-compare" });
+const Compare = query("compare", { ...definition });
 export const Documents = contract("documents", { queries: [Get, Compare] }).middleware(AuthenticatedUserWithProviderAccounts);
 
 export function readAccess(admitted: ReadonlySet<string>) {

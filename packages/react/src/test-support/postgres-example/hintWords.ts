@@ -1,10 +1,9 @@
+import { Schema } from "effect";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
+import { Order } from "./contract.ts";
 
 export function hintWord(hint: QueryUpdate) {
-	if (hint._tag !== "Changed") {
-		return hint._tag.toLowerCase();
-	}
-	return `changed ${hint.keys.map((key) => (key._tag === "Item" ? `${key.collection} ${key.id}` : key.collection)).join(", ")}`;
+	return hint._tag === "Result" ? `result ${Schema.decodeUnknownSync(Order)(hint.value).name}` : hint._tag.toLowerCase();
 }
 
 export function answerWord(result: { readonly _tag: "Success" | "Failure"; readonly failure?: unknown }) {

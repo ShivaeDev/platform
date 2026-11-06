@@ -1,7 +1,6 @@
 import { Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "#contract.ts";
-import { LiveHint } from "#live.ts";
 import { query, stream } from "#operation.ts";
 
 export const documents = collection("documents", Schema.String);
@@ -16,5 +15,5 @@ export const Get = query("get", {
 	success: Document,
 });
 export const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [documents.list], success: Schema.Array(Document) });
-export const Subscribe = stream("subscribe", { reads: () => [documents.list], rejections: { Unavailable }, success: LiveHint });
+export const Subscribe = stream("subscribe", { reads: () => [documents.list], rejections: { Unavailable }, success: Schema.String });
 export const Documents = contract("documents", { queries: [Get, List], streams: [Subscribe] });

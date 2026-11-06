@@ -66,13 +66,13 @@ export const openCluster = Effect.fn("OrderProcesses.openCluster")(function* (en
 		["another", "first"],
 	] as const) {
 		const remote = yield* Effect.acquireRelease(
-			Effect.promise(() => processClient(process(engine, server).url)),
+			Effect.sync(() => processClient(process(engine, server).url)),
 			(connected) => Effect.promise(connected.close),
 		);
 		engine.clients.set(name, remote);
 	}
-	yield* Effect.promise(() => Promise.all([...engine.clients.values()].map((remote) => remote.hints.when((hints) => hints.length > 0))));
+	yield* Effect.promise(() => Promise.all([...engine.clients.values()].map((remote) => remote.results.when((results) => results.length > 0))));
 	for (const [name, remote] of engine.clients) {
-		engine.marks.set(name, remote.hints.items.length);
+		engine.marks.set(name, remote.results.items.length);
 	}
 });

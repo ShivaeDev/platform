@@ -2122,6 +2122,9 @@ importers:
       '@shivaedev/react':
         specifier: workspace:*
         version: link:../react
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

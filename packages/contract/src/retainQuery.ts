@@ -2,7 +2,6 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { retainedQueries } from "#adapters/retainedQueries.ts";
-import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "#wrapAtom.ts";
 
@@ -13,8 +12,6 @@ export function retainQuery<A, E>(runtime: Atom.AtomRuntime<unknown, unknown>, a
 		get.mount(snapshot);
 		const owner = get.once(retainedQueries);
 		owner.take(retained);
-		get.once(queryCoalesceWindow(retained));
-		get.subscribe(queryCoalesceWindow(retained), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
 		get.addFinalizer(() => {
 			if (get.registry.getNodes().has(snapshot) && Option.isSome(get.registry.get(snapshot))) {
 				owner.keep(retained, snapshot, runtime);

@@ -1,5 +1,4 @@
 import { Schema } from "effect";
-import { LiveHint } from "#live.ts";
 import type { QueryShape } from "#operation.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 
@@ -13,18 +12,17 @@ type ResultSchema<TQuery extends QueryShape> = TQuery extends QueryShape
 					queryIndex: Schema.Number;
 					value: TQuery["success"];
 			  }>
-			| ("rerun-and-compare" extends TQuery["live"] ? typeof QueryUnchanged : never)
+			| typeof QueryUnchanged
 	: never;
 
 export function changesSuccess<const TQueries extends readonly QueryShape[]>(
 	queries: TQueries,
-): Schema.Union<readonly [typeof LiveHint, typeof QueryReadDenied, ...ResultSchema<TQueries[number]>[]]>;
+): Schema.Union<readonly [typeof QueryReadDenied, ...ResultSchema<TQueries[number]>[]]>;
 export function changesSuccess(queries: readonly QueryShape[]) {
 	return Schema.Union([
-		LiveHint,
 		QueryReadDenied,
 		...queries.flatMap((query) => [
-			...(query.live === "rerun-and-compare" ? [QueryUnchanged] : []),
+			QueryUnchanged,
 			Schema.Struct({
 				_tag: Schema.Literal("Result"),
 				query: Schema.Literal(query.name),

@@ -1,46 +1,28 @@
 import { expect } from "vitest";
 import { readPage } from "#test/readPage.ts";
 
-readPage.it(
-	"counts the page's query and subscription on one shared socket after load",
-	[],
-	({ readCount, reads, hints, socketAddresses, socketUrl, text }) => {
-		expect(text()).toBe("First page");
-		const expectedReads = [
-			{ kind: "query", payload: { id: 1 }, tag: "page.get" },
-			{ kind: "subscription", payload: { queries: [{ payload: { id: 1 }, query: "get" }] }, tag: "page.$changes" },
-		];
-		expect(readCount()).toBe(expectedReads.length);
-		expect(socketAddresses()).toEqual([socketUrl()]);
-		expect(reads()).toEqual(expect.arrayContaining(expectedReads));
-		expect(hints()).toEqual([{ _tag: "Resync" }]);
-	},
-);
+readPage.it("counts the page's subscription on one shared socket after load", [], ({ readCount, reads, hints, socketAddresses, socketUrl, text }) => {
+	expect(text()).toBe("First page");
+	const expectedReads = [{ kind: "subscription", payload: { queries: [{ payload: { id: 1 }, query: "get" }] }, tag: "page.$changes" }];
+	expect(readCount()).toBe(expectedReads.length);
+	expect(socketAddresses()).toEqual([socketUrl()]);
+	expect(reads()).toEqual(expect.arrayContaining(expectedReads));
+	expect(hints()).toEqual([{ _tag: "Result", query: "get", queryIndex: 0, value: "First page" }]);
+});
 
 readPage.it(
-	"keeps the count after an unrelated write and counts one refetch after the related hint reaches the page",
+	"a related commit pushes its value without another browser read",
 	[],
-	function* ({ readCount, reads, watchHints, writeHere, write, nextResult, text }) {
-		const hints = yield* watchHints();
+	function* ({ readCount, watchHints, writeHere, write, nextResult, text }) {
+		const updates = yield* watchHints();
 		const before = readCount();
-
 		yield* writeHere(2, "Unrelated page");
-
 		expect(readCount()).toBe(before);
-
 		yield* write(1, "Revised page");
-
-		expect(yield* hints.next).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id: 1 }] });
+		expect(yield* updates.next).toEqual({ _tag: "Result", query: "get", queryIndex: 0, value: "Revised page" });
 		expect(yield* nextResult()).toBe("Revised page");
 		expect(text()).toBe("Revised page");
-		expect(readCount()).toBe(before + 1);
-		const expectedQueries = [
-			{ kind: "query", payload: { id: 1 }, tag: "page.get" },
-			{ kind: "query", payload: { id: 1 }, tag: "page.get" },
-		];
-		expect(readCount("page.get")).toBe(expectedQueries.length);
-		expect(reads().filter(({ kind }) => kind === "query")).toEqual(expectedQueries);
-		expect(reads().at(-1)).toEqual({ kind: "query", payload: { id: 1 }, tag: "page.get" });
+		expect(readCount()).toBe(before);
 	},
 );
 
@@ -51,27 +33,8 @@ readPage.it("buffers a browser hint independently for each watcher", [], functio
 	yield* write(1, "Delivered to both");
 	yield* nextResult();
 
-	const expected = { _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id: 1 }] };
+	const expected = { _tag: "Result", query: "get", queryIndex: 0, value: "Delivered to both" };
 	expect(yield* first.next).toEqual(expected);
 	expect(yield* second.next).toEqual(expected);
-	expect(hints()).toEqual([{ _tag: "Resync" }, expected]);
+	expect(hints()).toEqual([{ _tag: "Result", query: "get", queryIndex: 0, value: "First page" }, expected]);
 });
-
-readPage.it(
-	"keeps every heard key across session sockets and never records an unrelated key",
-	[],
-	function* ({ heardKeys, write, nextResult, signIn }) {
-		yield* write(1, "Before sign-in");
-		yield* nextResult();
-		yield* signIn();
-		yield* write(2, "Unrelated page");
-		yield* write(1, "After sign-in");
-		yield* nextResult();
-
-		expect(heardKeys()).toEqual([
-			{ _tag: "Item", collection: "pages", id: 1 },
-			{ _tag: "Item", collection: "pages", id: 1 },
-		]);
-		expect(heardKeys()).not.toContainEqual({ _tag: "Item", collection: "pages", id: 2 });
-	},
-);

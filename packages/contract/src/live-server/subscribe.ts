@@ -3,19 +3,15 @@ import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
-import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { LiveServer } from "./service.ts";
 
-function subscribeQueries<E, R, TRead extends QueryRerun<unknown, unknown> | undefined = undefined>(
+function subscribeQueries<E, R>(
 	subscription: QuerySubscription<E, R>,
-	read?: TRead & (QueryRerun<E, R> | undefined),
-): Effect.Effect<
-	Stream.Stream<TRead extends undefined ? SubscriptionHint : QueryUpdate, E | QueryReadDenied, R>,
-	never,
-	typeof LiveServer.Identifier
->;
-function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read?: QueryRerun<E, R>) {
+	read: QueryRerun<E, R>,
+): Effect.Effect<Stream.Stream<QueryUpdate, E | QueryReadDenied, R>, never, typeof LiveServer.Identifier>;
+function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>) {
 	return Effect.fnUntraced(function* () {
 		const server = yield* LiveServer;
 		const hints = yield* server.register(subscription.keys);

@@ -1,7 +1,7 @@
 import { Effect, Queue } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
+import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -31,11 +31,18 @@ export const connections = storyKit({
 		function status(value: "live" | "reconnecting") {
 			return until(activity, (state) => state.connectionStatus === value, { name: `client ${value}` });
 		}
-		function queryAnswered() {
-			return until(
-				AtomRegistry.toStream(view.registry, connection.client.api.get.query()),
-				(result) => AsyncResult.isSuccess(result) && result.value === host.state.title,
-				{ name: "resumed query" },
+		function nextQueryAnswers() {
+			return Effect.all(
+				[connection.client.api, connection.summary].map((api) => {
+					const signals = querySignals(api.get.query());
+					const before = view.registry.get(signals).completed;
+					const live = until(AtomRegistry.toStream(view.registry, api[LiveConnection].status), ({ connection: state }) => state === "live", {
+						name: "resumed subscription",
+					});
+					return until(AtomRegistry.toStream(view.registry, signals), ({ completed }) => completed > before, { name: "resumed query" }).pipe(
+						Effect.andThen(live),
+					);
+				}),
 			);
 		}
 		return {
@@ -80,13 +87,15 @@ export const connections = storyKit({
 					host.state.title = "Changed while away";
 				}),
 			restoreSocket: () => screen.act("restore the socket", () => run(host.restore.pipe(Effect.andThen(Queue.take(connection.events))))),
-			resume: (source: "online" | "visibilitychange") =>
-				screen
+			resume: (source: "online" | "visibilitychange") => {
+				const answered = nextQueryAnswers();
+				return screen
 					.act(`the browser sends ${source}`, async () => {
 						window.dispatchEvent(new Event(source));
-						await run(queryAnswered());
+						await run(answered);
 					})
-					.pipe(Effect.andThen(screenDriver({ activity: activityScreenSignal(activity), root: view.container, tell: story.tell }).settle())),
+					.pipe(Effect.andThen(screenDriver({ activity: activityScreenSignal(activity), root: view.container, tell: story.tell }).settle()));
+			},
 			settleStatus: () => screen.act("the connection notice settles", () => run(TestClock.adjust("300 millis").pipe(Effect.andThen(status("live"))))),
 			shown: () =>
 				Effect.sync(() => ({

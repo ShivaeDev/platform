@@ -1,11 +1,10 @@
-import { Effect, Fiber, Option, Ref, Stream, SubscriptionRef } from "effect";
+import { Effect, Option, Ref, Schema, Stream, SubscriptionRef } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import { TestClock } from "effect/testing";
-import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
-import { type HintViewer, heard, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { type HintViewer, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { answered, hintWords, shown, times } from "./answers.ts";
+import { answered, shown, times, updateWords } from "./answers.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 import { type Notes, notes, Row, viewerEngine } from "./viewerEngine.ts";
@@ -76,7 +75,7 @@ export const viewerStory = storyKit({
 				yield* until(SubscriptionRef.changes(engine.checks), (count) => count > before, { name: "policy check" });
 			}),
 		changesHeard: (viewer: Viewer) =>
-			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (hints) => hints.filter((hint) => hint._tag === "Changed").map(hintWords)),
+			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (hints) => hints.filter((hint) => hint._tag === "Result").map(updateWords)),
 		get: (viewer: Viewer, id: number) => {
 			story.tell(`${viewer} reads note ${id}`);
 			return answered(engine.client("notes.get", { id }, { headers: { viewer } }), (row) => `note ${row.id} titled ${row.title}`);
@@ -88,13 +87,10 @@ export const viewerStory = storyKit({
 				return row === undefined ? rows : new Map([...rows, [id, new Row({ ...row, owner })]]);
 			});
 		},
-		heard: (viewer: Viewer, keys: readonly Key[]) => Effect.map(heard(listenerOf(engine, viewer), keys), (found) => (found ? "heard" : "not heard")),
-		heardWithinAnHour: (viewer: Viewer, keys: readonly Key[]) =>
-			Effect.gen(function* () {
-				story.tell(`${viewer} waits up to an hour of the story clock for the keys, and the hour passes`);
-				const waiting = yield* heard(listenerOf(engine, viewer), keys, { within: "1 hour" }).pipe(Effect.forkScoped);
-				yield* TestClock.adjust("1 hour");
-				return (yield* Fiber.join(waiting)) ? "heard" : "not heard within the hour";
+		noteTitle: (viewer: Viewer, id: number) =>
+			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (updates) => {
+				const result = updates.findLast((update) => update._tag === "Result" && Schema.is(Row)(update.value) && update.value.id === id);
+				return result?._tag === "Result" && Schema.is(Row)(result.value) ? result.value.title : undefined;
 			}),
 		pageReads: (viewer: Viewer) =>
 			Effect.andThen(
@@ -120,20 +116,15 @@ export const viewerStory = storyKit({
 				}),
 				() => "read denied",
 			),
-		untilChangeArrives: (viewer: Viewer, id: number) => {
-			story.tell(`the change to note ${id} reaches ${viewer}`);
-			return until(
+		untilNoteTitle: (viewer: Viewer, id: number, title: string) =>
+			until(
 				SubscriptionRef.changes(listenerOf(engine, viewer).hints),
-				(hints) => hints.some((hint) => hint._tag === "Changed" && hint.keys.some((key) => key._tag === "Item" && key.id === id)),
-				{ name: "live hint" },
-			);
-		},
-		untilHintArrives: (viewer: Viewer) => {
-			story.tell(`a changed hint reaches ${viewer}`);
-			return until(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) => hints.some((hint) => hint._tag === "Changed"), {
-				name: "live hint",
-			});
-		},
+				(updates) =>
+					updates.some(
+						(update) => update._tag === "Result" && Schema.is(Row)(update.value) && update.value.id === id && update.value.title === title,
+					),
+				{ name: "authorized note delivery" },
+			),
 		untilPageReRead: (viewer: Viewer) =>
 			Effect.gen(function* () {
 				story.tell(`${viewer}'s page re-reads its notes and shows the new value`);
@@ -144,7 +135,7 @@ export const viewerStory = storyKit({
 });
 
 export function listening(viewer: Viewer, ...queries: readonly ViewerQuery[]) {
-	return viewerStory.trait("listeners", `${viewer} listens for changes of ${queries.join(" and ")} and has heard the first resync`, (engine) =>
+	return viewerStory.trait("listeners", `${viewer} listens for changes of ${queries.join(" and ")} and has received its initial result`, (engine) =>
 		Effect.gen(function* () {
 			engine.listeners.set(viewer, yield* watchHints(changes(engine, viewer, queries)));
 		}),

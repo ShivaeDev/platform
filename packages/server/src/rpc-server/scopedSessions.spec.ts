@@ -8,14 +8,14 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 	sessionKeys.it(
 		`through ${boundary}, alice's save notifies and updates her second session on another host`,
 		[],
-		function* ({ nextHint, read, save, subscribe }) {
+		function* ({ nextHint, pushed, save, subscribe }) {
 			yield* subscribe("second", boundary);
 
 			yield* save("alice", "blue", { boundary });
 
 			yield* outcomes([
-				["second session's hint", () => nextHint("second"), "changed theme and the list"],
-				["second session's theme", () => read("second", boundary), "blue"],
+				["second session's hint", () => nextHint("second"), "result"],
+				["second session's theme", () => pushed("second"), "blue"],
 			]);
 		},
 	);
@@ -23,17 +23,17 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 	sessionKeys.it(
 		`through ${boundary}, a shared theme key refreshes both accounts while their reads return their own theme`,
 		[],
-		function* ({ nextHint, read, save, subscribe }) {
+		function* ({ nextHint, pushed, save, subscribe }) {
 			yield* subscribe("alice", boundary);
 			yield* subscribe("bob", boundary);
 
 			yield* save("alice", "blue", { boundary });
 
 			yield* outcomes([
-				["alice's hint", () => nextHint("alice"), "changed theme and the list"],
-				["bob's hint", () => nextHint("bob"), "changed theme and the list"],
-				["alice's theme", () => read("alice", boundary), "blue"],
-				["bob's theme", () => read("bob", boundary), "unset"],
+				["alice's hint", () => nextHint("alice"), "result"],
+				["bob's hint", () => nextHint("bob"), "unchanged"],
+				["alice's theme", () => pushed("alice"), "blue"],
+				["bob's theme", () => pushed("bob"), "unset"],
 			]);
 		},
 	);
@@ -64,7 +64,7 @@ sessionKeys.it(
 		yield* outcomes([
 			["answer", () => Effect.succeed(answer), "failed with conflict"],
 			["published", () => published(), ["preferences:theme and preferences"]],
-			["second session's hints", () => hintsUntilOwnBarrier("second"), ["result", "result", "changed the list"]],
+			["second session's hints", () => hintsUntilOwnBarrier("second"), ["result", "result", "unchanged"]],
 			["second session's theme", () => read("second"), "committed"],
 		]);
 	},

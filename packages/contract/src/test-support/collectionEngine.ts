@@ -4,11 +4,11 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { LiveServer } from "#live-server/service.ts";
@@ -51,23 +51,28 @@ export const collectionEngine = Effect.gen(function* () {
 		["member", { email: "member@example.test", id: "member", name: "Member", permissions: [] }],
 	]);
 	const live = Context.get(services, LiveServer);
+	const application = Workspaces.application.toLayer({
+		"workspaces.all": () =>
+			repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(
+				Effect.map((rows) => rows.map((row) => new Workspace(row))),
+				Effect.orDie,
+			),
+	});
 	const handlers = Layer.merge(
-		Workspaces.application.toLayer({
-			"workspaces.all": () => repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(Effect.orDie),
-		}),
+		application,
 		changesHandlerLayer(
 			Workspaces,
 			() =>
-				({ queries }, { rpc }) =>
+				({ queries }, options) =>
 					Stream.unwrap(
 						Effect.gen(function* () {
 							const viewer = yield* CurrentViewer;
-							const subscription = yield* querySubscription(rpc, queries, viewer);
-							return yield* subscribe(subscription).pipe(Effect.provideService(LiveServer, live));
+							const subscription = yield* querySubscription(options.rpc, queries, viewer);
+							return yield* subscribe(subscription, rerunQuery(Workspaces.application, options)).pipe(Effect.provideService(LiveServer, live));
 						}),
 					),
 		),
-	).pipe(Layer.provide(Layer.succeed(Permissions, permissions)));
+	).pipe(Layer.provide(application), Layer.provide(Layer.succeed(Permissions, permissions)));
 	function protocol(viewer: string) {
 		return Layer.merge(
 			handlers,
@@ -88,7 +93,6 @@ export const collectionEngine = Effect.gen(function* () {
 		(value) => Effect.sync(() => value.dispose()),
 	);
 	const api = bind(Workspaces, Client, { registry });
-	registry.set(api[LiveConnection].coalesceWindow, 0);
 	const member = yield* RpcTest.makeClient(Workspaces, { flatten: true }).pipe(Effect.provide(protocol("member")));
 	return { api, definition: Workspaces.declaration.queries[0], member, permissions, query: api.all.query(), registry, repository, services };
 });

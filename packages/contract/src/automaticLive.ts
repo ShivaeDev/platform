@@ -1,4 +1,4 @@
-import { type Duration, Effect, type Schema, Stream } from "effect";
+import { Effect, type Schema, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
@@ -11,7 +11,6 @@ import { automaticQuery } from "#automaticQuery.ts";
 import { clientActivities } from "#clientActivities.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryDelivery } from "#queryDelivery.ts";
-import { localQueryKeys, queryHint } from "#queryHints.ts";
 import { queryProgress } from "#queryProgress.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
@@ -24,7 +23,6 @@ declare const window: ResumeWindow | undefined;
 export const LiveConnection = Symbol.for("@shivaedev/contract/LiveConnection");
 export interface LiveBound {
 	readonly [LiveConnection]: {
-		readonly coalesceWindow: Atom.Writable<Duration.Input>;
 		readonly connection: Atom.Atom<unknown>;
 		readonly identity?: Atom.Writable<string | undefined>;
 		readonly paused: Atom.Writable<boolean>;
@@ -58,7 +56,6 @@ export function automaticLive(
 			throw new Error("A session-scoped query belongs to its binding registry");
 		}
 	}
-	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>("20 millis"));
 	const paused = pausedByRuntime(service.runtime);
 	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
 	const status = Atom.map(statuses, (current) => aggregateLiveStatus([...current.values()]));
@@ -75,7 +72,6 @@ export function automaticLive(
 		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
 		decode: (value: unknown) => A,
-		compared: boolean,
 		reactive: (source: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		headers?: Headers.Input,
 	) {
@@ -84,30 +80,22 @@ export function automaticLive(
 		}
 		const ready = Atom.make(false);
 		const signals = querySignals(atom);
-		const delivery = queryDelivery(atom, decode, compared, paused, signals);
-		const source = compared ? delivery.atom : reactive(delivery.atom.pipe(Atom.setIdleTTL(0)));
+		const delivery = queryDelivery(decode, paused, signals);
+		const source = delivery.atom;
 		const subscription = live(service.runtime, {
-			initialResync: false,
 			keyContext: owner?.context,
-			reopenOnResume: compared,
 			resume: signal,
-			resyncKeys: compared ? [] : localQueryKeys(keys),
 			retryKeys: keys,
 			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] }, { headers })))).pipe(
 				delivery.stream,
-				Stream.map((hint) => queryHint(hint, [{ keys }])),
 			),
 		});
 		const gated = automaticQuery({
 			assertOwner,
-			atom,
 			clientStatuses: clientActivities.get(service)?.statuses,
-			coalesceWindow,
 			equivalent,
 			paused,
-			pushed: compared,
 			ready,
-			resultVersion: delivery.version,
 			signals,
 			source,
 			statuses,
@@ -121,5 +109,5 @@ export function automaticLive(
 		}
 		return gated;
 	}
-	return { query, subscription: { coalesceWindow, connection, identity: socketIdentity, paused, status } };
+	return { query, subscription: { connection, identity: socketIdentity, paused, status } };
 }

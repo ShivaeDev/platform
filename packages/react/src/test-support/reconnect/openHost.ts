@@ -6,10 +6,12 @@ import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcSerialization, RpcServer } from "effect/rpc";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { Accounts, SessionGuard } from "./feature.ts";
 
 export const openHost = Effect.gen(function* () {
@@ -36,25 +38,27 @@ export const openHost = Effect.gen(function* () {
 			return next;
 		}),
 	);
-	const handlers = Accounts.toLayer(
-		Effect.gen(function* () {
-			const live = yield* makeLiveServer;
-			return Accounts.of({
-				"reconnectAccounts.$changes": ({ queries }, { rpc }) =>
+	const application = Accounts.application.toLayer({
+		"reconnectAccounts.get": ({ page }) =>
+			Effect.sync(() => {
+				state.reads.push(page);
+				return "Alice's account";
+			}),
+	});
+	const changes = changesHandlerLayer(Accounts, () =>
+		Effect.map(
+			makeLiveServer,
+			(live) =>
+				({ queries }, options) =>
 					Stream.unwrap(
 						Effect.gen(function* () {
-							const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
-							return live.subscribe(subscription);
+							const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+							return live.subscribe(subscription, rerunQuery(Accounts.application, options));
 						}),
 					),
-				"reconnectAccounts.get": ({ page }) =>
-					Effect.sync(() => {
-						state.reads.push(page);
-						return "Alice's account";
-					}),
-			});
-		}),
-	).pipe(Layer.provide(Reactivity.layer));
+		),
+	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(Layer.provide(Reactivity.layer));
 	const routes = RpcServer.layerHttp({ group: Accounts, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([handlers, guard, RpcSerialization.layerNdjson, gate.layer]),
 	);

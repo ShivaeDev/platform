@@ -31,8 +31,10 @@ const customHandlers = changesHandlerLayer(
 	() => () =>
 		Stream.fromEffect(Greeting).pipe(
 			Stream.map((greeting) => ({
-				_tag: "Changed",
-				keys: [{ _tag: "Item", collection: "greetings", id: greeting }],
+				_tag: "Result",
+				query: "greet",
+				queryIndex: 0,
+				value: greeting,
 			})),
 		),
 );
@@ -115,7 +117,7 @@ export const applicationHandlersStory = storyKit({
 		firstHint: () => {
 			story.tell("a client subscribes through the host's changes service");
 			return state
-				.client("idle.$changes", { queries: [] })
+				.client("idle.$changes", { queries: [{ payload: { name: "Ada" }, query: "greet" }] })
 				.pipe(Stream.map(hintWords), Stream.runHead, Effect.map(Option.getOrElse(() => "no hint")));
 		},
 		greet: (name: string) => {

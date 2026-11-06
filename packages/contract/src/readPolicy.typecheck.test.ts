@@ -7,8 +7,8 @@ import type { LiveServer } from "#live-server/service.ts";
 import { subscribe as subscribeQueries } from "#live-server/subscribe.ts";
 import type { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
-import { type QueryRerun, querySubscription } from "#querySubscription.ts";
-import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
+import { querySubscription } from "#querySubscription.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
 import { authorizeReads, type QueryReadPolicy } from "#readPolicy.ts";
 import type { MissingReadPolicies, MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { validateReadPolicies } from "#validateReadPolicies.ts";
@@ -39,7 +39,7 @@ const authorized = authorizeReads(Effect.void, { payload: undefined, rpc }, Opti
 expectTypeOf<Effect.Services<typeof authorized>>().toEqualTypeOf<Database>();
 
 const Pushed = contract("pushed", {
-	queries: [query("read", { live: "rerun-and-compare", readPolicy: policy, reads: () => [], rejections: { ServiceUnavailable } })],
+	queries: [query("read", { readPolicy: policy, reads: () => [], rejections: { ServiceUnavailable } })],
 });
 type PushedChanges = Extract<RpcGroup.Rpcs<typeof Pushed>, { readonly _tag: "pushed.$changes" }>;
 declare const pushedRpc: PushedChanges;
@@ -50,34 +50,14 @@ const pushed = live.subscribe(subscription, () => Effect.asVoid(Database));
 expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired>();
 
-const sharedHints = subscribeQueries(subscription);
-expectTypeOf(sharedHints).toEqualTypeOf<
-	Effect.Effect<
-		Stream.Stream<SubscriptionHint, ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired, Database>,
-		never,
-		typeof LiveServer.Identifier
-	>
->();
-expectTypeOf(subscribeQueries(subscription, undefined)).toEqualTypeOf<typeof sharedHints>();
 const sharedPushed = subscribeQueries(subscription, () => Effect.asVoid(Database));
-const explicitPushed = subscribeQueries<Effect.Error<typeof pending>, Database, QueryRerun<ServiceUnavailable, Database>>(subscription, () =>
-	Effect.asVoid(Database),
-);
+const explicitPushed = subscribeQueries<Effect.Error<typeof pending>, Database>(subscription, () => Effect.asVoid(Database));
 expectTypeOf(explicitPushed).toEqualTypeOf<typeof sharedPushed>();
 expectTypeOf<Stream.Success<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<QueryUpdate>();
 expectTypeOf<Effect.Services<typeof sharedPushed>>().toEqualTypeOf<typeof LiveServer.Identifier>();
 expectTypeOf<Stream.Services<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<
 	ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired
->();
-declare const optionalRerun: QueryRerun<ServiceUnavailable, Database> | undefined;
-const optionalPushed = subscribeQueries(subscription, optionalRerun);
-expectTypeOf(optionalPushed).toEqualTypeOf<
-	Effect.Effect<
-		Stream.Stream<QueryUpdate, ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired, Database>,
-		never,
-		typeof LiveServer.Identifier
-	>
 >();
 expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();
 

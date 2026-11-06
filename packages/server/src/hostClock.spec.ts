@@ -4,11 +4,11 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { hostClock } from "#test/hostClock.ts";
 
 hostClock.it(
-	"a host advances a day in under a second and still serves worker writes and change hints",
+	"a host advances a day in under a second and still serves worker writes and pushed results",
 	[],
 	function* ({ elapsedMilliseconds, nextHint, read, daysPass, write }) {
 		yield* write("Before the jump");
-		expect(yield* nextHint()).toBe("changed the list");
+		expect(yield* nextHint()).toBe("result");
 		const before = yield* read();
 		expect(before.notes).toEqual([{ title: "Before the jump", writtenAt: before.now }]);
 
@@ -22,7 +22,7 @@ hostClock.it(
 		yield* write("After the jump");
 
 		yield* outcomes([
-			["change hint", () => nextHint(), "changed the list"],
+			["change hint", () => nextHint(), "result"],
 			[
 				"worker writes on the advanced application clock",
 				() => read(),

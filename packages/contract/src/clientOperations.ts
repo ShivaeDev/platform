@@ -14,7 +14,6 @@ import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import { commandPayload } from "#commandPayload.ts";
 import { waitForConnection } from "#connectionReadiness.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
-import { queryReactivity } from "#queryReactivity.ts";
 import { shareQuerySignals } from "#querySignals.ts";
 import { retainQuery } from "#retainQuery.ts";
 
@@ -37,7 +36,6 @@ export function clientOperations(
 	}
 
 	function boundQuery(tag: string, query: QueryShape) {
-		const reactive = queryReactivity(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.queued);
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
 		return {
 			query: (payload: unknown, options: QueryOptions = {}) => {
@@ -57,8 +55,7 @@ export function clientOperations(
 					keys,
 					Schema.toEquivalence(query.success),
 					Schema.decodeUnknownSync(Schema.toType(query.success)),
-					query.live === "rerun-and-compare",
-					(source) => reactive(source, clientReadKeys(dependencies, owner?.context), owner?.registry),
+					(source) => ordinaryClient.runtime.factory.withReactivity(clientReadKeys(dependencies, owner?.context))(source),
 					options.headers,
 				);
 				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result) ?? result);

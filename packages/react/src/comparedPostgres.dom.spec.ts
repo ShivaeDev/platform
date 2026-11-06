@@ -89,3 +89,87 @@ comparedPostgres.it(
 		]);
 	},
 );
+
+comparedPostgres.it(
+	"separate PostgreSQL commits during a held rerun cost two reruns and leave React on the final value",
+	[],
+	function* ({ clientRequests, commit, commitRepeatedly, displayed, holdNextRead, reads, releaseRerun, rerunStarted, shown }) {
+		expect(yield* shown()).toBe("Visible first");
+		yield* holdNextRead();
+
+		yield* commit(1, "Visible in flight");
+		yield* rerunStarted();
+		yield* commitRepeatedly(20);
+		yield* releaseRerun();
+		yield* displayed("Visible edit 20");
+
+		yield* outcomes([
+			["final screen", () => shown(), "Visible edit 20"],
+			["initial read plus two reruns", () => reads(), 3],
+			["client requests", () => clientRequests(), ["compared.$changes"]],
+		]);
+	},
+);
+
+comparedPostgres.it(
+	"access lost during a PostgreSQL burst denies React without running SQL or delivering private results",
+	[],
+	function* ({ clientRequests, commit, commitRepeatedly, denied, denyRead, holdPolicy, reads, releaseRerun, rerunStarted, resultValues, shown }) {
+		expect(yield* shown()).toBe("Visible first");
+		yield* holdPolicy();
+
+		yield* commit(1, "Visible private");
+		yield* rerunStarted();
+		yield* denyRead();
+		yield* commitRepeatedly(20);
+		yield* releaseRerun();
+		yield* denied();
+
+		yield* outcomes([
+			["denied screen", () => shown(), "Read denied"],
+			["SQL executions", () => reads(), 1],
+			["delivered values", () => resultValues(), [[{ title: "Visible first" }]]],
+			["client requests", () => clientRequests(), ["compared.$changes"]],
+		]);
+	},
+);
+
+comparedPostgres.it(
+	"another PostgreSQL subscription progresses while the first subscription's rerun is held",
+	[],
+	function* ({ commit, displayed, holdNextRead, independentShows, openIndependent, releaseRerun, rerunStarted, shown }) {
+		yield* openIndependent();
+		yield* holdNextRead();
+		yield* commit(1, "Visible in flight");
+		yield* rerunStarted();
+
+		yield* commit(1, "Visible independent");
+		yield* independentShows("Visible independent");
+
+		expect(yield* shown()).toBe("Visible first");
+		yield* releaseRerun();
+		yield* displayed("Visible independent");
+		expect(yield* shown()).toBe("Visible independent");
+	},
+);
+
+comparedPostgres.it(
+	"restoring access pushes the original PostgreSQL value again after a denial clears the stored hash",
+	[],
+	function* ({ allowRead, commit, denied, denyRead, displayed, resultValues, shown }) {
+		expect(yield* shown()).toBe("Visible first");
+		yield* denyRead();
+		yield* commit(1, "Visible private");
+		yield* denied();
+		expect(yield* shown()).toBe("Read denied");
+
+		yield* allowRead();
+		yield* commit(1, "Visible first");
+		yield* displayed("Visible first");
+
+		yield* outcomes([
+			["restored screen", () => shown(), "Visible first"],
+			["delivered values", () => resultValues(), [[{ title: "Visible first" }], [{ title: "Visible first" }]]],
+		]);
+	},
+);

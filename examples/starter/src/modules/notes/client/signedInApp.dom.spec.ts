@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { signedInApp } from "#modules/notes/test-support/signedInApp.ts";
 
@@ -12,9 +11,9 @@ signedInApp.it("alice opens her notes signed in with the app's cookie session", 
 });
 
 signedInApp.it(
-	"alice hears her own list change and never hears bob's list key",
+	"alice sees her own pushed note without seeing bob's private note",
 	[],
-	function* ({ bobAddsNote, click, enter, heardKeys, listKey, settle, waitsForHint }) {
+	function* ({ bobAddsNote, click, enter, shownNotes, settle, waitsForHint }) {
 		yield* settle();
 		const hints = yield* waitsForHint();
 		yield* bobAddsNote("Private note");
@@ -24,9 +23,6 @@ signedInApp.it(
 		yield* hints.next;
 		yield* settle();
 
-		yield* outcomes([
-			["alice’s list key", heardKeys, expect.arrayContaining([listKey("alice")])],
-			["bob’s list key", heardKeys, expect.not.arrayContaining([listKey("bob")])],
-		]);
+		yield* outcomes([["alice’s notes", shownNotes, ["Shopping"]]]);
 	},
 );

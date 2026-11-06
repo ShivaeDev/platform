@@ -1,4 +1,5 @@
 import { Effect, Fiber, Predicate, Queue, Stream } from "effect";
+import type { LiveHint } from "@shivaedev/contract/live.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { answered, words } from "@shivaedev/test-story/server/answers.ts";
 
@@ -9,18 +10,22 @@ function keyWords(key: unknown) {
 	return Predicate.hasProperty(key, "id") ? String(key.id) : JSON.stringify(key);
 }
 
-export function hintWords(hint: QueryUpdate) {
+export function hintWords(hint: QueryUpdate | LiveHint) {
 	const name = words(hint._tag);
-	return "keys" in hint ? `${name} ${hint.keys.map(keyWords).join(" and ")}` : name;
+	return hint._tag === "Changed" ? `${name} ${hint.keys.map(keyWords).join(" and ")}` : name;
 }
 
-export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<QueryUpdate, E, R>, initialResults = 1) {
+export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<QueryUpdate | LiveHint, E, R>, initialResults = 1) {
 	const hints: string[] = [];
+	const values = new Map<number, unknown>();
 	const queue = yield* Queue.unbounded<string>();
 	const fiber = yield* stream.pipe(
 		Stream.runForEach((hint) =>
 			Effect.sync(() => {
 				hints.push(hintWords(hint));
+				if (hint._tag === "Result") {
+					values.set(hint.queryIndex, hint.value);
+				}
 			}).pipe(Effect.andThen(Queue.offer(queue, hintWords(hint)))),
 		),
 		answered,
@@ -32,6 +37,6 @@ export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Str
 			return yield* Effect.die(`The subscription opened with ${first} instead of a result or resync`);
 		}
 	}
-	return { ending: Fiber.join(fiber), hints, next: Queue.take(queue) };
+	return { ending: Fiber.join(fiber), hints, next: Queue.take(queue), values };
 });
 export type Feed = Effect.Success<ReturnType<typeof followHints>>;

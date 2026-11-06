@@ -10,7 +10,7 @@ function hintWords(hint: unknown) {
 export const originStream = Effect.fn("NativeOrigins.originStream")(function* (host: Host, origin: string, credential: string) {
 	const rpc = yield* client(host, { authorization: `Bearer ${credential}`, origin }, true);
 	const events = yield* Queue.unbounded<unknown>();
-	yield* rpc("native.$changes", { queries: [] }).pipe(
+	yield* rpc("native.$changes", { queries: [{ payload: undefined, query: "accounts" }] }).pipe(
 		Stream.runForEach((event) => Queue.offer(events, event)),
 		Effect.forkScoped,
 	);

@@ -10,7 +10,7 @@ export const queryHeadersStory = storyKit({
 	clock: "test",
 	*create() {
 		const engine = yield* queryHeadersEngine();
-		return { ...engine, views: [engine.api.hints.query()] };
+		return { ...engine, views: [engine.api.pushed.query()] };
 	},
 	inspect: ({ reads, subscriptions }) => ({ reads, subscriptions }),
 	name: "automatic query request headers",
@@ -42,12 +42,12 @@ export const queryHeadersStory = storyKit({
 	}),
 });
 
-export function watching(delivery: "hints" | "pushed") {
-	return queryHeadersStory.trait("views", `three ${delivery} queries read the same record with different headers`, (engine) => {
+export function watching() {
+	return queryHeadersStory.trait("views", "three pushed queries read the same record with different headers", (engine) => {
 		engine.views = [
-			engine.api[delivery].query(undefined, { headers: { "x-reader": "alice" } }),
-			engine.api[delivery].query(undefined, { headers: [["x-reader", "bob"]] }),
-			engine.api[delivery].query(),
+			engine.api.pushed.query(undefined, { headers: { "x-reader": "alice" } }),
+			engine.api.pushed.query(undefined, { headers: [["x-reader", "bob"]] }),
+			engine.api.pushed.query(),
 		];
 		for (const view of engine.views) {
 			engine.registry.mount(view);

@@ -87,16 +87,13 @@ liveSessionStory.it(
 );
 
 liveSessionStory.it(
-	"a binding under client.api.notes in a cyclic client receives live updates with the session coalescing window",
+	"a binding under client.api.notes in a cyclic client receives live updates through server push",
 	[],
-	function* ({ liveWindow, rename, shown }) {
+	function* ({ rename, shown }) {
 		expect(yield* shown()).toBe("First");
 
 		yield* rename("Changed through the nested binding");
 
-		yield* outcomes([
-			["shown", () => shown(), "Changed through the nested binding"],
-			["live window", () => liveWindow(), "500 millis"],
-		]);
+		yield* outcomes([["shown", () => shown(), "Changed through the nested binding"]]);
 	},
 );

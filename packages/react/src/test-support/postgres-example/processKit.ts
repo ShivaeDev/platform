@@ -12,7 +12,7 @@ export const processes = storyKit({
 	clock: "test",
 	create: () => createProcesses,
 	inspect: (engine) => ({
-		hints: Object.fromEntries([...engine.clients].map(([name, client]) => [name, client.hints.items])),
+		hints: Object.fromEntries([...engine.clients].map(([name, client]) => [name, client.results.items])),
 		logs: Object.fromEntries([...engine.servers].map(([name, server]) => [name, server.responses.items])),
 	}),
 	layer: makePostgresTestLayer({

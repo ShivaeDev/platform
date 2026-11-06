@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Context, Effect, Layer, Option, Predicate } from "effect";
+import { Context, Effect, Layer, Option, Predicate, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -81,6 +81,7 @@ export const readPolicyHost = storyKit({
 					Context.getUnsafe(services, Reactivity.Reactivity).invalidate(invalidationKeys([documents.item("alice"), documents.item("bob")])),
 				);
 			},
+			pushed: (viewer: string) => Effect.map(feed(viewer), (subscription) => Schema.decodeUnknownSync(Schema.String)(subscription.values.get(0))),
 			read: (boundary: "account.get" | "profile.get" | "optional.get", viewer: string | undefined, owner: string) => {
 				story.tell(`${viewerWords(viewer)} reads ${owner}'s document through ${boundary}`);
 				return answered(Effect.flatMap(client(viewer), (rpc) => rpc(boundary, { owner })));

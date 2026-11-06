@@ -30,7 +30,7 @@ for (const ending of ["empty", "defect"] as const) {
 
 			yield* outcomes([
 				["subscription openings", () => readout.subscriptionStates, ["answered", "closed"]],
-				["received hints", () => readout.hints, [{ _tag: "Resync" }]],
+				["received hints", () => readout.hints, [{ _tag: "Result", query: "get", queryIndex: 0, value: "First page" }]],
 			]);
 		},
 	);
@@ -65,7 +65,7 @@ readPage.it(
 		yield* waitForSubscriptions;
 
 		yield* outcomes([
-			["received hints", () => readout.hints, [{ _tag: "Resync" }]],
+			["received hints", () => readout.hints, [{ _tag: "Result", query: "get", queryIndex: 0, value: "First page" }]],
 			[
 				"subscription openings",
 				() => readout.subscriptions,
@@ -116,7 +116,7 @@ readPage.it(
 		yield* waitForSubscriptions;
 
 		yield* outcomes([
-			["counted reads", () => readout.readCount, before + 2],
+			["counted reads", () => readout.readCount, before + 1],
 			["opened sockets", () => readout.sockets, [socketUrl(), socketUrl()]],
 			["subscription openings", () => readout.subscriptionStates, ["answered", "answered"]],
 		]);
@@ -135,7 +135,7 @@ readPage.it(
 		yield* waitForSubscriptions;
 
 		yield* outcomes([
-			["counted reads", () => readout.readCount, before + 2],
+			["counted reads", () => readout.readCount, before + 1],
 			["opened sockets", () => readout.sockets, [socketUrl(), socketUrl(), socketUrl()]],
 		]);
 	},

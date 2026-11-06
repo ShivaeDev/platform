@@ -1,19 +1,15 @@
-import { Cause, Duration, Effect, Option, Queue, Schema, type Stream } from "effect";
+import { Cause, Effect, Option, Queue, Schema, type Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as Reactivity from "effect/reactivity/Reactivity";
 import { Key } from "@shivaedev/changes/keys.ts";
-import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "#clientKeys.ts";
+import { clientReadKeys, type KeyContext } from "#clientKeys.ts";
 import { liveAttempt } from "#liveAttempt.ts";
-import { invalidateLive } from "#liveInvalidation.ts";
-import { livePending } from "#livePending.ts";
 import { liveRetry } from "#liveRetry.ts";
-import type { SubscriptionHint } from "#queryUpdate.ts";
+import type { SubscriptionEvent } from "#queryUpdate.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
 import { retryOnChange } from "#retryOnChange.ts";
 
 export const LiveHint = Schema.Union([
-	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key), queryIndexes: Schema.optional(Schema.Array(Schema.Number)) }),
+	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key) }),
 	Schema.Struct({ _tag: Schema.Literal("Resync") }),
 ]);
 export type LiveHint = typeof LiveHint.Type;
@@ -24,127 +20,53 @@ export interface LiveStatus<E> {
 	readonly pending: number;
 }
 export interface LiveOptions<E, R> {
-	readonly coalesceWindow?: Duration.Input;
-	readonly initialResync?: boolean;
 	readonly keyContext?: KeyContext | undefined;
-	readonly reopenOnResume?: boolean;
 	readonly resume?: Atom.Atom<unknown>;
-	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
-	readonly retryDelay?: Duration.Input;
-	readonly retryKeys?: readonly Key[];
-	readonly stream: Stream.Stream<SubscriptionHint, E, R>;
+	readonly retryDelay?: import("effect").Duration.Input;
+	readonly retryKeys?: readonly (typeof Key.Type)[];
+	readonly stream: Stream.Stream<SubscriptionEvent, E, R>;
 }
 
-const MAX_PENDING = 256;
-
 export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeError>, options: LiveOptions<E, R>) {
-	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>(options.coalesceWindow ?? "20 millis"));
 	const paused = Atom.make(false);
 	const status = Atom.make<LiveStatus<E>>({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 	const connection = runtime
 		.atom((get) =>
 			Effect.gen(function* () {
 				get.mount(status);
+				get.mount(paused);
 				const resumed = yield* Queue.unbounded<void>();
-				const reactivity = yield* Reactivity.Reactivity;
-				const retryKeys = options.retryKeys ?? (typeof options.resyncKeys === "function" ? options.resyncKeys(get.registry) : options.resyncKeys);
-				yield* retryOnChange(status, clientReadKeys(retryKeys, options.keyContext), () => get.refreshSelf());
+				yield* retryOnChange(status, clientReadKeys(options.retryKeys ?? [], options.keyContext), () => get.refreshSelf());
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}
-				function flush() {
-					const queued = pending.take();
-					if (!get.once(paused)) {
-						invalidateLive(reactivity, queued, () => active && !get.once(paused));
-					}
-				}
-				const timer = runtime.fn((delay: Duration.Input) => Effect.andThen(Effect.sleep(delay), Effect.sync(flush)));
-				get.mount(timer);
-				const pending = livePending(
-					(window) => get.set(timer, window),
-					() => get.set(timer, Atom.Interrupt),
-				);
-				let active = true;
 				get.addFinalizer(() => {
-					active = false;
-					pending.clear();
 					if (get.registry.getNodes().has(status)) {
 						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 					}
 				});
-				function changed(changedKeys: readonly Key[]) {
-					const window = get.once(coalesceWindow);
-					const keys = clientInvalidationKeys(changedKeys, options.keyContext);
-					invalidateLive(reactivity, keys, () => active && !get.once(paused), window);
-					const delay = Duration.toMillis(Duration.fromInputUnsafe(window));
-					if (delay === 0) {
-						invalidateLive(reactivity, keys, () => active && !get.once(paused));
-						return;
-					}
-					pending.add(keys, window);
-				}
-				function resync() {
-					if (get.once(status).connection === "failed") {
-						return;
-					}
-					pending.clear();
-					if (get.once(paused)) {
-						update({ needsResync: true });
-						return;
-					}
-					const keys = typeof options.resyncKeys === "function" ? options.resyncKeys(get.registry) : options.resyncKeys;
-					reactivity.invalidateUnsafe(keys.map((key) => clientReadKeys([key], options.keyContext)[0] ?? ""));
-					update({ needsResync: false, pending: 0 });
-				}
-				// A subscription alone does not build the flag, so its first read would otherwise announce a change.
-				get.once(paused);
-				get.subscribe(paused, (value) => {
-					if (!value) {
-						resync();
-					}
-				});
-				function resume() {
-					const current = get.once(status).connection;
-					if (current === "failed") {
-						return;
-					}
-					resync();
-					if (options.reopenOnResume === true || current === "reconnecting") {
-						Queue.offerUnsafe(resumed, undefined);
-					}
-				}
 				if (options.resume !== undefined) {
-					// A subscription alone does not initialize a derived signal's dependencies.
 					get.once(options.resume);
-					get.subscribe(options.resume, resume);
+					get.subscribe(options.resume, () => {
+						if (!get.once(paused) && get.once(status).connection !== "failed") {
+							Queue.offerUnsafe(resumed, undefined);
+						}
+					});
 				}
 				const attempt = liveAttempt(options.stream, {
-					changed,
-					denied: (denial) => {
-						pending.clear();
-						update({ connection: "failed", failure: Option.some(Cause.fail(denial)), needsResync: true, pending: 0 });
-					},
-					live: () => update({ connection: "live", failure: Option.none() }),
+					delivered: () => update({ connection: "live", failure: Option.none(), needsResync: false, pending: 0 }),
+					denied: (denial) => update({ connection: "failed", failure: Option.some(Cause.fail(denial)), needsResync: true, pending: 0 }),
 					paused: () => get.once(paused),
-					queued: () => update({ needsResync: true, pending: Math.min(MAX_PENDING, get.once(status).pending + 1) }),
-					reconcile: (connected) => {
-						if (connected || options.initialResync !== false) {
-							resync();
-						} else {
-							update({ needsResync: false });
-						}
-					},
+					queued: () => update({ connection: "live", needsResync: true, pending: Math.min(256, get.once(status).pending + 1) }),
 				});
 				yield* liveRetry(
 					attempt,
-					(failure, retry) => {
-						update({ connection: retry ? "reconnecting" : "failed", failure, needsResync: true });
-					},
+					(failure, retry) => update({ connection: retry ? "reconnecting" : "failed", failure, needsResync: true }),
 					options.retryDelay,
 					resumed,
 				);
 			}),
 		)
 		.pipe(Atom.setIdleTTL(0));
-	return { coalesceWindow, connection, paused, status };
+	return { connection, paused, status };
 }

@@ -3,7 +3,6 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 
 const read = query("get", {
-	live: "rerun-and-compare",
 	readPolicy: () => Effect.succeed(true),
 	reads: () => [],
 	success: Schema.String,

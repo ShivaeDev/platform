@@ -1,11 +1,12 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { act } from "react";
-import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
 import { Notes, Read } from "./screen.tsx";
@@ -30,6 +31,7 @@ export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 	const client = connect(url, socketConstructor, runtime);
 	const separate: Awaited<ReturnType<typeof render>>[] = [];
 	let owner: AtomRegistry.AtomRegistry | undefined;
+	let separateOwner: AtomRegistry.AtomRegistry | undefined;
 	const view = await render(
 		<SessionBoundary
 			connect={(_session, registry) => {
@@ -58,12 +60,6 @@ export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 		},
 		client,
 		closePrimary: view.unmount,
-		coalesce: (id: number, millis: number) => {
-			if (owner === undefined) {
-				throw new Error("The session registry is not mounted");
-			}
-			owner.set(queryCoalesceWindow((id === 1 ? client.api : client.preview).get.query({ id })), millis);
-		},
 		drop: async () => {
 			await act(() => {
 				for (const socket of sockets) {
@@ -71,10 +67,30 @@ export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 				}
 			});
 		},
+		nextResult: (id: number, container: HTMLElement = view.container) => {
+			const registry = container === view.container ? owner : separateOwner;
+			if (registry === undefined) {
+				throw new Error("The session registry is not mounted");
+			}
+			const atom = (id === 1 ? client.api : client.preview).get.query({ id });
+			const signals = querySignals(atom);
+			const before = registry.get(signals).completed;
+			return Effect.runPromise(
+				until(AtomRegistry.toStream(registry, signals), ({ completed }) => completed > before, { name: "pushed query result" }),
+			);
+		},
 		openSeparate: async () => {
 			separate.push(
 				await render(
-					<SessionBoundary connect={() => client} identify={(session) => session} recheck={() => undefined} session="alice">
+					<SessionBoundary
+						connect={(_session, registry) => {
+							separateOwner = registry;
+							return client;
+						}}
+						identify={(session) => session}
+						recheck={() => undefined}
+						session="alice"
+					>
 						{() => <Read client={client} id={2} />}
 					</SessionBoundary>,
 				),

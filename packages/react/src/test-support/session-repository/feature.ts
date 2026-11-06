@@ -14,18 +14,15 @@ export class ReadAccess extends Context.Service<ReadAccess, { readonly allowed: 
 	"@shivaedev/react/test/SessionRepositoryReadAccess",
 ) {}
 
-function get<const TName extends string>(name: TName, live?: "rerun-and-compare") {
+function get<const TName extends string>(name: TName) {
 	return query(name, {
-		live,
 		payload: { id: Schema.Number },
 		readPolicy: (_input, viewer) => Effect.map(ReadAccess, ({ allowed }) => Option.exists(viewer, ({ id }) => allowed.has(id))),
 		reads: ({ id }) => [notes.item(id)],
 		success: Schema.String,
 	});
 }
-export const Api = contract("sessionNotes", { keyScope: "session", queries: [get("get"), get("compared", "rerun-and-compare")] }).middleware(
-	Authenticated,
-);
+export const Api = contract("sessionNotes", { keyScope: "session", queries: [get("get"), get("compared")] }).middleware(Authenticated);
 export const repository = makeRepository(Note, { collection: notes, idColumn: "id", spanPrefix: "SessionNotes", tableName: notes.name });
 export const migrations = {
 	loader: Migrator.fromRecord({

@@ -15,15 +15,15 @@ memoryStory.it("makeClient renames a note over the in-memory protocol and reads 
 });
 
 memoryStory.it(
-	"an in-memory live subscription receives a changed hint after its initial resync",
+	"an in-memory live subscription receives pushed values after its initial result",
 	[memoryListening(1)],
 	function* ({ hints, nextHint, rename }) {
-		expect(yield* hints(1)).toEqual(["resync"]);
+		expect(yield* hints(1)).toEqual(["note 1 titled One"]);
 
 		yield* rename(1, "Uno");
 		yield* nextHint(1);
 
-		expect(yield* hints(1)).toEqual(["resync", "changed notes 1"]);
+		expect(yield* hints(1)).toEqual(["note 1 titled One", "note 1 titled Uno"]);
 	},
 );
 
@@ -57,7 +57,7 @@ memoryStory.it(
 
 		yield* outcomes([
 			["remaining server streams", () => openSubscriptions(), "one stream open"],
-			["remaining subscriber's hints", () => hints(2), ["resync", "changed notes 2"]],
+			["remaining subscriber's hints", () => hints(2), ["note 2 titled Two", "note 2 titled Deux"]],
 		]);
 	},
 );

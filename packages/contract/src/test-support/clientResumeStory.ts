@@ -14,7 +14,10 @@ export const clientResumeStory = storyKit({
 		const native = syntheticNative();
 		const browser = syntheticWindow();
 		const engine = yield* queryHeadersEngine({ resume: native.source, resumeWindow: browser.window });
-		const views = [engine.api.hints.query(), engine.api.pushed.query()];
+		const views = [
+			engine.api.pushed.query(undefined, { headers: { "x-slot": "first" } }),
+			engine.api.pushed.query(undefined, { headers: { "x-slot": "second" } }),
+		];
 		return { ...engine, browser, native, views };
 	},
 	inspect: ({ reads, subscriptions }) => ({ reads, subscriptions }),
@@ -54,7 +57,7 @@ export const clientResumeStory = storyKit({
 	}),
 });
 
-export const watching = clientResumeStory.trait("views", "the client watches an ordinary query and a pushed query", function* (engine) {
+export const watching = clientResumeStory.trait("views", "the client watches two pushed queries", function* (engine) {
 	for (const view of engine.views) {
 		engine.registry.mount(view);
 		yield* settled(engine.registry, view);
