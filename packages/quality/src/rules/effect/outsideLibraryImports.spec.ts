@@ -19,7 +19,7 @@ for (const name of ["better-auth", "pg-boss", "@tanstack/react-router", "vitest"
 					{
 						file: "src/core.ts",
 						line: 2,
-						message: `Imports outside library "${name}" as a value. Move the integration into an adapters/ folder and expose Effect values; use import type for types.`,
+						message: `Imports outside library "${name}" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.`,
 					},
 				]);
 			},

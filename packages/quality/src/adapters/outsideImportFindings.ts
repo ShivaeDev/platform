@@ -72,7 +72,7 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 			{
 				file: site.from,
 				line: site.line,
-				message: `Imports outside library "${site.specifier}" as a value. Move the integration into an adapters/ folder and expose Effect values; use import type for types.`,
+				message: `Imports outside library "${site.specifier}" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.`,
 			},
 		];
 	});

@@ -81,7 +81,7 @@ ruleStory.it(
 		).toEqual(
 			["axios", "better-auth/react", "@tanstack/react-query", "zustand", "lucide-react-extra", "node:fs/promises"].map(
 				(name, index) =>
-					`src/client/integrations.ts:${index + 1} Imports outside library "${name}" as a value. Move the integration into an adapters/ folder and expose Effect values; use import type for types.`,
+					`src/client/integrations.ts:${index + 1} Imports outside library "${name}" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.`,
 			),
 		);
 	},

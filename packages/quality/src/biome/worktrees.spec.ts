@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
-import { hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
+import { gitExcludes, hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
@@ -14,6 +14,29 @@ const IGNORING_EVERY_FILE = {
 	content: '{ "extends": ["@shivaedev/quality/biome/preset.json"], "files": { "includes": ["**", "!**"] } }\n',
 	path: "biome.json",
 };
+
+checkoutStory.it(
+	"the pre-commit hook in a linked worktree leaves out files ignored by that worktree",
+	[
+		withoutConfig(),
+		projectIn("app"),
+		gitExcludes("app/src/generated/\n"),
+		linkedWorktree("ignored", {
+			files: [
+				{ content: "node_modules/\nsrc/cache/\n", path: ".gitignore" },
+				{ ...MESSY, path: "src/cache/total.ts" },
+				{ ...MESSY, path: "src/generated/total.ts" },
+			],
+		}),
+		hookInstalled(),
+	],
+	function* ({ commitOutcome, commitsIn }) {
+		yield* commitsIn("ignored", "Checked");
+
+		yield* assertThat(yield* commitOutcome(), (actual) => actual.toBe("committed"));
+	},
+	CLI_TIMEOUT,
+);
 
 for (const [where, layout] of [
 	["at the repository root", [withoutConfig()]],

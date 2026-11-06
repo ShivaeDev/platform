@@ -1,8 +1,9 @@
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
 import { exceptionConfig } from "#biome/exceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
+import { ignoredPaths } from "#inventory/trackedPaths.ts";
 import { browserOverrides } from "./browserTargets.ts";
 import { parseConfig, relocateConfig } from "./relocateConfig.ts";
 
@@ -14,7 +15,9 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 ) {
 	const { includes, overrides } = exceptionConfig(declarations);
 	const targets = yield* browserOverrides(root);
-	if (includes.length === 0 && overrides.length === 0 && nonEffectFolders.length === 0 && targets.length === 0) {
+	const gitIgnored = (yield* ignoredPaths(root)) ?? [];
+	const gitIgnores = gitIgnored.map((file) => `!${relative(root, file).replaceAll("\\", "/")}`);
+	if (includes.length === 0 && overrides.length === 0 && nonEffectFolders.length === 0 && targets.length === 0 && gitIgnores.length === 0) {
 		return yield* run([]);
 	}
 	const { config, text } = yield* Effect.gen(function* () {
@@ -40,7 +43,10 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 	// Biome also matches a wildcard-led glob such as `!**/.worktrees` against the folders above the root, which ignores a whole linked worktree.
 	const generated = {
 		...own,
-		files: { ...files, includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), "!.worktrees", "!.quality-biome-*"] },
+		files: {
+			...files,
+			includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), ...gitIgnores, "!.worktrees", "!.quality-biome-*"],
+		},
 		overrides: [...previousOverrides, ...overrides, ...targets],
 	};
 	const path = yield* relocateConfig(root, join(root, config), generated, nonEffectFolders);
