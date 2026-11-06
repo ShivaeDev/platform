@@ -1,13 +1,13 @@
 import { expect } from "vitest";
 import { activityPage } from "#test/activityPage.ts";
 
-activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, find }) {
+activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, findText }) {
 	expect(yield* shown()).toBe("First page");
 	yield* enter("input", "Saved page");
 
 	yield* click({ name: "Save", role: "button" });
 
-	const output = yield* find("output");
+	const output = yield* findText("Saved page");
 	expect(output.textContent).toBe("Saved page");
 });
 
@@ -30,7 +30,7 @@ activityPage.it(
 activityPage.it(
 	"the driver stays unsettled while a live refresh is running",
 	[],
-	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, startSettling, releaseRefresh, activity }) {
+	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, startWaitingForRefresh, releaseRefresh, activity }) {
 		expect(yield* shown()).toBe("First page");
 		yield* holdRefresh();
 		const hint = yield* startHintWait();
@@ -38,7 +38,7 @@ activityPage.it(
 		yield* hint.finish;
 		yield* refreshStarted();
 
-		const settling = yield* startSettling();
+		const settling = yield* startWaitingForRefresh();
 		expect(yield* settling.state).toBe("waiting");
 		expect((yield* activity()).refreshingAtoms).toBeGreaterThan(0);
 		yield* releaseRefresh();

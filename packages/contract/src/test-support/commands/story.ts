@@ -3,6 +3,7 @@ import { RpcClientError } from "effect/rpc/RpcClientError";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { isClientSettled } from "#clientActivity.ts";
 import { commandEngine } from "./engine.ts";
 
 export const commands = storyKit({
@@ -41,7 +42,7 @@ export const commands = storyKit({
 					return yield* Effect.die("Issue a command first");
 				}
 				yield* Fiber.interrupt(fiber);
-				yield* until(engine.connection().activity, (state) => state.connectionStatus !== "waiting-for-connection", {
+				yield* until(engine.connection().activity, (state) => state.connectionStatus !== "waiting-for-connection" && isClientSettled(state), {
 					name: "cancelled command released",
 				});
 			}),
@@ -73,6 +74,7 @@ export const commands = storyKit({
 				engine.browser.fire(source);
 			}
 		},
+		settlement: () => Effect.map(engine.connection().activity.current, (state) => (isClientSettled(state) ? "settled" : "pending")),
 		silence: () => {
 			story.tell("the network silently stops delivering frames on the open socket");
 			return engine.host.silence;

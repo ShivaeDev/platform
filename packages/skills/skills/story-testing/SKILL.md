@@ -105,7 +105,9 @@ A story waits on the engine's own signals: a queue the engine offers to, a Defer
 
 Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date.now()`, real timers, `eventually` and fake timers in test code are forbidden. Drive elapsed time through the kit's [controlled clock](https://github.com/ShivaeDev/platform/blob/main/packages/test-story/README.md#waiting-for-a-timer). If a kit needs an outside engine's time, it drives that engine's time too. Advancing Effect's clock alone does not advance another runtime, database or simulation clock. Keep these clocks under the kit's control rather than waiting for wall time.
 
-Screen settling observes the whole document, so portalled sheets and dialogs settle without extra kit setup.
+For contract clients, wire `activityScreenSignal(clientActivity(client))` from `@shivaedev/contract/clientActivity.ts` into the screen driver's `activity` option. Screen stories settle on commands in flight and each mounted query's first result. Contract supplies the query/command split; never list queries by name as settling exceptions. An open live query that has delivered is normal screen state, including while it awaits a later refresh. To wait for its next change, start `nextLiveHint()` before the outside write, then settle through the refresh with `activityScreenSignal(activity, isClientIdle)`. Use `findText()` when the expectation is a particular changed value.
+
+Screen settling also observes the whole document, so portalled sheets and dialogs settle without extra kit setup.
 
 A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.
 

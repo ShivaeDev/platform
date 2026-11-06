@@ -1,7 +1,7 @@
 import { Clock, Effect, Option } from "effect";
 import { act } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -35,7 +35,7 @@ const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	);
 	const driver = screenDriver({
 		act,
-		pending: () => !isClientIdle(Effect.runSync(activity.current)) || view.container.querySelector('[role="status"]') !== null,
+		pending: () => !isClientSettled(Effect.runSync(activity.current)) || view.container.querySelector('[role="status"]') !== null,
 		root: view.container,
 		tell: () => undefined,
 	});
