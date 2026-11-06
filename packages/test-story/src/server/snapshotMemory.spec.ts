@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "#server/outcomes.ts";
+import { SNAPSHOT_MEMORY_STORIES } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 storyRunner.it("a told line lets a released snapshot be collected during the story", [], function* ({ outcome, runStory }) {
@@ -15,6 +16,6 @@ storyRunner.it("a failure without its own stack points at the last told story li
 
 	yield* outcomes([
 		["failure message", () => message(), "the snapshot is unavailable"],
-		["last told story line", () => failedAt(), "at src/test-support/snapshotMemoryStories.ts:15:2"],
+		["last told story line", () => failedAt(), `at ${SNAPSHOT_MEMORY_STORIES}:15:2`],
 	]);
 });
