@@ -10,7 +10,7 @@ screens.it(
 		expect(yield* shownNotes()).toEqual(["Alice's saved note"]);
 
 		yield* switchSession("bob");
-		yield* settleQuery("list");
+		yield* settleQuery();
 		yield* settle();
 
 		yield* outcomes([

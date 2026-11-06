@@ -48,7 +48,7 @@ export const jobsScreen = storyKit({
 				const target = section === "Job list" ? '[role="tabpanel"]' : `section[aria-label="${section}"]`;
 				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle());
 			},
-			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
+			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
 			sendMail: (id: number) =>
 				Effect.gen(function* () {
