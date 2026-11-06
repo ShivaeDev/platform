@@ -3,7 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, Exit, FileSystem } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { MIGRATIONS_DIRECTORY } from "#migrationConvention.ts";
+import { MIGRATIONS_DIRECTORY } from "#migration.ts";
 import { migratePostgres } from "#migrations.ts";
 import { migrationsFromDirectory } from "#migrationsFromDirectory.ts";
 import { onPostgres } from "./engines.ts";

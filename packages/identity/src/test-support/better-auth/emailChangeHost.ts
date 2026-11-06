@@ -11,7 +11,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
-import { PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { PASSWORD_HASH } from "#test/passwords.ts";
 
 export const emailChangeHost = Effect.fnUntraced(function* () {
 	yield* postgresMigration;

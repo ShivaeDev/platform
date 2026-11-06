@@ -1,4 +1,4 @@
-import { AMBIENT_RUNTIME_CASES, ambientFiles } from "#test/ambientRuntimeFiles.ts";
+import { AMBIENT_RUNTIME_CASES, ambientFiles } from "#test/ambientFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 

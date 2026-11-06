@@ -1,7 +1,8 @@
 import { Deferred, Effect, Queue } from "effect";
 import type { LineProcess } from "#adapters/process.ts";
 import { PINNED_CLI_VERSION } from "#adapters/protocol.ts";
-import { children, models } from "#test/peerCatalog.ts";
+import { children } from "#test/children.ts";
+import { models } from "#test/models.ts";
 
 interface Frame {
 	error?: unknown;

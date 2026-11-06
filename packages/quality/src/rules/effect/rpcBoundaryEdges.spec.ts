@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { rpcBoundaryImports, rpcBoundaryResolves } from "#test/rpcBoundaryFiles.ts";
+import { rpcBoundaryImports, rpcBoundaryResolves } from "#test/rpcBoundaryResolves.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { rpcBoundary } from "./rpcBoundary.ts";
 

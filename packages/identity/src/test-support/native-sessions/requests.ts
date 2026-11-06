@@ -2,7 +2,7 @@ import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { CURRENT_PASSWORD } from "#test/passwordCredential.ts";
+import { CURRENT_PASSWORD } from "#test/passwords.ts";
 import { Api } from "./api.ts";
 import { type Host, NATIVE_ORIGIN } from "./host.ts";
 

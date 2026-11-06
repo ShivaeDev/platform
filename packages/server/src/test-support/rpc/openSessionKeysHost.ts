@@ -22,7 +22,7 @@ import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appDatabase.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/permissions.ts";
-import type { Provider } from "./provider.ts";
+import type { Provider } from "./createProvider.ts";
 import { Api, CustomAuthenticated, handlers } from "./sessionKeysApi.ts";
 
 const Wire = RpcGroup.make(

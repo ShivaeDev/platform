@@ -1,5 +1,5 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { consumerPatterns, outsideConsumerPatterns } from "#test/consumerPatterns.ts";
+import { consumerPatterns, outsideConsumerPatterns } from "#test/outsideConsumerPatterns.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";

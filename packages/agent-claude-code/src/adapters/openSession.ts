@@ -7,10 +7,10 @@ import type { Input, StartRequest } from "@shivaedev/agent/run.ts";
 import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
 import { consumeSession } from "#adapters/consumeSession.ts";
 import { InputQueue } from "#adapters/InputQueue.ts";
+import { makeToolServer } from "#adapters/makeToolServer.ts";
 import { repairSession } from "#adapters/repairSession.ts";
 import { type Delivery, openSessionLanes } from "#adapters/sessionLanes.ts";
 import { sessionOptions } from "#adapters/sessionOptions.ts";
-import { makeToolServer } from "#adapters/toolServer.ts";
 import type { ClaudeOptions } from "#options.ts";
 import type { SessionConnection } from "#SessionConnection.ts";
 

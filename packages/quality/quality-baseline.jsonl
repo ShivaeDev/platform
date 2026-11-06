@@ -50,7 +50,7 @@
 {"path":"packages/quality/src/manifests/entryPoints.ts","rule":"effect/boundary","count":4}
 {"path":"packages/quality/src/manifests/sorted.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/quality/src/naming/androidResources.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/naming/migrationFile.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/quality/src/naming/isMigrationFile.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/naming/nativeNames.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/naming/packageLayout.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/naming/testName.ts","rule":"effect/adapter-imports","count":1}

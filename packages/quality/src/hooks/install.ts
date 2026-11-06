@@ -1,6 +1,6 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, FileSystem, Path } from "effect";
-import { CONFIG_FILE } from "#config/constants.ts";
+import { CONFIG_FILE } from "#config/file.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";

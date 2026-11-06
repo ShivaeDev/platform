@@ -18,7 +18,7 @@ import { preCommitHook } from "#hooks/preCommit.ts";
 import { setupHook } from "#hooks/setup.ts";
 import { hookStatus } from "#hooks/status.ts";
 import { uninstallHook } from "#hooks/uninstall.ts";
-import { USAGE } from "./messages.ts";
+import { USAGE } from "./usage.ts";
 
 export interface Invocation {
 	readonly cwd: string;

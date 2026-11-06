@@ -8,7 +8,7 @@ import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
 import { statusWords } from "./outcomeWords.ts";
 import { QueryFeedbackScreen } from "./QueryFeedbackScreen.tsx";
-import { REPORTS_KEY } from "./ReportsKey.ts";
+import { REPORTS_KEY } from "./reportsKey.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
