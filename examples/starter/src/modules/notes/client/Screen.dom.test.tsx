@@ -82,11 +82,11 @@ for (const [count, shown] of [
 	screens.it(
 		`a live hint for a finished count of ${count} shows "${shown}" beside the note`,
 		[listedNote(), notesRoute()],
-		function* ({ finishWordCount, settle, wordCounts }) {
+		function* ({ finishWordCount, settleLiveChange, wordCounts }) {
 			expect(yield* wordCounts()).toEqual(["First note: Counting words…"]);
 
 			yield* finishWordCount(count);
-			yield* settle();
+			yield* settleLiveChange();
 
 			expect(yield* wordCounts()).toEqual([`First note: ${shown}`]);
 		},

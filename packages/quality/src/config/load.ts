@@ -7,8 +7,8 @@ import type { SetupFailure } from "#failure.ts";
 import type { InventoryScope } from "#inventory/collect.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
 import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
-import { DEFAULT_EXTENSIONS } from "./constants.ts";
 import { type ConfigInput, decodeConfig } from "./decode.ts";
+import { DEFAULT_EXTENSIONS } from "./defaultExtensions.ts";
 import { type ResolvedRules, resolveRules } from "./resolve.ts";
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {

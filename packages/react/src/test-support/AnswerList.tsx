@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
-import { answerValues, type makeAnswerForm } from "./answerForm.ts";
+import { answerValues, type makeAnswerForm } from "./makeAnswerForm.ts";
 
 type AnswerForm = ReturnType<typeof makeAnswerForm>;
 function Answer({ form, id, index }: { readonly form: AnswerForm; readonly id: string; readonly index: number }) {

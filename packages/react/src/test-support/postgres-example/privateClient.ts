@@ -2,7 +2,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, ManagedRuntime, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import type { LiveHint } from "@shivaedev/contract/live.ts";
+import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { Preferences } from "./privateFeature.ts";
 import { recorded } from "./recorded.ts";
 
@@ -16,7 +16,7 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 	});
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);
-	const delivered = recorded<{ readonly hint: LiveHint; readonly title: string; readonly list: readonly string[] }>();
+	const delivered = recorded<{ readonly hint: QueryUpdate; readonly title: string; readonly list: readonly string[] }>();
 	runtime.runFork(
 		client("preferences.$changes", {
 			queries: [

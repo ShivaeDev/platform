@@ -1,7 +1,8 @@
 import { posix } from "node:path";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { packageTests } from "#naming/packageTests.ts";
 import { ENVIRONMENTS, type TestName, testName } from "#naming/testName.ts";
 import { CAMEL } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
@@ -67,22 +68,28 @@ function environmentMessage(file: string, name: TestName, source: SourceFile): s
 	return `"${file}" uses the DOM, so it is ${name.stem}.dom.${name.kind}${name.extension}${unit} and runs in the dom project.`;
 }
 
-function findingsOf(source: SourceFile, siblings: ReadonlySet<string>): readonly Finding[] {
+function findingsOf(source: SourceFile, siblings: ReadonlySet<string>, sourcePath: (path: string) => string | undefined): readonly Finding[] {
 	const name = testName(source.path);
 	if (name === undefined) {
 		return [];
 	}
 	const file = posix.basename(source.path);
-	const messages = [suffixMessage(file, name), placeMessage(file, name, siblings), environmentMessage(file, name, source)];
+	const messages = [
+		suffixMessage(file, name),
+		placeMessage(file, { ...name, folder: posix.dirname(sourcePath(source.path) ?? source.path) }, siblings),
+		environmentMessage(file, name, source),
+	];
 	return messages.flatMap((message) => (message === undefined ? [] : [{ file: source.path, message }]));
 }
 
 export const testsFollow = defineRule({
-	check: ({ files, options, sources }) => {
+	check: Effect.fn("Tests.check")(function* (inputs) {
+		const { files, options, sources } = inputs;
+		const trees = yield* packageTests(inputs);
 		const suites = ignorePatterns([...globPatterns(options.suites)]);
 		const siblings = siblingsIn(files);
-		return sources.filter((source) => !suites.ignores(source.path)).flatMap((source) => findingsOf(source, siblings));
-	},
+		return sources.filter((source) => !suites.ignores(source.path)).flatMap((source) => findingsOf(source, siblings, trees.sourcePath));
+	}),
 	description:
 		"A .test file follows the file beside it, a .spec names a behaviour of its folder, the only suffix is one modifier of dom, heavy, slow, typecheck and unit, and a test that uses the DOM is a .dom test.",
 	id: "tests/follow",

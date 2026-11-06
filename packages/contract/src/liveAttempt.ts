@@ -3,6 +3,14 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { SubscriptionHint } from "#queryUpdate.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
 
+function deliveredResult(hint: SubscriptionHint): boolean {
+	return hint._tag === "Changed" && hint.keys.length === 0 && hint.queryIndexes?.length === 0;
+}
+
+function needsRead(hint: SubscriptionHint, connected: boolean): boolean {
+	return connected && !deliveredResult(hint);
+}
+
 export function liveAttempt<E, R>(
 	stream: Stream.Stream<SubscriptionHint, E, R>,
 	observe: {
@@ -29,8 +37,8 @@ export function liveAttempt<E, R>(
 					observe.live();
 					if (observe.paused()) {
 						observe.queued();
-					} else if (first || hint._tag === "Resync") {
-						observe.reconcile(connected);
+					} else if (first || hint._tag === "Resync" || deliveredResult(hint)) {
+						observe.reconcile(needsRead(hint, connected));
 					} else {
 						observe.changed(hint.keys);
 					}

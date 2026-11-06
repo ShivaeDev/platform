@@ -64,12 +64,12 @@ rerunStory.it("a Resync acknowledges its completed rerun without sending an unch
 
 rerunStory.it("a query without the option refetches after a matching change", [], function* ({ clientReads, openHinted, rename, untilHinted }) {
 	yield* openHinted();
-	expect(yield* clientReads()).toEqual(["rerun.hinted"]);
+	expect(yield* clientReads()).toEqual([]);
 
 	yield* rename(3n, "One more");
 	yield* untilHinted("One more");
 
-	expect(yield* clientReads()).toEqual(["rerun.hinted", "rerun.hinted"]);
+	expect(yield* clientReads()).toEqual(["rerun.hinted"]);
 });
 
 rerunStory.it(
@@ -91,7 +91,7 @@ rerunStory.it(
 	function* ({ mixedArrivals, rename, untilMixedHint }) {
 		const initial = [
 			{ _tag: "Result", query: "compare", queryIndex: 0, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
-			{ _tag: "Resync" },
+			{ _tag: "Result", query: "hinted", queryIndex: 1, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
 		];
 		expect(yield* mixedArrivals()).toEqual(initial);
 

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { batchVerb } from "./batchVerb.ts";
 import { type Body, effectOf } from "./body.ts";
 import { captureVerbs } from "./captureVerbs.ts";
-import { databaseActions } from "./databaseVerbs.ts";
+import { databaseActions } from "./databaseActions.ts";
 import { driverVerbs } from "./driverVerbs.ts";
 import type { Engine } from "./engine.ts";
 import { observationVerbs } from "./observationVerbs.ts";

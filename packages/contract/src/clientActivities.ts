@@ -12,40 +12,56 @@ export const clientActivities = new WeakMap<object, ActivityTracker>();
 export function makeActivity(factory: Atom.RuntimeFactory) {
 	const { activity, change, hold, setConnection } = activityState();
 	const connection = clientConnection(factory, setConnection, activity);
-	function begin(key: "rpcCalls" | "liveInvalidations") {
+	function begin(key: "rpcCalls" | "liveInvalidations" | "commands") {
 		change(key, 1);
 		return () => change(key, -1);
 	}
-	function track<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	function track<A, E, R>(effect: Effect.Effect<A, E, R>, command = false) {
 		return Effect.acquireUseRelease(
-			Effect.sync(() => begin("rpcCalls")),
+			Effect.sync(() => {
+				const endCall = begin("rpcCalls");
+				const endCommand = command ? begin("commands") : undefined;
+				return () => {
+					endCall();
+					endCommand?.();
+				};
+			}),
 			() => effect,
 			(end) => Effect.sync(end),
 		);
+	}
+	function counter(key: "initialQueries" | "refreshingAtoms") {
+		let pending = false;
+		function set(next: boolean) {
+			if (pending !== next) {
+				pending = next;
+				change(key, next ? 1 : -1);
+			}
+		}
+		return { release: () => set(false), set };
 	}
 	function watch<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) {
 		const watched = wrapAtom(atom, (get) => {
 			get.mount(connection.status);
 			get.once(queryCoalesceWindow(watched));
 			get.subscribe(queryCoalesceWindow(watched), (duration) => get.set(queryCoalesceWindow(atom), duration), { immediate: true });
-			let busy = false;
+			const refreshing = counter("refreshingAtoms");
+			const initial = counter("initialQueries");
+			let received = false;
 			let active = true;
 			let published = false;
 			function observe(result: AsyncResult.AsyncResult<A, E>) {
 				if (!active) {
 					return;
 				}
-				const next = result.waiting || AsyncResult.isInitial(result);
-				if (busy !== next) {
-					busy = next;
-					change("refreshingAtoms", next ? 1 : -1);
-				}
+				received ||= !AsyncResult.isInitial(result);
+				initial.set(!received);
+				refreshing.set(result.waiting || AsyncResult.isInitial(result));
 			}
 			get.addFinalizer(() => {
 				active = false;
-				if (busy) {
-					change("refreshingAtoms", -1);
-				}
+				refreshing.release();
+				initial.release();
 			});
 			function publish(result: AsyncResult.AsyncResult<A, E>) {
 				published = true;
@@ -72,6 +88,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 					() => effect,
 					(end) => Effect.sync(end),
 				),
+				true,
 			),
 		queued: () => begin("liveInvalidations"),
 		statuses: connection.statuses,

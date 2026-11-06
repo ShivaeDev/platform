@@ -5,8 +5,8 @@ import type { Access } from "./Access.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { describeCopy, describeJob, firstPage, idOf, nameCopies, named, nameOf, nextPage, type Page, refused, sourceOf, views } from "./jobsNames.ts";
 import { Mail, Sync } from "./jobsPages.ts";
-import { Scheduled } from "./Scheduled.ts";
 import { ScheduledWorker } from "./ScheduledWorker.ts";
+import { Scheduled } from "./scheduled.ts";
 
 export type JobsView = keyof ReturnType<typeof views>;
 

@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { EffortLevel, Options, SessionStore } from "@anthropic-ai/claude-agent-sdk";
 import type { StartRequest } from "@shivaedev/agent/run.ts";
-import type { makeToolServer } from "#adapters/toolServer.ts";
-import { TOOL_SERVER_NAME } from "#adapters/toolServer.ts";
+import type { makeToolServer } from "#adapters/makeToolServer.ts";
+import { TOOL_SERVER_NAME } from "#adapters/makeToolServer.ts";
 import type { ClaudeOptions } from "#options.ts";
 
 function harness(config: ClaudeOptions): Partial<Options> {

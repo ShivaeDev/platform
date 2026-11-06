@@ -20,7 +20,7 @@ export function bundler() {
 			path: "apps/desktop/script/adapters/bundler.ts",
 		},
 		{ content: 'import { launch } from "./launch.ts"; export const program = launch;', path: "apps/desktop/src/main.ts" },
-		{ content: "export const launch = 1; export const abandonedExport = 2;", path: "apps/desktop/src/launch.ts" },
+		{ content: "export function launch() { return 1; } export const abandonedExport = 2;", path: "apps/desktop/src/launch.ts" },
 		{ content: 'export const bridge = "desktop";', path: "apps/desktop/src/adapters/preload.ts" },
 		{ content: "export const unused = 1;", path: "apps/desktop/src/abandoned.ts" },
 		{ content: 'export const notes = "src/mentioned.ts";', path: "apps/desktop/script/notes.ts" },

@@ -1,5 +1,5 @@
 import { Console, Effect, FileSystem, Path } from "effect";
-import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migrationConvention.ts";
+import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migration.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { GENERATION_FILE } from "#generation.ts";
 import { resourceFiles } from "#resource/files.ts";

@@ -41,7 +41,7 @@ export const openPrivateCluster = Effect.fn("PrivateSessions.openPrivateCluster"
 		);
 		engine.privateClients.set(name, client);
 	}
-	yield* Effect.promise(() => Promise.all([...engine.privateClients.values()].map((client) => client.delivered.when((items) => items.length > 0))));
+	yield* Effect.promise(() => Promise.all([...engine.privateClients.values()].map((client) => client.delivered.when((items) => items.length >= 2))));
 	for (const [name, client] of engine.privateClients) {
 		engine.marks.set(name, client.delivered.items.length);
 	}

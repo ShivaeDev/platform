@@ -78,13 +78,15 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(reactivity))));
 	const registration = registerAdmin(adminRegistry(Page), { users: usersHandlers(Page) });
-	const handlers = Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(
-		Layer.provide(Layer.succeed(LiveServer, live)),
-		Layer.provide(betterAuthUserDirectory(Access, authOptions)),
-		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
-		Layer.provide(logger),
-		Layer.provide(reactivity),
-	);
+	const handlers = hostChanges(registration.group)
+		.pipe(Layer.provideMerge(registration.handlers))
+		.pipe(
+			Layer.provide(Layer.succeed(LiveServer, live)),
+			Layer.provide(betterAuthUserDirectory(Access, authOptions)),
+			Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
+			Layer.provide(logger),
+			Layer.provide(reactivity),
+		);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Profile)),

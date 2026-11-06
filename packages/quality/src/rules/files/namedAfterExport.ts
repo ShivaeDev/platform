@@ -7,11 +7,13 @@ import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { programmaticEntries } from "#inventory/programmaticEntries.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
+import { knownDataExports } from "#naming/adapters/plainData.ts";
+import { constantModule } from "#naming/constantModule.ts";
 import { exportFits } from "#naming/exportFits.ts";
+import { isMigrationFile } from "#naming/isMigrationFile.ts";
 import { mainExport } from "#naming/mainExport.ts";
-import { isMigrationFile } from "#naming/migrationFile.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
-import { ownDeclarations, ownExports } from "#naming/ownExports.ts";
+import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
 import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
@@ -45,9 +47,24 @@ function repeated(stem: string, folders: readonly string[]): string | undefined 
 function nameFinding(file: SourceFile, stem: string, folders: readonly string[]): string | undefined {
 	const source = parse(file);
 	const exports = source === undefined ? [] : ownExports(source);
-	const constants = source === undefined ? [] : ownDeclarations(source).filter((entry) => entry.constant);
-	if (constants.some((entry) => exportFits(entry.name, stem, folders))) {
-		return undefined;
+	const constants = exports.filter((entry) => entry.kind === "value" && entry.constant);
+	if (
+		source !== undefined
+		&& constants.length > 0
+		&& exports.every((entry) => entry.constant)
+		&& knownDataExports(
+			source,
+			exports.map((entry) => entry.name),
+		)
+	) {
+		return constantModule(stem, constants);
+	}
+	const remaining = exports.filter((entry) => entry.kind === "value" && !entry.constant);
+	const main = constants.length > 0 && remaining.length === 1 ? remaining[0] : undefined;
+	if (main !== undefined) {
+		return exportFits(main.name, stem, folders)
+			? undefined
+			: `"${stem}" does not name its export ${main.name}. ${SHAPES} Rename the file or the export.`;
 	}
 	const [only] = exports;
 	if (only === undefined) {
@@ -55,16 +72,16 @@ function nameFinding(file: SourceFile, stem: string, folders: readonly string[])
 			? undefined
 			: `"${stem}" exports nothing, so it is named in camelCase, such as setupTests.ts. A file that a package.json script or bin runs is kebab-case.`;
 	}
-	if (exports.some((entry) => exportFits(entry.name, stem, folders))) {
+	if (exports.some((entry) => !(entry.kind === "value" && entry.constant && remaining.length > 0) && exportFits(entry.name, stem, folders))) {
 		return undefined;
 	}
-	const main = mainExport(exports);
-	if (main !== undefined) {
-		return `"${stem}" does not name its export ${main.name}. ${SHAPES} Rename the file or the export.`;
+	const primary = mainExport(exports);
+	if (primary !== undefined) {
+		return `"${stem}" does not name its export ${primary.name}. ${SHAPES} Rename the file or the export.`;
 	}
 	return CAMEL.test(stem)
 		? undefined
-		: `"${stem}" exports several things, so it is a topic file named in camelCase, such as limits.ts. Or split it so each file has one main export. ${SHAPES}`;
+		: `"${stem}" exports several things, so it is a topic file named in camelCase, such as helpers.ts. Or split it so each file has one main export. ${SHAPES}`;
 }
 
 function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[] {
@@ -117,7 +134,7 @@ export const namedAfterExport = defineRule({
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
 		parseOptions: { errors: "all", onExcessProperty: "error" },

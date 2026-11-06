@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
-import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIpHeaders.ts";
 
 export const mountSettings = Effect.fnUntraced(function* (options: BetterAuthOptions, clientIp?: "railway") {
 	const secret = options.secret ?? Redacted.value(yield* Config.Redacted("BETTER_AUTH_SECRET"));

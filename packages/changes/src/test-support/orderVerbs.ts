@@ -1,5 +1,5 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { databaseActions, REJECTED } from "./databaseVerbs.ts";
+import { databaseActions, REJECTED } from "./databaseActions.ts";
 import { database, type Engine, endingOf } from "./engine.ts";
 import { change } from "./fakeDatabase.ts";
 import { orderControl } from "./orderControl.ts";

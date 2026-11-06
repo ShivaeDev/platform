@@ -10,8 +10,7 @@ import { walk } from "#inventory/walk.ts";
 import { sortManifests } from "#manifests/sorted.ts";
 import { plural } from "#report/plural.ts";
 import type { RuleServices } from "#rule.ts";
-
-export const MAX_FIX_ROUNDS = 5;
+import { MAX_FIX_ROUNDS } from "./limits.ts";
 
 function isBinary(bytes: Uint8Array): boolean {
 	return bytes.includes(0);

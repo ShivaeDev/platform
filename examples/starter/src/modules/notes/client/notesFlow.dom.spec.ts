@@ -25,11 +25,12 @@ notesApp.it(
 notesApp.it(
 	"a note alice adds on screen is stored for her account",
 	[signedInAccount(), notesHostScreen("/")],
-	function* ({ addsNote, draft, settle, shownNotes, storedNotes }) {
+	function* ({ addsNote, draft, findControl, settle, shownNotes, storedNotes }) {
 		yield* settle();
 		expect(yield* storedNotes).toEqual([]);
 
 		yield* addsNote("First note");
+		yield* findControl({ name: "First note", role: "link" });
 
 		yield* outcomes([
 			["notes", shownNotes, ["First note"]],
@@ -42,9 +43,10 @@ notesApp.it(
 notesApp.it(
 	"saving an edited note on screen stores its trimmed title as the next version",
 	[signedInAccount(), notesHostScreen("/")],
-	function* ({ addsNote, click, draft, enter, heading, openListedNote, saveState, settle, storedNotes }) {
+	function* ({ addsNote, click, draft, enter, findControl, heading, openListedNote, saveState, settle, storedNotes }) {
 		yield* settle();
 		yield* addsNote("First note");
+		yield* findControl({ name: "First note", role: "link" });
 		yield* openListedNote();
 		yield* settle();
 		expect(yield* heading()).toBe("Edit note");
@@ -64,9 +66,10 @@ notesApp.it(
 notesApp.it(
 	"deleting a note on screen removes it from storage and returns to an empty list",
 	[signedInAccount(), notesHostScreen("/")],
-	function* ({ addsNote, click, openListedNote, route, settle, shownNotes, storedNotes }) {
+	function* ({ addsNote, click, findControl, openListedNote, route, settle, shownNotes, storedNotes }) {
 		yield* settle();
 		yield* addsNote("First note");
+		yield* findControl({ name: "First note", role: "link" });
 		yield* openListedNote();
 		yield* settle();
 		expect(yield* storedNotes).toEqual([{ email: "alice@app.test", title: "First note", version: 0 }]);

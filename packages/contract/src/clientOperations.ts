@@ -45,11 +45,13 @@ function boundQuery(service: ErasedClient, tag: string, query: QueryShape, autom
 				local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
 			const reference = { payload, query: query.name };
 			const result = automatic.query(
-				reactive(atom, clientReadKeys(dependencies, owner?.context), owner?.registry),
+				atom,
 				reference,
 				keys,
 				Schema.toEquivalence(query.success),
-				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
+				Schema.decodeUnknownSync(Schema.toType(query.success)),
+				query.live === "rerun-and-compare",
+				(source) => reactive(source, clientReadKeys(dependencies, owner?.context), owner?.registry),
 				options.headers,
 			);
 			const tracked = clientActivities.get(service)?.watch(result) ?? result;

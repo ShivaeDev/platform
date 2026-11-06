@@ -10,7 +10,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 
 export const ReadPage = contract("page", {
-	commands: [command("write", { invalidates: () => [], payload: { id: Schema.Number, title: Schema.String } })],
+	commands: [command("write", { invalidates: () => [], payload: { id: Schema.Number, title: Schema.String }, success: Schema.String })],
 	queries: [
 		query("get", {
 			payload: { id: Schema.Number },
@@ -33,6 +33,8 @@ export const readPageHost = Effect.gen(function* () {
 	const titles = new Map([[1, "First page"]]);
 	const held = yield* Deferred.make<"hint" | "empty" | "defect">();
 	let readGate: Deferred.Deferred<void> | undefined;
+	let writeGate: Deferred.Deferred<void> | undefined;
+	const writing = yield* Queue.unbounded<void>();
 	const reading = yield* Queue.unbounded<void>();
 	function holdRead() {
 		readGate = Deferred.makeUnsafe<void>();
@@ -85,10 +87,15 @@ export const readPageHost = Effect.gen(function* () {
 			}),
 		"page.second": () => Effect.succeed("Waiting for live data"),
 		"page.write": ({ id, title }) =>
-			Effect.sync(() => titles.set(id, title)).pipe(
-				Effect.andThen(PubSub.publish(changes, { _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id }] })),
-				Effect.asVoid,
-			),
+			Effect.gen(function* () {
+				if (writeGate !== undefined) {
+					yield* Queue.offer(writing, undefined);
+					yield* Deferred.await(writeGate);
+				}
+				titles.set(id, title);
+				yield* PubSub.publish(changes, { _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id }] });
+				return title;
+			}),
 	});
 	const routes = RpcServer.layerHttp({ group: ReadPage, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
@@ -107,5 +114,23 @@ export const readPageHost = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP page host");
 	}
-	return { held, holdRead, opened, reading, releaseRead, url: `http://127.0.0.1:${server.address.port}/rpc` };
+	return {
+		held,
+		holdRead,
+		holdWrite: () => {
+			writeGate = Deferred.makeUnsafe<void>();
+		},
+		opened,
+		reading,
+		releaseRead,
+		releaseWrite: () => {
+			if (writeGate === undefined) {
+				throw new Error("No page write is held");
+			}
+			Effect.runSync(Deferred.succeed(writeGate, undefined));
+			writeGate = undefined;
+		},
+		url: `http://127.0.0.1:${server.address.port}/rpc`,
+		writing,
+	};
 });

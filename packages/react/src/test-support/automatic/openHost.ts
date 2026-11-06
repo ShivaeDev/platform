@@ -1,12 +1,16 @@
-import { Effect, ManagedRuntime, type Redacted } from "effect";
+import { Effect, Layer, ManagedRuntime, type Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { RpcMiddleware } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, migrations, Preview, repository } from "./feature.ts";
 
+class Observed extends RpcMiddleware.Service<Observed>()("@shivaedev/react/test/AutomaticRequests") {}
+
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const reads: number[] = [];
+	const requests: string[] = [];
 	const readers = new Set<(id: number) => void>();
 	function read(id: number) {
 		reads.push(id);
@@ -47,8 +51,16 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const runtime = ManagedRuntime.make(
 		appHost({
 			config: { applicationName: "automatic-web", databaseUrl, port: 0 },
-			group: Api.merge(Preview),
-			handlers,
+			group: Api.merge(Preview).middleware(Observed),
+			handlers: Layer.merge(
+				handlers,
+				Layer.succeed(Observed, (effect, { rpc }) =>
+					Effect.andThen(
+						Effect.sync(() => requests.push(rpc._tag)),
+						effect,
+					),
+				),
+			),
 			migrations: { ...migrations, mode: "check" },
 			policy: "loopback",
 		}),
@@ -58,7 +70,7 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected TCP host");
 		}
-		return { close: () => runtime.dispose(), nextRead, publications, reads, url: `http://127.0.0.1:${server.address.port}/rpc` };
+		return { close: () => runtime.dispose(), nextRead, publications, reads, requests, url: `http://127.0.0.1:${server.address.port}/rpc` };
 	} catch (error) {
 		await runtime.dispose();
 		throw error;

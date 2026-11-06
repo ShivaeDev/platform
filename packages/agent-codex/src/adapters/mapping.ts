@@ -8,7 +8,7 @@ import {
 	TokenUsageNotification,
 	TurnNotification,
 } from "#adapters/protocol.ts";
-import { RATE_LIMITS_METHOD, rateLimitEvents } from "#adapters/rateLimits.ts";
+import { RATE_LIMITS_METHOD, rateLimitEvents } from "#adapters/rateLimitEvents.ts";
 import type { RpcNotification } from "#adapters/rpc.ts";
 export function rawOf(kind: string, payload: unknown) {
 	return { kind, payload: JSON.stringify(payload), source: "codex" };

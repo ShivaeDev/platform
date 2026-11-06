@@ -4,8 +4,8 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
-import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { browserReads } from "#server/browserReads.ts";
 import { domFetch } from "#server/domFetch.ts";
@@ -31,12 +31,10 @@ export const readPage = storyKit({
 			Effect.promise(() => render(createElement(ReadPageView, { client, fetch, sessionPending }))),
 			(rendered) => Effect.promise(rendered.unmount),
 		);
-		const pending = Atom.make(
-			(get) => get(sessionPending) || get(client.api.get.query({ id: 1 })).waiting || get(client.api[LiveConnection].status).connection !== "live",
-		);
 		const screen = screenDriver({
 			act,
-			pending: AtomRegistry.toStream(view.registry, pending),
+			activity: activityScreenSignal(clientActivity(client), isClientIdle),
+			pending: AtomRegistry.toStream(view.registry, sessionPending),
 			root: view.container,
 			tell: () => undefined,
 		});
