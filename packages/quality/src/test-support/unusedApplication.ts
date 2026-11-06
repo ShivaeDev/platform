@@ -26,6 +26,7 @@ function applicationFiles(unused: boolean): readonly SeedFile[] {
 				},
 				devDependencies: { vitest: "*" },
 				name: "plain-app",
+				quality: { toolOwned: [{ glob: "src/components/ui/button.ts", reason: "The registry owns this unmodified component." }] },
 				scripts: { start: "node src/main.ts", test: "vitest run" },
 				type: "module",
 			}),

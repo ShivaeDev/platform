@@ -10,10 +10,10 @@ import { assertThat } from "#testing/adapters/assertThat.ts";
 import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const STORY = [
-	'import { Effect } from "effect"; import { MAX_ORDERS } from "./limits.ts"; function place() {}',
+	'import { Effect, Exit } from "effect"; import { MAX_ORDERS } from "./limits.ts"; function place() {}',
 	inStory(
 		'expect(count).toBe(2); yield* Effect.sleep("50 millis");',
-		'expect((yield* order())._tag).toBe("Cancelled");',
+		"expect(Exit.isFailure(yield* order())).toBe(true);",
 		'expect(yield* refunds()).toEqual(["order 1"]);',
 		'expect(yield* outcome()).not.toBe("accepted");',
 	),
