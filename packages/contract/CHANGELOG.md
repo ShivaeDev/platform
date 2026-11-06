@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.42.0 - 2026-11-06
+
+### Added
+
+- Keep successful bound query results for five minutes after their last reader leaves, bounded to 100 idle queries per registry. Reopened queries show stale data immediately while revalidating. Configure `timeToLive` and `capacity` through the registry's `queryRetention` atom or React's `SessionBoundary.queryRetention` prop.
+
+### Breaking
+
+- Replace bound queries' per-query `timeToLive` option with the registry's `queryRetention` policy. Move that setting to `SessionBoundary.queryRetention` or set the native `queryRetention` atom in the owning registry. Query execution now ends with the last reader; retained data revalidates on reopening.
+
 ## 0.41.0 - 2026-11-06
 
 ### Added
