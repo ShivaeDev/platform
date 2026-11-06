@@ -8,9 +8,9 @@ processes.it(
 		yield* releasePrivateCommit();
 
 		yield* outcomes([
-			["reader", () => privateDeliveries("reader"), ["changed: Private title / Private title"]],
+			["reader", () => privateDeliveries("reader"), ["result: Private title / Private title"]],
 			["saves", () => privateSaves(), ["saved"]],
-			["writer", () => privateDeliveries("writer"), ["changed: Private title / Private title"]],
+			["writer", () => privateDeliveries("writer"), ["result: Private title / Private title"]],
 		]);
 	},
 );
@@ -23,7 +23,7 @@ processes.it(
 
 		yield* outcomes([
 			["Bob reads", () => privateRead("bob"), "Unset"],
-			["Bob's deliveries", () => privateDeliveries("bob"), ["changed: Unset / Unset", "changed: Unset / Unset"]],
+			["Bob's deliveries", () => privateDeliveries("bob"), ["unchanged: Unset / Unset", "unchanged: Unset / Unset"]],
 		]);
 	},
 );
@@ -36,9 +36,9 @@ processes.it(
 		yield* privateSave("After rollback");
 
 		yield* outcomes([
-			["reader", () => privateDeliveries("reader"), ["changed: After rollback / After rollback"]],
+			["reader", () => privateDeliveries("reader"), ["result: After rollback / After rollback"]],
 			["saves", () => privateSaves(), ["rejected as Rejected", "saved"]],
-			["writer", () => privateDeliveries("writer"), ["changed: After rollback / After rollback"]],
+			["writer", () => privateDeliveries("writer"), ["result: After rollback / After rollback"]],
 		]);
 	},
 );

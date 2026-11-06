@@ -30,71 +30,63 @@ completionStory.it(
 	},
 );
 
-for (const delivery of ["pushed"] as const) {
+completionStory.it("the pushed subscription signals that the socket subscription opened", [], function* ({ open, signals, subscriptionAnswered }) {
+	open("pushed");
+	yield* subscriptionAnswered();
+
+	expect(yield* signals()).toMatchObject({ subscription: "open" });
+});
+
+completionStory.it(
+	"the pushed subscription signals refusal and exposes its policy denial",
+	[refused],
+	function* ({ open, requestFinished, shown, signals, subscriptionAnswered }) {
+		open("pushed");
+		yield* subscriptionAnswered();
+		yield* requestFinished();
+
+		yield* outcomes([
+			["subscription", () => signals(), { pending: false, subscription: "refused" }],
+			["shown denial", () => shown(), "failed with read denied"],
+		]);
+	},
+);
+
+for (const value of ["Second", "First"]) {
 	completionStory.it(
-		`the ${delivery} subscription signals that the socket subscription opened`,
-		[],
-		function* ({ open, signals, subscriptionAnswered }) {
-			open(delivery);
-			yield* subscriptionAnswered();
-
-			expect(yield* signals()).toMatchObject({ subscription: "open" });
-		},
-	);
-
-	completionStory.it(
-		`the ${delivery} subscription signals refusal and exposes its policy denial`,
-		[refused],
-		function* ({ open, requestFinished, shown, signals, subscriptionAnswered }) {
-			open(delivery);
-			yield* subscriptionAnswered();
-			yield* requestFinished();
-
-			yield* outcomes([
-				["subscription", () => signals(), { pending: false, subscription: "refused" }],
-				["shown denial", () => shown(), "failed with read denied"],
-			]);
-		},
-	);
-
-	for (const value of ["Second", "First"]) {
-		completionStory.it(
-			`the ${delivery} refresh signals completion when its result ${value === "First" ? "equals" : "differs from"} the previous value`,
-			[watching(delivery)],
-			function* ({ announce, refreshed, shown, signals }) {
-				expect(yield* shown()).toBe("First");
-				const before = yield* signals();
-
-				yield* announce(value);
-				yield* refreshed();
-
-				yield* outcomes([
-					["completed refresh", () => signals(), { completed: before.completed + 1, pending: false }],
-					["shown value", () => shown(), value],
-				]);
-			},
-		);
-	}
-}
-
-for (const delivery of ["pushed"] as const) {
-	completionStory.it(
-		`a failed ${delivery} refresh completes and exposes the handler's declared failure`,
-		[watching(delivery)],
-		function* ({ failRefresh, refreshed, shown, signals }) {
+		`the pushed refresh signals completion when its result ${value === "First" ? "equals" : "differs from"} the previous value`,
+		[watching()],
+		function* ({ announce, refreshed, shown, signals }) {
 			expect(yield* shown()).toBe("First");
 			const before = yield* signals();
 
-			yield* failRefresh();
+			yield* announce(value);
 			yield* refreshed();
 
 			yield* outcomes([
 				["completed refresh", () => signals(), { completed: before.completed + 1, pending: false }],
-				["shown failure", () => shown(), "failed with read failed"],
+				["shown value", () => shown(), value],
 			]);
 		},
 	);
 }
+
+completionStory.it(
+	`a failed pushed refresh completes and exposes the handler's declared failure`,
+	[watching()],
+	function* ({ failRefresh, refreshed, shown, signals }) {
+		expect(yield* shown()).toBe("First");
+		const before = yield* signals();
+
+		yield* failRefresh();
+		yield* refreshed();
+
+		yield* outcomes([
+			["completed refresh", () => signals(), { completed: before.completed + 1, pending: false }],
+			["shown failure", () => shown(), "failed with read failed"],
+		]);
+	},
+);
 
 completionStory.it(
 	"a request stays pending until the socket delivers its held answer",

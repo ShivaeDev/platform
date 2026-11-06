@@ -21,18 +21,12 @@ deniedLive.it(
 	"three refused queries make no more requests or policy checks after matching changes and a minute",
 	[openedRoute()],
 	function* ({ announce, denyRead, invalidate, minutePasses, policyChecks, requests, states }) {
+		const opened = yield* requests();
 		yield* denyRead();
 		yield* announce();
 		const before = yield* requests();
 		const checks = yield* policyChecks();
-		expect(before.toSorted()).toEqual([
-			"read private",
-			"read private-counts",
-			"read private-details",
-			"subscribe private",
-			"subscribe private-counts",
-			"subscribe private-details",
-		]);
+		expect(before).toEqual(opened);
 
 		yield* invalidate();
 		yield* minutePasses();
@@ -67,9 +61,9 @@ deniedLive.it("a route loader refused at entry renders its not-found component",
 deniedLive.it(
 	"a refused read stays denied through later matching changes",
 	[openedRoute()],
-	function* ({ invalidate, requests, refuseReads, states }) {
+	function* ({ announce, invalidate, requests, refuseReads, states }) {
 		yield* refuseReads();
-		yield* invalidate();
+		yield* announce();
 		const before = yield* requests();
 		expect(yield* states()).toEqual(["denied", "denied", "denied"]);
 

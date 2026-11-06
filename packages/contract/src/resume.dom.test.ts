@@ -43,7 +43,7 @@ resumeStory.it(
 );
 
 resumeStory.it(
-	"with automatic live reads, a native resume re-reads notes 1 and 2 changed while away and opens no new streams",
+	"with automatic live reads, a native resume reopens notes 1 and 2 changed while away",
 	[automaticLive("native"), watching(1, 2)],
 	function* ({ changeQuietly, resume, shown, streamsOpened, untilReRead }) {
 		yield* changeQuietly(1, "Changed while away");
@@ -57,7 +57,7 @@ resumeStory.it(
 		yield* outcomes([
 			["note 1", () => shown(1), "Changed while away"],
 			["note 2", () => shown(2), "Also changed while away"],
-			["streams opened", () => streamsOpened(), "2 streams opened"],
+			["streams opened", () => streamsOpened(), "4 streams opened"],
 		]);
 	},
 );

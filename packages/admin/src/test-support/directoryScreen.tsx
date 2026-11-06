@@ -1,4 +1,4 @@
-import { Clock, Effect, Option } from "effect";
+import { Effect, Option } from "effect";
 import { act } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
@@ -9,7 +9,6 @@ import { screenAct } from "@shivaedev/test-story/server/adapters/screenAct.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "./Access.ts";
 import { clientRuntime } from "./clientRuntime.ts";
@@ -21,7 +20,6 @@ const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	const engine = yield* makeUsersEngine(mapping);
 	const protocol = yield* engine.protocolAs("alice");
-	const clock = yield* Clock.Clock;
 	const runtime = yield* clientRuntime;
 	const client = makeClient(Page.contract, { protocol, runtime, url: "http://localhost/rpc" });
 	const activity = clientActivity(client);
@@ -41,7 +39,7 @@ const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	});
 	yield* driver.settle();
 	yield* screenAct(act, until(activity, ({ liveHints }) => liveHints > 0, { name: "users live subscription" }).pipe(Effect.asVoid));
-	return { activity, clock, driver, engine, view };
+	return { activity, driver, engine, view };
 });
 
 function directoryKit(mapping: AuthTableOptions) {
@@ -53,7 +51,7 @@ function directoryKit(mapping: AuthTableOptions) {
 		name: "users directory screen",
 		runIf: postgresConfigured,
 		stages: [],
-		verbs: ({ activity, clock, driver, engine, view }, story) => ({
+		verbs: ({ activity, driver, engine, view }, story) => ({
 			assignFromAnotherClient: (userId: string, role: typeof Access.Role.Type) =>
 				Effect.gen(function* () {
 					story.tell(`alice assigns ${role} to ${userId} from another client`);
@@ -63,9 +61,6 @@ function directoryKit(mapping: AuthTableOptions) {
 						act,
 						client["admin.users.changeRole"]({ role, userId }).pipe(
 							Effect.andThen(until(activity, ({ liveHints }) => liveHints > before.liveHints, { name: "users role change hint" })),
-							Effect.andThen(untilTimer("20 millis")),
-							Effect.andThen(passes("20 millis", Effect.void)),
-							Effect.provideService(Clock.Clock, clock),
 						),
 					);
 					yield* driver.settle();

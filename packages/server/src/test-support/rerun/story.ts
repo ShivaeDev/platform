@@ -60,14 +60,19 @@ export const rerunStory = storyKit({
 	clock: "test",
 	create: () => create,
 	inspect: ({ state }) => ({ calls: state.calls, denied: [...state.denied], notes: [...state.notes.values()] }),
-	name: "rerun-and-compare over WebSocket",
+	name: "server-pushed queries over WebSocket",
 	stages: ["page"],
 	verbs: (engine, story) => ({
 		arrivals: () =>
 			Effect.map(SubscriptionRef.get(engine.updates), (all) =>
 				all.flatMap((update) => (update._tag === "Result" && update.query === "barrier" ? [] : [update])),
 			),
-		clientReads: () => Effect.sync(() => engine.state.calls.filter((tag) => tag === "rerun.compare" || tag === "rerun.hinted")),
+		batchArrivals: () => SubscriptionRef.get(engine.mixed),
+		batchCompleted: () =>
+			until(SubscriptionRef.changes(engine.mixed), (all) => all.filter((update) => update._tag === "Unchanged").length >= 2, {
+				name: "batched subscription completion",
+			}),
+		clientReads: () => Effect.sync(() => engine.state.calls.filter((tag) => tag === "rerun.compare" || tag === "rerun.secondary")),
 		denyAlice: () => Effect.sync(() => engine.state.denied.add("alice")),
 		failQuery: () =>
 			Effect.sync(() => {
@@ -77,10 +82,9 @@ export const rerunStory = storyKit({
 			Effect.sync(() => {
 				engine.state.policyUnavailable = true;
 			}),
-		mixedArrivals: () => SubscriptionRef.get(engine.mixed),
-		openHinted: () =>
+		openSecondary: () =>
 			Effect.gen(function* () {
-				const atom = engine.client.api.hinted.query({ title: "One" });
+				const atom = engine.client.api.secondary.query({ title: "One" });
 				engine.registry.mount(atom);
 				yield* AtomRegistry.getResult(engine.registry, atom);
 			}),
@@ -109,16 +113,12 @@ export const rerunStory = storyKit({
 				(all) => all.filter((update) => update._tag === "Result" && update.query === "barrier").length > 1,
 				{ name: "changed query barrier" },
 			),
-		untilHinted: (title: string) =>
+		untilSecondary: (title: string) =>
 			until(
-				AtomRegistry.toStreamResult(engine.registry, engine.client.api.hinted.query({ title: "One" })),
+				AtomRegistry.toStreamResult(engine.registry, engine.client.api.secondary.query({ title: "One" })),
 				(rows) => rows.some((note) => note.title === title),
 				{ name: `note titled ${title}` },
 			),
-		untilMixedHint: () =>
-			until(SubscriptionRef.changes(engine.mixed), (all) => all.filter((update) => update._tag === "Unchanged").length >= 2, {
-				name: "mixed subscription change hint",
-			}),
 		untilShown: (title: string) =>
 			until(
 				AtomRegistry.toStreamResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
@@ -135,16 +135,16 @@ export const pageOpen = rerunStory.trait("page", "alice opens her notes filtered
 	}),
 );
 
-export const mixedSubscription = rerunStory.trait("page", "alice subscribes to a compared query and a hinted query in the same bucket", (engine) =>
+export const batchedSubscription = rerunStory.trait("page", "alice subscribes to two queries in the same bucket", (engine) =>
 	Effect.gen(function* () {
 		const listener = yield* listen(
 			engine.rpc("rerun.$changes", {
 				queries: [
 					{ payload: { title: "One" }, query: "compare" },
-					{ payload: { title: "One" }, query: "hinted" },
+					{ payload: { title: "One" }, query: "secondary" },
 				],
 			}),
-			(all) => all.some((update) => update._tag === "Result" && update.query === "hinted"),
+			(all) => all.some((update) => update._tag === "Result" && update.query === "secondary"),
 		);
 		engine.mixed = listener.updates;
 	}),

@@ -1,4 +1,4 @@
-import { DateTime, Effect, Stream } from "effect";
+import { DateTime, Effect, Schema, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -73,15 +73,7 @@ export const sessionKeys = storyKit({
 				),
 			);
 		}
-		function hintsUntil(name: string, hint: string) {
-			return Effect.gen(function* () {
-				const subscription = yield* feed(name);
-				while (subscription.hints.at(-1) !== hint) {
-					yield* subscription.next;
-				}
-				return [...subscription.hints];
-			});
-		}
+
 		return {
 			aliceSignsOut: () =>
 				Effect.gen(function* () {
@@ -103,11 +95,15 @@ export const sessionKeys = storyKit({
 					),
 				);
 			},
-			hintsUntil,
 			hintsUntilOwnBarrier: (caller: Caller, boundary: Boundary = "account") =>
 				Effect.gen(function* () {
+					const subscription = yield* feed(caller);
+					const before = subscription.hints.length;
 					yield* save(caller, "barrier", { boundary, id: "other" });
-					return yield* hintsUntil(caller, "changed the list");
+					while (subscription.hints.length <= before) {
+						yield* subscription.next;
+					}
+					return [...subscription.hints];
 				}),
 			nextHint: (name: string) => Effect.flatMap(feed(name), (subscription) => subscription.next),
 			postSubscription: () => {
@@ -115,6 +111,7 @@ export const sessionKeys = storyKit({
 				return answered(postChanges(state.writer.url, state.alice.cookie), (error) => (error instanceof Error ? error.message : String(error)));
 			},
 			published: () => Effect.sync(() => state.writer.published.map((keys) => keys.join(" and "))),
+			pushed: (caller: Caller) => Effect.map(feed(caller), (subscription) => Schema.decodeUnknownSync(Schema.String)(subscription.values.get(0))),
 			read: (caller: Caller, boundary: Boundary = "account") =>
 				answered(Effect.flatMap(state.clients[caller], (client) => client(`${boundary}.get`, { id: "theme" }))),
 			readWithBobsCookie: () => {

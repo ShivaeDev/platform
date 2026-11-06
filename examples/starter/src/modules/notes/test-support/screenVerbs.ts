@@ -36,9 +36,9 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 					await act(() => engine.client.finishNote(1, count));
 				}),
 			),
-		listReads: () => Effect.sync(() => countWords(engine.client.observed.readCount("notes.list"), "list read")),
-		noteReads: () => Effect.sync(() => countWords(engine.client.observed.readCount("notes.get"), "note read")),
-		notesReads: () => Effect.sync(() => countWords(engine.client.observed.reads().length, "notes read")),
+		listReads: () => Effect.sync(() => countWords(engine.client.reads.list, "list read")),
+		noteReads: () => Effect.sync(() => countWords(engine.client.reads.note, "note read")),
+		notesReads: () => Effect.sync(() => countWords(engine.client.reads.list + engine.client.reads.note, "notes read")),
 		reviseNote: (title: string) =>
 			afterNextHint(
 				Effect.promise(async () => {
@@ -53,6 +53,11 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				.pipe(Effect.andThen(settleScreen(engine, tell))),
 		settleLiveChange: () => driver(isClientIdle).settle(),
 		settleQuery: () => settleQuery(engine),
+		startWordCount: (count: number) =>
+			Effect.promise(async () => {
+				tell(`the worker finishes counting ${count} words while the server read is held`);
+				await act(() => engine.client.finishNote(1, count));
+			}),
 		visitNotes: () =>
 			Effect.promise(async () => {
 				tell("visit the notes list");

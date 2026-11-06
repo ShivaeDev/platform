@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Note } from "#test/rerun/fixture.ts";
-import { mixedSubscription, pageOpen, rerunStory } from "#test/rerun/story.ts";
+import { batchedSubscription, pageOpen, rerunStory } from "#test/rerun/story.ts";
 
 rerunStory.it(
 	"a change excluded by alice's filter acknowledges completion without a result or change hint",
@@ -62,12 +62,12 @@ rerunStory.it("a Resync acknowledges its completed rerun without sending an unch
 	expect(yield* arrivals()).toEqual([...before, { _tag: "Unchanged", queryIndex: 0 }]);
 });
 
-rerunStory.it("a query pushes after a matching change", [], function* ({ clientReads, openHinted, rename, untilHinted }) {
-	yield* openHinted();
+rerunStory.it("a query pushes after a matching change", [], function* ({ clientReads, openSecondary, rename, untilSecondary }) {
+	yield* openSecondary();
 	expect(yield* clientReads()).toEqual([]);
 
 	yield* rename(3n, "One more");
-	yield* untilHinted("One more");
+	yield* untilSecondary("One more");
 
 	expect(yield* clientReads()).toEqual([]);
 });
@@ -87,18 +87,18 @@ rerunStory.it(
 
 rerunStory.it(
 	"a batched subscription acknowledges both unchanged queries",
-	[mixedSubscription],
-	function* ({ mixedArrivals, rename, untilMixedHint }) {
+	[batchedSubscription],
+	function* ({ batchArrivals, rename, batchCompleted }) {
 		const initial = [
 			{ _tag: "Result", query: "compare", queryIndex: 0, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
-			{ _tag: "Result", query: "hinted", queryIndex: 1, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
+			{ _tag: "Result", query: "secondary", queryIndex: 1, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
 		];
-		expect(yield* mixedArrivals()).toEqual(initial);
+		expect(yield* batchArrivals()).toEqual(initial);
 
 		yield* rename(3n, "Still excluded");
-		yield* untilMixedHint();
+		yield* batchCompleted();
 
-		expect(yield* mixedArrivals()).toEqual([...initial, { _tag: "Unchanged", queryIndex: 0 }, { _tag: "Unchanged", queryIndex: 1 }]);
+		expect(yield* batchArrivals()).toEqual([...initial, { _tag: "Unchanged", queryIndex: 0 }, { _tag: "Unchanged", queryIndex: 1 }]);
 	},
 );
 

@@ -75,10 +75,10 @@ export function rejected(rejection: "denied" | "NotFound" | "Rejected") {
 		engine.access.rejection = rejection;
 	});
 }
-export function watching(delivery: "pushed") {
-	return deniedStory.trait("view", `the page opens a ${delivery} live query`, (engine) =>
+export function watching() {
+	return deniedStory.trait("view", "the page opens a pushed live query", (engine) =>
 		Effect.gen(function* () {
-			engine.view = engine.api[delivery].query();
+			engine.view = engine.api.pushed.query();
 			engine.registry.mount(engine.view);
 			yield* shownOf(engine);
 			yield* until(

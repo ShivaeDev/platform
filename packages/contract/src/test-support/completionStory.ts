@@ -61,9 +61,9 @@ export const failed = completionStory.trait("access", "the query handler fails w
 	state.failed = true;
 });
 
-export function watching(delivery: "pushed") {
-	return completionStory.trait("view", `the client watches the ${delivery} query`, function* (engine) {
-		engine.view = engine.api[delivery].query();
+export function watching() {
+	return completionStory.trait("view", "the client watches the pushed query", function* (engine) {
+		engine.view = engine.api.pushed.query();
 		engine.registry.mount(engine.view);
 		yield* settled(engine.registry, engine.view);
 	});

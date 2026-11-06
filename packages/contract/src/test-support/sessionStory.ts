@@ -125,7 +125,9 @@ export const sessionStory = storyKit({
 		runKeptSaveAgain: () => {
 			story.tell("alice runs her kept save effect again");
 			mark(engine);
-			return engine.kept.effect ?? Effect.die(new Error("Keep a save effect before running it again"));
+			return (engine.kept.effect ?? Effect.die(new Error("Keep a save effect before running it again"))).pipe(
+				Effect.andThen(reRead(engine.clients.alice.registry, engine.clients.alice.view("preferences"), engine.marked.get("alice preferences"))),
+			);
 		},
 		save: (person: Person, title: string, runtime: Person = person) => {
 			story.tell(`${person} saves ${JSON.stringify(title)} as their preferences${runtime === person ? "" : ` through ${runtime}'s runtime`}`);
@@ -196,8 +198,10 @@ export function keptSave(title: string) {
 		Effect.gen(function* () {
 			const save = saveOf(engine, "alice", title);
 			engine.kept.effect = Effect.asVoid(save);
+			mark(engine);
 			yield* save;
-			yield* shownOf(engine, "alice", "preferences");
+			const client = engine.clients.alice;
+			yield* reRead(client.registry, client.view("preferences"), engine.marked.get("alice preferences"));
 		}),
 	);
 }

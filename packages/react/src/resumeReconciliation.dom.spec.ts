@@ -4,7 +4,7 @@ import { liveNotesRenamedWhileAway, liveNotesShown, liveStreamInterrupted, resum
 
 for (const source of ["native", "browser"] as const) {
 	resumes.it(
-		`a ${source} resume shows changes made while away and keeps both live subscriptions`,
+		`a ${source} resume shows changes made while away and reopens both live subscriptions`,
 		[liveNotesRenamedWhileAway(source)],
 		function* ({ liveResume, shown, subscriptions }) {
 			expect(yield* shown()).toBe("One / Two");
@@ -13,7 +13,7 @@ for (const source of ["native", "browser"] as const) {
 
 			yield* outcomes([
 				["shown", () => shown(), "Changed while away / Also changed while away"],
-				["subscriptions", () => subscriptions(), ["open", "open"]],
+				["subscriptions", () => subscriptions(), ["closed", "closed", "open", "open"]],
 			]);
 		},
 	);

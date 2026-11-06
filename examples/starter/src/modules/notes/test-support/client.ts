@@ -10,6 +10,7 @@ import { notesClientHost } from "./clientHost.ts";
 
 export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];
+	const reads = { list: 0, note: 0 };
 	const reactivity = yield* Reactivity.make;
 	function announce(id: number) {
 		return reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId("alice")]));
@@ -73,10 +74,14 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				);
 				yield* announce(row.id);
 			}),
-		"notes.get": ({ id }) => get(id),
+		"notes.get": ({ id }) =>
+			Effect.sync(() => {
+				reads.note += 1;
+			}).pipe(Effect.andThen(get(id))),
 		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
 		"notes.list": () =>
 			Effect.gen(function* () {
+				reads.list += 1;
 				const gate = listGate;
 				if (gate !== undefined) {
 					yield* Deferred.succeed(listStarted, undefined);
@@ -132,6 +137,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 		holdList,
 		listHeld: () => listGate !== undefined,
 		listWaiting: () => Deferred.await(listStarted),
+		reads,
 		releaseList,
 		reviseNote,
 		session,

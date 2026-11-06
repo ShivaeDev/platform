@@ -99,9 +99,9 @@ for (const { given, trigger, shown } of [
 	{ given: [listedNote(), notesRoute()], shown: ["First note"], trigger: "live hint" },
 ] as const) {
 	screens.it(
-		`while a ${trigger} reloads the list, the screen keeps showing ${shown.join(", ")} with Refresh disabled`,
+		`while a ${trigger} reloads the list, the screen keeps showing ${shown.join(", ")} with Refresh ${trigger === "Refresh" ? "disabled" : "enabled"}`,
 		given,
-		function* ({ click, finishWordCount, holdNotesList, refreshButton, settle, shownNotes, waitForList }) {
+		function* ({ click, startWordCount, holdNotesList, refreshButton, settle, shownNotes, waitForList }) {
 			yield* settle();
 			expect(yield* shownNotes()).toEqual(shown);
 			yield* holdNotesList();
@@ -109,13 +109,13 @@ for (const { given, trigger, shown } of [
 			if (trigger === "Refresh") {
 				yield* click("Refresh");
 			} else {
-				yield* finishWordCount(2);
+				yield* startWordCount(2);
 			}
 			yield* waitForList();
 
 			yield* outcomes([
 				["notes", shownNotes, shown],
-				["Refresh", refreshButton, "disabled"],
+				["Refresh", refreshButton, trigger === "Refresh" ? "disabled" : "enabled"],
 			]);
 		},
 	);

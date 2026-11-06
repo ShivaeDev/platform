@@ -80,10 +80,17 @@ export function automaticQuery<A, E>({
 			get.subscribe(ready, (value) => {
 				if (value) {
 					start();
+				} else {
+					const previous = get.self<AsyncResult.AsyncResult<A, E>>();
+					if (Option.isSome(previous)) {
+						const waiting = AsyncResult.waiting(previous.value);
+						get.setSelf(waiting);
+						get.set(signals, recordCompletion(get.once(signals), waiting));
+					}
 				}
 			});
-			get.subscribe(subscription.status, ({ failure }) => {
-				if (Option.isNone(failure)) {
+			get.subscribe(subscription.status, ({ connection: state, failure }) => {
+				if (state !== "failed" || Option.isNone(failure)) {
 					return;
 				}
 				const cause = failure.value;
@@ -116,6 +123,7 @@ export function automaticQuery<A, E>({
 			return AsyncResult.initial();
 		},
 		(refresh) => {
+			refresh(ready);
 			refresh(subscription.connection);
 		},
 	).pipe(Atom.setIdleTTL(0));

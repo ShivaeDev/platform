@@ -17,11 +17,15 @@ export function hintWords(hint: QueryUpdate | LiveHint) {
 
 export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<QueryUpdate | LiveHint, E, R>, initialResults = 1) {
 	const hints: string[] = [];
+	const values = new Map<number, unknown>();
 	const queue = yield* Queue.unbounded<string>();
 	const fiber = yield* stream.pipe(
 		Stream.runForEach((hint) =>
 			Effect.sync(() => {
 				hints.push(hintWords(hint));
+				if (hint._tag === "Result") {
+					values.set(hint.queryIndex, hint.value);
+				}
 			}).pipe(Effect.andThen(Queue.offer(queue, hintWords(hint)))),
 		),
 		answered,
@@ -33,6 +37,6 @@ export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Str
 			return yield* Effect.die(`The subscription opened with ${first} instead of a result or resync`);
 		}
 	}
-	return { ending: Fiber.join(fiber), hints, next: Queue.take(queue) };
+	return { ending: Fiber.join(fiber), hints, next: Queue.take(queue), values };
 });
 export type Feed = Effect.Success<ReturnType<typeof followHints>>;

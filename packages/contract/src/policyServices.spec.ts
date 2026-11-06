@@ -18,7 +18,7 @@ for (const [person, read, hint] of [
 	);
 }
 
-policyServicesStory.it("a handler-only policy service also permits an authorized rerun-and-compare result", [], function* ({ firstComparedValue }) {
+policyServicesStory.it("a handler-only policy service also permits an authorized server-pushed result", [], function* ({ firstComparedValue }) {
 	expect(yield* firstComparedValue("alice")).toBe("team's document");
 });
 

@@ -195,15 +195,15 @@ origins.it("a native RPC request that is not NDJSON is refused", [], function* (
 });
 
 origins.it(
-	"a native WebSocket subscription with a bearer receives each resync the host sends",
+	"a native WebSocket subscription with a bearer receives its result and server reconciliation completion",
 	[],
 	function* ({ hostResyncs, nativeStreamOpens, nextUpdate }) {
-		expect(yield* nativeStreamOpens(NATIVE_ORIGIN)).toBe("resync");
+		expect(yield* nativeStreamOpens(NATIVE_ORIGIN)).toBe("result");
 
 		const openStreams = yield* hostResyncs();
 
 		yield* outcomes([
-			["next update", () => nextUpdate(), "resync"],
+			["next update", () => nextUpdate(), "unchanged"],
 			["open streams", () => Effect.succeed(openStreams), "one open stream"],
 		]);
 	},

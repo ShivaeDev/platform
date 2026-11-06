@@ -73,13 +73,13 @@ const Pushed = contract("pushed", {
 			rejections: { Denied },
 			success: Schema.BigIntFromString,
 		}),
-		query("hinted", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String }),
+		query("text", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String }),
 	],
 });
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
 expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
 	| QueryReadDenied
-	| { readonly _tag: "Result"; readonly query: "hinted"; readonly queryIndex: number; readonly value: string }
+	| { readonly _tag: "Result"; readonly query: "text"; readonly queryIndex: number; readonly value: string }
 	| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 	| {
 			readonly _tag: "Result";

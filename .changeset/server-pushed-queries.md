@@ -16,4 +16,6 @@
 
 ### Changed
 
+- `@shivaedev/contract`: Keep current query values during transient subscription recovery. Explicit refresh retains the value and reports pending until the fresh pushed result arrives; declared query failures and read denials remain visible.
+
 - `@shivaedev/contract`: Coalesce each subscription's pending changes into one rerun, including server-side reconciliation after backlog overflow or PostgreSQL listener recovery. Different subscriptions run independently and in parallel. Changed encoded results are pushed; equal reads acknowledge completion with `Unchanged`.

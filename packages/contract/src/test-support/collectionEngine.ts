@@ -52,7 +52,11 @@ export const collectionEngine = Effect.gen(function* () {
 	]);
 	const live = Context.get(services, LiveServer);
 	const application = Workspaces.application.toLayer({
-		"workspaces.all": () => repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(Effect.orDie),
+		"workspaces.all": () =>
+			repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(
+				Effect.map((rows) => rows.map((row) => new Workspace(row))),
+				Effect.orDie,
+			),
 	});
 	const handlers = Layer.merge(
 		application,

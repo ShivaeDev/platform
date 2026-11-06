@@ -15,7 +15,7 @@ export function automaticVerbs(engine: Engine) {
 	}
 	function refreshed(id: number, change: Effect.Effect<unknown>, container?: () => HTMLElement) {
 		return Effect.gen(function* () {
-			const read = engine.host.nextRead(id);
+			const read = engine.screen.nextResult(id, container?.());
 			const run = Effect.runPromiseWith(yield* Effect.context());
 			yield* Effect.promise(() =>
 				act(async () => {

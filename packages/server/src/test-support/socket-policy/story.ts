@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Effect, Schema, Stream } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -31,6 +31,7 @@ export const socketPolicyStory = storyKit({
 				const feed = engine.feeds.get(query);
 				return feed === undefined ? Effect.die(`No subscription to ${query}`) : feed.next;
 			},
+			pushed: (query: string) => Effect.sync(() => Schema.decodeUnknownSync(Schema.Array(Schema.String))(engine.feeds.get(query)?.values.get(0))),
 			restoreAdmin: () =>
 				Effect.sync(() => {
 					engine.access.admin = true;

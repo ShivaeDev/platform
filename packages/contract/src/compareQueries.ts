@@ -18,7 +18,7 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 	const resultFor = Effect.fnUntraced(function* (request: QueryRequest, index: number) {
 		const value = yield* read(request);
 		const encoded = yield* Schema.encodeUnknownEffect(Schema.toCodecJson(request.query.success))(value).pipe(Effect.orDie);
-		const digest = yield* Digest.Digest;
+		const digest = yield* Digest.Digest.pipe(Effect.provide(Digest.layerWebCrypto));
 		const hash = yield* digest.digestHex(Digest.sha256, new TextEncoder().encode(JSON.stringify(encoded)));
 		if (hash === hashes.get(index)) {
 			return { _tag: "Unchanged", queryIndex: index } satisfies QueryUnchanged;

@@ -6,13 +6,13 @@ socketProxy.it(
 	[],
 	function* ({ initialResult, initialHint, sockets, socketUrl, writeElsewhere, nextHint, read }) {
 		expect(initialResult()).toBe("First page");
-		expect(initialHint()).toEqual({ _tag: "Resync" });
+		expect(initialHint()).toEqual({ _tag: "Result", query: "get", queryIndex: 0, value: "First page" });
 		expect(sockets()).toEqual([socketUrl()]);
 		expect(sockets()[0]).toMatch(/^ws:\/\/127\.0\.0\.1:/u);
 
 		yield* writeElsewhere("A live page");
 
-		expect(yield* nextHint()).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id: 1 }] });
+		expect(yield* nextHint()).toEqual({ _tag: "Result", query: "get", queryIndex: 0, value: "A live page" });
 		expect(yield* read()).toBe("A live page");
 		expect(sockets()).toEqual([socketUrl()]);
 	},
@@ -32,7 +32,7 @@ socketProxy.it(
 		yield* online();
 
 		expect(yield* readResult()).toBe("Changed while held");
-		expect(yield* nextHint()).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id: 1 }] });
+		expect(yield* nextHint()).toEqual({ _tag: "Result", query: "get", queryIndex: 0, value: "Changed while held" });
 	},
 );
 
@@ -49,7 +49,7 @@ socketProxy.it(
 
 		yield* online();
 
-		expect(yield* nextHint()).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id: 1 }] });
+		expect(yield* nextHint()).toEqual({ _tag: "Result", query: "get", queryIndex: 0, value: "A held live update" });
 	},
 );
 

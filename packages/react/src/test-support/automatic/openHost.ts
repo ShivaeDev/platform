@@ -11,23 +11,8 @@ class Observed extends RpcMiddleware.Service<Observed>()("@shivaedev/react/test/
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const reads: number[] = [];
 	const requests: string[] = [];
-	const readers = new Set<(id: number) => void>();
 	function read(id: number) {
 		reads.push(id);
-		for (const reader of [...readers]) {
-			reader(id);
-		}
-	}
-	function nextRead(id: number) {
-		return new Promise<void>((resolve) => {
-			function reader(readId: number) {
-				if (readId === id) {
-					readers.delete(reader);
-					resolve();
-				}
-			}
-			readers.add(reader);
-		});
 	}
 	const publications: string[] = [];
 	const application = Api.application.merge(Preview.application);
@@ -70,7 +55,7 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected TCP host");
 		}
-		return { close: () => runtime.dispose(), nextRead, publications, reads, requests, url: `http://127.0.0.1:${server.address.port}/rpc` };
+		return { close: () => runtime.dispose(), publications, reads, requests, url: `http://127.0.0.1:${server.address.port}/rpc` };
 	} catch (error) {
 		await runtime.dispose();
 		throw error;

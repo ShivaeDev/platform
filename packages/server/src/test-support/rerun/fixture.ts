@@ -40,10 +40,10 @@ const definition = {
 	success: Schema.Array(Note),
 };
 const Compare = query("compare", { ...definition });
-const Hinted = query("hinted", definition);
+const Secondary = query("secondary", definition);
 const Barrier = query("barrier", { readPolicy, reads, rejections: { PolicyUnavailable }, success: Schema.Number });
 const Rename = command("rename", { invalidates: () => [], payload: { id: Schema.BigIntFromString, title: Schema.String } });
-export const Api = contract("rerun", { commands: [Rename], queries: [Compare, Hinted, Barrier] })
+export const Api = contract("rerun", { commands: [Rename], queries: [Compare, Secondary, Barrier] })
 	.middleware(Incoming)
 	.middleware(Authenticated);
 
@@ -68,7 +68,6 @@ export function rerunHost(state: RerunState) {
 						return stored.barrier;
 					}),
 				"rerun.compare": list,
-				"rerun.hinted": list,
 				"rerun.rename": ({ id, title }) =>
 					Effect.gen(function* () {
 						const stored = yield* Store;
@@ -79,6 +78,7 @@ export function rerunHost(state: RerunState) {
 						stored.notes.set(id, new Note({ ...note, title }));
 						yield* Reactivity.invalidate(invalidationKeys([notes.bucket.owner(note.owner)]));
 					}),
+				"rerun.secondary": list,
 			}),
 			Layer.succeed(Incoming, (effect, { rpc }) => {
 				state.calls.push(rpc._tag);

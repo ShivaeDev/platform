@@ -34,6 +34,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 		.atom((get) =>
 			Effect.gen(function* () {
 				get.mount(status);
+				get.mount(paused);
 				const resumed = yield* Queue.unbounded<void>();
 				yield* retryOnChange(status, clientReadKeys(options.retryKeys ?? [], options.keyContext), () => get.refreshSelf());
 				function update(value: Partial<LiveStatus<E>>) {

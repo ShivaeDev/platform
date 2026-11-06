@@ -91,7 +91,7 @@ export const sessionEngine = Effect.gen(function* () {
 			const api = bind(Preferences, Client, { registry });
 			const otherBinding = bind(Preferences, Client, { registry });
 			function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
-				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(effect)));
+				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(Effect.suspend(() => effect))));
 			}
 			function view(name: PreferenceView): Atom.Atom<AsyncResult.AsyncResult<string | readonly string[], unknown>> {
 				switch (name) {

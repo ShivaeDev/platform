@@ -6,6 +6,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { answered, shown, times } from "./answers.ts";
 import { type LocalEngine, localEngine } from "./localEngine.ts";
 import type { Note } from "./notes.ts";
+import { markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 
 export type View = "note 1" | "note 2" | "note 3" | "the list";
@@ -31,6 +32,21 @@ function shownOf(engine: LocalEngine, view: View) {
 	return Effect.map(settled(engine.registry, viewAtom(engine, view)), (result) => shown(result, titles));
 }
 
+function write(engine: LocalEngine, effect: Effect.Effect<Note, unknown>) {
+	const watched = (["note 1", "note 2", "note 3", "the list"] as const)
+		.map((view) => ({ atom: viewAtom(engine, view), view }))
+		.filter(({ atom }) => engine.registry.getNodes().has(atom))
+		.map((entry) => ({ ...entry, mark: markQuery(engine.registry, entry.atom) }));
+	return effect.pipe(
+		Effect.tap((note) =>
+			Effect.forEach(
+				watched.filter(({ view }) => view === "the list" || NOTE_IDS[view] === note.id),
+				({ atom, mark }) => reRead(engine.registry, atom, mark),
+			),
+		),
+	);
+}
+
 export const notesStory = storyKit({
 	clock: "test",
 	create: () => localEngine,
@@ -44,7 +60,10 @@ export const notesStory = storyKit({
 	verbs: (engine, story) => ({
 		create: (title: string) => {
 			story.tell(`the client creates the note ${title}`);
-			return answered(engine.run(engine.api.create.run({ body: "", title })), (note) => `created note ${note.id} titled ${note.title}`);
+			return answered(
+				write(engine, engine.run(engine.api.create.run({ body: "", title }))),
+				(note) => `created note ${note.id} titled ${note.title}`,
+			);
 		},
 		mount: (view: View) => {
 			story.tell(`the client mounts ${view}`);
@@ -56,7 +75,7 @@ export const notesStory = storyKit({
 		},
 		rename: (id: number, title: string) => {
 			story.tell(`the client renames note ${id} to ${JSON.stringify(title)}`);
-			return answered(engine.run(engine.api.rename.run({ id, title })), (note) => `renamed note ${note.id} to ${note.title}`);
+			return answered(write(engine, engine.run(engine.api.rename.run({ id, title }))), (note) => `renamed note ${note.id} to ${note.title}`);
 		},
 		serverReads: () => SubscriptionRef.get(engine.server.reads),
 		shown: (view: View) => shownOf(engine, view),

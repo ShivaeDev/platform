@@ -244,7 +244,7 @@ const note = api.get.query({ id: 1 });
 const rename = runtime.fn(api.rename.run);
 ```
 
-Browsers send the session cookie at upgrade. Mounting a query opens its subscription before running its first authorized read; unmounting cancels that subscription without restarting the socket or another query. Changed keys rerun only their readers, and equal results retain the bound atom's value. Connection failures use Effect RPC's reconnect backoff; subscriptions resume and mounted queries read again because there is no retained key history. `LiveConnection.status` reports `connecting`, `live` or `reconnecting`.
+Browsers send the session cookie at upgrade. Mounting a query opens its subscription before running its first authorized read; unmounting cancels that subscription without restarting the socket or another query. Changed keys rerun only their readers, and equal results retain the bound atom's value. Connection failures use Effect RPC's reconnect backoff; subscriptions reopen and the server pushes current results because there is no retained key history. `LiveConnection.status` reports `connecting`, `live` or `reconnecting`.
 
 On visible `visibilitychange`, `online` and `pageshow` events, or an injected native resume, the default socket client probes an open connection with RPC Ping/Pong. Commands wait during that probe. A missing Pong after 2.5 seconds fails the socket reader and starts native reconnection without waiting for a browser close handshake. Bound commands issued during reconnection wait up to 10 seconds before sending; a timeout fails with a typed `RpcClientError` whose reason is `SocketOpenError` with kind `Timeout`. A held command immediately reports `waiting-for-connection` through `clientActivity(client)`, including without a mounted query. Only commands that have not been sent wait; in-flight commands fail on disconnect and are never replayed. Supplied native socket protocols inherit the command wait through Effect’s connection hooks without additional wiring.
 
@@ -430,6 +430,8 @@ The server coalesces changes per subscription: one rerun can be in flight and on
 `Resync` is an internal server reconciliation signal. When more than 256 hints accumulate behind a stalled subscription, pending keys collapse to one `Resync`; further hints are absorbed until it is consumed. PostgreSQL listener recovery also resynchronizes affected subscriptions. In either case, the server reruns the subscriber's queries and pushes changed results. `Resync` never asks the client to issue reads.
 
 The `paused` atom at `api[LiveConnection]` suppresses applying pushed values to the screen while continuing to observe the stream. Its `status.pending` count saturates at 256. Unpausing reopens the subscription for a current authorized result and resets that count. Bindings on one client runtime share pause state.
+
+An explicit query refresh reopens its subscription, retaining its current value with `waiting: true` until the fresh result arrives. Retryable connection failures retain the current query value during reconnection. Declared query failures and read denials still reach the query's error channel.
 
 Visible browser `online` and `visibilitychange` events reopen active subscriptions for current values. Supply an optional native `resume` source on `makeClient` or `bind` for application or network lifecycle events; it registers a callback and returns its cleanup function. `resumeWindow` selects an embedded browser window. Disposing the registry releases the source, query subscriptions and socket resources.
 

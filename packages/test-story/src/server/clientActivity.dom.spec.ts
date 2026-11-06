@@ -1,14 +1,15 @@
 import { expect } from "vitest";
 import { activityPage } from "#test/activityPage.ts";
 
-activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, findText }) {
+activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, startHintWait }) {
 	expect(yield* shown()).toBe("First page");
 	yield* enter("input", "Saved page");
 
+	const update = yield* startHintWait();
 	yield* click({ name: "Save", role: "button" });
+	yield* update.finish;
 
-	const output = yield* findText("Saved page");
-	expect(output.textContent).toBe("Saved page");
+	expect(yield* shown()).toBe("Saved page");
 });
 
 activityPage.it(

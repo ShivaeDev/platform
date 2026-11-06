@@ -11,7 +11,7 @@ export function liveVerbs(engine: LiveEngine, tell: (line: string) => void) {
 	function settle() {
 		return settleEditors(engine, tell);
 	}
-	function hinted(action: () => Promise<void>) {
+	function pushed(action: () => Promise<void>) {
 		return Effect.promise(() =>
 			act(async () => {
 				const hints = Promise.all([...engine.views.values()].map((screen) => screen.nextHint()));
@@ -54,13 +54,13 @@ export function liveVerbs(engine: LiveEngine, tell: (line: string) => void) {
 				yield* Deferred.await(gate.entered);
 				yield* Deferred.succeed(gate.released, undefined);
 				engine.answers.push(answerWord(yield* Effect.promise(() => rejected)));
-				yield* hinted(async () => {
+				yield* pushed(async () => {
 					engine.answers.push(answerWord(await apiSave(server.url, "After rollback", 300, "alice-session")));
 				});
 			}),
 		releaseCommit: () => {
 			tell("the held transaction commits");
-			return hinted(async () => {
+			return pushed(async () => {
 				await Effect.runPromise(Deferred.succeed(gate.released, undefined));
 			});
 		},
@@ -77,7 +77,7 @@ export function liveVerbs(engine: LiveEngine, tell: (line: string) => void) {
 			if (gate.held && !Deferred.isDoneUnsafe(gate.released)) {
 				return Effect.promise(click).pipe(Effect.andThen(Deferred.await(gate.entered)));
 			}
-			return hinted(click);
+			return pushed(click);
 		},
 	};
 }

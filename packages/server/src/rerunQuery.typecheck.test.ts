@@ -10,7 +10,7 @@ import { Api, type PolicyUnavailable, type QueryUnavailable, type Store } from "
 
 declare const options: Parameters<Rpc.Handler<string>["handler"]>[1];
 declare const request: QueryRequest;
-const compared = Api.application.omit("rerun.barrier", "rerun.hinted", "rerun.rename");
+const compared = Api.application.omit("rerun.barrier", "rerun.secondary", "rerun.rename");
 const rerun = rerunQuery(compared, options)(request);
 
 expectTypeOf<Effect.Services<typeof rerun>>().toEqualTypeOf<Rpc.Handler<"rerun.compare"> | Store>();
