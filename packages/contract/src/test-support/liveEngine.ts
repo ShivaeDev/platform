@@ -13,9 +13,9 @@ import { failure, times } from "./answers.ts";
 import { Note } from "./notes.ts";
 import { settled } from "./settled.ts";
 
-export type LiveView = "note 1" | "note 2" | "the list" | "the saved note 1" | "the short-lived note 1";
+export type LiveView = "note 1" | "note 2" | "the list" | "the saved note 1";
 
-const NOTE_IDS = { "note 1": 1, "note 2": 2, "the saved note 1": 1, "the short-lived note 1": 1 } as const;
+const NOTE_IDS = { "note 1": 1, "note 2": 2, "the saved note 1": 1 } as const;
 
 export type LiveServer = Awaited<ReturnType<typeof liveServer>>;
 
@@ -56,8 +56,6 @@ export function viewAtom(engine: LiveEngine, view: LiveView): Atom.Atom<AsyncRes
 			return engine.client.api.list.query(undefined);
 		case "the saved note 1":
 			return engine.client.api.get.query({ id: 1 }, { serializationKey: "note-one" });
-		case "the short-lived note 1":
-			return engine.client.api.get.query({ id: 1 }, { timeToLive: "1 second" });
 		case "note 1":
 		case "note 2":
 			return engine.client.api.get.query({ id: NOTE_IDS[view] });

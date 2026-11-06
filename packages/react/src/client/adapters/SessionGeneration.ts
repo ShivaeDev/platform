@@ -4,6 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
+import { type QueryRetentionOptions, queryRetention } from "@shivaedev/contract/queryRetention.ts";
 import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import { mountLive } from "#client/mountLive.ts";
 import { RecheckContext } from "#RecheckContext.ts";
@@ -18,8 +19,13 @@ interface Connection<TSession, TClient> {
 	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly session: TSession;
 }
-function owning<TSession, TClient>(connection: Connection<TSession, TClient>, identity: string | undefined): Owned<TClient> {
+function owning<TSession, TClient>(
+	connection: Connection<TSession, TClient>,
+	identity: string | undefined,
+	retention: QueryRetentionOptions | undefined,
+): Owned<TClient> {
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 400 });
+	registry.set(queryRetention, retention ?? {});
 	const { connect, session: initialSession } = connection;
 	let client: { readonly value: TClient } | undefined;
 	return {
@@ -38,8 +44,12 @@ function owning<TSession, TClient>(connection: Connection<TSession, TClient>, id
 	};
 }
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
-function hidden<TSession, TClient>(connection: Connection<TSession, TClient>, identity: string | undefined): Owned<TClient> {
-	const owned = owning(connection, identity);
+function hidden<TSession, TClient>(
+	connection: Connection<TSession, TClient>,
+	identity: string | undefined,
+	retention: QueryRetentionOptions | undefined,
+): Owned<TClient> {
+	const owned = owning(connection, identity, retention);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
 		if (reaping || owned.mounted > 0) {
@@ -60,6 +70,7 @@ interface SessionGenerationProps<TSession, TClient> {
 	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly identity: string | undefined;
 	readonly liveCoalesceWindow?: Duration.Input | undefined;
+	readonly queryRetention?: QueryRetentionOptions | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
 }
@@ -70,10 +81,14 @@ export function SessionGeneration<TSession, TClient>({
 	children,
 	identity,
 	liveCoalesceWindow,
+	queryRetention: retention,
 }: SessionGenerationProps<TSession, TClient>): ReactNode {
 	const recheckLatest = useLatestCallback(recheck);
 	const [connection] = useState(() => ({ connect, session }));
-	const [owned, own] = useState(() => owning(connection, identity));
+	const [owned, own] = useState(() => owning(connection, identity, retention));
+	useEffect(() => {
+		owned.registry.set(queryRetention, retention ?? {});
+	}, [owned, retention]);
 	useEffect(() => registerSessionRecheck(owned.registry, recheckLatest), [owned, recheckLatest]);
 	useEffect(() => {
 		owned.mounted += 1;
@@ -87,8 +102,9 @@ export function SessionGeneration<TSession, TClient>({
 				if (owned.mounted > 0) {
 					return;
 				}
+				const configured = owned.registry.get(queryRetention);
 				owned.registry.dispose();
-				own((current) => (current === owned ? hidden(connection, identity) : current));
+				own((current) => (current === owned ? hidden(connection, identity, configured) : current));
 			});
 		};
 	}, [identity, owned, liveCoalesceWindow, connection]);

@@ -3,6 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 export interface QuerySignals {
 	readonly completed: number;
 	readonly pending: boolean;
+	readonly retained?: boolean;
 	readonly subscription: "disabled" | "opening" | "open" | "refused";
 }
 

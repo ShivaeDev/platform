@@ -16,6 +16,7 @@ import { waitForConnection } from "#connectionReadiness.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { queryReactivity } from "#queryReactivity.ts";
 import { shareQuerySignals } from "#querySignals.ts";
+import { retainQuery } from "#retainQuery.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
@@ -40,7 +41,7 @@ export function clientOperations(
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
 		return {
 			query: (payload: unknown, options: QueryOptions = {}) => {
-				const atom = ordinaryClient.query(tag, payload, options);
+				const atom = ordinaryClient.query(tag, payload, { ...options, timeToLive: 0 });
 				const existing = cached.get(atom);
 				if (existing !== undefined) {
 					return existing;
@@ -60,7 +61,7 @@ export function clientOperations(
 					(source) => reactive(source, clientReadKeys(dependencies, owner?.context), owner?.registry),
 					options.headers,
 				);
-				const tracked = clientActivities.get(ordinaryClient)?.watch(result) ?? result;
+				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result) ?? result);
 				shareQuerySignals(tracked, result);
 				cached.set(atom, tracked);
 				return tracked;

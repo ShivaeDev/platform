@@ -57,13 +57,13 @@ Within an unchanged session, the query hook exposes native `AsyncResult` state: 
 
 `Unauthorized` does not erase the last successful query value automatically. Inside a `SessionBoundary` it asks the auth owner to re-check; once that owner decides the session has expired or ended, it changes the boundary's session. A retained value is useful during transient refresh failure; it is not permission to keep an expired authenticated screen visible. The starter's [App](../../examples/starter/src/client/App.tsx) supplies Better Auth's `session.refetch` as `recheck`.
 
-## Native cache policy
+## Query retention
 
-These follow from `effect/reactivity/AtomRpc` and `AtomRegistry`:
+Bound contract queries use native atoms for execution and retained results:
 - Each registry stores its own atom values. Atom identity alone does not imply shared cached values across registries.
-- `Client.query` uses a native atom family. Its query key includes the RPC tag, payload, optional headers, reactivity keys, TTL and serialization key. Define clients once per session rather than rebuilding them inside each render.
+- `Client.query` uses a native atom family. Its query key includes the RPC tag, payload, optional headers, reactivity keys and serialization key. Define clients once per session rather than rebuilding them inside each render.
 - Credentials installed by a client transform are not automatically an account partition in a query payload. A credential-bound client plus session registry makes that lifetime explicit; do not mutate a singleton's credentials and assume its cached responses become invalid.
-- Finite `timeToLive` delegates to `Atom.setIdleTTL`; infinite TTL uses `Atom.keepAlive`. This is retention after inactivity, not a promise that data stays fresh for that duration or a polling interval.
+- Bound queries retain a successful result for five minutes after the last reader leaves, up to 100 idle results per registry. The least recently left query is evicted first. Reopening shows retained data as stale while a new read or subscription revalidates it. `SessionBoundary.queryRetention` (or the registry’s `queryRetention` atom from `@shivaedev/contract/queryRetention.ts`) configures `timeToLive` and `capacity`; zero disables retention. Expiry uses the query runtime’s Effect Clock. Loaders use this same policy after completing.
 - Session disposal takes precedence over any retention policy.
 - Reactivity keys connect local successful mutations to query refresh. They do not deliver cross-device changes, implement offline replay or authenticate a request. Explicit refresh remains useful for external changes.
 - Native Reactivity expands a record key such as `{ orders: [id] }` into both `"orders"` and `"orders:<id>"`, when registering a query and when invalidating. The `contract` binding registers item queries with `` `orders:${id}` `` and `"orders:*"`, the list with `"orders"`, and invalidates the item key and `"orders"` after a save, so one save refreshes that order and the list but no other mounted order.

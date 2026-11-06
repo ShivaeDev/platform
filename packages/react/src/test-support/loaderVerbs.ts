@@ -26,6 +26,11 @@ export function loaderVerbs(engine: Engine, story: { tell: (line: string) => voi
 				});
 			}),
 		loaderSource: () => Effect.sync(() => presence(host.source)),
+		nextReadWaits: () =>
+			Effect.sync(() => {
+				story.tell("the server holds its next answer");
+				host.next();
+			}),
 		refresh: () => refresh(engine, story.tell),
 		removeLink: (target: "Home" | "Note") =>
 			Effect.gen(function* () {
@@ -41,6 +46,13 @@ export function loaderVerbs(engine: Engine, story: { tell: (line: string) => voi
 				});
 			}),
 		respond: (title: string) => respond(engine, title, story.tell),
+		returnToNote: () =>
+			Effect.promise(async () => {
+				story.tell("return to the note route");
+				await act(async () => {
+					await opened(engine).router.navigate({ to: "/note" });
+				});
+			}),
 		routeMounts: () =>
 			Effect.promise(async () => {
 				story.tell("the router mounts the note route");
@@ -49,6 +61,7 @@ export function loaderVerbs(engine: Engine, story: { tell: (line: string) => voi
 		screenWork: () => Effect.sync(() => (opened(engine).pending() ? "pending" : "settled")),
 		serverCalls: () => Effect.sync(() => [...host.calls]),
 		shownTitle: () => Effect.sync(() => opened(engine).view.container.querySelector("h1")?.textContent),
+		stale: () => Effect.sync(() => opened(engine).view.container.querySelector("article")?.dataset.stale === "true"),
 	};
 }
 export function findLink(engine: Engine, target: "Home" | "Note") {

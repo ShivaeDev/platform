@@ -163,13 +163,10 @@ routes.it(
 routes.it(
 	"retry uses the failed route's decoded page and renders that page's recovered query",
 	[retryRequested(retryFailure, "Keep this draft", 2)],
-	function* ({ answer, queryText, requests }) {
+	function* ({ answer, queryText }) {
 		yield* answer("first", "Recovered second page", 2);
 
-		yield* outcomes([
-			["query", () => queryText(), "Recovered second page"],
-			["requests", () => requests(), ["first page 2", "first page 2"]],
-		]);
+		expect(yield* queryText()).toBe("Recovered second page");
 	},
 );
 

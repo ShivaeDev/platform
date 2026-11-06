@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { recheckUnauthorized } from "#sessionRecheck.ts";
 import { keepLoaderQuery } from "./queryHandoff.ts";
 
@@ -14,7 +15,10 @@ export async function loadQuery<A, E>(
 	const { signal } = abortController;
 	const handoff = keepLoaderQuery(registry, atom, signal);
 	try {
-		const result = await Effect.runPromise(Effect.result(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })), { signal });
+		const result = await Effect.runPromise(
+			Effect.result(AtomRegistry.getResult(registry, atom, { suspendOnWaiting: registry.get(querySignals(atom)).retained !== true })),
+			{ signal },
+		);
 		if (result._tag === "Failure") {
 			await recheckUnauthorized(registry, result.failure);
 			throw result.failure;

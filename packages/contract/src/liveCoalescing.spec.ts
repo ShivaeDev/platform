@@ -123,17 +123,17 @@ postgresLive.it(
 );
 
 postgresLive.it(
-	"note 1 queried with a 1 second lifetime stays cached after its release, so mounting it again within that second reads nothing",
-	[watching("the short-lived note 1")],
+	"note 1 revalidates when mounted again after an unannounced change",
+	[watching("note 1")],
 	function* ({ changeUnannounced, mount, shown, timesRead, unmount }) {
-		unmount("the short-lived note 1");
+		unmount("note 1");
 		yield* changeUnannounced(1, "Committed after release");
 
-		mount("the short-lived note 1");
+		mount("note 1");
 
 		yield* outcomes([
-			["the short-lived note 1", () => shown("the short-lived note 1"), "First"],
-			["the short-lived note 1's reads", () => timesRead("the short-lived note 1"), "read once"],
+			["note 1", () => shown("note 1"), "Committed after release"],
+			["note 1's reads", () => timesRead("note 1"), "read twice"],
 		]);
 	},
 );

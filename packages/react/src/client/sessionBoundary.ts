@@ -4,6 +4,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, Fragment, type ReactNode, useContext } from "react";
+import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.ts";
 import { DraftSessionContext } from "@shivaedev/form/adapters/react.ts";
 import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
@@ -18,6 +19,7 @@ export interface SessionBoundaryProps<TSession, TClient> {
 	readonly identify: (session: TSession) => string;
 	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly navigate?: ((href: string) => void) | undefined;
+	readonly queryRetention?: QueryRetentionOptions | undefined;
 	readonly recheck: (() => void) | Effect.Effect<unknown, unknown, AtomRegistry.AtomRegistry>;
 	readonly redirectTo?: string | undefined;
 	readonly runtime?: Pick<Atom.AtomRuntime<never, unknown>, "fn"> | undefined;
@@ -32,6 +34,7 @@ export function SessionBoundary<TSession, TClient>({
 	session,
 	runtime,
 	liveCoalesceWindow,
+	queryRetention,
 	identify,
 	connect,
 	recheck,
@@ -53,6 +56,7 @@ export function SessionBoundary<TSession, TClient>({
 		connect,
 		identity: id,
 		liveCoalesceWindow,
+		queryRetention,
 		recheck: retry,
 		session,
 	});

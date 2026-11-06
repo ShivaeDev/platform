@@ -6,7 +6,6 @@ import { act } from "react";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { idleRegistry } from "./idleRegistry.ts";
 import { routerApp } from "./routerApp.ts";
 import { type NoteFailure, type NoteMissing, routerClient } from "./routerClient.ts";
 import { type Screen, screenWarnings } from "./Screen.ts";
@@ -18,7 +17,6 @@ interface State {
 	marked?: { readonly input: Element | null; readonly shell: Element | null };
 	root?: Rendered;
 	router?: ReturnType<typeof routerApp>;
-	wrongRetry?: boolean;
 }
 
 function current(state: State) {
@@ -96,7 +94,6 @@ function routeVerbs(state: State, screen: Screen) {
 			}),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
-		idleWindowPasses: () => screen.act("the registry sweeps its idle atoms", () => idleRegistry(current(state).router.options.context.registry)),
 		leave: () =>
 			screen
 				.act("leave the failed note route", () => current(state).router.navigate({ to: "/no-access" }))
@@ -162,7 +159,7 @@ function* openRoute(
 		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
 	);
 	state.root = root;
-	const router = routerApp(registry, state.client, initial, viewerPage, state.wrongRetry);
+	const router = routerApp(registry, state.client, initial, viewerPage);
 	state.router = router;
 	yield* Effect.promise(() =>
 		act(() =>
@@ -228,14 +225,6 @@ function* failLoader(engine: Engine, failure: NoteMissing, draft: string, page: 
 export function loaderFailed(failure: NoteMissing, draft: string, page = 1) {
 	return routes.trait("screen", `the note's page ${page} loader failed as ${failure._tag} and the shell input holds ${draft}`, (engine) =>
 		failLoader(engine, failure, draft, page),
-	);
-}
-
-export function retryTargetsOtherQuery() {
-	return routes.trait("screen", "Retry is wired to the second note's query", ({ state }) =>
-		Effect.sync(() => {
-			state.wrongRetry = true;
-		}),
 	);
 }
 

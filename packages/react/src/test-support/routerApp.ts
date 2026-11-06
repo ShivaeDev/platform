@@ -14,7 +14,6 @@ import {
 	RouterRefused,
 	RouterShell,
 	RouterSignIn,
-	RouterWrongRetry,
 	SharedNotFound,
 } from "./routerScreens.tsx";
 
@@ -32,10 +31,10 @@ export const RouterSearch = Schema.Struct({
 	),
 });
 
-function noteRoute(wrongRetry: boolean) {
+function noteRoute() {
 	return createRoute({
 		component: RouterNote,
-		errorComponent: wrongRetry ? RouterWrongRetry : RouterFailure,
+		errorComponent: RouterFailure,
 		getParentRoute: () => root,
 		...noteQuery,
 		path: "/notes/$id",
@@ -76,18 +75,12 @@ const redirected = createRoute({
 	),
 });
 
-export function routerApp(
-	registry: AtomRegistry.AtomRegistry,
-	client: ReturnType<typeof routerClient>,
-	initial = "/notes/first",
-	page = 1,
-	wrongRetry = false,
-) {
+export function routerApp(registry: AtomRegistry.AtomRegistry, client: ReturnType<typeof routerClient>, initial = "/notes/first", page = 1) {
 	return createRouter({
 		context: { client, frames: client.frames, registry, viewerPage: page },
 		defaultPendingComponent: RouterPending,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([noteRoute(wrongRetry), customNotFoundRoute, signIn, refused, redirected]),
+		routeTree: root.addChildren([noteRoute(), customNotFoundRoute, signIn, refused, redirected]),
 	});
 }

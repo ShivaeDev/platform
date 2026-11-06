@@ -26,7 +26,7 @@ export const loaderRoute = Effect.fn("LoaderScreen.loaderRoute")(function* (engi
 			const query = useLoaderQuery(host.atom, note.useLoaderData());
 			engine.renders.push(query.data.title);
 			return (
-				<article>
+				<article data-stale={query.stale}>
 					<h1>{query.data.title}</h1>
 					<button onClick={query.refresh} type="button">
 						Refresh

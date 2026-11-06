@@ -6,7 +6,6 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
-import { acceptLoaderQuery } from "#adapters/queryHandoff.ts";
 import { usePermissionFailure } from "#adapters/usePermissionFailure.ts";
 import { useQueryNotice } from "#adapters/useQueryNotice.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
@@ -43,6 +42,7 @@ export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly denied: boolean;
 	readonly refresh: () => void;
 	readonly refusal: Option.Option<Exclude<E, { readonly _tag: "RpcClientError" }>>;
+	readonly stale: boolean;
 }
 export interface QueryOptions<E = unknown> {
 	readonly coalesceWindow?: Duration.Input | undefined;
@@ -60,7 +60,6 @@ interface HeldQuery<A, E> {
 export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, options: QueryOptions<E> = {}): QueryState<A, E> {
 	const result = useAtomValue(atom);
 	const registry = useContext(RegistryContext);
-	useEffect(() => acceptLoaderQuery(registry, atom), [registry, atom]);
 	useLiveWindow(atom, options.coalesceWindow);
 	const keepPreviousData = options.keepPreviousData === true;
 	const nativeData = AsyncResult.value(result);
@@ -86,6 +85,7 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 				(error): error is Exclude<E, { readonly _tag: "RpcClientError" }> => !Predicate.isTagged(error, "RpcClientError"),
 			),
 		),
+		stale: Option.isSome(data) && (result.waiting || !AsyncResult.isSuccess(result)),
 	};
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
