@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 - 2026-11-06
+
+### Added
+
+- Run schedules from the admin Jobs view on retry-enabled pages, guarded by the existing jobs management permission.
+
 ## 0.22.1 - 2026-11-06
 
 ### Changed

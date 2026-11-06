@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.0 - 2026-11-06
+
+### Breaking
+
+- Declare `postgresSettings` explicitly when building `appDatabase`, a database-backed `appHost`, or `workerHost`; use `{}` to request no server changes. Startup applies differing PostgreSQL server settings outside migrations and warns about refused values and pending restarts. Drop calls and imports of the removed `trimPostgresPageCache`; page-cache trimming belongs in the PostgreSQL service start command.
+
 ## 0.29.1 - 2026-11-06
 
 ### Changed
