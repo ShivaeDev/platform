@@ -5,6 +5,7 @@ import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
 import { KNIP_ISSUES } from "./findings.ts";
+import { mockEntries } from "./mockEntries.ts";
 
 const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}", "src/test-support/**", "*.config.{ts,mts,cts,js,mjs,cjs}"];
 
@@ -34,12 +35,13 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 		}),
 	);
 	const scripted = new Set(manifests.flatMap(({ directory, manifest }) => scriptPaths(directory, manifest.scripts ?? {})));
+	const mocked = new Set(mockEntries(inputs));
 	const workspaces = manifests.map(({ directory, manifest }) => {
 		const sources = inputs.sources
 			.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)
 			.map(({ path }) => posix.relative(directory, path));
 		const scriptEntries = sources.filter((path) => scripted.has(posix.join(directory, path)));
-		const bundled = sources.filter((path) => programmatic.has(posix.join(directory, path)));
+		const bundled = sources.filter((path) => programmatic.has(posix.join(directory, path)) || mocked.has(posix.join(directory, path)));
 		const bins = exportTargets(manifest.bin).map((target) => target.replace(/^\.\//u, ""));
 		const binaries = sources.filter(
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),

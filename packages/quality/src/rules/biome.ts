@@ -5,6 +5,9 @@ import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
 
 function messageOf(diagnostic: Diagnostic): string {
+	if (diagnostic.category === "lint/correctness/noProcessGlobal") {
+		return "Uses the process global. In Effect code, use an adapters/ module with explicit imports that exposes Effect values: import process from node:process there. Read environment variables with Config instead of process.env, including in adapters/.";
+	}
 	return diagnostic.category === "format" && diagnostic.message.startsWith("Formatter would have printed")
 		? "Is not formatted. Run `quality fix`."
 		: diagnostic.message;

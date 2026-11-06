@@ -40,6 +40,12 @@ export function projectHas(...files: readonly SeedFile[]) {
 	return checkoutStory.trait("checkout", `the author writes ${pathsOf(files)} without committing`, (engine) => writeAll(engine.root, files));
 }
 
+export function gitExcludes(patterns: string) {
+	return checkoutStory.trait("checkout", "Git's shared info/exclude ignores generated files", (engine) => {
+		writes(builtRepository(engine).root, ".git/info/exclude", patterns);
+	});
+}
+
 const RootManifest = Schema.fromJsonString(Schema.Struct({ packageManager: Schema.String }));
 
 // The version is this repository's own pnpm, which the tests run under, so pnpm needs no download to honour the field.

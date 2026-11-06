@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { browserLibraryType } from "#adapters/browserLibraryType.ts";
 import { callerContextData } from "#adapters/callerContextData.ts";
 
 const SERVICE = "~effect/Context/Service";
@@ -83,6 +84,7 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		if (
 			seen.has(type)
 			|| contextData.has(type)
+			|| browserLibraryType(type)
 			|| type.flags
 				& (ts.TypeFlags.Any
 					| ts.TypeFlags.Unknown

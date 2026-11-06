@@ -2,6 +2,7 @@ import type { ImportGraph } from "#imports/graph.ts";
 import type { PackageLayout } from "#naming/packageLayout.ts";
 import type { RuleInputs } from "#rule.ts";
 import { bundlerEntries } from "./bundlerEntries.ts";
+import { spawnedEntries } from "./spawnedEntries.ts";
 
 function scriptsByPackage(layout: PackageLayout): ReadonlyMap<string, readonly string[]> {
 	const scripts = new Map<string, string[]>();
@@ -47,7 +48,7 @@ export function reachableBuildEntries(inputs: RuleInputs, graph: ImportGraph, la
 			if (source === undefined) {
 				continue;
 			}
-			for (const entry of bundlerEntries(source, inputs.root, directory)) {
+			for (const entry of [...bundlerEntries(source, inputs.root, directory), ...spawnedEntries(source, inputs.root, directory)]) {
 				if (sources.has(entry)) {
 					entries.add(entry);
 				}
