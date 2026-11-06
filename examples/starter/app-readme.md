@@ -52,6 +52,8 @@ The auth migration stories call `assertBetterAuthSchema` after all numbered migr
 
 ## Build and deploy
 
+Choose your PostgreSQL server settings in `src/server/postgresSettings.ts`. The starting preset uses `shared_buffers=32MB`, `max_connections=50`, `jit=off` and `idle_in_transaction_session_timeout=10min`; tune it for your workload and memory budget. Migration, web and worker startup apply it. Restart PostgreSQL when startup logs pending changes to `shared_buffers` or `max_connections`.
+
 ```sh
 pnpm build
 pnpm migrate
