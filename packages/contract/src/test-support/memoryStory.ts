@@ -9,7 +9,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#queryKeys.ts";
-import { answered, hintWords, shown, streams } from "./answers.ts";
+import { answered, shown, streams, updateWords } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
@@ -82,7 +82,7 @@ export const memoryStory = storyKit({
 			if (listener === undefined) {
 				throw new Error(`No listener for note ${id}`);
 			}
-			return Effect.map(SubscriptionRef.get(listener.viewer.hints), (hints) => hints.map(hintWords));
+			return Effect.map(SubscriptionRef.get(listener.viewer.hints), (hints) => hints.map(updateWords));
 		},
 		nextHint: (id: number) => {
 			const listener = engine.listeners.get(id);

@@ -2,6 +2,8 @@
 
 The application host for Effect apps: one Layer that runs migrations, serves native RPC and static assets over Node HTTP, checks sessions, redacts diagnostics and exports traces. Applications describe their contracts, handlers and session policy; the host owns the process around them.
 
+For live queries, the host checks policies and registers read keys before reading and delivering the first result on the subscription. Default later changes send hints for the client to reread; queries that select rerun-and-compare keep server-side comparison.
+
 ## Why you want this
 
 Every Effect application needs the same server shell: wait for migrations, open a pool, serve RPC with bounded bodies and trusted proxies, keep secrets out of logs and traces, shut down cleanly. Assembling that by hand per app is a week of careful work and a long list of ways to get it subtly wrong. Here it is one call:

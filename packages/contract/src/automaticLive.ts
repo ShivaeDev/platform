@@ -74,22 +74,24 @@ export function automaticLive(
 		reference: QueryReference,
 		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
-		decode?: (value: unknown) => A,
+		decode: (value: unknown) => A,
+		compared: boolean,
+		reactive: (source: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 		headers?: Headers.Input,
 	) {
 		if (!enabled) {
-			return queryProgress(atom);
+			return queryProgress(reactive(atom));
 		}
 		const ready = Atom.make(false);
 		const signals = querySignals(atom);
-		const delivery = queryDelivery(atom, decode, paused, signals);
-		const source = decode === undefined ? delivery.atom.pipe(Atom.setIdleTTL(0)) : delivery.atom;
+		const delivery = queryDelivery(atom, decode, compared, paused, signals);
+		const source = compared ? delivery.atom : reactive(delivery.atom.pipe(Atom.setIdleTTL(0)));
 		const subscription = live(service.runtime, {
 			initialResync: false,
 			keyContext: owner?.context,
-			reopenOnResume: decode !== undefined,
+			reopenOnResume: compared,
 			resume: signal,
-			resyncKeys: decode === undefined ? localQueryKeys(keys) : [],
+			resyncKeys: compared ? [] : localQueryKeys(keys),
 			retryKeys: keys,
 			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] }, { headers })))).pipe(
 				delivery.stream,
@@ -103,8 +105,9 @@ export function automaticLive(
 			coalesceWindow,
 			equivalent,
 			paused,
-			pushed: decode !== undefined,
+			pushed: compared,
 			ready,
+			resultVersion: delivery.version,
 			signals,
 			source,
 			statuses,

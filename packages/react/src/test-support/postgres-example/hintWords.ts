@@ -1,8 +1,8 @@
-import type { LiveHint } from "@shivaedev/contract/live.ts";
+import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 
-export function hintWord(hint: LiveHint) {
-	if (hint._tag === "Resync") {
-		return "resync";
+export function hintWord(hint: QueryUpdate) {
+	if (hint._tag !== "Changed") {
+		return hint._tag.toLowerCase();
 	}
 	return `changed ${hint.keys.map((key) => (key._tag === "Item" ? `${key.collection} ${key.id}` : key.collection)).join(", ")}`;
 }

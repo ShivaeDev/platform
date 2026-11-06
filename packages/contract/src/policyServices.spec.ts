@@ -3,16 +3,16 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { listening, policyServicesStory } from "#test/policyServicesStory.ts";
 
 for (const [person, read, hint] of [
-	["alice", "team's document", "resync"],
+	["alice", "team's document", "team's document"],
 	["bob", "failed with read denied", "failed with read denied"],
 ] as const) {
 	policyServicesStory.it(
-		`${person}'s request-local provider accounts decide both HTTP reads and live hints with a handler-only policy service`,
+		`${person}'s request-local provider accounts decide both HTTP reads and initial results with a handler-only policy service`,
 		[],
-		function* ({ firstHint, read: readDocument }) {
+		function* ({ firstResult, read: readDocument }) {
 			yield* outcomes([
 				["HTTP read", () => readDocument(person), read],
-				["live hint", () => firstHint(person), hint],
+				["initial result", () => firstResult(person), hint],
 			]);
 		},
 	);

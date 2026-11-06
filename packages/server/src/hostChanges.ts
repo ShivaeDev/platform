@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Option, Stream } from "effect";
 import { Headers } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
+import { compareQueries } from "@shivaedev/contract/compareQueries.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { subscribe as subscribeQueries } from "@shivaedev/contract/live-server/subscribe.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
@@ -70,7 +71,10 @@ function subscribe(
 							Effect.provideService(LiveServer, changes.value),
 						),
 					)
-				: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
+				: Stream.concat(
+						Stream.fromEffect(compareQueries(subscription, read)({ _tag: "Resync" })).pipe(Stream.flatMap(Stream.fromIterable)),
+						Stream.never,
+					);
 			if (Option.isNone(sessions) || Option.isNone(viewer)) {
 				return stream;
 			}

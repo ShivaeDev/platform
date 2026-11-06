@@ -115,6 +115,6 @@ readPolicyHost.it(
 		yield* revokeSession("alice");
 		yield* publish();
 
-		expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["resync"] });
+		expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["result"] });
 	},
 );

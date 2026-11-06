@@ -6,7 +6,7 @@ publicationRecoveryStory.it(
 	"a failed declared-key publication preserves the committed result and reconciles both hosts' socket subscribers",
 	[],
 	function* ({ errors, initialHints, nextHint, read, saveWithOversizedKey }) {
-		expect(initialHints()).toEqual({ local: ["resync"], remote: ["resync"] });
+		expect(initialHints()).toEqual({ local: ["result"], remote: ["result"] });
 		yield* outcomes([
 			["initial local read", () => read("local"), []],
 			["initial remote read", () => read("remote"), []],
