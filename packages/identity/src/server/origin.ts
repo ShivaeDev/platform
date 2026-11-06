@@ -7,7 +7,10 @@ export interface OriginRequest {
 	readonly remoteAddress?: Option.Option<string>;
 	readonly rpc: string;
 }
-export type OriginPolicy = (request: OriginRequest) => boolean;
+export interface OriginPolicy {
+	readonly trustedOrigins?: readonly string[];
+	(request: OriginRequest): boolean;
+}
 export interface TrustedOriginsOptions {
 	readonly allow: readonly string[];
 	readonly missing: "allow" | "reject";

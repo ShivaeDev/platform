@@ -10,6 +10,7 @@ import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
+import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
@@ -23,6 +24,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	enabled: boolean,
 	nativeOrigins?: readonly string[],
 	trustedProxy?: string,
+	siblingOrigins: readonly string[] = [],
 ) {
 	const pool = yield* betterAuthDatabase();
 	const options = {
@@ -33,7 +35,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		plugins: [admin()],
 		secret: "native-session-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
-		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*"],
+		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*", ...siblingOrigins],
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 	const mounted = yield* betterAuthMount(options, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {}).pipe(
@@ -41,7 +43,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	);
 	const activity = { available: true, lookups: 0 };
 	const sessions = {
-		origin: () => true,
+		origin: siblingOrigins.length === 0 ? () => true : trustedOrigins({ allow: siblingOrigins, missing: "allow", sameOrigin: { trustedProxy } }),
 		provider: mounted.admittedSessions(
 			(headers) => {
 				activity.lookups += 1;

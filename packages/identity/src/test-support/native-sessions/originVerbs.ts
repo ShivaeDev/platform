@@ -24,7 +24,7 @@ interface Answered {
 function corsOf(headers: Headers) {
 	return {
 		allowOrigin: headers.get("access-control-allow-origin") ?? "none",
-		credentials: headers.get("access-control-allow-credentials") === null ? "not allowed" : "allowed",
+		credentials: headers.get("access-control-allow-credentials") === "true" ? "allowed" : "not allowed",
 		exposed: headers.get("access-control-expose-headers") ?? "none",
 		vary: (headers.get("vary") ?? "").includes("Origin") ? "Origin" : "none",
 	};

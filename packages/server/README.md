@@ -157,7 +157,26 @@ const Routes = HttpRouter.add("*", "/.well-known/app", AppMetadata.pipe(Effect.m
 const Server = appHost({ group: Api, handlers: Handlers, services: Services, routes: Routes, sessions });
 ```
 
-`AppMetadata` is an app service supplied by `Services`. Register `OPTIONS` or `"*"` for a route whose native `HttpMiddleware.cors` must answer preflight. The host restricts foreign-origin preflights only on `rpcPath` (default `/rpc`) and `/api/auth/*`, including `/api/auth` itself. Application endpoints own their CORS policy. `nativeOrigins` lists exact native-client origins admitted by the host’s RPC and auth CORS policy; other foreign origins receive 403 on those paths.
+`AppMetadata` is an app service supplied by `Services`. Register `OPTIONS` or `"*"` for a route whose native `HttpMiddleware.cors` must answer preflight. The host restricts foreign-origin preflights only on `rpcPath` (default `/rpc`) and `/api/auth/*`, including `/api/auth` itself. Application endpoints own their CORS policy. `nativeOrigins` lists exact native-client origins admitted by the host’s RPC and auth CORS policy. Browser sibling origins come from identity’s `trustedOrigins` policy on `SessionPolicy.origin`; other foreign origins receive 403 on those preflights.
+
+To let a separate frontend call HTTP RPC with the user's session cookie, declare its exact origin through identity:
+
+```ts
+import { Layer } from "effect";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+
+const browserOrigins = ["https://app.example.com", "https://www.example.com"];
+const sessions = Layer.succeed(SessionPolicy, {
+	...mounted.sessions,
+	origin: trustedOrigins({ allow: browserOrigins, missing: "allow", sameOrigin: {} }),
+});
+const Server = appHost({ group: Api, handlers: Handlers, routes: mounted.routes, sessions });
+```
+
+Identity owns this list; the host uses it for transport admission, RPC CORS and mounted auth CORS, including preflights. Each listed origin receives its exact value in `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials: true`. Wildcards and patterns are not expanded. Reuse `browserOrigins` in Better Auth's `trustedOrigins` option to align provider CSRF checks. Browser fetch calls must use `credentials: "include"`. Application HTTP endpoints still own their CORS policy. `nativeOrigins` takes precedence for bundled clients and keeps its credential-free bearer behavior.
+
+Cookie SameSite and Secure settings remain the application's choice. Same-site HTTPS sibling subdomains can keep their current attributes; a frontend on another registrable domain needs Better Auth's `advanced.defaultCookieAttributes: { sameSite: "none", secure: true }` and an HTTPS API for cross-site cookies. Browser third-party-cookie restrictions still apply.
 
 `assets` accepts a directory string or an `AssetOptions` object, extending native static-server options. For direct navigation to browser routes, use `{ root: "dist", spa: true }`. HTML files, including SPA fallbacks, default to `Cache-Control: no-store`, `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. Fingerprinted assets default to `public, max-age=31536000, immutable`; other files use `no-cache`. A fingerprint is a dot- or hyphen-separated filename suffix before the extension with at least eight hexadecimal characters, or at least eight letters, digits, underscores or hyphens containing a digit or uppercase letter. HTML policy takes precedence over fingerprint detection, including custom HTML MIME types. HEAD, partial and conditional responses retain the selected file's policy.
 

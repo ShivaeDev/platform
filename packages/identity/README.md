@@ -130,9 +130,24 @@ export const sessions = Layer.succeed(SessionPolicy, {
 });
 ```
 
-`trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. The host's HTTP guard also checks Origin against the local request's Host.
+`trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. On `appHost`, that same `allow` list admits sibling browser origins through the HTTP RPC guard and credentialed CORS on RPC and mounted auth routes. Responses reflect the exact Origin with `Access-Control-Allow-Credentials: true`; undeclared origins get no credentialed CORS. Wildcards and patterns are not expanded. A custom policy without a `trustedOrigins` list does not enable credentialed CORS.
 
 To also accept the transport guard's same-origin requests, pass `sameOrigin: { trustedProxy }`, with the same proxy IP addresses or CIDR ranges as the host. This admits direct loopback HTTP and the forwarded HTTP or HTTPS authority only from a matching transport peer. Session resolution supplies that peer from the HTTP request, including the WebSocket upgrade; RPC message headers cannot supply it. Missing Origins still follow `missing`. Leave `sameOrigin` absent when an explicit public-origin allowlist should be the only authority.
+
+For a separate frontend, declare its origin in identity's `trustedOrigins` policy, then pass the session Layer to `appHost`:
+
+```ts
+const browserOrigins = ["https://app.example.com", "https://www.example.com"];
+const sessions = Layer.succeed(SessionPolicy, {
+	...mounted.sessions,
+	origin: trustedOrigins({ allow: browserOrigins, missing: "allow", sameOrigin: {} }),
+});
+const host = appHost({ group, handlers, routes: mounted.routes, sessions });
+```
+
+Identity owns the browser origin declaration; there is no separate host CORS allow-list. When mounting Better Auth, reuse `browserOrigins` for its `trustedOrigins` option so provider CSRF checks use the same origins. Browser fetch calls must set `credentials: "include"`. Origins listed in the host's `nativeOrigins` continue to use bearer sessions with cookies removed and credentials off, even if identity lists them too.
+
+CORS does not change cookie attributes. HTTPS sibling subdomains on the same registrable domain are usually same-site and can keep the existing SameSite setting. A frontend on another registrable domain is cross-site: the app must configure Better Auth's `advanced.defaultCookieAttributes` with `{ sameSite: "none", secure: true }` and serve the API over HTTPS for its cookie to accompany cross-site requests. Browser third-party-cookie restrictions still apply.
 
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. When the lookup returns Better Auth’s `session.expiresAt` as a `Date`, identity also rejects the session at or after that instant using Effect’s current clock. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
@@ -422,9 +437,9 @@ A native client signs in through `/api/auth/sign-in/email` with `credentials: "o
 
 Native sign-out revokes the stored session. Signing in again while sending the current bearer replaces it and revokes the old session after successful sign-in. Streams keep their original request headers, so the old session ends with `Unauthorized` on the next revalidation; it never adopts the replacement. Keep cookie caching disabled for database-backed revocation and choose `streamRevalidationInterval` for the required delivery window.
 
-`appHost`'s `nativeOrigins` option admits those exact origins through the RPC transport guard and the auth routes. Wildcards, patterns and URLs with paths are rejected at startup. Keep the list aligned with `bearerSessions.origins`, Better Auth's `trustedOrigins` and the RPC session origin policy: the later origin policies alone cannot open the transport guard. Without the option, the transport guard keeps its same-origin policy.
+`appHost`'s `nativeOrigins` option admits those exact origins through the RPC transport guard and the auth routes. Wildcards, patterns and URLs with paths are rejected at startup. Keep the list aligned with `bearerSessions.origins`, Better Auth's `trustedOrigins` and the RPC session origin policy. Use `nativeOrigins` for bundled clients so their transport remains credential-free; other declared origins follow the sibling browser policy above.
 
-The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. The host never enables CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
+The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. Native responses never enable CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
 
 Use the WebView's own fetch with `credentials: "omit"` for incremental NDJSON change streams and abort its request to release server work. A buffering native HTTP bridge cannot deliver that streaming behavior. The host still validates trusted proxy peers and forwarded authority, enforces NDJSON and body limits, uses only transport credentials, redacts diagnostics and authorizes sessions. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins.
 

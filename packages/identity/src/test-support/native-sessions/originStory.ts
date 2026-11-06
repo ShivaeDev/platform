@@ -9,12 +9,13 @@ import { originVerbs } from "./originVerbs.ts";
 interface State {
 	host?: Host;
 	nativeOrigins?: readonly string[] | undefined;
+	siblingOrigins?: readonly string[];
 	trustedProxy?: string;
 }
 export const origins = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(true, state.nativeOrigins, state.trustedProxy);
+			state.host = yield* startHost(true, state.nativeOrigins, state.trustedProxy, state.siblingOrigins);
 		},
 	},
 	around: withIdentityDatabase,
@@ -49,5 +50,11 @@ export function forwardedNative(authority = "app.example", protocol = "https") {
 			headers: { host: "internal.test", "x-forwarded-host": authority, "x-forwarded-proto": protocol },
 		});
 		state.host.baseUrl = proxy.url;
+	});
+}
+
+export function siblingOrigins(allow: readonly string[]) {
+	return origins.trait("configured", "identity trusts the sibling browser origins", (state) => {
+		state.siblingOrigins = allow;
 	});
 }
