@@ -5,7 +5,7 @@ import { mountedSessions, sessionRepository } from "#test/session-repository/sto
 
 expectNoReactWarnings();
 
-for (const mode of ["get", "compared"] as const) {
+for (const mode of ["get"] as const) {
 	sessionRepository.it(
 		`a worker repository write refreshes alice's mounted ${mode} query and denies bob's revoked read over an authenticated PostgreSQL WebSocket`,
 		[mountedSessions(mode)],

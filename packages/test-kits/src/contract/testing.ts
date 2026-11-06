@@ -1,6 +1,5 @@
-import { Deferred, type Duration, Effect, Fiber, Layer, Queue, Stream, SubscriptionRef } from "effect";
+import { Deferred, Effect, Fiber, Layer, Queue, Stream, SubscriptionRef } from "effect";
 import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer } from "effect/rpc";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 
 export interface HintViewer<E> {
@@ -21,25 +20,6 @@ export const watchHints = Effect.fn("Live.watchHints")(function* <E, R>(stream: 
 	yield* Effect.raceFirst(Deferred.await(ready), finished);
 	return { finished, hints } satisfies HintViewer<E>;
 });
-
-export const heard = Effect.fn("Live.heard")(function* <E>(
-	viewer: HintViewer<E>,
-	keys: readonly Key[],
-	options: { readonly within?: Duration.Input } = {},
-) {
-	const matching = SubscriptionRef.changes(viewer.hints).pipe(
-		Stream.filter((hints) => hints.some((hint) => namesKeys(hint, keys))),
-		Stream.runHead,
-		Effect.as(true),
-	);
-	return yield* Effect.raceFirst(matching, Effect.as(viewer.finished, false)).pipe(
-		Effect.timeoutOrElse({ duration: options.within ?? "1 second", orElse: () => Effect.succeed(false) }),
-	);
-});
-
-function namesKeys(hint: QueryUpdate, keys: readonly Key[]): boolean {
-	return hint._tag === "Changed" && keys.every((key) => hint.keys.some((actual) => JSON.stringify(actual) === JSON.stringify(key)));
-}
 
 export function layerMemoryProtocol<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {
 	return Layer.effect(

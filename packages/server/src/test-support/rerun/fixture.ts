@@ -39,9 +39,9 @@ const definition = {
 	rejections: { PolicyUnavailable, QueryUnavailable },
 	success: Schema.Array(Note),
 };
-const Compare = query("compare", { ...definition, live: "rerun-and-compare" });
+const Compare = query("compare", { ...definition });
 const Hinted = query("hinted", definition);
-const Barrier = query("barrier", { live: "rerun-and-compare", readPolicy, reads, rejections: { PolicyUnavailable }, success: Schema.Number });
+const Barrier = query("barrier", { readPolicy, reads, rejections: { PolicyUnavailable }, success: Schema.Number });
 const Rename = command("rename", { invalidates: () => [], payload: { id: Schema.BigIntFromString, title: Schema.String } });
 export const Api = contract("rerun", { commands: [Rename], queries: [Compare, Hinted, Barrier] })
 	.middleware(Incoming)

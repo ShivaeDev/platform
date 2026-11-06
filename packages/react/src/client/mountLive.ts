@@ -1,12 +1,11 @@
-import { Cause, type Duration, Effect, Option, Predicate } from "effect";
+import { Cause, Effect, Option, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
-import { registerLiveWindow } from "#registerLiveWindow.ts";
 import { recheckUnauthorized } from "#sessionRecheck.ts";
 
-export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown, coalesceWindow?: Duration.Input) {
+export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown) {
 	const registry = yield* AtomRegistry.AtomRegistry;
 	function recheckFailure(failure: Option.Option<Cause.Cause<unknown>>) {
 		const error = Option.flatMap(failure, Cause.findErrorOption);
@@ -20,14 +19,6 @@ export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown,
 	for (const value of liveBindings(client)) {
 		const live = value[LiveConnection];
 		if (Predicate.hasProperty(live, "connection") && Atom.isAtom(live.connection) && !found.has(live.connection)) {
-			if (
-				coalesceWindow !== undefined
-				&& Predicate.hasProperty(live, "coalesceWindow")
-				&& Atom.isAtom(live.coalesceWindow)
-				&& Atom.isWritable(live.coalesceWindow)
-			) {
-				releases.push(yield* registerLiveWindow(live.coalesceWindow, coalesceWindow));
-			}
 			found.add(live.connection);
 			releases.push(
 				registry.subscribe(

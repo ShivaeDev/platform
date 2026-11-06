@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { Order } from "./contract.ts";
 import { answerWord, hintWord } from "./hintWords.ts";
 import { client, type ProcessEngine, process } from "./processEngine.ts";
@@ -34,7 +34,7 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 		return client(engine, name).hints.items.slice(engine.marks.get(name) ?? 0);
 	}
 	function changedSinceMark(...names: readonly Client[]) {
-		return Promise.all(names.map((name) => client(engine, name).hints.when(() => since(name).some((hint) => hint._tag === "Changed"))));
+		return Promise.all(names.map((name) => client(engine, name).hints.when(() => since(name).some((hint) => hint._tag === "Result"))));
 	}
 	async function save(writer: Client, name: string) {
 		engine.answers.push(answerWord(await client(engine, writer).save(name)));
@@ -65,7 +65,14 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 					await changedSinceMark("a", "another");
 				});
 			}),
-		order: (name: Client) => Effect.promise(async () => (await client(engine, name).get()).name),
+		order: (name: Client) =>
+			Effect.sync(() => {
+				const update = client(engine, name).hints.items.findLast((received) => received._tag === "Result");
+				if (update?._tag !== "Result") {
+					throw new Error("No pushed order");
+				}
+				return Schema.decodeUnknownSync(Order)(update.value).name;
+			}),
 		rejectWrite: () =>
 			Effect.promise(async () => {
 				tell("the first server rejects a's transaction before commit");

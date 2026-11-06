@@ -11,7 +11,6 @@ export function useLoadedScreen() {
 	const query = useLoaderQuery(atom, row);
 	expectTypeOf(query.data).toEqualTypeOf<{ title: string }>();
 	const configured = useLoaderQuery(atom, row, {
-		coalesceWindow: "100 millis",
 		keepPreviousData: true,
 		notice: ({ cause, refreshing }) => {
 			expectTypeOf(cause).toEqualTypeOf<import("effect").Cause.Cause<never>>();

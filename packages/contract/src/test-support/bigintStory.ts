@@ -1,16 +1,17 @@
-import { Effect, Schema, Stream, SubscriptionRef } from "effect";
+import { Effect, Layer, Option, Schema, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
-import { queryKeys } from "#queryKeys.ts";
+import { querySubscription } from "#querySubscription.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { shown, times } from "./answers.ts";
 import { type Mark, markQuery, reRead } from "./reRead.ts";
@@ -35,24 +36,28 @@ const bigintEngine = Effect.gen(function* () {
 	const subscriptions = yield* SubscriptionRef.make<readonly (readonly QueryReference[])[]>([]);
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
-	const handlers = Records.toLayer({
-		"bigint-records.$changes": ({ queries }) =>
-			Stream.unwrap(
-				Effect.map(queryKeys(Records.declaration.queries, queries), (keys) =>
-					live
-						.stream(keys)
-						.pipe(
-							Stream.onStart(SubscriptionRef.update(subscriptions, (all) => [...all, queries])),
-							Stream.ensuring(SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== queries))),
-						),
-				),
-			),
+	const application = Records.application.toLayer({
 		"bigint-records.get": ({ id }) =>
 			Effect.as(
 				SubscriptionRef.update(reads, (all) => [...all, id]),
 				stored.get(id) ?? "Missing",
 			),
 	});
+	const changes = changesHandlerLayer(
+		Records,
+		() =>
+			({ queries }, options) =>
+				Stream.unwrap(
+					Effect.gen(function* () {
+						const subscription = yield* querySubscription(options.rpc, queries, Option.none());
+						const stopped = SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== queries));
+						yield* Effect.addFinalizer(() => stopped);
+						yield* SubscriptionRef.update(subscriptions, (all) => [...all, queries]);
+						return live.subscribe(subscription, rerunQuery(Records.application, options));
+					}),
+				),
+	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	const runtime = yield* storyRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/BigintRecords", {
 		group: Records,
@@ -65,7 +70,6 @@ const bigintEngine = Effect.gen(function* () {
 		(current) => Effect.sync(() => current.dispose()),
 	);
 	const api = bind(Records, Client);
-	registry.set(api[LiveConnection].coalesceWindow, 0);
 	return { api, marked: new Map<bigint, Mark>(), reactivity, reads, registry, stored, subscriptions, watched: new Set<bigint>() };
 });
 type BigintEngine = Effect.Success<typeof bigintEngine>;

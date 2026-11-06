@@ -7,7 +7,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appDatabase.ts";
 import { orderHandlers } from "#test/postgres-example/adapters/orderHandlers.ts";
 import { BeforeOrderCommit } from "./BeforeOrderCommit.ts";
-import { LiveOrders, type Rejected } from "./contract.ts";
+import { Orders, type Rejected } from "./contract.ts";
 import { Preferences, privateHandlers } from "./privateFeature.ts";
 import { orderMigrations, repositoryLayer } from "./repository.ts";
 import { OrderService } from "./service.ts";
@@ -71,7 +71,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 				port: 0,
 				...changes,
 			},
-			group: LiveOrders.merge(Preferences),
+			group: Orders.merge(Preferences),
 			handlers: Layer.merge(handlers, privateHandlers(table, options.beforeCommit)),
 			migrations: { loader: orderMigrations(table), table: ledger },
 			requestServices: OrderService.layer,

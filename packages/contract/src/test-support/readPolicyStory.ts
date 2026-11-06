@@ -5,12 +5,14 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bind } from "#bind.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
@@ -48,11 +50,19 @@ export const readPolicyStory = storyKit({
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`create function policy_access() returns boolean language sql as 'select true'`;
 		const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
-		const handlers = Reads.toLayer({
-			"reads.$changes": ({ queries }, { rpc }) =>
-				Stream.unwrap(Effect.map(querySubscription(rpc, queries, viewer), (subscription) => live.subscribe(subscription))),
-			"reads.read": () => Effect.succeed("Alice's note"),
-		}).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)));
+		const application = Reads.application.toLayer({ "reads.read": () => Effect.succeed("Alice's note") });
+		const changes = changesHandlerLayer(
+			Reads,
+			() =>
+				({ queries }, options) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+							return live.subscribe(subscription, rerunQuery(Reads.application, options));
+						}),
+					),
+		);
+		const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)));
 		const protocol = handlers.pipe(Layer.provideMerge(Layer.succeed(Guard, (effect) => Effect.provideService(effect, CurrentViewer, viewer))));
 		const runtime = yield* storyRuntime;
 		class Client extends AtomRpc.Service<Client>()("test/ReadPolicyClient", {

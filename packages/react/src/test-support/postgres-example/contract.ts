@@ -1,8 +1,6 @@
 import { Effect, Schema } from "effect";
-import { Rpc } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
@@ -25,11 +23,3 @@ export const SaveOrder = command("save", {
 	success: Order,
 });
 export const Orders = contract("orders", { commands: [SaveOrder], queries: [GetOrder] }).middleware(Authenticated);
-const Subscribe = Rpc.make("subscribe", {
-	error: Schema.Union([Missing, Unavailable]),
-	payload: { id: Order.fields.id },
-	stream: true,
-	success: LiveHint,
-}).middleware(Authenticated);
-export const LiveOrders = Orders.add(Subscribe);
-export const ApplicationOrders = Orders.application.add(Subscribe);

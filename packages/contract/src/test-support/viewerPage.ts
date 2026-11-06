@@ -32,7 +32,6 @@ export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<ty
 	}
 	const query = queryOf();
 	registry.mount(query);
-	registry.set(api[LiveConnection].coalesceWindow, 0);
 	registry.mount(api[LiveConnection].connection);
 	return { query, registry };
 });

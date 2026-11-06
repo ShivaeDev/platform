@@ -30,7 +30,7 @@ completionStory.it(
 	},
 );
 
-for (const delivery of ["hints", "pushed"] as const) {
+for (const delivery of ["pushed"] as const) {
 	completionStory.it(
 		`the ${delivery} subscription signals that the socket subscription opened`,
 		[],
@@ -77,7 +77,7 @@ for (const delivery of ["hints", "pushed"] as const) {
 	}
 }
 
-for (const delivery of ["hints", "pushed"] as const) {
+for (const delivery of ["pushed"] as const) {
 	completionStory.it(
 		`a failed ${delivery} refresh completes and exposes the handler's declared failure`,
 		[watching(delivery)],

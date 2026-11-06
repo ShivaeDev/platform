@@ -15,7 +15,6 @@ const Api = contract("counter", {
 	commands: [command("set", { invalidates: () => [], payload: { value: Schema.BigIntFromString } })],
 	queries: [
 		query("read", {
-			live: "rerun-and-compare",
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
 			rejections: { Unavailable },

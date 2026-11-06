@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { Note, notes } from "#test/rerun/fixture.ts";
+import { Note } from "#test/rerun/fixture.ts";
 import { mixedSubscription, pageOpen, rerunStory } from "#test/rerun/story.ts";
 
 rerunStory.it(
@@ -62,14 +62,14 @@ rerunStory.it("a Resync acknowledges its completed rerun without sending an unch
 	expect(yield* arrivals()).toEqual([...before, { _tag: "Unchanged", queryIndex: 0 }]);
 });
 
-rerunStory.it("a query without the option refetches after a matching change", [], function* ({ clientReads, openHinted, rename, untilHinted }) {
+rerunStory.it("a query pushes after a matching change", [], function* ({ clientReads, openHinted, rename, untilHinted }) {
 	yield* openHinted();
 	expect(yield* clientReads()).toEqual([]);
 
 	yield* rename(3n, "One more");
 	yield* untilHinted("One more");
 
-	expect(yield* clientReads()).toEqual(["rerun.hinted"]);
+	expect(yield* clientReads()).toEqual([]);
 });
 
 rerunStory.it(
@@ -86,7 +86,7 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"a mixed subscription acknowledges its unchanged query and hints only the query that refetches",
+	"a batched subscription acknowledges both unchanged queries",
 	[mixedSubscription],
 	function* ({ mixedArrivals, rename, untilMixedHint }) {
 		const initial = [
@@ -98,11 +98,7 @@ rerunStory.it(
 		yield* rename(3n, "Still excluded");
 		yield* untilMixedHint();
 
-		expect(yield* mixedArrivals()).toEqual([
-			...initial,
-			{ _tag: "Unchanged", queryIndex: 0 },
-			{ _tag: "Changed", keys: [notes.bucket.owner("alice")], queryIndexes: [1] },
-		]);
+		expect(yield* mixedArrivals()).toEqual([...initial, { _tag: "Unchanged", queryIndex: 0 }, { _tag: "Unchanged", queryIndex: 1 }]);
 	},
 );
 

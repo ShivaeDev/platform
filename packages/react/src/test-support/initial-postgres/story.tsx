@@ -1,7 +1,6 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Queue, Redacted, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -35,7 +34,6 @@ export const initialPostgres = storyKit({
 			(registry) => Effect.sync(() => registry.dispose()),
 		);
 		const screen = yield* blankScreen;
-		screen.registry.set(client.api[LiveConnection].coalesceWindow, 0);
 		return { client, host, screen, state: { allowed: true, title: "Visible first" }, wire, writer, writerRegistry };
 	},
 	inspect: ({ wire, screen }) => ({ requests: wire.requests, results: wire.results, screen: screen.container.textContent }),

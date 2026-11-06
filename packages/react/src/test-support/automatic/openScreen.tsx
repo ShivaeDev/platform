@@ -4,7 +4,6 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { act } from "react";
-import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
@@ -58,12 +57,6 @@ export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 		},
 		client,
 		closePrimary: view.unmount,
-		coalesce: (id: number, millis: number) => {
-			if (owner === undefined) {
-				throw new Error("The session registry is not mounted");
-			}
-			owner.set(queryCoalesceWindow((id === 1 ? client.api : client.preview).get.query({ id })), millis);
-		},
 		drop: async () => {
 			await act(() => {
 				for (const socket of sockets) {

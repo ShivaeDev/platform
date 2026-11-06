@@ -15,15 +15,15 @@ applicationHandlersStory.it("a host with a changes service still answers its app
 	expect(yield* greet("Ada")).toBe("Hello, Ada");
 });
 
-applicationHandlersStory.it("a host with a changes service opens each subscription with a resync", [], function* ({ firstHint }) {
-	expect(yield* firstHint()).toBe("resync");
+applicationHandlersStory.it("a host with a changes service opens each subscription with its result", [], function* ({ firstHint }) {
+	expect(yield* firstHint()).toBe("result");
 });
 
 customHandlerStory.it(
 	"a host without a changes service preserves a custom subscription and its middleware-provided greeting",
 	[],
 	function* ({ firstHint }) {
-		expect(yield* firstHint()).toBe("changed Hello");
+		expect(yield* firstHint()).toBe("result");
 	},
 );
 

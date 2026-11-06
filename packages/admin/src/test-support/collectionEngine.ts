@@ -3,7 +3,6 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
-import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
@@ -69,7 +68,6 @@ export const collectionEngine = Effect.gen(function* () {
 		(value) => Effect.sync(() => value.dispose()),
 	);
 	const api = bind(page.contract, Client, { registry });
-	registry.set(api[LiveConnection].coalesceWindow, 0);
 	const query = api.all.query();
 	const before: { current?: unknown } = {};
 	return { api, before, query, registry, repository, services, session };

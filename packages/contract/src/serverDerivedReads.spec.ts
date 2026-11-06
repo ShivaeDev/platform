@@ -1,10 +1,7 @@
 import { expect } from "vitest";
-import { derivedReadsStory, emptyTimeline, projectedKeys, viewingTimeline } from "#test/derivedReadsStory.ts";
+import { derivedReadsStory, emptyTimeline, viewingTimeline } from "#test/derivedReadsStory.ts";
 
-for (const adapter of [
-	{ name: "through querySubscription", traits: [] },
-	{ name: "through queryKeys", traits: [projectedKeys] },
-]) {
+for (const adapter of [{ name: "through querySubscription", traits: [] }]) {
 	for (const [id, before, after] of [
 		[1, ["First", "Second"], ["Changed", "Second"]],
 		[2, ["First", "Second"], ["First", "Changed"]],
@@ -12,12 +9,11 @@ for (const adapter of [
 		derivedReadsStory.it(
 			`a scope-only timeline refreshes when record ${id} in a server-discovered list changes ${adapter.name}`,
 			[...adapter.traits, viewingTimeline],
-			function* ({ coalescingWindowPasses, edit, shown, waitForBody }) {
+			function* ({ edit, shown, waitForBody }) {
 				expect(yield* shown()).toEqual(before);
 
 				yield* edit(id, "Changed");
 
-				yield* coalescingWindowPasses();
 				yield* waitForBody("Changed");
 				expect(yield* shown()).toEqual(after);
 			},
@@ -51,12 +47,11 @@ for (const empty of [false, true]) {
 	derivedReadsStory.it(
 		`the ${empty ? "empty" : "populated"} timeline includes a list created after subscribing through its membership key`,
 		[...(empty ? [emptyTimeline] : []), viewingTimeline],
-		function* ({ coalescingWindowPasses, create, shown, waitForBody }) {
+		function* ({ create, shown, waitForBody }) {
 			expect(yield* shown()).toEqual(empty ? [] : ["First", "Second"]);
 
 			yield* create("alice", 4, "New list");
 
-			yield* coalescingWindowPasses();
 			yield* waitForBody("New list");
 			expect(yield* shown()).toEqual(empty ? ["New list"] : ["First", "Second", "New list"]);
 		},

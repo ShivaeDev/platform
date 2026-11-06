@@ -116,7 +116,7 @@ export const rerunStory = storyKit({
 				{ name: `note titled ${title}` },
 			),
 		untilMixedHint: () =>
-			until(SubscriptionRef.changes(engine.mixed), (all) => all.some((update) => update._tag === "Changed"), {
+			until(SubscriptionRef.changes(engine.mixed), (all) => all.filter((update) => update._tag === "Unchanged").length >= 2, {
 				name: "mixed subscription change hint",
 			}),
 		untilShown: (title: string) =>

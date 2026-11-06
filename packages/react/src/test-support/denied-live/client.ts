@@ -7,12 +7,14 @@ import { RpcTest } from "effect/rpc";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 
 const notes = collection("denied-live-notes", Schema.String);
 class Access extends Context.Service<Access, { allowed: boolean; checks: string[] }>()("@shivaedev/react/test/DeniedLiveAccess") {}
@@ -39,15 +41,7 @@ export const deniedLiveClient = Effect.gen(function* () {
 	const digest = yield* Digest.Digest;
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
-	const handlers = Notes.toLayer({
-		"deniedLive.$changes": ({ queries }, { rpc }) =>
-			Stream.unwrap(
-				Effect.gen(function* () {
-					requests.push(`subscribe ${queries.map(({ payload }) => payload.id).join(",")}`);
-					const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
-					return live.subscribe(subscription);
-				}),
-			),
+	const application = Notes.application.toLayer({
 		"deniedLive.get": ({ id }) =>
 			Effect.gen(function* () {
 				requests.push(`read ${id}`);
@@ -57,6 +51,21 @@ export const deniedLiveClient = Effect.gen(function* () {
 				return id;
 			}),
 	});
+	const handlers = Layer.merge(
+		application,
+		changesHandlerLayer(
+			Notes,
+			() =>
+				({ queries }, options) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							requests.push(`subscribe ${queries.map(({ payload }) => payload.id).join(",")}`);
+							const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+							return live.subscribe(subscription, rerunQuery(Notes.application, options));
+						}),
+					),
+		).pipe(Layer.provide(application)),
+	);
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
 	runtime.addGlobalLayer(Layer.mergeAll(Layer.succeed(Clock.Clock, clock), Layer.succeed(Digest.Digest, digest)));
 	class Client extends AtomRpc.Service<Client>()("test/DeniedLiveClient", {

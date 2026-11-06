@@ -1,14 +1,16 @@
-import { Effect, Exit, Layer, Ref, Scope, Stream, SubscriptionRef } from "effect";
+import { Effect, Exit, Layer, Ref, Schema, Scope, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { type HintViewer, layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { queryKeys } from "#queryKeys.ts";
+import { querySubscription } from "#querySubscription.ts";
+import { CurrentViewer } from "#readPolicy.ts";
 import { answered, shown, streams, updateWords } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
@@ -22,16 +24,9 @@ const memoryEngine = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.make;
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	const active = yield* SubscriptionRef.make(0);
-	const handlers = Notes.toLayer({
+	const application = Notes.application.toLayer({
 		...server.implementation,
-		"notes.$changes": ({ queries }) =>
-			Stream.unwrap(
-				Effect.gen(function* () {
-					const keys = yield* queryKeys(Notes.declaration.queries, queries);
-					yield* SubscriptionRef.update(active, (count) => count + 1);
-					return live.stream(keys).pipe(Stream.ensuring(SubscriptionRef.update(active, (count) => count - 1)));
-				}),
-			),
+
 		"notes.rename": (payload) =>
 			Effect.gen(function* () {
 				const note = yield* server.implementation["notes.rename"](payload);
@@ -39,6 +34,21 @@ const memoryEngine = Effect.gen(function* () {
 				return note;
 			}),
 	});
+	const changes = changesHandlerLayer(
+		Notes,
+		() =>
+			({ queries }, options) =>
+				Stream.unwrap(
+					Effect.gen(function* () {
+						const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+						yield* SubscriptionRef.update(active, (count) => count + 1);
+						return live
+							.subscribe(subscription, rerunQuery(Notes.application.omit("notes.create", "notes.rename"), options))
+							.pipe(Stream.ensuring(SubscriptionRef.update(active, (count) => count - 1)));
+					}),
+				),
+	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide([handlers, server.guard])));
 	const connection = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
 	const client = yield* connection.client;
@@ -82,7 +92,11 @@ export const memoryStory = storyKit({
 			if (listener === undefined) {
 				throw new Error(`No listener for note ${id}`);
 			}
-			return Effect.map(SubscriptionRef.get(listener.viewer.hints), (hints) => hints.map(updateWords));
+			return Effect.map(SubscriptionRef.get(listener.viewer.hints), (hints) =>
+				hints.map((update) =>
+					update._tag === "Result" && Schema.is(Note)(update.value) ? `note ${update.value.id} titled ${update.value.title}` : updateWords(update),
+				),
+			);
 		},
 		nextHint: (id: number) => {
 			const listener = engine.listeners.get(id);
@@ -119,7 +133,6 @@ export function memoryListening(id: number) {
 }
 
 export const memoryViewing = memoryStory.trait("screen", "the client watches note 1 through its bound query", function* (engine) {
-	engine.registry.set(engine.connection.api[LiveConnection].coalesceWindow, 0);
 	engine.registry.mount(engine.query);
 	yield* settled(engine.registry, engine.query);
 	engine.marked.set("note", markQuery(engine.registry, engine.query));

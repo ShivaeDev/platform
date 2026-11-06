@@ -2,7 +2,9 @@ import { Cause, type Effect, Exit, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { captureOutcome, renderOutcome } from "@shivaedev/test-story/server/captureOutcome.ts";
-import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
+import type { LiveHint } from "#live.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
+import type { QueryReadDenied } from "#readPolicyErrors.ts";
 
 function field(error: object, name: string): string {
 	return Predicate.hasProperty(error, name) ? String(error[name]) : "";
@@ -123,7 +125,7 @@ function keyWords(key: Key): string {
 	}
 }
 
-export function hintWords(hint: SubscriptionHint): string {
+export function hintWords(hint: LiveHint | QueryReadDenied): string {
 	if (hint._tag === "QueryReadDenied") {
 		return "read denied";
 	}

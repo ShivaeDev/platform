@@ -19,7 +19,6 @@ const AddRecord = command("addRecord", {
 	rejections: { Unavailable },
 });
 const Barrier = query("barrier", {
-	live: "rerun-and-compare",
 	readPolicy: () => Effect.succeed(true),
 	reads: () => [records.list],
 	rejections: { Unavailable },
@@ -30,7 +29,6 @@ export const EvolvingTimelines = contract("evolving", {
 	queries: [
 		Timeline,
 		query("pushed", {
-			live: "rerun-and-compare",
 			payload: Timeline.payload,
 			readPolicy: Timeline.readPolicy,
 			reads: Timeline.reads,

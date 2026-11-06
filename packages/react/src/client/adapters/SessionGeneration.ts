@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import { type Duration, Effect } from "effect";
+import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
@@ -69,7 +69,6 @@ interface SessionGenerationProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly identity: string | undefined;
-	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly queryRetention?: QueryRetentionOptions | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
@@ -80,7 +79,6 @@ export function SessionGeneration<TSession, TClient>({
 	recheck,
 	children,
 	identity,
-	liveCoalesceWindow,
 	queryRetention: retention,
 }: SessionGenerationProps<TSession, TClient>): ReactNode {
 	const recheckLatest = useLatestCallback(recheck);
@@ -92,9 +90,7 @@ export function SessionGeneration<TSession, TClient>({
 	useEffect(() => registerSessionRecheck(owned.registry, recheckLatest), [owned, recheckLatest]);
 	useEffect(() => {
 		owned.mounted += 1;
-		const stopLive = Effect.runSync(
-			mountLive(owned.client, liveCoalesceWindow).pipe(Effect.provideService(AtomRegistry.AtomRegistry, owned.registry)),
-		);
+		const stopLive = Effect.runSync(mountLive(owned.client).pipe(Effect.provideService(AtomRegistry.AtomRegistry, owned.registry)));
 		return () => {
 			stopLive();
 			owned.mounted -= 1;
@@ -107,7 +103,7 @@ export function SessionGeneration<TSession, TClient>({
 				own((current) => (current === owned ? hidden(connection, identity, configured) : current));
 			});
 		};
-	}, [identity, owned, liveCoalesceWindow, connection]);
+	}, [identity, owned, connection]);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheckLatest },

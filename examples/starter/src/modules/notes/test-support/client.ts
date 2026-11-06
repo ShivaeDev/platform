@@ -1,5 +1,6 @@
-import { Deferred, Effect, Layer, Option, PubSub, Stream } from "effect";
-import type { LiveHint } from "@shivaedev/contract/live.ts";
+import { Deferred, Effect, Layer, Option } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
@@ -9,7 +10,10 @@ import { notesClientHost } from "./clientHost.ts";
 
 export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];
-	const hints = Effect.runSync(PubSub.unbounded<LiveHint>());
+	const reactivity = yield* Reactivity.make;
+	function announce(id: number) {
+		return reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId("alice")]));
+	}
 	const session = { signedIn: true };
 	const faults = { saveDefect: false };
 	let listStarted = Deferred.makeUnsafe<void>();
@@ -43,8 +47,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	function conflict() {
 		return new Conflict({ message: "This note changed. Refresh and review your draft before trying again." });
 	}
-	const handlers = Notes.toLayer({
-		"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
+	const handlers = Notes.application.toLayer({
 		"notes.create": ({ title }) =>
 			Effect.gen(function* () {
 				if (faults.saveDefect) {
@@ -55,6 +58,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				}
 				const row = { id: rows.length + 1, title, version: 0, wordCount: null };
 				rows.unshift(row);
+				yield* announce(row.id);
 				return row;
 			}),
 		"notes.delete": (input) =>
@@ -67,6 +71,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 					rows.findIndex((note) => note.id === row.id),
 					1,
 				);
+				yield* announce(row.id);
 			}),
 		"notes.get": ({ id }) => get(id),
 		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
@@ -93,10 +98,15 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				}
 				const saved = { ...row, title: input.title, version: row.version + 1, wordCount: null };
 				rows[rows.findIndex((note) => note.id === row.id)] = saved;
+				yield* announce(row.id);
 				return saved;
 			}),
 	});
-	const client = yield* notesClientHost(handlers.pipe(Layer.provide(Layer.succeed(NoteReadAccess, () => Effect.succeed(true)))), authentication);
+	const client = yield* notesClientHost(
+		handlers.pipe(Layer.provide(Layer.succeed(NoteReadAccess, () => Effect.succeed(true)))),
+		authentication,
+		Layer.succeed(Reactivity.Reactivity, reactivity),
+	);
 	function finishNote(id: number, wordCount: number) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];
@@ -104,7 +114,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 			throw new Error(`Missing note ${id}`);
 		}
 		rows[index] = { ...row, version: row.version + 1, wordCount };
-		return Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] }));
+		return Effect.runPromise(announce(id));
 	}
 	function reviseNote(id: number, title: string, notify = true) {
 		const index = rows.findIndex((note) => note.id === id);
@@ -113,7 +123,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 			throw new Error(`Missing note ${id}`);
 		}
 		rows[index] = { ...row, title, version: row.version + 1 };
-		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
+		return notify ? Effect.runPromise(announce(id)).then(() => undefined) : Promise.resolve();
 	}
 	return {
 		...client,

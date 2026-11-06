@@ -11,7 +11,7 @@ app.it("alice's open notes list receives her new note", [signedIn("alice")], fun
 });
 
 app.it(
-	"alice's new note sends bob no change hint, so his next hint is about his own note",
+	"alice’s new note sends bob no data, so his next update contains his own note",
 	[signedIn("alice"), signedIn("bob")],
 	function* ({ listensForChangeHints, notesOf }) {
 		const bobHints = yield* listensForChangeHints("bob");
@@ -19,7 +19,7 @@ app.it(
 		yield* notesOf("alice").create("Alice's private note");
 
 		yield* notesOf("bob").create("Bob's checkpoint note");
-		expect(yield* bobHints.nextHint()).toBe("changed bob's notes");
+		expect(yield* bobHints.nextHint()).toBe("result Bob's checkpoint note");
 	},
 	15_000,
 );

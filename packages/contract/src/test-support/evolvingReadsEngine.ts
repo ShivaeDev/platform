@@ -8,7 +8,6 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
@@ -90,7 +89,6 @@ export const evolvingReadsEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	registry.set(connection.api[LiveConnection].coalesceWindow, 0);
 	const protocol = RpcClient.layerProtocolSocket().pipe(Layer.provide([layerWebSocket(url.replace(/^http/u, "ws")), RpcSerialization.layerNdjson]));
 	const transport = yield* Layer.build(protocol);
 	const rpc = yield* RpcClient.make(EvolvingTimelines, { flatten: true }).pipe(Effect.provideContext(transport));

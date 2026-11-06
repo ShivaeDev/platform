@@ -8,7 +8,6 @@ import { storyRuntime } from "#test/storyRuntime.ts";
 const Notes = contract("recentNotes", {
 	queries: [
 		query("get", {
-			live: "rerun-and-compare",
 			payload: { id: Schema.String },
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],

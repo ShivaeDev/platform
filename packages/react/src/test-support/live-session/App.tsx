@@ -46,7 +46,6 @@ export function App({
 				return Object.assign(connection, { parent: connection });
 			}}
 			identify={(id) => id}
-			liveCoalesceWindow="500 millis"
 			recheck={() => {
 				rechecked();
 				setSession(session());

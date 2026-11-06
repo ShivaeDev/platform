@@ -37,7 +37,7 @@ const initializeHostChanges = Effect.fnUntraced(function* (group: RpcGroup.RpcGr
 				const refresh = refreshSession(viewer, rpc._tag);
 				const read = rerunQuery(group, options);
 				type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
-				const pending = subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, read);
+				const pending = subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>>({ ...subscription, refresh }, read);
 				const stream = Option.isSome(changes)
 					? Stream.unwrap(pending.pipe(Effect.provideService(LiveServer, changes.value)))
 					: Stream.concat(

@@ -15,10 +15,8 @@ import { settled } from "./settled.ts";
 
 const renderDelivery = Match.type<QueryUpdate>().pipe(
 	Match.tagsExhaustive({
-		Changed: () => ["hinted timeline refreshed"],
 		QueryReadDenied: () => ["timeline read denied"],
 		Result: ({ query, value }) => (query === "barrier" ? [] : [`${query}: ${JSON.stringify(value)}`]),
-		Resync: () => ["hinted timeline resynchronized"],
 		Unchanged: ({ queryIndex }) => (queryIndex === 2 ? [] : ["pushed timeline unchanged"]),
 	}),
 );
@@ -83,7 +81,10 @@ export const evolvingReadsStory = storyKit({
 					const result = all.findLastIndex(
 						(update) => update._tag === "Result" && update.query === "pushed" && JSON.stringify(update.value) === JSON.stringify(rows),
 					);
-					return result >= 0 && all.slice(result + 1).some((update) => update._tag === "Changed" && update.queryIndexes?.includes(0));
+					return (
+						result >= 0
+						&& all.some((update) => update._tag === "Result" && update.query === "timeline" && JSON.stringify(update.value) === JSON.stringify(rows))
+					);
 				},
 				{ name: "both timelines receive their refresh" },
 			),

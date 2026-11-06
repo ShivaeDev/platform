@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Context, Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { bucket } from "@shivaedev/changes/buckets.ts";
@@ -14,12 +14,35 @@ export class Note extends Model.Class<Note>("ComparedNote")({
 }) {}
 
 export const notes = collection("compared_notes", Schema.Number, { owner: Schema.String });
+export class ReadControl extends Context.Service<
+	ReadControl,
+	{
+		allowed: boolean;
+		policy: Effect.Effect<void>;
+	}
+>()("@shivaedev/react/test/ComparedReadControl") {}
 export const Api = contract("compared", {
 	commands: [command("rename", { invalidates: () => [], payload: { id: Schema.Number, title: Schema.String } })],
 	queries: [
 		query("list", {
-			live: "rerun-and-compare",
-			readPolicy: () => Effect.succeed(true),
+			readPolicy: () =>
+				Effect.flatMap(ReadControl, (control) =>
+					Effect.andThen(
+						control.policy,
+						Effect.sync(() => control.allowed),
+					),
+				),
+			reads: () => [notes.bucket.owner("alice")],
+			success: Schema.Array(Note.json),
+		}),
+		query("independent", {
+			readPolicy: () =>
+				Effect.flatMap(ReadControl, (control) =>
+					Effect.andThen(
+						control.policy,
+						Effect.sync(() => control.allowed),
+					),
+				),
 			reads: () => [notes.bucket.owner("alice")],
 			success: Schema.Array(Note.json),
 		}),

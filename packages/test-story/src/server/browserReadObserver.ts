@@ -3,7 +3,7 @@ import * as PubSub from "effect/PubSub";
 import * as RpcClient from "effect/rpc/RpcClient";
 import type * as RpcMessage from "effect/rpc/RpcMessage";
 import * as Schema from "effect/Schema";
-import { LiveHint } from "@shivaedev/contract/live.ts";
+import { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import type { BrowserRead, BrowserReadsOptions } from "#server/browserReads.ts";
 import { browserSubscriptions } from "#server/browserSubscriptions.ts";
 
@@ -11,8 +11,8 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 	const queries = new Set(contracts.flatMap(({ declaration }) => declaration.queries.map(({ name }) => `${declaration.name}.${name}`)));
 	const subscriptionTags = new Set(contracts.map(({ declaration }) => `${declaration.name}.$changes`));
 	const reads: BrowserRead[] = [];
-	const hints: LiveHint[] = [];
-	const deliveries = yield* PubSub.unbounded<LiveHint>();
+	const hints: QueryUpdate[] = [];
+	const deliveries = yield* PubSub.unbounded<QueryUpdate>();
 	yield* Effect.addFinalizer(() => PubSub.shutdown(deliveries));
 	const tracked = yield* browserSubscriptions;
 	const receive = Effect.fnUntraced(function* (index: number | undefined, message: RpcMessage.FromServerEncoded) {
@@ -24,14 +24,13 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 			return;
 		}
 		for (const value of message.values) {
-			if (Schema.is(LiveHint)(value)) {
+			if (Schema.is(QueryUpdate)(value)) {
 				hints.push(value);
 				yield* PubSub.publish(deliveries, value);
 			}
 		}
 	});
 	return {
-		heardKeys: () => hints.flatMap((hint) => (hint._tag === "Changed" ? hint.keys : [])),
 		hints: () => [...hints],
 		observeProtocol: Effect.gen(function* () {
 			const underlying = yield* RpcClient.Protocol;

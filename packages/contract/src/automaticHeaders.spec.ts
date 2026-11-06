@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { queryHeadersStory, watching } from "#test/queryHeadersStory.ts";
 
-for (const delivery of ["hints", "pushed"] as const) {
+for (const delivery of ["pushed"] as const) {
 	queryHeadersStory.it(
 		`${delivery}: subscriptions and reruns keep each query's own headers`,
 		[watching(delivery)],

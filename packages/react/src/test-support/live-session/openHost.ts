@@ -3,11 +3,13 @@ import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { Notes, notes, ReadAccess } from "./notes.ts";
 
 export async function openHost(clock: Clock.Clock) {
@@ -47,27 +49,30 @@ export async function openHost(clock: Clock.Clock) {
 	if (rpc === undefined) {
 		throw new Error("Missing liveSession.$changes");
 	}
-	const handlers = Notes.toLayer(
-		Effect.gen(function* () {
-			const live = yield* makeLiveServer;
-			return Notes.of({
-				"liveSession.$changes": ({ queries }) =>
+
+	const application = Notes.application.toLayer({
+		"liveSession.get": () =>
+			Effect.map(Identity, ({ id }) => {
+				state.reads += 1;
+				return id === "bob" ? "Bob note" : state.title;
+			}),
+	});
+	const changes = changesHandlerLayer(Notes, () =>
+		Effect.map(
+			makeLiveServer,
+			(live) =>
+				({ queries }, options) =>
 					Stream.unwrap(
 						Effect.gen(function* () {
 							const { id } = yield* Identity;
 							yield* connected(id);
 							const subscription = yield* resolveChanges(rpc, queries);
-							return live.subscribe(subscription);
+							return live.subscribe(subscription, rerunQuery(Notes.application, options));
 						}),
 					),
-				"liveSession.get": () =>
-					Effect.map(Identity, ({ id }) => {
-						state.reads += 1;
-						return id === "bob" ? "Bob note" : state.title;
-					}),
-			});
-		}),
+		),
 	);
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
 	const runtime = ManagedRuntime.make(
 		appHost({
 			config: { port: 0 },

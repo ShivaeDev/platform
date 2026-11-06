@@ -10,7 +10,7 @@ export const queryHeadersStory = storyKit({
 	clock: "test",
 	*create() {
 		const engine = yield* queryHeadersEngine();
-		return { ...engine, views: [engine.api.hints.query()] };
+		return { ...engine, views: [engine.api.pushed.query()] };
 	},
 	inspect: ({ reads, subscriptions }) => ({ reads, subscriptions }),
 	name: "automatic query request headers",
@@ -42,7 +42,7 @@ export const queryHeadersStory = storyKit({
 	}),
 });
 
-export function watching(delivery: "hints" | "pushed") {
+export function watching(delivery: "pushed") {
 	return queryHeadersStory.trait("views", `three ${delivery} queries read the same record with different headers`, (engine) => {
 		engine.views = [
 			engine.api[delivery].query(undefined, { headers: { "x-reader": "alice" } }),

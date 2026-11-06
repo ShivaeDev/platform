@@ -28,18 +28,18 @@ const readerEngine = Effect.fnUntraced(function* () {
 	const subscribe = Effect.fnUntraced(function* (name: "item" | "bucket") {
 		const subscription = yield* querySubscription(rpc, [{ payload: undefined, query: name }], viewer);
 		const delivered = yield* Queue.unbounded<readonly number[]>();
-		yield* live.subscribe(subscription).pipe(
-			Stream.mapEffect(() =>
-				rows.findMany({ orderBy: { direction: "asc", field: "id" }, where: name === "item" ? { id: first.id } : { owner: "alice" } }),
-			),
-			Stream.runForEach((result) =>
-				Queue.offer(
-					delivered,
-					result.map(({ id }) => id),
-				),
-			),
-			Effect.forkScoped,
+		const read = rows.findMany({ orderBy: { direction: "asc", field: "id" }, where: name === "item" ? { id: first.id } : { owner: "alice" } }).pipe(
+			Effect.map((current) => current.map(({ id }) => id)),
+			Effect.orDie,
 		);
+		yield* live
+			.subscribe(subscription, () => read)
+			.pipe(
+				Stream.filter((update) => update._tag === "Result"),
+				Stream.mapEffect((update) => Schema.decodeUnknownEffect(Schema.Array(Schema.Number))(update.value).pipe(Effect.orDie)),
+				Stream.runForEach((result) => Queue.offer(delivered, result)),
+				Effect.forkScoped,
+			);
 		return delivered;
 	});
 	const item = yield* subscribe("item");

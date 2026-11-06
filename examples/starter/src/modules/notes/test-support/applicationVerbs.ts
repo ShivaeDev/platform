@@ -2,7 +2,6 @@ import { ConfigProvider, type Duration, Effect, Exit, Layer, Predicate, Scope } 
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -58,13 +57,6 @@ function signedUpUserId(body: string) {
 export function applicationVerbs(engine: Engine, story: { tell: (line: string) => void }) {
 	engine.tell = story.tell;
 	engine.sourceApi.narrate(story.tell);
-	function describeKey(key: Key) {
-		const owner = [...engine.accounts].find(([, { userId }]) => key._tag === "Bucket" && key.value === userId)?.[0];
-		if (owner !== undefined) {
-			return `${owner}'s notes`;
-		}
-		return key._tag === "Item" ? `note ${key.id}` : `${key.collection} ${key._tag.toLowerCase()}`;
-	}
 	const renewSession = Effect.fn("AppStory.renewSession")(function* (name: string) {
 		const host = runningHost(engine);
 		const auth = yield* sessionPrecondition(host);
@@ -119,7 +111,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		listensForChangeHints: (name: string) => {
 			story.tell(`${name}'s socket listens for change hints on her notes list`);
-			return changeHints(liveAddress(engine), account(engine, name).cookie, describeKey);
+			return changeHints(liveAddress(engine), account(engine, name).cookie);
 		},
 		listensForChangesTo: (name: string, note: Pick<Note, "id" | "title">) => {
 			story.tell(`${name}'s socket asks for change hints on ${JSON.stringify(note.title)}`);

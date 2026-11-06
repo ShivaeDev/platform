@@ -1,9 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { TestClock } from "effect/testing";
 import { act } from "react";
-import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "./connect.ts";
 import { busy, type Engine } from "./engine.ts";
@@ -15,17 +13,13 @@ export function automaticVerbs(engine: Engine) {
 	function settle(container: () => HTMLElement = () => engine.screen.container) {
 		return Effect.suspend(() => settleScreen(container(), () => busy(container()), say));
 	}
-	function refreshed(id: number, change: Effect.Effect<unknown>, container?: () => HTMLElement, coalesces = true) {
+	function refreshed(id: number, change: Effect.Effect<unknown>, container?: () => HTMLElement) {
 		return Effect.gen(function* () {
 			const read = engine.host.nextRead(id);
 			const run = Effect.runPromiseWith(yield* Effect.context());
 			yield* Effect.promise(() =>
 				act(async () => {
 					await run(change);
-					if (coalesces) {
-						await run(untilTimer("20 millis"));
-						await run(TestClock.adjust("20 millis"));
-					}
 					await read;
 				}),
 			);
@@ -84,7 +78,7 @@ export function automaticVerbs(engine: Engine) {
 		settle,
 		showSecond: () => {
 			say("show the second note's query again");
-			return refreshed(2, click("Show second"), undefined, false);
+			return refreshed(2, click("Show second"));
 		},
 		workerCommits: (id: number, title: string) => {
 			say(`a pg-boss worker commits note ${id} as ${title}`);

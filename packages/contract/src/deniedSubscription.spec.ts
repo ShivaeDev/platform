@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { deniedStory, readable, rejected, watching } from "#test/deniedStory.ts";
 
-for (const delivery of ["hints", "pushed"] as const) {
+for (const delivery of ["pushed"] as const) {
 	deniedStory.it(
 		`${delivery}: restoring access after a live denial recovers on the next server hint`,
 		[readable(), watching(delivery)],

@@ -8,8 +8,3 @@
 {"path":"packages/contract/src/contract.ts","rule":"effect/boundary","count":2}
 {"path":"packages/contract/src/contract.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/clientOperations.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/contract/src/liveInvalidation.ts","rule":"effect/boundary","count":1}
-{"path":"packages/contract/src/liveInvalidation.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/queryReactivity.ts","rule":"effect/boundary","count":1}
-{"path":"packages/contract/src/queryReactivity.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/live.ts","rule":"effect/service-parameters","count":1}

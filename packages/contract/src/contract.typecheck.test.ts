@@ -4,7 +4,6 @@ import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { contract } from "#contract.ts";
 import { command, query, stream } from "#operation.ts";
-import type { SubscriptionHint } from "#queryUpdate.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { Denied, type Guard, type Note, type NoteMissing, Notes } from "#test/notes.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
@@ -16,7 +15,8 @@ declare const client: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query: "get" }] });
 expectTypeOf(changes).toEqualTypeOf<
 	Stream.Stream<
-		| SubscriptionHint
+		| QueryReadDenied
+		| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 		| { readonly _tag: "Result"; readonly query: "get"; readonly queryIndex: number; readonly value: Note }
 		| { readonly _tag: "Result"; readonly query: "list"; readonly queryIndex: number; readonly value: readonly Note[] },
 		Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | WebSocketRequired | RpcClientError
@@ -68,7 +68,6 @@ client("notes.$changes", { keys: [] });
 const Pushed = contract("pushed", {
 	queries: [
 		query("read", {
-			live: "rerun-and-compare",
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [],
 			rejections: { Denied },
@@ -79,7 +78,7 @@ const Pushed = contract("pushed", {
 });
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
 expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
-	| SubscriptionHint
+	| QueryReadDenied
 	| { readonly _tag: "Result"; readonly query: "hinted"; readonly queryIndex: number; readonly value: string }
 	| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 	| {

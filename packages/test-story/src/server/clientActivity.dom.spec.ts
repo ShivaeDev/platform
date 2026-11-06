@@ -12,7 +12,7 @@ activityPage.it("a read after saving shows the saved title without polling", [],
 });
 
 activityPage.it(
-	"the next live hint arrives after another viewer writes and coalesced reads show its title",
+	"the next pushed update arrives after another viewer writes and shows its title",
 	[],
 	function* ({ shown, startHintWait, writeElsewhere }) {
 		expect(yield* shown()).toBe("First page");
@@ -28,22 +28,20 @@ activityPage.it(
 );
 
 activityPage.it(
-	"the driver stays unsettled while a live refresh is running",
+	"a held server rerun leaves the screen readable until its pushed value arrives",
 	[],
-	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, startWaitingForRefresh, releaseRefresh, activity }) {
+	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, releaseRefresh, activity }) {
 		expect(yield* shown()).toBe("First page");
 		yield* holdRefresh();
-		const hint = yield* startHintWait();
+		const update = yield* startHintWait();
 		yield* writeElsewhere("Refreshed page");
-		yield* hint.finish;
 		yield* refreshStarted();
 
-		const settling = yield* startWaitingForRefresh();
-		expect(yield* settling.state).toBe("waiting");
-		expect((yield* activity()).refreshingAtoms).toBeGreaterThan(0);
-		yield* releaseRefresh();
-		yield* settling.finish;
+		expect(yield* shown()).toBe("First page");
+		expect(yield* activity()).toMatchObject({ refreshingAtoms: 0, rpcCalls: 0 });
 
+		yield* releaseRefresh();
+		yield* update.finish;
 		expect(yield* shown()).toBe("Refreshed page");
 	},
 );
@@ -65,41 +63,5 @@ activityPage.it(
 		yield* settle();
 
 		expect((yield* activity()).rpcCalls).toBe(0);
-	},
-);
-
-activityPage.it(
-	"unmounting clears a queued live invalidation",
-	[],
-	function* ({ shown, coalesceFor, startHintWait, writeElsewhere, activity, closePage }) {
-		expect(yield* shown()).toBe("First page");
-		yield* coalesceFor("1 hour");
-		const hint = yield* startHintWait();
-		yield* writeElsewhere("Queued page");
-		yield* hint.finish;
-		expect(yield* activity()).toMatchObject({ liveInvalidations: 1 });
-
-		yield* closePage();
-
-		expect((yield* activity()).liveInvalidations).toBe(0);
-	},
-);
-
-activityPage.it(
-	"unmounting a screen releases its held query activity",
-	[],
-	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, activity, closePage, settle }) {
-		expect(yield* shown()).toBe("First page");
-		yield* holdRefresh();
-		const hint = yield* startHintWait();
-		yield* writeElsewhere("Held page");
-		yield* hint.finish;
-		yield* refreshStarted();
-		expect(yield* activity()).toMatchObject({ refreshingAtoms: 1, rpcCalls: 1 });
-
-		yield* closePage();
-		yield* settle();
-
-		expect(yield* activity()).toMatchObject({ refreshingAtoms: 0, rpcCalls: 0 });
 	},
 );

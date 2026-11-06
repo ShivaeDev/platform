@@ -1,6 +1,5 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { notes } from "#test/viewerEngine.ts";
 import { listening, othersPageOpen, pageOpen, viewerStory } from "#test/viewerStory.ts";
 
 for (const [viewer, answer] of [
@@ -27,16 +26,6 @@ viewerStory.it("alice's subscription mixing her note and bob's note is refused w
 });
 
 viewerStory.it(
-	"renaming alice's note 3, which her title filter excludes, still reaches her filtered subscription through her bucket",
-	[listening("alice", "their notes titled One")],
-	function* ({ heard, rename }) {
-		yield* rename("alice", 3, "Still excluded");
-
-		expect(yield* heard("alice", [notes.bucket.userId("alice")])).toBe("heard");
-	},
-);
-
-viewerStory.it(
 	"renaming alice's note 3 to One more adds it to her filtered page and leaves bob's page unread",
 	[pageOpen("alice", "One"), pageOpen("bob")],
 	function* ({ pageReads, rename, shown, untilPageReRead }) {
@@ -58,9 +47,8 @@ viewerStory.it(
 viewerStory.it(
 	"losing note 1 denies alice's whole subscription until access returns",
 	[listening("alice", "note 1", "note 3")],
-	function* ({ announce, changesHeard, handOver, heard, rename, subscriptionDenial }) {
+	function* ({ announce, handOver, rename, subscriptionDenial, untilNoteTitle, noteTitle }) {
 		yield* handOver(1, "bob");
-		expect(yield* changesHeard("alice")).toEqual([]);
 
 		yield* announce("alice", 1);
 
@@ -69,6 +57,7 @@ viewerStory.it(
 		yield* handOver(1, "alice");
 		yield* rename("alice", 3, "After denial");
 
-		expect(yield* heard("alice", [notes.item(3)])).toBe("heard");
+		yield* untilNoteTitle("alice", 3, "After denial");
+		expect(yield* noteTitle("alice", 3)).toBe("After denial");
 	},
 );

@@ -6,7 +6,7 @@ import { SocketReadError } from "effect/socket/Socket";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { type LiveHint, live } from "#live.ts";
+import { live } from "#live.ts";
 
 const disconnected = new RpcClientError({ reason: new SocketReadError({ cause: new Error("connection dropped") }) });
 const retryEngine = Effect.gen(function* () {
@@ -26,11 +26,11 @@ const retryEngine = Effect.gen(function* () {
 			if (state.mode === "server outage") {
 				return Stream.die(new Error("server unavailable"));
 			}
-			return Stream.concat(Stream.succeed<LiveHint>({ _tag: "Resync" }), Stream.drain(Stream.fromEffect(Deferred.await(state.dropped))));
+			return Stream.concat(Stream.succeed({ _tag: "Delivered" } as const), Stream.drain(Stream.fromEffect(Deferred.await(state.dropped))));
 		}),
 	);
 	const resume = Atom.make(0);
-	const subscription = live(runtime, { resume, resyncKeys: [], stream });
+	const subscription = live(runtime, { resume, stream });
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),

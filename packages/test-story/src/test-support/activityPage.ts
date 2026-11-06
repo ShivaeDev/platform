@@ -1,7 +1,6 @@
-import { Deferred, type Duration, Effect, Fiber, Queue, Stream } from "effect";
+import { Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
-import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
@@ -47,7 +46,6 @@ export const activityPage = storyKit({
 			...driver,
 			activity: () => activity.current,
 			closePage: () => Effect.promise(view.unmount),
-			coalesceFor: (duration: Duration.Input) => Effect.sync(() => view.registry.set(queryCoalesceWindow(client.api.get.query({ id: 1 })), duration)),
 			holdRefresh: () => Effect.sync(host.holdRead),
 			holdSave: () => Effect.sync(host.holdWrite),
 			readMissing: () => raw["page.get"]({ id: 99 }).pipe(Effect.match({ onFailure: (error) => error._tag, onSuccess: (title) => title })),

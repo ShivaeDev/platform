@@ -1,7 +1,6 @@
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type { LiveStatus } from "#live.ts";
-import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { type QuerySignals, querySignals, shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "./wrapAtom.ts";
 
@@ -9,8 +8,6 @@ export function queryProgress<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E
 	const signals = querySignals(atom);
 	const tracked = wrapAtom(atom, (get) => {
 		get.mount(signals);
-		get.once(queryCoalesceWindow(tracked));
-		get.subscribe(queryCoalesceWindow(tracked), (duration) => get.set(queryCoalesceWindow(atom), duration), { immediate: true });
 		let published = false;
 		function publish(result: AsyncResult.AsyncResult<A, E>) {
 			published = true;

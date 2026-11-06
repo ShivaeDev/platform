@@ -11,7 +11,6 @@ export function openScreen(screen: Screen, url: string, token: string, entityId:
 		// Each rendered root owns its registry, so writer invalidation cannot refresh another root.
 		Effect.map((root) => {
 			// A hint then invalidates at once instead of after a bare timer that no story can wait on.
-			root.registry.set(client.coalesceWindow, 0);
 			return {
 				...root,
 				client,

@@ -3,8 +3,6 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type { AutomaticQueryOptions } from "#AutomaticQueryOptions.ts";
 import type { LiveStatus } from "#live.ts";
-import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
-import { queryFailure } from "#queryFailure.ts";
 import { recordCompletion, recordSubscription } from "#queryProgress.ts";
 import { queryResult } from "#queryResult.ts";
 
@@ -12,15 +10,11 @@ interface GateOptions<A, E> extends AutomaticQueryOptions<A, E> {
 	readonly assertOwner: (get: Atom.AtomContext) => void;
 }
 export function automaticQuery<A, E>({
-	atom,
 	assertOwner,
-	coalesceWindow,
 	clientStatuses,
 	equivalent,
 	paused,
-	pushed,
 	ready,
-	resultVersion,
 	signals,
 	source,
 	statuses,
@@ -31,7 +25,6 @@ export function automaticQuery<A, E>({
 		(get) => {
 			assertOwner(get);
 			get.mount(signals);
-			get.mount(resultVersion);
 			get.mount(subscriptionVersion);
 			const openingVersion = get.once(subscriptionVersion);
 			get.refresh(subscription.connection);
@@ -42,8 +35,6 @@ export function automaticQuery<A, E>({
 			get.addFinalizer(() => stopSource?.());
 			get.set(ready, false);
 			get.set(signals, { ...get.once(signals), pending: true, subscription: "opening" });
-			get.once(queryCoalesceWindow(gated));
-			get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(source), value), { immediate: true });
 			const token = {};
 			let active = true;
 			function observe(value: LiveStatus<unknown>) {
@@ -73,17 +64,10 @@ export function automaticQuery<A, E>({
 				}
 			});
 			get.addFinalizer(registry.subscribe(subscription.status, observe, { immediate: true }));
-			get.addFinalizer(registry.subscribe(coalesceWindow, (value) => registry.set(subscription.coalesceWindow, value), { immediate: true }));
-			let started = false;
-			let deniedVersion = 0;
 			function start() {
 				if (stopSource !== undefined) {
 					return;
 				}
-				if (!pushed && get.once(resultVersion) === deniedVersion) {
-					get.refresh(source);
-				}
-				started = true;
 				const publish = queryResult<A, E>(equivalent, (value) => {
 					if (!denied) {
 						get.setSelf(value);
@@ -98,35 +82,32 @@ export function automaticQuery<A, E>({
 					start();
 				}
 			});
-			const failed = queryFailure(
-				() => started && !pushed,
-				(cause) => {
-					if (Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))) {
-						denied = true;
-						deniedVersion = get.once(resultVersion);
-						registry.set(ready, false);
-						stopSource?.();
-						stopSource = undefined;
-					}
-					const result = AsyncResult.failure(cause);
-					get.setSelf(result);
-					get.set(signals, recordCompletion(get.once(signals), result));
-				},
-			);
-			get.subscribe(subscription.status, failed);
+			get.subscribe(subscription.status, ({ failure }) => {
+				if (Option.isNone(failure)) {
+					return;
+				}
+				const cause = failure.value;
+				if (Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))) {
+					denied = true;
+					registry.set(ready, false);
+					stopSource?.();
+					stopSource = undefined;
+				}
+				const result = AsyncResult.failure(cause);
+				get.setSelf(result);
+				get.set(signals, recordCompletion(get.once(signals), result));
+			});
 			get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));
 			function resume() {
 				if (get.once(subscription.status).connection !== "failed") {
 					get.refresh(subscription.connection);
 				}
 			}
-			if (pushed) {
-				get.subscribe(paused, (value) => {
-					if (!value) {
-						resume();
-					}
-				});
-			}
+			get.subscribe(paused, (value) => {
+				if (!value) {
+					resume();
+				}
+			});
 			get.mount(subscription.connection);
 			if (get.once(ready)) {
 				start();
@@ -135,9 +116,6 @@ export function automaticQuery<A, E>({
 			return AsyncResult.initial();
 		},
 		(refresh) => {
-			if (!pushed) {
-				refresh(atom);
-			}
 			refresh(subscription.connection);
 		},
 	).pipe(Atom.setIdleTTL(0));
