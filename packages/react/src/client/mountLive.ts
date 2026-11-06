@@ -6,15 +6,15 @@ import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import { registerLiveWindow } from "#registerLiveWindow.ts";
 import { recheckUnauthorized } from "#sessionRecheck.ts";
 
-function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Option<Cause.Cause<unknown>>) {
-	const error = Option.flatMap(failure, Cause.findErrorOption);
-	if (Option.isSome(error)) {
-		void recheckUnauthorized(registry, error.value);
-	}
-}
-
 export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown, coalesceWindow?: Duration.Input) {
 	const registry = yield* AtomRegistry.AtomRegistry;
+	function recheckFailure(failure: Option.Option<Cause.Cause<unknown>>) {
+		const error = Option.flatMap(failure, Cause.findErrorOption);
+		if (Option.isSome(error)) {
+			void recheckUnauthorized(registry, error.value);
+		}
+	}
+
 	const releases: Array<() => void> = [];
 	const found = new Set<unknown>();
 	for (const value of liveBindings(client)) {
@@ -32,7 +32,7 @@ export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown,
 			releases.push(
 				registry.subscribe(
 					Atom.map(live.status, (status) => status.failure),
-					(failure) => recheckFailure(registry, failure),
+					(failure) => recheckFailure(failure),
 					{ immediate: true },
 				),
 			);

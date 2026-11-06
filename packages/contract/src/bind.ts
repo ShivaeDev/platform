@@ -8,7 +8,8 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bindingOwner } from "#adapters/bindingOwner.ts";
-import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
+import { automaticLive, type LiveBound } from "#automaticLive.ts";
+import { bindOperations } from "#bindOperations.ts";
 import { clientOperations } from "#clientOperations.ts";
 import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared } from "#contract.ts";
@@ -95,26 +96,10 @@ export function bind(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
 	options?: BindOptions,
 ): unknown {
-	return bindApi(contract, service, options);
-}
-
-function bindApi(
-	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined> },
-	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
-	options?: BindOptions,
-) {
-	const { name, queries, commands, streams, keyScope } = contract.declaration;
+	const { name, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
 	const automatic = automaticLive(service, name, owner, options?.resume, options?.live, options?.resumeWindow);
-	const operations = clientOperations(service, automatic, owner);
-	return Object.assign(
-		Object.fromEntries([
-			...queries.map((query) => [query.name, operations.query(`${name}.${query.name}`, query)] as const),
-			...commands.map((command) => [command.name, operations.command(`${name}.${command.name}`, command)] as const),
-			...streams.map((stream) => [stream.name, operations.stream(`${name}.${stream.name}`)] as const),
-		]),
-		{ [LiveConnection]: automatic.subscription },
-	);
+	return bindOperations(contract.declaration, clientOperations(service, automatic, owner), automatic.subscription);
 }
 
 export function makeClient<
@@ -141,6 +126,16 @@ export function makeClient(
 	},
 ): Layer.Layer<never> {
 	const connection = rpcClient(contract.declaration.name, options.group ?? contract, options);
-	const api = bindApi(contract, connection.Client, options);
+	const bindingOptions: BindOptions = options;
+	const owner = bindingOwner(contract.declaration.keyScope, bindingOptions.registry);
+	const automatic = automaticLive(
+		connection.Client,
+		contract.declaration.name,
+		owner,
+		bindingOptions.resume,
+		bindingOptions.live,
+		bindingOptions.resumeWindow,
+	);
+	const api = bindOperations(contract.declaration, clientOperations(connection.Client, automatic, owner), automatic.subscription);
 	return Object.assign(connection, { api });
 }

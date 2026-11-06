@@ -18,100 +18,94 @@ import { queryReactivity } from "#queryReactivity.ts";
 import { shareQuerySignals } from "#querySignals.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
-
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
 	unknown,
 	string,
 	Rpc.Rpc<string, Schema.Top, RpcSchema.Stream<Schema.Top, Schema.Top>, Schema.Never>
 >;
 
-function run<A, E>(service: ErasedClient, effect: Effect.Effect<A, E, unknown>, owner?: BindingOwner) {
-	return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, service.runtime.atom(effect)));
-}
-
-function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
-	const reactive = queryReactivity(service.runtime, clientActivities.get(service)?.queued);
-	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
-	return {
-		query: (payload: unknown, options: QueryOptions = {}) => {
-			const atom = service.query(tag, payload, options);
-			const existing = cached.get(atom);
-			if (existing !== undefined) {
-				return existing;
-			}
-			const local = query.reads(payload, Option.none());
-			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${clientId()}` }];
-			const dependencies =
-				local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
-			const reference = { payload, query: query.name };
-			const result = automatic.query(
-				reactive(atom, clientReadKeys(dependencies, owner?.context), owner?.registry),
-				reference,
-				keys,
-				Schema.toEquivalence(query.success),
-				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
-				options.headers,
-			);
-			const tracked = clientActivities.get(service)?.watch(result) ?? result;
-			shareQuerySignals(tracked, result);
-			cached.set(atom, tracked);
-			return tracked;
-		},
-		run: (payload: unknown) =>
-			run(
-				service,
-				service.use((client) => client(tag, payload)),
-				owner,
-			),
-	};
-}
-
-function boundCommand(service: ErasedClient, tag: string, command: CommandShape, owner?: BindingOwner) {
-	function invalidate(payload: unknown, result: unknown) {
-		const keys: readonly Key[] = [
-			...command.invalidates(payload, result),
-			{ _tag: "List", collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` },
-		];
-		return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
-	}
-	return {
-		run: (payload: unknown) =>
-			run(
-				service,
-				service.use((client) =>
-					commandPayload(command, payload).pipe(
-						Effect.tap(() => waitForConnection(client)),
-						Effect.flatMap((validated) => client(tag, validated)),
-						Effect.tap((result) => invalidate(payload, result)),
-					),
-				),
-				owner,
-			),
-	};
-}
-
-function boundStream(service: ErasedStreamingClient, tag: string, owner?: BindingOwner) {
-	return {
-		run: (payload: unknown) => {
-			const stream = Stream.unwrap(service.use((client) => Effect.succeed(client(tag, payload))));
-			return owner === undefined
-				? stream
-				: Stream.callback<unknown, unknown>(
-						(queue) => AtomRegistry.getResult(owner.registry, service.runtime.atom(Stream.runIntoQueue(stream, queue)).pipe(Atom.setIdleTTL(0))),
-						{ bufferSize: 1 },
-					);
-		},
-	};
-}
-
 export function clientOperations(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
 	automatic: ReturnType<typeof automaticLive>,
 	owner?: BindingOwner,
 ) {
+	const ordinaryClient: ErasedClient = service;
+	const streaming: ErasedStreamingClient = service;
+	function run<A, E>(effect: Effect.Effect<A, E, unknown>) {
+		return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, ordinaryClient.runtime.atom(effect)));
+	}
+
+	function boundQuery(tag: string, query: QueryShape) {
+		const reactive = queryReactivity(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.queued);
+		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
+		return {
+			query: (payload: unknown, options: QueryOptions = {}) => {
+				const atom = ordinaryClient.query(tag, payload, options);
+				const existing = cached.get(atom);
+				if (existing !== undefined) {
+					return existing;
+				}
+				const local = query.reads(payload, Option.none());
+				const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${clientId()}` }];
+				const dependencies =
+					local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
+				const reference = { payload, query: query.name };
+				const result = automatic.query(
+					reactive(atom, clientReadKeys(dependencies, owner?.context), owner?.registry),
+					reference,
+					keys,
+					Schema.toEquivalence(query.success),
+					query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
+					options.headers,
+				);
+				const tracked = clientActivities.get(ordinaryClient)?.watch(result) ?? result;
+				shareQuerySignals(tracked, result);
+				cached.set(atom, tracked);
+				return tracked;
+			},
+			run: (payload: unknown) => run(ordinaryClient.use((client) => client(tag, payload))),
+		};
+	}
+
+	function boundCommand(tag: string, command: CommandShape) {
+		function invalidate(payload: unknown, result: unknown) {
+			const keys: readonly Key[] = [
+				...command.invalidates(payload, result),
+				{ _tag: "List", collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` },
+			];
+			return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
+		}
+		return {
+			run: (payload: unknown) =>
+				run(
+					ordinaryClient.use((client) =>
+						commandPayload(command, payload).pipe(
+							Effect.tap(() => waitForConnection(client)),
+							Effect.flatMap((validated) => client(tag, validated)),
+							Effect.tap((result) => invalidate(payload, result)),
+						),
+					),
+				),
+		};
+	}
+
+	function boundStream(tag: string) {
+		return {
+			run: (payload: unknown) => {
+				const stream = Stream.unwrap(streaming.use((client) => Effect.succeed(client(tag, payload))));
+				return owner === undefined
+					? stream
+					: Stream.callback<unknown, unknown>(
+							(queue) => AtomRegistry.getResult(owner.registry, streaming.runtime.atom(Stream.runIntoQueue(stream, queue)).pipe(Atom.setIdleTTL(0))),
+							{ bufferSize: 1 },
+						);
+			},
+		};
+	}
+
 	return {
-		command: (tag: string, command: CommandShape) => boundCommand(service, tag, command, owner),
-		query: (tag: string, query: QueryShape) => boundQuery(service, tag, query, automatic, owner),
-		stream: (tag: string) => boundStream(service, tag, owner),
+		command: (tag: string, command: CommandShape) => boundCommand(tag, command),
+		query: (tag: string, query: QueryShape) => boundQuery(tag, query),
+		stream: (tag: string) => boundStream(tag),
 	};
 }

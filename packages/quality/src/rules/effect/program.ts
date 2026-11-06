@@ -4,6 +4,10 @@ import { projectsFor } from "#adapters/imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export function effectProgram(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []): ts.Program {
+	return effectPrograms(inputs, externalTypes, roots)(inputs.sources);
+}
+
+export function effectPrograms(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []) {
 	const projectOf = projectsFor(inputs.root);
 	const options: ts.CompilerOptions = {
 		allowJs: true,
@@ -25,5 +29,19 @@ export function effectProgram(inputs: RuleInputs, externalTypes = true, roots: r
 			const project = projectOf(from);
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});
-	return ts.createProgram([...texts.keys(), ...roots], options, host);
+	const sourceFiles = new Map<string, ts.SourceFile>();
+	const readSource = host.getSourceFile;
+	host.getSourceFile = (file, languageVersion, onError, shouldCreateNewSourceFile) => {
+		const previous = sourceFiles.get(file);
+		if (previous !== undefined && !shouldCreateNewSourceFile) {
+			return previous;
+		}
+		const source = readSource(file, languageVersion, onError, shouldCreateNewSourceFile);
+		if (source !== undefined) {
+			sourceFiles.set(file, source);
+		}
+		return source;
+	};
+	return (sources: RuleInputs["sources"]): ts.Program =>
+		ts.createProgram([...sources.map((source) => join(inputs.root, source.path)), ...roots], options, host);
 }

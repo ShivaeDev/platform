@@ -53,25 +53,29 @@ const receiveReport = Effect.fnUntraced(function* (options: BrowserErrorOptions,
 	return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Accepted") });
 });
 
-const receiveForSession = Effect.fnUntraced(function* (options: BrowserErrorOptions, policy: Option.Option<SessionPolicy["Service"]>) {
-	if (!(options.requireSession || options.includeUserId)) {
-		return yield* receiveReport(options);
-	}
-	const request = yield* HttpServerRequest.HttpServerRequest;
-	const session = Option.isSome(policy)
-		? yield* resolveSession(request.headers, "$browserError").pipe(Effect.provideService(SessionPolicy, policy.value))
-		: Option.none();
-	if (options.requireSession && Option.isNone(session)) {
-		return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") });
-	}
-	return yield* receiveReport(options, options.includeUserId && Option.isSome(session) ? session.value.user.id : undefined);
-});
-
 export function browserErrorRoute(trustedProxy?: string, options: BrowserErrorOptions = {}) {
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const limiter = yield* RateLimiter.RateLimiter;
 			const policy = yield* Effect.serviceOption(SessionPolicy);
+			const receiveForSession = Effect.fnUntraced(function* () {
+				if (!(options.requireSession || options.includeUserId)) {
+					return yield* receiveReport(options);
+				}
+				const request = yield* HttpServerRequest.HttpServerRequest;
+				const session = yield* Option.match(policy, {
+					onNone: () => Effect.succeed(Option.none()),
+					onSome: (configured) => resolveSession(request.headers, "$browserError").pipe(Effect.provideService(SessionPolicy, configured)),
+				});
+				if (options.requireSession && Option.isNone(session)) {
+					return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") });
+				}
+				return yield* receiveReport(
+					options,
+					options.includeUserId ? Option.getOrUndefined(Option.map(session, (current) => current.user.id)) : undefined,
+				);
+			});
+
 			const allowed = localTransport(trustedProxy);
 			const trusted = trustedProxyPeer(trustedProxy);
 			yield* router.add(
@@ -88,7 +92,7 @@ export function browserErrorRoute(trustedProxy?: string, options: BrowserErrorOp
 					if (!accepted) {
 						return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("TooManyRequests") });
 					}
-					return yield* receiveForSession(options, policy);
+					return yield* receiveForSession();
 				}).pipe(
 					Effect.catchIf(isAuthUnavailable, () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") }))),
 					Effect.catchIf(isForbidden, () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Forbidden") }))),

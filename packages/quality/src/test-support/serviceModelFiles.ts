@@ -18,7 +18,7 @@ export const Inventory = defineService({ id: "app/Inventory", initialize, requir
 			path: "src/inventory/service.ts",
 		},
 		{
-			content: `import { Context, Effect, Ref, Semaphore } from "effect";
+			content: `import { Context, Effect, Ref, Scope, Semaphore } from "effect";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as HttpClient from "effect/http/HttpClient";
 interface StoreShape { readonly read: () => Effect.Effect<string> }

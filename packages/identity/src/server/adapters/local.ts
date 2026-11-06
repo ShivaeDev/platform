@@ -83,12 +83,13 @@ export function localRpcGuard<E, R>(
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
 		const legacyNdjson = serialization.contentType === RpcSerialization.ndjson.contentType && contentType === "application/ndjson";
 		return allowed(request) && (contentType === serialization.contentType || legacyNdjson)
-			? yield* continueHttpTrace(effect, request)
+			? yield* continueHttpTrace(effect)
 			: HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 	});
 }
 
-const continueHttpTrace = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>, request: HttpServerRequest.HttpServerRequest) {
+const continueHttpTrace = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
+	const request = yield* HttpServerRequest.HttpServerRequest;
 	const incoming = HttpTraceContext.w3c(request.headers);
 	if (Option.isNone(incoming)) {
 		return yield* effect;
