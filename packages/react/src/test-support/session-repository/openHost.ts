@@ -32,6 +32,7 @@ export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redac
 					group: Api,
 					handlers: Api.application.toLayer({ "sessionNotes.compared": read, "sessionNotes.get": read }),
 					migrations: { ...migrations, mode: "check" },
+					postgresSettings: {},
 					services: Layer.succeed(ReadAccess, { allowed }),
 					sessions: Layer.succeed(SessionPolicy, {
 						origin: () => true,
@@ -45,7 +46,9 @@ export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redac
 	const worker = yield* Effect.acquireRelease(
 		Effect.sync(() =>
 			ManagedRuntime.make(
-				appDatabase({ config: { databaseUrl }, migrations: { ...migrations, mode: "check" } }).pipe(Layer.provide(NodeCrypto.layer)),
+				appDatabase({ config: { databaseUrl }, migrations: { ...migrations, mode: "check" }, postgresSettings: {} }).pipe(
+					Layer.provide(NodeCrypto.layer),
+				),
 			),
 		),
 		(runtime) => Effect.promise(() => runtime.dispose()),

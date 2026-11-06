@@ -30,10 +30,11 @@ const missing = Effect.map(appModules([{ ...module, services: Layer.empty }]), (
 	appHost({ ...modules, migrations: undefined, policy: "loopback" }),
 );
 
-const migrated = Effect.map(appModules([module]), (modules) => databaseHost({ ...modules, policy: "loopback" }));
+const migrated = Effect.map(appModules([module]), (modules) => databaseHost({ postgresSettings: {}, ...modules, policy: "loopback" }));
 const deferred = databaseHost({
 	application: Effect.succeed({ ...module, migrations: undefined, policy: "loopback" }),
 	migrations: module.migrations,
+	postgresSettings: {},
 });
 const publicGroup = RpcGroup.make(Rpc.make("read", { success: Schema.String }));
 const missingCaller = appHost({ ...module, group: publicGroup, migrations: undefined, policy: "loopback" });

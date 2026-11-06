@@ -22,6 +22,7 @@ export const startHost = Effect.fn("Settings.startHost")(function* (
 			group: SettingsRpc,
 			handlers: handlers(beforeCommit),
 			migrations,
+			postgresSettings: {},
 			requestServices: SettingsService.layer,
 			services: repositories,
 			sessions: Layer.succeed(SessionPolicy, {

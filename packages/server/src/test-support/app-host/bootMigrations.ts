@@ -65,6 +65,7 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		}),
 		config: { applicationName: state.table, databaseUrl: state.hostUrl },
 		migrations: { ...state.migrations, mode: "wait", pollInterval: "10 millis", ...options },
+		postgresSettings: {},
 	});
 	const ready = yield* Deferred.make<Context.Context<Layer.Success<typeof host>>>();
 	const fiber = yield* Effect.gen(function* () {

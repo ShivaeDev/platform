@@ -15,7 +15,7 @@ import { handlers, migrations, Pots, Viewer } from "./fixture.ts";
 export const engine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const capture = yield* makeCapture<unknown>();
-	const databaseServices = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations })).pipe(
+	const databaseServices = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations, postgresSettings: {} })).pipe(
 		Effect.provide(capture.layer(ChangeObserver)),
 	);
 	const services = yield* Layer.build(

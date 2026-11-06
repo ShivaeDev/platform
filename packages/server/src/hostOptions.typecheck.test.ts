@@ -53,10 +53,12 @@ const migratedGenerator = Layer.unwrap(
 	Effect.gen(function* () {
 		const port = yield* Effect.succeed(0);
 		yield* Effect.void;
-		return databaseHost({ config: { port }, group, handlers, migrations, services: queueLayer({}), sessions });
+		return databaseHost({ config: { port }, group, handlers, migrations, postgresSettings: {}, services: queueLayer({}), sessions });
 	}),
 );
-const migratedLoopback = Layer.unwrap(Effect.succeed(databaseHost({ group, handlers, migrations, policy: "loopback", services: queueLayer({}) })));
+const migratedLoopback = Layer.unwrap(
+	Effect.succeed(databaseHost({ group, handlers, migrations, policy: "loopback", postgresSettings: {}, services: queueLayer({}) })),
+);
 const httpWithSessions = Layer.unwrap(Effect.succeed(appHost({ group, handlers, services: queueLayer({}), sessions })));
 const withRequirements = Layer.unwrap(
 	Effect.gen(function* () {
@@ -105,8 +107,8 @@ const httpOnlyComplete = appHost({ routes: httpOnlyRoutes, services });
 const httpOnlyTyped: AppHttpHostOptions = {};
 const httpOnlyTypedHost = appHost(httpOnlyTyped);
 const databaseRoute = HttpRouter.add("GET", "/database", SqlClient.SqlClient.use((sql) => sql`select 1`).pipe(Effect.as(HttpServerResponse.empty())));
-const httpOnlyMigrated = databaseHost({ migrations, routes: databaseRoute });
-const httpOnlyDeferred = databaseHost({ application: Effect.succeed({ routes: databaseRoute }), migrations });
+const httpOnlyMigrated = databaseHost({ migrations, postgresSettings: {}, routes: databaseRoute });
+const httpOnlyDeferred = databaseHost({ application: Effect.succeed({ routes: databaseRoute }), migrations, postgresSettings: {} });
 
 it("HTTP-only hosts retain dependencies, build failures and migrated SQL", () => {
 	expectTypeOf<Layer.Services<typeof httpOnlyIncomplete>>().toEqualTypeOf<Queue>();
@@ -127,6 +129,6 @@ it("native RPC still requires its group, handlers and session policy together", 
 });
 
 // @ts-expect-error Database host options belong to the database entry.
-appHost({ migrations });
+appHost({ migrations, postgresSettings: {} });
 // @ts-expect-error Deferred database construction belongs to the database entry.
-appHost({ application: Effect.succeed({}), migrations });
+appHost({ application: Effect.succeed({}), migrations, postgresSettings: {} });

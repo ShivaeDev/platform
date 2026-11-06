@@ -83,6 +83,7 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 					),
 				),
 				migrations: { loader: Migrator.fromRecord({}) },
+				postgresSettings: {},
 				services: Layer.succeed(ChangeObserver, (event) =>
 					Effect.sync(() => {
 						if (event._tag === "Published") {

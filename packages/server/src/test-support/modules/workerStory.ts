@@ -49,13 +49,13 @@ export const moduleWorkers = storyKit({
 				Layer.provide(pgBossLayer({ clientFactory: state.sender.clientFactory, connectionString: database.url, migrate: false, supervise: false })),
 			);
 			const config = { databaseUrl: database.url, port: 0 };
-			const host = yield* Layer.build(appHost({ ...modules, config, policy: "loopback", services: hostServices }));
+			const host = yield* Layer.build(appHost({ postgresSettings: {}, ...modules, config, policy: "loopback", services: hostServices }));
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(host));
 			if (!NetAddress.isInetAddress(server.address)) {
 				return yield* Effect.die("Expected TCP address");
 			}
 			state.url = `http://127.0.0.1:${server.address.port}/rpc`;
-			yield* Layer.build(workerHost({ ...modules, config, migrations: { ...modules.migrations, mode: "check" }, services }));
+			yield* Layer.build(workerHost({ postgresSettings: {}, ...modules, config, migrations: { ...modules.migrations, mode: "check" }, services }));
 		}),
 	},
 	around: withIsolatedDatabase,

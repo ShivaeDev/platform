@@ -10,6 +10,7 @@ export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (datab
 		appDatabase({
 			config: clientOptions({ databaseUrl: url }),
 			migrations: { ...(yield* migrations()), ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
+			postgresSettings: {},
 		}),
 	);
 	yield* Effect.logInfo("Migrations applied");

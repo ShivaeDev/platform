@@ -96,6 +96,7 @@ export type AppHostOptions<
 	HostRoutes<TRouteError, TRouteRequirements> &
 	HostPolicy & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
+		readonly postgresSettings: AppDatabaseOptions["postgresSettings"];
 		readonly config?: AppDatabaseOptions["config"];
 		readonly policy?: undefined;
 	};
@@ -131,6 +132,7 @@ export type AppLocalHostOptions<
 	> &
 	HostRoutes<TRouteError, TRouteRequirements> & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
+		readonly postgresSettings: AppDatabaseOptions["postgresSettings"];
 		readonly config?: AppDatabaseOptions["config"];
 		readonly policy: "loopback";
 		readonly sessions?: never;

@@ -33,13 +33,7 @@ export const openHost = Effect.gen(function* () {
 		streamRevalidationInterval: "1 hour",
 	});
 	const services = yield* Layer.build(
-		appHost({
-			config: { databaseUrl: database.url, port: 0 },
-			group: Api,
-			handlers,
-			migrations,
-			sessions,
-		}),
+		appHost({ config: { databaseUrl: database.url, port: 0 }, group: Api, handlers, migrations, postgresSettings: {}, sessions }),
 	);
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(services));
 	if (!NetAddress.isInetAddress(address)) {

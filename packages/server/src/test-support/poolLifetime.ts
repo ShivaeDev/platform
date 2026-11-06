@@ -39,6 +39,7 @@ export const poolLifetime = storyKit({
 					migrations: {
 						loader: Migrator.fromRecord({ "001_notes": SqlClient.SqlClient.use((sql) => sql`create table notes (id integer primary key)`) }),
 					},
+					postgresSettings: {},
 				}),
 			);
 		}),

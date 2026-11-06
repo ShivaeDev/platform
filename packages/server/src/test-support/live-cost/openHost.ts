@@ -29,6 +29,7 @@ export const openHost = Effect.gen(function* () {
 			group: Api,
 			handlers,
 			migrations,
+			postgresSettings: {},
 			services: Layer.succeed(Cost, cost),
 			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),

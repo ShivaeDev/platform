@@ -20,6 +20,7 @@ NodeRuntime.runMain(
 					loader: migrationLoader(table, process.argv[2] === "initial"),
 					table: `${table}_migrations`,
 				},
+				postgresSettings: {},
 			}),
 		);
 	}).pipe(Effect.scoped, Effect.provide(NodeCrypto.layer)),

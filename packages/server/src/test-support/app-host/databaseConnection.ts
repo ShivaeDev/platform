@@ -24,6 +24,7 @@ export function databaseConnection(mode: "require" | undefined) {
 				handlers: pingHandlers,
 				migrations: { loader: Migrator.fromRecord({}), table },
 				policy: "loopback",
+				postgresSettings: {},
 			});
 		}
 		state.build = build;
