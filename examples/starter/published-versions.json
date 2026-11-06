@@ -17,7 +17,7 @@
 	"@shivaedev/local-postgres": "0.15.0",
 	"@shivaedev/mcp": "0.9.2",
 	"@shivaedev/platform": "0.40.2",
-	"@shivaedev/quality": "0.67.0",
+	"@shivaedev/quality": "0.67.1",
 	"@shivaedev/rate-limit": "0.6.2",
 	"@shivaedev/react": "0.44.2",
 	"@shivaedev/server": "0.29.0",
