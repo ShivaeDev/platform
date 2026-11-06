@@ -12,13 +12,13 @@ export interface Refusal {
 }
 
 export interface Narration {
-	at: Error | undefined;
+	at: string | undefined;
 	given: number;
 	readonly lines: string[];
 	refused: Refusal | undefined;
-	readonly sites: Error[];
+	readonly sites: (string | undefined)[];
 	readonly tell: (line: string) => void;
-	readonly tellAt: (line: string, site: Error) => void;
+	readonly tellAt: (line: string, site: string | undefined) => void;
 }
 
 export interface Subject<TEngine> {
@@ -70,7 +70,7 @@ export const narrate = Effect.fnUntraced(function* <TEngine>(subject: Subject<TE
 	return { captureFailure, narration };
 });
 
-export function tellGiven(narration: Narration, given: readonly { readonly line: string; readonly site: Error }[]): void {
+export function tellGiven(narration: Narration, given: readonly { readonly line: string; readonly site: string | undefined }[]): void {
 	for (const part of given) {
 		narration.tellAt(part.line, part.site);
 	}

@@ -18,6 +18,8 @@ export const OUTCOME_STORIES = fixture("outcomeStories");
 
 export const UNLOCATED_STORIES = fixture("unlocatedStories");
 
+export const SNAPSHOT_MEMORY_STORIES = fixture("snapshotMemoryStories");
+
 export const LARGE_BAKERY =
 	"node_modules/.cache/test-story/failingstories.ts--bakery-story-writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
 

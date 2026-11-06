@@ -3,7 +3,7 @@ import { callSite } from "#server/adapters/callSite.ts";
 export interface TraitPart<TStage extends string, TApply> {
 	readonly apply: TApply;
 	readonly line: string;
-	readonly site: Error;
+	readonly site: string | undefined;
 	readonly stage: TStage;
 }
 

@@ -11,6 +11,7 @@ export interface StoriesRun {
 	readonly allowOnly?: boolean;
 	readonly env?: Readonly<Record<string, string>>;
 	readonly environment?: string;
+	readonly execArgv?: readonly string[];
 	readonly guardImports?: boolean;
 	readonly include: string;
 	readonly root?: string;
@@ -38,6 +39,7 @@ export async function runStories({
 	allowOnly = false,
 	env = {},
 	environment,
+	execArgv = [],
 	include,
 	root = packageRoot,
 	guardImports = false,
@@ -54,7 +56,7 @@ export async function runStories({
 			config: false,
 			env: { ...env },
 			...(environment === undefined ? {} : { environment }),
-			execArgv: ["--import", fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"))],
+			execArgv: ["--import", fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts")), ...execArgv],
 			experimental: { importDurations: { limit: guardImports ? 10_000 : 0 } },
 			include: [include],
 			reporters: [],
