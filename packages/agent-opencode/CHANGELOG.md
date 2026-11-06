@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-06
+
+### Breaking
+
+- Import the tool naming adapter from `adapters/wireName.ts` instead of `adapters/toolNames.ts`.
+
 ## 0.4.0 - 2026-11-05
 
 ### Breaking

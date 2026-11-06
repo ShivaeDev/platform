@@ -43,9 +43,9 @@ function splitOptions(options: number | EffectTestOptions | undefined): {
 // Layer.empty is also accepted without losing the services of a non-empty Layer.
 function buildTestLayer<TLayer extends AnyTestLayer>(
 	layer: TLayer,
-	scope: Scope.Scope,
+	scope: Scope.Closeable,
 ): Effect.Effect<Context.Context<Layer.Success<TLayer>>, unknown>;
-function buildTestLayer(layer: Layer.Layer<never, unknown, never>, scope: Scope.Scope) {
+function buildTestLayer(layer: Layer.Layer<never, unknown, never>, scope: Scope.Closeable) {
 	return Layer.buildWithScope(layer, scope);
 }
 

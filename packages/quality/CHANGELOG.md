@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.67.0 - 2026-11-06
+
+### Fixed
+
+- Classify package-owned `test/` trees beside `src/` and private workspace packages consumed only by tests as development code for dependency, test-import and line-limit checks. Production consumers keep composition packages in the production boundary.
+- Recognise package-owned test suites as covering their package's source tree, and allow pure matchers and readers beside specs while keeping setup and action helpers in story kits.
+
+### Breaking
+
+- Name plain-data constants modules in camelCase for words every constant shares, or use `limits.ts` for max/min/limit constants and `defaults.ts` for default constants. Rename single-constant PascalCase files such as `ProfileKey.ts` to `profileKey.ts`; split unrelated constants or group heterogeneous copy in one named record. Rename files whose names came from a private constant or an extra constant beside their one other runtime export to match that export. The same rules apply to test-support kits; computed values, schemas, Layers and functions do not count as constants.
+- Direct module imports move from `config/constants.ts` to `config/file.ts` or `config/defaultExtensions.ts`, from `cli/messages.ts` to `cli/usage.ts` or `cli/subcommands.ts`, from `cli/options.ts` to `cli/misplaced.ts`, from `naming/migrationFile.ts` to `naming/isMigrationFile.ts`, and from `rules/suppressions/directives.ts` to `rules/suppressions/in.ts`. Import `MAX_FIX_ROUNDS` from `cli/limits.ts` instead of `cli/fix.ts`.
+
 ## 0.66.0 - 2026-11-05
 
 ### Breaking

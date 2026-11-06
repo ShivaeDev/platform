@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.44.2 - 2026-11-06
+
+### Changed
+
+- Live screens and route loaders consume the subscription's first result without a separate query request.
+
 ## 0.44.1 - 2026-11-05
 
 ### Changed

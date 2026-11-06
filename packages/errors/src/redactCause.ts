@@ -50,22 +50,7 @@ function diagnosticReason(reason: Cause.Reason<unknown>, sensitive: SensitiveKey
 			return Cause.interrupt(reason.fiberId);
 	}
 }
-function stackFrame(frame: References.StackFrame | undefined, sensitive: SensitiveKey, remaining = 8): References.StackFrame | undefined {
-	if (frame === undefined || remaining === 0) {
-		return undefined;
-	}
-	return {
-		name: sensitive("name") ? REDACTED : redactText(frame.name, sensitive),
-		parent: stackFrame(frame.parent, sensitive, remaining - 1),
-		stack: () => {
-			const value = frame.stack();
-			if (value === undefined) {
-				return undefined;
-			}
-			return sensitive("name") || sensitive("message") ? REDACTED : redactText(value, sensitive);
-		},
-	};
-}
+
 function diagnosticAnnotations(reason: Cause.Reason<unknown>, sensitive: SensitiveKey) {
 	const nativeStacks: Context.Key<Cause.StackTrace | Cause.InterruptorStackTrace, References.StackFrame>[] = [
 		Cause.StackTrace,
@@ -76,14 +61,36 @@ function diagnosticAnnotations(reason: Cause.Reason<unknown>, sensitive: Sensiti
 			.filter(([key]) => !nativeStacks.some((service) => service.key === key))
 			.map(([key, value]) => [key, sensitive(key) ? REDACTED : redact(value, sensitive)]),
 	);
-	if (!sensitive("stack")) {
-		const context = Cause.reasonAnnotations(reason);
-		for (const service of nativeStacks) {
-			const frame = Context.getOrUndefined(context, service);
-			if (frame !== undefined && !sensitive(service.key)) {
-				annotations.set(service.key, stackFrame(frame, sensitive));
-			}
+	if (sensitive("stack")) {
+		return annotations;
+	}
+	const context = Cause.reasonAnnotations(reason);
+	for (const service of nativeStacks) {
+		const frame = Context.getOrUndefined(context, service);
+		if (frame === undefined || sensitive(service.key)) {
+			continue;
 		}
+		const frames: Array<{ readonly source: References.StackFrame; readonly name: string }> = [];
+		let current: References.StackFrame | undefined = frame;
+		while (current !== undefined && frames.length < 8) {
+			frames.push({ name: sensitive("name") ? REDACTED : redactText(current.name, sensitive), source: current });
+			current = current.parent;
+		}
+		const redactedFrame = frames.reduceRight<References.StackFrame | undefined>(
+			(parent, { source, name }) => ({
+				name,
+				parent,
+				stack: () => {
+					const value = source.stack();
+					if (value === undefined) {
+						return undefined;
+					}
+					return sensitive("name") || sensitive("message") ? REDACTED : redactText(value, sensitive);
+				},
+			}),
+			undefined,
+		);
+		annotations.set(service.key, redactedFrame);
 	}
 	return annotations;
 }

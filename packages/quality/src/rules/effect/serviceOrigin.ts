@@ -1,6 +1,8 @@
 import ts from "typescript";
 import { returnValues } from "#rules/stories/returnValues.ts";
 
+const origins = new WeakMap<ts.TypeChecker, Map<ts.Symbol, boolean>>();
+
 const SERVICE_NAMES = new Set(["Service", "ServiceClass", "Key", "Reference", "Tag", "TagClass", "GenericTag"]);
 
 function annotation(declaration: ts.Declaration): ts.TypeNode | undefined {
@@ -31,11 +33,18 @@ function declarationOrigin(checker: ts.TypeChecker, declaration: ts.Declaration,
 
 function symbolOrigin(checker: ts.TypeChecker, symbol: ts.Symbol, seen: Set<ts.Symbol>): boolean {
 	const target = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+	const known = origins.get(checker) ?? new Map<ts.Symbol, boolean>();
+	origins.set(checker, known);
+	const previous = known.get(target);
+	if (previous !== undefined) {
+		return previous;
+	}
+	const root = seen.size === 0;
 	if (seen.has(target)) {
 		return false;
 	}
 	seen.add(target);
-	return (target.declarations ?? []).some((declaration) => {
+	const result = (target.declarations ?? []).some((declaration) => {
 		const file = declaration.getSourceFile().fileName.replaceAll("\\", "/");
 		if (
 			/\/effect\/(?:src|dist)\/(?:Context|Effect)(?:\.d)?\.ts$/u.test(file)
@@ -53,6 +62,10 @@ function symbolOrigin(checker: ts.TypeChecker, symbol: ts.Symbol, seen: Set<ts.S
 		}
 		return declarationOrigin(checker, declaration, seen);
 	});
+	if (root) {
+		known.set(target, result);
+	}
+	return result;
 }
 
 function reference(node: ts.Node): ts.Node | undefined {

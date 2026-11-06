@@ -5,8 +5,8 @@ import { transact } from "@shivaedev/sql/transact.ts";
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import type { QueueDefinition } from "#server/definition.ts";
 import { deadLetterQueueName } from "#server/health.ts";
-import type { PgBossService } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
+import type { JobRequest } from "#test/JobRequest.ts";
 import type { Registration } from "#test/workers.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, provided, runningIn, type StartOptions, startRuntime } from "./engine.ts";
@@ -112,7 +112,7 @@ export function runtimeVerbs(engine: DatabaseEngine, tell: Tell) {
 			});
 		},
 		answered: () => Effect.sync(() => engine.answered),
-		ask: <A, E>(name: string, request: string, call: (jobs: PgBossService) => Effect.Effect<A, E>) => {
+		ask: <A, E>(name: string, request: string, call: JobRequest<A, E>) => {
 			tell(`${name} asks its jobs service to ${request}`);
 			return Effect.suspend(() => answer(engine, provided(engine, name, call(runningIn(engine, name).jobs))));
 		},

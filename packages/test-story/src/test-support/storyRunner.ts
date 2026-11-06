@@ -32,6 +32,7 @@ export type Fixture =
 	| "refusingStories"
 	| "restartedStories"
 	| "scopedStories"
+	| "snapshotMemoryStories"
 	| "screenWaitStories"
 	| "timerStories"
 	| "tracingStories"

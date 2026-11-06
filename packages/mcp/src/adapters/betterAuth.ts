@@ -56,7 +56,8 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 					: Effect.succeed(Option.none()),
 		},
 	});
-	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* (request: HttpServerRequest.HttpServerRequest) {
+	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* () {
+		const request = yield* HttpServerRequest.HttpServerRequest;
 		const web = yield* HttpServerRequest.toWeb(request);
 		return HttpServerResponse.fromWeb(yield* oauthAuthorizationMetadata(auth, web));
 	});
@@ -67,7 +68,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 				metadataPath,
 				HttpServerResponse.jsonUnsafe({ "authorization_servers": [config.issuer], resource, "scopes_supported": ["mcp"] }),
 			);
-			yield* router.add("GET", authorizationMetadataPath, authorizationMetadata);
+			yield* router.add("GET", authorizationMetadataPath, authorizationMetadata());
 		}),
 	);
 	return { authenticate, resourceMetadataUrl, routes, sessions };

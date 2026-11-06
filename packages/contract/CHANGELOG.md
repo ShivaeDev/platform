@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.41.0 - 2026-11-06
+
+### Added
+
+- Activity reports commands in flight and mounted queries awaiting their first result. `isClientSettled` checks these counts using the contract's command metadata.
+
+### Changed
+
+- Live query subscriptions deliver their first authorized result after registering read keys, removing the separate initial query request for bound queries and route loaders. Later updates retain hint-then-read or the query's chosen rerun-and-compare behavior.
+
+### Breaking
+
+- Every contract's `$changes` success type includes typed `Result` values. Custom stream consumers must handle results as well as hints; custom subscription hosts pass their authorized query runner to `subscribe(subscription, read)` to deliver the initial value.
+- Direct `automaticLive().query` callers now supply a result decoder, comparison flag and reactive source factory. Direct `queryDelivery` callers supply the decoder and comparison flag, and `automaticQuery` callers pass the delivery's `version` as `resultVersion` and `updates` as `subscriptionVersion`. Use `bind` or `makeClient` to obtain this wiring automatically.
+- Screen signals from `activityScreenSignal(activity)` now settle on commands and first query results, allowing live queries to remain open or await later refreshes. Code constructing `ClientActivityState` values must supply `commands` and `initialQueries`. To retain full finite-work settling, pass `isClientIdle` as the second argument. Start `nextLiveHint()` before an outside write when a story needs its next live change, then settle through that refresh with the full idle signal.
+
 ## 0.40.0 - 2026-11-05
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.0 - 2026-11-06
+
+### Breaking
+
+- Generated query subscriptions return their initial authorized value. Raw subscription consumers handle `Result`; session revocation still ends established subscriptions.
+- Import the client IP adapter from `server/better-auth/adapters/clientIpHeaders.ts` instead of `server/better-auth/adapters/clientIp.ts`.
+
 ## 0.28.0 - 2026-11-05
 
 ### Breaking

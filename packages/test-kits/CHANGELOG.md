@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 - 2026-11-06
+
+### Changed
+
+- Contract story listeners accept initial results alongside change hints.
+
+### Breaking
+
+- `HintViewer.hints` contains `QueryUpdate` values, including results. Custom readout renderers must handle `Result` and `Unchanged` alongside hints.
+
 ## 0.8.1 - 2026-11-05
 
 ### Changed

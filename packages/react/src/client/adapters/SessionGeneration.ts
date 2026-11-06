@@ -15,17 +15,22 @@ interface Owned<TClient> {
 	mounted: number;
 	readonly registry: AtomRegistry.AtomRegistry;
 }
-function owning<TClient>(
-	connect: (registry: AtomRegistry.AtomRegistry) => TClient,
+interface Connection<TSession, TClient> {
+	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
+	readonly session: TSession;
+}
+function owning<TSession, TClient>(
+	connection: Connection<TSession, TClient>,
 	identity: string | undefined,
 	retention: QueryRetentionOptions | undefined,
 ): Owned<TClient> {
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 400 });
 	registry.set(queryRetention, retention ?? {});
+	const { connect, session: initialSession } = connection;
 	let client: { readonly value: TClient } | undefined;
 	return {
 		get client() {
-			client ??= { value: connect(registry) };
+			client ??= { value: connect(initialSession, registry) };
 			for (const binding of liveBindings(client.value)) {
 				const session = binding[LiveConnection].identity;
 				if (session !== undefined) {
@@ -39,12 +44,12 @@ function owning<TClient>(
 	};
 }
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
-function hidden<TClient>(
-	connect: (registry: AtomRegistry.AtomRegistry) => TClient,
+function hidden<TSession, TClient>(
+	connection: Connection<TSession, TClient>,
 	identity: string | undefined,
 	retention: QueryRetentionOptions | undefined,
 ): Owned<TClient> {
-	const owned = owning(connect, identity, retention);
+	const owned = owning(connection, identity, retention);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
 		if (reaping || owned.mounted > 0) {
@@ -79,8 +84,8 @@ export function SessionGeneration<TSession, TClient>({
 	queryRetention: retention,
 }: SessionGenerationProps<TSession, TClient>): ReactNode {
 	const recheckLatest = useLatestCallback(recheck);
-	const [open] = useState(() => (registry: AtomRegistry.AtomRegistry) => connect(session, registry));
-	const [owned, own] = useState(() => owning(open, identity, retention));
+	const [connection] = useState(() => ({ connect, session }));
+	const [owned, own] = useState(() => owning(connection, identity, retention));
 	useEffect(() => {
 		owned.registry.set(queryRetention, retention ?? {});
 	}, [owned, retention]);
@@ -99,10 +104,10 @@ export function SessionGeneration<TSession, TClient>({
 				}
 				const configured = owned.registry.get(queryRetention);
 				owned.registry.dispose();
-				own((current) => (current === owned ? hidden(open, identity, configured) : current));
+				own((current) => (current === owned ? hidden(connection, identity, configured) : current));
 			});
 		};
-	}, [identity, owned, liveCoalesceWindow, open]);
+	}, [identity, owned, liveCoalesceWindow, connection]);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheckLatest },
