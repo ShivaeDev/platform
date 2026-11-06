@@ -30,3 +30,5 @@ export interface JobsViewClient {
 	readonly job: Query<JobId, Option.Option<Job>>;
 }
 export type RetryJob = Atom.AtomResultFn<JobId, void, unknown>;
+
+export type RunScheduleNow = Atom.AtomResultFn<{ readonly queue: string }, Option.Option<string>, unknown>;

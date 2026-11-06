@@ -16,13 +16,7 @@ const openHost = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const errors: string[] = [];
 	const services = yield* Layer.build(
-		appHost({
-			config: { databaseUrl: database.url, port: 0 },
-			group: Api,
-			handlers,
-			migrations,
-			policy: "loopback",
-		}).pipe(
+		appHost({ config: { databaseUrl: database.url, port: 0 }, group: Api, handlers, migrations, policy: "loopback", postgresSettings: {} }).pipe(
 			Layer.provide(
 				Logger.layer([
 					Logger.make((entry) => {

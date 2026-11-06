@@ -1,6 +1,7 @@
 import type { Page } from "playwright";
 import type { BrowserPage } from "#BrowserPage.ts";
 import { attempt } from "./attempt.ts";
+import { watchSocket } from "./watchSocket.ts";
 
 export function pageAdapter(page: Page): BrowserPage {
 	page.setDefaultTimeout(5000);
@@ -17,5 +18,6 @@ export function pageAdapter(page: Page): BrowserPage {
 					throw new Error(`Page ${url} returned HTTP ${response?.status() ?? "no response"}.`);
 				}
 			}),
+		watchSocket: (url) => watchSocket(page, url),
 	};
 }

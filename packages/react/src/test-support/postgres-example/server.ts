@@ -74,6 +74,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			group: Orders.merge(Preferences),
 			handlers: Layer.merge(handlers, privateHandlers(table, options.beforeCommit)),
 			migrations: { loader: orderMigrations(table), table: ledger },
+			postgresSettings: {},
 			requestServices: OrderService.layer,
 			services: repositoryLayer(table).pipe(Layer.merge(Layer.succeed(BeforeOrderCommit, options.beforeCommit ?? Effect.void))),
 			sessions: Layer.succeed(SessionPolicy, policy),

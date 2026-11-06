@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.43.6 - 2026-11-06
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.43.5 - 2026-11-06
+
+### Fixed
+
+- Preserve the starter's declared Quality ownership facts when packing generated applications.
+
+## 0.43.4 - 2026-11-06
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
 ## 0.43.3 - 2026-11-06
 
 ### Changed

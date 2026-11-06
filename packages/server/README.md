@@ -15,7 +15,17 @@ import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 NodeRuntime.runMain(
-	Layer.launch(appHost({ group: Api, handlers: Handlers, services: Services, migrations: { loader: migrations }, sessions, assets: "./public" })),
+	Layer.launch(
+		appHost({
+			group: Api,
+			handlers: Handlers,
+			services: Services,
+			postgresSettings: {},
+			migrations: { loader: migrations },
+			sessions,
+			assets: "./public",
+		}),
+	),
 );
 ```
 
@@ -86,8 +96,8 @@ import { notes, tasks, sessions } from "./app.ts";
 const hosts = Effect.gen(function* () {
 	const modules = yield* appModules([notes, tasks]);
 	return {
-		server: appHost({ ...modules, sessions }),
-		worker: workerHost({ ...modules, migrations: { ...modules.migrations, mode: "wait" } }),
+		server: appHost({ ...modules, postgresSettings: {}, sessions }),
+		worker: workerHost({ ...modules, postgresSettings: {}, migrations: { ...modules.migrations, mode: "wait" } }),
 	};
 });
 ```
@@ -110,6 +120,7 @@ const Server = appHost({
 	group: Api,
 	handlers: Handlers,
 	services: Services,
+	postgresSettings: {},
 	migrations: { loader: migrations },
 	sessions,
 	assets: "./public",
@@ -207,11 +218,12 @@ Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before ch
 
 Preflight logs pass through the host's redaction, including logged failure causes and annotations. The original typed failure remains available to callers. Direct hosts derive the policy from their RPC schemas and `config.sensitiveKeys`; deferred hosts use the default credential policy during preflight, before their application's schemas are available. Ordinary startup messages and annotations remain intact.
 
-When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
+When construction itself touches the schema, use `appHost({ migrations, config, postgresSettings, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
 const host = appHost({
 	config: { databaseUrl },
+	postgresSettings: {},
 	migrations: { loader: migrations, mode: "check" },
 	preflight: AppConfigLive,
 	application: Effect.gen(function* () {
@@ -284,7 +296,7 @@ Build application handlers with `Api.application.toLayer(...)` (and `Api.applica
 
 Set `LISTEN_DATABASE_URL` to a direct or session-mode connection when `DATABASE_URL` uses a transaction pooler. `config.listenDatabaseUrl` overrides that setting; when neither is set, the listener shares the application pool. Both URLs must reach the same database. A separate listener pool reserves one connection; the application pool continues to own migrations, writes and heartbeat publication. Startup waits for the listener to receive its own heartbeat. A timeout fails the host with `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`, naming the selected connection setting. Fix the URL before restarting; a startup timeout does not fall back to periodic reconnects. Established listeners retain their reconnect and Resync behavior.
 
-Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
+Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config, postgresSettings })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
 
 ### Public client configuration
 
@@ -469,32 +481,27 @@ Wrap disposal of the host scope or runtime with `readouts.shutdown(dispose)`, th
 
 To exercise PostgreSQL recovery, install the optional `@shivaedev/test-sql` peer and pass a redacted `databaseUrl` to `hostProcess`. The kit opens a `disconnectProxy` in its owning scope and gives the child its URL through `DATABASE_URL`; the child must use that setting. This mode uses the explicit `env` record plus the proxy's `DATABASE_URL` as the child's environment. Call `disconnectIdlePostgres()` once the host's database connections are idle. It cuts the proxy's existing connections while allowing new ones, so a following HTTP health request can exercise the host's PostgreSQL pool recovery.
 
-### Low-memory PostgreSQL hosts
+### PostgreSQL server settings
 
-Use sql's [opt-in preset](https://github.com/ShivaeDev/platform/tree/main/packages/sql#low-memory-postgresql-hosts) with the host's ten-minute connection lifetime and one-minute idle timeout. The preset bounds PostgreSQL shared memory and per-operation work; connection recycling releases backend memory, and a page-cache trim releases clean file pages charged to the container. A busy workload still needs memory for its working set.
-
-`trimPostgresPageCache(dataDirectory)` from `@shivaedev/server/trimPostgresPageCache.ts` runs `find` and GNU `dd` through Effect's `ChildProcessSpawner`. Run it inside the PostgreSQL container, or in a process that can read its mounted PGDATA, as the PGDATA owner. Provide `NodeServices.layer` at the entry point. It needs Linux, GNU coreutils (`dd iflag=nocache`) and `find`; Alpine's BusyBox `dd` does not support this flag. Spawn failures remain typed `PlatformError`s; a nonzero trim exit fails with `PostgresPageCacheTrimError`.
+Every `appDatabase`, database-backed `appHost` and `workerHost` requires `postgresSettings`. Omitting the declaration is a TypeScript error; `{}` explicitly requests no server changes. The declaration uses PostgreSQL names and string values, separate from client pool options such as `config.maxConnections`.
 
 ```ts
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Effect, Schedule } from "effect";
-import { trimPostgresPageCache } from "@shivaedev/server/trimPostgresPageCache.ts";
+import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 
-const trim = Effect.gen(function* () {
-	const dataDirectory = yield* Config.String("PGDATA");
-	yield* trimPostgresPageCache(dataDirectory).pipe(Effect.repeat(Schedule.spaced("5 minutes")));
-}).pipe(Effect.provide(NodeServices.layer));
+const Database = appDatabase({
+	migrations: { loader: migrations },
+	postgresSettings: {
+		shared_buffers: "32MB",
+		max_connections: "50",
+		jit: "off",
+		idle_in_transaction_session_timeout: "10min",
+	},
+});
 ```
 
-The cadence starts with one trim, then waits five minutes between completed runs. Scope or interrupt the Effect with its owning process. For a PostgreSQL image without Node, schedule the equivalent command every five minutes using that image's scheduler, as its database OS user:
+The host applies the declaration on startup before listeners and migrations, outside any migration transaction. SQL's [settings applier](https://github.com/ShivaeDev/platform/tree/main/packages/sql#postgresql-server-settings) reads `pg_settings`, writes only differing values with `ALTER SYSTEM SET`, and requests a reload. Startup logs settings awaiting a PostgreSQL restart with the values they will take. In this example, `shared_buffers` and `max_connections` wait for the next PostgreSQL redeploy or image update. `idle_in_transaction_session_timeout` ends sessions left in an open transaction without terminating idle LISTEN connections.
 
-```sh
-find "$PGDATA" -type f -exec sh -c 'for path do dd if="$path" iflag=nocache count=0 status=none || exit; done' sh {} +
-```
-
-The command reads no file contents and writes no data. It asks the kernel to discard only clean pages; dirty pages stay until ordinary PostgreSQL and kernel writeback makes them eligible. It requires no root privileges, global `drop_caches`, forced checkpoint or `sync`. It does not follow symlinks, including tablespace links. The next read can incur disk I/O, so begin with five minutes and lengthen the interval if cache misses affect latency. Files removed during a run can fail that run. The repeating Effect then fails; a cron scheduler launches a fresh run at its next tick. The reported Railway trim took 88 ms and left a 1 GB container at 68–191 MiB; duration and retained pages depend on the workload and filesystem.
-
-Enable the preset and trim per app in a throwaway environment first. Record `memory.current` and `memory.stat` inside the PostgreSQL cgroup before applying the preset, after restart, after a representative request/backup peak, and at five and ten minutes idle with trimming and the normal pool lifetime enabled. Check that LISTEN delivery and application reads still work. `docker stats` can subtract cache and is not the billed cgroup total. Keep PITR and non-PITR trials separate. Roll out to production only after that consumer trial; starter deployments must also keep these operations opt-in until the trial succeeds. The starter does not apply instance settings or schedule a trim during application startup.
+Railway's template connects as the `postgres` superuser. Its wrapper appends `max_connections = 500` only when no such line exists in `postgresql.auto.conf`, so an `ALTER SYSTEM` value survives a restart. On a non-superuser deployment, or a refused setting, the host warns with the setting name, live value and wanted value and continues starting. The database operator must apply settings the app cannot change. Server settings apply to the entire PostgreSQL cluster; all apps sharing it must agree on the declaration.
 
 ### API
 

@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
 import { queueSql } from "@shivaedev/quality/rules/stories/queueSql.ts";
+import { authStorage } from "#quality/test-support/authStorage.ts";
 import sqlInputs from "#quality/test-support/fixtures/story-sql.json" with { type: "json" };
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
@@ -8,6 +9,7 @@ ruleKit.it(
 	"an app author cannot purge queues through SQL in source, specs or test-support",
 	[
 		repositoryHas(
+			authStorage.file,
 			{ content: "sql`delete from pgboss.job`;", path: "src/jobs.ts" },
 			{ content: 'sql.unsafe("truncate table pgboss.queue");', path: "src/jobs.spec.ts" },
 			{ content: 'sql`select * from "pgboss"."job"`;', path: "src/test-support/jobs.ts" },
@@ -25,6 +27,7 @@ ruleKit.it(
 	"an app uses its queue definitions without inspecting queue storage",
 	[
 		repositoryHas(
+			authStorage.file,
 			{ content: "yield* WelcomeEmail.enqueue({ userId });", path: "src/jobs.ts" },
 			{ content: 'sql`select * from app_jobs`; const source = "sql`delete from pgboss.job`";', path: "src/test-support/jobs.ts" },
 		),
@@ -36,7 +39,7 @@ ruleKit.it(
 
 ruleKit.it(
 	"queue SQL remains private through interpolation and multiline strings",
-	[repositoryHas({ content: sqlInputs.queueInterpolation, path: "src/jobs.ts" })],
+	[repositoryHas(authStorage.file, { content: sqlInputs.queueInterpolation, path: "src/jobs.ts" })],
 	function* ({ check }) {
 		const findings = yield* check(queueSql);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1, 2]);
@@ -47,6 +50,7 @@ ruleKit.it(
 	"an app author cannot access Better Auth tables through SQL",
 	[
 		repositoryHas(
+			authStorage.file,
 			{ content: 'sql`select * from "user"`; sql`update public.account set token = null`;', path: "src/users.ts" },
 			{ content: 'sql`delete from "session"`;', path: "src/users.spec.ts" },
 			{ content: 'sql.unsafe("truncate verification");', path: "src/test-support/users.ts" },
@@ -54,7 +58,7 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"src/test-support/users.ts",
 			"src/users.spec.ts",
@@ -70,6 +74,7 @@ ruleKit.it(
 	"the auth owner and its migrations can manage auth storage while apps use the auth API",
 	[
 		repositoryHas(
+			authStorage.file,
 			{ content: 'sql`select * from "user"`;', path: "platform/auth/adapter.ts" },
 			{ content: 'create table "session" (id text);', path: "platform/migrations/0001.sql" },
 			{ content: "yield* auth.findUser(userId); sql`select session, account from orders where title = 'user'`;", path: "src/users.ts" },
@@ -79,6 +84,7 @@ ruleKit.it(
 		expect(
 			yield* check(authSql, {
 				owners: [
+					...authStorage.owners,
 					{ glob: "platform/auth/**", reason: "The auth implementation and its migrations own auth storage." },
 					{ glob: "platform/migrations/**", reason: "The auth implementation and its migrations own auth storage." },
 				],
@@ -91,6 +97,7 @@ ruleKit.it(
 	"auth ownership does not excuse app SQL and joins reach auth storage too",
 	[
 		repositoryHas(
+			authStorage.file,
 			{ content: 'sql`select * from "user"`;', path: "platform/auth/adapter.ts" },
 			{
 				content: sqlInputs.authInterpolation,
@@ -99,7 +106,9 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql, { owners: [{ glob: "platform/auth/**", reason: "This adapter implements auth storage." }] });
+		const findings = yield* check(authSql, {
+			owners: [...authStorage.owners, { glob: "platform/auth/**", reason: "This adapter implements auth storage." }],
+		});
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1]);
 	},
 );
@@ -107,14 +116,14 @@ ruleKit.it(
 ruleKit.it(
 	"auth storage stays private in comma joins, references and index declarations",
 	[
-		repositoryHas({
+		repositoryHas(authStorage.file, {
 			content:
 				'query("select * from notes, public.session"); query("create index email_idx on public.user (email)"); query("alter table notes add foreign key (owner) references account (id)"); db.query({ text: "delete from verification" }); db.prepare("select * from user");',
 			path: "src/notes.ts",
 		}),
 	],
 	function* ({ check }) {
-		const findings = yield* check(authSql);
+		const findings = yield* check(authSql, { owners: authStorage.owners });
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1, 1, 1, 1]);
 	},
 );

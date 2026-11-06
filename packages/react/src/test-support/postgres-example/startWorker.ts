@@ -30,6 +30,7 @@ export function startWorker(
 			appDatabase({
 				config: { changes: { channel: options.channel }, databaseUrl: Redacted.make(options.databaseUrl) },
 				migrations: { loader: orderMigrations(options.table), table: options.ledger },
+				postgresSettings: {},
 			}),
 		),
 	);

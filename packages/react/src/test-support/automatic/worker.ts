@@ -33,6 +33,7 @@ const runtime = ManagedRuntime.make(
 				appDatabase({
 					config: { applicationName: "automatic-worker", databaseUrl: Redacted.make(config.databaseUrl) },
 					migrations: { ...migrations, mode: "check" },
+					postgresSettings: {},
 				}),
 			),
 		)

@@ -16,6 +16,7 @@ const create = Effect.fnUntraced(function* () {
 		appDatabase({
 			config: { changes: { channel: table }, databaseUrl: url },
 			migrations: { loader: migrationChangesLoader(table, "initial"), table: `${table}_ledger` },
+			postgresSettings: {},
 		}),
 	);
 	const sql = Context.get(context, SqlClient.SqlClient);

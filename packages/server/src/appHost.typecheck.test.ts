@@ -15,6 +15,7 @@ const options = {
 	group: Api,
 	handlers,
 	migrations: { loader: Migrator.fromRecord({}) },
+	postgresSettings: {},
 	sessions: Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } }),
 };
 const incomplete = appHost(options);
@@ -23,7 +24,7 @@ const sqlHandlers = Api.toLayer({ read: () => SqlClient.SqlClient.pipe(Effect.as
 const withoutDatabase = appHost({ group: Api, handlers: sqlHandlers, policy: "loopback" });
 const withDatabase = appHost({ ...options, handlers: sqlHandlers });
 const withoutServices = appHost({ group: Api, handlers: Api.toLayer({ read: () => Effect.succeed("ready") }), sessions: options.sessions });
-const localWithDatabase = appHost({ group: Api, handlers: sqlHandlers, migrations: options.migrations, policy: "loopback" });
+const localWithDatabase = appHost({ group: Api, handlers: sqlHandlers, migrations: options.migrations, policy: "loopback", postgresSettings: {} });
 type TypedOptions<
 	TServices = never,
 	TServiceError = never,
@@ -87,6 +88,7 @@ const deferred = appHost({
 		return { group: Api, handlers: sqlHandlers, sessions: options.sessions };
 	}),
 	migrations: options.migrations,
+	postgresSettings: {},
 });
 it("deferred construction preserves its requirements and typed failures while supplying SQL and scope", () => {
 	expectTypeOf<Layer.Services<typeof deferred>>().toEqualTypeOf<Required>();
@@ -100,6 +102,7 @@ const preflightDatabase = appHost({ ...options, migrations: { loader: Required.p
 const preflightDeferred = appHost({
 	application: Required.pipe(Effect.as({ group: Api, handlers, policy: "loopback" as const })),
 	migrations: { loader: Required.pipe(Effect.as([])) },
+	postgresSettings: {},
 	preflight,
 });
 it("preflight supplies host requirements and exposes its services, typed errors and external requirements", () => {
@@ -135,8 +138,8 @@ const routeOptions = {
 };
 const routeIncomplete = appHost(routeOptions);
 const routeComplete = appHost({ ...routeOptions, services: Layer.succeed(Required, "metadata") });
-const routeMigrated = appHost({ ...routeOptions, migrations: options.migrations });
-const routeDeferred = appHost({ application: Effect.succeed(routeOptions), migrations: options.migrations });
+const routeMigrated = appHost({ postgresSettings: {}, ...routeOptions, migrations: options.migrations });
+const routeDeferred = appHost({ application: Effect.succeed(routeOptions), migrations: options.migrations, postgresSettings: {} });
 const routeFailing = appHost({ ...routeOptions, routes: HttpRouter.use(() => Effect.fail(new BuildFailure())) });
 it("preserves HTTP route requirements and construction errors through direct, migrated and deferred hosts", () => {
 	expectTypeOf<Layer.Services<typeof routeIncomplete>>().toEqualTypeOf<Required>();

@@ -42,6 +42,7 @@ export const jobsEngine = Effect.gen(function* () {
 	const clock = yield* TestClock.testClockWith(Effect.succeed);
 	const testing = makePgBossTesting({ clock });
 	const deliveries: string[] = [];
+	const scheduledRuns: string[] = [];
 	const boss: { client?: ReturnType<typeof testing.clientFactory> } = {};
 	let readCount: () => number = function readCount() {
 		return 0;
@@ -61,7 +62,13 @@ export const jobsEngine = Effect.gen(function* () {
 					Private,
 				],
 			}),
-			ScheduledJobs.layer({ jobs: [ScheduledWorker.run(Effect.fail(new WorkerRejected({ id: 0 })))] }),
+			ScheduledJobs.layer({
+				jobs: [
+					ScheduledWorker.run(
+						Effect.sync(() => scheduledRuns.push("nightly cleanup")).pipe(Effect.andThen(Effect.fail(new WorkerRejected({ id: 0 })))),
+					),
+				],
+			}),
 		).pipe(
 			Layer.provide(
 				pgBossLayer({
@@ -113,6 +120,7 @@ export const jobsEngine = Effect.gen(function* () {
 		privateQueue: Private,
 		refreshStatistics: testing.refreshQueueStats(),
 		registrationReads: () => readCount() - beforeRegistration,
+		scheduledRuns,
 		sendInvalidMail: jobs.enqueue(InvalidMail, { invalid: "payload" }, { retryLimit: 0 }).pipe(Effect.map(Option.getOrThrow)),
 		stopJobs: Scope.close(scope, Exit.void),
 		testing,

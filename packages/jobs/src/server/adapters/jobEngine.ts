@@ -4,6 +4,7 @@ import type { JobEngine } from "#server/engine.ts";
 import { toPgBossError } from "#server/error.ts";
 import { listJobs } from "./listJobs.ts";
 import { queueAdministration } from "./queueAdministration.ts";
+import { runScheduleNow } from "./runScheduleNow.ts";
 import { settleDeferral } from "./settleDeferral.ts";
 
 export function jobEngine(client: PgBossClient, schema = "pgboss"): Context.Service.Shape<typeof JobEngine> {
@@ -37,6 +38,7 @@ export function jobEngine(client: PgBossClient, schema = "pgboss"): Context.Serv
 					await client.update(queue, undefined, { id, startAfter: 0 });
 				},
 			}),
+		runScheduleNow: (schedule) => runScheduleNow(client, schedule),
 		settleDeferral: (job, at, reason, maxDeferrals) =>
 			Effect.tryPromise({
 				catch: (error) => toPgBossError("settle", error, job.name),

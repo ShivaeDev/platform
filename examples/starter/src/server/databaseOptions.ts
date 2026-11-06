@@ -11,5 +11,6 @@ export function databaseOptions<R, E>(
 	return {
 		config: clientOptions({ databaseUrl, ...(maxConnections === undefined ? {} : { maxConnections }) }),
 		migrations: { ...migrations, mode, table: "app_migrations" },
+		postgresSettings: {},
 	};
 }

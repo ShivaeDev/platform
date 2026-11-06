@@ -15,14 +15,10 @@ export function deferred(mode: "migrate" | "check", fails = false) {
 		};
 		const config = { databaseUrl };
 		if (mode === "check" && !fails) {
-			yield* Layer.build(appDatabase({ config, migrations })).pipe(Effect.scoped);
+			yield* Layer.build(appDatabase({ config, migrations, postgresSettings: {} })).pipe(Effect.scoped);
 		}
 		function build() {
-			return appHost({
-				application: application(state, table),
-				config,
-				migrations: { ...migrations, mode },
-			});
+			return appHost({ application: application(state, table), config, migrations: { ...migrations, mode }, postgresSettings: {} });
 		}
 		state.build = build;
 	});

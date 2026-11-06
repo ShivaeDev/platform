@@ -20,13 +20,13 @@ const module = {
 	name: "example",
 	services: Layer.effect(Service, Port),
 } satisfies AppModule;
-const incomplete = Effect.map(appModules([module]), (modules) => appHost({ ...modules, policy: "loopback" }));
+const incomplete = Effect.map(appModules([module]), (modules) => appHost({ postgresSettings: {}, ...modules, policy: "loopback" }));
 const complete = Effect.map(appModules([{ ...module, ports: Layer.succeed(Port, "default") }]), (modules) =>
-	appHost({ ...modules, policy: "loopback" }),
+	appHost({ postgresSettings: {}, ...modules, policy: "loopback" }),
 );
 const replaced = Effect.map(
 	appModules([module], { replacements: Layer.effect(Port, Input.pipe(Effect.flatMap(() => Effect.fail(new BuildFailure())))) }),
-	(modules) => appHost({ ...modules, policy: "loopback" }),
+	(modules) => appHost({ postgresSettings: {}, ...modules, policy: "loopback" }),
 );
 const migrated = Effect.map(
 	appModules([
@@ -41,7 +41,7 @@ const migrated = Effect.map(
 			ports: Layer.succeed(Port, "default"),
 		},
 	]),
-	(modules) => appHost({ ...modules, policy: "loopback" }),
+	(modules) => appHost({ postgresSettings: {}, ...modules, policy: "loopback" }),
 );
 
 it("module composition preserves missing ports, replacement requirements and typed build failures", () => {
@@ -54,11 +54,13 @@ it("module composition preserves missing ports, replacement requirements and typ
 });
 
 const workerModule = { ...module, services: Layer.empty, workers: Layer.effectDiscard(Port) };
-const incompleteWorker = Effect.map(appModules([workerModule]), workerHost);
-const completeWorker = Effect.map(appModules([{ ...workerModule, ports: Layer.succeed(Port, "default") }]), workerHost);
+const incompleteWorker = Effect.map(appModules([workerModule]), (modules) => workerHost({ ...modules, postgresSettings: {} }));
+const completeWorker = Effect.map(appModules([{ ...workerModule, ports: Layer.succeed(Port, "default") }]), (modules) =>
+	workerHost({ ...modules, postgresSettings: {} }),
+);
 const replacedWorker = Effect.map(
 	appModules([workerModule], { replacements: Layer.effect(Port, Input.pipe(Effect.flatMap(() => Effect.fail(new BuildFailure())))) }),
-	workerHost,
+	(modules) => workerHost({ ...modules, postgresSettings: {} }),
 );
 
 it("worker composition retains missing ports, replacement requirements, failures and duplicate queue errors", () => {

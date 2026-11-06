@@ -35,7 +35,7 @@ export const collectionDatabase = makePostgresTestLayer({ migrations, url: Redac
 export const collectionEngine = Effect.gen(function* () {
 	const page = collectionPage();
 	const database = yield* PostgresTestDatabase;
-	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations }));
+	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations, postgresSettings: {} }));
 	const repository = yield* makeRepository(Workspace, {
 		collection: workspaces,
 		idColumn: "id",

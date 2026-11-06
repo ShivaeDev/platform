@@ -62,7 +62,7 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 			};
 			const config = { databaseUrl };
 			if (mode === "check" || mode === "wait") {
-				yield* Layer.build(appDatabase({ config, migrations: { loader, table } })).pipe(Effect.scoped);
+				yield* Layer.build(appDatabase({ config, migrations: { loader, table }, postgresSettings: {} })).pipe(Effect.scoped);
 				state.lifecycle.length = 0;
 			}
 			const application = Effect.gen(function* () {
@@ -72,13 +72,8 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 			});
 			state.build = () =>
 				deferred
-					? appHost({
-							application,
-							config,
-							migrations,
-							preflight: validation,
-						})
-					: appHost({ ...options, config: { ...state.config, ...config }, migrations, preflight: validation });
+					? appHost({ application, config, migrations, postgresSettings: {}, preflight: validation })
+					: appHost({ postgresSettings: {}, ...options, config: { ...state.config, ...config }, migrations, preflight: validation });
 		},
 	);
 }

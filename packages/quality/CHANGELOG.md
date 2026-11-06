@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.69.0 - 2026-11-06
+
+### Added
+
+- Accept nested package names from any trailing folder path with singular or plural segments, private extension-preserving source wildcard exports, and private package-local test import mappings.
+
+### Changed
+
+- Explain that retries need a pacing Schedule and that reconnect loops can use `Schedule.spaced(...)` without a count. Document explicit, reasoned trusted renderer file declarations through the shared exception path.
+
+## 0.68.0 - 2026-11-06
+
+### Added
+
+- Resolve declared Browserslist targets, including Electron renderers, and check Biome's CSS findings against MDN compatibility data. Applications without declared targets retain the shared Baseline policy.
+
+### Fixed
+
+- Classify auth SQL by schema and ownership, preserve domain-event tags in stories, accept event-consuming helpers regardless of their names, retain findings for polling and real Vitest callbacks, and accept conventional authority documents.
+
+### Breaking
+
+- Registry filenames no longer exclude components from checks. Declare unmodified tool-owned files with reasoned `quality.toolOwned` globs in the owning package's manifest; customized components remain checked. Direct inventory integrations replace `inventory/shadcnFiles.ts` with `inventory/toolOwnedFiles.ts`; remove the obsolete `inventory/shadcnAlias.ts` and `inventory/shadcnFolders.ts` imports and declare ownership facts instead. Auth SQL ownership now comes from configured owner table declarations or recognizable inventoried schema declarations; keep that evidence visible instead of relying on conventional table names.
+
+## 0.67.3 - 2026-11-06
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.44.0 to 0.44.1.
+
 ## 0.67.2 - 2026-11-06
 
 ### Fixed

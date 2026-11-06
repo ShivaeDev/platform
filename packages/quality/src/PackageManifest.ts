@@ -15,7 +15,7 @@ export const PackageManifest = Schema.Struct({
 	packageManager: Schema.optionalKey(Schema.String),
 	peerDependencies: Schema.optionalKey(Dependencies),
 	private: Schema.optionalKey(Schema.Boolean),
-	quality: Schema.optionalKey(Schema.Struct({ runtime: Schema.optionalKey(Schema.Unknown) })),
+	quality: Schema.optionalKey(Schema.Struct({ runtime: Schema.optionalKey(Schema.Unknown), toolOwned: Schema.optionalKey(Schema.Unknown) })),
 	repository: Schema.optionalKey(Schema.Unknown),
 	scripts: Schema.optionalKey(Dependencies),
 	workspaces: Schema.optionalKey(Schema.Union([Schema.Array(Schema.String), Schema.Struct({ packages: Schema.Array(Schema.String) })])),

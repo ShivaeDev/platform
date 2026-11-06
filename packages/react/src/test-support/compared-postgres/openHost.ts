@@ -52,6 +52,7 @@ export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redac
 					handlers,
 					migrations: { ...migrations, mode: "check" },
 					policy: "loopback",
+					postgresSettings: {},
 					services: Layer.succeed(ReadControl, control),
 				}),
 			),

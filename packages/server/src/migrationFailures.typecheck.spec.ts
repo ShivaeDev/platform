@@ -13,9 +13,9 @@ const migrations = {
 };
 const group = RpcGroup.make(Rpc.make("read", { success: Schema.String }));
 const handlers = group.toLayer({ read: () => Effect.succeed("ready") });
-const database = appDatabase({ migrations });
-const host = appHost({ group, handlers, migrations, policy: "loopback" });
-const deferred = appHost({ application: Effect.succeed({ group, handlers, policy: "loopback" as const }), migrations });
+const database = appDatabase({ migrations, postgresSettings: {} });
+const host = appHost({ group, handlers, migrations, policy: "loopback", postgresSettings: {} });
+const deferred = appHost({ application: Effect.succeed({ group, handlers, policy: "loopback" as const }), migrations, postgresSettings: {} });
 
 expectTypeOf<Extract<Layer.Error<typeof database>, ComponentUnavailable>>().toEqualTypeOf<ComponentUnavailable>();
 expectTypeOf<Extract<Layer.Error<typeof host>, ComponentUnavailable>>().toEqualTypeOf<ComponentUnavailable>();

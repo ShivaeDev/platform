@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.45.0 - 2026-11-06
+
+### Added
+
+- Expose `useQuery().stale` while retained data waits for a fresh result. Session disposal clears all retained results.
+
+### Breaking
+
+- Completed route loaders release their execution mount and use the same bounded result retention as component reads. Loaders revisiting a kept result return it immediately; component mounts revalidate while showing that stale value.
+
 ## 0.44.2 - 2026-11-06
 
 ### Changed

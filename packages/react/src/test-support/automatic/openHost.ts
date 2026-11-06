@@ -48,6 +48,7 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 			),
 			migrations: { ...migrations, mode: "check" },
 			policy: "loopback",
+			postgresSettings: {},
 		}),
 	);
 	try {

@@ -42,6 +42,14 @@ application.it("packing the starter drops its check:published script", [], funct
 	expect(yield* packedScript("check:published")).toBe("no such script");
 });
 
+application.it("packing the starter preserves its declared Quality ownership facts", [], function* ({ pack, packedManifest, starterQuality }) {
+	const ownership = yield* starterQuality();
+
+	yield* pack();
+
+	expect((yield* packedManifest()).quality).toEqual(ownership);
+});
+
 for (const name of ["dev", "migrate"]) {
 	application.it(
 		`packing the starter drops --conditions=@shivaedev/source from its ${name} script`,

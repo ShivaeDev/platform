@@ -30,6 +30,7 @@ export const startHost = Effect.fn("Orders.startHost")(function* (
 			group: Orders,
 			handlers: orderHandlers(options),
 			migrations,
+			postgresSettings: {},
 			requestServices: OrderService.layer,
 			services: Layer.effect(OrdersRepository, makeOrdersRepository),
 			sessions: Layer.succeed(SessionPolicy, {

@@ -39,6 +39,7 @@ export const modulesHost = storyKit({
 			const modules = yield* appModules([notesModule, tasksModule], { replacements: state.replacements });
 			const services = yield* Layer.build(
 				appHost({
+					postgresSettings: {},
 					...modules,
 					config: { databaseUrl: database.url, port: 0 },
 					sessions,

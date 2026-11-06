@@ -8,7 +8,14 @@ import type { Engine } from "./generate.ts";
 
 const Ranges = Schema.Record(Schema.String, Schema.String);
 const decodeManifest = Schema.decodeUnknownSync(
-	Schema.fromJsonString(Schema.Struct({ dependencies: Ranges, devDependencies: Schema.optional(Ranges), scripts: Schema.optional(Ranges) })),
+	Schema.fromJsonString(
+		Schema.Struct({
+			dependencies: Ranges,
+			devDependencies: Schema.optional(Ranges),
+			quality: Schema.optional(Schema.Unknown),
+			scripts: Schema.optional(Ranges),
+		}),
+	),
 );
 const decodeVersions = Schema.decodeUnknownSync(Schema.fromJsonString(Ranges));
 const decodeFields = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
@@ -59,6 +66,7 @@ export function templateReadouts(engine: Engine) {
 		starterFile: (path: string) => Effect.sync(() => starterText(path)),
 		starterManifestFields: () => Effect.sync(() => Object.keys(decodeFields(starterText("package.json")))),
 		starterPublishedVersions: (names: readonly string[]) => Effect.sync(() => pick(decodeVersions(starterText("published-versions.json")), names)),
+		starterQuality: () => Effect.sync(() => decodeManifest(starterText("package.json")).quality),
 		starterRanges: (names: readonly string[]) => Effect.sync(() => pick(rangesOf(starterText("package.json")), names)),
 		starterScript: (name: string) => Effect.sync(() => decodeManifest(starterText("package.json")).scripts?.[name] ?? "no such script"),
 	};

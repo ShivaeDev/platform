@@ -38,7 +38,7 @@ export const collectionDatabase = makePostgresTestLayer({
 export const collectionEngine = Effect.gen(function* () {
 	const Workspaces = collectionContract();
 	const database = yield* PostgresTestDatabase;
-	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations }));
+	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations, postgresSettings: {} }));
 	const repository = yield* makeRepository(Workspace, {
 		collection: workspaces,
 		conflictColumns: ["title"],

@@ -73,7 +73,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 				Layer.provideMerge(PgClient.layer({ applicationName: table, maxConnections: 1, url: databaseUrl })),
 			);
 			return mode === "subscription"
-				? appHost({ application, config, migrations })
+				? appHost({ application, config, migrations, postgresSettings: {} })
 				: Layer.unwrap(Effect.map(application, (options) => appHost(options))).pipe(Layer.provideMerge(singleConnection));
 		};
 	});
