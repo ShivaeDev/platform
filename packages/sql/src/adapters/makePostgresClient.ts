@@ -36,10 +36,6 @@ export const makePostgresClient = Effect.fn("Sql.makePostgresClient")(function* 
 		json: (value: unknown) => Statement.fragment([json(value)]),
 		listen: (channel: string) =>
 			Effect.gen(function* () {
-				// TTL checkout retains expired leases until its scope closes; LISTEN must not pin those old backends for another lifetime.
-				if (pool.config.connectionTTL !== undefined) {
-					yield* pool.use(() => Effect.void);
-				}
 				const connection = yield* pool.reserve;
 				return yield* connection.listen(channel);
 			}),

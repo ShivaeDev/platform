@@ -1,4 +1,4 @@
-import { Clock, Deferred, Duration, Effect, Queue, Random, Scope } from "effect";
+import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
@@ -38,9 +38,6 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 		Effect.gen(function* () {
 			const scope = yield* listenerScope(timeout);
 			const notifications = yield* listener.listen(channel).pipe(Scope.provide(scope), deadline);
-			const interval = Duration.toMillis(Duration.fromInputUnsafe(options.heartbeatInterval ?? "5 seconds"));
-			const lifetime = Duration.toMillis(Duration.fromInputUnsafe(options.connectionTTL ?? Duration.infinity));
-			const renewAt = (yield* Clock.currentTimeMillis) + (lifetime === 0 ? interval : lifetime);
 			const token = JSON.stringify({ heartbeat: `${yield* Random.nextInt}:${yield* Random.nextInt}` });
 			let ack = yield* Deferred.make<void>();
 			function receive(payload: string) {
@@ -76,10 +73,7 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 				}
 				yield* Deferred.succeed(ready, undefined);
 				while (true) {
-					yield* Effect.sleep(Math.min(interval, Math.max(0, renewAt - (yield* Clock.currentTimeMillis))));
-					if ((yield* Clock.currentTimeMillis) >= renewAt) {
-						return;
-					}
+					yield* Effect.sleep(options.heartbeatInterval ?? "5 seconds");
 					ack = yield* Deferred.make<void>();
 					yield* Effect.andThen(send, Deferred.await(ack)).pipe(deadline);
 				}

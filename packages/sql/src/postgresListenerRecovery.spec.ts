@@ -95,3 +95,24 @@ changeFeed.it(
 		expect(yield* liveStreamResyncs()).toEqual({ "closed report": 0, "orders board": 3 });
 	},
 );
+
+changeFeed.it(
+	"a terminated LISTEN connection sends Resync on loss and recovery and delivers later committed changes",
+	[feedListens(SECONDS), hasTable("rows")],
+	function* ({ insertRow, listenerConnectionIsTerminated, listenerReconnects, liveStreamResyncs, openLiveStream, published }) {
+		yield* openLiveStream("orders board");
+		expect(yield* liveStreamResyncs()).toEqual({ "orders board": 0 });
+
+		yield* listenerConnectionIsTerminated();
+
+		expect(yield* liveStreamResyncs()).toEqual({ "orders board": 1 });
+
+		yield* listenerReconnects();
+
+		expect(yield* liveStreamResyncs()).toEqual({ "orders board": 2 });
+
+		yield* insertRow(1);
+
+		expect(yield* published()).toEqual([["rows", "rows:1"]]);
+	},
+);

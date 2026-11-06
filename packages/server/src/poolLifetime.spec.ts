@@ -1,6 +1,4 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { poolLifetime, separateListener, shortIdle, shortLifetime, staysIdle, staysOpenUntilLifetime } from "#test/poolLifetime.ts";
 
 for (const [name, lifetime] of [
@@ -47,23 +45,18 @@ for (const [name, listener] of [
 	["separate", [separateListener]],
 ] as const) {
 	poolLifetime.it(
-		`a ${name} LISTEN backend renews, resyncs subscribers and delivers subsequent committed hints`,
+		`a ${name} LISTEN backend stays connected past the TTL and delivers committed hints without Resync`,
 		listener,
-		function* ({ lifetimePasses, listenerBackend, listenerRenews, nextHint, noteIsWritten, subscribe }) {
+		function* ({ lifetimePasses, listenerBackend, nextHint, noteIsWritten, subscribe }) {
 			yield* subscribe();
 			const before = yield* listenerBackend();
 			expect(before).toEqual(expect.any(Number));
 			yield* noteIsWritten(1);
 			expect(yield* nextHint()).toBe("changed 1");
 
-			yield* lifetimePasses();
+			yield* lifetimePasses(2);
 
-			expect(yield* nextHint()).toBe("resync");
-			yield* listenerRenews(before);
-			yield* outcomes([
-				["listener hint", () => nextHint(), "resync"],
-				["backend replaced", () => Effect.map(listenerBackend(), (pid) => pid !== before), true],
-			]);
+			expect(yield* listenerBackend()).toBe(before);
 			yield* noteIsWritten(2);
 			expect(yield* nextHint()).toBe("changed 2");
 		},
