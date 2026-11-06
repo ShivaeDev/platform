@@ -18,4 +18,5 @@ export interface AutomaticQueryOptions<A, E> {
 	readonly source: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
 	readonly statuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>>;
 	readonly subscription: LiveBound[typeof LiveConnection];
+	readonly subscriptionVersion: Atom.Atom<number>;
 }

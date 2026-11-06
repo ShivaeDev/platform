@@ -19,7 +19,8 @@ export function hostChanges<R extends Rpc.Any>(
 ): Layer.Layer<
 	Rpc.ToHandler<Extract<R, { readonly _tag: `${string}.$changes` }>>,
 	never,
-	Rpc.ExtractRequires<Extract<R, { readonly _tag: `${string}.$changes` }>, `${string}.$changes`>
+	| Rpc.ExtractRequires<Extract<R, { readonly _tag: `${string}.$changes` }>, `${string}.$changes`>
+	| Rpc.ToHandler<Exclude<R, { readonly _tag: `${string}.$changes` }>>
 >;
 export function hostChanges(group: RpcGroup.RpcGroup<Rpc.Any>) {
 	return Layer.unwrap(

@@ -22,6 +22,8 @@ The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` sub
 
 ### How to think about it
 
+With the application host, a generated query subscription returns its first authorized result after registering read keys. Bound admin screens consume that value in one RPC request. Raw subscription readers handle `Result` values alongside later change hints.
+
 An admin page is a native `@shivaedev/contract` contract plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer the application writes. Admin supplies optional default React views for Users, Sessions and Jobs. The application owns the admin shell, custom views, route composition, styling, session policy and RPC host.
 
 ### Declare pages and the registry

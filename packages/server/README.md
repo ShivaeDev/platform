@@ -400,6 +400,8 @@ A nested `runWithServices` call replaces the outer invocation's overrides for it
 
 ### Node subscriptions: combine cancellation and clean up
 
+A native host that builds `hostChanges(group)` supplies its ordinary RPC handlers with `hostChanges(group).pipe(Layer.provideMerge(handlers))`. These are Layer dependencies because the subscription executes the authorized query handlers to produce its first result. `appHost` supplies them automatically.
+
 A long-lived response can receive cancellation from a Web request, a procedure and its underlying Node connection:
 
 ```ts

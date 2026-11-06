@@ -112,6 +112,7 @@ export function automaticLive(
 			source,
 			statuses,
 			subscription,
+			subscriptionVersion: delivery.updates,
 		});
 		shareQuerySignals(gated, atom);
 		Object.assign(gated, { initialValueTarget: atom });

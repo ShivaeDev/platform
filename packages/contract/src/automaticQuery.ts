@@ -25,12 +25,16 @@ export function automaticQuery<A, E>({
 	source,
 	statuses,
 	subscription,
+	subscriptionVersion,
 }: GateOptions<A, E>) {
 	const gated = Atom.readable(
 		(get) => {
 			assertOwner(get);
 			get.mount(signals);
 			get.mount(resultVersion);
+			get.mount(subscriptionVersion);
+			const openingVersion = get.once(subscriptionVersion);
+			get.refresh(subscription.connection);
 			const registry = get.registry;
 			const dispatcher = registry.schedulerAsync.makeDispatcher();
 			let denied = false;
@@ -51,7 +55,7 @@ export function automaticQuery<A, E>({
 						}
 					}
 				}, 0);
-				if (value.connection === "live") {
+				if (value.connection === "live" && get.once(subscriptionVersion) > openingVersion) {
 					denied = false;
 					registry.set(ready, true);
 				}

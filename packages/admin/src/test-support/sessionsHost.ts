@@ -71,9 +71,9 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 	};
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(Reactivity.layer))));
-	const handlers = Layer.merge(sessionsHandlers, hostChanges(SessionsPage.contract)).pipe(
-		Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live), Reactivity.layer]),
-	);
+	const handlers = hostChanges(SessionsPage.contract)
+		.pipe(Layer.provideMerge(sessionsHandlers))
+		.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live), Reactivity.layer]));
 	const routes = RpcServer.layerHttp({ group: SessionsPage.contract, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(SessionsPermission), RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(SessionPolicy, policy)),

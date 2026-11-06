@@ -13,10 +13,12 @@ export function queryDelivery<A, E>(
 	signals: Atom.Writable<QuerySignals>,
 ) {
 	const version = Atom.make(0);
+	const updates = Atom.make(0);
 	const pushed = Atom.make<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial());
 	const deliver = Effect.fnUntraced(function* (update: QueryUpdate): Effect.fn.Return<SubscriptionHint, never, AtomRegistry.AtomRegistry> {
+		const registry = yield* AtomRegistry.AtomRegistry;
+		registry.update(updates, (current) => current + 1);
 		if (update._tag === "Unchanged") {
-			const registry = yield* AtomRegistry.AtomRegistry;
 			if (!registry.get(paused)) {
 				registry.update(signals, (current) => ({ ...current, completed: current.completed + 1, pending: false }));
 			}
@@ -25,7 +27,6 @@ export function queryDelivery<A, E>(
 		if (update._tag !== "Result") {
 			return update;
 		}
-		const registry = yield* AtomRegistry.AtomRegistry;
 		if (!registry.get(paused)) {
 			registry.set(pushed, AsyncResult.success(decode(update.value)));
 			registry.update(version, (current) => current + 1);
@@ -46,6 +47,7 @@ export function queryDelivery<A, E>(
 					},
 				),
 		stream: <TError, R>(stream: Stream.Stream<QueryUpdate, TError, R>) => Stream.mapEffect(stream, deliver),
+		updates,
 		version,
 	};
 }
