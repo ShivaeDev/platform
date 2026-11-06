@@ -14,6 +14,7 @@ export function programmaticEntries() {
 import { resolve } from "node:path";
 const MAIN = "src/main.ts";
 export function bundler() {
+  console.log("src/mentioned.ts");
   return build({ entryPoints: [resolve(process.cwd(), MAIN), "src/adapters/preload.ts"] });
 }`,
 			path: "apps/desktop/script/adapters/bundler.ts",
