@@ -7,8 +7,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { GitHub } from "#github/service.ts";
-import { list } from "#list.ts";
-import { listBounded } from "#listBounded.ts";
 import { read } from "#read.ts";
 import { artifactVerbs } from "#test/artifactVerbs.ts";
 import { budgetHeaders } from "#test/budgetHeaders.ts";
@@ -133,15 +131,17 @@ export const github = storyKit({
 			listPulls: (take?: number) =>
 				attempt(
 					take === undefined ? "the client lists every pull request" : `the client takes ${take} pull request from the list`,
-					list("/repos/acme/widgets/pulls", PullRequest).pipe(
-						(stream) => (take === undefined ? stream : Stream.take(stream, take)),
-						Stream.runCollect,
-					),
+					Effect.gen(function* () {
+						const service = yield* GitHub;
+						const pages = yield* service.listPages("/repos/acme/widgets/pulls", PullRequest);
+						const items = Stream.flatMap(pages, (page) => Stream.fromIterable(page.items));
+						return yield* Stream.runCollect(take === undefined ? items : Stream.take(items, take));
+					}),
 				),
 			listPullsBounded: (pageCap: number, byteLimit?: number) =>
 				attempt(
 					`the client lists pull requests within ${pageCap} pages${byteLimit === undefined ? "" : ` and ${byteLimit} bytes a page`}`,
-					listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit),
+					Effect.flatMap(GitHub, (service) => service.listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit)),
 				),
 			listPullsPaced: (refusedCall?: number) =>
 				attempt(

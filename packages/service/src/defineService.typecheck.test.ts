@@ -1,10 +1,37 @@
-import { Context, Effect, Layer, type Scope } from "effect";
+import { Context, Effect, Layer, Schema, SchemaGetter, type Scope } from "effect";
 import { expectTypeOf } from "vitest";
 import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
 class Declared extends Context.Service<Declared, string>()("@shivaedev/service/typecheck/Declared") {}
 class Caller extends Context.Service<Caller, number>()("@shivaedev/service/typecheck/Caller") {}
+class DecodeService extends Context.Service<DecodeService, string>()("@shivaedev/service/typecheck/DecodeService") {}
+
+const WithService = Schema.Struct({ value: Schema.String }).pipe(
+	Schema.decodeTo(Schema.String, {
+		decode: SchemaGetter.transformEffect((value: { readonly value: string }) => Effect.map(DecodeService, (prefix) => `${prefix}${value.value}`)),
+		encode: SchemaGetter.transform((value: string) => ({ value })),
+	}),
+);
+
+function decode<TSchema extends Schema.Constraint>(schema: TSchema, value: unknown) {
+	return Schema.decodeUnknownEffect(schema)(value);
+}
+
+const SchemaGeneric = defineService({
+	id: "@shivaedev/service/typecheck/SchemaGeneric",
+	initialize: Effect.void,
+	methods: () => ({ decode: genericMethod(decode) }),
+	requires: [],
+});
+
+function decodeWithService<TSchema extends Schema.Constraint>(schema: TSchema) {
+	return Effect.flatMap(SchemaGeneric, (service) => service.decode(schema, "value"));
+}
+
+const schemaDecoded = decodeWithService(WithService);
+expectTypeOf<Effect.Success<typeof schemaDecoded>>().toEqualTypeOf<typeof WithService.Type>();
+expectTypeOf<Effect.Services<typeof schemaDecoded>>().toEqualTypeOf<Context.Service.Identifier<typeof SchemaGeneric> | DecodeService>();
 
 const Preference = Context.Reference("@shivaedev/service/typecheck/Preference", { defaultValue: () => "default" });
 

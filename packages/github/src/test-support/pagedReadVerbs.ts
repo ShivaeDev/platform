@@ -1,9 +1,6 @@
 import { Context, Effect, Schema, SchemaGetter, Stream } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { GitHub } from "#github/service.ts";
-import { list } from "#list.ts";
-import { listBounded } from "#listBounded.ts";
-import { listPages } from "#listPages.ts";
+import { GitHub } from "#github/service.ts";
 import type { ListOptions } from "#pagedLists.ts";
 import { answered } from "#test/outcome.ts";
 
@@ -36,18 +33,25 @@ export function pagedReadVerbs(context: Context.Context<Context.Service.Identifi
 		collectPaged: (options: ListOptions = {}, pageCap = 10, refuseAt?: number) =>
 			Effect.suspend(() => {
 				tell(`the client collects /paged with at most ${pageCap} pages and ${options.onDecodeError ?? "fail"} decoding`);
-				return run(listBounded("/paged", Item, pageCap, settings(options, refuseAt)));
+				return run(Effect.flatMap(GitHub, (service) => service.listBounded("/paged", Item, pageCap, settings(options, refuseAt))));
 			}),
 		pagedPacingCalls: () => Effect.sync(() => [...paced]),
 		streamPaged: (options: ListOptions = {}, take = 10) =>
 			Effect.suspend(() => {
 				tell(`the client streams up to ${take} items from /paged`);
-				return run(list("/paged", Item, settings(options)).pipe(Stream.take(take), Stream.runCollect));
+				return run(
+					Effect.gen(function* () {
+						const service = yield* GitHub;
+						const pages = yield* service.listPages("/paged", Item, settings(options));
+						const items = Stream.flatMap(pages, (page) => Stream.fromIterable(page.items));
+						return yield* Stream.runCollect(Stream.take(items, take));
+					}),
+				);
 			}),
 		streamPages: (options: ListOptions = {}) =>
 			Effect.suspend(() => {
 				tell("the client reads decoded pages from /paged");
-				return run(listPages("/paged", Item, settings(options)).pipe(Stream.runCollect));
+				return run(Effect.flatMap(GitHub, (service) => Effect.flatMap(service.listPages("/paged", Item, settings(options)), Stream.runCollect)));
 			}),
 	};
 }

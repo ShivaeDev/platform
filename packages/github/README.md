@@ -18,13 +18,12 @@ const repository = read("/repos/acme/widgets", Repository);
 
 `parseRepositoryAddress` from `@shivaedev/github/repositoryAddress.ts` parses repository shorthand (`owner/name` or `github:owner/name`), GitHub HTTP(S), Git, SCP-style SSH and `ssh://git@github.com/` remotes, including `git+` prefixes and `.git` suffixes. It trims surrounding whitespace and returns an Effect `Result` containing `{ kind, owner, name, repository, number }`. `kind` distinguishes `remote`, `shorthand` and `pull-request`, so a Git remote reader can reject shorthand that Git treats as a local path. `repository` is `owner/name`; `number` is undefined for repositories and a positive safe integer for canonical `https://github.com/owner/name/pull/number` addresses. Unsupported hosts, malformed addresses and invalid PR numbers return the string-tagged `GitHubAddressInvalid` error from `@shivaedev/github/errors.ts`. PR subpages, queries and fragments are rejected.
 
-`GitHub` is a native Context service declared with `defineService`. Its Layer owns the conditional response cache and resource observations. Operations yield transport, token, refresh hook and configuration from their declared environment; initializer state contains only owned caches and quota state. Paginated streams keep that bound environment when consumed later. Provide an Effect `HttpClient` and a `GitHubToken` once, then use the Schema-aware `read`, `list` and `write` functions. Schema decoding services remain visible in their requirements.
+`GitHub` is a native Context service declared with `defineService`. Its Layer owns the conditional response cache and resource observations. Operations yield transport, token, refresh hook and configuration from their declared environment; initializer state contains only owned caches and quota state. Paginated streams keep that bound environment when consumed later. Provide an Effect `HttpClient` and a `GitHubToken` once, then use the Schema-aware `read`, `listPages` and `write` operations. Schema decoding services remain visible in their requirements.
 
 ```ts
 import { Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub } from "@shivaedev/github/github/service.ts";
-import { list } from "@shivaedev/github/list.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { write } from "@shivaedev/github/write.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
@@ -32,8 +31,14 @@ import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 const github = GitHub.layer.pipe(Layer.provide(FetchHttpClient.layer), Layer.provide(GitHubToken.fromEnv));
 const Issue = Schema.Struct({ number: Schema.Number, title: Schema.String });
 const program = Effect.gen(function* () {
+	const github = yield* GitHub;
 	const issue = yield* read("/repos/acme/widgets/issues/1", Issue);
-	const first = yield* list("/repos/acme/widgets/issues", Issue).pipe(Stream.take(1), Stream.runCollect);
+	const pages = yield* github.listPages("/repos/acme/widgets/issues", Issue);
+	const first = yield* pages.pipe(
+		Stream.flatMap((page) => Stream.fromIterable(page.items)),
+		Stream.take(1),
+		Stream.runCollect,
+	);
 	const created = yield* write("POST", "/repos/acme/widgets/issues", { title: "A new issue" }, Issue);
 	return { issue, first, created };
 });
@@ -60,7 +65,7 @@ const viewer = graphql("query { viewer { login } }", {}, Viewer);
 
 The service's `graphql(query, variables, options?)` returns a representation with `decode(dataSchema)`. Both it and `decodeGraphqlData(body, dataSchema)` from `graphqlRequests.ts` return the same `{ data, errors }` result as the helper. The Schema describes `data` directly, without the envelope. `GraphqlOptions` from `graphqlRequests.ts` accepts `responseByteLimit` for a per-request cap and `apiUrl` to override the configured REST base for that call. GraphQL and REST core quotas stay separate. The representation also exposes the raw JSON `body` for transport adapters.
 
-`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST`, `PATCH`, `PUT` or `DELETE` and decodes its response. Pass `undefined` for a bodyless request. For a 204 response, omit the schema to receive `void`, or pass `Schema.Void` explicitly; the service representation also supports `decode(Schema.Void)`. These mutations share authentication, quota observations and the single installation-token refresh. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+`read(path, schema)` decodes a JSON response. The service's `listPages(path, itemSchema, options?)` returns decoded pages across GitHub's Link pages, and stops fetching when consumption stops. Use `listBounded(path, itemSchema, pageCap, options?)` to collect a prefix within a page cap. `write(method, path, body, schema)` sends JSON with `POST`, `PATCH`, `PUT` or `DELETE` and decodes its response. Pass `undefined` for a bodyless request. For a 204 response, omit the schema to receive `void`, or pass `Schema.Void` explicitly; the service representation also supports `decode(Schema.Void)`. These mutations share authentication, quota observations and the single installation-token refresh. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to the service operation for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
 
 For large comparisons and listings, allow up to 16 MiB through the same bounded, Schema-decoded path instead of maintaining a separate fetch, body reader and decoder in the application.
 
@@ -92,31 +97,31 @@ const diff = Effect.gen(function* () {
 });
 ```
 
-The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. Each page representation exposes `hasNext`, which reports whether its Link header names a next page without fetching it. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
+The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Each page representation exposes `hasNext`, which reports whether its Link header names a next page without fetching it. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
 
-Use `listBounded(path, itemSchema, pageCap, options?)` to collect a prefix within a positive page cap. It returns `{ items, skipped, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
+Use the service's `listBounded(path, itemSchema, pageCap, options?)` to collect a prefix within a positive page cap. It returns `{ items, skipped, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
 
 ```ts
-import { listBounded } from "@shivaedev/github/listBounded.ts";
-
-const issues = listBounded("/repos/acme/widgets/issues", Issue, 2);
+const issues = Effect.flatMap(GitHub, (github) => github.listBounded("/repos/acme/widgets/issues", Issue, 2));
 ```
 
 ### Enveloped lists and partial decoding
 
-`list`, `listPages` and `listBounded` accept either the existing numeric byte cap or a `ListOptions` object (from `@shivaedev/github/pagedLists.ts`) as their last argument. Set `arrayKey` to read an array inside an envelope, such as `check_runs` or `artifacts`. The options also accept `responseByteLimit` and the service's `beforeRequest` pacing callback. Item Schemas retain their decoding service requirements.
+`listPages` and `listBounded` accept either a numeric byte cap or a `ListOptions` object (from `@shivaedev/github/pagedLists.ts`) as their last argument. Set `arrayKey` to read an array inside an envelope, such as `check_runs` or `artifacts`. The options also accept `responseByteLimit` and the `beforeRequest` pacing callback. Item Schemas retain their decoding service requirements.
 
 ```ts
-const checks = listBounded("/repos/acme/widgets/commits/main/check-runs", CheckRun, 2, {
-	arrayKey: "check_runs",
-	onDecodeError: "skip",
-	responseByteLimit: 2 * 1024 * 1024,
-});
+const checks = Effect.flatMap(GitHub, (github) =>
+	github.listBounded("/repos/acme/widgets/commits/main/check-runs", CheckRun, 2, {
+		arrayKey: "check_runs",
+		onDecodeError: "skip",
+		responseByteLimit: 2 * 1024 * 1024,
+	}),
+);
 ```
 
 Import `CheckRun` from `@shivaedev/github/checkRunSchemas.ts`. Decoding fails at the first invalid item by default. With `onDecodeError: "skip"`, valid items keep their order and `skipped` counts rejected items across the fetched pages. Invalid JSON, a missing envelope key, a non-array value, HTTP failures and byte-limit failures still fail the read. A page containing only rejected items still follows its next Link. The page cap counts fetched pages, including empty pages, and never counts pages beyond the cap.
 
-`listPages(path, itemSchema, options?)` returns a Stream of `{ items, skipped, hasNext }` pages for consumers that need streaming counts. `list` flattens those pages into items. Both fetch only while consumed.
+`listPages(path, itemSchema, options?)` returns an Effect containing a Stream of `{ items, skipped, hasNext }` pages for consumers that need streaming counts. Flatten decoded items with `Stream.flatMap((page) => Stream.fromIterable(page.items))`. Both list operations fetch only while consumed.
 
 ### Daily repository reads
 
@@ -159,7 +164,6 @@ Provide `githubApp` as the `GitHubToken` Layer. With just the App ID and a PEM p
 import { Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub } from "@shivaedev/github/github/service.ts";
-import { list } from "@shivaedev/github/list.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
 
@@ -179,7 +183,14 @@ const clients = (privateKey: Redacted.Redacted<string>) => {
 	};
 };
 const appInfo = read("/app", Schema.Struct({ id: Schema.Number, slug: Schema.String }));
-const installations = list("/app/installations", Schema.Struct({ id: Schema.Number })).pipe(Stream.runCollect);
+const installations = Effect.gen(function* () {
+	const github = yield* GitHub;
+	const pages = yield* github.listPages("/app/installations", Schema.Struct({ id: Schema.Number }));
+	return yield* pages.pipe(
+		Stream.flatMap((page) => Stream.fromIterable(page.items)),
+		Stream.runCollect,
+	);
+});
 const repository = read("/repos/acme/widgets", Schema.Struct({ id: Schema.Number, name: Schema.String }));
 ```
 

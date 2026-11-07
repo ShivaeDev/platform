@@ -4,9 +4,6 @@ import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateCheckRun } from "#checkRunSchemas.ts";
 import { GitHub } from "#github/service.ts";
 import { graphql } from "#graphql.ts";
-import { list } from "#list.ts";
-import { listBounded } from "#listBounded.ts";
-import { listPages } from "#listPages.ts";
 import { read } from "#read.ts";
 import { write } from "#write.ts";
 
@@ -34,6 +31,12 @@ const WithService = Schema.String.pipe(
 		encode: SchemaGetter.passthrough(),
 	}),
 );
+const ListItem = Schema.Struct({ value: Schema.String }).pipe(
+	Schema.decodeTo(Schema.String, {
+		decode: SchemaGetter.transformEffect((value: { readonly value: string }) => Effect.map(DecoderPrefix, (prefix) => `${prefix}${value.value}`)),
+		encode: SchemaGetter.transform((value: string) => ({ value })),
+	}),
+);
 const readWithService = read("/item", WithService);
 const writeWithService = write("POST", "/items", { title: "New" }, WithService);
 const graphqlWithService = graphql("query { viewer { login } }", {}, WithService);
@@ -42,28 +45,45 @@ expectTypeOf<Effect.Success<typeof graphqlWithService>>().toEqualTypeOf<{ data: 
 expectTypeOf<Effect.Services<typeof readWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Effect.Services<typeof writeWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 
-const streamed = list("/items", WithService, { arrayKey: "items", onDecodeError: "skip" });
-const paged = listPages("/items", WithService, { arrayKey: "items" });
-const bounded = listBounded("/items", WithService, 2, { onDecodeError: "skip" });
-expectTypeOf<Stream.Services<typeof streamed>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
-expectTypeOf<Stream.Services<typeof paged>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
+const paged = Effect.flatMap(GitHub, (github) => github.listPages("/items", ListItem, { arrayKey: "items" }));
+const bounded = Effect.flatMap(GitHub, (github) => github.listBounded("/items", ListItem, 2, { onDecodeError: "skip" }));
+expectTypeOf<Effect.Services<typeof paged>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub>>();
+expectTypeOf<Stream.Services<Effect.Success<typeof paged>>>().toEqualTypeOf<DecoderPrefix>();
 expectTypeOf<Effect.Services<typeof bounded>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
-expectTypeOf<Effect.Success<typeof bounded>>().toEqualTypeOf<{ items: string[]; skipped: number; truncated: boolean }>();
+expectTypeOf<Stream.Success<Effect.Success<typeof paged>>>().toEqualTypeOf<{
+	items: (typeof ListItem.Type)[];
+	skipped: number;
+	hasNext: boolean;
+}>();
+expectTypeOf<Effect.Success<typeof bounded>>().toEqualTypeOf<{ items: (typeof ListItem.Type)[]; skipped: number; truncated: boolean }>();
 
 const refusal = { _tag: "PacingRefusal", retryAt: 120_000 } as const;
 const pacing = { beforeRequest: () => Effect.fail(refusal) };
-const pacedItems = list("/items", Schema.String, pacing);
-const pacedPages = listPages("/items", Schema.String, pacing);
-const pacedBounded = listBounded("/items", Schema.String, 2, pacing);
+const pacedPages = Effect.flatMap(GitHub, (github) => github.listPages("/items", Schema.String, { beforeRequest: pacing.beforeRequest }));
+const pacedBounded = Effect.flatMap(GitHub, (github) => github.listBounded("/items", Schema.String, 2, { beforeRequest: pacing.beforeRequest }));
 const rawPages = Effect.flatMap(GitHub, (github) => github.list("/items", pacing.beforeRequest)).pipe(Effect.flatMap(Stream.runCollect));
+const decodedServicePages = Effect.flatMap(GitHub, (github) =>
+	Effect.flatMap(github.list("/items"), (pages) =>
+		Stream.runCollect(
+			Stream.mapEffect(pages, (page) => {
+				const decoded = page.decode(ListItem);
+				expectTypeOf<Effect.Success<typeof decoded>>().toEqualTypeOf<typeof ListItem.Type>();
+				expectTypeOf<Effect.Services<typeof decoded>>().toEqualTypeOf<DecoderPrefix>();
+				return decoded;
+			}),
+		),
+	),
+);
 const repositoryPages = Effect.flatMap(GitHub, (github) => github.listCommits("acme", "widgets", pacing)).pipe(Effect.flatMap(Stream.runCollect));
-expectTypeOf<Extract<Stream.Error<typeof pacedItems>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
-expectTypeOf<Extract<Stream.Error<typeof pacedPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Extract<Stream.Error<Effect.Success<typeof pacedPages>>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
 expectTypeOf<Extract<Effect.Error<typeof pacedBounded>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
 expectTypeOf<Extract<Effect.Error<typeof rawPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Effect.Services<typeof decodedServicePages>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Extract<Effect.Error<typeof repositoryPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
 
-const explicitSchema = list<typeof Schema.String>("/items", Schema.String, {
-	beforeRequest: () => Effect.fail(new ServiceUnavailable({ message: "budget spent" })),
-});
-expectTypeOf<Extract<Stream.Error<typeof explicitSchema>, ServiceUnavailable>>().toEqualTypeOf<ServiceUnavailable>();
+const explicitSchema = Effect.flatMap(GitHub, (github) =>
+	github.listPages<typeof Schema.String>("/items", Schema.String, {
+		beforeRequest: () => Effect.fail(new ServiceUnavailable({ message: "budget spent" })),
+	}),
+);
+expectTypeOf<Extract<Stream.Error<Effect.Success<typeof explicitSchema>>, ServiceUnavailable>>().toEqualTypeOf<ServiceUnavailable>();
