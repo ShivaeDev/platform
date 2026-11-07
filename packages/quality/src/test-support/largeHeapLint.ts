@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
@@ -16,6 +16,7 @@ const LAST_RULE_FILE_COUNT = BASELINE_COUNT - SOURCE_COUNT * 4;
 const RULE_IDS = Array.from({ length: 5 }, (_, index) => `local/baseline-${index}`);
 const packageManifest: { readonly version: string } = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 const { version } = packageManifest;
+const effectManifest: { readonly version: string } = JSON.parse(readFileSync(join(packageRoot, "../../node_modules/effect/package.json"), "utf8"));
 
 interface Engine {
 	readonly root: string;
@@ -29,9 +30,9 @@ function writeLargeRepository(root: string): void {
 	writeFileSync(
 		join(root, "package.json"),
 		manifest("package.json", {
+			dependencies: { effect: effectManifest.version },
 			devDependencies: { "@shivaedev/quality": version },
-			exports: { ".": "./src/index.ts" },
-			imports: { "#source/*": "./src/*" },
+			exports: { "./*.ts": "./src/*.ts" },
 			name: "large-quality-fixture",
 			private: true,
 			type: "module",
@@ -58,15 +59,19 @@ function writeLargeRepository(root: string): void {
 		].join("\n"),
 	);
 	linkPackage(root);
+	symlinkSync(join(packageRoot, "../../node_modules/effect"), join(root, "node_modules/effect"), "dir");
 	const baseline: BaselineEntry[] = [];
 	for (let index = 0; index < SOURCE_COUNT; index += 1) {
-		const path = index === 0 ? "src/index.ts" : `src/source${String(index).padStart(4, "0")}.ts`;
-		const content =
-			index === 0
-				? Array.from({ length: SOURCE_COUNT - 1 }, (_, importIndex) => `import "#source/source${String(importIndex + 1).padStart(4, "0")}.ts";`).join(
-						"\n",
-					)
-				: "export {};\n";
+		const name = `source${String(index).padStart(4, "0")}`;
+		const path = `src/${name}.ts`;
+		const content = [
+			'import { Effect } from "effect";',
+			"",
+			`interface ${name}Input { readonly value: string; readonly values: readonly string[]; readonly enabled: boolean }`,
+			`export const ${name} = Effect.fn("${name}")(function* (input: ${name}Input) {`,
+			'\treturn input.enabled ? input.value + ":" + input.values.join(":") : input.value;',
+			"});",
+		].join("\n");
 		writeFileSync(join(root, path), content);
 		for (const rule of RULE_IDS.slice(0, index < LAST_RULE_FILE_COUNT ? 5 : 4)) {
 			baseline.push({ count: 1, file: path, rule });
