@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.70.0 - 2026-11-07
+
+### Breaking
+
+- Require package `#` aliases for every own-module import, including same-folder imports and registration subtrees. Replace relative imports with aliases declared in the package.json `imports` map.
+- Reject `file:` and `link:` dependencies in published and private packages. Replace them with exact npm versions or `workspace:`/`catalog:` references.
+
 ## 0.69.5 - 2026-11-07
 
 ### Fixed
