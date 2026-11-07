@@ -139,6 +139,8 @@ Omit `services` when the app has no service Layer of its own. The host uses `Lay
 
 Pass application HTTP endpoints through `routes`, including routes that read app services. Use `handlers` for RPC implementations and their middleware Layers. `routes` accepts native HTTP router Layers; the host supplies `services` during route construction and request handling, preserves route Layer build errors and leaves missing services in the host’s requirement type.
 
+Every request matched by `routes` logs one `HTTP request` entry at Info through Effect's installed logger by default, including error responses. Its structured annotations are `http.method`, `http.route` (the registered route template), `http.status`, `http.duration` (milliseconds until the response is ready) and `requestId` (a generated UUID). The entry omits request and response headers, cookies, authorization values, URL parameter and query values, and bodies. No logging middleware needs to be added to the application routes; the middleware pattern below adds the application's CORS policy.
+
 ```ts
 import { Effect, Layer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
