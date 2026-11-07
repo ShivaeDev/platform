@@ -116,7 +116,7 @@
 			"run": ["host-minimal.ts"]
 		},
 		{
-			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./runtime/types.ts"],
+			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./adapters/platformRuntime.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]
