@@ -10,6 +10,7 @@ import type { Finding, RuleInputs } from "#rule.ts";
 const CLIENT_RENDERING_LIBRARIES = new Set([
 	"react",
 	"react-dom",
+	"recharts",
 	"lucide-react",
 	"@base-ui/react",
 	"@tanstack/react-router",
