@@ -1,5 +1,7 @@
-import { Effect, Schema } from "effect";
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { Config, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { databaseAddress } from "#databaseAddress.ts";
 
 export type PostgresSettings = Readonly<Record<string, string>>;
 
@@ -12,6 +14,17 @@ const Setting = Schema.Struct({
 }).pipe(Schema.encodeKeys({ pendingRestart: "pending_restart" }));
 
 export const applyPostgresSettings = Effect.fn("Sql.applyPostgresSettings")(function* (settings: PostgresSettings) {
+	const replica = yield* Config.String("RAILWAY_REPLICA_ID").pipe(Config.withDefault(""));
+	const client = yield* Effect.serviceOption(PgClient.PgClient);
+	if (replica === "" || Option.isNone(client)) {
+		return;
+	}
+	const config = client.value.config;
+	const address = config.url === undefined ? config : { ...config, ...databaseAddress(config.url) };
+	// Port 55432 belongs to shared development PostgreSQL, even in a shell with Railway variables.
+	if (address.port === 55_432) {
+		return;
+	}
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
 	const read = SqlSchema.findAll({
 		execute: (name) => sql`select setting, unit, vartype, context, pending_restart from pg_settings where name = ${name}`,

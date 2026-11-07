@@ -138,6 +138,8 @@ Railway needs no hand-written proxy setting. `.railway/railway.ts` composes `@sh
 
 The [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.
 
+Keep the app’s `postgresSettings` declaration the same for web and worker in every environment. SQL applies it only with a nonempty `RAILWAY_REPLICA_ID`, which Railway sets on deployed replicas ([Railway variables](https://docs.railway.com/reference/variables)). `railway run` service variables alone do not enable it. Stories, test-sql, `pnpm dev`, CI and scripts change no server settings. Destination port 55432 is always excluded, even with every Railway variable set, so the shared development PostgreSQL server keeps its configuration.
+
 The Railway database declares 2 CPUs and 1 GiB memory in `.railway/railway.ts` so the next infrastructure plan keeps its limits. Retain explicit limits when changing the service size. For PITR images, pgBackRest sizes its process count from the CPU limit; keep the CPU limit at 2 or set `PGBACKREST_BACKUP_PROCESS_MAX=1`. Check `memory.current` after a representative peak and at five and ten minutes idle before adopting these settings in production.
 
 ## Look at the running app

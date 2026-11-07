@@ -1,17 +1,29 @@
-import { Context, Effect, Layer, Logger, Redacted, Tracer } from "effect";
+import { ConfigProvider, Context, Effect, Layer, Logger, Redacted, Tracer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import type { PostgresSettings } from "@shivaedev/sql/postgresSettings.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
-import { appDatabase } from "#appDatabase.ts";
+import { appDatabase, appHost } from "#appDatabase.ts";
+import { settingsEndpoint } from "#test/postgres-settings/adapters/endpoint.ts";
+import { workerHost } from "#workerHost.ts";
 
 export const settingsEngine = Effect.fnUntraced(function* () {
 	const database = yield* PostgresTestDatabase;
 	const sql = yield* SqlClient.SqlClient;
 	const logs: Array<{ level: string; message: unknown }> = [];
 	const spans: Tracer.NativeSpan[] = [];
-	const state: { databaseUrl: Redacted.Redacted<string>; migrated: boolean; settings: PostgresSettings } = {
-		databaseUrl: database.url,
+	const proxy = yield* disconnectProxy(Redacted.value(database.url));
+	const state: {
+		databaseUrl: Redacted.Redacted<string>;
+		env: Record<string, string>;
+		host: "database" | "http" | "deferred" | "worker";
+		migrated: boolean;
+		settings: PostgresSettings;
+	} = {
+		databaseUrl: Redacted.make(proxy.url),
+		env: {},
+		host: "database",
 		migrated: false,
 		settings: {},
 	};
@@ -35,24 +47,41 @@ export const settingsEngine = Effect.fnUntraced(function* () {
 	function read(name: string) {
 		return sql<{ "pending_restart": boolean; setting: string }>`select setting, pending_restart from pg_settings where name = ${name}`;
 	}
+	function buildHost() {
+		const options = { config: { databaseUrl: state.databaseUrl, port: 0 }, migrations, postgresSettings: state.settings };
+		switch (state.host) {
+			case "http":
+				return appHost({ ...options, policy: "loopback", routes: Layer.empty });
+			case "deferred":
+				return appHost({ ...options, application: Effect.succeed({ policy: "loopback" as const, routes: Layer.empty }) });
+			case "worker":
+				return workerHost({ ...options, services: Layer.empty, workers: Layer.empty });
+			case "database":
+				return appDatabase(options);
+		}
+	}
 	return {
 		logs,
 		read,
 		spans,
 		start: () =>
 			Effect.gen(function* () {
+				const host = buildHost();
 				const context = yield* Layer.build(
-					appDatabase({
-						config: { databaseUrl: state.databaseUrl },
-						migrations,
-						postgresSettings: state.settings,
-					}).pipe(Layer.provide(Logger.layer([logger])), Layer.provide(Layer.succeed(Tracer.Tracer, tracer))),
+					host.pipe(
+						Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.env }))),
+						Layer.provide(Logger.layer([logger])),
+						Layer.provide(Layer.succeed(Tracer.Tracer, tracer)),
+					),
 				);
 				return yield* Context.get(context, SqlClient.SqlClient)`select 1`;
 			}),
 		state,
+		*useDevelopmentPort(source: "authority" | "parameters") {
+			state.databaseUrl = Redacted.make(yield* settingsEndpoint(Redacted.value(database.url), source));
+		},
 		*withoutSuperuser() {
-			const url = new URL(Redacted.value(database.url));
+			const url = new URL(Redacted.value(state.databaseUrl));
 			const role = `settings_${url.pathname.slice(1)}`;
 			yield* sql`create role ${sql(role)}`;
 			yield* Effect.addFinalizer(() => sql`drop owned by ${sql(role)}`.pipe(Effect.andThen(sql`drop role ${sql(role)}`), Effect.orDie));
