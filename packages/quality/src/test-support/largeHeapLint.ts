@@ -30,6 +30,8 @@ function writeLargeRepository(root: string): void {
 		join(root, "package.json"),
 		manifest("package.json", {
 			devDependencies: { "@shivaedev/quality": version },
+			exports: { ".": "./src/index.ts" },
+			imports: { "#source/*": "./src/*" },
 			name: "large-quality-fixture",
 			private: true,
 			type: "module",
@@ -61,7 +63,9 @@ function writeLargeRepository(root: string): void {
 		const path = index === 0 ? "src/index.ts" : `src/source${String(index).padStart(4, "0")}.ts`;
 		const content =
 			index === 0
-				? Array.from({ length: SOURCE_COUNT - 1 }, (_, importIndex) => `import "./source${String(importIndex + 1).padStart(4, "0")}.ts";`).join("\n")
+				? Array.from({ length: SOURCE_COUNT - 1 }, (_, importIndex) => `import "#source/source${String(importIndex + 1).padStart(4, "0")}.ts";`).join(
+						"\n",
+					)
 				: "export {};\n";
 		writeFileSync(join(root, path), content);
 		for (const rule of RULE_IDS.slice(0, index < LAST_RULE_FILE_COUNT ? 5 : 4)) {
