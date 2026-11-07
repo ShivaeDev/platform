@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.30.4 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/rate-limit` from 0.6.6 to 0.6.7.
+- Update `@shivaedev/sql` from 0.46.2 to 0.46.3.
+
 ## 0.30.3 - 2026-11-07
 
 ### Changed

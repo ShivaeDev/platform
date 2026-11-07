@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.73.1 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.45.3 to 0.45.4.
+
 ## 0.73.0 - 2026-11-07
 
 ### Added
