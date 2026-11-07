@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.69.4 - 2026-11-07
+
+### Fixed
+
+- Keep generated Biome configs in a persistent, content-addressed cache under `node_modules/.cache/quality/biome`, so interrupted or crashed runs leave no stray repository files and parallel runs use independent settings.
+
 ## 0.69.3 - 2026-11-06
 
 ### Changed

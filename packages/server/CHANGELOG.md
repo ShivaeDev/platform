@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.31.1 - 2026-11-07
+
+### Fixed
+
+- Keep shared and separate LISTEN connections open past the database pool's TTL without resynchronizing live subscribers on a timer.
+
 ## 0.31.0 - 2026-11-06
 
 ### Added

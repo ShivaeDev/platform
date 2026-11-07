@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.1 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/email` from 0.7.2 to 0.7.3.
+- Update `@shivaedev/identity` from 0.30.0 to 0.30.1.
+- Update `@shivaedev/jobs` from 0.41.0 to 0.41.1.
+- Update `@shivaedev/sql` from 0.45.0 to 0.46.0.
+- Update `@shivaedev/test-sql` from 0.24.3 to 0.24.4.
+- Update `@shivaedev/test-story` from 0.45.0 to 0.45.1.
+- Update `@shivaedev/webhooks` from 0.11.3 to 0.11.4.
+
 ## 0.10.0 - 2026-11-06
 
 ### Breaking

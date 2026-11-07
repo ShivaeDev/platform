@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.46.0 - 2026-11-07
+
+### Fixed
+
+- Keep PostgreSQL change listeners connected past the query pool's connection lifetime so live subscriptions receive committed changes without periodic Resync. Reconnect and resynchronize when the listener connection is lost.
+
+### Breaking
+
+- Remove `connectionTTL` from `PostgresChangesOptions`. Remove that option from direct `postgresChanges` calls; keep `connectionTTL` on `postgresLayer` or the server database config to recycle query connections.
+
 ## 0.45.0 - 2026-11-06
 
 ### Breaking
