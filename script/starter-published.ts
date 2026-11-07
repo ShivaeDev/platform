@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Effect, FileSystem } from "effect";
+import { Effect, FileSystem } from "effect";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { command, requireThat } from "#package-check/io.ts";
@@ -57,10 +57,7 @@ const program = Effect.gen(function* () {
 	yield* Effect.log(`Installing documented framework APIs from ${source}.`);
 	yield* installDocumentation(root, documentation, versions, tarballs);
 	yield* checkDocumentation(documentation, entries, versions, source);
-	const database = yield* Config.String("TEST_DATABASE_URL").pipe(
-		Config.orElse(() => Config.String("PLATFORM_SQL_TEST_DATABASE_URL")),
-		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_SQL_TEST_DATABASE_URL)),
-	);
+	const { TEST_DATABASE_URL: database } = yield* postgresTestEnvironment;
 	const registryVersion = values.registry ? (values["create-app-version"] ?? "latest") : undefined;
 	const variants = values.variant === undefined ? [false, true] : [values.variant === "minimal"];
 	yield* checkStarters(root, temporary, tarballs, database, registryVersion, variants);
