@@ -9,9 +9,9 @@ import { queryRoute } from "#adapters/queryRoute.ts";
 import { authAction } from "#client/authAction.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { ReadNotes } from "./feature.ts";
-import type { Host } from "./host.ts";
-import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";
+import { ReadNotes } from "#test/permission-routes/feature.ts";
+import type { Host } from "#test/permission-routes/host.ts";
+import { Login, PermissionRoutes, SignOutButton } from "#test/permission-routes/view.tsx";
 
 function Controls() {
 	const can = useCan();

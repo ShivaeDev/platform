@@ -1,7 +1,7 @@
 import type { TestContext } from "@effect/vitest";
 import { Context, Data, Effect, Layer } from "effect";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
-import { note, releasedOnClose } from "./lifecycleLog.ts";
+import { note, releasedOnClose } from "#test/lifecycleLog.ts";
 
 class BodyFailure extends Data.TaggedError("BodyFailure")<{ readonly message: string }> {}
 

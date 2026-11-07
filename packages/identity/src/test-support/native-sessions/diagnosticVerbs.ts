@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { callers } from "./callers.ts";
-import type { Host } from "./host.ts";
-import type { Account } from "./requests.ts";
+import { callers } from "#test/native-sessions/callers.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import type { Account } from "#test/native-sessions/requests.ts";
 
 export function diagnosticVerbs(host: Host, accounts: Map<string, Account>, tell: (line: string) => void) {
 	const { account, headersOf } = callers(accounts);

@@ -3,10 +3,10 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import type { QueryOptions } from "#client/resultState.ts";
-import { queryReadouts } from "./queryReadouts.ts";
-import { native, type State, view } from "./queryState.ts";
-import type { Unavailable } from "./queryView.ts";
-import type { Screen } from "./Screen.ts";
+import { queryReadouts } from "#test/queryReadouts.ts";
+import { native, type State, view } from "#test/queryState.ts";
+import type { Unavailable } from "#test/queryView.ts";
+import type { Screen } from "#test/Screen.ts";
 
 export function queryVerbs(state: State, screen: Screen) {
 	function settle(label: string, line: string, result: Exit.Exit<string, Unavailable>) {

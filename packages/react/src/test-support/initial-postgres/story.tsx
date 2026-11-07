@@ -10,10 +10,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { migrations } from "#test/compared-postgres/feature.ts";
 import { transport } from "#test/compared-postgres/transport.ts";
+import { Api, openHost } from "#test/initial-postgres/host.ts";
+import { blankScreen, displayed } from "#test/initial-postgres/readouts.ts";
+import { Screen } from "#test/initial-postgres/Screen.tsx";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { Api, openHost } from "./host.ts";
-import { blankScreen, displayed } from "./readouts.ts";
-import { Screen } from "./Screen.tsx";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({ migrations: { ...migrations, lockTimeout: "5 seconds" }, url: Redacted.make(url ?? "postgresql://disabled") });

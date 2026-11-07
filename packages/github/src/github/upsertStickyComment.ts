@@ -1,8 +1,8 @@
 import { Effect, Option, Schema, Stream } from "effect";
+import { list } from "#github/list.ts";
+import { write } from "#github/write.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
 import { PullRequestComment, StickyComment } from "#stickyCommentSchemas.ts";
-import { list } from "./list.ts";
-import { write } from "./write.ts";
 
 const CommentBody = Schema.Struct({ body: Schema.String });
 export function upsertStickyComment(state: GitHubState) {

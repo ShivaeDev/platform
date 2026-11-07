@@ -1,12 +1,12 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
+import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { scheduledOutside } from "#test/postgres/scheduledOutside.ts";
 import { enqueued, running } from "#test/postgres/traits.ts";
 import { scheduled } from "#test/workers.ts";
-import { defineSchedule } from "./defineSchedule.ts";
-import { defineQueue } from "./definition.ts";
 
 const Nightly = defineSchedule({ cron: "17 3 * * *", name: "nightly" });
 const Keyed = defineSchedule({ cron: "18 3 * * *", name: "nightly", schedule: { key: "reports" } });

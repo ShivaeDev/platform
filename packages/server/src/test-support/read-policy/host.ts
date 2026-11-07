@@ -8,8 +8,8 @@ import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost } from "#test/app-host/state.ts";
+import { Api, type Check, documents, policyHost } from "#test/read-policy/fixture.ts";
 import { type Feed, followHints } from "#test/rpc/followHints.ts";
-import { Api, type Check, documents, policyHost } from "./fixture.ts";
 
 export const readPolicyHost = storyKit({
 	clock: "test",

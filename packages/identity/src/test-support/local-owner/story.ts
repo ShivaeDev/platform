@@ -6,9 +6,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { machineTokenMigration } from "#server/adapters/machineTokenMigration.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { httpClient, socketClient } from "#test/local-owner/clients.ts";
+import { ownerHost, REVALIDATION_INTERVAL } from "#test/local-owner/host.ts";
 import { databaseUrl } from "#test/postgres.ts";
-import { httpClient, socketClient } from "./clients.ts";
-import { ownerHost, REVALIDATION_INTERVAL } from "./host.ts";
 
 const postgres = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({ "1_machine_tokens": machineTokenMigration }), lockTimeout: "5 seconds" },

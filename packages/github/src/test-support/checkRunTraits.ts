@@ -1,5 +1,5 @@
-import { github } from "./github.ts";
-import { HEAD } from "./writeTraits.ts";
+import { github } from "#test/github.ts";
+import { HEAD } from "#test/writeTraits.ts";
 
 export const checksFromSeveralApps = github.trait("github", "the commit has old and new checks from several apps across pages", ({ writes }) => {
 	const base = { conclusion: null, detailsUrl: null, headSha: HEAD, output: { summary: null, text: null, title: null }, status: "queued" };

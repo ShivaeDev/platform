@@ -6,9 +6,9 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NoteSource } from "#modules/notes/server/Source.ts";
+import { app } from "#modules/notes/test-support/application.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
-import { app } from "./application.ts";
 
 export function replacementPorts(title: string, options: { readonly failEnqueue?: boolean } = {}) {
 	return app.trait("hosting", "a replacement Layer supplies the note source, a one-note quota and the note queue", function* (engine) {

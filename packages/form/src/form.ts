@@ -3,16 +3,16 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
 import { persistence } from "#adapters/persistence.ts";
-import { checkFeedback } from "./checkFeedback.ts";
-import { draft } from "./draft.ts";
-import { omitAt, refAt } from "./fieldPath.ts";
-import { literalChoices, messageAt, schemaFeedback } from "./messages.ts";
-import { pathMessageAt } from "./paths.ts";
-import { fromRef, propertyRef } from "./refs.ts";
-import { type Config, type Decoded, type Encoded, FieldFailure, type Fields, type Form, type Name, type Services, type Submitter } from "./shape.ts";
-import { statusOf } from "./statusOf.ts";
-import { trackRejections } from "./trackRejections.ts";
-import { validation } from "./validation.ts";
+import { checkFeedback } from "#checkFeedback.ts";
+import { draft } from "#draft.ts";
+import { omitAt, refAt } from "#fieldPath.ts";
+import { literalChoices, messageAt, schemaFeedback } from "#messages.ts";
+import { pathMessageAt } from "#paths.ts";
+import { fromRef, propertyRef } from "#refs.ts";
+import { type Config, type Decoded, type Encoded, FieldFailure, type Fields, type Form, type Name, type Services, type Submitter } from "#shape.ts";
+import { statusOf } from "#statusOf.ts";
+import { trackRejections } from "#trackRejections.ts";
+import { validation } from "#validation.ts";
 
 const emptyRuntime = Atom.runtime(Layer.empty);
 

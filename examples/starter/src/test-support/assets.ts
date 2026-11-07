@@ -3,9 +3,9 @@ import { DateTime, Effect, FileSystem, Layer, Path } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { deployChild } from "#test-support/deployChild.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { deployChild } from "./deployChild.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const assetLayer = Layer.merge(postgres, NodeServices.layer);
 

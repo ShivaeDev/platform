@@ -6,7 +6,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
-import { Api, Notes, Summary } from "./feature.ts";
+import { Api, Notes, Summary } from "#test/connection/feature.ts";
 
 export const openHost = Effect.gen(function* () {
 	const sockets = new Set<Socket>();

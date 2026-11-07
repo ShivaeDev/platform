@@ -1,5 +1,5 @@
 import * as TestClock from "effect/testing/TestClock";
-import { httpClient } from "./story.ts";
+import { httpClient } from "#test/http-client/story.ts";
 
 export function remoteAnswers(status: number, headers: Readonly<Record<string, string>> = {}) {
 	const sent = Object.entries(headers).map(([name, value]) => ` and ${name}: ${value}`);

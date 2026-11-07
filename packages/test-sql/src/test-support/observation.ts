@@ -5,8 +5,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type ObserveOptions, observeUntil } from "#server/observeUntil.ts";
-import { adminUrl, configured } from "./postgres.ts";
-import { withCatalogClock } from "./withCatalogClock.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
+import { withCatalogClock } from "#test/withCatalogClock.ts";
 
 type Name = "alice" | "bob";
 

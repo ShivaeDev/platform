@@ -1,6 +1,6 @@
 import type { Endpoint } from "#imports/Endpoint.ts";
+import type { Matcher } from "#imports/fences/match.ts";
 import type { ImportEdge } from "#imports/graph.ts";
-import type { Matcher } from "./match.ts";
 
 export interface Reached<TMatch = unknown> {
 	readonly line: number;

@@ -5,11 +5,11 @@ import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/te
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";
+import { sessionPermissions } from "#test-support/admin/session.ts";
 import { answer } from "#test-support/answers.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
-import { sessionPermissions } from "./session.ts";
 
 export const foundationAdmin = storyKit({
 	around: withIsolatedDatabase,

@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { GitHubConfig } from "#GitHubConfig.ts";
+import { write } from "#github/write.ts";
 import { decodeGraphqlData, type GraphqlOptions } from "#graphqlRequests.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
-import { write } from "./write.ts";
 export function graphql(state: GitHubState) {
 	return Effect.fn("GitHub.graphql")(function* (query: string, variables: unknown, options?: GraphqlOptions) {
 		const { apiUrl } = yield* GitHubConfig;

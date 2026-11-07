@@ -1,7 +1,7 @@
 import type { StaleBaselineEntry } from "#baseline/compare.ts";
 import type { Outcome } from "#engine/evaluate.ts";
 import type { StaleRegistryEntry } from "#exceptions/registry.ts";
-import { plural } from "./plural.ts";
+import { plural } from "#report/plural.ts";
 
 interface StaleFiles {
 	readonly baseline: string;

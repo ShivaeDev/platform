@@ -1,5 +1,5 @@
 import { Layer } from "effect";
+import { open } from "#adapters/open.ts";
 import { VitestRuntime } from "#VitestRuntime.ts";
-import { open } from "./open.ts";
 
 export const vitestRuntime = Layer.succeed(VitestRuntime, { open });

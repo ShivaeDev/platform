@@ -3,10 +3,10 @@ import { act } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { drivenScreen } from "./drivenScreen.ts";
-import { WaitPage } from "./WaitPage.tsx";
+import { background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { drivenScreen } from "#test/drivenScreen.ts";
+import { WaitPage } from "#test/WaitPage.tsx";
 
 expectNoReactWarnings();
 

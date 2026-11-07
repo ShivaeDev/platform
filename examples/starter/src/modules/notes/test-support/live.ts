@@ -7,8 +7,8 @@ import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { Note, Notes } from "#modules/notes/notes.ts";
+import type { RpcAddress } from "#modules/notes/test-support/Engine.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";
-import type { RpcAddress } from "./Engine.ts";
 
 const liveClient = Effect.fn("AppStory.liveClient")(function* (address: RpcAddress, cookie: string) {
 	const client = makeNotesClient(`${address.baseUrl}/rpc`, {

@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { PullRequest } from "./pullRequests.ts";
-import { Report } from "./reports.ts";
+import { PullRequest } from "#test/cross-table/dashboard/pullRequests.ts";
+import { Report } from "#test/cross-table/dashboard/reports.ts";
 
 export const ReportedPullRequest = Schema.Struct({
 	pullRequestId: PullRequest.fields.id,

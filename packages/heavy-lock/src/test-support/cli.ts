@@ -2,10 +2,10 @@ import process from "node:process";
 import { Clock, Effect, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { decodeHolder } from "#holder.ts";
-import { type CommandLine, cliEnvironment, commands } from "./cliCommands.ts";
-import { type CliRun, startCli } from "./cliProcess.ts";
-import { type Lock, nameOf } from "./lock.ts";
-import { startTime } from "./startTime.ts";
+import { type CommandLine, cliEnvironment, commands } from "#test/cliCommands.ts";
+import { type CliRun, startCli } from "#test/cliProcess.ts";
+import { type Lock, nameOf } from "#test/lock.ts";
+import { startTime } from "#test/startTime.ts";
 
 function holderIdGiven(engine: Lock, run: CliRun) {
 	const id = /^holder id=(?<id>.*)$/mu.exec(run.stdout())?.groups?.id ?? "";

@@ -5,8 +5,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import type { AtomServices } from "#AtomServices.ts";
-import { makeClient } from "./makeClient.ts";
-import { OrderEditor } from "./OrderEditor.tsx";
+import { makeClient } from "#test/postgres-example/makeClient.ts";
+import { OrderEditor } from "#test/postgres-example/OrderEditor.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

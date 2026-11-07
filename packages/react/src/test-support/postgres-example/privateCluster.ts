@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { answerWord } from "./hintWords.ts";
-import { privateClient } from "./privateClient.ts";
-import { type ProcessEngine, process } from "./processEngine.ts";
-import { startProcess } from "./startProcess.ts";
+import { answerWord } from "#test/postgres-example/hintWords.ts";
+import { privateClient } from "#test/postgres-example/privateClient.ts";
+import { type ProcessEngine, process } from "#test/postgres-example/processEngine.ts";
+import { startProcess } from "#test/postgres-example/startProcess.ts";
 
 type PrivateClient = "writer" | "reader" | "bob";
 

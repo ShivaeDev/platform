@@ -1,5 +1,5 @@
 import { DateTime, Effect, Schema } from "effect";
-import { TimestampReadout } from "./TimestampReadout.ts";
+import { TimestampReadout } from "#test/TimestampReadout.ts";
 
 function day(instant: DateTime.Utc) {
 	return DateTime.formatUtc(instant, { day: "numeric", locale: "en-US", month: "short" });

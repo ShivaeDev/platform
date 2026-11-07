@@ -1,4 +1,4 @@
-import { definePatternRule } from "./definePattern.ts";
+import { definePatternRule } from "#rules/comments/definePattern.ts";
 
 export const noTodo = definePatternRule({
 	description: "A TODO in the code is never done. Do the work now, or track it where the repository tracks work.",

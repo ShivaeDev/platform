@@ -6,7 +6,7 @@ import { useContext, useState } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { LoaderSession } from "./loaderSession.ts";
+import type { LoaderSession } from "#test/loaderSession.ts";
 
 function signIn(session: LoaderSession) {
 	if (session.session !== undefined) {

@@ -9,8 +9,8 @@ import { DiscordGateway } from "#gateway/service.ts";
 import type { GatewayDispatch } from "#gatewayProtocol.ts";
 import { layer as restLayer } from "#rest/layer.ts";
 import { DiscordRest } from "#rest/service.ts";
-import { gatewayVerbs } from "./gatewayVerbs.ts";
-import { restVerbs } from "./restVerbs.ts";
+import { gatewayVerbs } from "#test/gatewayVerbs.ts";
+import { restVerbs } from "#test/restVerbs.ts";
 
 export const discord = storyKit({
 	clock: "test",

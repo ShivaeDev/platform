@@ -2,9 +2,9 @@ import { Effect, Fiber, Queue } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import type { BatchedDeleteOptions } from "#batchedDelete.ts";
+import { failureOf } from "#test/outcome.ts";
+import type { PurgeEngine, RetainedRow } from "#test/purgeEngine.ts";
 import { ChangeObserver, transact } from "#transact.ts";
-import { failureOf } from "./outcome.ts";
-import type { PurgeEngine, RetainedRow } from "./purgeEngine.ts";
 
 export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 	const { rows, sql, table, audit } = engine;

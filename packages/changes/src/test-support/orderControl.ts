@@ -1,5 +1,5 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { defectOf, type Engine, endingOf } from "./engine.ts";
+import { defectOf, type Engine, endingOf } from "#test/engine.ts";
 
 type Save = (subject: string, written?: Deferred.Deferred<void>) => Effect.Effect<void, string>;
 

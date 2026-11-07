@@ -4,9 +4,9 @@ import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrationSteps } from "#server/migrationSteps.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { migrations } from "./migrationSteps.ts";
-import { attempt, timesOf } from "./outcome.ts";
-import { tableNames } from "./tableNames.ts";
+import { migrations } from "#test/migrationSteps.ts";
+import { attempt, timesOf } from "#test/outcome.ts";
+import { tableNames } from "#test/tableNames.ts";
 
 export interface StepsEngine {
 	readonly counts: { loads: number };

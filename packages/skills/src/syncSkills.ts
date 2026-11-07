@@ -1,11 +1,11 @@
 import { Console, Effect, FileSystem, Option, Path } from "effect";
-import { hashSkill } from "./hashSkill.ts";
-import type { Installed } from "./installed.ts";
-import { BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD, skillPaths } from "./layout.ts";
-import { readManifest, writeManifest } from "./manifest.ts";
-import { readSelection } from "./readSelection.ts";
-import { refuseAliasedDirectories } from "./refuseAliasedDirectories.ts";
-import { SkillsError } from "./SkillsError.ts";
+import { hashSkill } from "#hashSkill.ts";
+import type { Installed } from "#installed.ts";
+import { BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD, skillPaths } from "#layout.ts";
+import { readManifest, writeManifest } from "#manifest.ts";
+import { readSelection } from "#readSelection.ts";
+import { refuseAliasedDirectories } from "#refuseAliasedDirectories.ts";
+import { SkillsError } from "#SkillsError.ts";
 
 const isPresent = Effect.fn("Skills.isPresent")(function* (file: string) {
 	const fs = yield* FileSystem.FileSystem;

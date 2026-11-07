@@ -2,7 +2,7 @@ import { Cause, Effect, type Exit } from "effect";
 import { WatchError } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
-import { healthOf } from "./readouts.ts";
+import { healthOf } from "#test/readouts.ts";
 
 export class ConsumerFailure extends Error {
 	override name = "ConsumerFailure";

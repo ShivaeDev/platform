@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.ts";
+import { originVerbs } from "#test/native-sessions/originVerbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
-import { originVerbs } from "./originVerbs.ts";
 
 interface State {
 	host?: Host;

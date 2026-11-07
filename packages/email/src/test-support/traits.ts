@@ -1,4 +1,4 @@
-import { email } from "./email.ts";
+import { email } from "#test/email.ts";
 
 export function rateLimited(header?: string) {
 	return email.trait("provider", `Resend asks for Retry-After ${header}`, (engine) =>

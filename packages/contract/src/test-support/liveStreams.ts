@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { collectUntil, until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { hintWords, streams } from "./answers.ts";
+import { hintWords, streams } from "#test/answers.ts";
 
 export type HintServer = "the first server" | "the second server";
 

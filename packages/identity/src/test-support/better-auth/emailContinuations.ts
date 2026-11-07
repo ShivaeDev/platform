@@ -2,9 +2,9 @@ import { Effect, Redacted } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
+import { emailContinuationHost } from "#test/better-auth/emailContinuationHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { emailContinuationHost } from "./emailContinuationHost.ts";
 
 export const emailContinuations = storyKit({
 	around: withIdentityDatabase,

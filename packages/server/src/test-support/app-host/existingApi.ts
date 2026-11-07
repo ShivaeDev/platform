@@ -3,8 +3,8 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Migrator, SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import { appHost } from "#appDatabase.ts";
-import { databaseOf } from "./state.ts";
-import { host, postgresHost } from "./story.ts";
+import { databaseOf } from "#test/app-host/state.ts";
+import { host, postgresHost } from "#test/app-host/story.ts";
 
 class ExistingApi extends Context.Service<ExistingApi, (request: Request) => Promise<Response>>()("@shivaedev/server/test/ExistingApi") {}
 

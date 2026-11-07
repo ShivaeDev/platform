@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type State, view } from "./state.ts";
+import { type State, view } from "#test/notices/state.ts";
 
 export function noticeReadouts(state: State) {
 	return {

@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Option, Path } from "effect";
-import { AGENTS_SKILLS, CLAUDE_SKILLS } from "./layout.ts";
-import { SkillsError } from "./SkillsError.ts";
+import { AGENTS_SKILLS, CLAUDE_SKILLS } from "#layout.ts";
+import { SkillsError } from "#SkillsError.ts";
 
 const resolvedDirectory = Effect.fn("Skills.resolvedDirectory")(function* (directory: string) {
 	const fs = yield* FileSystem.FileSystem;

@@ -1,4 +1,4 @@
-import { definePatternRule } from "./definePattern.ts";
+import { definePatternRule } from "#rules/comments/definePattern.ts";
 
 export const noPrReference = definePatternRule({
 	description: "History belongs in version control, not in the code. State the reason itself, so the comment holds without the link.",

@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { repositoryStory } from "./repositoryStory.ts";
+import { repositoryStory } from "#test/repositoryStory.ts";
 
 export function runtimeFolders(...folders: readonly string[]) {
 	return repositoryStory.trait("repository", `the repository has the empty runtime folders ${folders.join(", ")}`, (engine) => {

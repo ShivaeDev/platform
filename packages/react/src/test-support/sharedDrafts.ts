@@ -1,12 +1,12 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { sharedDraftStorage } from "#test/adapters/sharedDraftStorage.ts";
-import type { DraftFields } from "./draftFields.ts";
-import { browserPersistence, draftStorage } from "./draftStorage.ts";
-import { persistedDraftView } from "./persistedDraftView.tsx";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import type { DraftFields } from "#test/draftFields.ts";
+import { browserPersistence, draftStorage } from "#test/draftStorage.ts";
+import { persistedDraftView } from "#test/persistedDraftView.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 draftStorage();
 type Editor = "first" | "second";

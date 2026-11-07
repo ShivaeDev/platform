@@ -3,8 +3,8 @@ import process from "node:process";
 import { type Duration, Effect, Exit, Scope } from "effect";
 import { lineSignals } from "#server/lineSignals.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
+import { background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
 
 const childProgram = `
 const readline = require("node:readline");

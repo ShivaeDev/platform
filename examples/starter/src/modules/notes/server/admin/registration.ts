@@ -2,7 +2,7 @@ import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { readStatistics } from "./readStatistics.ts";
+import { readStatistics } from "#modules/notes/server/admin/readStatistics.ts";
 
 const statistics = StatisticsPage.contract.application.toLayer({
 	"admin.notes.statistics": () =>

@@ -6,7 +6,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { Rejected } from "./contract.ts";
+import { Rejected } from "#test/postgres-example/contract.ts";
 
 const preferences = collection("preferences", Schema.Number);
 export const Preferences = contract("preferences", {

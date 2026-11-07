@@ -1,6 +1,6 @@
 import { Context, Deferred, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 export const TAKEN_NAME = "taken";
 export const TAKEN_MESSAGE = "Name is taken";

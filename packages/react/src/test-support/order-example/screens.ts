@@ -3,9 +3,9 @@ import { Effect } from "effect";
 import { act, createElement, Fragment } from "react";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import { type Application, orderId } from "./applicationEngine.ts";
-import { Editor, OrderList } from "./Editor.tsx";
-import { makeClient } from "./makeClient.ts";
+import { type Application, orderId } from "#test/order-example/applicationEngine.ts";
+import { Editor, OrderList } from "#test/order-example/Editor.tsx";
+import { makeClient } from "#test/order-example/makeClient.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

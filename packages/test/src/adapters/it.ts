@@ -1,9 +1,9 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
 import { Effect, type Scope } from "effect";
 import type { TestAPI } from "vitest";
+import { runEffectTest } from "#adapters/runEffectTest.ts";
 import { type Body, effectOf } from "#effectOf.ts";
 import type { EffectClock, EffectIt, EffectItTest, EffectItTester } from "#types.ts";
-import { runEffectTest } from "./runEffectTest.ts";
 
 function testOptions(options?: number | TestOptions): TestOptions {
 	return typeof options === "number" ? { timeout: options } : (options ?? {});

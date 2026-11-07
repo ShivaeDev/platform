@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 import * as VitestNode from "vitest/node";
 import type { GenreTag } from "#server/genreTags.ts";
-import { importViolations } from "./importViolations.ts";
+import { importViolations } from "#test/importViolations.ts";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 

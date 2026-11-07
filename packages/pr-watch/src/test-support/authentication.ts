@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import type { Engine } from "./engine.ts";
-import { watch } from "./watch.ts";
+import type { Engine } from "#test/engine.ts";
+import { watch } from "#test/watch.ts";
 
 const ghAccount = Effect.fnUntraced(function* (engine: Engine, token: string | undefined) {
 	const fs = engine.io.fs;

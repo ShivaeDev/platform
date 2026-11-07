@@ -1,4 +1,4 @@
-import { themeColor } from "./themeColor.ts";
+import { themeColor } from "#test-support/themeColor.ts";
 
 type Color = readonly [number, number, number];
 

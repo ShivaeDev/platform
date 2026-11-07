@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { coverageConfigDefaults, defaultExclude, type TestUserConfig } from "vitest/config";
+import { TestOutput } from "#adapters/TestOutput.ts";
 import type { Environment } from "#naming/testName.ts";
-import { TestOutput } from "./TestOutput.ts";
 
 const EXTENSION = "?(c|m)[jt]s?(x)";
 

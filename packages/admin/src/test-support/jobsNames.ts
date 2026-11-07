@@ -1,9 +1,9 @@
 import { type Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { answered } from "./answers.ts";
-import type { jobsEngine } from "./jobsEngine.ts";
-import { Mail } from "./jobsPages.ts";
+import { answered } from "#test/answers.ts";
+import type { jobsEngine } from "#test/jobsEngine.ts";
+import { Mail } from "#test/jobsPages.ts";
 
 export type Engine = Effect.Success<typeof jobsEngine>;
 export interface Page {

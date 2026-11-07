@@ -1,7 +1,7 @@
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import { Metrics } from "./Metrics.tsx";
-import type { AdminClient } from "./make.ts";
-import { QueryPanel } from "./QueryPanel.tsx";
+import { Metrics } from "#modules/notes/client/admin/Metrics.tsx";
+import type { AdminClient } from "#modules/notes/client/admin/make.ts";
+import { QueryPanel } from "#modules/notes/client/admin/QueryPanel.tsx";
 
 export function NoteStatisticsView({ client }: { readonly client: AdminClient }) {
 	const state = useQuery(client.statistics.statistics.query());

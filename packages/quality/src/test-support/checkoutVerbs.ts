@@ -2,11 +2,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { answerOf, type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
 import { git, isolatedEnvironment } from "#testing/adapters/git.ts";
 import { hookPath } from "#testing/adapters/hookPath.ts";
 import { checksLog, commits, type HookRepository, hookText } from "#testing/adapters/hookRepository.ts";
-import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 export type CommitOutcome = "committed" | "rejected";
 

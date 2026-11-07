@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { boundaryReference } from "./boundaryReference.ts";
+import { boundaryReference } from "#rules/effect/boundaryReference.ts";
 
 export interface FailureOperation {
 	readonly name: string;

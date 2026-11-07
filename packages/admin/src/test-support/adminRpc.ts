@@ -6,8 +6,8 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import type { JobsPermission, UsersPermission } from "#permissions.ts";
-import { Access } from "./Access.ts";
-import type { pages } from "./jobsPages.ts";
+import { Access } from "#test/Access.ts";
+import type { pages } from "#test/jobsPages.ts";
 
 type Group = ReturnType<typeof pages>["group"];
 export const adminRpc = Effect.fnUntraced(function* (

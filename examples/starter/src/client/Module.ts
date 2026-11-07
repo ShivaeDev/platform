@@ -3,8 +3,8 @@ import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
 import { type BindingComposition, composeBindings, liveBindings } from "@shivaedev/contract/composeBindings.ts";
-import type { AdminNavigation } from "./AdminNavigation.ts";
-import type { rootRoute } from "./rootRoute.ts";
+import type { AdminNavigation } from "#client/AdminNavigation.ts";
+import type { rootRoute } from "#client/rootRoute.ts";
 
 export interface RouteContext {
 	readonly getParentRoute: () => ReturnType<typeof rootRoute>;

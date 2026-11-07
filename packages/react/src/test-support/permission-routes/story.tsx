@@ -3,13 +3,13 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { isForbidden, isServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { permissionApp } from "#test/permission-routes/app.tsx";
+import type { Role } from "#test/permission-routes/feature.ts";
+import { type Host, openHost } from "#test/permission-routes/host.ts";
+import { PermissionApp } from "#test/permission-routes/view.tsx";
 import { type Screen, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { permissionApp } from "./app.tsx";
-import type { Role } from "./feature.ts";
-import { type Host, openHost } from "./host.ts";
-import { PermissionApp } from "./view.tsx";
 
 interface State {
 	app?: ReturnType<typeof permissionApp>;

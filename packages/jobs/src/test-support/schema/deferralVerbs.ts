@@ -1,6 +1,6 @@
 import { Context } from "effect";
 import { SqlClient } from "effect/sql";
-import type { SchemaState } from "./kit.ts";
+import type { SchemaState } from "#test/schema/kit.ts";
 
 export function deferralVerbs(state: SchemaState, tell: (line: string) => void) {
 	const sql = Context.get(state.services, SqlClient.SqlClient);

@@ -6,10 +6,10 @@ import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy
 import type { AssetOptions } from "#AssetOptions.ts";
 import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
+import type { ClientAbortState } from "#test/app-host/clientAbortFixture.ts";
+import type { SubscriptionState } from "#test/app-host/subscription.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
-import type { ClientAbortState } from "./clientAbortFixture.ts";
-import type { SubscriptionState } from "./subscription.ts";
 
 export interface HostState {
 	address: unknown;

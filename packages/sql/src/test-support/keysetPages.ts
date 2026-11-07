@@ -2,9 +2,9 @@ import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type KeysetOrder, keysetPage } from "#keysetPage.ts";
-import { onPostgres } from "./engines.ts";
-import { attempt } from "./outcome.ts";
-import { ownTable, recording, statementLog, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { attempt } from "#test/outcome.ts";
+import { ownTable, recording, statementLog, uniqueTable } from "#test/writeTables.ts";
 
 const Row = Schema.Struct({ cursorAt: Schema.String, id: Schema.Number, rank: Schema.NumberFromString, seenAt: Schema.Date });
 type Row = typeof Row.Type;

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expectTypeOf } from "vitest";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { authSession } from "./authSession.ts";
+import { authSession } from "#client/adapters/authSession.ts";
 
 interface Session {
 	readonly user: { readonly name: string };

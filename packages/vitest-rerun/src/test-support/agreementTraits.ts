@@ -1,7 +1,7 @@
-import { rerunStory } from "./kit.ts";
-import { holdRerun } from "./pendingAttempt.ts";
-import { perAttempt } from "./specFiles.ts";
-import { writeFile } from "./suite.ts";
+import { rerunStory } from "#test/kit.ts";
+import { holdRerun } from "#test/pendingAttempt.ts";
+import { perAttempt } from "#test/specFiles.ts";
+import { writeFile } from "#test/suite.ts";
 
 export function pendingRerun() {
 	return rerunStory.trait("tests", "a test fails first and signals when its rerun is pending", holdRerun);

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { afterAll, beforeAll } from "vitest";
 import { routeOutbound } from "#server/routeOutbound.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { outbound } from "./outbound.ts";
+import { outbound } from "#test/outbound.ts";
 
 let restoreNetwork: (() => void) | undefined;
 

@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { type ScreenTarget, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { drivenScreen } from "./drivenScreen.ts";
+import { background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { drivenScreen } from "#test/drivenScreen.ts";
 
 export const roleScreen = storyKit({
 	*create() {

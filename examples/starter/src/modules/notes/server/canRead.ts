@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { getNote } from "./get.ts";
+import { getNote } from "#modules/notes/server/get.ts";
 
 export const canReadNote = Effect.fn("NotesService.canReadNote")((id: number) =>
 	getNote(id).pipe(

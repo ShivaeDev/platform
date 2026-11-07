@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { pendingSignal, waitScreen } from "./waitScreen.tsx";
+import { pendingSignal, waitScreen } from "#test/waitScreen.tsx";
 
 waitScreen.it("a missing button times out", [pendingSignal], function* ({ find }) {
 	yield* find({ name: "Missing", role: "button" }, { timeout: 30 });

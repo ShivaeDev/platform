@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { serviceModel } from "#rules/effect/serviceModel.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { modelFiles, serviceResolves } from "#test/serviceModelFiles.ts";
-import { serviceModel } from "./serviceModel.ts";
 
 for (const [name, operation, inventory] of [
 	["an untraced function", "() => Effect.void", "read"],

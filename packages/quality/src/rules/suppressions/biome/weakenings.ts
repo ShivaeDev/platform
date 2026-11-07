@@ -1,6 +1,6 @@
 import type { Chain, Layer } from "#adapters/biome/configs.ts";
-import { scoped } from "./declarations.ts";
-import { entriesOf, isFalse, itemsOf, type Json, member, textOf } from "./json.ts";
+import { scoped } from "#rules/suppressions/biome/declarations.ts";
+import { entriesOf, isFalse, itemsOf, type Json, member, textOf } from "#rules/suppressions/biome/json.ts";
 
 export interface Weakening {
 	readonly includes: readonly string[];

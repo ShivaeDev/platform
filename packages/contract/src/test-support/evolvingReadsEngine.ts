@@ -12,10 +12,10 @@ import { makeClient } from "#bind.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { Guard, TimelineData, Unavailable } from "./derivedReadsContract.ts";
-import { derivedReadsData } from "./derivedReadsData.ts";
-import { EvolvingTimelines } from "./evolvingReadsContract.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { Guard, TimelineData, Unavailable } from "#test/derivedReadsContract.ts";
+import { derivedReadsData } from "#test/derivedReadsData.ts";
+import { EvolvingTimelines } from "#test/evolvingReadsContract.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const evolvingReadsEngine = Effect.gen(function* () {
 	const runtime = yield* storyRuntime;

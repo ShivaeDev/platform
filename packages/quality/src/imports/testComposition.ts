@@ -1,5 +1,5 @@
-import type { ImportGraph } from "./graph.ts";
-import { packageOf, type WorkspacePackage } from "./workspace.ts";
+import type { ImportGraph } from "#imports/graph.ts";
+import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 
 export function testComposition(graph: ImportGraph, privatePackages: readonly WorkspacePackage[], testFile: (path: string) => boolean) {
 	const candidates = new Set(privatePackages);

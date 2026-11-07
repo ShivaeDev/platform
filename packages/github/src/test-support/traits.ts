@@ -1,9 +1,9 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import type { FakeHttpReply } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { type Budget, budgetHeaders } from "./budgetHeaders.ts";
-import { SECONDARY_LIMIT } from "./fakeRepository.ts";
-import { github } from "./github.ts";
+import { type Budget, budgetHeaders } from "#test/budgetHeaders.ts";
+import { SECONDARY_LIMIT } from "#test/fakeRepository.ts";
+import { github } from "#test/github.ts";
 
 function clock(seconds: number) {
 	return new Date(seconds * 1000).toISOString().slice(11, 19);

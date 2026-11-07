@@ -3,8 +3,8 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
+import { type AuthTableOptions, tables } from "#server/better-auth/adapters/tables.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { type AuthTableOptions, tables } from "./tables.ts";
 
 export interface AccountRoleSeed<E> {
 	readonly onSignIn: (userId: string) => Effect.Effect<void, E>;

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { OauthGrants } from "@shivaedev/identity/server/oauthGrants.ts";
-import { type Engine, person } from "./host.ts";
+import { type Engine, person } from "#test/host.ts";
 
 function clientId(engine: Engine, client: string) {
 	const id = engine.clientIds.get(client);

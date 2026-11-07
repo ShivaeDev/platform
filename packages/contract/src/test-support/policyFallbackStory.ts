@@ -10,7 +10,7 @@ import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer, signedIn } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
-import { answered } from "./answers.ts";
+import { answered } from "#test/answers.ts";
 
 class Guard extends RpcMiddleware.Service<Guard>()("@shivaedev/contract/test/NativePolicyGuard", {
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),

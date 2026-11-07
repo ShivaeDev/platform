@@ -2,9 +2,9 @@ import { Config, Context, Effect, Layer, Schema } from "effect";
 import { Migrator } from "effect/sql";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
-import { Ping } from "./ping.ts";
-import { databaseOf } from "./state.ts";
-import { host } from "./story.ts";
+import { Ping } from "#test/app-host/ping.ts";
+import { databaseOf } from "#test/app-host/state.ts";
+import { host } from "#test/app-host/story.ts";
 
 export class AppId extends Context.Service<AppId, string>()("@shivaedev/server/test/PreflightAppId") {}
 class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", { message: Schema.optional(Schema.String) }) {}

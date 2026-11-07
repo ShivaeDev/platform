@@ -2,9 +2,9 @@ import { type Effect, Option } from "effect";
 import { createElement } from "react";
 import { useEditor } from "#client/editor.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
-import { Draft } from "./Draft.tsx";
-import { DraftFields, valuesOf } from "./fields.ts";
-import type { makeClient } from "./makeClient.ts";
+import { Draft } from "#test/order-example/Draft.tsx";
+import { DraftFields, valuesOf } from "#test/order-example/fields.ts";
+import type { makeClient } from "#test/order-example/makeClient.ts";
 
 type OrderClient = ReturnType<typeof makeClient>;
 

@@ -5,13 +5,13 @@ import type { ReactElement } from "react";
 import { PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { Shell } from "#client/adapters/Shell.tsx";
-import { Home } from "./Home.tsx";
-import { LoginScreen } from "./LoginScreen.tsx";
-import type { ClientModule } from "./Module.ts";
-import type { clientModules } from "./modules.ts";
-import { ResetPassword } from "./ResetPassword.tsx";
-import { rootRoute } from "./rootRoute.ts";
-import { parseSearch, stringifySearch } from "./search.ts";
+import { Home } from "#client/Home.tsx";
+import { LoginScreen } from "#client/LoginScreen.tsx";
+import type { ClientModule } from "#client/Module.ts";
+import type { clientModules } from "#client/modules.ts";
+import { ResetPassword } from "#client/ResetPassword.tsx";
+import { rootRoute } from "#client/rootRoute.ts";
+import { parseSearch, stringifySearch } from "#client/search.ts";
 
 export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 	client: { readonly modules: readonly ClientModule<TRoute>[] },

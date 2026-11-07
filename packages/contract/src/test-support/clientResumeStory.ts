@@ -3,10 +3,10 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { streams } from "./answers.ts";
-import { queryHeadersEngine } from "./queryHeadersEngine.ts";
-import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
-import { settled } from "./settled.ts";
+import { streams } from "#test/answers.ts";
+import { queryHeadersEngine } from "#test/queryHeadersEngine.ts";
+import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
+import { settled } from "#test/settled.ts";
 
 export const clientResumeStory = storyKit({
 	clock: "test",

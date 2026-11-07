@@ -1,3 +1,4 @@
+import { biome } from "#rules/biome.ts";
 import { maxPerFile } from "#rules/comments/maxPerFile.ts";
 import { noBanner } from "#rules/comments/noBanner.ts";
 import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
@@ -23,6 +24,16 @@ import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
+import { manifestsApplication } from "#rules/manifestsApplication.ts";
+import { manifestsDependencyPins } from "#rules/manifestsDependencyPins.ts";
+import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
+import { manifestsNoTestKits } from "#rules/manifestsNoTestKits.ts";
+import { manifestsSorted } from "#rules/manifestsSorted.ts";
+import { manifestsSourceFirst } from "#rules/manifestsSourceFirst.ts";
+import { manifestsValid } from "#rules/manifestsValid.ts";
+import { maxDepth } from "#rules/maxDepth.ts";
+import { maxLines } from "#rules/maxLines.ts";
+import { noBarrel } from "#rules/noBarrel.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
 import { authSql } from "#rules/stories/authSql.ts";
@@ -50,18 +61,7 @@ import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.t
 import { noInline } from "#rules/suppressions/noInline.ts";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
-import { biome } from "./biome.ts";
-import { manifestsApplication } from "./manifestsApplication.ts";
-import { manifestsDependencyPins } from "./manifestsDependencyPins.ts";
-import { manifestsExportsShape } from "./manifestsExportsShape.ts";
-import { manifestsNoTestKits } from "./manifestsNoTestKits.ts";
-import { manifestsSorted } from "./manifestsSorted.ts";
-import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
-import { manifestsValid } from "./manifestsValid.ts";
-import { maxDepth } from "./maxDepth.ts";
-import { maxLines } from "./maxLines.ts";
-import { noBarrel } from "./noBarrel.ts";
-import { unusedCode } from "./unusedCode.ts";
+import { unusedCode } from "#rules/unusedCode.ts";
 
 export const builtInRules = [
 	...effectPolicy,

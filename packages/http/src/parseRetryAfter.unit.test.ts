@@ -1,6 +1,6 @@
 import { DateTime } from "effect";
 import { expect, it } from "vitest";
-import { parseRetryAfter } from "./parseRetryAfter.ts";
+import { parseRetryAfter } from "#parseRetryAfter.ts";
 
 const now = DateTime.makeUnsafe("2026-10-25T10:00:00Z");
 

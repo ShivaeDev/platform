@@ -6,10 +6,10 @@ import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 import { UsersView } from "@shivaedev/admin/client/adapters/UsersView.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#admin/foundation.ts";
+import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
+import { AdminSessions } from "#client/admin/Sessions.tsx";
+import { AdminShell } from "#client/admin/Shell.tsx";
 import type { RouteContext } from "#client/Module.ts";
-import { type FoundationClient, makeFoundationClient } from "./foundation.ts";
-import { AdminSessions } from "./Sessions.tsx";
-import { AdminShell } from "./Shell.tsx";
 
 export function foundationRegistration(client?: FoundationClient) {
 	return Effect.map(AtomRegistry.AtomRegistry, (registry) =>

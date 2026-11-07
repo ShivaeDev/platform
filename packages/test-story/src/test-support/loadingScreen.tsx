@@ -3,9 +3,9 @@ import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ScreenDriverOptions, screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { refusal } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { type LoadingIndicator, LoadingPage } from "./LoadingPage.tsx";
+import { refusal } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { type LoadingIndicator, LoadingPage } from "#test/LoadingPage.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "#server/storyKit.ts";
-import { LARGE_BAKERY } from "./failureReport.ts";
-import { LIFETIME_LOG } from "./lifetimeLog.ts";
-import { quotedStoryFile } from "./quotedStoryFile.ts";
-import { rerunStory } from "./rerunStory.ts";
-import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } from "./runStories.ts";
+import { LARGE_BAKERY } from "#test/failureReport.ts";
+import { LIFETIME_LOG } from "#test/lifetimeLog.ts";
+import { quotedStoryFile } from "#test/quotedStoryFile.ts";
+import { rerunStory } from "#test/rerunStory.ts";
+import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } from "#test/runStories.ts";
 
 export type Fixture =
 	| "blockedSnapshotStories"

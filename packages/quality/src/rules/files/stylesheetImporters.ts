@@ -2,8 +2,8 @@ import { posix } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import type { RuleInputs, SourceFile } from "#rule.ts";
+import { type PackageImports, packageImports } from "#rules/files/packageImports.ts";
 import { parse } from "#rules/parse.ts";
-import { type PackageImports, packageImports } from "./packageImports.ts";
 
 const STYLESHEET = /\.s?css$/u;
 

@@ -7,11 +7,11 @@ import type { RouteContext } from "#client/Module.ts";
 import { Admin } from "#modules/notes/admin/pages.ts";
 import { type AdminClient, makeAdminClient } from "#modules/notes/client/admin/make.ts";
 import { adminRegistration } from "#modules/notes/client/admin/registration.tsx";
-import { NoteEdit } from "./Edit.tsx";
-import { makeNotesClient, type NotesClient } from "./make.ts";
-import { NotFound } from "./NotFound.tsx";
-import { RouteFailure } from "./RouteFailure.tsx";
-import { NotesScreen } from "./Screen.tsx";
+import { NoteEdit } from "#modules/notes/client/Edit.tsx";
+import { makeNotesClient, type NotesClient } from "#modules/notes/client/make.ts";
+import { NotFound } from "#modules/notes/client/NotFound.tsx";
+import { RouteFailure } from "#modules/notes/client/RouteFailure.tsx";
+import { NotesScreen } from "#modules/notes/client/Screen.tsx";
 
 export function notesRegistration(client?: NotesClient, admin?: AdminClient) {
 	return Effect.map(AtomRegistry.AtomRegistry, (registry) =>

@@ -10,9 +10,9 @@ import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { Guard, TimelineData, Timelines } from "./derivedReadsContract.ts";
-import { derivedReadsData } from "./derivedReadsData.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { Guard, TimelineData, Timelines } from "#test/derivedReadsContract.ts";
+import { derivedReadsData } from "#test/derivedReadsData.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const derivedReadsEngine = Effect.gen(function* () {
 	const runtime = yield* storyRuntime;

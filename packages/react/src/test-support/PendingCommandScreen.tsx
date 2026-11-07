@@ -2,7 +2,7 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { usePendingCommand } from "#client/pendingCommand.ts";
 import { useQuery } from "#client/resultState.ts";
-import type { PendingClient } from "./pendingCommandClient.ts";
+import type { PendingClient } from "#test/pendingCommandClient.ts";
 
 function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
 	const toggle = usePendingCommand(client.command(id), {

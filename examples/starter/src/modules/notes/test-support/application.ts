@@ -6,13 +6,13 @@ import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { applicationVerbs, runningHost } from "#modules/notes/test-support/applicationVerbs.ts";
+import type { Engine } from "#modules/notes/test-support/Engine.ts";
+import { notesRequests } from "#modules/notes/test-support/requests.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
-import { applicationVerbs, runningHost } from "./applicationVerbs.ts";
-import type { Engine } from "./Engine.ts";
-import { notesRequests } from "./requests.ts";
 
 export const app = storyKit({
 	after: {

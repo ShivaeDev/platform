@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { queryStories } from "./queryStories.ts";
-import { queryVerbs } from "./queryVerbs.ts";
-import { queryView } from "./queryView.ts";
-import { screenWarnings } from "./Screen.ts";
+import { queryStories } from "#test/queryStories.ts";
+import { queryVerbs } from "#test/queryVerbs.ts";
+import { queryView } from "#test/queryView.ts";
+import { screenWarnings } from "#test/Screen.ts";
 
 type Steps = (verbs: ReturnType<typeof queryVerbs>) => Generator<Effect.Effect<unknown, unknown, never>, void>;
 

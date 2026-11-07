@@ -5,9 +5,9 @@ import { TestClock } from "effect/testing";
 import { causeWords, words } from "@shivaedev/test-story/server/answers.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
-import { close } from "./lifecycle.ts";
-import { requests } from "./requests.ts";
-import { type HostState, io, logged } from "./state.ts";
+import { close } from "#test/app-host/lifecycle.ts";
+import { requests } from "#test/app-host/requests.ts";
+import { type HostState, io, logged } from "#test/app-host/state.ts";
 
 function receiverOf(state: HostState) {
 	if (state.receiver === undefined) {

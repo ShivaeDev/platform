@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { passwordUser, signedInUser, signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import type { Account } from "#test/native-sessions/requests.ts";
 import { PASSWORD_HASH } from "#test/passwords.ts";
-import type { Host } from "./host.ts";
-import type { Account } from "./requests.ts";
 
 export const mintAccounts = Effect.fnUntraced(function* (
 	host: Host,

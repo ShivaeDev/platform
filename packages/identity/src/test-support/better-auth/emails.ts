@@ -5,10 +5,10 @@ import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
+import { emailHost } from "#test/better-auth/emailHost.ts";
+import { type EmailEngine, emailEngineHost, requestEmail } from "#test/better-auth/emailRequests.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { emailHost } from "./emailHost.ts";
-import { type EmailEngine, emailEngineHost, requestEmail } from "./emailRequests.ts";
 
 export const emails = storyKit({
 	after: {

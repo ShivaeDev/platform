@@ -5,7 +5,7 @@ import { Clock, Context, Deferred, Effect, Layer, Stream } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
-import { EditExpired, Notes } from "./feature.ts";
+import { EditExpired, Notes } from "#test/socket-clock/feature.ts";
 
 export const openHost = Effect.gen(function* () {
 	const waiting = yield* Deferred.make<void>();

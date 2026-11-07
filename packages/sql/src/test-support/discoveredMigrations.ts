@@ -6,9 +6,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { MIGRATIONS_DIRECTORY } from "#migration.ts";
 import { migratePostgres } from "#migrations.ts";
 import { migrationsFromDirectory } from "#migrationsFromDirectory.ts";
-import { onPostgres } from "./engines.ts";
-import type { Applied } from "./migrationEngine.ts";
-import { outcomeOf } from "./outcome.ts";
+import { onPostgres } from "#test/engines.ts";
+import type { Applied } from "#test/migrationEngine.ts";
+import { outcomeOf } from "#test/outcome.ts";
 
 interface FolderEngine {
 	readonly directory: string;

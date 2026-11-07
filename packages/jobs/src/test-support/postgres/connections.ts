@@ -1,8 +1,8 @@
 import { Effect, Redacted, Schema } from "effect";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { runningIn, startRuntime } from "#test/postgres/engine.ts";
 import type { Registration } from "#test/workers.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { runningIn, startRuntime } from "./engine.ts";
 
 const Backend = Schema.Tuple([Schema.Struct({ pid: Schema.Number })]);
 

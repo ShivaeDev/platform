@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/changes/keys.ts";
-import { type NoteEngine, notes } from "./notes.ts";
+import { type NoteEngine, notes } from "#test/notes.ts";
 
 export function receiptVerbs(engine: NoteEngine) {
 	const announced: string[] = [];

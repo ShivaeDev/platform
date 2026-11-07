@@ -1,7 +1,7 @@
 import { Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { answerAccess, answerMoves, answerVerbs } from "./answers.ts";
-import { formStories } from "./formStories.ts";
+import { answerAccess, answerMoves, answerVerbs } from "#test/answers.ts";
+import { formStories } from "#test/formStories.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 export const EXPLAIN_MESSAGE = "Explain your choice";

@@ -3,8 +3,8 @@ import { HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { readBoundedBody, readBoundedJson, readBoundedText } from "#body.ts";
 import { isRemoteStatusError } from "#errors.ts";
 import { paginate } from "#paginate.ts";
-import type { ClientEngine } from "./engine.ts";
-import { failureOf } from "./failureOf.ts";
+import type { ClientEngine } from "#test/http-client/engine.ts";
+import { failureOf } from "#test/http-client/failureOf.ts";
 
 const Items = Schema.Array(Schema.String);
 const Named = Schema.Struct({ name: Schema.String });

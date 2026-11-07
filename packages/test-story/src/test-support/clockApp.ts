@@ -2,9 +2,9 @@ import { Clock, DateTime, Effect, Schema } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { TimestampReadout } from "./TimestampReadout.ts";
-import { timestampHost } from "./timestampHost.ts";
-import { timestampScreen } from "./timestampScreen.ts";
+import { TimestampReadout } from "#test/TimestampReadout.ts";
+import { timestampHost } from "#test/timestampHost.ts";
+import { timestampScreen } from "#test/timestampScreen.ts";
 
 export const clockApp = storyKit({
 	clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z"),

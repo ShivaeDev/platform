@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
+import { transactionChanges } from "#adapters/transactionChanges.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 import { parse } from "#rules/parse.ts";
 import { memberName, nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
-import { transactionChanges } from "./transactionChanges.ts";
 
 function candidates(source: ts.SourceFile): readonly ts.Node[] {
 	const aliases = new Set(["withTransaction"]);

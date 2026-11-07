@@ -4,9 +4,9 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
-import { describeValue } from "./outcomeWords.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { describeValue } from "#test/outcomeWords.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 type Outcome = "pending" | `loaded ${string}` | "aborted" | `failed: ${string}`;
 

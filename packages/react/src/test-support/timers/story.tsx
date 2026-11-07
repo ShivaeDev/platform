@@ -8,7 +8,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { screenPending } from "#adapters/screenPending.ts";
 import { Screen } from "#test/Screen.ts";
-import { View } from "./View.tsx";
+import { View } from "#test/timers/View.tsx";
 
 export const timersStory = storyKit({
 	clock: "test",

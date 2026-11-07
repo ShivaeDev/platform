@@ -3,8 +3,8 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useState } from "react";
 import { type ActionState, useAction } from "#client/resultState.ts";
+import type { CommandName, Mode, OwnershipClient } from "#test/action-ownership/client.ts";
 import { causeWords } from "#test/outcomeWords.ts";
-import type { CommandName, Mode, OwnershipClient } from "./client.ts";
 
 export interface ControlProps {
 	readonly client: OwnershipClient;

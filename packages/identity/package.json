@@ -23,7 +23,8 @@
 			"@shivaedev/source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		}
+		},
+		"#manifest": "./package.json"
 	},
 	"exports": {
 		"./*.ts": {

@@ -1,9 +1,9 @@
-import { resourceContract } from "./contract.ts";
-import { resourceKit, resourceStory } from "./kit.ts";
-import type { ResourceNames } from "./names.ts";
-import { resourceCreate, resourceList, resourceUnavailable } from "./operations.ts";
-import { resourceMigration, resourceRepository, resourceService } from "./persistence.ts";
-import { resourceClient, resourceRegistration } from "./registration.ts";
+import { resourceContract } from "#resource/contract.ts";
+import { resourceKit, resourceStory } from "#resource/kit.ts";
+import type { ResourceNames } from "#resource/names.ts";
+import { resourceCreate, resourceList, resourceUnavailable } from "#resource/operations.ts";
+import { resourceMigration, resourceRepository, resourceService } from "#resource/persistence.ts";
+import { resourceClient, resourceRegistration } from "#resource/registration.ts";
 
 export function resourceFiles(names: ResourceNames, migration: string) {
 	const root = `src/modules/${names.name}`;

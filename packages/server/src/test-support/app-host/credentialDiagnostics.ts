@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const credentialDiagnostics = host.trait("configured", "a route annotates signatures and PEM credentials", (state) => {
 	const values = {

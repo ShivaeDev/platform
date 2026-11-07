@@ -1,8 +1,8 @@
 import { Deferred, Effect } from "effect";
+import type { HeldKind } from "#test/notices/client.ts";
+import { type State, settle, view } from "#test/notices/state.ts";
+import { type NoticeScreen, NoticeView } from "#test/notices/view.tsx";
 import type { Screen } from "#test/Screen.ts";
-import type { HeldKind } from "./client.ts";
-import { type State, settle, view } from "./state.ts";
-import { type NoticeScreen, NoticeView } from "./view.tsx";
 
 export const interruptsUndo = Effect.fn("Notices.interruptsUndo")(function* (state: State, screen: Screen, change: Effect.Effect<void>) {
 	const { arrivals, hold } = state.current.client;

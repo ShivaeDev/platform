@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { queueSignal } from "./queueSignal.ts";
+import { queueSignal } from "#jobs/adapters/queueSignal.ts";
 
 export interface InspectionSignal {
 	readonly revision: Effect.Effect<number>;

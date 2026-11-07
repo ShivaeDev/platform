@@ -1,7 +1,7 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
+import type { OrderedDaysEngine } from "#test/orderedDaysEngine.ts";
 import { transact } from "#transact.ts";
-import type { OrderedDaysEngine } from "./orderedDaysEngine.ts";
 
 export function orderedDaysRace({ order, parentTable, sql }: OrderedDaysEngine, tell: (line: string) => void) {
 	const release = Deferred.makeUnsafe<void>();

@@ -3,8 +3,8 @@ import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
-import { registersTests } from "./registersTests.ts";
-import { memberName, nodesWhere, syntaxFindings, unwrapped } from "./syntax.ts";
+import { registersTests } from "#rules/stories/registersTests.ts";
+import { memberName, nodesWhere, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	"Calls expect in test-support. Return the engine's observed state from the verb and put the expectation in the spec; throw if an action cannot run.";

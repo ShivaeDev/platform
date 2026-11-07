@@ -3,10 +3,10 @@ import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { routeOutbound } from "#server/routeOutbound.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { drivenScreen } from "./drivenScreen.ts";
-import { pendingScreen } from "./pendingScreen.ts";
+import { background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { drivenScreen } from "#test/drivenScreen.ts";
+import { pendingScreen } from "#test/pendingScreen.ts";
 
 export const screenApp = storyKit({
 	clock: "test",

@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
 import type { Headers } from "effect/http";
-import { sessionAccess, sessionRequest } from "./lookupSession.ts";
-import { SessionPolicy } from "./SessionPolicy.ts";
-import { SocketSession } from "./socketSession.ts";
+import { sessionAccess, sessionRequest } from "#server/lookupSession.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
+import { SocketSession } from "#server/socketSession.ts";
 
 export const recheckSession = Effect.fnUntraced(function* (headers: Headers.Headers, rpc: string) {
 	const policy = yield* SessionPolicy;

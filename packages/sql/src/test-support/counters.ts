@@ -3,9 +3,9 @@ import type { SqlError } from "effect/sql/SqlError";
 import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { UpsertResult } from "#conditionalUpsert.ts";
+import { type Counter, counterEngine, counterSettings, observed } from "#test/counterEngine.ts";
+import { onPostgres } from "#test/engines.ts";
 import type { UpsertRow } from "#upsertResult.ts";
-import { type Counter, counterEngine, counterSettings, observed } from "./counterEngine.ts";
-import { onPostgres } from "./engines.ts";
 
 export const counterWrites = ["upsert", "upsertMany", "conditionalUpsert", "conditionalUpsertMany"] as const;
 export type CounterWrite = (typeof counterWrites)[number];

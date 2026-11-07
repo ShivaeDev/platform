@@ -11,7 +11,7 @@ import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
-import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
+import { ProviderAccounts, providerAccountHandlers } from "#test/better-auth/providerAccounts.ts";
 
 export const socialHost = Effect.fn("SocialStory.socialHost")(function* (discoveryUrl: string) {
 	const pool = yield* betterAuthDatabase();

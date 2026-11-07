@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpClient, HttpClientResponse, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import { host } from "#test/app-host/story.ts";
 import { otlpReceiver } from "#test/otlpReceiver.ts";
-import { host } from "./story.ts";
 
 export const callbackDiagnostics = host.trait("configured", "a callback traces client URLs and quoted Referer headers", (state) =>
 	Effect.promise(async () => {

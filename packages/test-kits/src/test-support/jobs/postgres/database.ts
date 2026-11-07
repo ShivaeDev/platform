@@ -3,17 +3,17 @@ import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { controllerVerbs } from "./controller.ts";
-import { databaseEngine } from "./databaseEngine.ts";
-import { deferralVerbs } from "./deferralVerbs.ts";
-import { engineVerbs } from "./engineVerbs.ts";
-import { postgresConfigured, postgresLayer } from "./layer.ts";
-import { readouts } from "./readouts.ts";
-import { scheduleVerbs } from "./scheduleVerbs.ts";
-import { timeVerbs } from "./timeVerbs.ts";
-import { traceReadouts } from "./traceReadouts.ts";
-import { runtimeVerbs } from "./verbs.ts";
-import { waitingVerbs } from "./waitingVerbs.ts";
+import { controllerVerbs } from "#test/jobs/postgres/controller.ts";
+import { databaseEngine } from "#test/jobs/postgres/databaseEngine.ts";
+import { deferralVerbs } from "#test/jobs/postgres/deferralVerbs.ts";
+import { engineVerbs } from "#test/jobs/postgres/engineVerbs.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobs/postgres/layer.ts";
+import { readouts } from "#test/jobs/postgres/readouts.ts";
+import { scheduleVerbs } from "#test/jobs/postgres/scheduleVerbs.ts";
+import { timeVerbs } from "#test/jobs/postgres/timeVerbs.ts";
+import { traceReadouts } from "#test/jobs/postgres/traceReadouts.ts";
+import { runtimeVerbs } from "#test/jobs/postgres/verbs.ts";
+import { waitingVerbs } from "#test/jobs/postgres/waitingVerbs.ts";
 
 export const database = storyKit({
 	around: withIsolatedDatabase,

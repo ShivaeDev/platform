@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeOrderedChildren } from "#makeOrderedChildren.ts";
 import { makeRepository } from "#repository.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 
 class Day extends Model.Class<Day>("OrderedDay")({
 	id: Schema.NumberFromString,

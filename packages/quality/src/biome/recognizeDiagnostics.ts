@@ -4,9 +4,9 @@ import { browserDiagnostic } from "#adapters/biome/browserDiagnostic.ts";
 import { pluginContract } from "#adapters/biome/pluginContract.ts";
 import { syntaxOf } from "#adapters/biome/syntaxOf.ts";
 import { vitestEntry } from "#adapters/biome/vitestEntry.ts";
-import { nativeEffectCall } from "./nativeEffectCall.ts";
-import type { Diagnostic } from "./report.ts";
-import { nodeAt, offsetOf, type Syntax } from "./syntax.ts";
+import { nativeEffectCall } from "#biome/nativeEffectCall.ts";
+import type { Diagnostic } from "#biome/report.ts";
+import { nodeAt, offsetOf, type Syntax } from "#biome/syntax.ts";
 
 const RECOGNIZED: ReadonlySet<string> = new Set([
 	"lint/correctness/noComponentHookFactories",

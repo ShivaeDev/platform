@@ -1,6 +1,6 @@
 import { type Effect, Option } from "effect";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import type { collectionEngine } from "./collectionEngine.ts";
+import type { collectionEngine } from "#test/collectionEngine.ts";
 
 export function CollectionView({ query }: Pick<Effect.Success<typeof collectionEngine>, "query">) {
 	const state = useQuery(query);

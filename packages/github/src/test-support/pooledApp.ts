@@ -3,7 +3,7 @@ import { Layer, Redacted } from "effect";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
-import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
+import { APP_ID, PRIVATE_KEY } from "#test/appFixture.ts";
 
 export function pooledApp(apiUrl: string) {
 	return GitHub.layer.pipe(

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useField, usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import { form } from "@shivaedev/form/form.ts";
 import { useCreate } from "#client/create.ts";
-import type { ProbeProps } from "./createDraftFields.ts";
-import { DraftFields, draftInitial, draftRuntime } from "./draftFields.ts";
+import type { ProbeProps } from "#test/createDraftFields.ts";
+import { DraftFields, draftInitial, draftRuntime } from "#test/draftFields.ts";
 
 export function CreateDraftProbe({ create, held, persistence }: ProbeProps) {
 	held.created = useCreate({

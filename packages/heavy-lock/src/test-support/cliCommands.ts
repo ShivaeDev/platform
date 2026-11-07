@@ -1,6 +1,6 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { CLI_ARGUMENTS } from "./cliProcess.ts";
+import { CLI_ARGUMENTS } from "#test/cliProcess.ts";
 
 export function cliEnvironment(lock: string, extra: Record<string, string> = {}): Record<string, string> {
 	return {

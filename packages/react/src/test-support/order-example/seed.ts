@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { Order } from "./contract.ts";
+import { Order } from "#test/order-example/contract.ts";
 
 const Seed = Schema.Struct({
 	name: Order.fields.name.check(Schema.isNonEmpty()),

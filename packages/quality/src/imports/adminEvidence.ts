@@ -1,7 +1,7 @@
 import ts from "typescript";
+import { type AdminBindings, adminBindings } from "#imports/adminBindings.ts";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { type AdminBindings, adminBindings } from "./adminBindings.ts";
 
 export function sourceRoot(path: string): string | undefined {
 	return /^(?:.*\/)?src\//u.exec(path)?.[0];

@@ -1,7 +1,7 @@
 import { Effect, type Exit, type Fiber, Queue, type Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import type { PostgresTestDatabase, PostgresTestServices } from "#server/database.ts";
-import { outcomeOf } from "./outcome.ts";
+import { outcomeOf } from "#test/outcome.ts";
 
 export type Services = PostgresTestServices | PostgresTestDatabase;
 export type Command = Effect.Effect<boolean, unknown, Services | Scope.Scope>;

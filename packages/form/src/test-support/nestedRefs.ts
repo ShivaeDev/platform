@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import type * as AtomRef from "effect/reactivity/AtomRef";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 export const STARTING_COUNT = 1;
 export const STARTING_SCORE = 30;

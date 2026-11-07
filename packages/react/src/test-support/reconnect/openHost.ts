@@ -12,7 +12,7 @@ import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { Accounts, SessionGuard } from "./feature.ts";
+import { Accounts, SessionGuard } from "#test/reconnect/feature.ts";
 
 export const openHost = Effect.gen(function* () {
 	const handshakes = yield* Queue.unbounded<string>();

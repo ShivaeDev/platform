@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { type Engine, person } from "./host.ts";
+import { type Engine, person } from "#test/host.ts";
 
 const listToolsBody = JSON.stringify({
 	id: 1,

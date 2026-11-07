@@ -2,9 +2,9 @@ import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { run } from "#git/command.ts";
+import { shellWords } from "#hooks/command.ts";
+import { isHookShim, OWNER } from "#hooks/shim.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
-import { shellWords } from "./command.ts";
-import { isHookShim, OWNER } from "./shim.ts";
 
 const HOOKS = [
 	"applypatch-msg",

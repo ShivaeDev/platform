@@ -10,9 +10,9 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthOauthGrants } from "#server/better-auth/adapters/oauthGrants.ts";
 import { betterAuthOauthProvider } from "#server/better-auth/adapters/oauthProvider.ts";
 import { OauthGrants } from "#server/oauthGrants.ts";
+import { grantBanVerbs } from "#test/better-auth/grantBanVerbs.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { grantBanVerbs } from "./grantBanVerbs.ts";
 
 type Person = "alice" | "bob";
 

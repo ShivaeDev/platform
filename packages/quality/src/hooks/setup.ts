@@ -1,6 +1,6 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, FileSystem, Path } from "effect";
-import { type HookInstall, installHook } from "./install.ts";
+import { type HookInstall, installHook } from "#hooks/install.ts";
 
 export const setupHook = Effect.fn("Hooks.setupHook")(function* (options: Omit<HookInstall, "force">) {
 	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));

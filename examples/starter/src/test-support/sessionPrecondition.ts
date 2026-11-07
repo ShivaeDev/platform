@@ -7,7 +7,7 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { secret } from "./host.ts";
+import { secret } from "#test-support/host.ts";
 
 interface SessionHost {
 	readonly origin: string;

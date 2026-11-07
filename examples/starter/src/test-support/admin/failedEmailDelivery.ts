@@ -4,8 +4,8 @@ import { inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
+import { foundationAdmin } from "#test-support/admin/foundation.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
-import { foundationAdmin } from "./foundation.ts";
 
 export const failedEmailDelivery = foundationAdmin.trait("worker", "the email provider refuses delivery", function* (engine) {
 	const database = yield* PostgresTestDatabase;

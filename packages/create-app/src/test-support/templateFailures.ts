@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CreateAppError } from "#CreateAppError.ts";
 import { renderTemplate } from "#generation.ts";
 import { packTemplate } from "#packTemplate.ts";
-import { application } from "./application.ts";
+import { application } from "#test/application.ts";
 
 const malformedContent = JSON.stringify({
 	dependencies: { effect: 42 },

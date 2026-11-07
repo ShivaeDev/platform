@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { Effect } from "effect";
-import { type Engine, person } from "./host.ts";
+import { type Engine, person } from "#test/host.ts";
 
 function verifier(client: string) {
 	return `mcp-story-pkce-verifier-long-enough-for-sha256-${client}`;

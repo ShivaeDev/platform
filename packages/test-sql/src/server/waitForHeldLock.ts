@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { type ObserveOptions, observeUntil } from "./observeUntil.ts";
+import { type ObserveOptions, observeUntil } from "#server/observeUntil.ts";
 
 export const waitForHeldLock = Effect.fn("PostgresTest.waitForHeldLock")(function* (
 	key: string,

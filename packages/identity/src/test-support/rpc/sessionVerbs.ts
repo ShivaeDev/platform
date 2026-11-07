@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import type { ApiClient } from "./api.ts";
-import { annotationsOf } from "./harness.ts";
-import { overWebSocket } from "./overWebSocket.ts";
-import { expireSession, signOut } from "./sessionLifecycle.ts";
+import type { ApiClient } from "#test/rpc/api.ts";
+import { annotationsOf } from "#test/rpc/harness.ts";
+import { overWebSocket } from "#test/rpc/overWebSocket.ts";
+import { expireSession, signOut } from "#test/rpc/sessionLifecycle.ts";
 import {
 	account,
 	answerOf,
@@ -14,7 +14,7 @@ import {
 	nameOf,
 	type Person,
 	transportHeaders,
-} from "./sessionModel.ts";
+} from "#test/rpc/sessionModel.ts";
 
 export function sessionVerbs(engine: Engine, tell: (line: string) => void) {
 	function rpc(

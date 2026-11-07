@@ -2,8 +2,8 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import ts from "typescript";
+import { cacheConfig } from "#adapters/biome/cacheConfig.ts";
 import { nonEffectPlugins } from "#biome/nonEffectPlugins.ts";
-import { cacheConfig } from "./cacheConfig.ts";
 
 const ObjectConfig = Schema.Record(Schema.String, Schema.Unknown);
 

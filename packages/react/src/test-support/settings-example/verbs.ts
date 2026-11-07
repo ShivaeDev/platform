@@ -1,8 +1,8 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
-import type { Settings } from "./contract.ts";
-import { type Engine, screen } from "./engine.ts";
-import { request } from "./request.ts";
+import type { Settings } from "#test/settings-example/contract.ts";
+import { type Engine, screen } from "#test/settings-example/engine.ts";
+import { request } from "#test/settings-example/request.ts";
 
 type Editor = "writer" | "reader" | "bob";
 

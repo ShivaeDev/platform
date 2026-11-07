@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Conflict, isConflict } from "@shivaedev/errors/taxonomy.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const taxonomyGuards = host.trait("configured", "a route handles Conflict instances by class", (state) => {
 	state.routes = HttpRouter.add("GET", "/guard/:kind", (request) =>

@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Effect, Scope } from "effect";
 import { databaseId } from "#server/databaseOwner.ts";
-import { cleanup } from "./cleanup.ts";
-import { dropOnStoryEnd } from "./cleanupVerbs.ts";
-import { limitedRole } from "./limitedRole.ts";
+import { cleanup } from "#test/cleanup.ts";
+import { dropOnStoryEnd } from "#test/cleanupVerbs.ts";
+import { limitedRole } from "#test/limitedRole.ts";
 
 const run = promisify(execFile);
 

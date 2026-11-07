@@ -3,10 +3,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
 import { userDirectoryReads } from "#server/better-auth/userDirectoryReads.ts";
 import { UserDirectory } from "#server/UserDirectory.ts";
-import type { AuthTableOptions } from "./tables.ts";
 
 export function betterAuthUserDirectory<TRole extends string>(
 	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,

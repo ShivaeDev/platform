@@ -4,8 +4,8 @@ import * as Hex from "effect/encoding/Hex";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { SessionUserValue } from "#identity.ts";
 import { localTransport } from "#server/adapters/local.ts";
-import { machineTokens } from "./machineTokens.ts";
-import type { SessionPolicy } from "./SessionPolicy.ts";
+import { machineTokens } from "#server/machineTokens.ts";
+import type { SessionPolicy } from "#server/SessionPolicy.ts";
 
 export const localOwner = Effect.fn("Identity.localOwner")(function* (options: {
 	readonly owner: Pick<SessionUserValue, "id" | "name" | "email"> & { readonly role: string };

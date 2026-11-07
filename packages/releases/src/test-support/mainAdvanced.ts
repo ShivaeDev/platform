@@ -1,6 +1,6 @@
 import { git } from "#git.ts";
-import { changeset, write } from "./fixture.ts";
-import { workspace } from "./workspace.ts";
+import { changeset, write } from "#test/fixture.ts";
+import { workspace } from "#test/workspace.ts";
 
 export const mainAdvanced = workspace.trait(
 	"changed",

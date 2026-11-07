@@ -4,7 +4,7 @@ import { SqlClient, type SqlConnection } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { disconnectProxy } from "#server/disconnectProxy.ts";
-import { adminUrl, configured } from "./postgres.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
 
 export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[]) {
 	return storyKit({

@@ -7,10 +7,10 @@ import { migrationUpgrade } from "#server/migrationUpgrade.ts";
 import type { PostgresColumn } from "#server/tableColumns.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { layer, migrations } from "./migrationUpgrade.ts";
-import { attempt } from "./outcome.ts";
-import { configured, secondClient } from "./postgres.ts";
-import { upgradeReadouts } from "./upgradeReadouts.ts";
+import { layer, migrations } from "#test/migrationUpgrade.ts";
+import { attempt } from "#test/outcome.ts";
+import { configured, secondClient } from "#test/postgres.ts";
+import { upgradeReadouts } from "#test/upgradeReadouts.ts";
 
 export interface UpgradeEngine {
 	columns: readonly PostgresColumn[];

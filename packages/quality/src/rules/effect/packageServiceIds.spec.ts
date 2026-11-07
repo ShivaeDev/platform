@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
+import { serviceIds } from "#rules/effect/serviceIds.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { serviceIds } from "./serviceIds.ts";
 
 const workspace = repositoryHas(
 	{ content: '{"workspaces":["packages/*"]}', path: "package.json" },

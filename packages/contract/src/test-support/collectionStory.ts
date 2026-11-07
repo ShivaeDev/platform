@@ -8,10 +8,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { signedIn } from "#readPolicy.ts";
-import { answered, shown } from "./answers.ts";
-import { Workspace } from "./collectionContract.ts";
-import { collectionDatabase, collectionEngine, configured } from "./collectionEngine.ts";
-import { settled } from "./settled.ts";
+import { answered, shown } from "#test/answers.ts";
+import { Workspace } from "#test/collectionContract.ts";
+import { collectionDatabase, collectionEngine, configured } from "#test/collectionEngine.ts";
+import { settled } from "#test/settled.ts";
 
 const engine = Effect.map(collectionEngine, (value) => ({ ...value, before: value.registry.get(value.query) }));
 type Engine = Effect.Success<typeof engine>;

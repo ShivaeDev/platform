@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { ARCHIVE } from "./artifactFixture.ts";
-import { github } from "./github.ts";
+import { ARCHIVE } from "#test/artifactFixture.ts";
+import { github } from "#test/github.ts";
 
 export function unavailableArtifact(state: "missing" | "expired") {
 	const status = state === "missing" ? HttpStatus.fromLiteral("NotFound") : HttpStatus.fromLiteral("Gone");

@@ -3,7 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
-import { Api, Rejected, type Removed, TitleRejected } from "./Api.ts";
+import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
 
 export type HeldKind = "remove" | "restore" | "save";
 

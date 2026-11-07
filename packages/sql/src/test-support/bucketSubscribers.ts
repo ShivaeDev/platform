@@ -2,8 +2,8 @@ import { Effect, Queue } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { bucketRows } from "./bucketRows.ts";
-import { onPostgres } from "./engines.ts";
+import { bucketRows } from "#test/bucketRows.ts";
+import { onPostgres } from "#test/engines.ts";
 
 const subscriberEngine = Effect.fnUntraced(function* () {
 	const { keys, rows } = yield* bucketRows;

@@ -2,8 +2,8 @@ import { Duration, Effect } from "effect";
 import { TestClock } from "effect/testing";
 import { act } from "react";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { type Engine, live } from "./engine.ts";
-import { automaticVerbs } from "./verbs.ts";
+import { type Engine, live } from "#test/automatic/engine.ts";
+import { automaticVerbs } from "#test/automatic/verbs.ts";
 
 export function screenVerbs(engine: Engine, story: { tell: (line: string) => void }) {
 	engine.narrator.tell = story.tell;

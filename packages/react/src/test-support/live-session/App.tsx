@@ -7,7 +7,7 @@ import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { connect } from "./connect.ts";
+import { connect } from "#test/live-session/connect.ts";
 
 export function Note({ client }: { readonly client: ReturnType<typeof connect> }) {
 	const query = useQuery(client.get.query(undefined));

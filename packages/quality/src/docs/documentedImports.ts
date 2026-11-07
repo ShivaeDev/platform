@@ -1,6 +1,6 @@
 import ts from "typescript";
+import { codeSpans, type MarkdownLine, markdownLines } from "#docs/markdownLines.ts";
 import { packageNameOf } from "#imports/packageName.ts";
-import { codeSpans, type MarkdownLine, markdownLines } from "./markdownLines.ts";
 
 export interface DocumentedImport {
 	readonly line: number;

@@ -4,9 +4,9 @@ import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { failureOf } from "./outcome.ts";
-import { anotherSessionWaits, claim, type Lock, takeLock } from "./raceClaims.ts";
+import type { DatabaseEngine } from "#test/databaseEngine.ts";
+import { failureOf } from "#test/outcome.ts";
+import { anotherSessionWaits, claim, type Lock, takeLock } from "#test/raceClaims.ts";
 
 function waitingOn(query: string) {
 	return query.includes("pg_advisory_xact_lock") ? "the advisory lock" : "the items update";

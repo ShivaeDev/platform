@@ -5,7 +5,7 @@ import { SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appDatabase.ts";
-import { Api, Cost, handlers, migrations } from "./feature.ts";
+import { Api, Cost, handlers, migrations } from "#test/live-cost/feature.ts";
 
 export const openHost = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;

@@ -1,6 +1,6 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import type { deniedLiveApp } from "./app.tsx";
+import type { deniedLiveApp } from "#test/denied-live/app.tsx";
 
 type Router = ReturnType<typeof deniedLiveApp>;
 const noteRoute = getRouteApi<"/$id", Router>("/$id");

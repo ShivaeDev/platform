@@ -1,8 +1,8 @@
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createApplication } from "./applicationEngine.ts";
-import { hasPostgres, orderDatabase } from "./postgres.ts";
-import { orderVerbs } from "./verbs.ts";
+import { createApplication } from "#test/order-example/applicationEngine.ts";
+import { hasPostgres, orderDatabase } from "#test/order-example/postgres.ts";
+import { orderVerbs } from "#test/order-example/verbs.ts";
 
 export const app = storyKit({
 	around: withIsolatedDatabase,

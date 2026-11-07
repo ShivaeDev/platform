@@ -1,4 +1,4 @@
-import type { MarkdownLine } from "./markdownLines.ts";
+import type { MarkdownLine } from "#docs/markdownLines.ts";
 
 const ATX = /^ {0,3}#{1,6}\s+(?<title>.*?)(?:\s+#+)?\s*$/u;
 

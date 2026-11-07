@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { ScreenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import type { jobsEngine } from "./jobsEngine.ts";
-import { nameOf } from "./jobsNames.ts";
+import type { jobsEngine } from "#test/jobsEngine.ts";
+import { nameOf } from "#test/jobsNames.ts";
 
 export type JobsScreenEngine = Effect.Success<typeof jobsEngine> & { screen: Rendered | undefined };
 

@@ -4,7 +4,7 @@ import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
-import { Change, type Input, Row } from "./contract.ts";
+import { Change, type Input, Row } from "#test/batch-undo/contract.ts";
 
 class StoredRow extends Model.Class<StoredRow>("BatchUndoRow")({
 	...Row.fields,

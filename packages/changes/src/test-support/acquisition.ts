@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Fiber, Scope, Semaphore } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeChannel, type TransactionBoundary } from "#channel.ts";
-import { Current, makeDatabase } from "./fakeDatabase.ts";
+import { Current, makeDatabase } from "#test/fakeDatabase.ts";
 
 function outcomeOf(exit: Exit.Exit<unknown, unknown>) {
 	if (Exit.isSuccess(exit)) {

@@ -6,9 +6,9 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Api, migrations } from "./feature.ts";
-import { openHost } from "./openHost.ts";
-import { openViewer } from "./openViewer.ts";
+import { Api, migrations } from "#test/live-cost/feature.ts";
+import { openHost } from "#test/live-cost/openHost.ts";
+import { openViewer } from "#test/live-cost/openViewer.ts";
 
 const { url: database } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({ migrations, url: Redacted.make(database ?? "postgresql://disabled") });

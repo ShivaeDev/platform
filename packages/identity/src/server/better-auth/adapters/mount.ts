@@ -3,7 +3,9 @@ import { Effect, Layer, type Scope } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
 import { accountPreferencesStore } from "#server/account-preferences/store.ts";
+import { accountPreferenceOptions } from "#server/better-auth/adapters/accountPreferenceOptions.ts";
 import type { AccountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
+import { acquireAuth } from "#server/better-auth/adapters/acquire.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
 import { closeRoleEndpoints } from "#server/better-auth/adapters/closeRoleEndpoints.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
@@ -16,6 +18,7 @@ import { passwordResetOptions } from "#server/better-auth/adapters/passwordReset
 import { providerOnlyOptions } from "#server/better-auth/adapters/providerOnlyOptions.ts";
 import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
+import { authRouteHandler } from "#server/better-auth/adapters/routeHandler.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { admittedSessions } from "#server/better-auth/admittedSessions.ts";
@@ -27,9 +30,6 @@ import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
-import { accountPreferenceOptions } from "./accountPreferenceOptions.ts";
-import { acquireAuth } from "./acquire.ts";
-import { authRouteHandler } from "./routeHandler.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly accountPreferences?: boolean;

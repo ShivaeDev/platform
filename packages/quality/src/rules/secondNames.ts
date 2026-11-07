@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { importOrigins, originOf } from "./importOrigins.ts";
+import { importOrigins, originOf } from "#rules/importOrigins.ts";
 
 function returned(body: ts.ConciseBody): ts.Expression | undefined {
 	if (!ts.isBlock(body)) {

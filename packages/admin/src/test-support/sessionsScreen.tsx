@@ -5,9 +5,9 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { SessionsScreenApp } from "./SessionsScreenApp.tsx";
-import { sessionsHost } from "./sessionsHost.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { SessionsScreenApp } from "#test/SessionsScreenApp.tsx";
+import { sessionsHost } from "#test/sessionsHost.ts";
 
 type Engine = Effect.Success<ReturnType<typeof sessionsHost>> & { screen: Rendered | undefined };
 

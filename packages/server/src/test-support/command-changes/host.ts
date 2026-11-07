@@ -5,7 +5,7 @@ import { SqlClient } from "effect/sql";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
-import { notes } from "./fixture.ts";
+import { notes } from "#test/command-changes/fixture.ts";
 
 export const host = Effect.fnUntraced(function* (client: PgClient.PgClient, channel: string, faults: { broadcastFails: boolean }) {
 	const reactivity = yield* Reactivity.make;

@@ -1,4 +1,4 @@
-import { sqlTokens, tableAt } from "./sqlTokens.ts";
+import { sqlTokens, tableAt } from "#rules/stories/adapters/sqlTokens.ts";
 
 const TABLE_START = new Set(["from", "join", "update", "into", "table", "truncate", "references", "using"]);
 const TABLE_END = new Set(["where", "group", "order", "having", "limit", "returning", "set", "values", "on", ";"]);

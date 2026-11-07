@@ -1,6 +1,6 @@
 import { Effect, Option, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import type { Holder } from "./holder.ts";
+import type { Holder } from "#holder.ts";
 
 // `ps` prints the start time in the locale's format, so every implementation reads it in the C locale to compare it byte for byte.
 function psStartTime(pid: number) {

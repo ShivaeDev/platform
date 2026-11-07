@@ -2,7 +2,7 @@ import { Clock, Context, DateTime, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { recordLifetime } from "./lifetimeLog.ts";
+import { recordLifetime } from "#test/lifetimeLog.ts";
 
 export class StockLabel extends Context.Service<StockLabel, string>()("@shivaedev/test-story/composition/StockLabel") {}
 

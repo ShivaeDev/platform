@@ -7,8 +7,8 @@ import { deployUpdate } from "#client/deployUpdate.ts";
 import { startHost } from "#test/deploy-update/host.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { changeClient } from "./client.ts";
-import { View } from "./View.tsx";
+import { changeClient } from "#test/undoable-change/client.ts";
+import { View } from "#test/undoable-change/View.tsx";
 
 export const undoableChangeStory = storyKit({
 	*create() {

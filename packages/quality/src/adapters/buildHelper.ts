@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import ts from "typescript";
-import { type BuildBindings, buildEntryValue } from "./buildEntryValue.ts";
-import { importedCall } from "./importedCall.ts";
+import { type BuildBindings, buildEntryValue } from "#adapters/buildEntryValue.ts";
+import { importedCall } from "#adapters/importedCall.ts";
 
 type Helper = ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction;
 

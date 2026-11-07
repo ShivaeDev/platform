@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const timedExports = host.trait("configured", "HTTP requests create named export batches", (state) => {
 	state.routes = HttpRouter.add("GET", "/trace/:name", (incoming) => {

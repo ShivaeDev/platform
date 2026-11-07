@@ -1,7 +1,7 @@
 import { fence } from "#imports/fence.ts";
 import { anyOf, external, folders, modules, packages, scopes } from "#imports/fences/selectors.ts";
-import { fixtureTree } from "./fixtureTree.ts";
-import { repositoryHolds } from "./importStory.ts";
+import { fixtureTree } from "#test/fixtureTree.ts";
+import { repositoryHolds } from "#test/importStory.ts";
 
 export const gameRepository = repositoryHolds(fixtureTree("fence"));
 

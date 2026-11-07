@@ -2,9 +2,9 @@ import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, O
 import { useLayoutEffect } from "react";
 import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { noteQuery } from "./noteQuery.ts";
-import type { routerApp } from "./routerApp.ts";
-import { NoteMissing } from "./routerClient.ts";
+import { noteQuery } from "#test/noteQuery.ts";
+import type { routerApp } from "#test/routerApp.ts";
+import { NoteMissing } from "#test/routerClient.ts";
 
 type Router = ReturnType<typeof routerApp>;
 const noteRoute = getRouteApi<"/notes/$id", Router>("/notes/$id");

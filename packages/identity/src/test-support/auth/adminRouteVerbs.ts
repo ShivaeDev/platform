@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { AdminHost } from "./adminHost.ts";
+import type { AdminHost } from "#test/auth/adminHost.ts";
 
 export function adminRouteVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
 	return {

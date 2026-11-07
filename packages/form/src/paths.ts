@@ -1,5 +1,5 @@
 import { Equal } from "effect";
-import type { Path } from "./shape.ts";
+import type { Path } from "#shape.ts";
 
 export type Key = (element: unknown) => PropertyKey;
 export type KeySelectors = ReadonlyMap<string, Key>;

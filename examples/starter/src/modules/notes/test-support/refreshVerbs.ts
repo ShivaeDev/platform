@@ -3,8 +3,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { screenView } from "#test-support/screenState.ts";
-import type { Screen } from "./screenState.ts";
 
 export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) {
 	return {

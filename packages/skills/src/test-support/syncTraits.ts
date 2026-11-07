@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Path } from "effect";
-import { skills } from "./skills.ts";
+import { skills } from "#test/skills.ts";
 
 export function unreadableSource(name: string) {
 	return skills.trait("changed", `the installed ${name}/SKILL.md cannot be read during copying`, function* ({ installed }) {

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { httpClient, type Send } from "./httpClient.ts";
+import { httpClient, type Send } from "#test/httpClient.ts";
 
 interface Caller {
 	readonly body?: string;

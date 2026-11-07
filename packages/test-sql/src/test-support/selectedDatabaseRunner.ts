@@ -3,8 +3,8 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
 import { runVitest, type VitestRunResult } from "@shivaedev/test/adapters/runVitest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { adminUrl, configured } from "./postgres.ts";
-import type { AppObservation } from "./selectedApp.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
+import type { AppObservation } from "#test/selectedApp.ts";
 
 interface Run {
 	result?: VitestRunResult;

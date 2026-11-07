@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { importedCall } from "./importedCall.ts";
+import { importedCall } from "#adapters/importedCall.ts";
 
 function isImportMeta(node: ts.Expression): boolean {
 	return ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";

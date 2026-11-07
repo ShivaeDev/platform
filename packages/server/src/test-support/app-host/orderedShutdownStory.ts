@@ -6,8 +6,8 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { type OtlpSpan, otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { DRAINING_MILLIS, ShutdownApi } from "#test/app-host/ShutdownApi.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { DRAINING_MILLIS, ShutdownApi } from "./ShutdownApi.ts";
 
 interface OrderedShutdownState {
 	readonly database: Effect.Success<typeof PostgresTestDatabase>;

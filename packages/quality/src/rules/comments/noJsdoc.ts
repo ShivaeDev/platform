@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { defineRule } from "#rule.ts";
-import { isDirective, isJsdoc, isPragma, Pragmas } from "./kinds.ts";
-import { commentsOf } from "./scan.ts";
+import { isDirective, isJsdoc, isPragma, Pragmas } from "#rules/comments/kinds.ts";
+import { commentsOf } from "#rules/comments/scan.ts";
 
 const NoJsdocOptions = Schema.Struct({ allow: Pragmas });
 

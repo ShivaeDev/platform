@@ -1,7 +1,7 @@
 import { Effect, Layer, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { Api } from "./sessionKeysApi.ts";
+import { Api } from "#test/rpc/sessionKeysApi.ts";
 
 export const postChanges = Effect.fnUntraced(function* (url: string, cookie: string) {
 	const protocol = RpcClient.layerProtocolHttp({

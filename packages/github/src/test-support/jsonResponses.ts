@@ -7,8 +7,8 @@ import { GitHubToken } from "#GitHubToken.ts";
 import { GitHub } from "#github/service.ts";
 import { list } from "#list.ts";
 import { read } from "#read.ts";
+import { answered } from "#test/outcome.ts";
 import { write } from "#write.ts";
-import { answered } from "./outcome.ts";
 
 const MEBIBYTE = 1024 * 1024;
 

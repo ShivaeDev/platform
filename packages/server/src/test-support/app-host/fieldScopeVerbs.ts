@@ -1,8 +1,8 @@
 import { Effect, Layer, Option, Result } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { scoped } from "./fieldScopeApi.ts";
-import type { HostState } from "./state.ts";
+import { scoped } from "#test/app-host/fieldScopeApi.ts";
+import type { HostState } from "#test/app-host/state.ts";
 
 export function fieldScopeVerbs(state: HostState, tell: (line: string) => void) {
 	return {

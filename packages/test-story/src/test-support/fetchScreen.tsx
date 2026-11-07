@@ -5,7 +5,7 @@ import { domFetch } from "#server/domFetch.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { domHost } from "#test/domHost.ts";
-import { FetchPage } from "./FetchPage.tsx";
+import { FetchPage } from "#test/FetchPage.tsx";
 
 expectNoReactWarnings();
 

@@ -6,9 +6,9 @@ import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { clientIpHost } from "#test/better-auth/clientIpHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { clientIpHost } from "./clientIpHost.ts";
 
 export const signInLimits = storyKit({
 	around: withIdentityDatabase,

@@ -4,10 +4,10 @@ import { fakeOauthProvider } from "@shivaedev/test-kits/identity/oauth.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { providerOnlyHost } from "#test/better-auth/providerOnlyHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
-import { providerOnlyHost } from "./providerOnlyHost.ts";
 
 interface Engine {
 	cookie: string;

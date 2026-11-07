@@ -17,8 +17,8 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
-import { hostOptions } from "./story.ts";
-import { TypedFailures, typedFailure, typedFailureHandlers } from "./typedFailures.ts";
+import { hostOptions } from "#test/app-host/story.ts";
+import { TypedFailures, typedFailure, typedFailureHandlers } from "#test/app-host/typedFailures.ts";
 
 const { url } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 const Jobs = makePgBoss("test/JobsRedaction");

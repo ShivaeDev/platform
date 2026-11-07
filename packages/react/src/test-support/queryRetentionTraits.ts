@@ -1,8 +1,8 @@
 import type { Effect } from "effect";
 import type { QueryOptions } from "#client/resultState.ts";
-import { openProbe } from "./queryState.ts";
-import { queryStories } from "./queryStories.ts";
-import { queryVerbs } from "./queryVerbs.ts";
+import { openProbe } from "#test/queryState.ts";
+import { queryStories } from "#test/queryStories.ts";
+import { queryVerbs } from "#test/queryVerbs.ts";
 
 export function retention(options: QueryOptions) {
 	return options.keepPreviousData === undefined ? "default retention" : `keepPreviousData ${options.keepPreviousData}`;

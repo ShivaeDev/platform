@@ -3,9 +3,9 @@ import type { HttpRouter } from "effect/http";
 import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
-import { sessions } from "./fixture.ts";
-import { Ping, pingHandlers } from "./ping.ts";
-import { host } from "./story.ts";
+import { sessions } from "#test/app-host/fixture.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { host } from "#test/app-host/story.ts";
 
 export function siblingOrigins(allow: readonly string[], rpcPath: HttpRouter.PathInput = "/rpc") {
 	return host.trait("configured", "identity declares the sibling browser origins", (state) => {

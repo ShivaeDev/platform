@@ -1,8 +1,8 @@
 import { DateTime, Effect, Fiber, Option, Queue, Stream } from "effect";
 import { answered, decodedErrorWords } from "@shivaedev/test-story/server/answers.ts";
 import type { SessionList, SessionListInput } from "#sessions.ts";
-import { type Accounts, type Actor, type Device, deviceOf, headersOf, personOf } from "./fixtures.ts";
-import type { SessionAdminHost } from "./host.ts";
+import { type Accounts, type Actor, type Device, deviceOf, headersOf, personOf } from "#test/session-admin/fixtures.ts";
+import type { SessionAdminHost } from "#test/session-admin/host.ts";
 
 export function sessionAdminVerbs(engine: { accounts: Accounts; host: SessionAdminHost }, story: { tell: (line: string) => void }) {
 	const { accounts, host } = engine;

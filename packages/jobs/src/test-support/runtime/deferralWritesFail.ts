@@ -1,4 +1,4 @@
-import { runtime } from "./kit.ts";
+import { runtime } from "#test/runtime/kit.ts";
 
 export const deferralWritesFail = runtime.trait("client", "the deferral store rejects every write", (engine) => {
 	const db = engine.client.getDb();

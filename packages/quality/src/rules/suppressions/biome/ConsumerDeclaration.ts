@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Declaration } from "./declarations.ts";
+import { Declaration } from "#rules/suppressions/biome/declarations.ts";
 
 const GLOB = /[*!?[\]{}]/u;
 const DIRECTORY = /^\.?[^./\\*!?[\]{}]+$/u;

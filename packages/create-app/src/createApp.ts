@@ -3,11 +3,11 @@ import { basename, join, resolve } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { SecureRandom } from "effect/crypto";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { databaseName } from "./appFiles.ts";
-import { CreateAppError } from "./CreateAppError.ts";
-import { readTemplate, renderTemplate, writeGeneration } from "./generation.ts";
-import { commitGit, initializeGit } from "./initializeGit.ts";
-import { appTemplate } from "./template.ts";
+import { databaseName } from "#appFiles.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { readTemplate, renderTemplate, writeGeneration } from "#generation.ts";
+import { commitGit, initializeGit } from "#initializeGit.ts";
+import { appTemplate } from "#template.ts";
 
 export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	folder: string,

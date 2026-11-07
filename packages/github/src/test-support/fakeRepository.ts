@@ -1,9 +1,9 @@
 import { Clock, Effect, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { artifactFixture } from "./artifactFixture.ts";
-import { type Budget, budgetHeaders } from "./budgetHeaders.ts";
-import { pullRequestWrites } from "./pullRequestWrites.ts";
+import { artifactFixture } from "#test/artifactFixture.ts";
+import { type Budget, budgetHeaders } from "#test/budgetHeaders.ts";
+import { pullRequestWrites } from "#test/pullRequestWrites.ts";
 
 export const DIFF = "diff --git a/README.md b/README.md\n+Widgets\n";
 export const LOGO = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);

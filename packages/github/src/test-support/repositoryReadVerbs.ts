@@ -1,7 +1,7 @@
 import type { Context } from "effect";
 import { Effect, Stream } from "effect";
 import type { GitHub } from "#github/service.ts";
-import { answered } from "./outcome.ts";
+import { answered } from "#test/outcome.ts";
 
 export type RepositoryRead = "authenticated user" | "issue" | "compare" | "tree" | "commit" | "permission" | "user";
 export type RepositoryList = "issues" | "files" | "commits";

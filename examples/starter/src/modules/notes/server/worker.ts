@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
-import { CountWords, NoteJobs } from "./jobs.ts";
-import { NotesRepository } from "./Repository.ts";
+import { CountWords, NoteJobs } from "#modules/notes/server/jobs.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
 
 const countWords = CountWords.handle(({ noteId }) =>
 	Effect.gen(function* () {

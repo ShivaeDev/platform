@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { scriptProcess } from "./scriptProcess.ts";
+import { scriptProcess } from "#test/scriptProcess.ts";
 
 interface Engine {
 	greeting: string | undefined;

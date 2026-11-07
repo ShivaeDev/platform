@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { model } from "#test/late-save/model.ts";
+import { Create, Editor } from "#test/late-save/view.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { model } from "./model.ts";
-import { Create, Editor } from "./view.tsx";
 
 interface State {
 	readonly model: ReturnType<typeof model>;

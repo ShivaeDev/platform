@@ -1,8 +1,8 @@
 import { Clock, Effect } from "effect";
 import { TestClock } from "effect/testing";
+import { type State, settle } from "#test/notices/state.ts";
+import { interruptsUndo } from "#test/notices/verbs.tsx";
 import type { Screen } from "#test/Screen.ts";
-import { type State, settle } from "./state.ts";
-import { interruptsUndo } from "./verbs.tsx";
 
 export function advance(state: State, screen: Screen, millis: number) {
 	const clock = state.clock;

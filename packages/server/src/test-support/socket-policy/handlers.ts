@@ -3,8 +3,8 @@ import { Migrator, SqlClient } from "effect/sql";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { Api, List, lists, Note, notes } from "#test/socket-policy/feature.ts";
 import { roleView } from "#test/socket-policy/role/service.ts";
-import { Api, List, lists, Note, notes } from "./feature.ts";
 
 export const migrations = {
 	loader: Migrator.fromRecord({

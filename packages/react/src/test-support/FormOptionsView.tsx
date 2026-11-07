@@ -6,7 +6,7 @@ import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { FieldFailure, Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
-import { Answers, initialValues, type Kind, query, saveAnswers, TitleCheck } from "./formOptionsModel.ts";
+import { Answers, initialValues, type Kind, query, saveAnswers, TitleCheck } from "#test/formOptionsModel.ts";
 
 interface Props {
 	readonly kind: Kind;

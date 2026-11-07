@@ -14,9 +14,9 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { Access } from "./Access.ts";
-import { clientRuntime } from "./clientRuntime.ts";
-import { collectionPage, Workspace, workspaces } from "./collectionPage.ts";
+import { Access } from "#test/Access.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
+import { collectionPage, Workspace, workspaces } from "#test/collectionPage.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({

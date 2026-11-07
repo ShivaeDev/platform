@@ -8,10 +8,10 @@ import { services } from "#cli/runMain.ts";
 import { loadConfig } from "#config/load.ts";
 import type { Findings } from "#rule.ts";
 import { biome } from "#rules/biome.ts";
+import { pluginOf } from "#test/namingFindings.ts";
 import { scanned } from "#testing/adapters/imports.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { locationOf } from "#testing/ruleStory.ts";
-import { pluginOf } from "./namingFindings.ts";
 
 interface BiomeEngine {
 	findings: Findings | undefined;

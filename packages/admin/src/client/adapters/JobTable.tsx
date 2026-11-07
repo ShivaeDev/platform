@@ -1,8 +1,8 @@
 import { Predicate } from "effect";
 import type { ReactNode } from "react";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
-import { JobButton } from "./JobButton.tsx";
-import type { AdminJob } from "./jobsTypes.ts";
+import { JobButton } from "#client/adapters/JobButton.tsx";
+import type { AdminJob } from "#client/adapters/jobsTypes.ts";
 
 interface JobTableProps {
 	readonly jobs: readonly AdminJob[];

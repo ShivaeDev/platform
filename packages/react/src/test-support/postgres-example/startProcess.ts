@@ -1,8 +1,8 @@
 import { fork } from "node:child_process";
 import { once } from "node:events";
 import { Schema } from "effect";
-import { type Configuration, Response } from "./processProtocol.ts";
-import { recorded } from "./recorded.ts";
+import { type Configuration, Response } from "#test/postgres-example/processProtocol.ts";
+import { recorded } from "#test/postgres-example/recorded.ts";
 
 export async function startProcess(configuration: Configuration) {
 	const child = fork(new URL("./process.ts", import.meta.url), [JSON.stringify(configuration)], {

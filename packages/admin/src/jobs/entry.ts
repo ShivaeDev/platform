@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
-import type { JobsQueue } from "./schemas.ts";
+import type { JobsQueue } from "#jobs/schemas.ts";
 
 export type JobsEntry = (JobsQueue | { readonly name: string; readonly scheduleOptions?: { readonly key?: string } }) & QueueDisplay;
 

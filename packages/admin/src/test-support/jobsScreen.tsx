@@ -7,10 +7,10 @@ import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { JobsView } from "#client/adapters/JobsView.ts";
-import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { idOf, named } from "./jobsNames.ts";
-import { Mail, pages } from "./jobsPages.ts";
-import { type JobsScreenEngine, jobsReadouts, screenOf } from "./jobsScreenReadouts.ts";
+import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { idOf, named } from "#test/jobsNames.ts";
+import { Mail, pages } from "#test/jobsPages.ts";
+import { type JobsScreenEngine, jobsReadouts, screenOf } from "#test/jobsScreenReadouts.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

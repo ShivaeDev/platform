@@ -4,13 +4,13 @@ import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { Identity, type ProviderAccountValue, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
+import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
-import { Identity, type ProviderAccountValue, SessionUser, SessionUserWithProviderAccounts } from "./identity.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "./middleware.ts";
 
 const Profile = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String })).middleware(AuthenticatedUser);
 const handlers: Layer.Layer<never> = Profile.toLayer({

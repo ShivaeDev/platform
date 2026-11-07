@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
-import { Settings } from "./contract.ts";
-import { owned } from "./owned.ts";
-import { SettingsRepository } from "./repository.ts";
-import { unavailable } from "./unavailable.ts";
+import { Settings } from "#test/settings-example/contract.ts";
+import { owned } from "#test/settings-example/owned.ts";
+import { SettingsRepository } from "#test/settings-example/repository.ts";
+import { unavailable } from "#test/settings-example/unavailable.ts";
 
 function failUnavailable() {
 	return Effect.fail(unavailable());

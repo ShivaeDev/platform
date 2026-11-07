@@ -9,8 +9,8 @@ import { compareQueries } from "#compareQueries.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { ResumeSource } from "#resume.ts";
-import { Notes } from "./notes.ts";
-import type { notesServer } from "./notesServer.ts";
+import { Notes } from "#test/notes.ts";
+import type { notesServer } from "#test/notesServer.ts";
 
 export function automaticResumeClient(server: Effect.Success<typeof notesServer>, runtime: Atom.RuntimeFactory, resume?: ResumeSource) {
 	const opened = Effect.runSync(SubscriptionRef.make(0));

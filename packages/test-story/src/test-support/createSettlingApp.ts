@@ -1,5 +1,5 @@
 import { Deferred, Effect, SubscriptionRef } from "effect";
-import { activityPageClient } from "./activityPageView.ts";
+import { activityPageClient } from "#test/activityPageView.ts";
 
 export const createSettlingApp = Effect.fn("Story.createSettlingApp")(function* (url: string) {
 	const preview = yield* Deferred.make<void>();

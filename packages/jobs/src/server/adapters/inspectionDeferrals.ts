@@ -1,8 +1,8 @@
 import { DateTime, Effect } from "effect";
+import { inspectionJobs } from "#server/adapters/inspectionJobs.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { deferralOf } from "#server/deferral.ts";
 import type { QueueDefinition } from "#server/definition.ts";
-import { inspectionJobs } from "./inspectionJobs.ts";
 
 export function inspectionDeferrals(client: PgBossClient) {
 	const { storedJobs } = inspectionJobs(client);

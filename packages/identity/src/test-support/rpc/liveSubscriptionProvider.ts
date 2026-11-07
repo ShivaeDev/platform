@@ -7,7 +7,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { ORIGIN } from "./harness.ts";
+import { ORIGIN } from "#test/rpc/harness.ts";
 
 export const ReadDocuments = permission("documents.read");
 export const DocumentRoles = roleSet(role("reader", [ReadDocuments]), role("guest", []), role("editor", [ReadDocuments]));

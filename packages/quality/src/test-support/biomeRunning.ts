@@ -1,6 +1,6 @@
 import { Deferred, Effect, Predicate } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
-import { qualityLifecycle, startQuality } from "./qualityLifecycle.ts";
+import { qualityLifecycle, startQuality } from "#test/qualityLifecycle.ts";
 
 function biomeCheckArgs(command: ChildProcess.Command): readonly string[] | undefined {
 	const args = command._tag === "StandardCommand" ? command.args.filter(Predicate.isString) : [];

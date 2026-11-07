@@ -1,8 +1,8 @@
 import { DateTime, Effect, Stream } from "effect";
 import type { HttpClientResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, type RemoteStatusError, RemoteUnauthorized } from "./errors.ts";
-import { parseRetryAfter } from "./parseRetryAfter.ts";
+import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, type RemoteStatusError, RemoteUnauthorized } from "#errors.ts";
+import { parseRetryAfter } from "#parseRetryAfter.ts";
 
 export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse) {
 	const { status, request } = response;

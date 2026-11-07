@@ -1,6 +1,6 @@
 import { Cause, Deferred, Effect, Exit, Fiber, FileSystem } from "effect";
 import { tryAcquire } from "#lockFile.ts";
-import { type Lock, makeHolder } from "./lock.ts";
+import { type Lock, makeHolder } from "#test/lock.ts";
 
 export function draft(engine: Lock, tell: (line: string) => void) {
 	let writing: Fiber.Fiber<unknown, unknown> | undefined;

@@ -1,6 +1,6 @@
 import { type Duration, type Effect, Redacted } from "effect";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
-import type { emailHost } from "./emailHost.ts";
+import type { emailHost } from "#test/better-auth/emailHost.ts";
 
 export interface EmailEngine {
 	headers: Headers;

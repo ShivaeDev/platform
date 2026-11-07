@@ -1,7 +1,7 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer, Queue, Stream } from "effect";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { Notes } from "./feature.ts";
+import { Notes } from "#test/live-cost/feature.ts";
 
 export const openViewer = Effect.fnUntraced(function* (url: string, viewer: number, count: number) {
 	const protocol = RpcClient.layerProtocolSocket().pipe(

@@ -1,6 +1,6 @@
 import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anyOf, external, files, folders, modules, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
-import serverManifest from "./package.json" with { type: "json" };
+import serverManifest from "#manifest" with { type: "json" };
 
 const SERVER_OPTIONAL_PEERS = Object.entries(serverManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)

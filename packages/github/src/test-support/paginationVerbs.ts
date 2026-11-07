@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { FakeRepository } from "./fakeRepository.ts";
+import type { FakeRepository } from "#test/fakeRepository.ts";
 
 export function paginationVerbs({ server, state }: FakeRepository, tell: (line: string) => void) {
 	return {

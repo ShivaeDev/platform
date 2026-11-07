@@ -2,11 +2,11 @@ import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "ef
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
-import { PostgresChangeListener } from "./PostgresChangeListener.ts";
-import { PostgresChangeResync } from "./PostgresChangeResync.ts";
-import { PostgresListenerError } from "./PostgresListenerError.ts";
-import type { PostgresChangesOptions } from "./postgresChanges.ts";
+import { decodeKeys, resyncPayload } from "#notifyPayload.ts";
+import { PostgresChangeListener } from "#PostgresChangeListener.ts";
+import { PostgresChangeResync } from "#PostgresChangeResync.ts";
+import { PostgresListenerError } from "#PostgresListenerError.ts";
+import type { PostgresChangesOptions } from "#postgresChanges.ts";
 
 function listenerScope(timeout: Duration.Input) {
 	// Release the native connection alongside listener cleanup, even when a listener finalizer stalls.

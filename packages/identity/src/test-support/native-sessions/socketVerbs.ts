@@ -2,9 +2,9 @@ import { Deferred, Effect, Fiber, Option, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { answerOf } from "@shivaedev/test-story/server/answers.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import { type Host, REVALIDATION_INTERVAL } from "./host.ts";
-import { type Account, authRequest } from "./requests.ts";
-import { openProfile, type ProfileSocket, rejectedFrame } from "./socketClient.ts";
+import { type Host, REVALIDATION_INTERVAL } from "#test/native-sessions/host.ts";
+import { type Account, authRequest } from "#test/native-sessions/requests.ts";
+import { openProfile, type ProfileSocket, rejectedFrame } from "#test/native-sessions/socketClient.ts";
 
 export function socketVerbs(host: Host, account: (name: string) => Account, tell: (line: string) => void) {
 	const sockets = new Map<string, ProfileSocket>();

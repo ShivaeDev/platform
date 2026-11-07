@@ -1,7 +1,7 @@
 import type { Page } from "playwright";
+import { attempt } from "#adapters/attempt.ts";
+import { watchSocket } from "#adapters/watchSocket.ts";
 import type { BrowserPage } from "#BrowserPage.ts";
-import { attempt } from "./attempt.ts";
-import { watchSocket } from "./watchSocket.ts";
 
 export function pageAdapter(page: Page): BrowserPage {
 	page.setDefaultTimeout(5000);

@@ -5,7 +5,7 @@ import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adap
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { useSubmit } from "#adapters/react.ts";
 import { form } from "#form.ts";
-import { Passwords } from "./schemaMessages.ts";
+import { Passwords } from "#test/schemaMessages.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

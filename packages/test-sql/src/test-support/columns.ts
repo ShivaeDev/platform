@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makePostgresTestLayer } from "#server/postgres.ts";
 import { tableColumns } from "#server/tableColumns.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import { adminUrl, configured } from "./postgres.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
 
 export const columns = storyKit({
 	around: withIsolatedDatabase,

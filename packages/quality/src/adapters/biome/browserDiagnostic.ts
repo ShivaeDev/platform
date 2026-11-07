@@ -1,7 +1,7 @@
 import bcd from "@mdn/browser-compat-data" with { type: "json" };
 import type { BrowserName, CompatStatement, Identifier, SimpleSupportStatement } from "@mdn/browser-compat-data/types";
+import { browserTargets } from "#adapters/biome/browserTargets.ts";
 import type { Diagnostic } from "#biome/report.ts";
-import { browserTargets } from "./browserTargets.ts";
 
 const BROWSERS: Readonly<Record<string, BrowserName>> = {
 	"and_chr": "chrome_android",

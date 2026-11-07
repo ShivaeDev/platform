@@ -1,9 +1,9 @@
 import type { Clock } from "effect";
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
+import type { NoticeScreen } from "#test/notices/view.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import type { NoticeScreen } from "./view.tsx";
 
 export interface State {
 	clock?: Clock.Clock;

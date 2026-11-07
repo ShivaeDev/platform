@@ -1,8 +1,8 @@
 import { Effect, Exit, Scope } from "effect";
 import { type StoryKit, storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type EngineServices, onPostgresClients, onSqlite } from "./engines.ts";
-import { type Database, type TransactionEngine, transactionEngine } from "./transactionEngine.ts";
-import { transactionVerbs } from "./transactionVerbs.ts";
+import { type EngineServices, onPostgresClients, onSqlite } from "#test/engines.ts";
+import { type Database, type TransactionEngine, transactionEngine } from "#test/transactionEngine.ts";
+import { transactionVerbs } from "#test/transactionVerbs.ts";
 
 function inspect(engine: TransactionEngine) {
 	return { announced: engine.announced, logs: engine.logs };

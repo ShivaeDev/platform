@@ -1,7 +1,7 @@
 import { contract } from "@shivaedev/contract/contract.ts";
 import { type AdminRoute, adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
-import { Profile } from "./pages.ts";
+import { Profile } from "#test/pages.ts";
 
 export type RoutePaths = Pick<AdminRoute, "path" | "detail">;
 

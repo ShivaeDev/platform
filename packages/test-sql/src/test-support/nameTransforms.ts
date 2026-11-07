@@ -10,9 +10,9 @@ import { assertModelColumns } from "#server/assertModelColumns.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { tableColumns } from "#server/tableColumns.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import { createDatabaseEngine } from "./databaseEngine.ts";
-import { failureOf } from "./outcome.ts";
-import { adminUrl, configured } from "./postgres.ts";
+import { createDatabaseEngine } from "#test/databaseEngine.ts";
+import { failureOf } from "#test/outcome.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
 
 class NamedRow extends Model.Class<NamedRow>("NamedRow")({ id: Schema.Int, runId: Schema.String }) {}
 

@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
-import { Create, Edit, Guard, lists, records, Timeline, TimelineData, Unavailable } from "./derivedReadsContract.ts";
+import { Create, Edit, Guard, lists, records, Timeline, TimelineData, Unavailable } from "#test/derivedReadsContract.ts";
 
 const Leave = command("leave", {
 	invalidates: ({ scope }) => [lists.bucket.scope(scope)],

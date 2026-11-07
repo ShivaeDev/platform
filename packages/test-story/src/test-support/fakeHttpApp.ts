@@ -2,7 +2,7 @@ import { Effect, Exit, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { httpClient } from "./httpClient.ts";
+import { httpClient } from "#test/httpClient.ts";
 
 const routes = {
 	contents: {

@@ -1,9 +1,9 @@
 import { Deferred, Effect, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { Rejected } from "./contract.ts";
-import { makeClient } from "./makeClient.ts";
-import { type ServerOptions, startServer } from "./server.ts";
-import { call, mountView } from "./view.tsx";
+import { Rejected } from "#test/postgres-example/contract.ts";
+import { makeClient } from "#test/postgres-example/makeClient.ts";
+import { type ServerOptions, startServer } from "#test/postgres-example/server.ts";
+import { call, mountView } from "#test/postgres-example/view.tsx";
 
 function start(databaseUrl: Redacted.Redacted<string>, options: ServerOptions) {
 	return Effect.acquireRelease(

@@ -3,9 +3,9 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseUrl, hasPostgres } from "#test/order-example/postgres.ts";
-import { holdPrivateSave, openPrivateCluster, privateVerbs } from "./privateCluster.ts";
-import { createProcesses, openCluster } from "./processEngine.ts";
-import { processVerbs } from "./processVerbs.ts";
+import { holdPrivateSave, openPrivateCluster, privateVerbs } from "#test/postgres-example/privateCluster.ts";
+import { createProcesses, openCluster } from "#test/postgres-example/processEngine.ts";
+import { processVerbs } from "#test/postgres-example/processVerbs.ts";
 
 export const processes = storyKit({
 	around: withIsolatedDatabase,

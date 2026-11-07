@@ -7,9 +7,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { testPoolSizes } from "./poolSizes.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const worker = storyKit({
 	around: withIsolatedDatabase,

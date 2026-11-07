@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthActionResult } from "#client/adapters/authCall.ts";
 import { PermissionSession } from "#PermissionSession.ts";
-import type { AuthActionResult } from "./authCall.ts";
 
 export type SessionWithPermissions<A> = A extends null ? null : A & PermissionSession;
 

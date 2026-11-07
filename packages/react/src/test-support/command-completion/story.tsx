@@ -3,11 +3,11 @@ import { startTransition } from "react";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { completionClient, Rejected } from "#test/command-completion/client.ts";
+import { type CompletionScreen, CompletionView } from "#test/command-completion/view.tsx";
 import { timesWords } from "#test/outcomeWords.ts";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
-import { completionClient, Rejected } from "./client.ts";
-import { type CompletionScreen, CompletionView } from "./view.tsx";
 
 type Title = "first" | "second";
 

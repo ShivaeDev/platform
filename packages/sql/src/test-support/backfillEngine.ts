@@ -1,7 +1,7 @@
 import { Context, Data, Deferred, Effect, type Fiber, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres } from "#migrations.ts";
-import { postgresLayer } from "./postgres.ts";
+import { postgresLayer } from "#test/postgres.ts";
 
 export class ProgressRejected extends Data.TaggedError("ProgressRejected") {}
 

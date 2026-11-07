@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { sharedErrorFiles } from "#test/sharedErrorFiles.ts";
-import { sharedErrorClasses } from "./sharedErrorClasses.ts";
 
 const sharedErrors = [
 	effectResolves(),

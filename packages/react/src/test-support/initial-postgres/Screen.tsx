@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useQuery } from "#client/resultState.ts";
-import type { Query } from "./readouts.ts";
+import type { Query } from "#test/initial-postgres/readouts.ts";
 
 export function Screen({ query: atom }: { readonly query: Query }) {
 	const query = useQuery(atom);

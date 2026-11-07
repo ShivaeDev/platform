@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { importedChangeKeys } from "#rules/stories/importedChangeKeys.ts";
 import { changeKeyConsumer, changeKeysResolve, orderKeys } from "#test/changeKeys.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { importedChangeKeys } from "./importedChangeKeys.ts";
 
 const packages = [effectResolves(), changeKeysResolve()];
 

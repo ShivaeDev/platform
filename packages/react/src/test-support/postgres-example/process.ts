@@ -1,9 +1,9 @@
 import process from "node:process";
 import { Deferred, Effect, Logger, Schema } from "effect";
-import { Rejected } from "./contract.ts";
-import { Configuration, Message, type Response } from "./processProtocol.ts";
-import { startServer } from "./server.ts";
-import { startWorker } from "./startWorker.ts";
+import { Rejected } from "#test/postgres-example/contract.ts";
+import { Configuration, Message, type Response } from "#test/postgres-example/processProtocol.ts";
+import { startServer } from "#test/postgres-example/server.ts";
+import { startWorker } from "#test/postgres-example/startWorker.ts";
 
 function send(response: Response) {
 	process.send?.(response);

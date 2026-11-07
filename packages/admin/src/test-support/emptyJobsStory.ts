@@ -13,8 +13,8 @@ import { jobsPage } from "#jobs/page.ts";
 import { adminRegistry } from "#registry.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { Access } from "./Access.ts";
-import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
+import { Access } from "#test/Access.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 
 const Jobs = makePgBoss("test/EmptyAdminJobs");
 const emptyJobsEngine = Effect.gen(function* () {

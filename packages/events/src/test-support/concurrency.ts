@@ -4,7 +4,7 @@ import { transact } from "@shivaedev/sql/transact.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
 import { AlreadyDone, StreamConflict } from "#errors.ts";
-import type { NoteEngine } from "./notes.ts";
+import type { NoteEngine } from "#test/notes.ts";
 
 export function outcome<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return effect.pipe(

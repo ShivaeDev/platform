@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { querySignals } from "#querySignals.ts";
-import { settled } from "./settled.ts";
+import { settled } from "#test/settled.ts";
 
 export interface Mark {
 	readonly completed: number;

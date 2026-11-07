@@ -19,12 +19,12 @@ import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { NotesScreen } from "#modules/notes/client/Screen.tsx";
+import { notesClient } from "#modules/notes/test-support/client.ts";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
+import type { Screen } from "#modules/notes/test-support/screenState.ts";
+import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen } from "#test-support/screenState.ts";
-import { notesClient } from "./client.ts";
-import type { Screen } from "./screenState.ts";
-import { settleQuery } from "./settleQuery.ts";
 
 export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
 	engine.client.session.signedIn = signedIn;

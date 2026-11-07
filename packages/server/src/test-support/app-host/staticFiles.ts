@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AssetOptions } from "#AssetOptions.ts";
-import { staticAssets } from "./fixture.ts";
-import { io } from "./state.ts";
-import { host } from "./story.ts";
+import { staticAssets } from "#test/app-host/fixture.ts";
+import { io } from "#test/app-host/state.ts";
+import { host } from "#test/app-host/story.ts";
 
 export function staticFiles(options: Omit<AssetOptions, "root"> = {}, shorthand = false) {
 	return host.trait("configured", "the host serves documents and fingerprinted and unversioned assets", (state) =>

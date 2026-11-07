@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { app } from "./app.ts";
-import type { Application } from "./applicationEngine.ts";
-import { openScreen, openScreens } from "./screens.ts";
-import { settleOrders } from "./screenVerbs.ts";
-import { seedOrder } from "./seed.ts";
-import { orderVerbs } from "./verbs.ts";
+import { app } from "#test/order-example/app.ts";
+import type { Application } from "#test/order-example/applicationEngine.ts";
+import { openScreen, openScreens } from "#test/order-example/screens.ts";
+import { settleOrders } from "#test/order-example/screenVerbs.ts";
+import { seedOrder } from "#test/order-example/seed.ts";
+import { orderVerbs } from "#test/order-example/verbs.ts";
 
 function quiet() {
 	return undefined;

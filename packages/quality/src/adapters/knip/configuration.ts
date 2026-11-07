@@ -1,12 +1,12 @@
 import { posix } from "node:path";
 import { isToolConfig } from "#adapters/isToolConfig.ts";
+import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
+import { mockEntries } from "#adapters/knip/mockEntries.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
-import { KNIP_ISSUES } from "./findings.ts";
-import { mockEntries } from "./mockEntries.ts";
 
 const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}", "src/test-support/**", "*.config.{ts,mts,cts,js,mjs,cjs}"];
 

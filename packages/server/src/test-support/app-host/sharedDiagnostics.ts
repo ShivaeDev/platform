@@ -1,6 +1,6 @@
 import { Cause, Effect, ErrorReporter, Layer } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const sharedDiagnostics = host.trait("configured", "a route reports database and URL diagnostics to every sink", (state) => {
 	const values = {

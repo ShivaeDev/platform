@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Data, Effect, Option } from "effect";
 import type { Model } from "effect/schema";
 import { modelColumnProblems } from "#server/modelColumnProblems.ts";
-import type { PostgresColumn } from "./tableColumns.ts";
+import type { PostgresColumn } from "#server/tableColumns.ts";
 
 export class ModelColumnMismatch extends Data.TaggedError("ModelColumnMismatch")<{
 	readonly problems: readonly string[];

@@ -11,9 +11,9 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
+import { host } from "#test/command-changes/host.ts";
+import { viewerFixture } from "#test/command-changes/viewerFixture.ts";
 import { completePublication } from "#test/completePublication.ts";
-import { host } from "./host.ts";
-import { viewerFixture } from "./viewerFixture.ts";
 
 const { url } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({

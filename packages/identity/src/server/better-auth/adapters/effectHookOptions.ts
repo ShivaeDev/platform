@@ -1,7 +1,7 @@
 import type { BetterAuthOptions, GenericEndpointContext } from "better-auth";
 import type { Effect } from "effect";
+import type { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import type { BetterAuthDatabaseHooks, BetterAuthHookError } from "#server/better-auth/databaseHooks.ts";
-import type { hookRuntime } from "./hookRuntime.ts";
 
 type SessionCreate = NonNullable<NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["session"]>["create"]>;
 type HookResult = Awaited<ReturnType<NonNullable<SessionCreate["before"]>>>;

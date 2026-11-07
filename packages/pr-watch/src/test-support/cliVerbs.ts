@@ -3,9 +3,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { WatchEvent } from "#outputEvent.ts";
-import { type Engine, programArguments } from "./engine.ts";
-import { REPOSITORY } from "./githubModel.ts";
-import { described } from "./readouts.ts";
+import { type Engine, programArguments } from "#test/engine.ts";
+import { REPOSITORY } from "#test/githubModel.ts";
+import { described } from "#test/readouts.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 

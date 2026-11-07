@@ -1,9 +1,9 @@
 import { Clock, Duration, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { program } from "#program.ts";
-import { type Engine, programArguments } from "./engine.ts";
-import { clockTime, cooldown, healthOf, heartbeat } from "./readouts.ts";
-import { diagnosticTo } from "./watcherVerbs.ts";
+import { type Engine, programArguments } from "#test/engine.ts";
+import { clockTime, cooldown, healthOf, heartbeat } from "#test/readouts.ts";
+import { diagnosticTo } from "#test/watcherVerbs.ts";
 
 function withArguments(extra: readonly string[]) {
 	return extra.length === 0 ? "" : ` with ${extra.join(" ")}`;

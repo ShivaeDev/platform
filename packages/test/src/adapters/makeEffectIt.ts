@@ -4,6 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Scope from "effect/Scope";
+import { runEffectTest } from "#adapters/runEffectTest.ts";
 import { effectOf } from "#effectOf.ts";
 import type {
 	AnyTestLayer,
@@ -16,7 +17,6 @@ import type {
 	MakeEffectItResult,
 } from "#types.ts";
 import { withLive } from "#withLive.ts";
-import { runEffectTest } from "./runEffectTest.ts";
 
 const FIXTURE_NAME = "__effectTestContext";
 

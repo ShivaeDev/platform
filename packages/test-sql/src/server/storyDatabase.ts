@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { PostgresTestDatabase, type PostgresTestTemplate } from "./database.ts";
+import { PostgresTestDatabase, type PostgresTestTemplate } from "#server/database.ts";
 
 export const storyDatabase = Effect.fn("PostgresTest.storyDatabase")(function* (options?: { readonly template?: PostgresTestTemplate }) {
 	const database = yield* PostgresTestDatabase;

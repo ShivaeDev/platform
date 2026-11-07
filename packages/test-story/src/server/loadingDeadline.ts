@@ -1,6 +1,6 @@
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
-import { waitForScreen } from "./waitForScreen.ts";
+import { waitForScreen } from "#server/waitForScreen.ts";
 
 export const loadingDeadline = Effect.fnUntraced(function* <A>(
 	root: () => HTMLElement,

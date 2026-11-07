@@ -1,10 +1,10 @@
 import { Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { appHost } from "#appDatabase.ts";
-import { serverOffersTls } from "./connectionSecurity.ts";
-import { Ping, pingHandlers } from "./ping.ts";
-import { databaseOf } from "./state.ts";
-import { postgresHost } from "./story.ts";
+import { serverOffersTls } from "#test/app-host/connectionSecurity.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { databaseOf } from "#test/app-host/state.ts";
+import { postgresHost } from "#test/app-host/story.ts";
 
 export function databaseConnection(mode: "require" | undefined) {
 	return postgresHost.trait("configured", `the database connection uses sslmode=${mode ?? "unset"}`, function* (state) {

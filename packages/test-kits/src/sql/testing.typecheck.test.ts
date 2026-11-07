@@ -6,7 +6,7 @@ import { expectTypeOf } from "vitest";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { changes } from "@shivaedev/sql/changes.ts";
 import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
-import { expectPublished, type PublishedKeysMismatch, type UnannouncedWrites, withChangeCoverage } from "./testing.ts";
+import { expectPublished, type PublishedKeysMismatch, type UnannouncedWrites, withChangeCoverage } from "#sql/testing.ts";
 
 const notes = collection("notes", Schema.Number, { listId: Schema.Number });
 const moved = changes({ notes: [notes.item(1), notes.bucket.listId(2)] });

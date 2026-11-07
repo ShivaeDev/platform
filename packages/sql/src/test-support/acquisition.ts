@@ -3,10 +3,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgresLayer } from "#postgresLayer.ts";
+import { outcomeOf } from "#test/outcome.ts";
+import { configured, postgresOptions } from "#test/postgres.ts";
+import { onSqlError } from "#test/transactionEngine.ts";
 import { transact } from "#transact.ts";
-import { outcomeOf } from "./outcome.ts";
-import { configured, postgresOptions } from "./postgres.ts";
-import { onSqlError } from "./transactionEngine.ts";
 
 const create = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

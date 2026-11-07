@@ -11,8 +11,8 @@ import {
 	REQUIRED_CHECKS,
 	type Reply,
 	statusRoute,
-} from "./githubModel.ts";
-import type { FakeGitHub } from "./server.ts";
+} from "#test/githubModel.ts";
+import type { FakeGitHub } from "#test/server.ts";
 
 export interface Change {
 	readonly apply: (github: FakeGitHub) => void;

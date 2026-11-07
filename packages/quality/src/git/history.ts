@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type { SetupFailure } from "#failure.ts";
-import { gitOrFail } from "./command.ts";
+import { gitOrFail } from "#git/command.ts";
 
 export interface Changes {
 	readonly files: ReadonlySet<string>;

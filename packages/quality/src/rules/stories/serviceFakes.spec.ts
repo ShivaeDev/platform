@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
+import { adapterOnlyFakes } from "#rules/stories/adapterOnlyFakes.ts";
 import { fakeRepository, fakeSpec } from "#test/fakeRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { adapterOnlyFakes } from "./adapterOnlyFakes.ts";
 
 for (const replacement of [
 	'import { Layer } from "effect"; Layer.succeed(Orders, {});',

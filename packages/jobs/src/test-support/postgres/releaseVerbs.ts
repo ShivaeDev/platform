@@ -1,5 +1,5 @@
 import { Effect, Fiber } from "effect";
-import type { DatabaseEngine } from "./databaseEngine.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 
 type Tell = (line: string) => void;
 

@@ -3,7 +3,7 @@ import { Effect, FileSystem, Schema } from "effect";
 import type { Task } from "#adapters/tasks.ts";
 import { failWith } from "#error.ts";
 import { FlakyTest } from "#flakyTests.ts";
-import { SnapshotFiles } from "./SnapshotFiles.ts";
+import { SnapshotFiles } from "#SnapshotFiles.ts";
 
 const FailureHistorySchema = Schema.Struct({
 	attempts: Schema.Number,

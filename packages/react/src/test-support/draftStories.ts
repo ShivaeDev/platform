@@ -1,10 +1,10 @@
 import { Deferred, Effect } from "effect";
 import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { draftStorage } from "./draftStorage.ts";
-import { type Config, current, draftVerbs, type Field, fields, type SaveMode, type State } from "./draftVerbs.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { draftStorage } from "#test/draftStorage.ts";
+import { type Config, current, draftVerbs, type Field, fields, type SaveMode, type State } from "#test/draftVerbs.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 draftStorage();
 

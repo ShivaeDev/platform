@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Effect } from "effect";
-import { readTemplate } from "./generation.ts";
-import { checkedProcess } from "./runProcess.ts";
+import { readTemplate } from "#generation.ts";
+import { checkedProcess } from "#runProcess.ts";
 
 export const historicalTemplate = Effect.fn("CreateApp.historicalTemplate")(function* (directory: string, version: string) {
 	const archive = (yield* checkedProcess(directory, "npm", [

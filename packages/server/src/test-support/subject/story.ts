@@ -7,7 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { close, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost, type HostState } from "#test/app-host/state.ts";
-import { Api, CannotActForAccount, type State, subjectHost } from "./feature.ts";
+import { Api, CannotActForAccount, type State, subjectHost } from "#test/subject/feature.ts";
 
 function httpClient(url: string, actor?: string, subject?: string) {
 	const headers = { ...(actor === undefined ? {} : { authorization: actor }), ...(subject === undefined ? {} : { "x-platform-subject": subject }) };

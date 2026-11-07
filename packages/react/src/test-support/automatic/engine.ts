@@ -2,12 +2,12 @@ import { Effect, Redacted } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { type WatchedClock, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
+import { notifications } from "#test/automatic/notifications.ts";
+import { openHost } from "#test/automatic/openHost.ts";
+import { openScreen } from "#test/automatic/openScreen.tsx";
+import { openWorker } from "#test/automatic/openWorker.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { notifications } from "./notifications.ts";
-import { openHost } from "./openHost.ts";
-import { openScreen } from "./openScreen.tsx";
-import { openWorker } from "./openWorker.ts";
 
 export function busy(container: HTMLElement) {
 	return container.querySelector('[data-pending="true"]') !== null || container.textContent?.includes("Loading") === true;

@@ -3,11 +3,11 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import type { OriginPolicy } from "#server/origin.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
-import { makeApp } from "./api.ts";
-import { createProvider, mintSession, ORIGIN } from "./harness.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
-import { type Engine, type OriginName, origins, type Person, transportHeaders } from "./sessionModel.ts";
-import { sessionVerbs } from "./sessionVerbs.ts";
+import { makeApp } from "#test/rpc/api.ts";
+import { createProvider, mintSession, ORIGIN } from "#test/rpc/harness.ts";
+import { databaseUrl, postgres } from "#test/rpc/postgres.ts";
+import { type Engine, type OriginName, origins, type Person, transportHeaders } from "#test/rpc/sessionModel.ts";
+import { sessionVerbs } from "#test/rpc/sessionVerbs.ts";
 
 const browser = trustedOrigins({ allow: [ORIGIN, origins["the Capacitor shell"]], missing: "reject" });
 

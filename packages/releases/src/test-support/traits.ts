@@ -1,9 +1,9 @@
 import { Effect, FileSystem } from "effect";
 import { ChangesetError } from "#error.ts";
 import { git } from "#git.ts";
-import { CORE, changeset as changesetText, FEATURE_NOTE, HISTORY, runCli, write } from "./fixture.ts";
-import { editManifest, manifestOf, manifests, rangeOn } from "./manifests.ts";
-import { workspace } from "./workspace.ts";
+import { CORE, changeset as changesetText, FEATURE_NOTE, HISTORY, runCli, write } from "#test/fixture.ts";
+import { editManifest, manifestOf, manifests, rangeOn } from "#test/manifests.ts";
+import { workspace } from "#test/workspace.ts";
 
 type Bumps = Readonly<Record<string, string>>;
 

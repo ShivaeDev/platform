@@ -3,9 +3,9 @@ import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { CleanupClock } from "#server/clocks.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
-import { type CleanupEngine, cleanup } from "./cleanup.ts";
-import { cleanupRole, dropOnStoryEnd } from "./cleanupVerbs.ts";
-import { outcomeOf } from "./outcome.ts";
+import { type CleanupEngine, cleanup } from "#test/cleanup.ts";
+import { cleanupRole, dropOnStoryEnd } from "#test/cleanupVerbs.ts";
+import { outcomeOf } from "#test/outcome.ts";
 
 export const runStarted = cleanup.trait("run", "the run has started", (state) =>
 	state.engine.lease().pipe(Effect.provideService(CleanupClock, state.cleanupClock)),

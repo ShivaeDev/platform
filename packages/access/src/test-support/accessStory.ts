@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Permission } from "#permission.ts";
 import { requirePermission } from "#requirePermission.ts";
 import type { User } from "#roleSet.ts";
-import { Access, AccessWithReaderTwice, AssignRoles, ReadAllUsers, ReadJobDetails, ReadJobs, ReadUsers } from "./policy.ts";
+import { Access, AccessWithReaderTwice, AssignRoles, ReadAllUsers, ReadJobDetails, ReadJobs, ReadUsers } from "#test/policy.ts";
 
 type RoleName = typeof Access.Role.Type;
 type Owner = "alice" | "bob";

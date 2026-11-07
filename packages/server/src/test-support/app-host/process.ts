@@ -8,7 +8,7 @@ import { acknowledgeHostSignal, reportHostReady } from "@shivaedev/test-kits/hos
 import { hostProcessReadouts } from "@shivaedev/test-kits/host/processReadouts.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { appHost } from "#appHost.ts";
-import { Ping, pingHandlers } from "./ping.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

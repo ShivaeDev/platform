@@ -2,10 +2,10 @@ import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Path } from "effect";
 import { readInstalled } from "#installed.ts";
 import { syncSkills } from "#syncSkills.ts";
-import { removeFile, select, writeFile } from "./fixture.ts";
-import { printedOrFailed } from "./operations.ts";
-import { MANIFEST, skills } from "./skills.ts";
-import { checkOutPullRequest } from "./workflow.ts";
+import { removeFile, select, writeFile } from "#test/fixture.ts";
+import { printedOrFailed } from "#test/operations.ts";
+import { MANIFEST, skills } from "#test/skills.ts";
+import { checkOutPullRequest } from "#test/workflow.ts";
 
 export const OWN_SKILL = "# The repository's own skill\n";
 export const EDITED = "# Edited by hand\n";

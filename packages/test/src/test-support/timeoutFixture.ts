@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
-import { releasedOnClose } from "./lifecycleLog.ts";
+import { releasedOnClose } from "#test/lifecycleLog.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.empty, makeHarness: () => releasedOnClose("the harness's resource") });
 

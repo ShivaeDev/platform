@@ -1,9 +1,9 @@
 import { Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { appDatabase, appHost } from "#appDatabase.ts";
-import { Ping, pingHandlers } from "./ping.ts";
-import { databaseOf, type HostState } from "./state.ts";
-import { postgresHost } from "./story.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { databaseOf, type HostState } from "#test/app-host/state.ts";
+import { postgresHost } from "#test/app-host/story.ts";
 
 export function deferred(mode: "migrate" | "check", fails = false) {
 	return postgresHost.trait("configured", `deferred construction follows ${fails ? "failed " : ""}${mode}`, function* (state) {

@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { fakeGitHubApp, type GitHubAppAccess } from "@shivaedev/test-kits/github/fake.ts";
 import type { FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { APP_ID, credentials } from "./appFixture.ts";
-import { artifactFixture } from "./artifactFixture.ts";
-import { mutationRoutes } from "./mutationRoutes.ts";
-import { viewerFixture } from "./viewerFixture.ts";
+import { APP_ID, credentials } from "#test/appFixture.ts";
+import { artifactFixture } from "#test/artifactFixture.ts";
+import { mutationRoutes } from "#test/mutationRoutes.ts";
+import { viewerFixture } from "#test/viewerFixture.ts";
 
 export const appServerAt = Effect.fnUntraced(function* (prefix: string) {
 	const archive = artifactFixture(() => server.url);

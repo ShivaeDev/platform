@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { pendingIndexInserts } from "#server/adapters/schemaIndexBuilds.ts";
 import { SchemaConnection } from "#server/SchemaConnection.ts";
-import { pendingIndexInserts } from "./schemaIndexBuilds.ts";
 
 export const runSchemaPlan = Effect.fnUntraced(function* (plan: string, upgrade?: { readonly schema: string; readonly version: number }) {
 	const connection = yield* SchemaConnection;

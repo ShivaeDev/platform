@@ -1,6 +1,6 @@
-import { rerunStory } from "./kit.ts";
-import { perAttempt } from "./specFiles.ts";
-import { writeFile } from "./suite.ts";
+import { rerunStory } from "#test/kit.ts";
+import { perAttempt } from "#test/specFiles.ts";
+import { writeFile } from "#test/suite.ts";
 
 export function declaresRetry(kind: "test" | "suite" | "object" | "skipped test" | "rerun") {
 	return rerunStory.trait("tests", `retry.spec.ts declares a retry on a ${kind}`, (suite) => {

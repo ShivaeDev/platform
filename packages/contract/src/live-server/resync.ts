@@ -1,6 +1,6 @@
 import { Effect, Ref } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import type { initialize } from "./initialize.ts";
+import type { initialize } from "#live-server/initialize.ts";
 
 export function resync(state: Effect.Success<typeof initialize>) {
 	return Effect.fn("LiveServer.resync")(function* () {

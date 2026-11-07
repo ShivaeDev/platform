@@ -5,9 +5,9 @@ import { act } from "react";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Access } from "./Access.ts";
-import { CollectionView } from "./CollectionView.tsx";
-import { collectionDatabase, collectionEngine, configured } from "./collectionEngine.ts";
+import type { Access } from "#test/Access.ts";
+import { CollectionView } from "#test/CollectionView.tsx";
+import { collectionDatabase, collectionEngine, configured } from "#test/collectionEngine.ts";
 
 type Engine = Effect.Success<typeof collectionEngine> & { screen: Rendered | undefined };
 

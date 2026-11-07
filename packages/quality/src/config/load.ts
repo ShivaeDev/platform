@@ -1,15 +1,15 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, type FileSystem, Path, Schema } from "effect";
 import { readConfig } from "#adapters/readConfig.ts";
+import { type ConfigInput, decodeConfig } from "#config/decode.ts";
+import { DEFAULT_EXTENSIONS } from "#config/defaultExtensions.ts";
+import { type ResolvedRules, resolveRules } from "#config/resolve.ts";
 import { validOrFail } from "#decoded.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { SetupFailure } from "#failure.ts";
 import type { InventoryScope } from "#inventory/collect.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
 import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
-import { type ConfigInput, decodeConfig } from "./decode.ts";
-import { DEFAULT_EXTENSIONS } from "./defaultExtensions.ts";
-import { type ResolvedRules, resolveRules } from "./resolve.ts";
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly baseline: string;

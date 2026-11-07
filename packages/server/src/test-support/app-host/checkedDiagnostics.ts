@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 const minimum = Schema.isMinLength(1);
 const maximum = Schema.isMaxLength(100);

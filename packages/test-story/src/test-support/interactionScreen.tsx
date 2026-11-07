@@ -3,7 +3,7 @@ import { act } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { InteractionPage } from "./InteractionPage.tsx";
+import { InteractionPage } from "#test/InteractionPage.tsx";
 
 expectNoReactWarnings();
 

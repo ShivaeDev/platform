@@ -1,7 +1,7 @@
 import { expect } from "vitest";
-import { bakery, hasDough, ovenIsLit } from "./bakery.ts";
-import { counter, incremented } from "./counter.ts";
-import { noteLifetime } from "./lifetimeLog.ts";
+import { bakery, hasDough, ovenIsLit } from "#test/bakery.ts";
+import { counter, incremented } from "#test/counter.ts";
+import { noteLifetime } from "#test/lifetimeLog.ts";
 
 counter.it("starts twice in the test Scope", [], function* ({ story }) {
 	yield* story.restart([incremented]);

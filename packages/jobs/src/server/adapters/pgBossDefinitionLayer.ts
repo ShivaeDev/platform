@@ -1,16 +1,16 @@
 import { type Context, Effect, Exit, Layer, Scope } from "effect";
 import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
 import { clientErrorSubscription } from "#server/adapters/clientErrorSubscription.ts";
+import { makeService } from "#server/adapters/makeService.ts";
+import { operationsLayer } from "#server/adapters/operationsLayer.ts";
+import { registrationName } from "#server/adapters/register.ts";
+import { registerReleasedJobs } from "#server/adapters/registerReleasedJobs.ts";
 import { logClientError } from "#server/clientErrors.ts";
 import type { JobRegistration, RegistrationRequirements } from "#server/definition.ts";
 import type { PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import type { PgBossLayerOptions, PgBossService } from "#server/service.ts";
 import { validateQueueNames } from "#server/validateQueueNames.ts";
-import { makeService } from "./makeService.ts";
-import { operationsLayer } from "./operationsLayer.ts";
-import { registrationName } from "./register.ts";
-import { registerReleasedJobs } from "./registerReleasedJobs.ts";
 
 export function pgBossDefinitionLayer<TIdentifier extends string, const TRegistrations extends readonly JobRegistration[], E>(
 	Service: Context.Service<TIdentifier, PgBossService>,

@@ -19,7 +19,7 @@ import { AuthenticatedUser } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
-import { liveSubscriptionProvider, ReadDocuments } from "./liveSubscriptionProvider.ts";
+import { liveSubscriptionProvider, ReadDocuments } from "#test/rpc/liveSubscriptionProvider.ts";
 
 export const documents = collection("documents", Schema.String);
 

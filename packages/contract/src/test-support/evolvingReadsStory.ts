@@ -5,13 +5,13 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
+import { answered } from "#test/answers.ts";
+import { records } from "#test/derivedReadsContract.ts";
 import { configured, derivedDatabase } from "#test/derivedReadsData.ts";
-import { answered } from "./answers.ts";
-import { records } from "./derivedReadsContract.ts";
-import type { Delivery } from "./evolvingReadsContract.ts";
-import { evolvingReadsEngine } from "./evolvingReadsEngine.ts";
-import { type Mark, markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
+import type { Delivery } from "#test/evolvingReadsContract.ts";
+import { evolvingReadsEngine } from "#test/evolvingReadsEngine.ts";
+import { type Mark, markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
 
 const renderDelivery = Match.type<QueryUpdate>().pipe(
 	Match.tagsExhaustive({

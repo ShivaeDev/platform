@@ -1,5 +1,5 @@
 import { Context, type Effect } from "effect";
-import type { DraftSession } from "./draftSession.ts";
+import type { DraftSession } from "#draftSession.ts";
 
 export type DraftOperation<A> = A | Effect.Effect<A, unknown>;
 

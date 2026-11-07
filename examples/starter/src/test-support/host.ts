@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/adapters/applicationHost.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
-import { testPoolSizes } from "./poolSizes.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
 
 export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
 export const PUBLIC_URL = "https://app.example";

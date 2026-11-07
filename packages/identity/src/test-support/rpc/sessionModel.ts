@@ -1,8 +1,8 @@
 import { type Effect, Result } from "effect";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { OriginPolicy } from "#server/origin.ts";
-import type { makeApp } from "./api.ts";
-import { type createProvider, type mintSession, ORIGIN } from "./harness.ts";
+import type { makeApp } from "#test/rpc/api.ts";
+import { type createProvider, type mintSession, ORIGIN } from "#test/rpc/harness.ts";
 
 export const origins = {
 	"an opaque origin": "null",

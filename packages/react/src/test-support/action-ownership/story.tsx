@@ -1,10 +1,10 @@
 import { Deferred, Effect, Exit } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type CommandName, type Mode, ownershipClient } from "#test/action-ownership/client.ts";
+import { OwnershipView } from "#test/action-ownership/view.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
-import { type CommandName, type Mode, ownershipClient } from "./client.ts";
-import { OwnershipView } from "./view.tsx";
 
 interface State {
 	readonly client: ReturnType<typeof ownershipClient>;

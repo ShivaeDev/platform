@@ -1,8 +1,8 @@
 import { Clock, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { type State, settle } from "#test/notices/state.ts";
+import { type NoticeScreen, NoticeView } from "#test/notices/view.tsx";
 import type { Screen } from "#test/Screen.ts";
-import { type State, settle } from "./state.ts";
-import { type NoticeScreen, NoticeView } from "./view.tsx";
 
 interface Engine {
 	readonly screen: Screen;

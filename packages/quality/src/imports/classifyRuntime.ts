@@ -1,8 +1,8 @@
 import { posix } from "node:path";
+import { isTooling } from "#imports/isTooling.ts";
+import type { DeclaredRuntime, Runtime } from "#imports/runtime.ts";
+import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
-import { isTooling } from "./isTooling.ts";
-import type { DeclaredRuntime, Runtime } from "./runtime.ts";
-import { packageOf, type WorkspacePackage } from "./workspace.ts";
 
 export interface RuntimePolicy {
 	readonly adopted: ReadonlySet<string>;

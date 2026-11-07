@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { openClient } from "./openClient.ts";
+import type { openClient } from "#test/recent-queries/openClient.ts";
 
 type Client = EffectClient["client"];
 type EffectClient = Effect.Success<typeof openClient>;

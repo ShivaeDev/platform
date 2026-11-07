@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
-import { GRAPHQL, type GraphqlQuery, type Pull, REQUIRED_CHECKS, type Reply } from "./githubModel.ts";
-import type { GitHubState } from "./githubState.ts";
+import { GRAPHQL, type GraphqlQuery, type Pull, REQUIRED_CHECKS, type Reply } from "#test/githubModel.ts";
+import type { GitHubState } from "#test/githubState.ts";
 
 const NEXT_REQUIRED_PAGE = "next";
 

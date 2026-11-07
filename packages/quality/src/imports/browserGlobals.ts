@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import ts from "typescript";
 import { ImportCompiler } from "#adapters/import-compiler/service.ts";
+import { browserNames } from "#imports/browserNames.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { browserNames } from "./browserNames.ts";
 
 function unbound(checker: ts.TypeChecker, node: ts.Identifier): boolean {
 	return (checker.getSymbolAtLocation(node)?.declarations ?? []).length === 0;

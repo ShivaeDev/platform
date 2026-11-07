@@ -1,9 +1,9 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { SessionApp } from "#client/SessionApp.tsx";
-import { appAuth } from "./appAuth.ts";
-import { acquireScreen } from "./screenState.ts";
-import { screens } from "./screens.ts";
+import { appAuth } from "#test-support/appAuth.ts";
+import { acquireScreen } from "#test-support/screenState.ts";
+import { screens } from "#test-support/screens.ts";
 
 export function defaultSessionScreen(signedIn: boolean) {
 	return screens.trait(

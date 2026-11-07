@@ -1,8 +1,8 @@
 import { Deferred, Effect, Fiber } from "effect";
-import { databaseActions, REJECTED } from "./databaseActions.ts";
-import { database, type Engine, endingOf } from "./engine.ts";
-import { change } from "./fakeDatabase.ts";
-import { orderControl } from "./orderControl.ts";
+import { databaseActions, REJECTED } from "#test/databaseActions.ts";
+import { database, type Engine, endingOf } from "#test/engine.ts";
+import { change } from "#test/fakeDatabase.ts";
+import { orderControl } from "#test/orderControl.ts";
 
 export type StragglerWork = "record bob's change" | "open a transaction for bob's order";
 

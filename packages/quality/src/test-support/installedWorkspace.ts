@@ -1,6 +1,6 @@
 import { mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { repositoryStory } from "./repositoryStory.ts";
+import { repositoryStory } from "#test/repositoryStory.ts";
 
 export function installedWorkspace(name: string, directory: string) {
 	return repositoryStory.trait("repository", `node_modules/${name} links to the workspace package in ${directory}`, (engine) => {

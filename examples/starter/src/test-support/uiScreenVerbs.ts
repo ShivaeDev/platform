@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { settleScreen } from "#test-support/settleScreen.ts";
 
 export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => void) {
 	const driver = screenDriver({

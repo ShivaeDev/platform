@@ -1,7 +1,7 @@
 import { Cause, Effect, Layer, Schema, SchemaGetter } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export function rootEncoding(source: "schema" | "host", shape: "scalar" | "record") {
 	return host.trait("configured", `a sensitive ${source} field encodes to a root ${shape}`, (state) => {

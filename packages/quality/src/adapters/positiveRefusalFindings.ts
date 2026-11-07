@@ -1,8 +1,8 @@
 import ts from "typescript";
+import { type OutcomeAssertion, outcomeAssertions } from "#adapters/outcomeAssertions.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import type { storyOrigins } from "#rules/stories/origins.ts";
 import { nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
-import { type OutcomeAssertion, outcomeAssertions } from "./outcomeAssertions.ts";
 
 const MESSAGE =
 	"Only rules out an outcome. Assert the expected refusal's domain reason or public response positively on the same outcome in this story; an unrelated failure must fail the story too.";

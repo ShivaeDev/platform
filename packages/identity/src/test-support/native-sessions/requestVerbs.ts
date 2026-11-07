@@ -1,9 +1,9 @@
 import { Effect, Predicate } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
-import type { Caller } from "./callers.ts";
-import { callers } from "./callers.ts";
-import type { Host } from "./host.ts";
-import { type Account, authRequest, client } from "./requests.ts";
+import type { Caller } from "#test/native-sessions/callers.ts";
+import { callers } from "#test/native-sessions/callers.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import { type Account, authRequest, client } from "#test/native-sessions/requests.ts";
 
 export function requestVerbs(host: Host, accounts: Map<string, Account>, tell: (line: string) => void) {
 	const { account, headersOf, nameOf, callerWords } = callers(accounts);

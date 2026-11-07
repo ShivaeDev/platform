@@ -4,10 +4,10 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { resumeSocket } from "#adapters/resumeSocket.ts";
 import type { ClientOptions } from "#clientOptions.ts";
+import { connectionProtocol } from "#connectionProtocol.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { SocketClock } from "#SocketClock.ts";
 import { authenticateSocket } from "#socketAuthentication.ts";
-import { connectionProtocol } from "./connectionProtocol.ts";
 
 interface SocketOptions {
 	readonly bearerToken: ClientOptions["bearerToken"];

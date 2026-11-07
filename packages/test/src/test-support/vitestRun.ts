@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { DateTime, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runVitest, type VitestTest } from "#adapters/runVitest.ts";
-import { type Fixture, type FixtureTestName, fixtureOf, type TesterVariant } from "./fixtures.ts";
-import { LIFECYCLE_LOG } from "./lifecycleLog.ts";
+import { type Fixture, type FixtureTestName, fixtureOf, type TesterVariant } from "#test/fixtures.ts";
+import { LIFECYCLE_LOG } from "#test/lifecycleLog.ts";
 
 interface VitestRun {
 	readonly log: string;

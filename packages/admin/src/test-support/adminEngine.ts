@@ -18,8 +18,8 @@ import { adminRegistry } from "#registry.ts";
 import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
 import { Jobs, Users } from "#test/pages.ts";
-import { clientRuntime } from "./clientRuntime.ts";
 
 const Restricted = adminPage({
 	contract: contract("admin.restricted", {

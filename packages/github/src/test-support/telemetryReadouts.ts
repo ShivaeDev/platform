@@ -1,4 +1,4 @@
-import type { telemetry } from "./telemetry.ts";
+import type { telemetry } from "#test/telemetry.ts";
 
 type Recording = ReturnType<typeof telemetry>;
 export type Place = "failures" | "logs" | "spans" | "span events";

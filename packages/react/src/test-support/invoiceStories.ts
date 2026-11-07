@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { InvoiceLine } from "#test/invoice-line-editor/backend.ts";
-import { creating, editing, oneShot, type Session, switching } from "./invoiceScreens.tsx";
-import { type Field, inputs, invoiceVerbs, root, type State, server, sessions, text } from "./invoiceVerbs.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { creating, editing, oneShot, type Session, switching } from "#test/invoiceScreens.tsx";
+import { type Field, inputs, invoiceVerbs, root, type State, server, sessions, text } from "#test/invoiceVerbs.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 export const invoices = storyKit(
 	screenKit(

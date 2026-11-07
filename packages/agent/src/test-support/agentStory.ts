@@ -4,7 +4,7 @@ import { describe, requireFeatures } from "#agent.ts";
 import { Backend } from "#backend.ts";
 import type { Feature } from "#features.ts";
 import type { Receipt } from "#run.ts";
-import { scriptedBackend } from "./scriptedBackend.ts";
+import { scriptedBackend } from "#test/scriptedBackend.ts";
 
 export const agent = storyKit({
 	create: () => Effect.sync(scriptedBackend),

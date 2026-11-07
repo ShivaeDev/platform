@@ -4,17 +4,17 @@ import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTes
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { adminVerbs } from "./adminVerbs.ts";
-import { admissionVerbs } from "./admissionVerbs.ts";
-import { banVerbs } from "./banVerbs.ts";
-import { clientVerbs } from "./client.ts";
-import { discoveryReadouts } from "./discoveryReadouts.ts";
-import { grantVerbs } from "./grantVerbs.ts";
-import { type Engine, startEngine } from "./host.ts";
-import { mixedAuthVerbs } from "./mixedAuthVerbs.ts";
-import { oauthVerbs } from "./oauthVerbs.ts";
-import { tokenVerbs } from "./tokenVerbs.ts";
-import { withControlledDate } from "./withControlledDate.ts";
+import { adminVerbs } from "#test/adminVerbs.ts";
+import { admissionVerbs } from "#test/admissionVerbs.ts";
+import { banVerbs } from "#test/banVerbs.ts";
+import { clientVerbs } from "#test/client.ts";
+import { discoveryReadouts } from "#test/discoveryReadouts.ts";
+import { grantVerbs } from "#test/grantVerbs.ts";
+import { type Engine, startEngine } from "#test/host.ts";
+import { mixedAuthVerbs } from "#test/mixedAuthVerbs.ts";
+import { oauthVerbs } from "#test/oauthVerbs.ts";
+import { tokenVerbs } from "#test/tokenVerbs.ts";
+import { withControlledDate } from "#test/withControlledDate.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { Missing } from "./contract.ts";
-import { OrdersRepository } from "./repository.ts";
+import { Missing } from "#test/postgres-example/contract.ts";
+import { OrdersRepository } from "#test/postgres-example/repository.ts";
 
 export const owned = Effect.fn("OrderService.owned")(function* (id: number) {
 	const { id: userId } = yield* Identity;

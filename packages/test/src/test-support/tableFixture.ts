@@ -1,8 +1,8 @@
 import { Effect, Layer, type Scope } from "effect";
 import { it } from "#adapters/it.ts";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
+import { note, releasedOnClose } from "#test/lifecycleLog.ts";
 import type { EffectItTest } from "#types.ts";
-import { note, releasedOnClose } from "./lifecycleLog.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.empty, makeHarness: () => Effect.void });
 

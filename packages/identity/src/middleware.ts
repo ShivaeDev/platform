@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import type { Identity, OptionalIdentity, RequestId, SessionUser, SessionUserWithProviderAccounts } from "./identity.ts";
+import type { Identity, OptionalIdentity, RequestId, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
 export const IdentityFailures = Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]);
 export type IdentityFailures = typeof IdentityFailures.Type;
 

@@ -1,7 +1,7 @@
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import { Option, Schema } from "effect";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
-import { messageEvents } from "./messageEvents.ts";
+import { messageEvents } from "#adapters/messageEvents.ts";
 
 export function rawOf(kind: string, payload: unknown) {
 	return { kind, payload: JSON.stringify(payload), source: "pi" };

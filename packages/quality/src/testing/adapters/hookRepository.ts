@@ -3,10 +3,10 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync
 import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
 import { shellWords } from "#hooks/command.ts";
-import { qualityArgs, type Run } from "./cli.ts";
-import { commitAll, git, isolatedEnvironment } from "./git.ts";
-import { formatTree } from "./qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile, seedTree } from "./tree.ts";
+import { qualityArgs, type Run } from "#testing/adapters/cli.ts";
+import { commitAll, git, isolatedEnvironment } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile, seedTree } from "#testing/adapters/tree.ts";
 
 export interface HookRepository {
 	readonly folder: string;
@@ -103,11 +103,7 @@ export function withScripts(root: string, scripts: Readonly<Record<string, strin
 
 export function withQualityAt(repository: HookRepository, path: string): string {
 	writes(repository.root, path, 'import "@shivaedev/quality/cli.ts";\n');
-	writes(
-		repository.root,
-		"package.json",
-		manifest({ bin: { quality: `./${path}` }, devDependencies: { "@shivaedev/quality": "file:./node_modules/@shivaedev/quality" } }),
-	);
+	writes(repository.root, "package.json", manifest({ bin: { quality: `./${path}` }, devDependencies: { "@shivaedev/quality": "0.0.0" } }));
 	formatTree(repository.root);
 	return join(repository.root, path);
 }

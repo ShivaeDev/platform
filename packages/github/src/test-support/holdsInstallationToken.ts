@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { read } from "#read.ts";
-import { appGithub } from "./appGithub.ts";
-import { PullRequest } from "./fixtures.ts";
+import { appGithub } from "#test/appGithub.ts";
+import { PullRequest } from "#test/fixtures.ts";
 
 export const holdsInstallationToken = appGithub.trait(
 	"github",

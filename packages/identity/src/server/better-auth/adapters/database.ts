@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { Cause, Effect, Exit, Option, Schema, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { authCallSignal } from "#server/adapters/authCall.ts";
-import { betterAuthTransaction } from "./transaction.ts";
+import { betterAuthTransaction } from "#server/better-auth/adapters/transaction.ts";
 
 type PostgresPool = Extract<NonNullable<BetterAuthOptions["database"]>, { connect: unknown }>;
 type PoolClient = Awaited<ReturnType<PostgresPool["connect"]>>;

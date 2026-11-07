@@ -5,8 +5,8 @@ import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { isTestSupport, testName } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
-import { storyOrigins } from "./origins.ts";
-import { storyPrerequisites } from "./prerequisites.ts";
+import { storyOrigins } from "#rules/stories/origins.ts";
+import { storyPrerequisites } from "#rules/stories/prerequisites.ts";
 
 export const storySources = Effect.fn("Stories.storySources")(function* (inputs: RuleInputs) {
 	const graph = yield* importGraph(inputs);

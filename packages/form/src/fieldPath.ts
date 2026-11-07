@@ -1,5 +1,5 @@
 import type * as AtomRef from "effect/reactivity/AtomRef";
-import { propertyRef } from "./refs.ts";
+import { propertyRef } from "#refs.ts";
 
 type Keys<T> = T extends readonly unknown[] ? number : Extract<keyof T, string | number>;
 export type FieldPath<T> = [T] extends [object]

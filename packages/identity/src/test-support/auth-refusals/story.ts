@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authCall } from "#client/adapters/authCall.ts";
+import { ApplicationCode, type Refusals, refusalHost } from "#test/auth-refusals/host.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { ApplicationCode, type Refusals, refusalHost } from "./host.ts";
 
 export const authRefusalsStory = storyKit({
 	around: withIdentityDatabase,

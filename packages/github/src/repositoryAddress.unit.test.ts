@@ -1,6 +1,6 @@
 import { Result } from "effect";
 import { expect, it } from "vitest";
-import { parseRepositoryAddress } from "./repositoryAddress.ts";
+import { parseRepositoryAddress } from "#repositoryAddress.ts";
 
 it.each([
 	["example/project", "shorthand"],

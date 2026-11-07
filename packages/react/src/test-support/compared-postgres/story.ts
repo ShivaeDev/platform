@@ -9,13 +9,13 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { connect } from "#test/compared-postgres/connect.ts";
+import { migrations } from "#test/compared-postgres/feature.ts";
+import { independentVerbs } from "#test/compared-postgres/independentVerbs.ts";
+import { openHost } from "#test/compared-postgres/openHost.ts";
+import { openScreen } from "#test/compared-postgres/openScreen.ts";
+import { transport } from "#test/compared-postgres/transport.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { connect } from "./connect.ts";
-import { migrations } from "./feature.ts";
-import { independentVerbs } from "./independentVerbs.ts";
-import { openHost } from "./openHost.ts";
-import { openScreen } from "./openScreen.ts";
-import { transport } from "./transport.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({

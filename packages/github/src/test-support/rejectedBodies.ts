@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { FakeHttpReply } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { read } from "#read.ts";
-import { appGithub } from "./appGithub.ts";
-import { PullRequest } from "./fixtures.ts";
-import { github } from "./github.ts";
+import { appGithub } from "#test/appGithub.ts";
+import { PullRequest } from "#test/fixtures.ts";
+import { github } from "#test/github.ts";
 
 export const holdsPooledInstallationToken = appGithub.trait(
 	"github",

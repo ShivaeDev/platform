@@ -1,9 +1,9 @@
 import { Cause, Clock, Deferred, Effect, Exit, Queue } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { onPostgres } from "#test/engines.ts";
+import { handoverEngine, inWords, type Loop } from "#test/workerHandoverEngine.ts";
 import { WorkerReleaseClock } from "#WorkerReleaseClock.ts";
-import { onPostgres } from "./engines.ts";
-import { handoverEngine, inWords, type Loop } from "./workerHandoverEngine.ts";
 
 type HandoverEngine = Effect.Success<ReturnType<typeof handoverEngine>>;
 

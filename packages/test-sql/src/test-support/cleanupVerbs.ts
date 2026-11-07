@@ -4,8 +4,8 @@ import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { CleanupClock } from "#server/clocks.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { observeUntil } from "#server/observeUntil.ts";
-import type { CleanupEngine } from "./cleanup.ts";
-import { attempt } from "./outcome.ts";
+import type { CleanupEngine } from "#test/cleanup.ts";
+import { attempt } from "#test/outcome.ts";
 
 export function dropOnStoryEnd(state: CleanupEngine, name: string) {
 	const admin = state.engine.admin;

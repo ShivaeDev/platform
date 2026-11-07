@@ -1,13 +1,13 @@
 import { Effect, Result } from "effect";
 import { TestClock } from "effect/testing";
-import { accountVerbs } from "./accountVerbs.ts";
-import { type RequestAnswer, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "./answers.ts";
-import { configurationVerbs } from "./configurationVerbs.ts";
-import { ORGANIZATION } from "./fakeGitHub.ts";
-import { emailSignUp, gitHubSignIn } from "./flows.ts";
-import { policyHost } from "./host.ts";
-import { type Engine, host, type MalformedList, malformedLists, nameOf, type Person, people, RECHECK_INTERVAL } from "./model.ts";
-import { requestWork } from "./requestWork.ts";
+import { accountVerbs } from "#test/sign-in-policy/accountVerbs.ts";
+import { type RequestAnswer, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "#test/sign-in-policy/answers.ts";
+import { configurationVerbs } from "#test/sign-in-policy/configurationVerbs.ts";
+import { ORGANIZATION } from "#test/sign-in-policy/fakeGitHub.ts";
+import { emailSignUp, gitHubSignIn } from "#test/sign-in-policy/flows.ts";
+import { policyHost } from "#test/sign-in-policy/host.ts";
+import { type Engine, host, type MalformedList, malformedLists, nameOf, type Person, people, RECHECK_INTERVAL } from "#test/sign-in-policy/model.ts";
+import { requestWork } from "#test/sign-in-policy/requestWork.ts";
 
 const signIn = Effect.fnUntraced(function* (engine: Engine, person: Person, device: string) {
 	const result = yield* Effect.promise(() => gitHubSignIn(host(engine).baseUrl, people[person], device));

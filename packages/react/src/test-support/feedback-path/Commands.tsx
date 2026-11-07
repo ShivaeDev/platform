@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { useMemo } from "react";
 import { useAction } from "#client/resultState.ts";
-import type { FeatureScreen } from "./view.tsx";
+import type { FeatureScreen } from "#test/feedback-path/view.tsx";
 
 export function Commands({ state }: { readonly state: FeatureScreen }) {
 	const { client } = state;

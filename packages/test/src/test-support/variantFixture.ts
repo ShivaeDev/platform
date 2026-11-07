@@ -1,8 +1,8 @@
 import { Config, Effect, Layer } from "effect";
 import { it } from "#adapters/it.ts";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
-import type { BodyTester } from "./BodyTester.ts";
-import { note } from "./lifecycleLog.ts";
+import type { BodyTester } from "#test/BodyTester.ts";
+import { note } from "#test/lifecycleLog.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.empty, makeHarness: () => Effect.void });
 const variant = Effect.runSync(Config.String("TESTER_VARIANT").pipe(Config.withDefault("default")));

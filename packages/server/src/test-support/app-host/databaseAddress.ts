@@ -1,10 +1,10 @@
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { appHost } from "#appDatabase.ts";
-import { databaseIdentity } from "./databaseVerbs.ts";
-import { Ping } from "./ping.ts";
-import { databaseOf } from "./state.ts";
-import { postgresHost } from "./story.ts";
+import { databaseIdentity } from "#test/app-host/databaseVerbs.ts";
+import { Ping } from "#test/app-host/ping.ts";
+import { databaseOf } from "#test/app-host/state.ts";
+import { postgresHost } from "#test/app-host/story.ts";
 
 export function databaseAddress(source: "authority" | "parameters") {
 	return postgresHost.trait("configured", `PostgreSQL uses the DATABASE_URL ${source} address`, function* (state) {

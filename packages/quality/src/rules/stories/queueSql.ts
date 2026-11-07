@@ -1,5 +1,5 @@
 import { defineRule } from "#rule.ts";
-import { sqlTexts } from "./sqlText.ts";
+import { sqlTexts } from "#rules/stories/sqlText.ts";
 
 const QUEUE_SCHEMA = /\bpgboss\b"?\s*\./iu;
 

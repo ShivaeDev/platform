@@ -1,7 +1,7 @@
 import { applyBaseline, type Regression, type StaleBaselineEntry } from "#baseline/compare.ts";
 import type { BaselineEntry } from "#baseline/format.ts";
+import { byLocation, type RuleIndex, type Violation } from "#engine/violation.ts";
 import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "#exceptions/registry.ts";
-import { byLocation, type RuleIndex, type Violation } from "./violation.ts";
 
 export interface Outcome {
 	readonly baselined: number;

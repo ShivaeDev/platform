@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import ts from "typescript";
-import { type BuildBindings, buildEntryValue, buildOption } from "./buildEntryValue.ts";
-import { importedCall } from "./importedCall.ts";
+import { type BuildBindings, buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
+import { importedCall } from "#adapters/importedCall.ts";
 
 function pathFromCall(node: ts.CallExpression, cwd: string, paths: (expression: ts.Expression) => readonly string[]): readonly string[] {
 	if (node.expression.getText() === "process.cwd" && node.arguments.length === 0) {

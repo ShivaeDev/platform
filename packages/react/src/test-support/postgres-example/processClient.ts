@@ -3,8 +3,8 @@ import { Effect, Layer, ManagedRuntime, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { Order, Orders } from "./contract.ts";
-import { recorded } from "./recorded.ts";
+import { Order, Orders } from "#test/postgres-example/contract.ts";
+import { recorded } from "#test/postgres-example/recorded.ts";
 
 export function processClient(url: string) {
 	const registry = AtomRegistry.make();

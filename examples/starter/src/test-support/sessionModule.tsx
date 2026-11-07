@@ -8,7 +8,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import type { RouteContext } from "#client/Module.ts";
-import { SessionModuleScreen } from "./SessionModuleScreen.tsx";
+import { SessionModuleScreen } from "#test-support/SessionModuleScreen.tsx";
 
 const Api = contract("privateModule", {
 	keyScope: "session",

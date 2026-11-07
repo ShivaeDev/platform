@@ -1,7 +1,7 @@
 import type { Endpoint } from "#imports/Endpoint.ts";
+import type { Selector } from "#imports/fences/model.ts";
 import { builtinName, packageNameOf } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
-import type { Selector } from "./model.ts";
 
 export interface PolicyScope {
 	readonly files: readonly string[];

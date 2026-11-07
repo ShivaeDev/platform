@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { type RuntimeName, runtimeImport, runtimeOf } from "./runtimeImports.ts";
+import { type RuntimeName, runtimeImport, runtimeOf } from "#adapters/units/runtimeImports.ts";
 
 function moduleRuntime(node: ts.Node): string | undefined {
 	if (ts.isImportDeclaration(node) && node.importClause === undefined && ts.isStringLiteral(node.moduleSpecifier)) {

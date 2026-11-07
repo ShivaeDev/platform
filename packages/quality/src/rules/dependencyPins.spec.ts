@@ -1,10 +1,37 @@
 import { expect } from "@effect/vitest";
+import { manifestsDependencyPins } from "#rules/manifestsDependencyPins.ts";
 import { dependencyCatalog, dependencyManifest } from "#test/dependencyPinFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { manifestsDependencyPins } from "./manifestsDependencyPins.ts";
+
+for (const { catalog, privatePackage } of [
+	{ catalog: false, privatePackage: false },
+	{ catalog: false, privatePackage: true },
+	{ catalog: true, privatePackage: false },
+	{ catalog: true, privatePackage: true },
+]) {
+	for (const section of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+		for (const version of ["file:../effect", "link:../effect"]) {
+			ruleStory.it(
+				`dependency pins reports ${version} in ${section} of a ${privatePackage ? "private" : "published"} package ${catalog ? "with" : "without"} catalogs`,
+				[repositoryHas(dependencyManifest(section, version, privatePackage), ...(catalog ? [dependencyCatalog()] : []))],
+				function* ({ check, findings }) {
+					yield* check(manifestsDependencyPins);
+
+					expect(yield* findings()).toEqual([
+						{
+							file: "package.json",
+							message: expect.stringContaining('replace "file:" and "link:" with npm versions or workspace/catalog references'),
+							subject: `${section}.effect`,
+						},
+					]);
+				},
+			);
+		}
+	}
+}
 
 for (const section of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
-	for (const version of ["4.0.6", "4.0.6-rc.1+build.2", "npm:@effect/core@4.0.6", "workspace:*", "file:../effect", "link:../effect"]) {
+	for (const version of ["4.0.6", "4.0.6-rc.1+build.2", "npm:@effect/core@4.0.6", "workspace:*"]) {
 		ruleStory.it(
 			`dependency pins accepts ${version} in ${section} without catalogs`,
 			[repositoryHas(dependencyManifest(section, version))],
@@ -22,7 +49,7 @@ for (const section of ["dependencies", "devDependencies", "peerDependencies", "o
 			expect(findings).toEqual([
 				{
 					file: "package.json",
-					message: `${section} entry "effect: ${version}" must pin an exact version, including for npm aliases. Workspace, file and link dependencies stay local.`,
+					message: `${section} entry "effect: ${version}" must pin an exact npm version, including for npm aliases. Use "workspace:" for workspace dependencies; replace "file:" and "link:" with npm versions or workspace/catalog references.`,
 					subject: `${section}.effect`,
 				},
 			]);
@@ -70,7 +97,7 @@ for (const version of ["4.0.6", "catalog:missing"]) {
 			expect(findings).toEqual([
 				{
 					file: "package.json",
-					message: `dependencies entry "effect: ${version}" must use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml. Workspace, file and link dependencies stay local.`,
+					message: `dependencies entry "effect: ${version}" must use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml. Use "workspace:" for workspace dependencies; replace "file:" and "link:" with npm versions or workspace/catalog references.`,
 					subject: "dependencies.effect",
 				},
 			]);
@@ -85,7 +112,7 @@ ruleStory.it(
 		yield* check(manifestsDependencyPins);
 
 		expect(yield* messages()).toEqual([
-			'dependencies entry "effect: catalog:" must use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml. Workspace, file and link dependencies stay local.',
+			'dependencies entry "effect: catalog:" must use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml. Use "workspace:" for workspace dependencies; replace "file:" and "link:" with npm versions or workspace/catalog references.',
 		]);
 	},
 );

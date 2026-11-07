@@ -1,7 +1,7 @@
 import { Clock, Duration, Effect } from "effect";
 import { TestClock } from "effect/testing";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 
 export const passTime = Effect.fnUntraced(function* (engine: DatabaseEngine, duration: Duration.Input) {
 	const millis = Duration.toMillis(Duration.fromInputUnsafe(duration));

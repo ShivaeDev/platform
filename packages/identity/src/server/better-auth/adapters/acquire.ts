@@ -1,7 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Effect } from "effect";
+import { profileStorage } from "#server/better-auth/adapters/profileStorage.ts";
 import { providerFailure } from "#server/providerFailure.ts";
-import { profileStorage } from "./profileStorage.ts";
 
 export const acquireAuth = Effect.fnUntraced(function* <TOptions extends BetterAuthOptions>(options: TOptions) {
 	const auth = betterAuth({

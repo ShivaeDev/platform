@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
-import type { Host } from "./host.ts";
-import { mintSession } from "./mint.ts";
-import { openServerStreams, originStream } from "./originStream.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import { mintSession } from "#test/native-sessions/mint.ts";
+import { openServerStreams, originStream } from "#test/native-sessions/originStream.ts";
 
 export interface OriginRequest {
 	readonly bearer?: boolean;

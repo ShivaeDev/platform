@@ -1,5 +1,5 @@
 import { Cause, Context, Deferred, Effect, Exit, type Fiber, Layer, Option, Scope, type Stream } from "effect";
-import { counterService, Greeting, type Recorder, wrapperService } from "./serviceFixtures.ts";
+import { counterService, Greeting, type Recorder, wrapperService } from "#test/serviceFixtures.ts";
 
 type CounterService = ReturnType<typeof counterService>;
 type WrapperService = ReturnType<typeof wrapperService>;

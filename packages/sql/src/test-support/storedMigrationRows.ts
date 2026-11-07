@@ -5,8 +5,8 @@ import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { readPostgresRelease } from "#postgresRelease.ts";
 import { releaseWorkers } from "#releaseWorkers.ts";
-import { onPostgres } from "./engines.ts";
-import { migrationEngine } from "./migrationEngine.ts";
+import { onPostgres } from "#test/engines.ts";
+import { migrationEngine } from "#test/migrationEngine.ts";
 
 function checked<R>(effect: Effect.Effect<unknown, unknown, R>) {
 	return effect.pipe(

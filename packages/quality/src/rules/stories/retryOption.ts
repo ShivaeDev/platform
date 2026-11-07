@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { unwrapped } from "./syntax.ts";
+import { unwrapped } from "#rules/stories/syntax.ts";
 
 function retryKey(name: ts.PropertyName | undefined): boolean {
 	if (name === undefined) {

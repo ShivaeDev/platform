@@ -3,7 +3,7 @@ import { Option } from "effect";
 import { useContext } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useEditor } from "#client/editor.ts";
-import { DraftFields, draftRuntime, type ScreenProps, type ViewEditor } from "./draftFields.ts";
+import { DraftFields, draftRuntime, type ScreenProps, type ViewEditor } from "#test/draftFields.ts";
 
 export function DraftScreen({ held, persistedDraft, query, save }: ScreenProps) {
 	held.registry = useContext(RegistryContext);

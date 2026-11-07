@@ -1,4 +1,4 @@
-import type { Fixture } from "./fixtureTree.ts";
+import type { Fixture } from "#test/fixtureTree.ts";
 
 interface ManifestTraits {
 	readonly declaration?: string;

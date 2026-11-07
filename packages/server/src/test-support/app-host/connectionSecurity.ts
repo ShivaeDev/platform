@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cause, Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseOf, type HostState } from "./state.ts";
+import { databaseOf, type HostState } from "#test/app-host/state.ts";
 
 const inspect = Effect.fnUntraced(function* <A, E>(state: HostState, read: Effect.Effect<A, E, SqlClient.SqlClient>) {
 	const url = databaseOf(state).url;

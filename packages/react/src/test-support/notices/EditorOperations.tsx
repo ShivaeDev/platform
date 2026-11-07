@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { useEditor } from "#client/editor.ts";
 import { useAction } from "#client/resultState.ts";
-import type { NoticeClient } from "./client.ts";
-import { Fields } from "./Fields.ts";
+import type { NoticeClient } from "#test/notices/client.ts";
+import { Fields } from "#test/notices/Fields.ts";
 
 export function EditorOperations({ client }: { readonly client: NoticeClient }) {
 	const editor = useEditor({

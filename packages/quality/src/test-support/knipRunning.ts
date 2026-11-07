@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Deferred, Effect, Fiber, Predicate, Stream } from "effect";
 import { ChildProcessSpawner } from "effect/process";
-import { type Lifecycle, qualityLifecycle, type RunningTool, startQuality } from "./qualityLifecycle.ts";
+import { type Lifecycle, qualityLifecycle, type RunningTool, startQuality } from "#test/qualityLifecycle.ts";
 
 function configLoaded(engine: Lifecycle, tool: RunningTool) {
 	let stderr = "";

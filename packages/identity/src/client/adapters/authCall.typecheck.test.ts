@@ -2,7 +2,7 @@ import { type Effect, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { AuthFailure } from "#client/AuthFailure.ts";
 import type { AuthFailureCode } from "#client/AuthFailureCode.ts";
-import { authCall } from "./authCall.ts";
+import { authCall } from "#client/adapters/authCall.ts";
 
 function run(input: { readonly email: string }, _signal: AbortSignal) {
 	return Promise.resolve(

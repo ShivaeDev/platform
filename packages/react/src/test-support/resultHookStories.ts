@@ -3,10 +3,10 @@ import * as Atom from "effect/reactivity/Atom";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { resultEngine } from "./resultEngine.ts";
-import { QueryValue, ResultView } from "./resultViews.tsx";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { resultEngine } from "#test/resultEngine.ts";
+import { QueryValue, ResultView } from "#test/resultViews.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 type Mode = "query" | "action" | "overlap" | "shared";
 interface State {

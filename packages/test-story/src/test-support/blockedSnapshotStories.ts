@@ -3,7 +3,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { bakery, hasOrders } from "./bakery.ts";
+import { bakery, hasOrders } from "#test/bakery.ts";
 
 const file = join(
 	process.cwd(),

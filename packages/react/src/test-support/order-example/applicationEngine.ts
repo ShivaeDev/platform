@@ -4,9 +4,9 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import type { ScreenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
-import type { Order } from "./contract.ts";
-import { makeClient } from "./makeClient.ts";
-import { ORDER_CHANGES, signedInSessions, startHost } from "./startHost.ts";
+import type { Order } from "#test/order-example/contract.ts";
+import { makeClient } from "#test/order-example/makeClient.ts";
+import { ORDER_CHANGES, signedInSessions, startHost } from "#test/order-example/startHost.ts";
 
 function client(url: string, token?: string) {
 	return makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token, url }).client;

@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { serviceModel } from "#rules/effect/serviceModel.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { builtClient, modelFiles, serviceResolves } from "#test/serviceModelFiles.ts";
-import { serviceModel } from "./serviceModel.ts";
 
 for (const [name, initialize] of [
 	["a service key used directly as the initializer", "Store"],

@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema, SchemaGetter } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 const UnionFailure = Schema.Struct({ contact: Schema.String.annotate({ sensitive: true }) }).pipe(
 	Schema.encodeTo(Schema.Union([Schema.Struct({ wireContact: Schema.String }), Schema.Struct({ alternateContact: Schema.String })]), {

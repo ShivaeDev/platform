@@ -1,10 +1,10 @@
 import { Console, Effect, Option, Path } from "effect";
-import { hashSkill } from "./hashSkill.ts";
-import type { Installed } from "./installed.ts";
-import { BIN, MANIFEST, PACKAGE, SELECTION_FIELD, skillPaths } from "./layout.ts";
-import { type Manifest, readManifest } from "./manifest.ts";
-import { readSelection } from "./readSelection.ts";
-import { SkillsError } from "./SkillsError.ts";
+import { hashSkill } from "#hashSkill.ts";
+import type { Installed } from "#installed.ts";
+import { BIN, MANIFEST, PACKAGE, SELECTION_FIELD, skillPaths } from "#layout.ts";
+import { type Manifest, readManifest } from "#manifest.ts";
+import { readSelection } from "#readSelection.ts";
+import { SkillsError } from "#SkillsError.ts";
 
 function selectionProblems(selection: readonly string[], listed: readonly string[]): readonly string[] {
 	return [

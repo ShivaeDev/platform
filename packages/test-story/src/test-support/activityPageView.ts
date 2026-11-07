@@ -6,7 +6,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, useContext, useState } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import { ReadPage } from "./readPageHost.ts";
+import { ReadPage } from "#test/readPageHost.ts";
 
 export function activityPageClient(url: string) {
 	return makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructor });

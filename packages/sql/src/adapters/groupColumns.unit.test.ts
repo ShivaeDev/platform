@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect, it } from "vitest";
+import { rowMapping } from "#adapters/groupColumns.ts";
 import { Model } from "#Model.ts";
-import { rowMapping } from "./groupColumns.ts";
 
 it("rejects groups whose prefixes would write the same column", () => {
 	const fields = {

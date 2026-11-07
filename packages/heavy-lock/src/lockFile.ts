@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Option, Path } from "effect";
-import { decodeHolder, encodeHolder, type Holder } from "./holder.ts";
-import { isHolderAlive } from "./processStart.ts";
+import { decodeHolder, encodeHolder, type Holder } from "#holder.ts";
+import { isHolderAlive } from "#processStart.ts";
 
 const readContents = Effect.fn("HeavyLock.readContents")(function* (lock: string) {
 	const fs = yield* FileSystem.FileSystem;

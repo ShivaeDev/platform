@@ -18,8 +18,8 @@ import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
+import { Access } from "#test/Access.ts";
 import { usersPage } from "#users/page.ts";
-import { Access } from "./Access.ts";
 
 export const Page = usersPage(Access);
 const Profile = DirectoryUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));

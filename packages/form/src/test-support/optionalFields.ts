@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const Profile = Schema.Struct({ name: Schema.String, note: Schema.optionalKey(Schema.String), surname: Schema.String });
 export const optionalFields = formStories(

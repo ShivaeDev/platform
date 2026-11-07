@@ -1,8 +1,8 @@
+import { baselineStory, setupRun } from "#test/baselineStory.ts";
+import { writeAll } from "#test/recordedDebt.ts";
 import { branchOff } from "#testing/adapters/git.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { linkPackage } from "#testing/adapters/tree.ts";
-import { baselineStory, setupRun } from "./baselineStory.ts";
-import { writeAll } from "./recordedDebt.ts";
 
 export const AWAIT = "await Promise.resolve();\n";
 export const THROW = 'throw new Error("refused");\n';

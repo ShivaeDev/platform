@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { feedbackVerbs, generation, type Session, type State, session, view } from "#test/feedback-path/verbs.tsx";
+import { FeedbackView } from "#test/feedback-path/view.tsx";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
-import { feedbackVerbs, generation, type Session, type State, session, view } from "./verbs.tsx";
-import { FeedbackView } from "./view.tsx";
 
 export const feedback = storyKit(
 	screenKit(

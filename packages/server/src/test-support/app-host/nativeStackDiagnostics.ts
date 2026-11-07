@@ -1,7 +1,7 @@
 import { Cause, Context, Effect, ErrorReporter, Layer, type References, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 const Note = Context.Service<string>("@shivaedev/server/publicReasonNote");
 const group = RpcGroup.make(

@@ -8,8 +8,8 @@ import { routeKey } from "#adapters/routeKey.ts";
 import { DiscordConfig } from "#DiscordConfig.ts";
 import { DiscordToken } from "#DiscordToken.ts";
 import { DiscordRateLimited, DiscordTransportError } from "#errors.ts";
+import type { initialize } from "#rest/initialize.ts";
 import { DiscordRestLimits } from "#rest-limits/service.ts";
-import type { initialize } from "./initialize.ts";
 
 const Limited = Schema.Struct({ global: Schema.optional(Schema.Boolean), retryAfter: Schema.Number }).pipe(
 	Schema.encodeKeys({ retryAfter: "retry_after" }),

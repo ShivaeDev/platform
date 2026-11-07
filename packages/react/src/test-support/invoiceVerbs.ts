@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
-import type { editing, Session, switching } from "./invoiceScreens.tsx";
-import type { Screen } from "./Screen.ts";
-import { settleScreen } from "./settleScreen.ts";
+import type { editing, Session, switching } from "#test/invoiceScreens.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 type Server = ReturnType<typeof makeInvoiceLineServer>;
 export type Field = "name" | "quantity";

@@ -3,8 +3,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { type SettledQueries, settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { shown } from "./answers.ts";
-import { completionEngine, records } from "./completionEngine.ts";
+import { shown } from "#test/answers.ts";
+import { completionEngine, records } from "#test/completionEngine.ts";
 
 interface Watcher {
 	readonly results: SettledQueries<string, unknown>;

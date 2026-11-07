@@ -1,5 +1,5 @@
 import { Clock, Effect, Ref } from "effect";
-import type { initialize } from "./initialize.ts";
+import type { initialize } from "#rest-limits/initialize.ts";
 
 export function wait(state: Effect.Success<typeof initialize>) {
 	return Effect.fn("DiscordRestLimits.wait")(function* (route: string, major: string) {

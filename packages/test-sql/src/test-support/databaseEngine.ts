@@ -5,9 +5,9 @@ import { databaseId } from "#server/databaseOwner.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "#server/postgres.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { type Block, type Command, currentDatabase, endedBefore, type Services, serve } from "./databaseBlocks.ts";
-import { outcomeOf } from "./outcome.ts";
-import { setup } from "./postgres.ts";
+import { type Block, type Command, currentDatabase, endedBefore, type Services, serve } from "#test/databaseBlocks.ts";
+import { outcomeOf } from "#test/outcome.ts";
+import { setup } from "#test/postgres.ts";
 
 const ownDatabase = new RegExp(`^effect_test_[a-f0-9]{8}_${process.pid}_[a-f0-9]{32}$`, "u");
 

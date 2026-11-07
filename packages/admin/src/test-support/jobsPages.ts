@@ -2,8 +2,8 @@ import { Schema } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
-import { Users } from "./pages.ts";
-import { ScheduledWorker } from "./ScheduledWorker.ts";
+import { Users } from "#test/pages.ts";
+import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 
 export const Mail = defineQueue({
 	label: "Email delivery",

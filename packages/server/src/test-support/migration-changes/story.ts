@@ -5,9 +5,9 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appDatabase.ts";
+import { migrationChangesLoader } from "#test/migration-changes/loader.ts";
+import { runMigrationChanges } from "#test/migration-changes/run.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { migrationChangesLoader } from "./loader.ts";
-import { runMigrationChanges } from "./run.ts";
 
 const create = Effect.fnUntraced(function* () {
 	const { url } = yield* PostgresTestDatabase;

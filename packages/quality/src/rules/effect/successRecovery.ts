@@ -1,6 +1,6 @@
 import ts from "typescript";
+import { effectName } from "#rules/effect/failureOperations.ts";
 import { returnValues } from "#rules/stories/returnValues.ts";
-import { effectName } from "./failureOperations.ts";
 
 function success(checker: ts.TypeChecker, node: ts.Node, seen: Set<ts.Symbol>): boolean {
 	if (ts.isParenthesizedExpression(node)) {

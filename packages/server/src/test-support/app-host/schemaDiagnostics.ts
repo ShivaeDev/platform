@@ -1,7 +1,7 @@
 import { Effect, ErrorReporter, Layer, Redacted, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 const fields = {
 	customerRef: Schema.String,
