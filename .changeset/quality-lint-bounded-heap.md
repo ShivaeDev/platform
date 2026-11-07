@@ -4,4 +4,4 @@
 
 ### Fixed
 
-- Keep `quality lint` within Node's default heap on large repositories by bounding concurrent rules and releasing package-scoped TypeScript source state after analysis.
+- Bound lint's peak memory by running at most two rules concurrently and releasing cached TypeScript source files after each package in `effect/service-parameters`.

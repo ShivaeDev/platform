@@ -110,13 +110,4 @@ export function quality(root: string, ...args: readonly string[]): Run {
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 
-export function qualityWithHeap(root: string, heapMegabytes: number, ...args: readonly string[]): Run {
-	const result = spawnSync("node", [`--max-old-space-size=${heapMegabytes}`, ...qualityArgs(args)], {
-		cwd: root,
-		encoding: "utf8",
-		env: isolatedEnvironment(root),
-	});
-	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
-}
-
 export const CLI_EXIT = { invalid: 2, passed: 0, rejected: 1 } as const;
