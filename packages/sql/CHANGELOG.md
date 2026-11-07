@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.46.1 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/changes` from 0.11.0 to 0.11.1.
+- Update `@shivaedev/service` from 0.8.0 to 0.8.1.
+
 ## 0.46.0 - 2026-11-07
 
 ### Fixed
