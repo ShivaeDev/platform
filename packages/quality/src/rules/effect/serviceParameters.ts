@@ -34,7 +34,7 @@ export const serviceParameters = defineRule({
 		});
 	}),
 	description:
-		"Exported and local functions and public methods take services from Effect's environment, including aliases, constraints, inferred/destructured parameters and factory returns. Service keys/classes, non-empty Contexts and implementation shapes are services; Effect/Stream requirements are computations. Service implementation methods, framework callbacks, module-level React components and their props, owned foreign adapter resources and Layer constructors are accepted. Within Effect code, test-support/ folders are exempt. The fixed adapters/ convention bridges outside libraries to Effect values; adapters still follow this rule and ambient runtime bans. No config exceptions or inline suppressions; baseline existing debt.",
+		"Exported and local functions and public methods take services from Effect's environment, including aliases, constraints, inferred/destructured parameters and factory returns. Service keys/classes, non-empty Contexts and implementation shapes are services; Effect/Stream requirements are computations. Service implementation methods, framework callbacks, module-level React components and their props, owned initializer state, foreign host object methods, owned foreign adapter resources and Layer constructors are accepted. Within Effect code, test-support/ folders are exempt. The fixed adapters/ convention bridges outside libraries to Effect values; adapters still follow this rule and ambient runtime bans. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/service-parameters",
 	registrable: false,
 });

@@ -5,7 +5,7 @@ import { parse } from "#rules/parse.ts";
 
 function usesBundler(source: ts.SourceFile): boolean {
 	function visit(node: ts.Node): boolean {
-		if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === "esbuild") {
+		if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && ["esbuild", "rolldown"].includes(node.moduleSpecifier.text)) {
 			return true;
 		}
 		if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Bun" && node.name.text === "build") {
@@ -19,7 +19,7 @@ function usesBundler(source: ts.SourceFile): boolean {
 function directSources(files: readonly SourceFile[]): Map<string, ts.SourceFile> {
 	const sources = new Map<string, ts.SourceFile>();
 	for (const file of files) {
-		if (!(file.text.includes("esbuild") || file.text.includes("Bun"))) {
+		if (!(file.text.includes("esbuild") || file.text.includes("rolldown") || file.text.includes("Bun"))) {
 			continue;
 		}
 		const source = parse(file);
