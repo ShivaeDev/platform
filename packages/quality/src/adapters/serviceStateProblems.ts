@@ -2,6 +2,7 @@ import ts from "typescript";
 import { containerDependency } from "#adapters/containerDependency.ts";
 import { serviceProperty } from "#adapters/serviceAssemblySyntax.ts";
 import { effectApi, effectSuccess, resolvedValue } from "#adapters/serviceModelSyntax.ts";
+import { boundaryReference } from "#rules/effect/boundaryReference.ts";
 import type { serviceTypes } from "#rules/effect/serviceTypes.ts";
 import { returnValues } from "#rules/stories/returnValues.ts";
 
@@ -17,7 +18,7 @@ function capturesDependency(
 	}
 	seen.add(value);
 	if (ts.isYieldExpression(value) && value.expression !== undefined && services.carries(checker.getTypeAtLocation(value.expression))) {
-		return true;
+		return !["effect.Scope.Scope", "effect/Scope.Scope"].includes(boundaryReference(checker, value.expression) ?? "");
 	}
 	if (
 		!closing

@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
@@ -47,6 +48,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
 		);
 		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
+		const configs = sources.filter(isToolConfig);
 		// Migration runners load these files from their directory, so no import reaches them.
 		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
 		const ui = toolOwned.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory).map((file) => posix.relative(directory, file));
@@ -56,7 +58,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 		return [
 			directory,
 			{
-				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...bundled, ...ui, ...styles],
+				entry: [...ENTRIES, ...publicFiles, ...configs, ...migrations, ...bins, ...binaries, ...scriptEntries, ...bundled, ...ui, ...styles],
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },

@@ -1,4 +1,5 @@
 import { realpathSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
 import type { Ambient } from "#imports/ambient.ts";
@@ -47,6 +48,17 @@ function fitting(resolved: string, type: boolean): string | undefined {
 	return type || !isDeclarationFile(resolved) ? resolved : undefined;
 }
 
+function nativeResolution(request: ImportRequest, from: string): string | undefined {
+	if (request.kind !== "resolve") {
+		return undefined;
+	}
+	try {
+		return createRequire(from).resolve(request.specifier.replace(QUERY, ""));
+	} catch {
+		return undefined;
+	}
+}
+
 function located(request: ImportRequest, from: string, project: Project): string | undefined {
 	const specifier = request.specifier.replace(QUERY, "");
 	if (request.kind === "type-reference") {
@@ -60,6 +72,7 @@ function located(request: ImportRequest, from: string, project: Project): string
 		ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache, undefined, request.mode).resolvedModule?.resolvedFileName
 		?? ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache, undefined, request.mode).resolvedModule
 			?.resolvedFileName
+		?? nativeResolution(request, from)
 	);
 }
 

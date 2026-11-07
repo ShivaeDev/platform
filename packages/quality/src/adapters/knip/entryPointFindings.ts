@@ -71,7 +71,7 @@ export const entryPointFindings = Effect.fn("Knip.entryPointFindings")(function*
 			const consumer = owner(edge.from);
 			const supplied = provider(policies.get(consumer) ?? [], target, development(consumer, edge.from), true);
 			return consumer === directory
-				? supplied?.name === name
+				? (edge.kind === "resolve" && target === name) || supplied?.name === name
 				: supplied !== undefined && workspace.get(supplied.name) === directory && target === name;
 		});
 	});

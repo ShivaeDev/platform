@@ -6,7 +6,6 @@ import { serviceModel } from "./serviceModel.ts";
 
 for (const [name, initialize] of [
 	["a service key used directly as the initializer", "Store"],
-	["a borrowed scope", "Effect.gen(function* () { return yield* Scope.Scope; })"],
 	["a repository", "Effect.gen(function* () { return yield* Store; })"],
 	["a ref that can retain dependencies after initialization", "Ref.make<StoreShape | undefined>(undefined)"],
 	["a dependency hidden in a ref", "Effect.gen(function* () { return yield* Ref.make(yield* Store); })"],
@@ -39,6 +38,7 @@ for (const [name, initialize] of [
 	["a ref", "Ref.make(0)"],
 	["a closure over an owned ref", "Effect.gen(function* () { const count = yield* Ref.make(0); return { read: () => Ref.get(count) }; })"],
 	["an owned scope", "Scope.make()"],
+	["the Layer's scope", "Effect.gen(function* () { return yield* Scope.Scope; })"],
 	[
 		"an acquired handle with an Effect finalizer",
 		"Effect.acquireRelease(Effect.sync(() => ({ close: () => Effect.void })), (handle) => handle.close())",

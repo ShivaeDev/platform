@@ -3,7 +3,6 @@
 {"path":"packages/react/src/adapters/queryRoute.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/adapters/useLoaderHandoff.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}
-{"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/NoticeContext.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/PermissionContext.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/RecheckContext.ts","rule":"effect/adapter-imports","count":1}

@@ -33,6 +33,12 @@ function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewEx
 	if (signature?.declaration !== undefined && foreign(signature.declaration)) {
 		return true;
 	}
+	if (ts.isCallExpression(node)) {
+		const factory = resolvedValue(checker, node.expression);
+		if (ts.isFunctionLike(factory) && constructed(checker, factory, seen)) {
+			return true;
+		}
+	}
 	if (!(ts.isCallExpression(node) && ["promise", "tryPromise", "sync", "acquireRelease"].some((name) => effectApi(checker, node.expression, name)))) {
 		return false;
 	}

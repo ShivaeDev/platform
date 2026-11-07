@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { moduleResolver } from "#adapters/moduleResolver.ts";
 
 export type ImportKind = "import" | "path-reference" | "resolve" | "type-reference";
 
@@ -16,7 +17,7 @@ interface Found {
 	readonly type: boolean;
 }
 
-const MAY_CALL = /\b(?:import|require)\s*\(|\b(?:require|import\.meta)\.resolve\s*\(/u;
+const MAY_CALL = /\b(?:import|require)\s*\(|\b(?:require|import\.meta)\.resolve\s*\(|\bcreateRequire\b/u;
 
 const JSDOC_IMPORT = "@import";
 
@@ -55,21 +56,6 @@ function isRequire(call: ts.CallExpression): boolean {
 	return ts.isIdentifier(call.expression) && call.expression.text === "require";
 }
 
-function isImportMeta(node: ts.Expression): boolean {
-	return ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword && node.name.text === "meta";
-}
-
-function resolver(call: ts.CallExpression): "meta" | "require" | undefined {
-	const callee = call.expression;
-	if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== "resolve") {
-		return undefined;
-	}
-	if (ts.isIdentifier(callee.expression) && callee.expression.text === "require") {
-		return "require";
-	}
-	return isImportMeta(callee.expression) ? "meta" : undefined;
-}
-
 // Node resolves a relative import.meta.resolve() by URL arithmetic alone, so the path need not exist.
 function isRelative(node: ts.Node | undefined): boolean {
 	return node !== undefined && ts.isStringLiteralLike(node) && (node.text.startsWith(".") || node.text.startsWith("/"));
@@ -80,7 +66,7 @@ function called(call: ts.CallExpression): Found | undefined {
 	if (call.expression.kind === ts.SyntaxKind.ImportKeyword || isRequire(call)) {
 		return { kind: "import", node: argument, type: false };
 	}
-	const how = resolver(call);
+	const how = moduleResolver(call);
 	const checked = how === "require" || (how === "meta" && !isRelative(argument));
 	return checked ? { kind: "resolve", node: argument, type: false } : undefined;
 }

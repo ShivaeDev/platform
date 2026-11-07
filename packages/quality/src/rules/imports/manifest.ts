@@ -6,6 +6,7 @@ import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { dependencyNames, type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
+import { developmentCode } from "#naming/developmentCode.ts";
 import { testCode } from "#naming/testCode.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
 import { bundleInputs } from "./bundleInputs.ts";
@@ -95,7 +96,11 @@ function undeclared(owner: WorkspacePackage, policy: ManifestDependencies | unde
 export const importsManifest = defineRule({
 	check: Effect.fn("Imports.check")(function* (inputs) {
 		const graph = yield* importGraph(inputs);
-		const isTestCode = yield* testCode(inputs);
+		const testFile = yield* testCode(inputs);
+		const tooling = yield* developmentCode(inputs);
+		function isTestCode(path: string) {
+			return testFile(path) || tooling(path);
+		}
 		const root: WorkspacePackage | undefined =
 			(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
