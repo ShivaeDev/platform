@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.0 - 2026-11-07
+
+### Added
+
+- Log application HTTP routes by default through Effect's logger with method, route template, response status, duration in milliseconds and a generated request ID. Request credentials, URL values and bodies are omitted.
+
 ## 0.31.2 - 2026-11-07
 
 ### Fixed
