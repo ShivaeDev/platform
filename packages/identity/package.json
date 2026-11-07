@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/identity",
-	"version": "0.30.2",
+	"version": "0.30.3",
 	"description": "Request identity, sessions, transport trust and permission enforcement for Effect RPC servers",
 	"keywords": [
 		"effect"

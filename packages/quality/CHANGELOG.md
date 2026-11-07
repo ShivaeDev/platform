@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.72.2 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/service` from 0.8.1 to 0.8.2.
+- Update `@shivaedev/test-story` from 0.45.2 to 0.45.3.
+
 ## 0.72.1 - 2026-11-07
 
 ### Fixed

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.0 - 2026-11-07
+
+### Breaking
+
+- Replace `@shivaedev/github/list.ts` with `github.listPages(path, schema, options)` and flatten each page's `items` with `Stream.flatMap` when consuming individual items.
+- Replace `@shivaedev/github/listPages.ts` with `github.listPages(path, schema, options)`.
+- Replace `@shivaedev/github/listBounded.ts` with `github.listBounded(path, schema, pageCap, options)`.
+
 ## 0.16.0 - 2026-11-07
 
 ### Added
