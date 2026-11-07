@@ -18,7 +18,7 @@ export const socketPolicyStory = storyKit({
 	runIf: databaseUrl !== undefined,
 	stages: [],
 	verbs: (engine, story) => {
-		function reference(query: "timeline" | "all", owner = "alice") {
+		function reference(query: "timeline" | "all" | "role", owner = "alice") {
 			return query === "timeline" ? { payload: { owner }, query } : { payload: undefined, query };
 		}
 		return {
@@ -32,6 +32,12 @@ export const socketPolicyStory = storyKit({
 				return feed === undefined ? Effect.die(`No subscription to ${query}`) : feed.next;
 			},
 			pushed: (query: string) => Effect.sync(() => Schema.decodeUnknownSync(Schema.Array(Schema.String))(engine.feeds.get(query)?.values.get(0))),
+			pushedRole: () =>
+				Effect.sync(() =>
+					Schema.decodeUnknownSync(Schema.Struct({ callerRole: Schema.String, capturedRole: Schema.String, role: Schema.String }))(
+						engine.feeds.get("role")?.values.get(0),
+					),
+				),
 			restoreAdmin: () =>
 				Effect.sync(() => {
 					engine.access.admin = true;
@@ -44,7 +50,7 @@ export const socketPolicyStory = storyKit({
 				story.tell(`alice saves ${title} in list ${listId}`);
 				return engine.alice("socketNotes.save", { id, listId, title });
 			},
-			subscribe: (caller: "alice" | "admin", query: "timeline" | "all") =>
+			subscribe: (caller: "alice" | "admin", query: "timeline" | "all" | "role") =>
 				Effect.gen(function* () {
 					story.tell(`${caller} subscribes to ${query} over the host's socket`);
 					engine.feeds.set(query, yield* followHints(engine[caller]("socketNotes.$changes", { queries: [reference(query)] })));

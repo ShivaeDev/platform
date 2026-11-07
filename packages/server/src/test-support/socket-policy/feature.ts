@@ -9,6 +9,7 @@ import { permissionReadPolicy } from "@shivaedev/contract/permissionReadPolicy.t
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
+import { roleView } from "#test/socket-policy/role/service.ts";
 
 export class List extends Model.Class<List>("SocketList")({ id: Schema.Number, owner: bucket(Schema.String) }) {}
 export class Note extends Model.Class<Note>("SocketNote")({ id: Schema.Number, listId: bucket(Schema.Number), title: Schema.String }) {}
@@ -21,6 +22,15 @@ export const Api = contract("socketNotes", {
 		command("save", { invalidates: () => [], payload: { id: Schema.Number, listId: Schema.Number, title: Schema.String } }),
 	],
 	queries: [
+		query("role", {
+			readPolicy: () =>
+				Effect.gen(function* () {
+					const user = yield* SessionUser;
+					return (yield* roleView.use((view) => view.read())).role === user.role;
+				}),
+			reads: () => [notes.bucket.listId(1)],
+			success: Schema.Struct({ callerRole: Schema.String, capturedRole: Schema.String, role: Schema.String }),
+		}),
 		query("timeline", {
 			payload: { owner: Schema.String },
 			readPolicy: ({ owner }, viewer) => Effect.succeed(Option.exists(viewer, ({ id }) => id === owner)),
