@@ -1073,6 +1073,9 @@ importers:
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
+      '@zip.js/zip.js':
+        specifier: 'catalog:'
+        version: 2.24.0
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -1098,9 +1101,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
-      '@zip.js/zip.js':
-        specifier: 'catalog:'
-        version: 2.24.0
       effect:
         specifier: 'catalog:'
         version: 4.1.1

@@ -11,6 +11,16 @@ import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHubRateLimited } from "@shivaedev/github/errors.ts";
 
 const server = createServer((request, response) => {
+  if (request.url === "/repos/acme/widgets/actions/artifacts/7/zip") {
+    response.writeHead(302, { location: `http://${request.headers.host}/storage/archive.zip` });
+    response.end();
+    return;
+  }
+  if (request.url === "/storage/archive.zip") {
+    response.writeHead(200, { "content-type": "application/zip" });
+    response.end(Buffer.from("UEsDBBQAAAAIAAAAIVyk1aTFEgAAABAAAAAKAAAAcmVwb3J0LnR4dHMsKslMS0wuUShKLcgvKuECAFBLAQIUAxQAAAAIAAAAIVyk1aTFEgAAABAAAAAKAAAAAAAAAAAAAACAAQAAAAByZXBvcnQudHh0UEsFBgAAAAABAAEAOAAAADoAAAAAAA==", "base64"));
+    return;
+  }
   response.writeHead(200, { "content-type": "application/json" });
   response.end(JSON.stringify(request.url === "/items" ? [{ name: "packed" }] : { name: "packed" }));
 });
@@ -30,6 +40,8 @@ try {
     assert.deepEqual(yield* list("/items", Item).pipe(Stream.runCollect), [item]);
     assert.deepEqual(yield* write("PATCH", "/item", { name: "packed" }, Item), item);
     assert.deepEqual(yield* (yield* GitHub).observations(), []);
+    const files = yield* (yield* GitHub).downloadArtifactArchive({ artifactId: 7, byteLimit: 1024, owner: "acme", repo: "widgets" });
+    assert.deepEqual(files, [{ path: "report.txt", bytes: new TextEncoder().encode("Artifact report\n") }]);
   });
   await Effect.runPromise(program.pipe(Effect.provide(layer)));
   assert.equal(typeof GitHubRateLimited, "function");
