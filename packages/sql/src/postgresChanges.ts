@@ -21,7 +21,6 @@ export interface PostgresChangesOptions {
 	readonly channel: string;
 	readonly client: PostgresChangeClient;
 	readonly connectionSetting?: string;
-	readonly "connectionTTL"?: Duration.Input | undefined;
 	readonly heartbeatInterval?: Duration.Input;
 	readonly heartbeatTimeout?: Duration.Input;
 	readonly listenerClient?: Pick<PostgresChangeClient, "listen">;

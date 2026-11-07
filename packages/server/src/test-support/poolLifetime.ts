@@ -75,17 +75,11 @@ export const poolLifetime = storyKit({
 				story.tell("the configured idle timeout passes without an application query");
 				return TestClock.adjust(state.config.idleTimeout ?? "1 minute");
 			},
-			lifetimePasses: () => {
-				story.tell("the application's connection lifetime passes");
-				return TestClock.adjust(state.config.connectionTTL ?? "10 minutes");
+			lifetimePasses: (count = 1) => {
+				story.tell(`${count} application connection lifetimes pass`);
+				return TestClock.adjust(Duration.times(Duration.fromInputUnsafe(state.config.connectionTTL ?? "10 minutes"), count));
 			},
 			listenerBackend: () => Effect.map(listeners(), (rows) => rows.find((row) => row.query.startsWith("LISTEN "))?.pid),
-			listenerRenews: (previous: number | undefined) =>
-				observeUntil(
-					listeners(),
-					(rows) => rows.some((row) => row.query.startsWith("LISTEN ") && row.pid !== previous),
-					"a replacement LISTEN backend",
-				),
 			nextHint: () => (state.feed === undefined ? Effect.die("Subscribe first") : state.feed.next),
 			noteIsWritten: (id: number) =>
 				SqlClient.SqlClient.use((sql) => sql`insert into notes values (${id})`).pipe(
