@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { sortPackageJson } from "sort-package-json";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BaselineEntry, encodeBaseline } from "#baseline/format.ts";
 import { manifest } from "#test/applicationFiles.ts";
@@ -29,14 +30,17 @@ function writeLargeRepository(root: string): void {
 	writeFileSync(join(root, "biome.json"), '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n');
 	writeFileSync(
 		join(root, "package.json"),
-		manifest("package.json", {
-			dependencies: { effect: effectManifest.version },
-			devDependencies: { "@shivaedev/quality": version },
-			exports: { "./*.ts": "./src/*.ts" },
-			name: "large-quality-fixture",
-			private: true,
-			type: "module",
-		}).content,
+		manifest(
+			"package.json",
+			sortPackageJson({
+				dependencies: { effect: effectManifest.version },
+				devDependencies: { "@shivaedev/quality": version },
+				exports: { "./*.ts": "./src/*.ts" },
+				name: "large-quality-fixture",
+				private: true,
+				type: "module",
+			}),
+		).content,
 	);
 	writeFileSync(
 		join(root, "quality.config.ts"),
@@ -69,7 +73,7 @@ function writeLargeRepository(root: string): void {
 			'import { Effect } from "effect";',
 			"",
 			`interface ${inputName} { readonly enabled: boolean; readonly value: string; readonly values: readonly string[] }`,
-			`export const ${name} = Effect.fn("${name}")(function* (input: ${inputName}) {`,
+			`export const ${name} = Effect.fn("Quality.${name}")(function* (input: ${inputName}) {`,
 			`\treturn yield* Effect.succeed(input.enabled ? \`\${input.value}:\${input.values.join(":")}\` : input.value);`,
 			"});",
 		].join("\n");
