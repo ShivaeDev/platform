@@ -5,13 +5,25 @@ import { merged } from "#release/test-support/merged.ts";
 import { missed } from "#release/test-support/missed.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
+releasePullRequest.it("a manifest change without a version bump selects no packages", [missed], function* ({ git, pushMain, preparePush }) {
+	const before = yield* git("rev-parse", "HEAD");
+	yield* pushMain("packages/platform/package.json", '{"name":"@shivaedev/platform","version":"0.15.0","description":"New description"}\n');
+
+	const release = yield* preparePush(before);
+
+	expect(release).toMatchObject({ packages: [] });
+});
+
 releasePullRequest.it(
 	"an ordinary push leaves a missing npm version unpublished without release notes",
 	[missed],
-	function* ({ git, publish, publishedPackages, readGitHub }) {
-		const failure = yield* publish(yield* git("rev-parse", "HEAD^"));
+	function* ({ git, pushMain, publish, publishedPackages, readGitHub }) {
+		const before = yield* git("rev-parse", "HEAD");
+		yield* pushMain("README.md", "An ordinary documentation change.\n");
 
-		expect(failure).toContain("has no merged release/next PR");
+		const failure = yield* publish(before);
+
+		expect(failure).toBeUndefined();
 		yield* outcomes([
 			["published packages", () => publishedPackages(), []],
 			["release notes", () => readGitHub().pipe(Effect.map(({ requests }) => requests.filter(({ endpoint }) => endpoint.endsWith("/releases")))), []],
@@ -21,7 +33,7 @@ releasePullRequest.it(
 
 for (const followedByCommit of [false, true]) {
 	releasePullRequest.it(
-		`a release merge ${followedByCommit ? "followed by another commit" : "at the push head"} publishes current and missed versions with their notes`,
+		`a release merge ${followedByCommit ? "followed by another commit" : "at the push head"} publishes exactly the bumped versions with their notes`,
 		[missed, merged],
 		function* ({ git, pushMain, publish, publishedPackages, readGitHub }) {
 			const before = yield* git("rev-parse", "HEAD^");
@@ -33,24 +45,21 @@ for (const followedByCommit of [false, true]) {
 			const failure = yield* publish(before);
 
 			expect(failure).toBeUndefined();
-			expect(yield* publishedPackages()).toEqual(
-				expect.arrayContaining([
-					{ name: "@shivaedev/platform", version: "0.15.1" },
-					{ name: "@shivaedev/create-app", version: "0.9.1" },
-					{ name: "@shivaedev/react", version: "0.38.0" },
-				]),
-			);
+			expect(yield* publishedPackages()).toEqual([
+				{ name: "@shivaedev/create-app", version: "0.9.1" },
+				{ name: "@shivaedev/platform", version: "0.15.1" },
+			]);
 			const releases = (yield* readGitHub()).requests.filter(({ endpoint }) => endpoint.endsWith("/releases"));
 			expect(releases).toMatchObject([
 				{
 					body: {
-						body: expect.stringContaining("## @shivaedev/react 0.38.0\n\n### Fixed\n\n- Keep the editor draft during refresh."),
+						body: expect.stringContaining("## @shivaedev/platform 0.15.1\n\n### Fixed\n\n- Keep a saved draft."),
 						"target_commitish": head,
 					},
 				},
 			]);
-			expect(releases[0]?.body?.body).toContain("## @shivaedev/platform 0.15.1\n\n### Fixed\n\n- Keep a saved draft.");
-			expect(releases[0]?.body?.body).not.toContain("Older react behavior.");
+			expect(releases[0]?.body?.body).toContain("## @shivaedev/create-app 0.9.1");
+			expect(releases[0]?.body?.body).not.toContain("## @shivaedev/react");
 		},
 	);
 }
@@ -84,27 +93,40 @@ for (const allPublished of [false, true]) {
 	);
 }
 
-for (const [title, branch, isMerged, matchingCommit] of [
-	["an ordinary merged PR cannot publish a release", "feature/next", true, true],
-	["an unmerged release PR cannot publish", "release/next", false, true],
-	["a release merged outside the push cannot publish", "release/next", true, false],
+for (const followedByCommit of [false, true]) {
+	releasePullRequest.it(
+		`a pushed range ${followedByCommit ? "spanning several commits" : "ending at the release"} selects versions without GitHub linking the PR`,
+		[missed, merged],
+		function* ({ git, pushMain, preparePush }) {
+			const before = yield* git("rev-parse", followedByCommit ? "HEAD~2" : "HEAD^");
+			if (followedByCommit) {
+				yield* pushMain("README.md", "Documentation after the release.\n");
+			}
+
+			const release = yield* preparePush(before);
+
+			expect(release).toMatchObject({
+				base: before,
+				head: yield* git("rev-parse", "HEAD"),
+				packages: [
+					{ name: "@shivaedev/create-app", version: "0.9.1" },
+					{ name: "@shivaedev/platform", version: "0.15.1" },
+				],
+			});
+		},
+	);
+}
+
+for (const [title, version, isPrivate] of [
+	["a version decrease", "0.14.0", false],
+	["a private package version increase", "0.16.0", true],
 ] as const) {
-	releasePullRequest.it(title, [merged], function* ({ git, publish, replyToMergedPulls, publishedPackages }) {
-		const commit = yield* git("rev-parse", "HEAD");
-		const before = yield* git("rev-parse", "HEAD^");
-		yield* replyToMergedPulls([
-			{
-				base: { ref: "main", repo: { "full_name": "example/workspace" } },
-				head: { ref: branch, repo: { "full_name": "example/workspace" }, sha: commit },
-				"merge_commit_sha": matchingCommit ? commit : before,
-				"merged_at": isMerged ? "2026-11-02T00:00:00Z" : null,
-				number: 2,
-			},
-		]);
+	releasePullRequest.it(`${title} selects no packages`, [], function* ({ git, pushMain, preparePush }) {
+		const before = yield* git("rev-parse", "HEAD");
+		yield* pushMain("packages/platform/package.json", JSON.stringify({ name: "@shivaedev/platform", private: isPrivate, version }));
 
-		const failure = yield* publish(before);
+		const release = yield* preparePush(before);
 
-		expect(failure).toContain("has no merged release/next PR");
-		expect(yield* publishedPackages()).toEqual([]);
+		expect(release.packages).toEqual([]);
 	});
 }

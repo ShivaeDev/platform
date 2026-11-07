@@ -1,7 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, Exit, Fiber, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHub } from "@shivaedev/github/github/service.ts";
@@ -74,10 +73,11 @@ export const releasePullRequest = storyKit({
 					Effect.map((failure) => failure._tag),
 				),
 			git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
+			preparePush: (before: string) => preparePublish(root, git("rev-parse", "HEAD"), before),
 			publish: (before: string) =>
 				Effect.gen(function* () {
-					const { base, head } = yield* preparePublish(root, "example/workspace", git("rev-parse", "HEAD"), before);
-					const published = yield* publishPackages(root, base);
+					const head = git("rev-parse", "HEAD");
+					const published = yield* publishPackages(root, before);
 					yield* publishNotes(root, "example/workspace", published, head);
 				}).pipe(Effect.provide(context), Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined })),
 			publishedFile: (name: string, path: string) => registry.file(name, path),
@@ -98,7 +98,6 @@ export const releasePullRequest = storyKit({
 					api.state.queued = true;
 				}),
 			readGitHub: () => Effect.sync(() => structuredClone(api.state)),
-			replyToMergedPulls: (body: unknown) => server.scriptFault("runs", { kind: "status", reply: { body, status: HttpStatus.fromLiteral("OK") } }),
 			replyToSnapshot: (body: unknown, status: number) => server.scriptFault("graphql", { kind: "status", reply: { body, status } }),
 			run,
 			setCiRun: (status: string, conclusion: string | null = null) =>
