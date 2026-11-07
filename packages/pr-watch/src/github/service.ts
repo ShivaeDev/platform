@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { confirmQueue } from "#github/confirmQueue.ts";
 import { delay } from "#github/delay.ts";
 import { discover } from "#github/discover.ts";

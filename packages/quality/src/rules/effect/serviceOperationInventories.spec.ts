@@ -52,7 +52,7 @@ repositoryStory.it(
 	"quality lint rejects a namespace service constructor with the direct-import repair",
 	[
 		...consumer,
-		repositoryHas(serviceAssembly(ASSEMBLY_INVENTORY, "", 'import * as Definitions from "@shivaedev/service/defineService.ts";')),
+		repositoryHas(serviceAssembly(ASSEMBLY_INVENTORY, "", 'import * as Definitions from "@shivaedev/service/adapters/defineService.ts";')),
 		biomeFormatted(),
 	],
 	function* ({ runs, outcome, stdout }) {

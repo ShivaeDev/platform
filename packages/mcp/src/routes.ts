@@ -3,7 +3,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import type { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { withSessionUser } from "@shivaedev/identity/server/session.ts";
 import { requestServer } from "#requestServer.ts";
 
@@ -36,11 +36,11 @@ export function mcpRoutes<E, R>(options: McpOptions<E, R>) {
 	const server = requestServer(options);
 	return HttpRouter.use((router) =>
 		router.add("*", options.path, (request) =>
-			Effect.context<Identity | SessionUser>().pipe(
+			Effect.all([Identity, SessionUser]).pipe(
 				withSessionUser(request.headers, request.url),
 				Effect.matchEffect({
 					onFailure: (error) => Effect.succeed(rejection(error, options.resourceMetadataUrl)),
-					onSuccess: (context) => Effect.provideContext(server, context),
+					onSuccess: ([identity, user]) => server.pipe(Effect.provideService(Identity, identity), Effect.provideService(SessionUser, user)),
 				}),
 			),
 		),

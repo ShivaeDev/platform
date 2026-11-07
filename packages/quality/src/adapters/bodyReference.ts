@@ -11,7 +11,7 @@ export function dataFactory({ module, path }: BodyReference): boolean {
 
 export function serviceFactory({ module, path }: BodyReference): boolean {
 	return (
-		(module === "@shivaedev/service/defineService.ts" && path[0] === "defineService")
+		(module === "@shivaedev/service/adapters/defineService.ts" && path[0] === "defineService")
 		|| ((module === "effect" || module === "effect/Context")
 			&& path.at(-1) !== undefined
 			&& ["Service", "Tag", "GenericTag", "Reference"].includes(path.at(-1) ?? ""))

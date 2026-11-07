@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Schema, SchemaGetter, type Scope } from "effect";
 import { expectTypeOf } from "vitest";
-import { defineService } from "#defineService.ts";
+import { defineService } from "#adapters/defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
 class Declared extends Context.Service<Declared, string>()("@shivaedev/service/typecheck/Declared") {}

@@ -18,7 +18,7 @@ export function serviceAssembly(definition: string, preamble = "", imports = "")
 	return {
 		content: [
 			...(definition.includes("Effect.") || preamble.includes("Effect.") ? ['import { Effect } from "effect";'] : []),
-			'import { defineService } from "@shivaedev/service/defineService.ts";',
+			'import { defineService } from "@shivaedev/service/adapters/defineService.ts";',
 			'import { genericMethod } from "@shivaedev/service/genericMethod.ts";',
 			'import { initialize } from "#initialize.ts";',
 			'import { preserve } from "#preserve.ts";',
@@ -64,7 +64,7 @@ export const assemblyFiles: readonly SeedFile[] = [
 export const statelessAssembly: SeedFile = {
 	content: [
 		'import { Effect } from "effect";',
-		'import { defineService as assemble } from "@shivaedev/service/defineService.ts";',
+		'import { defineService as assemble } from "@shivaedev/service/adapters/defineService.ts";',
 		'import { reset } from "#reset.ts";',
 		'export const Inventory = assemble({ id: "@demo/inventory/Inventory", initialize: Effect.void, methods: () => ({ reset }), requires: [] });',
 	].join("\n"),

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 
 export const Missing = defineService({
 	id: "@shivaedev/test-sql/types/Missing",

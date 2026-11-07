@@ -9,7 +9,7 @@ export function serviceResolves() {
 export function modelFiles(initialize = "Effect.void", operation = 'Effect.fn("Inventory.read")(() => Effect.void)', inventory = "read") {
 	return [
 		{
-			content: `import { defineService } from "@shivaedev/service/defineService.ts";
+			content: `import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { initialize, Store, Settings, OptionalSettings, Prefix, Subject } from "./initialize.ts";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as HttpClient from "effect/http/HttpClient";

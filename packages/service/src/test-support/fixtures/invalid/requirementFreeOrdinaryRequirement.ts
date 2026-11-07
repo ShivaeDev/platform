@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect";
-import { defineService } from "#defineService.ts";
+import { defineService } from "#adapters/defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
 class Secret extends Context.Service<Secret, object>()("@shivaedev/service/invalid/Secret") {}

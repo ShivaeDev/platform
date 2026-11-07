@@ -10,6 +10,6 @@ export default [
 		.mayNotReach(anything.except(files("packages/changes/src/keys.ts"), browserCode, packages("types", "service"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/contract/src/contract.ts", external("@effect/sql-pg")],
-			legal: ["packages/contract/src/contract.ts", "packages/service/src/defineService.ts", external("effect")],
+			legal: ["packages/contract/src/contract.ts", "packages/service/src/adapters/defineService.ts", external("effect")],
 		}),
 ];

@@ -3,7 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { canReadNote } from "#modules/notes/server/canRead.ts";
 import { createNote } from "#modules/notes/server/create.ts";
 import { deleteNote } from "#modules/notes/server/delete.ts";

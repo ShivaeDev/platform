@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type ts from "typescript";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { browserChecker } from "#adapters/import-compiler/browserChecker.ts";
 import { departures } from "#adapters/import-compiler/departures.ts";
 import { graph } from "#adapters/import-compiler/graph.ts";

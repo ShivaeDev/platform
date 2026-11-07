@@ -1,5 +1,6 @@
 import { Context, Effect, Exit } from "effect";
-import { add, type Buffer, type CommitFrame, keyed, makeBuffer, makeFrame, settled } from "#frame.ts";
+import { contextualFrame } from "#adapters/contextualFrame.ts";
+import { add, type Buffer, type CommitFrame, keyed, makeBuffer, settled } from "#frame.ts";
 import { type Observation, type Observer, unobserved } from "#observe.ts";
 import { type Publish, type PublishFailure, publisher } from "#publish.ts";
 
@@ -109,18 +110,13 @@ export function makeChannel<A, R = never, THookError = never>(options: ChannelOp
 			}
 			const buffer = makeBuffer(kind, parent);
 			const inner = new Map(frames).set(owner, buffer);
-			const context = yield* Effect.context<R>();
-			return makeFrame({
-				beforeCommit: (changes) =>
-					Effect.updateContext<void, THookError, R, never>(
-						Effect.flatMap(Effect.service(BeforeCommit), (hook) => hook(changes)),
-						(current: Context.Context<never>) => Context.merge(context, current),
-					),
+			return yield* contextualFrame({
+				beforeCommit: (changes) => Effect.flatMap(Effect.service(BeforeCommit), (hook) => hook(changes)),
 				buffer,
-				discard: (changes) => Effect.provideContext(observe({ _tag: "Discarded", changes }), context),
+				discard: (changes) => observe({ _tag: "Discarded", changes }),
 				name,
 				provide: (body) => Effect.provideService(body, Frames, inner),
-				publish: (changes) => Effect.provideContext(deliver(changes, kind === "transaction"), context),
+				publish: (changes) => deliver(changes, kind === "transaction"),
 			});
 		});
 	}

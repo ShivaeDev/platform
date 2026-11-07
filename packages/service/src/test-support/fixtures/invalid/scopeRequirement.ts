@@ -1,5 +1,5 @@
 import { Effect, Scope } from "effect";
-import { defineService } from "#defineService.ts";
+import { defineService } from "#adapters/defineService.ts";
 import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
 const requirements = [Scope.Scope] as const;

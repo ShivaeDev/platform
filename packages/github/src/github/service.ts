@@ -1,5 +1,5 @@
 import { HttpClient } from "effect/http";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";

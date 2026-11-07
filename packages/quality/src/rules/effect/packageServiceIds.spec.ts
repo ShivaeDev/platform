@@ -25,7 +25,7 @@ for (const [name, code, id = "Store"] of [
 				content: [
 					'import { Context } from "effect";',
 					'import { RpcMiddleware } from "effect/rpc";',
-					'import { defineService } from "@shivaedev/service/defineService.ts";',
+					'import { defineService } from "@shivaedev/service/adapters/defineService.ts";',
 					code,
 				].join("\n"),
 				path: "packages/store/src/Store.ts",
@@ -53,7 +53,7 @@ ruleStory.it(
 			content: [
 				'import { Context } from "effect";',
 				'import { RpcMiddleware } from "effect/rpc";',
-				'import { defineService } from "@shivaedev/service/defineService.ts";',
+				'import { defineService } from "@shivaedev/service/adapters/defineService.ts";',
 				'Context.Service<Store>()("@shivaedev/store/Store");',
 				'Context.Service<Store>("@shivaedev/store/Other");',
 				'Context.Reference("@shivaedev/store/Count", { defaultValue: () => 0 });',
@@ -81,7 +81,8 @@ ruleStory.it(
 				path: "packages/store/src/adapters/store.ts",
 			},
 			{
-				content: 'import { defineService as service } from "@shivaedev/service/defineService.ts"; service({ "id": "@shivaedev/storehouse/Store" });',
+				content:
+					'import { defineService as service } from "@shivaedev/service/adapters/defineService.ts"; service({ "id": "@shivaedev/storehouse/Store" });',
 				path: "packages/store/src/test-support/store.ts",
 			},
 			{
@@ -131,7 +132,7 @@ ruleStory.it(
 	[
 		workspace,
 		repositoryHas({
-			content: 'import { defineService } from "#defineService.ts"; defineService({ id: "Local" });',
+			content: 'import { defineService } from "#adapters/defineService.ts"; defineService({ id: "Local" });',
 			path: "packages/service/src/local.ts",
 		}),
 	],

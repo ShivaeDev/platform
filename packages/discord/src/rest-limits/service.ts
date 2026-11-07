@@ -1,4 +1,4 @@
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { initialize } from "#rest-limits/initialize.ts";
 import { observe } from "#rest-limits/observe.ts";
 import { refuse } from "#rest-limits/refuse.ts";

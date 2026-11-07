@@ -1,5 +1,5 @@
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { initialize } from "#test/socket-policy/role/initialize.ts";
 import { read } from "#test/socket-policy/role/read.ts";
 

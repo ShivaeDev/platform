@@ -14,6 +14,8 @@ Every service follows this model. When one cannot, the model is missing a servic
 7. **Transactions wrap only writes that must commit together.** A write and the job it enqueues are such a case, because jobs' `enqueue` joins the open SQL transaction on the same connection.
 8. **One operation per file.** Each operation is an `Effect.fn("Service.operation")` export in the service's folder, beside its `service.ts`.
 
+The requirement binder is the deliberate runtime bridge in `src/adapters/defineService.ts`; keep context capture and binding there so service definitions expose only declared requirements.
+
 ## Which way to lean
 
 When goals conflict, they win in this order:

@@ -158,7 +158,7 @@ export const MailLive = Mail.layer;
 
 ```ts
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { removeExpired } from "./removeExpired.ts";
 import { send } from "./send.ts";
 

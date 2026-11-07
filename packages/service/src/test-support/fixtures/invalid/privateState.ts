@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "#defineService.ts";
+import { defineService } from "#adapters/defineService.ts";
 
 const PrivateState = defineService({
 	id: "@shivaedev/service/invalid/PrivateState",

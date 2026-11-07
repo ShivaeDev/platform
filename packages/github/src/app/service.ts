@@ -1,4 +1,4 @@
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { installation } from "#app/installation.ts";
 import { viewerRepositories } from "#app/viewerRepositories.ts";
 import { GitHubClients } from "#GitHubClients.ts";

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { VitestRuntime } from "#VitestRuntime.ts";
 import { open } from "#vitest-runner/open.ts";
 

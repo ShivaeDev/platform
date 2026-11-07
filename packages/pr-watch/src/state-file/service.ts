@@ -1,5 +1,5 @@
 import { Effect, FileSystem } from "effect";
-import { defineService } from "@shivaedev/service/defineService.ts";
+import { defineService } from "@shivaedev/service/adapters/defineService.ts";
 import { load } from "#state-file/load.ts";
 import { save } from "#state-file/save.ts";
 
