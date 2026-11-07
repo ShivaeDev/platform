@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-06
+
+### Breaking
+
+- Replace key-based `heard` assertions with delivered query values or mounted query completion signals. `watchHints` observes pushed query updates.
+
 ## 0.9.3 - 2026-11-06
 
 ### Changed

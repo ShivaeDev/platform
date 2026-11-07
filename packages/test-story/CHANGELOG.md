@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.45.0 - 2026-11-06
+
+### Breaking
+
+- Browser observers receive pushed query updates. Replace `heardKeys` assertions with delivered values or rendered screens; `hints` and `watchHints` now observe `Result`, `Unchanged` and `QueryReadDenied`.
+
 ## 0.44.2 - 2026-11-06
 
 ### Changed

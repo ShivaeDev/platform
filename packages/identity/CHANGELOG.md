@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.0 - 2026-11-06
+
+### Added
+
+- Carry the exact trusted-origin allow-list with the session origin policy and admit declared sibling origins through the HTTP RPC transport guard.
+
 ## 0.29.2 - 2026-11-06
 
 ### Changed

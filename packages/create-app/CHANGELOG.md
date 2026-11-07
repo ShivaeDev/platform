@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.10 - 2026-11-06
+
+### Changed
+
+- Generated apps own a lean PostgreSQL settings preset applied at startup and use Railway database defaults for scheduled backups, image auto-updates and page-cache trimming.
+
 ## 0.43.9 - 2026-11-06
 
 ### Changed
