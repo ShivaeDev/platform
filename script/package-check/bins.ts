@@ -1,6 +1,8 @@
 import { basename, dirname, join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { Effect, FileSystem, Schema } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
 import { checkServer } from "#package-check/adapters/server.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, type Package, Versions } from "#package-check/model.ts";
@@ -17,6 +19,7 @@ const Case = Schema.Struct({
 	output: Schema.optional(Schema.String),
 	packedInstall: Schema.optional(Schema.Boolean),
 	pages: Schema.optional(Versions),
+	typecheck: Schema.optional(Schema.String),
 });
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Case)));
 export const checkBins = Effect.fn("Packed.checkBins")(function* (root: string, pkg: Package, consumer: string, packages: readonly Package[]) {
@@ -43,6 +46,9 @@ export const checkBins = Effect.fn("Packed.checkBins")(function* (root: string, 
 			yield* checkServer(consumer, bin, scenario.args, scenario.pages);
 		}
 		yield* checkResults(consumer, name, scenario);
+		if (scenario.typecheck !== undefined) {
+			yield* command(join(consumer, scenario.typecheck), "pnpm", ["run", "typecheck"]);
+		}
 	}
 });
 
@@ -82,7 +88,7 @@ const runBin = Effect.fn("Packed.runBin")(function* (
 ) {
 	let env = scenario.env;
 	if (scenario.packedInstall) {
-		const tarballs = Object.fromEntries(packages.map((pkg) => [pkg.manifest.name, pkg.tarball]));
+		const tarballs = yield* pinnedTarballs(packages).pipe(Effect.provide(FetchHttpClient.layer));
 		env = { ...env, "PATH": yield* packedInstaller(root, consumer, tarballs) };
 	}
 	const environment = Object.entries(env ?? {});
