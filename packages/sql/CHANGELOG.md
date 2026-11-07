@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.3 - 2026-11-07
+
+### Fixed
+
+- Gate `applyPostgresSettings` on Railway's nonempty `RAILWAY_REPLICA_ID` and the native PostgreSQL client's destination. Always exclude development port 55432, including URL query-parameter addresses, even when every Railway variable is present. Service variables from `railway run` alone do not enable settings.
+
 ## 0.46.2 - 2026-11-07
 
 ### Changed

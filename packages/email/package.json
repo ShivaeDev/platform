@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/email",
-	"version": "0.7.5",
+	"version": "0.7.6",
 	"description": "Transactional email with Resend and durable Effect jobs",
 	"keywords": [
 		"effect"

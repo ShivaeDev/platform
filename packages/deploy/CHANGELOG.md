@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-11-07
+
+### Fixed
+
+- Clarify that application-owned PostgreSQL settings apply only on Railway deployments and leave shared development PostgreSQL unchanged.
+
 ## 0.5.0 - 2026-11-07
 
 ### Breaking

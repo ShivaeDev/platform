@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.4 - 2026-11-07
+
+### Fixed
+
+- Apply declared `postgresSettings` only on Railway deployments. From server 0.30 through this fix, startup applied settings everywhere, including stories and local development against shared PostgreSQL.
+
 ## 0.32.3 - 2026-11-07
 
 ### Changed
