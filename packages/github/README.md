@@ -236,11 +236,7 @@ Other App authentication failures use `GitHubAppError` from `errors.ts`. Its str
 
 ### Downloading and extracting workflow artifacts
 
-Install the optional ZIP reader to extract artifacts:
-
-```sh
-pnpm add @zip.js/zip.js
-```
+The package includes the ZIP reader needed to extract artifacts.
 
 Call `downloadArtifactArchive` with the artifact ID and a download byte cap. It requests GitHub's ZIP endpoint with the current installation token, reads the 302 Location explicitly, and issues a fresh request to storage without the GitHub Authorization or API-version headers. Fetch requests use manual redirects and omit ambient credentials; provide an HTTP client without automatic redirect middleware.
 
@@ -261,7 +257,7 @@ const files = Effect.gen(function* () {
 });
 ```
 
-Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is an array of `{ path, bytes }` files (`ArtifactFile` from `artifactExtraction.ts`), with relative POSIX paths and `Uint8Array` contents. Directory entries are validated and omitted from the result. Extraction happens in memory and writes no files. The ZIP reader loads on demand; other GitHub operations do not need it.
+Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is an array of `{ path, bytes }` files (`ArtifactFile` from `artifactExtraction.ts`), with relative POSIX paths and `Uint8Array` contents. Directory entries are validated and omitted from the result. Extraction happens in memory and writes no files. The ZIP reader loads on demand.
 
 `byteLimit` caps the downloaded ZIP while streaming and fails with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. Extraction defaults to a `totalSizeLimit` of 100 MiB across all entries and a per-entry `compressionRatioLimit` of 100:1. Both caps are inclusive. The total limit must be a non-negative safe integer; the ratio must be finite and positive. Limits check declared sizes before decompression and emitted bytes before retaining them. No partial file list is returned after a refusal.
 
