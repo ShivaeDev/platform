@@ -59,13 +59,9 @@ function registryResponse(url: string): Promise<Response> {
 try {
 	const program = defineRailway((ctx, makeProject) =>
 		Effect.gen(function* () {
-			const database = yield* Effect.tryPromise({
-				catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
-				try: () =>
-					databaseService("Postgres", {
-						limits: { cpu: 1, memoryBytes: 536_870_912 },
-						volume: volume("postgres-data"),
-					}),
+			const database = yield* databaseService("Postgres", {
+				limits: { cpu: 1, memoryBytes: 536_870_912 },
+				volume: volume("postgres-data"),
 			});
 			return makeProject(ctx.projectName ?? "my-app", { resources: [database] });
 		}),

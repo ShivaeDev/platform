@@ -5,13 +5,9 @@ import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
 import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
 export const railwayProject = Effect.fnUntraced(function* (ctx: RailwayContext) {
-	const database = yield* Effect.tryPromise({
-		catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
-		try: () =>
-			databaseService("Postgres", {
-				limits: { cpu: 2, memoryBytes: 1_073_741_824 },
-				volume: volume("postgres-data"),
-			}),
+	const database = yield* databaseService("Postgres", {
+		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
+		volume: volume("postgres-data"),
 	});
 	const web = webService("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },

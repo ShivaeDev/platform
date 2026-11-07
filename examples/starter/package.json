@@ -5,7 +5,6 @@
 	"type": "module",
 	"imports": {
 		"#*": "./src/*",
-		"#railway-adapter/*": "./.railway/adapters/*",
 		"#railway": "./.railway/adapters/project.ts"
 	},
 	"scripts": {
