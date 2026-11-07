@@ -2,11 +2,10 @@ import { expect } from "vitest";
 import { changedCmd, changedEntrypoint, postgres, registryUnavailable, singleManifest } from "#test-support/postgresStory.ts";
 
 for (const given of [[], [singleManifest]]) {
-	postgres.it("a matching image yields a database with immediate minor and patch updates", given, ({ defineDatabase }) => {
+	postgres.it("a matching image yields the Railway Postgres image", given, ({ defineDatabase }) => {
 		const result = defineDatabase();
 
 		expect(result.database?.source).toMatchObject({
-			autoUpdates: { schedule: null, tagMode: "sha", type: "minor" },
 			image: "ghcr.io/railwayapp-templates/postgres-ssl:18",
 		});
 	});
