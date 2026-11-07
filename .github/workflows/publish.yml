@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - packages/*/package.json
 
 permissions:
   contents: read
@@ -20,52 +18,26 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: read
     outputs:
       publish: ${{ steps.decide.outputs.publish }}
-      head: ${{ steps.release.outputs.head }}
-      base: ${{ steps.release.outputs.base }}
+      head: ${{ steps.decide.outputs.head }}
+      base: ${{ steps.decide.outputs.base }}
     steps:
-      - name: Decide whether this push merged a release PR
-        id: decide
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BEFORE: ${{ github.event.before }}
-        run: |
-          publish=false
-          commits=$(gh api --paginate "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$GITHUB_SHA?per_page=100" --jq '.commits[].sha')
-          for commit in $commits; do
-            release=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$commit/pulls?per_page=100" | jq -s \
-              --arg repository "$GITHUB_REPOSITORY" --arg commit "$commit" \
-              'any(.[][];
-                .merged_at != null
-                and .merge_commit_sha == $commit
-                and .base.ref == "main"
-                and .base.repo.full_name == $repository
-                and .head.ref == "release/next"
-                and .head.repo.full_name == $repository
-              )')
-            if [ "$release" = true ]; then
-              publish=true
-              break
-            fi
-          done
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
       - name: Check out repository
-        if: steps.decide.outputs.publish == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
       - uses: ./.github/actions/setup
-        if: steps.decide.outputs.publish == 'true'
-      - name: Validate the release on main
-        if: steps.decide.outputs.publish == 'true'
-        id: release
+      - name: Decide whether this push raised package versions
+        id: decide
         run: node --conditions=@shivaedev/source script/release/preparePublish.ts
         env:
-          GH_TOKEN: ${{ github.token }}
+          CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - name: Validate the release on main
+        if: steps.decide.outputs.publish == 'true'
+        run: pnpm changelog:check
+        env:
           CHANGELOG_BASE_REF: ${{ github.event.before }}
       - name: Build packages
         if: steps.decide.outputs.publish == 'true'

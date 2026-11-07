@@ -24,7 +24,7 @@ const LATER =
 releasePullRequest.it(
 	"a frozen release passes the merge queue and squash publishing gates, leaving later inputs for a new PR",
 	[],
-	function* ({ pushMain, run, git, setCiRun, check, close, readGitHub, publish, publishedPackages, publishedFile, replyToMergedPulls }) {
+	function* ({ pushMain, run, git, setCiRun, check, close, readGitHub, publish, publishedPackages, publishedFile }) {
 		yield* pushMain("packages/platform/index.js", 'export const feature = "frozen";\n');
 		yield* pushMain(".changeset/draft.md", PENDING);
 		yield* run();
@@ -53,15 +53,6 @@ releasePullRequest.it(
 
 		expect((yield* check(base)).releases).toEqual(queued.releases);
 		const commit = yield* git("rev-parse", "HEAD");
-		yield* replyToMergedPulls([
-			{
-				base: { ref: "main", repo: { "full_name": "example/workspace" } },
-				head: { ref: "release/next", repo: { "full_name": "example/workspace" }, sha: head },
-				"merge_commit_sha": commit,
-				"merged_at": "2026-11-02T00:00:00Z",
-				number: 1,
-			},
-		]);
 		const failure = yield* publish(base);
 		expect(failure).toBeUndefined();
 		yield* outcomes([
