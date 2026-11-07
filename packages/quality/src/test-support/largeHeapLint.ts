@@ -63,12 +63,13 @@ function writeLargeRepository(root: string): void {
 	const baseline: BaselineEntry[] = [];
 	for (let index = 0; index < SOURCE_COUNT; index += 1) {
 		const name = `source${String(index).padStart(4, "0")}`;
+		const inputName = `Source${name.slice("source".length)}Input`;
 		const path = `src/${name}.ts`;
 		const content = [
 			'import { Effect } from "effect";',
 			"",
-			`interface ${name}Input { readonly enabled: boolean; readonly value: string; readonly values: readonly string[] }`,
-			`export const ${name} = Effect.fn("${name}")(function* (input: ${name}Input) {`,
+			`interface ${inputName} { readonly enabled: boolean; readonly value: string; readonly values: readonly string[] }`,
+			`export const ${name} = Effect.fn("${name}")(function* (input: ${inputName}) {`,
 			'\treturn yield* Effect.succeed(input.enabled ? input.value + ":" + input.values.join(":") : input.value);',
 			"});",
 		].join("\n");
