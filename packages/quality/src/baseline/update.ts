@@ -37,22 +37,16 @@ export function adopt(
 	rules: readonly string[],
 	violations: readonly Violation[],
 	index: RuleIndex,
-	files?: ReadonlySet<string>,
 ): Adoption {
-	if (existing !== undefined && rules.length === 0) {
-		return { _tag: "Refused", reasons: ["a baseline exists. Record a rule with --rule <id>, or drop fixed debt with prune."] };
-	}
 	const reasons = rules.flatMap((id) => refusal(id, index));
 	if (reasons.length > 0) {
 		return { _tag: "Refused", reasons };
 	}
 	function named(rule: string): boolean {
-		return rules.some((name) => covers(name, rule));
+		return rules.length === 0 || rules.some((name) => covers(name, rule));
 	}
-	const kept = (existing ?? []).filter((entry) => !(named(entry.rule) && (files === undefined || files.has(entry.file))));
-	const adopted = violations.filter(
-		(violation) => (rules.length === 0 || named(violation.rule)) && (files === undefined || files.has(violation.file)),
-	);
+	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
+	const adopted = violations.filter((violation) => named(violation.rule));
 	const added = record(adopted);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
 }

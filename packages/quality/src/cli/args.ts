@@ -15,8 +15,6 @@ export type Command =
 			readonly _tag: "BaselineWrite";
 			readonly config: string | undefined;
 			readonly rules: readonly string[];
-			readonly files: readonly string[];
-			readonly firstAdoption: boolean;
 	  }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
@@ -60,8 +58,6 @@ function commandFor(name: string, values: Values): Parsed {
 			return parsed({
 				_tag: "BaselineWrite",
 				config,
-				files: values.file ?? [],
-				firstAdoption: values["first-adoption"] === true,
 				rules: values.rule ?? [],
 			});
 		case "baseline prune":

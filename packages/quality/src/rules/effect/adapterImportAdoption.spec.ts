@@ -14,7 +14,7 @@ repositoryStory.it(
 			["import finding", () => stdout(), expect.stringContaining('src/work.ts:1  Imports outside library "node:fs"')],
 		]);
 
-		yield* runs("baseline", "write", "--first-adoption", "--rule", "effect/adapter-imports");
+		yield* runs("baseline", "write", "--rule", "effect/adapter-imports");
 
 		yield* outcomes([
 			["adoption", () => outcome(), "passed"],

@@ -48,7 +48,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "BaselineInstallDriver":
 			return yield* installDriver(cwd, launch);
 		case "BaselineWrite":
-			return yield* writeBaseline(cwd, command.config, command.rules, command.files, command.firstAdoption);
+			return yield* writeBaseline(cwd, command.config, command.rules);
 		case "BaselinePrune":
 			return yield* pruneBaseline(cwd, command.config, command.against);
 		case "BaselineTighten":
