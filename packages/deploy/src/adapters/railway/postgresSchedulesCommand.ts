@@ -83,3 +83,8 @@ export function postgresSchedulesCommand() {
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv())),
 	);
 }
+
+export function isPostgresSchedulesCli(moduleUrl: string): boolean {
+	const entrypoint = process.argv[1];
+	return entrypoint !== undefined && pathToFileURL(entrypoint).href === moduleUrl;
+}

@@ -46,6 +46,7 @@
 	],
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"postgres-schedules": "node dist/cli.js",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"

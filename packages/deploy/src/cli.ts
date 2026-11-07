@@ -1,4 +1,6 @@
 import { Effect } from "effect";
-import { postgresSchedulesCommand } from "#adapters/railway/postgresSchedulesCommand.ts";
+import { isPostgresSchedulesCli, postgresSchedulesCommand } from "#adapters/railway/postgresSchedulesCommand.ts";
 
-void Effect.runPromise(postgresSchedulesCommand());
+if (isPostgresSchedulesCli(import.meta.url)) {
+	void Effect.runPromise(postgresSchedulesCommand());
+}
