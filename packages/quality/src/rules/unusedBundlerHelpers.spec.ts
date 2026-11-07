@@ -77,3 +77,48 @@ ${script}`
 		},
 	);
 }
+
+ruleStory.it(
+	"code/unused follows Rolldown entries through a package import alias, mapped helper configs and imported.meta.dirname",
+	[
+		effectResolves(),
+		repositoryHas(
+			{
+				content: JSON.stringify({
+					devDependencies: { effect: "*", rolldown: "*" },
+					imports: { "#script/*": "./script/*" },
+					name: "desktop",
+					private: true,
+					scripts: { build: "node script/build.ts" },
+					type: "module",
+				}),
+				path: "package.json",
+			},
+			{
+				content: `import { dirname } from "node:path";
+import { Effect } from "effect";
+import { bundleMainAndPreload } from "#script/adapters/bundler.ts";
+const desktopRoot = dirname(import.meta.dirname);
+void Effect.runPromise(Effect.gen(function* () { yield* bundleMainAndPreload(desktopRoot); }));`,
+				path: "script/build.ts",
+			},
+			{
+				content: `import { join } from "node:path";
+import { Effect } from "effect";
+import { build, watch } from "rolldown";
+const configs = (root: string) => [{ input: join(root, "src", "main.ts") }, { input: join(root, "src", "preload.ts") }];
+export const bundleMainAndPreload = (root: string) => Effect.promise(() => Promise.all(configs(root).map((config) => build(config))));
+export const watchAll = (root: string) => watch(configs(root));`,
+				path: "script/adapters/bundler.ts",
+			},
+			{ content: "export const main = 1;", path: "src/main.ts" },
+			{ content: "export const preload = 1;", path: "src/preload.ts" },
+			{ content: "export const abandoned = 1;", path: "src/abandoned.ts" },
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(unusedCode);
+
+		expect(findings).toEqual([expect.objectContaining({ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" })]);
+	},
+);

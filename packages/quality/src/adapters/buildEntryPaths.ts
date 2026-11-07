@@ -75,7 +75,7 @@ export function buildEntryPaths(
 		(ts.isIdentifier(node) && node.text === "__dirname")
 		|| (ts.isPropertyAccessExpression(node) && node.expression.kind === ts.SyntaxKind.MetaProperty && node.name.text === "dirname")
 	) {
-		return [posix.dirname(file)];
+		return [posix.dirname(posix.resolve(cwd, node.getSourceFile().fileName))];
 	}
 	return ts.isCallExpression(node) ? pathFromCall(node, cwd, file, paths) : valuesOf(node).flatMap(paths);
 }

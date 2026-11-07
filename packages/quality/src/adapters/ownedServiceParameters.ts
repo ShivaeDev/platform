@@ -31,10 +31,17 @@ function wrappedCallArguments(
 	if (symbol === undefined) {
 		return undefined;
 	}
+	function resolvedSymbol(value: ts.Symbol | undefined): ts.Symbol | undefined {
+		return value !== undefined && value.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(value) : value;
+	}
 	const arguments_: ts.Expression[] = [];
 	for (const source of sources) {
 		function visit(node: ts.Node): void {
-			if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && checker.getSymbolAtLocation(node.expression) === symbol) {
+			if (
+				ts.isCallExpression(node)
+				&& ts.isIdentifier(node.expression)
+				&& resolvedSymbol(checker.getSymbolAtLocation(node.expression)) === resolvedSymbol(symbol)
+			) {
 				const argument = node.arguments[callback.parameters.indexOf(parameter)];
 				if (argument !== undefined) {
 					arguments_.push(argument);

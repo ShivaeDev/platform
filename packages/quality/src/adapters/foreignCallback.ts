@@ -5,14 +5,18 @@ export function foreignDeclaration(node: ts.Declaration): boolean {
 	return file.includes("/node_modules/") && !/\/(?:effect|@effect|@shivaedev)\//u.test(file);
 }
 
-function methodType(checker: ts.TypeChecker, type: ts.Type | undefined, name: string): ts.Type | undefined {
+function methodTypes(checker: ts.TypeChecker, type: ts.Type | undefined, name: string): readonly ts.Type[] {
 	if (type === undefined) {
-		return undefined;
+		return [];
 	}
-	const property = (type.isUnionOrIntersection() ? type.types : [type])
-		.map((part) => part.getProperty(name))
-		.find((candidate) => candidate !== undefined);
-	return property === undefined ? undefined : checker.getTypeOfSymbol(property);
+	return (type.isUnionOrIntersection() ? type.types : [type]).flatMap((part) => {
+		const property = part.getProperty(name);
+		return property === undefined ? [] : [checker.getTypeOfSymbol(property)];
+	});
+}
+
+function methodType(checker: ts.TypeChecker, type: ts.Type | undefined, name: string): ts.Type | undefined {
+	return methodTypes(checker, type, name)[0];
 }
 
 function methodName(node: ts.MethodDeclaration): string {
@@ -47,12 +51,43 @@ export function contextualCallbackType(checker: ts.TypeChecker, node: ts.Node): 
 	return implementedMethodType(checker, node);
 }
 
+function callbackSignatures(checker: ts.TypeChecker, type: ts.Type): readonly ts.Signature[] {
+	const members = type.isUnionOrIntersection() ? type.types : [type];
+	return members.flatMap((member) => {
+		const callable = checker.getNonNullableType(member).getCallSignatures();
+		if (callable.length > 0) {
+			return callable;
+		}
+		const handler = member.getProperty("handler");
+		return handler === undefined ? [] : callbackSignatures(checker, checker.getTypeOfSymbol(handler));
+	});
+}
+
+function contextualCallbackTypes(checker: ts.TypeChecker, node: ts.Node): readonly ts.Type[] {
+	if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+		const contextual = checker.getContextualType(node);
+		return contextual === undefined ? [] : [contextual];
+	}
+	if (!ts.isMethodDeclaration(node)) {
+		return [];
+	}
+	if (ts.isObjectLiteralExpression(node.parent)) {
+		return methodTypes(checker, checker.getContextualType(node.parent), methodName(node));
+	}
+	if (!ts.isClassLike(node.parent) || node.name === undefined) {
+		return [];
+	}
+	return (node.parent.heritageClauses ?? [])
+		.filter((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword)
+		.flatMap((clause) => clause.types)
+		.flatMap((typeNode) => methodTypes(checker, checker.getTypeAtLocation(typeNode), methodName(node)));
+}
+
 export function foreignCallbackParameter(checker: ts.TypeChecker, parameter: ts.ParameterDeclaration): boolean {
 	const fn = parameter.parent;
-	const context = contextualCallbackType(checker, fn);
 	if (
-		(context === undefined ? [] : checker.getNonNullableType(context).getCallSignatures()).some(
-			(signature) => signature.declaration !== undefined && foreignDeclaration(signature.declaration),
+		contextualCallbackTypes(checker, fn).some((type) =>
+			callbackSignatures(checker, type).some((signature) => signature.declaration !== undefined && foreignDeclaration(signature.declaration)),
 		)
 	) {
 		return true;

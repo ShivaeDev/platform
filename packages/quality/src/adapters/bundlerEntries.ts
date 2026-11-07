@@ -68,7 +68,7 @@ export function bundlerEntries(
 		if (ts.isFunctionLike(node)) {
 			const body = callbackBody(node);
 			if (body !== undefined) {
-				for (const mapped of mappedBuildBindings(node, bindings)) {
+				for (const mapped of mappedBuildBindings(node, bindings, sources)) {
 					visit(body, mapped, active);
 				}
 			}
@@ -82,6 +82,7 @@ export function bundlerEntries(
 			);
 			const helper = buildHelper(node, sources, bindings);
 			if (helper?.body !== undefined && !active.has(helper)) {
+				entries.push(posix.relative(root, posix.resolve(root, helper.getSourceFile().fileName)));
 				visit(helper.body, buildArguments(helper, node, bindings), new Set([...active, helper]));
 			}
 		}
