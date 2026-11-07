@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.40.7 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/local-postgres` from 0.15.0 to 0.16.0.
+- Update `@shivaedev/server` from 0.31.1 to 0.31.2.
+
 ## 0.40.6 - 2026-11-07
 
 ### Changed

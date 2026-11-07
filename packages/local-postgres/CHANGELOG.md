@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 - 2026-11-07
+
+### Added
+
+- Allow an explicit list of ports in `assertLocalDatabase` so test configuration can accept a loopback PostgreSQL CI service while shared development setup keeps port 55432 as its default.
+
 ## 0.15.0 - 2026-11-05
 
 ### Breaking

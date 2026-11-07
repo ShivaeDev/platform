@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.31.2 - 2026-11-07
+
+### Fixed
+
+- Rebuild live query request services with the freshly reloaded session user, so role changes reach read policies and query handlers on rerun.
+
 ## 0.31.1 - 2026-11-07
 
 ### Fixed
