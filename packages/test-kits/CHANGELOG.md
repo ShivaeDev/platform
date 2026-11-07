@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.3 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/webhooks` from 0.11.5 to 0.11.6.
+
 ## 0.10.2 - 2026-11-07
 
 ### Changed

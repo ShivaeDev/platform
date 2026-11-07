@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0 - 2026-11-07
+
+### Added
+
+- Artifact extraction accepts an inclusive `entryLimit` (default 10,000), counting files and directories and refusing excess entries with `GitHubArtifactTooManyEntries` before reading their contents.
+
+### Changed
+
+- Include `@zip.js/zip.js` as a regular dependency for artifact extraction. Consumers may drop their own `@zip.js/zip.js` dependency if only the GitHub package needed it.
+
 ## 0.15.1 - 2026-11-07
 
 ### Changed
