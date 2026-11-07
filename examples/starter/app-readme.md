@@ -40,7 +40,7 @@ The app depends on [`@shivaedev/platform`](https://github.com/ShivaeDev/platform
 
 Published framework versions are pinned in the `framework` catalog of `pnpm-workspace.yaml`; `package.json` refers to them with `catalog:framework`. Keep dependency pins in their catalogs when upgrading.
 
-The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file <path>` only to record findings for a new rule added by a Quality upgrade. Select only files changed since `HEAD`, staging new files first. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app. Never raise a baseline to make a check pass.
+Fix every Quality finding you can before recording debt. Run `pnpm baseline write` to record every current finding, or add repeated `--rule <id>` options to select rules. The output names rules and counts, marking rules absent from the previous baseline as new. Review each case of those new rules and report any misread to Platform with the file, lines and what Quality would need instead of leaving it as debt. After repairs, run `pnpm baseline tighten` for changed files or `pnpm baseline prune` for every entry. Commit checks and CI still reject findings the baseline does not cover.
 
 With a clean Git working tree, run `pnpm dlx @shivaedev/create-app@latest update` from this app to merge later template changes while preserving your edits and deleted files. Review the changes and any listed Git conflicts, run `pnpm install`, and commit them yourself; `.create-app.json` records the generator version after a successful merge.
 

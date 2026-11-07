@@ -4,7 +4,9 @@ The [README](../README.md) introduces the gate. This page explains how the basel
 
 ## Baseline
 
-`quality baseline write --first-adoption` records existing findings of every rule when there is no baseline, including rules that permit config exceptions and findings in unchanged files. For a shared policy upgrade with an existing baseline, name the rules with `quality baseline write --first-adoption --rule <id>`; every rule is eligible, and unrelated entries remain unchanged. An existing baseline refuses an unnamed write, including with `--first-adoption`. Ordinary later writes still require named rules and changed file selections. Review each new or raised entry and state why that debt needs a separate migration.
+`quality baseline write` records every current finding, including findings in unchanged files after a policy upgrade. Repeat `--rule <id>` to record only named rules or rule families; unrelated entries stay unchanged. Writing is a deliberate step: commit checks and CI still reject findings the baseline does not cover.
+
+After every write, the output asks you to fix every finding you can fix instead of recording it. It names the recorded rules and counts, marking rules absent from the previous baseline as new. For each recorded case of those new rules, judge whether the rule reads the code correctly. Report any misread to Platform with the file, lines and what Quality would need instead of leaving it as debt. Run `quality baseline tighten` after repairs.
 
 ```jsonl
 {"path":"src/legacy/sync.ts","rule":"comments/no-jsdoc","count":3}
@@ -14,7 +16,7 @@ The [README](../README.md) introduces the gate. This page explains how the basel
 The baseline is sharded: `packages/<package>/quality-baseline.jsonl` holds paths inside that package, and the root `quality-baseline.jsonl` holds all other paths. Packages without entries have no file. Each shard is JSON Lines with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
 
 `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for an unknown rule fails until it is pruned.
-- `quality baseline write` records every error-level violation when there is no baseline yet. For ordinary writes after a baseline exists, both `--rule <id>` and `--file <path>` are required. Repeat either option for multiple selections. Each path is relative to the config folder and must be changed since `HEAD`, staged or unstaged; new files need `git add` first. An unchanged file refuses the whole write. Only selected rule/file entries are replaced; all other entries stay as they are. With no baseline and no file selection, initial adoption records the repository once.
+- `quality baseline write` replaces the baseline with every current finding. With `--rule <id>`, only the named rules are replaced; repeat the option to select several rules.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
 - `quality baseline prune` does the same for every entry. It carries the entries of files moved since the merge base (see `--against` under [Command line](../README.md#command-line)), and prunes without following moves outside a git work tree.
 - `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the root and package shards, and removes the old one. `--from quality/baseline.jsonl` splits a single JSON Lines baseline without changing its counts. An old entry that stored a size, such as a line count, becomes that size less the rule's current limit; an entry whose file is now within the limit is dropped.
@@ -35,13 +37,9 @@ quality lint
 
 `tighten` counts the files as they are on disk. When a commit stages only part of a file, stash the rest first (as lint-staged does), or the entry may be lowered below what the commit holds.
 
-### Baseline growth
-
-An error-level finding that neither the config exceptions nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. For moved files, run `quality baseline prune --against <base>` to carry existing counts to the new paths. The failing report ends with that guidance. For retained findings in a changed file, use `quality baseline write --rule <id> --file <path>` and call out new or raised counts in the pull request. Writing a rule does not absorb findings from other files.
-
 ### Counts after a policy change
 
-A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id> --file <path>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
+A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write`. Commit the counts with the policy upgrade. Review the recorded cases using the guidance printed after the write.
 
 ## Exceptions
 

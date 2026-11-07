@@ -1,12 +1,11 @@
-import * as NodePath from "@effect/platform-node/NodePath";
-import { Console, Effect, type FileSystem, Path } from "effect";
+import { Console, Effect, type FileSystem } from "effect";
 import type { BaselineEntry } from "#baseline/format.ts";
 import { saveShards } from "#baseline/shards.ts";
 import { adopt, type Pruned, prune, type Scope } from "#baseline/update.ts";
+import { reportBaselineWrite } from "#cli/reportBaselineWrite.ts";
 import { openSession, type Session } from "#engine/session.ts";
 import { applyRegistry } from "#exceptions/registry.ts";
 import { SetupFailure } from "#failure.ts";
-import { changesSince } from "#git/history.ts";
 import { plural } from "#report/plural.ts";
 import type { RuleServices } from "#rule.ts";
 
@@ -22,38 +21,21 @@ export const writeBaseline = Effect.fn("Cli.writeBaseline")(function* (
 	cwd: string,
 	config: string | undefined,
 	rules: readonly string[],
-	files: readonly string[],
-	firstAdoption = false,
 ): Effect.fn.Return<void, SetupFailure, RuleServices> {
-	const { relative, resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
-
 	const session = yield* openSession(cwd, config);
-	const existing = session.baseline.files.size === 0 ? undefined : session.baseline.entries;
-	if (existing !== undefined && files.length === 0 && !firstAdoption) {
-		return yield* new SetupFailure({
-			message: "baseline write refused: a baseline exists. Record a rule with --rule <id> and --file <path>; use prune for moved or fixed debt.",
-		});
-	}
-	const selected = files.length === 0 ? undefined : new Set(files.map((file) => relative(session.config.root, resolve(session.config.root, file))));
-	if (selected !== undefined && !firstAdoption) {
-		const changed = yield* changesSince(session.config.root, ["HEAD"]);
-		const outside = [...selected].filter((file) => !changed.files.has(file));
-		if (outside.length > 0) {
-			return yield* new SetupFailure({
-				message: `baseline write refused: outside the current change set: ${outside.join(", ")}. Stage new files with git add first.`,
-			});
-		}
-	}
-	const adoption = adopt(existing, rules, unregistered(session), session.config, selected);
+	const existing = session.baseline.entries;
+	const adoption = adopt(existing, rules, unregistered(session), session.config);
 	if (adoption._tag === "Refused") {
 		return yield* new SetupFailure({ message: `baseline write refused:\n${adoption.reasons.map((reason) => `  - ${reason}`).join("\n")}` });
 	}
 	if (adoption.added === 0 && adoption.replaced === 0) {
-		return yield* Console.log(`quality: no error-level violations to record; ${session.config.baseline} is unchanged.`);
+		yield* Console.log(`quality: no error-level violations to record; ${session.config.baseline} is unchanged.`);
+	} else {
+		yield* save(session, adoption.entries);
+		const replaced = adoption.replaced > 0 ? `, replacing ${plural(adoption.replaced, "entry", "entries")}` : "";
+		yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}${replaced}.`);
 	}
-	yield* save(session, adoption.entries);
-	const replaced = adoption.replaced > 0 ? `, replacing ${plural(adoption.replaced, "entry", "entries")}` : "";
-	yield* Console.log(`quality: recorded ${plural(adoption.added, "entry", "entries")} in ${session.config.baseline}${replaced}.`);
+	yield* reportBaselineWrite(existing, adoption.entries, rules);
 });
 
 function changes(pruned: Pruned): string {

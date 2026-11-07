@@ -4,8 +4,6 @@ export const OPTIONS = {
 	against: { type: "string" },
 	config: { type: "string" },
 	coverage: { type: "boolean" },
-	file: { multiple: true, type: "string" },
-	"first-adoption": { type: "boolean" },
 	force: { type: "boolean" },
 	from: { type: "string" },
 	help: { short: "h", type: "boolean" },
@@ -17,14 +15,14 @@ export type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allo
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "file", "first-adoption", "force", "from", "rule", "staged"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "force", "from", "rule", "staged"];
 
 export const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline install-driver": [],
 	"baseline migrate": ["from"],
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
-	"baseline write": ["rule", "file", "first-adoption"],
+	"baseline write": ["rule"],
 	ci: ["coverage"],
 	"exceptions migrate": ["from"],
 	fix: ["rule"],

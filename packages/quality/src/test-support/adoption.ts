@@ -41,7 +41,7 @@ export const adoption = storyKit({
 			recordsThroughBaselineScript: (rule: string) =>
 				Effect.sync(() => {
 					story.tell(`the app runs pnpm baseline write --rule ${rule}`);
-					const result = spawnSync("pnpm", ["baseline", "write", "--rule", rule, "--file", "src/value.ts"], { cwd: engine.root, encoding: "utf8" });
+					const result = spawnSync("pnpm", ["baseline", "write", "--rule", rule], { cwd: engine.root, encoding: "utf8" });
 					engine.answer = answerOf({ status: result.status, stderr: result.stderr, stdout: result.stdout });
 					return engine.answer;
 				}),

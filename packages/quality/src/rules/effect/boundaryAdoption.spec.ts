@@ -4,7 +4,7 @@ import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
-	"first adoption records synchronous IO and each throwing guard call as effect/boundary debt",
+	"baseline write records synchronous IO and each throwing guard call as effect/boundary debt",
 	[
 		qualityInstalled(),
 		repositoryHas({
@@ -29,7 +29,7 @@ repositoryStory.it(
 			]),
 		);
 
-		yield* runs("baseline", "write", "--rule", "effect/boundary", "--first-adoption");
+		yield* runs("baseline", "write", "--rule", "effect/boundary");
 
 		yield* outcomes([
 			["adoption", () => outcome(), "passed"],

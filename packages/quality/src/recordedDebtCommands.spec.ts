@@ -25,17 +25,3 @@ repositoryStory.it(
 	},
 	CLI_TIMEOUT,
 );
-
-repositoryStory.it(
-	"quality baseline write refuses to replace an existing baseline unless the author names a rule",
-	[qualityInstalled(), repositoryHas(...trees.dirty, { content: "", path: BASELINE }), biomeFormatted()],
-	function* ({ outcome, runs, stderr }) {
-		yield* runs("baseline", "write");
-
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("a baseline exists. Record a rule with --rule <id>")],
-			["exit", () => outcome(), "invalid"],
-		]);
-	},
-	CLI_TIMEOUT,
-);

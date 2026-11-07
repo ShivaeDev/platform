@@ -66,10 +66,12 @@ repositoryStory.it(
 	function* ({ reads, runs, stdout }) {
 		yield* runs("baseline", "write");
 
-		yield* outcomes([
-			["baseline", () => reads("quality-baseline.jsonl"), '{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'],
-			["report", () => stdout(), "quality: recorded 1 entry in quality-baseline.jsonl.\n"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["baseline", () => reads("quality-baseline.jsonl"), '{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'],
+				["report", () => stdout(), expect.stringContaining("quality: recorded 1 entry in quality-baseline.jsonl.\n")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
