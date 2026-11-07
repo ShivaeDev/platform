@@ -80,8 +80,19 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
+			const httpWire: typeof wire = {
+				...wire,
+				makeUnsafe: () => {
+					const parser = wire.makeUnsafe();
+					return {
+						...parser,
+						// Effect's HTTP reader decodes once; its NDJSON parser retains an unterminated frame.
+						decode: (data) => parser.decode(typeof data === "string" && !data.endsWith("\n") ? `${data}\n` : data),
+					};
+				},
+			};
 			const group = options.group;
-			const handler = yield* hostRpc(group, false, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const handler = yield* hostRpc(group, false, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, httpWire));
 			const guarded = Effect.flatMap(UnixSocketRequest, (unix) => (unix ? handler : localRpcGuard(handler, trustedProxy, nativeOrigins)));
 			const websocket = yield* hostRpc(group, true, options.requestServices).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
