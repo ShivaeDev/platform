@@ -12,7 +12,7 @@ ruleStory.it(
 			...adapterServiceFiles.slice(0, 3).map((file) => ({
 				...file,
 				content: file.path.endsWith("index.d.ts")
-					? `${file.content}\nexport interface Plugin { readonly name: string; configureServer?(server: ViteDevServer): void; }\nexport type PluginOption = Plugin | readonly PluginOption[] | Promise<PluginOption> | false | null | undefined;\nexport interface InlineConfig { readonly plugins?: PluginOption[]; }\nexport declare function createServer(config?: InlineConfig): Promise<ViteDevServer>;`
+					? `${file.content}\ntype ObjectHook<T> = T | { handler: T; order?: "pre" | "post" | null };\nexport type ServerHook = (server: ViteDevServer) => void;\nexport interface Plugin { readonly name: string; configureServer?: ObjectHook<ServerHook>; }\nexport type PluginOption = Plugin | readonly PluginOption[] | Promise<PluginOption> | false | null | undefined;\nexport interface InlineConfig { readonly plugins?: PluginOption[]; }\nexport declare function createServer(config?: InlineConfig): Promise<ViteDevServer>;`
 					: file.content,
 			})),
 			{
