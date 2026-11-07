@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import type { DatabaseConfig, VolumeNode } from "railway/iac";
 import { checkPostgresImage } from "#adapters/railway/checkPostgresImage.ts";
 import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
@@ -10,10 +9,8 @@ export type DatabaseServiceConfig = DatabaseConfig & {
 	pageCacheTrim?: PageCacheTrim;
 };
 
-export function databaseService(name: string, config: DatabaseServiceConfig) {
+export async function databaseService(name: string, config: DatabaseServiceConfig) {
 	const database = configurePostgres(name, config);
-	return Effect.tryPromise({
-		catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
-		try: () => checkPostgresImage(database.image).then(() => database),
-	});
+	await checkPostgresImage(database.image);
+	return database;
 }

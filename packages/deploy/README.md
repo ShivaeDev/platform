@@ -14,9 +14,13 @@ import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.
 
 export default defineRailway((ctx, project) =>
 	Effect.gen(function* () {
-		const database = yield* databaseService("Postgres", {
-			limits: { cpu: 2, memoryBytes: 1_073_741_824 },
-			volume: volume("postgres-data"),
+		const database = yield* Effect.tryPromise({
+			catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+			try: () =>
+				databaseService("Postgres", {
+					limits: { cpu: 2, memoryBytes: 1_073_741_824 },
+					volume: volume("postgres-data"),
+				}),
 		});
 		const web = webService("web", { start: "pnpm start" }, database);
 		const worker = workerService("worker", { start: "pnpm worker" }, database);
@@ -25,11 +29,11 @@ export default defineRailway((ctx, project) =>
 );
 ```
 
-`defineRailway` runs the Effect config when Railway evaluates it. `databaseService` verifies the Postgres image startup metadata in the Effect error channel; yield it from the callback before composing the native Railway definitions.
+`defineRailway` runs the Effect config when Railway evaluates it. Use `Effect.tryPromise` to yield the asynchronous `databaseService` result before composing the native Railway definitions.
 
 ## Choose the database settings
 
-`databaseService` returns an Effect that checks the Postgres image startup metadata before yielding its definition. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
+`databaseService` asynchronously checks the Postgres image startup metadata before returning its definition. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
 
 ### Backups and image updates
 
