@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 import ts from "typescript";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
@@ -45,6 +45,13 @@ export function effectPrograms(inputs: RuleInputs, externalTypes = true, roots: 
 	return {
 		create: (sources: RuleInputs["sources"]): ts.Program =>
 			ts.createProgram([...sources.map((source) => join(inputs.root, source.path)), ...roots], options, host),
-		release: () => sourceFiles.clear(),
+		release: () => {
+			for (const file of sourceFiles.keys()) {
+				const path = relative(inputs.root, file);
+				if (!path.split(sep).includes("node_modules")) {
+					sourceFiles.delete(file);
+				}
+			}
+		},
 	};
 }
