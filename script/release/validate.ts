@@ -4,6 +4,7 @@ import { checkReleaseCoverage } from "@shivaedev/releases/checkReleaseCoverage.t
 import { computePlan } from "@shivaedev/releases/planner.ts";
 import { readHistory } from "@shivaedev/releases/readHistory.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
+import { frameworkVersionsInput } from "#release/frameworkVersionsInput.ts";
 import { starterPinsInput } from "#release/starterPinsInput.ts";
 import config from "#release-config";
 
@@ -13,8 +14,19 @@ export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 	reference?: string,
 ) {
 	const after = yield* readWorkspace(root, config);
-	const before = yield* readHistory(root, config, reference);
+	let before = yield* readHistory(root, config, reference);
 	yield* computePlan(after.packages, after.changesets, before.packages);
+	const initial = yield* planDiff(before, after);
+	if (
+		after.packages.some((pkg) =>
+			before.packages.some((old) => old.manifest.name === pkg.manifest.name && old.manifest.version !== pkg.manifest.version),
+		)
+	) {
+		const frameworkInput = yield* frameworkVersionsInput(root, before.packages, initial);
+		if (frameworkInput !== undefined) {
+			before = { ...before, changesets: [...before.changesets, frameworkInput] };
+		}
+	}
 	const plan = yield* planDiff(before, after);
 	const input = starterPinsInput(plan, pins);
 	const releaseBase = input === undefined ? before : { ...before, changesets: [...before.changesets, input] };

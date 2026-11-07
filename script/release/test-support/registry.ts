@@ -14,6 +14,7 @@ const Publication = Schema.fromJsonString(
 
 export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
+	const manifests = new Map<string, Readonly<Record<string, unknown>>>();
 	const published = new Map<string, string[]>([
 		["@shivaedev/platform", ["0.15.0"]],
 		["@shivaedev/create-app", ["0.9.0"]],
@@ -25,7 +26,17 @@ export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(func
 			return { body: { error: "Not found" }, status: HttpStatus.fromLiteral("NotFound") };
 		}
 		return {
-			body: { "dist-tags": { latest: versions.at(-1) }, name, versions: Object.fromEntries(versions.map((version) => [version, { name, version }])) },
+			body: {
+				"dist-tags": { latest: versions.at(-1) },
+				name,
+				time: Object.fromEntries(versions.map((version) => [version, "2026-01-01T00:00:00.000Z"])),
+				versions: Object.fromEntries(
+					versions.map((version) => [
+						version,
+						{ dist: { tarball: `https://registry.example.test/${version}.tgz` }, name, version, ...manifests.get(`${name}@${version}`) },
+					]),
+				),
+			},
 		};
 	}
 	const server = yield* fakeHttpService({
@@ -56,6 +67,10 @@ export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(func
 			}
 			throw new Error(`No publication for ${name}.`);
 		}),
+		frameworkPublished: (name: string, version: string, manifest: Readonly<Record<string, unknown>>) => {
+			published.set(name, [...(published.get(name) ?? []), version]);
+			manifests.set(`${name}@${version}`, manifest);
+		},
 		publications: () =>
 			server.requests
 				.filter(({ method }) => method === "PUT")
