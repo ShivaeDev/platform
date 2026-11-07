@@ -15,8 +15,10 @@ import { getTree } from "#github/getTree.ts";
 import { getUser } from "#github/getUser.ts";
 import { graphql } from "#github/graphql.ts";
 import { list } from "#github/list.ts";
+import { listBounded } from "#github/listBounded.ts";
 import { listCommits } from "#github/listCommits.ts";
 import { listIssues } from "#github/listIssues.ts";
+import { listPages } from "#github/listPages.ts";
 import { listPullRequestFiles } from "#github/listPullRequestFiles.ts";
 import { observations } from "#github/observations.ts";
 import { read } from "#github/read.ts";
@@ -45,8 +47,10 @@ export const GitHub = defineService({
 		getUser: getUser(state),
 		graphql: graphql(state),
 		list: genericMethod(list(state)),
+		listBounded: genericMethod(listBounded(state)),
 		listCommits: genericMethod(listCommits(state)),
 		listIssues: genericMethod(listIssues(state)),
+		listPages: genericMethod(listPages(state)),
 		listPullRequestFiles: genericMethod(listPullRequestFiles(state)),
 		observations: observations(state),
 		read: read(state),

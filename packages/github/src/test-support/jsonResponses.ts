@@ -5,7 +5,6 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { GitHub } from "#github/service.ts";
-import { list } from "#list.ts";
 import { read } from "#read.ts";
 import { answered } from "#test/outcome.ts";
 import { write } from "#write.ts";
@@ -18,7 +17,15 @@ export type Operation = "read" | "list" | "write";
 
 function responseVerbs(name: string, context: Context.Context<Context.Service.Identifier<typeof GitHub>>, tell: (line: string) => void) {
 	const operations = {
-		list: (limit?: number) => list("/pages", Result, limit).pipe(Stream.runCollect, Effect.provide(context)),
+		list: (limit?: number) =>
+			Effect.flatMap(GitHub, (github) =>
+				Effect.flatMap(github.listPages("/pages", Result, limit), (pages) =>
+					pages.pipe(
+						Stream.flatMap((page) => Stream.fromIterable(page.items)),
+						Stream.runCollect,
+					),
+				),
+			).pipe(Effect.provide(context)),
 		read: (limit?: number) => read("/response", Result, limit).pipe(Effect.provide(context)),
 		write: (limit?: number) => write("POST", "/response", {}, Result, limit).pipe(Effect.provide(context)),
 	};

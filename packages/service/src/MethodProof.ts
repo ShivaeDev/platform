@@ -37,7 +37,11 @@ type OrdinaryMethodProof<TName extends PropertyKey, TMethod, TRequirements exten
 
 type SupportedMethod<TName extends PropertyKey, TMethod, TRequirements extends RequirementRecord> =
 	TMethod extends GenericMethodDescriptor<AnyMethod>
-		? TMethod
+		? TMethod extends GenericMethodDescriptor<infer TGenericMethod>
+			? [HasDistinctCallSignatures<TGenericMethod>] extends [true]
+				? GenericOrStructurallyOverloadedMethodsAreUnsupported
+				: TMethod
+			: TMethod
 		: TMethod extends AnyMethod
 			? HasDistinctCallSignatures<TMethod> extends true
 				? GenericOrStructurallyOverloadedMethodsAreUnsupported

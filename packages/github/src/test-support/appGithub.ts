@@ -6,7 +6,6 @@ import { collectUntil } from "@shivaedev/test-story/server/until.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHub } from "#github/service.ts";
 import { githubApp, type InstallationScope } from "#githubApp.ts";
-import { list } from "#list.ts";
 import { read } from "#read.ts";
 import {
 	APP_ID,
@@ -164,7 +163,14 @@ export const appGithub = storyKit({
 			exchangeRequested: () =>
 				Effect.sync(() => server.requests.filter(({ path }) => path === EXCHANGE).map(({ body }) => JSON.parse(body.toString() || "{}"))),
 			listInstallations: () =>
-				attempt("the App lists its installations", list("/app/installations", Installation).pipe(Stream.runCollect, Effect.provide(contexts.app))),
+				attempt(
+					"the App lists its installations",
+					Effect.gen(function* () {
+						const service = yield* GitHub;
+						const pages = yield* service.listPages("/app/installations", Installation);
+						return yield* Stream.runCollect(Stream.flatMap(pages, (page) => Stream.fromIterable(page.items)));
+					}).pipe(Effect.provide(contexts.app)),
+				),
 			pullReads: () => answersTo(PULL),
 			pullReadTally: () =>
 				Effect.map(answersTo(PULL), (answers) => {

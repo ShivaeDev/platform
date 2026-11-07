@@ -3,7 +3,6 @@ import { createServer } from "node:http";
 import { Effect, Layer, Option, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub } from "@shivaedev/github/github/service.ts";
-import { list } from "@shivaedev/github/list.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { write } from "@shivaedev/github/write.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
@@ -35,12 +34,14 @@ try {
   )));
   const Item = Schema.Struct({ name: Schema.String });
   const program = Effect.gen(function* () {
+    const github = yield* GitHub;
     const item: { readonly name: string } = yield* read("/item", Item);
     assert.equal(item.name, "packed");
-    assert.deepEqual(yield* list("/items", Item).pipe(Stream.runCollect), [item]);
+    const pages = yield* github.listPages("/items", Item);
+    assert.deepEqual(yield* pages.pipe(Stream.flatMap((page) => Stream.fromIterable(page.items)), Stream.runCollect), [item]);
     assert.deepEqual(yield* write("PATCH", "/item", { name: "packed" }, Item), item);
-    assert.deepEqual(yield* (yield* GitHub).observations(), []);
-    const files = yield* (yield* GitHub).downloadArtifactArchive({ artifactId: 7, byteLimit: 1024, owner: "acme", repo: "widgets" });
+    assert.deepEqual(yield* github.observations(), []);
+    const files = yield* github.downloadArtifactArchive({ artifactId: 7, byteLimit: 1024, owner: "acme", repo: "widgets" });
     assert.deepEqual(files, [{ path: "report.txt", bytes: new TextEncoder().encode("Artifact report\n") }]);
   });
   await Effect.runPromise(program.pipe(Effect.provide(layer)));
