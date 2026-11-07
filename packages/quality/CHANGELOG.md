@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.73.0 - 2026-11-07
+
+### Added
+
+- Let `files/ascii` select forbidden Unicode code points and ranges, with optional replacement fixes and custom messages.
+
 ## 0.72.2 - 2026-11-07
 
 ### Changed
