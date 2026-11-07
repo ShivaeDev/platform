@@ -2,8 +2,10 @@ import { Effect } from "effect";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { postgres } from "#test/postgres.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { settingsEngine } from "#test/postgres-settings/engine.ts";
+
+export const postgresSettingsCanApply = databaseUrl !== undefined && new URL(databaseUrl).port !== "55432";
 
 export const postgresSettings = storyKit({
 	around: withIsolatedDatabase,
@@ -47,3 +49,34 @@ export const equivalentMemorySetting = postgresSettings.trait(
 export const nonSuperuser = postgresSettings.trait("configured", "the app connects with a non-superuser role", function* (engine) {
 	yield* engine.withoutSuperuser();
 });
+
+export const railwayDeployment = postgresSettings.trait("configured", "the process has Railway deployment variables", (engine) =>
+	Effect.sync(() => {
+		engine.state.env = {
+			"RAILWAY_DEPLOYMENT_ID": "deployment",
+			"RAILWAY_ENVIRONMENT_ID": "environment",
+			"RAILWAY_REPLICA_ID": "replica",
+			"RAILWAY_SERVICE_ID": "service",
+		};
+	}),
+);
+
+export const railwayRun = postgresSettings.trait("configured", "railway run injects service variables without a deployment replica", (engine) =>
+	Effect.sync(() => {
+		engine.state.env = { "RAILWAY_ENVIRONMENT_ID": "environment", "RAILWAY_SERVICE_ID": "service" };
+	}),
+);
+
+export function hostKind(host: "database" | "http" | "deferred" | "worker") {
+	return postgresSettings.trait("configured", `the app starts its ${host} host`, (engine) =>
+		Effect.sync(() => {
+			engine.state.host = host;
+		}),
+	);
+}
+
+export function developmentPostgres(source: "authority" | "parameters") {
+	return postgresSettings.trait("configured", `the app connects to development PostgreSQL through the URL ${source}`, function* (engine) {
+		yield* engine.useDevelopmentPort(source);
+	});
+}

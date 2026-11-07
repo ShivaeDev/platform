@@ -77,7 +77,9 @@ A Railway start command replaces the image ENTRYPOINT. Before returning the data
 
 This custom start command is incompatible with Railway PITR and HA. Use the scheduled volume backups instead. When migrating a service that already uses PITR or HA, disable those features in Railway before applying this command and remove the old PITR option, archive settings and pgBackRest setup from application configuration.
 
-Applications own their Postgres server settings separately and can apply them through SQL at startup. Changing Postgres settings through SQL takes the database out of Railway's support scope for support tickets; the dashboard, Data tab, metrics and backups remain available.
+Applications declare their Postgres server settings once through server’s `postgresSettings`. SQL applies them at startup only with Railway’s deployed-replica variable `RAILWAY_REPLICA_ID` ([Railway variables](https://docs.railway.com/reference/variables)). `railway run` service variables alone do not qualify. Destination port 55432 is always excluded, even with all Railway variables present, to protect shared development PostgreSQL. The Railway-positive CI story uses a separate PostgreSQL instance on port 5432; the infrastructure helpers do not branch the app’s declaration.
+
+Changing Postgres settings through SQL takes the database out of Railway's support scope for support tickets; the dashboard, Data tab, metrics and backups remain available.
 
 Pass the database as the optional third argument to `webService` and `workerService` to supply its native `DATABASE_URL` reference. Explicit `variables.DATABASE_URL` or `env.DATABASE_URL` overrides that reference, including an empty string; `env` wins over `variables`. Keep the database in the project's resources alongside the services. Existing two-argument calls still work without a database.
 

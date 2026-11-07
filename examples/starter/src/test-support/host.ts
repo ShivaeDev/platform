@@ -16,24 +16,26 @@ export interface HostOptions {
 	readonly jobsTesting?: PgBossTesting;
 	readonly ownerAccounts?: string;
 	readonly publicUrl?: "unset";
+	readonly railwayReplica?: boolean;
 	readonly replacements?: Layer.Layer<never>;
 	readonly trustedProxy?: string | undefined;
+}
+
+function hostEnvironment(options: HostOptions) {
+	return {
+		...(options.deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {}),
+		...(options.railwayReplica ? { "RAILWAY_REPLICA_ID": "test-replica" } : {}),
+		...(options.ownerAccounts === undefined ? {} : { "AUTH_OWNER_ACCOUNTS": options.ownerAccounts }),
+		...(options.deployed && options.publicUrl !== "unset" ? { "PUBLIC_URL": PUBLIC_URL } : {}),
+		...(options.trustedProxy === undefined ? {} : { "TRUSTED_PROXY": options.trustedProxy }),
+	};
 }
 
 export const startHost = Effect.fn("AppStory.startHost")(function* (options: HostOptions = {}) {
 	const deployed = options.deployed === true;
 	const jobsTesting = options.jobsTesting ?? makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
-	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {};
-	if (options.ownerAccounts !== undefined) {
-		env.AUTH_OWNER_ACCOUNTS = options.ownerAccounts;
-	}
-	if (deployed && options.publicUrl !== "unset") {
-		env.PUBLIC_URL = PUBLIC_URL;
-	}
-	if (options.trustedProxy !== undefined) {
-		env.TRUSTED_PROXY = options.trustedProxy;
-	}
+	const env: Record<string, string> = hostEnvironment(options);
 	const host = applicationHost({
 		databaseUrl: database.url,
 		poolSizes: testPoolSizes,
