@@ -1,5 +1,5 @@
 import type { Agent } from "node:http";
-import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
+import { type Cause, type Deferred, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
 import type { PostgresTestDatabaseService } from "@shivaedev/test-sql/server/database.ts";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
@@ -45,6 +45,7 @@ export interface HostState {
 	proxy?: Effect.Success<ReturnType<typeof disconnectProxy>>;
 	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
 	reported: Cause.Cause<unknown>[];
+	requestLogging?: { readonly started: Deferred.Deferred<void>; readonly release: Deferred.Deferred<void> };
 	response?: {
 		readonly answers?: Readonly<Record<string, string>>;
 		readonly body?: string;

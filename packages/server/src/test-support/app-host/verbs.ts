@@ -9,6 +9,7 @@ import { databaseVerbs } from "#test/app-host/databaseVerbs.ts";
 import { fieldScopeVerbs } from "#test/app-host/fieldScopeVerbs.ts";
 import { close, hasService } from "#test/app-host/lifecycle.ts";
 import { receiveMaskedFailure } from "#test/app-host/maskedFailureApi.ts";
+import { requestLoggingVerbs } from "#test/app-host/requestLoggingVerbs.ts";
 import { requests } from "#test/app-host/requests.ts";
 import { runtimeVerbs } from "#test/app-host/runtime.ts";
 import type { HostState } from "#test/app-host/state.ts";
@@ -34,6 +35,7 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		connectionSecurity: () => connectionSecurity(state),
 		serverOffersTls: () => serverOffersTls(state),
 		...requests(state, story.tell),
+		...requestLoggingVerbs(state, story.tell),
 		receiveMaskedFailure: (interrupt: boolean) => {
 			story.tell("the native RPC client requests a declared failure with sensitive fields");
 			return receiveMaskedFailure(state.url, interrupt);
