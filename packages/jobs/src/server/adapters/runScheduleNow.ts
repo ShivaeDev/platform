@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { PgBossNotFoundError, toPgBossError } from "#server/error.ts";
 import type { PgBossService } from "#server/service.ts";
 

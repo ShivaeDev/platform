@@ -1,7 +1,7 @@
 import { Duration, Effect, Redacted, type Schema } from "effect";
 import { TestClock as PgBossTestClock } from "pg-boss";
+import type { JobReadOptions, PgBossClientFactory } from "@shivaedev/jobs/server/adapters/client.ts";
 import { defaultClientFactory } from "@shivaedev/jobs/server/adapters/defaultClientFactory.ts";
-import type { JobReadOptions, PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import type { PgBossInspectionService, SnapshotQueue } from "@shivaedev/jobs/server/inspection.ts";

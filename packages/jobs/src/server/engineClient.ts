@@ -1,5 +1,5 @@
+import type { JobReadOptions, PgBossClient } from "#server/adapters/client.ts";
 import type { ClientDatabase } from "#server/ClientDatabase.ts";
-import type { JobReadOptions, PgBossClient } from "#server/client.ts";
 import type { ScheduleOptions } from "#server/enqueueOptions.ts";
 import type { Job } from "#server/job.ts";
 

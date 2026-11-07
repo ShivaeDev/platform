@@ -1,7 +1,7 @@
 import { makeCompiler } from "@effect/sql-pg/PgClient";
 import { type Context, Effect } from "effect";
 import * as Statement from "effect/sql/Statement";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import type { JobEngine } from "#server/engine.ts";
 import { toPgBossError } from "#server/error.ts";
 import { deadLetterQueueName } from "#server/health.ts";

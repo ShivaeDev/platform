@@ -1,8 +1,0 @@
-{"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/defineSchedule.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/definition.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/clientErrors.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/deadlineOf.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/definitionOptions.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/retryWake.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/schema.ts","rule":"effect/adapter-imports","count":1}

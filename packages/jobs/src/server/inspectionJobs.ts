@@ -1,5 +1,5 @@
 import { Effect, type Schema } from "effect";
-import type { JobReadOptions } from "#server/client.ts";
+import type { JobReadOptions } from "#server/adapters/client.ts";
 import type { JobPayloadSchema } from "#server/definition.ts";
 import { PgBossInspectionReads } from "#server/services/inspection/service.ts";
 import { decodeStoredData } from "#server/storedRows.ts";

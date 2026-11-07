@@ -1,5 +1,5 @@
 import { Effect, Schedule } from "effect";
-import type { ClientQueueOptions, PgBossClient } from "#server/client.ts";
+import type { ClientQueueOptions, PgBossClient } from "#server/adapters/client.ts";
 import { PgBossQueueOptionsError } from "#server/error.ts";
 import { deadLetterQueueName } from "#server/health.ts";
 

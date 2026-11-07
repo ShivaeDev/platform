@@ -36,23 +36,26 @@ export const Admin = mergeAdminRegistries(foundation.admin, ...modules);
 	"src/client/admin/foundationRegistration.tsx": legacyImport,
 	"src/modules/notes/test-support/admin/group.ts": legacyImport,
 	"src/modules/notes/test-support/admin/host.ts": legacyImport,
-	"src/server/admin/foundationRegistration.ts": `import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
+	"src/server/admin/foundationRegistration.ts": `import { Effect, Layer } from "effect";
+import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
+import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { foundation } from "#admin/modules.ts";
 
 const AdminJobs = makePgBoss("app/AdminJobs");
 
 export function foundationRegistration() {
+	const jobs = AdminJobs.layer({ jobs: [] });
 	return {
 		...registerAdmin(foundation.admin, {
-			jobs: jobsHandlers(foundation.JobsPage, AdminJobs),
+			jobs: jobsHandlers(foundation.JobsPage),
 			sessions: sessionsHandlers,
 			users: usersHandlers(foundation.UsersPage),
 		}),
-		services: AdminJobs.layer({ jobs: [] }),
+		services: Layer.effect(PgBossInspection, Effect.flatMap(AdminJobs, (service) => service.inspection())).pipe(Layer.provideMerge(jobs)),
 	};
 }
 `,

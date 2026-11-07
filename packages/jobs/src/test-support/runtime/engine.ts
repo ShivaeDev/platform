@@ -1,6 +1,6 @@
 import { Cause, type Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
-import type { PgBossClientFactory } from "#server/client.ts";
+import type { PgBossClientFactory } from "#server/adapters/client.ts";
 import { PgBossError } from "#server/error.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#server/service.ts";

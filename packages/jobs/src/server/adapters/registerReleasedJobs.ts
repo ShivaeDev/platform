@@ -1,8 +1,8 @@
 import { Effect, Option, Scope } from "effect";
 import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { registerJobs, registrationName } from "#server/adapters/register.ts";
 import { retireJobs } from "#server/adapters/retireJobs.ts";
-import type { PgBossClient } from "#server/client.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";

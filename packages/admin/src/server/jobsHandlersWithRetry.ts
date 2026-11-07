@@ -13,7 +13,7 @@ export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[]
 	service: Context.Service<TService, PgBossService>,
 ) {
 	return page.contract.application.toLayer({
-		...jobsReadHandlers(page, service),
+		...jobsReadHandlers(page),
 		"admin.jobs.retry": ({ queue, id }) =>
 			Effect.gen(function* () {
 				yield* requirePermission(yield* SessionUser, RetryJobs);

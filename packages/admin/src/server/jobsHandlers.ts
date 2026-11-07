@@ -1,8 +1,8 @@
-import { type Context, DateTime, Effect, Option, type Schema } from "effect";
+import { DateTime, Effect, Option, type Schema } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
+import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { readJobFailure } from "@shivaedev/jobs/server/readJobFailure.ts";
-import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import type { jobsPage } from "#jobs/page.ts";
 import { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
@@ -22,10 +22,7 @@ export function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBoss
 	);
 }
 
-export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TService>(
-	page: { readonly queues: TQueues },
-	service: Context.Service<TService, PgBossService>,
-) {
+export function jobsReadHandlers<const TQueues extends readonly JobsEntry[]>(page: { readonly queues: TQueues }) {
 	function registered(name: string) {
 		const queues: readonly TQueues[number][] = page.queues;
 		const queue = queues.find((candidate) => candidate.name === name);
@@ -35,35 +32,30 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 		"admin.jobs.counts": ({ queue }: { readonly queue: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const runtime = yield* service;
-				const jobs = yield* runtime.inspection();
+				const jobs = yield* PgBossInspection;
 				return yield* jobsFailures(jobs.counts(definition));
 			}),
 		"admin.jobs.deadLettered": ({ queue, ...options }: { readonly queue: string; readonly limit: number; readonly cursor?: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const runtime = yield* service;
-				const jobs = yield* runtime.inspection();
+				const jobs = yield* PgBossInspection;
 				return yield* jobsFailures(jobs.deadLetteredJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.failed": ({ queue, ...options }: { readonly queue: string; readonly limit: number; readonly cursor?: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const runtime = yield* service;
-				const jobs = yield* runtime.inspection();
+				const jobs = yield* PgBossInspection;
 				return yield* jobsFailures(jobs.failedJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.health": () =>
 			Effect.gen(function* () {
-				const runtime = yield* service;
-				const jobs = yield* runtime.inspection();
+				const jobs = yield* PgBossInspection;
 				return yield* jobsFailures(jobs.health(page.queues));
 			}),
 		"admin.jobs.job": ({ id, queue }: { readonly id: string; readonly queue: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
-				const runtime = yield* service;
-				const jobs = yield* runtime.inspection();
+				const jobs = yield* PgBossInspection;
 				const result = yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id));
 				if (Option.isNone(result)) {
 					return Option.none();
@@ -87,9 +79,6 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 	};
 }
 
-export function jobsHandlers<const TQueues extends readonly JobsEntry[], TService>(
-	page: ReturnType<typeof jobsPage<TQueues>>,
-	service: Context.Service<TService, PgBossService>,
-) {
-	return page.contract.application.toLayer(jobsReadHandlers(page, service));
+export function jobsHandlers<const TQueues extends readonly JobsEntry[]>(page: ReturnType<typeof jobsPage<TQueues>>) {
+	return page.contract.application.toLayer(jobsReadHandlers(page));
 }

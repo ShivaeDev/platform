@@ -1,6 +1,6 @@
 import { Clock, Duration, Effect, Schema } from "effect";
 import type { QueueDisplay, SubjectColumn } from "#display.ts";
-import { maxDeferrals, nativeQueueOptions } from "#server/definitionOptions.ts";
+import { DEFAULT_MAX_DEFERRALS, nativeQueueOptions } from "#server/definitionOptions.ts";
 import type { ScheduleOptions } from "#server/enqueueOptions.ts";
 import type { WorkerJob } from "#server/job.ts";
 import type { QueueOptions, QueuePolicy } from "#server/queueOptions.ts";
@@ -116,7 +116,7 @@ export function defineQueue<const TName extends string, const TPayload extends J
 				handler,
 				queue: definition,
 			}),
-		maxDeferrals: maxDeferrals(options.queue),
+		maxDeferrals: options.queue?.maxDeferrals ?? DEFAULT_MAX_DEFERRALS,
 		name: options.name,
 		queueOptions: nativeQueueOptions(options.queue),
 		schema: options.schema,

@@ -3,6 +3,7 @@ import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
+import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -25,13 +26,15 @@ const emptyJobsEngine = Effect.gen(function* () {
 		Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
 	);
 	const page = jobsPage();
-	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
+	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page) });
+	const jobs = Context.get(context, Jobs);
+	const inspection = yield* jobs.inspection();
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const auth = Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
 	const client = yield* RpcTest.makeClient(page.contract).pipe(
 		Effect.provide(hostChanges(registration.group).pipe(Layer.provideMerge(registration.handlers))),
 		Effect.provide(auth),
-		Effect.provideService(Jobs, Context.get(context, Jobs)),
+		Effect.provide(Layer.merge(Layer.succeed(Jobs, jobs), Layer.succeed(PgBossInspection, inspection))),
 	);
 	return { client, session };
 });

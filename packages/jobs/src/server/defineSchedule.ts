@@ -1,12 +1,12 @@
 import type { DefineScheduleOptions, ScheduleDefinition } from "#server/definition.ts";
-import { maxDeferrals, nativeQueueOptions } from "#server/definitionOptions.ts";
+import { DEFAULT_MAX_DEFERRALS, nativeQueueOptions } from "#server/definitionOptions.ts";
 
 export function defineSchedule<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
 	const definition: ScheduleDefinition<TName> = {
 		_tag: "ScheduleDefinition",
 		...(options.label === undefined ? {} : { label: options.label }),
 		cron: options.cron,
-		maxDeferrals: maxDeferrals(options.queue),
+		maxDeferrals: options.queue?.maxDeferrals ?? DEFAULT_MAX_DEFERRALS,
 		name: options.name,
 		queueOptions: nativeQueueOptions(options.queue),
 		run: (effect) =>
