@@ -3,6 +3,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
+import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { browserErrorRoute } from "#browserErrorRoute.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
@@ -14,7 +15,6 @@ import { hostTransport } from "#hostTransport.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
-import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 
 export function appHostHttp<
 	TRpcs extends Rpc.Any,

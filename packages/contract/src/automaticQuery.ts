@@ -6,13 +6,11 @@ import type { LiveStatus } from "#live.ts";
 import { recordCompletion, recordSubscription } from "#queryProgress.ts";
 import { queryResult } from "#queryResult.ts";
 
-interface GateOptions<A, E> extends AutomaticQueryOptions<A, E> {
-	readonly assertOwner: (get: Atom.AtomContext) => void;
-}
+type GateOptions<A, E> = AutomaticQueryOptions<A, E> & { readonly ownerFailure: (get: Atom.AtomContext) => Error | undefined };
 export function automaticQuery<A, E>({
-	assertOwner,
 	clientStatuses,
 	equivalent,
+	ownerFailure,
 	paused,
 	ready,
 	signals,
@@ -23,8 +21,13 @@ export function automaticQuery<A, E>({
 }: GateOptions<A, E>) {
 	const gated = Atom.readable(
 		(get) => {
-			assertOwner(get);
 			get.mount(signals);
+			const error = ownerFailure(get);
+			if (error !== undefined) {
+				const failure = AsyncResult.failure(Cause.die(error));
+				get.set(signals, recordCompletion(get.once(signals), failure));
+				return failure;
+			}
 			get.mount(subscriptionVersion);
 			const openingVersion = get.once(subscriptionVersion);
 			get.refresh(subscription.connection);

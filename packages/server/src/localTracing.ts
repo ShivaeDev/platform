@@ -1,9 +1,9 @@
 import { Clock, Effect, Layer, Tracer } from "effect";
 import { localTraceDatabase } from "#adapters/localTraceDatabase.ts";
+import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { type LocalTraceEvent, type LocalTraceRow, localTraceRow } from "#localTraceRow.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
-import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 
 export interface LocalTracingOptions {
 	readonly clock?: Clock.Clock;
