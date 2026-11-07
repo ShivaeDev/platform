@@ -22,6 +22,16 @@ for (const [form, script, helper] of [
 		undefined,
 	],
 	[
+		"dirname of import.meta.dirname",
+		'import { dirname, join } from "node:path"; const root = dirname(import.meta.dirname); build({ entryPoints: [join(root, "src/main.ts"), join(root, "src/preload.ts")] });',
+		undefined,
+	],
+	[
+		"dirname of fileURLToPath(import.meta.url)",
+		'import { dirname, join } from "node:path"; import { fileURLToPath } from "node:url"; const root = dirname(fileURLToPath(import.meta.url)); build({ entryPoints: [join(root, "../src/main.ts"), join(root, "../src/preload.ts")] });',
+		undefined,
+	],
+	[
 		"an imported helper",
 		'import { bundle } from "./bundle.ts"; const entries = ["src/main.ts", "src/preload.ts"]; bundle(entries);',
 		'import { build } from "esbuild"; export function bundle(entryPoints: string[]) { return build({entryPoints}); }',
