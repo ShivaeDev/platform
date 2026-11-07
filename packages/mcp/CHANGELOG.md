@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.30.0 to 0.30.1.
+
 ## 0.9.5 - 2026-11-06
 
 ### Changed
