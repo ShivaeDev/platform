@@ -71,6 +71,8 @@ const setup = Effect.gen(function* () {
 
 `assertLocalDatabase` applies the same local-target checks and also rejects a database name outside the caller's allowlist. The fixed names above provide an independent application policy.
 
+`assertLocalDatabase(value, names, ports)` accepts an explicit allowed-port list when validating test configuration. Repository CI and generated app tests read `TEST_DATABASE_URL` through Effect Config and validate it with ports `["55432", "5432"]`, accepting the shared development service or a loopback PostgreSQL CI service. Remote hosts and redirecting connection parameters are refused. Omitting `ports` retains the shared setup restriction to port 55432. Service preparation always retains that restriction.
+
 ### 2. Once per feature: prepare its schema in application tooling
 
 After `prepareDatabases`, run the application's own schema or migration entry point. This package provides no schema model, migration ledger, fixture catalogue or seed convention. `@shivaedev/sql` owns the SQL and migration APIs.
