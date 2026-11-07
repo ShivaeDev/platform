@@ -7,6 +7,7 @@ import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 export interface Finding {
 	readonly count?: number | undefined;
 	readonly file: string;
+	readonly fix?: { readonly end: number; readonly replacement: string; readonly start: number } | undefined;
 	readonly line?: number | undefined;
 	readonly message: string;
 	readonly subject?: string | undefined;

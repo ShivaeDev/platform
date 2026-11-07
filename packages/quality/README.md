@@ -78,15 +78,27 @@ Import `ImportCompiler` from `@shivaedev/quality/adapters/import-compiler/servic
 
 `manifests/dependency-pins` checks dependencies, development dependencies, optional dependencies and peers in every inventoried package manifest. External dependencies use exact versions, including npm aliases. Workspace dependencies use `workspace:`. Replace `file:` and `link:` dependencies with npm versions or workspace/catalog references in both published and private packages. Quality finds the nearest `pnpm-workspace.yaml` at or above its config folder. When that workspace declares a default or named catalog, external dependencies use `catalog:` or `catalog:<name>`, and the referenced catalog must contain that dependency. Catalog entries themselves use exact versions. Write catalogs as indented block mappings; inline mappings and YAML aliases receive findings instead of escaping the check.
 
-`files/ascii` is opt-in by file selection. It checks the bytes of selected text files, including a UTF-8 BOM, and reports each line containing non-ASCII bytes. Other files are left alone. Supply repository-relative glob patterns:
+`files/ascii` is opt-in by file selection. It checks the bytes of selected text files, including a UTF-8 BOM, and reports each line containing non-ASCII bytes. Set `forbidden` to check only named Unicode code points or inclusive ranges instead. An entry can replace its character during `quality fix --rule files/ascii`, or give a message for a manual rewrite. Other files are left alone:
 
 ```ts
 export default defineConfig({
 	rules: {
-		"files/ascii": { options: { files: ["docs/**/*.txt"] } },
+		// Replace curly quotes and ask for a manual rewrite of em dashes.
+		"files/ascii": {
+			options: {
+				files: ["src/game/**/*.ts"],
+				forbidden: [
+					{ codePoint: 0x201c, replacement: '"' },
+					{ codePoint: 0x201d, replacement: '"' },
+					{ codePoint: 0x2014, message: "Reword this sentence without an em dash." },
+				],
+			},
+		},
 	},
 });
 ```
+
+An entry may use `range: [0x200B, 0x200B]` in place of `codePoint`. When `forbidden` is absent, the rule retains its strict non-ASCII byte check.
 
 `docs/repository-paths` checks paths in backticks in Markdown prose. Explicit `./` and `../` paths resolve from the document; `./` may also name a path from the repository root, as in a command run there. Other paths with a file extension or trailing slash are checked when their first folder belongs to the repository inventory; they may resolve from the repository root or the document’s folder. Prefix an extensionless repository file with `./` or `../` to distinguish it from a rule id or other identifier. Line suffixes and heading fragments are removed before checking existence. Commands, URLs, package specifiers, installed `node_modules` paths, globs, placeholders, fenced examples and released changelogs are left alone. Use a placeholder such as `<app>/src/main.ts` when describing a consumer's example rather than a path in this repository.
 
