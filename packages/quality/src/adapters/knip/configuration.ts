@@ -90,7 +90,6 @@ export async function knipConfiguration(
 					...styles,
 					...workspaceEntries,
 				],
-				includeEntryExports: workspaceEntries.length > 0,
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles, ...workspaceEntries],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },

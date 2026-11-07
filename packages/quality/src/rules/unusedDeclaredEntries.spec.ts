@@ -27,13 +27,10 @@ ruleStory.it("code/unused reports files reached only through a runtime-built dri
 	);
 });
 
-ruleStory.it("code/unused accepts declared runtime-built entries and still checks their exports", [repositoryHas(...fixture)], function* ({ check }) {
+ruleStory.it("code/unused accepts declared runtime-built entries", [repositoryHas(...fixture)], function* ({ check }) {
 	const findings = yield* check(unusedCode, undefined, ".", ["script/perf/driver.ts"]);
 
-	yield* assertThat(
-		findings.map(({ file, subject }) => ({ file, subject })),
-		(actual) => actual.toEqual([{ file: "script/perf/driver.ts", subject: "exports:unusedExport" }]),
-	);
+	yield* assertThat(findings, (actual) => actual.toEqual([]));
 });
 
 ruleStory.it(
