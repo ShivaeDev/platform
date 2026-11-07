@@ -24,7 +24,7 @@ export function setupInstaller(
 	return `#!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
-const { join } = require("node:path");
+const { join, relative } = require("node:path");
 const args = process.argv.slice(2);
 const command = args.join(" ");
 if (${scriptsOnly} && args[0] === "run") {
@@ -44,7 +44,7 @@ if (args[0] === "install") {
   fs.writeFileSync(join(qualityPackage, "package.json"), JSON.stringify(qualityManifest));
   fs.writeFileSync(join(qualityPackage, "quality.js"), ${JSON.stringify(qualityBin)}, { mode: 0o755 });
   const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  manifest.devDependencies["@shivaedev/quality"] = "link:" + qualityPackage;
+  manifest.devDependencies["@shivaedev/quality"] = "workspace:" + relative(process.cwd(), qualityPackage);
   fs.writeFileSync("package.json", JSON.stringify(manifest, null, "\\t") + "\\n");
   const compiler = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
   compiler.compilerOptions.customConditions = ["@shivaedev/source"];

@@ -46,6 +46,7 @@ function run(root: string, args: readonly string[]) {
 			process.execPath,
 			join(vitestRoot, "vitest.mjs"),
 			"run",
+			"--configLoader=native",
 			"--reporter=default",
 			"--reporter=json",
 			"--outputFile=report.json",
