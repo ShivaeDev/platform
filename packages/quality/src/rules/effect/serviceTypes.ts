@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { browserLibraryType } from "#adapters/browserLibraryType.ts";
 import { callerContextData } from "#adapters/callerContextData.ts";
-import { nonEmptyContext } from "#rules/effect/nonEmptyContext.ts";
+import { nonEmptyContext } from "#adapters/nonEmptyContext.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";

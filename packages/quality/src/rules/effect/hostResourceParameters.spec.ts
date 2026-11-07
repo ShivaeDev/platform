@@ -24,22 +24,11 @@ ${borrowed ? "export const borrowed = Effect.gen(function* () { return yield* fo
 		function* ({ check }) {
 			const findings = yield* check(serviceParameters);
 
-			expect(findings).toEqual(
-				borrowed
-					? [
-							expect.objectContaining({
-								file: "src/adapters/http.ts",
-								line: 4,
-								message: expect.stringContaining("Parameter request carries a service."),
-							}),
-							expect.objectContaining({
-								file: "src/adapters/http.ts",
-								line: 5,
-								message: expect.stringContaining("Parameter request carries a service."),
-							}),
-						]
-					: [],
-			);
+			const expected = [
+				expect.objectContaining({ file: "src/adapters/http.ts", line: 4, message: expect.stringContaining("Parameter request carries a service.") }),
+				expect.objectContaining({ file: "src/adapters/http.ts", line: 5, message: expect.stringContaining("Parameter request carries a service.") }),
+			];
+			expect(findings).toEqual(borrowed ? expected : []);
 		},
 	);
 }

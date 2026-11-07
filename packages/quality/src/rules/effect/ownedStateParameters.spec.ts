@@ -41,17 +41,14 @@ ${otherCall}`,
 		function* ({ check }) {
 			const findings = yield* check(serviceParameters);
 
+			const stateFinding = expect.objectContaining({
+				file: "src/inventory/read.ts",
+				line: 3,
+				message: expect.stringContaining("Parameter state carries a service."),
+			});
 			expect(findings).toEqual([
 				expect.objectContaining({ file: "src/inventory/read.ts", line: 5, message: expect.stringContaining("Parameter scope carries a service.") }),
-				...(otherCall
-					? [
-							expect.objectContaining({
-								file: "src/inventory/read.ts",
-								line: 3,
-								message: expect.stringContaining("Parameter state carries a service."),
-							}),
-						]
-					: []),
+				...(otherCall ? [stateFinding] : []),
 			]);
 		},
 	);
