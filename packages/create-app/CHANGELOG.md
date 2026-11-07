@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.19 - 2026-11-07
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
 ## 0.43.18 - 2026-11-07
 
 ### Changed
