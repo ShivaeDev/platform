@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.72.0 - 2026-11-07
+
+### Added
+
+- Report an `AGENTS.md` without its sibling `CLAUDE.md` symlink and give the repair command.
+
 ## 0.71.0 - 2026-11-07
 
 ### Changed
