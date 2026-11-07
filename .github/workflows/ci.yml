@@ -130,6 +130,8 @@ jobs:
     name: tests (${{ matrix.shard }})
     # Keep PostgreSQL test runners stable during the ubuntu-latest image migration.
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-24.04' }}
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/platform_test
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -144,6 +146,11 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           postgres: "true"
+      - name: Start isolated PostgreSQL test server
+        run: |
+          image=$(node --conditions=@shivaedev/source --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/adapters/localContainer.ts'; console.log(POSTGRES_IMAGE)")
+          docker run --detach --rm --name ci-test-postgres --publish 127.0.0.1:5432:5432 --env POSTGRES_USER=postgres --env POSTGRES_PASSWORD=postgres "$image"
+          until docker exec ci-test-postgres pg_isready --username=postgres; do sleep 1; done
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -253,6 +260,8 @@ jobs:
       contents: read
       actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/platform_test
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -265,6 +274,11 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           postgres: "true"
+      - name: Start isolated PostgreSQL test server
+        run: |
+          image=$(node --conditions=@shivaedev/source --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/adapters/localContainer.ts'; console.log(POSTGRES_IMAGE)")
+          docker run --detach --rm --name ci-test-postgres --publish 127.0.0.1:5432:5432 --env POSTGRES_USER=postgres --env POSTGRES_PASSWORD=postgres "$image"
+          until docker exec ci-test-postgres pg_isready --username=postgres; do sleep 1; done
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
