@@ -7,7 +7,7 @@ export const taxonomyGuards = host.trait("configured", "a route handles Conflict
 	state.routes = HttpRouter.add("GET", "/guard/:kind", (request) =>
 		Effect.fail(request.url.endsWith("/instance") ? new Conflict({ message: "taken" }) : { _tag: "Conflict", message: "taken" }).pipe(
 			Effect.catchIf(isConflict, () => Effect.succeed(HttpServerResponse.text("class rejection handled"))),
-			Effect.catch(() => Effect.succeed(HttpServerResponse.text("unrecognized failure"))),
+			Effect.catchTag("Conflict", (failure) => Effect.succeed(HttpServerResponse.text(`unrecognized failure: ${failure._tag}`))),
 		),
 	);
 });

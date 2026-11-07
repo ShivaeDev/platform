@@ -1,6 +1,6 @@
 import type * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Effect, Layer } from "effect";
-import { redactingDiagnostics } from "#redactingDiagnostics.ts";
+import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 
 export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
 	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }

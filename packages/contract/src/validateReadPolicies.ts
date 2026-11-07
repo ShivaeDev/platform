@@ -1,9 +1,14 @@
 import { Context, Effect, Option } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
+import { DeclarationError } from "#declarationError.ts";
 import { MissingReadPolicies } from "#readPolicyErrors.ts";
 import { ChangesQueries, QueryDefinition } from "#serverMetadata.ts";
 
 export const validateReadPolicies = Effect.fnUntraced(function* <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
+	const declarationFailure = Context.get(group.annotations, DeclarationError);
+	if (declarationFailure !== undefined) {
+		return yield* Effect.die(new Error(declarationFailure));
+	}
 	const missing = new Set<string>();
 	for (const rpc of group.requests.values()) {
 		const query = Context.getOption(rpc.annotations, QueryDefinition);
