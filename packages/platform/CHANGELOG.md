@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.40.10 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/github` from 0.15.1 to 0.16.0.
+- Update `@shivaedev/server` from 0.32.1 to 0.32.2.
+- Update `@shivaedev/webhooks` from 0.11.5 to 0.11.6.
+
 ## 0.40.9 - 2026-11-07
 
 ### Changed

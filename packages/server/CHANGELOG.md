@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.2 - 2026-11-07
+
+### Fixed
+
+- Answer HTTP RPC requests whose last NDJSON frame has no trailing newline, including the final call in a batch. Malformed frames still return an RPC defect.
+
 ## 0.32.1 - 2026-11-07
 
 ### Changed
