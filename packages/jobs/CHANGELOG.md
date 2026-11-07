@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.41.3 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/service` from 0.8.1 to 0.8.2.
+- Update `@shivaedev/sql` from 0.46.1 to 0.46.2.
+
 ## 0.41.2 - 2026-11-07
 
 ### Changed

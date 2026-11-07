@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.4 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.43.1 to 0.43.2.
+- Update `@shivaedev/discord` from 0.4.1 to 0.4.2.
+- Update `@shivaedev/email` from 0.7.4 to 0.7.5.
+- Update `@shivaedev/identity` from 0.30.2 to 0.30.3.
+- Update `@shivaedev/jobs` from 0.41.2 to 0.41.3.
+- Update `@shivaedev/sql` from 0.46.1 to 0.46.2.
+- Update `@shivaedev/test-sql` from 0.24.5 to 0.24.6.
+- Update `@shivaedev/test-story` from 0.45.2 to 0.45.3.
+- Update `@shivaedev/webhooks` from 0.11.6 to 0.11.7.
+
 ## 0.10.3 - 2026-11-07
 
 ### Changed

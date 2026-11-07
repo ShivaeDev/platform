@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 - 2026-11-07
+
+### Fixed
+
+- Preserve schema result types and decoding service requirements through generic service methods.
+
 ## 0.8.1 - 2026-11-07
 
 ### Changed

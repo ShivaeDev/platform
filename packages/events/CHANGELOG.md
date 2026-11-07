@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.6 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/sql` from 0.46.1 to 0.46.2.
+
 ## 0.4.5 - 2026-11-07
 
 ### Changed
