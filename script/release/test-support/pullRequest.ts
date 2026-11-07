@@ -13,10 +13,10 @@ import { maintainPullRequest } from "#release/maintainPullRequest.ts";
 import { preparePublish } from "#release/preparePublish.ts";
 import { publishNotes } from "#release/publishNotes.ts";
 import { publishPackages } from "#release/publishPackages.ts";
-import { commitHook } from "./commitHook.ts";
-import { releasePrApi } from "./prApi.ts";
-import { releasePrRepository } from "./prRepository.ts";
-import { releaseRegistry } from "./registry.ts";
+import { commitHook } from "#release/test-support/commitHook.ts";
+import { releasePrApi } from "#release/test-support/prApi.ts";
+import { releasePrRepository } from "#release/test-support/prRepository.ts";
+import { releaseRegistry } from "#release/test-support/registry.ts";
 
 const create = Effect.fn("ReleasePullRequest.create")(function* () {
 	const repository = yield* releasePrRepository();

@@ -1,5 +1,5 @@
 import { defineRule } from "@shivaedev/quality/rule.ts";
-import { manifestFiles } from "./manifestFiles.ts";
+import { manifestFiles } from "#quality/manifestFiles.ts";
 
 export const unreadable = defineRule({
 	check: async (inputs) =>

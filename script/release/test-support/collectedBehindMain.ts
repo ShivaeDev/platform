@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
+import { git } from "#release/test-support/git.ts";
+import { repository } from "#release/test-support/repository.ts";
 import config from "#release-config";
-import { git } from "./git.ts";
-import { repository } from "./repository.ts";
 
 export const collectedBehindMain = repository.trait(
 	"pending",

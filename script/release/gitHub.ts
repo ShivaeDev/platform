@@ -3,7 +3,7 @@ import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { graphql } from "@shivaedev/github/graphql.ts";
 import { read } from "@shivaedev/github/read.ts";
 import { write } from "@shivaedev/github/write.ts";
-import { type ReleaseCiRun, releaseHoldReason } from "./holdReason.ts";
+import { type ReleaseCiRun, releaseHoldReason } from "#release/holdReason.ts";
 
 const Snapshot = Schema.Struct({
 	repository: Schema.Struct({

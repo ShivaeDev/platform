@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { FileSystem } from "effect";
 import { claudePluginFolder } from "#lib/test-support/claudePluginFolder.ts";
 import { writeJson } from "#package-check/io.ts";
-import { archives } from "./archives.ts";
+import { archives } from "#package-check/test-support/archives.ts";
 
 export const privateAddon = archives.trait("workspace", "a private addon awaits release authorization", function* ({ root }) {
 	const directory = join(root, "packages/addon");

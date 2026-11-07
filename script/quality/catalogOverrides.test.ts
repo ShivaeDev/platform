@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { catalogOverrides } from "#quality/catalogOverrides.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { catalogOverrides } from "./catalogOverrides.ts";
 
 for (const key of ["overrides", "pnpm", "resolutions"]) {
 	ruleKit.it(

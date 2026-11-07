@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { ISOLATED_ENV } from "@shivaedev/quality/testing/adapters/git.ts";
-import { hookStory } from "./hookStory.ts";
+import { hookStory } from "#quality/test-support/hookStory.ts";
 
 export const RECORDING_COMMIT_MESSAGE = '#!/bin/sh\nprintf "%s\\n" "$@" >> commit-msg.log\ncat "$1" >> commit-msg.log\n';
 export const RECORDING_PUSH = '#!/bin/sh\nprintf "%s\\n" "$@" >> pre-push.log\ncat >> pre-push.log\n';

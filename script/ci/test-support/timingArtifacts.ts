@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { planning } from "./planning.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
 export function timingArtifacts() {
 	return planning.trait("workspace", "two shards have final reports, a recovered timeout and a stray duplicate cache entry", ({ workspace }) => {

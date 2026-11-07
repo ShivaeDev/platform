@@ -3,8 +3,8 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect, FileSystem, Path, Schema } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
-import { checkPlatform } from "./check.ts";
-import { PublishedPackages } from "./publishedPackages.ts";
+import { checkPlatform } from "#release/check.ts";
+import { PublishedPackages } from "#release/publishedPackages.ts";
 
 export const publishPackages = Effect.fn("Release.publishPackages")(function* (root: string, base: string) {
 	yield* checkPlatform(root, base);

@@ -1,5 +1,5 @@
 import { defineRule } from "@shivaedev/quality/rule.ts";
-import { catalog } from "./catalog.ts";
+import { catalog } from "#quality/catalog.ts";
 
 const EXACT_VERSION = /^(?:npm:.+@)?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 

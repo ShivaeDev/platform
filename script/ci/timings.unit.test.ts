@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "vitest";
-import { decodeJunitTimingReport } from "./timings.ts";
+import { decodeJunitTimingReport } from "#ci/timings.ts";
 
 it("uses each file's total time and project identity rather than individual testcase or run times", () => {
 	const report = `<testsuites time="500">

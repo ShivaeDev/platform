@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
-import { git as releaseGit } from "./git.ts";
+import { git as releaseGit } from "#release/git.ts";
 
 export const compareRelease = Effect.fn("Release.compareRelease")(function* (root: string, head: string) {
 	if (head === "") {

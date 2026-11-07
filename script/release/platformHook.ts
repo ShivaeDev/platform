@@ -2,8 +2,8 @@ import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import type { ReleaseHook } from "@shivaedev/releases/config.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
-import { alignStarterCatalog } from "./starterCatalog.ts";
-import { alignStarterPnpm } from "./starterPnpm.ts";
+import { alignStarterCatalog } from "#release/starterCatalog.ts";
+import { alignStarterPnpm } from "#release/starterPnpm.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 

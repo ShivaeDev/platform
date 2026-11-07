@@ -3,9 +3,9 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Console, Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { command } from "./command.ts";
-import { copyRepository } from "./copyRepository.ts";
-import { git, initRepository } from "./git.ts";
+import { command } from "#release/test-support/command.ts";
+import { copyRepository } from "#release/test-support/copyRepository.ts";
+import { git, initRepository } from "#release/test-support/git.ts";
 
 const repository = process.cwd();
 

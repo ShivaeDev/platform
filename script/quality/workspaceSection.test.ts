@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { repositoryHas, ruleFailure, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { workspaceSection } from "./workspaceSection.ts";
+import { workspaceSection } from "#quality/workspaceSection.ts";
 
 for (const key of ["catalog", "catalogs", "overrides"]) {
 	ruleKit.it(

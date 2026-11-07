@@ -3,8 +3,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import type { Workspace } from "#ci/test-support/workspace.ts";
 import { decodeTimingSnapshot } from "#ci/timings.ts";
-import type { Workspace } from "./workspace.ts";
 
 export function mergeTimingArtifacts(engine: Workspace) {
 	const { root } = engine.workspace;

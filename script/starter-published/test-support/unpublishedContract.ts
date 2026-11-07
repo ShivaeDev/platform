@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { FileSystem } from "effect";
 import { writeJson } from "#package-check/io.ts";
-import { app } from "./app.ts";
+import { app } from "#starter-published/test-support/app.ts";
 
 export const unpublishedContract = app.trait("source", "the packed contract has query but no stream or live server", function* ({ root }) {
 	const fs = yield* FileSystem.FileSystem;

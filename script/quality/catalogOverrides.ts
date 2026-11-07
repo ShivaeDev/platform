@@ -1,6 +1,6 @@
 import { defineRule } from "@shivaedev/quality/rule.ts";
-import { catalog } from "./catalog.ts";
-import { manifestFiles } from "./manifestFiles.ts";
+import { catalog } from "#quality/catalog.ts";
+import { manifestFiles } from "#quality/manifestFiles.ts";
 
 const IGNORED_OVERRIDE_KEYS = ["overrides", "pnpm", "resolutions"] as const;
 

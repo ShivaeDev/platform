@@ -1,9 +1,9 @@
 import { globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { availableJobDurations } from "#ci/adapters/availableJobDurations.ts";
-import { type MainTimingRun, mainTimingRun } from "./mainTimingRun.ts";
-import { consumerShardMs, wallTimeShardCount } from "./shardCount.ts";
-import { decodeTimingSnapshot, mergeConsumerTimingReports } from "./timings.ts";
+import { type MainTimingRun, mainTimingRun } from "#ci/mainTimingRun.ts";
+import { consumerShardMs, wallTimeShardCount } from "#ci/shardCount.ts";
+import { decodeTimingSnapshot, mergeConsumerTimingReports } from "#ci/timings.ts";
 
 export function mergeConsumerTimings(reports: readonly unknown[], run: MainTimingRun) {
 	const build = availableJobDurations(run.jobs, /^build$/u, 1);
