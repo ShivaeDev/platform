@@ -7,12 +7,12 @@ import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 qualityLifecycle.it(
-	"interrupting quality while Biome checks ends the run as interrupted without an error, stops Biome and removes quality's temporary Biome config",
+	"interrupting quality while Biome checks stops Biome, keeps its cached config and lets the next run check the repository",
 	[biomeRunning],
-	function* ({ toolIsRunning, interrupts, outcome, stderr, temporaryToolConfigExists }) {
+	function* ({ toolIsRunning, interrupts, outcome, stderr, toolConfigExists, runs, strayBiomeConfigs }) {
 		yield* outcomes([
 			["Biome running", () => toolIsRunning(), true],
-			["temporary Biome config", () => temporaryToolConfigExists(), true],
+			["cached Biome config", () => toolConfigExists(), true],
 		]);
 
 		yield* interrupts();
@@ -21,8 +21,13 @@ qualityLifecycle.it(
 			["Biome running", () => toolIsRunning(), false],
 			["error output", () => stderr(), ""],
 			["exit", () => outcome(), "interrupted"],
-			["temporary Biome config", () => temporaryToolConfigExists(), false],
+			["cached Biome config", () => toolConfigExists(), true],
+			["stray Biome configs", () => strayBiomeConfigs(), []],
 		]);
+
+		yield* runs("lint");
+
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -61,10 +66,10 @@ qualityLifecycle.it(
 qualityLifecycle.it(
 	"interrupting quality stops knip, removes both generated configs and ends the run as interrupted without an error",
 	[knipRunning],
-	function* ({ interrupts, outcome, stderr, temporaryKnipSourceConfigExists, temporaryToolConfigExists, toolIsRunning }) {
+	function* ({ interrupts, outcome, stderr, temporaryKnipSourceConfigExists, toolConfigExists, toolIsRunning }) {
 		yield* outcomes([
 			["knip running", () => toolIsRunning(), true],
-			["temporary knip config", () => temporaryToolConfigExists(), true],
+			["temporary knip config", () => toolConfigExists(), true],
 			["temporary source config", () => temporaryKnipSourceConfigExists(), true],
 		]);
 
@@ -72,7 +77,7 @@ qualityLifecycle.it(
 
 		yield* outcomes([
 			["knip running", () => toolIsRunning(), false],
-			["temporary knip config", () => temporaryToolConfigExists(), false],
+			["temporary knip config", () => toolConfigExists(), false],
 			["temporary source config", () => temporaryKnipSourceConfigExists(), false],
 			["exit", () => outcome(), "interrupted"],
 			["error output", () => stderr(), ""],

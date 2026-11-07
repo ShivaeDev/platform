@@ -1,8 +1,9 @@
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
-import { Effect, FileSystem, type PlatformError, Schema, type Scope } from "effect";
+import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import ts from "typescript";
 import { nonEffectPlugins } from "#biome/nonEffectPlugins.ts";
+import { cacheConfig } from "./cacheConfig.ts";
 
 const ObjectConfig = Schema.Record(Schema.String, Schema.Unknown);
 
@@ -19,14 +20,12 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 	config: Readonly<Record<string, unknown>>,
 	paths: Map<string, string>,
 	nonEffectFolders: readonly string[],
-): Effect.fn.Return<string, PlatformError.PlatformError | Schema.SchemaError, FileSystem.FileSystem | Scope.Scope> {
+): Effect.fn.Return<string, PlatformError.PlatformError | Schema.SchemaError, FileSystem.FileSystem> {
 	const existing = paths.get(original);
 	if (existing !== undefined) {
 		return existing;
 	}
 	const fs = yield* FileSystem.FileSystem;
-	const path = yield* fs.makeTempFileScoped({ directory: root, prefix: ".quality-biome-", suffix: ".json" });
-	paths.set(original, path);
 	const require = createRequire(original);
 	const extended: string[] = [];
 	for (const specifier of Array.isArray(config.extends) ? config.extends : []) {
@@ -52,7 +51,8 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 				}
 			: vcs,
 	};
-	yield* fs.writeFileString(path, JSON.stringify(generated));
+	const path = yield* cacheConfig(root, generated);
+	paths.set(original, path);
 	return path;
 });
 

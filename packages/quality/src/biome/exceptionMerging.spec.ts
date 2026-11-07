@@ -12,7 +12,7 @@ const EXCLUDED_DIRECTORIES: readonly ExceptionDeclaration[] = [
 	{ files: ["**", "!**/fixtures"], reason: REASON, rules: ["biome/files/includes"] },
 ];
 
-const OWN_FOLDERS = ["!.worktrees", "!.quality-biome-*"];
+const OWN_FOLDERS = ["!.worktrees"];
 
 const REPOSITORY_CONFIG = {
 	extends: ["@shivaedev/quality/biome/preset.json"],
@@ -63,54 +63,11 @@ for (const [label, config] of [
 }
 
 exceptionConfigStory.it(
-	"the command receives a generated config inside the repository that keeps the root config's settings and overrides, relocates its extends and resolves its plugins from the root",
-	[rootConfig("biome.jsonc", REPOSITORY_TEXT), qualityInstalled()],
-	function* ({ configPath, generatedConfig, runsCommand }) {
-		yield* runsCommand(UNTYPED_PARSER);
-
-		yield* withMatchers((expect) =>
-			outcomes([
-				[
-					"config",
-					() => generatedConfig(),
-					expect.objectContaining({
-						extends: [expect.stringMatching(/^<root>\/\.quality-biome-/u)],
-						formatter: { lineWidth: 150 },
-						overrides: [
-							{ formatter: { lineWidth: 100 }, includes: ["src/other.ts"] },
-							{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
-						],
-						plugins: ["<root>/imports.grit"],
-					}),
-				],
-				["config path", () => configPath(), expect.stringMatching(/^<root>\/\.quality-biome-/u)],
-			]),
-		);
-	},
-);
-
-exceptionConfigStory.it(
 	"the root biome.jsonc keeps its text while the command runs on the generated config",
 	[rootConfig("biome.jsonc", REPOSITORY_TEXT), qualityInstalled()],
 	function* ({ rootConfigDuringCommand, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
 		yield* assertThat(yield* rootConfigDuringCommand(), (actual) => actual.toBe(REPOSITORY_TEXT));
-	},
-);
-
-exceptionConfigStory.it(
-	"quality removes the generated config once the command has run",
-	[rootConfig("biome.jsonc", REPOSITORY_TEXT), qualityInstalled()],
-	function* ({ files, filesDuringCommand, outcome, runsCommand }) {
-		yield* runsCommand(UNTYPED_PARSER);
-
-		yield* withMatchers((expect) =>
-			outcomes([
-				["files after the command", () => files(), ["biome.jsonc", "node_modules"]],
-				["files during the command", () => filesDuringCommand(), expect.arrayContaining([expect.stringMatching(/^\.quality-biome-/u)])],
-				["outcome", () => outcome(), "ran"],
-			]),
-		);
 	},
 );

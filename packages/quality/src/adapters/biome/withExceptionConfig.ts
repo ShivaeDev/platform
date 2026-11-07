@@ -45,7 +45,7 @@ export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(functi
 		...own,
 		files: {
 			...files,
-			includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), ...gitIgnores, "!.worktrees", "!.quality-biome-*"],
+			includes: [...previousIncludes, ...includes.filter((pattern) => pattern !== "**"), ...gitIgnores, "!.worktrees"],
 		},
 		overrides: [...previousOverrides, ...overrides, ...targets],
 	};
