@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import ts from "typescript";
-import { buildEntryValue, buildOption } from "./buildEntryValue.ts";
+import { type BuildBindings, buildEntryValue, buildOption } from "./buildEntryValue.ts";
 import { importedCall } from "./importedCall.ts";
 
 function pathFromCall(node: ts.CallExpression, cwd: string, paths: (expression: ts.Expression) => readonly string[]): readonly string[] {
@@ -30,17 +30,26 @@ function valuesOf(node: ts.Expression): readonly ts.Expression[] {
 	return input === undefined ? node.properties.flatMap((property) => (ts.isPropertyAssignment(property) ? [property.initializer] : [])) : [input];
 }
 
-export function buildEntryPaths(expression: ts.Expression, cwd: string, file: string, active: ReadonlySet<ts.Node> = new Set()): readonly string[] {
-	const node = buildEntryValue(expression);
+export function buildEntryPaths(
+	expression: ts.Expression,
+	cwd: string,
+	file: string,
+	active: ReadonlySet<ts.Node> = new Set(),
+	bindings: BuildBindings = new Map(),
+): readonly string[] {
+	const node = buildEntryValue(expression, new Set(), bindings);
 	if (active.has(node)) {
 		return [];
 	}
 	const visited = new Set([...active, node]);
 	function paths(value: ts.Expression) {
-		return buildEntryPaths(value, cwd, file, visited);
+		return buildEntryPaths(value, cwd, file, visited, bindings);
 	}
 	if (ts.isStringLiteralLike(node)) {
 		return [node.text];
+	}
+	if (ts.isSpreadElement(node)) {
+		return paths(node.expression);
 	}
 	if (
 		(ts.isIdentifier(node) && node.text === "__dirname")

@@ -14,6 +14,24 @@ ruleStory.it(
 );
 
 ruleStory.it(
+	"service parameters follows construction through a local foreign acquisition helper",
+	[
+		effectResolves(),
+		repositoryHas(
+			...adapterServiceFiles.map((file) => ({
+				...file,
+				content: file.content
+					.replace("export const renderer", "const open = () => createServer();\nexport const renderer")
+					.replace("() => createServer())", "() => open())"),
+			})),
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check(serviceParameters)).toEqual([]);
+	},
+);
+
+ruleStory.it(
 	"service parameters rejects the same foreign server when it comes from the environment",
 	[
 		effectResolves(),

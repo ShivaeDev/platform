@@ -2,6 +2,7 @@ import type { ImportGraph } from "#imports/graph.ts";
 import type { PackageLayout } from "#naming/packageLayout.ts";
 import type { RuleInputs } from "#rule.ts";
 import { bundlerEntries } from "./bundlerEntries.ts";
+import { bundlerSources } from "./bundlerSources.ts";
 import { spawnedEntries } from "./spawnedEntries.ts";
 
 function scriptsByPackage(layout: PackageLayout): ReadonlyMap<string, readonly string[]> {
@@ -41,6 +42,7 @@ function importsOf(graph: ImportGraph): ReadonlyMap<string, readonly string[]> {
 export function reachableBuildEntries(inputs: RuleInputs, graph: ImportGraph, layout: PackageLayout): ReadonlySet<string> {
 	const imports = importsOf(graph);
 	const sources = new Map(inputs.sources.map((source) => [source.path, source]));
+	const syntax = bundlerSources(inputs.sources, graph);
 	const entries = new Set<string>();
 	for (const [directory, scripts] of scriptsByPackage(layout)) {
 		for (const path of reachable(scripts, imports)) {
@@ -48,10 +50,9 @@ export function reachableBuildEntries(inputs: RuleInputs, graph: ImportGraph, la
 			if (source === undefined) {
 				continue;
 			}
-			for (const entry of [...bundlerEntries(source, inputs.root, directory), ...spawnedEntries(source, inputs.root, directory)]) {
-				if (sources.has(entry)) {
-					entries.add(entry);
-				}
+			const bundled = syntax.has(path) ? bundlerEntries(source, inputs.root, directory, syntax) : [];
+			for (const entry of [...bundled, ...spawnedEntries(source, inputs.root, directory)].filter((target) => sources.has(target))) {
+				entries.add(entry);
 			}
 		}
 	}

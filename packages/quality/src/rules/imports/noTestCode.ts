@@ -16,7 +16,8 @@ export const noTestCode = defineRule({
 				subject: edge.specifier,
 			}));
 	}),
-	description: "Production modules import production code. Move shared code out of test files and test-support/ into a production module.",
+	description:
+		"Production modules import production code. Private test-composition packages may be consumed by tests, test support and package development scripts. Move shared production code out of test files and test-support/ into a production module.",
 	id: "imports/no-test-code",
 	registrable: false,
 });

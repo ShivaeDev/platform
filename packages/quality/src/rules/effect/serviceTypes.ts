@@ -57,6 +57,7 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		const symbol = type.getSymbol();
 		return (
 			handle
+			|| (initializerState && type.getProperty("~effect/Scope") !== undefined)
 			|| (symbol?.name === "AtomContext"
 				&& (symbol.declarations ?? []).some((declaration) =>
 					/\/effect\/(?:src|dist)\/reactivity\/Atom\.(?:d\.)?ts$/u.test(declaration.getSourceFile().fileName.replaceAll("\\", "/")),

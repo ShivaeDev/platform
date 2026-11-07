@@ -1,6 +1,7 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path, Schema } from "effect";
 import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
+import { toolContractDefaults } from "#adapters/biome/toolContractDefaults.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
 import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
@@ -81,7 +82,7 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {
-		diagnostics: recognizeDiagnostics(root, unique),
+		diagnostics: recognizeDiagnostics(root, unique, yield* toolContractDefaults(root, unique)),
 		summary: { changed: report.summary.changed + (extra?.summary.changed ?? 0) },
 	};
 });

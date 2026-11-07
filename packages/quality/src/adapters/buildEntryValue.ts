@@ -1,5 +1,7 @@
 import ts from "typescript";
 
+export type BuildBindings = ReadonlyMap<ts.ParameterDeclaration, ts.Expression>;
+
 function declaredValue(statements: readonly ts.Statement[], name: string): ts.Expression | undefined {
 	for (const statement of statements) {
 		if (!(ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)) {
@@ -13,9 +15,15 @@ function declaredValue(statements: readonly ts.Statement[], name: string): ts.Ex
 	return undefined;
 }
 
-function initializer(node: ts.Identifier): ts.Expression | undefined {
+function initializer(node: ts.Identifier, bindings: BuildBindings): ts.Expression | undefined {
 	let scope: ts.Node | undefined = node.parent;
 	while (scope !== undefined) {
+		if (ts.isFunctionLike(scope)) {
+			const parameter = scope.parameters.find((entry) => ts.isIdentifier(entry.name) && entry.name.text === node.text);
+			if (parameter !== undefined) {
+				return bindings.get(parameter);
+			}
+		}
 		const value = ts.isSourceFile(scope) || ts.isBlock(scope) ? declaredValue(scope.statements, node.text) : undefined;
 		if (value !== undefined) {
 			return value;
@@ -25,17 +33,17 @@ function initializer(node: ts.Identifier): ts.Expression | undefined {
 	return undefined;
 }
 
-export function buildEntryValue(node: ts.Expression, active: ReadonlySet<ts.Node> = new Set()): ts.Expression {
+export function buildEntryValue(node: ts.Expression, active: ReadonlySet<ts.Node> = new Set(), bindings: BuildBindings = new Map()): ts.Expression {
 	if (active.has(node)) {
 		return node;
 	}
 	const visited = new Set([...active, node]);
 	if (ts.isIdentifier(node)) {
-		const value = initializer(node);
-		return value === undefined ? node : buildEntryValue(value, visited);
+		const value = initializer(node, bindings);
+		return value === undefined ? node : buildEntryValue(value, visited, bindings);
 	}
 	return ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)
-		? buildEntryValue(node.expression, visited)
+		? buildEntryValue(node.expression, visited, bindings)
 		: node;
 }
 
