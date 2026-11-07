@@ -2,9 +2,9 @@ import { type Cause, Layer } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect, useInsertionEffect, useRef } from "react";
-import { NoticeContext } from "#NoticeContext.ts";
+import { NoticeContext } from "#client/NoticeContext.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
 import { publishNotice } from "#noticeStore.ts";
-import type { NoticeDescriptor } from "#notices.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 

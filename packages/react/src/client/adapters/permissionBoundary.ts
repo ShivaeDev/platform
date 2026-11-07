@@ -4,7 +4,7 @@ import type { Permission } from "@shivaedev/access/permission.ts";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { can } from "#can.ts";
-import { PermissionContext } from "#PermissionContext.ts";
+import { PermissionContext } from "#client/PermissionContext.ts";
 
 export interface PermissionBoundaryProps {
 	readonly children: ReactNode;

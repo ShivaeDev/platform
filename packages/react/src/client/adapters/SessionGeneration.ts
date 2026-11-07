@@ -5,10 +5,10 @@ import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
 import { type QueryRetentionOptions, queryRetention } from "@shivaedev/contract/queryRetention.ts";
+import { registerSessionRecheck } from "#adapters/sessionRecheck.ts";
 import { useLatestCallback } from "#adapters/useLatestCallback.ts";
 import { mountLive } from "#client/mountLive.ts";
-import { RecheckContext } from "#RecheckContext.ts";
-import { registerSessionRecheck } from "#sessionRecheck.ts";
+import { RecheckContext } from "#client/RecheckContext.ts";
 
 interface Owned<TClient> {
 	readonly client: TClient;

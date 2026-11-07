@@ -1,8 +1,8 @@
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo } from "react";
-import { NoticeContext } from "#NoticeContext.ts";
+import { NoticeContext } from "#client/NoticeContext.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
 import { publishNotice } from "#noticeStore.ts";
-import type { NoticeDescriptor } from "#notices.ts";
 
 export function useNoticePublisher<R, E>(runtime: Atom.AtomRuntime<R, E>): (descriptor: NoticeDescriptor<R> | undefined) => void {
 	const store = useContext(NoticeContext);

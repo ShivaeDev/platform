@@ -1,5 +1,6 @@
-import { Cause, Option, Result } from "effect";
+import { Option } from "effect";
 import { createElement, Fragment, type ReactNode } from "react";
+import { rethrowQueryDefect } from "#client/adapters/rethrowQueryDefect.ts";
 import type { QueryState } from "#client/resultState.ts";
 
 export interface QueryViewProps<A, E> {
@@ -11,10 +12,7 @@ export interface QueryViewProps<A, E> {
 
 export function QueryView<A, E>({ query, loading, content, failure }: QueryViewProps<A, E>): ReactNode {
 	const error = Option.flatMap(query.cause, (cause) => {
-		const defect = Cause.findDefect(cause);
-		if (Result.isSuccess(defect)) {
-			throw defect.success;
-		}
+		rethrowQueryDefect(cause);
 		return query.refusal;
 	});
 	return createElement(

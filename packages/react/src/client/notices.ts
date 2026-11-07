@@ -1,23 +1,15 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { type Duration, type Effect, Layer } from "effect";
+import { Layer } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { createElement, Fragment, type ReactNode, useContext, useLayoutEffect, useMemo } from "react";
-import type { AtomServices } from "#AtomServices.ts";
-import { NoticeContext } from "#NoticeContext.ts";
+import { closeInactiveNotice } from "#client/adapters/closeInactiveNotice.ts";
+import { NoticeContext } from "#client/NoticeContext.ts";
 import type { NoticeClock, NoticeEntry } from "#noticeEntry.ts";
 import { noticeStore } from "#noticeStore.ts";
+import type { NoticeDescriptor as SharedNoticeDescriptor, NoticeFeedback as SharedNoticeFeedback } from "#noticeTypes.ts";
 
-export interface NoticeDescriptor<R = never> {
-	readonly action?:
-		| {
-				readonly label: ReactNode;
-				readonly run: Effect.Effect<unknown, unknown, AtomServices<R>>;
-		  }
-		| undefined;
-	readonly expiresIn?: Duration.Input | undefined;
-	readonly message: ReactNode;
-}
+export interface NoticeDescriptor<R = never> extends SharedNoticeDescriptor<R, ReactNode> {}
 export interface Notice {
 	readonly action?:
 		| {
@@ -31,11 +23,8 @@ export interface Notice {
 	readonly id: number;
 	readonly message: ReactNode;
 }
-export interface NoticeFeedback<TInput, A, E, R = never> {
-	readonly onFailure?: (error: E, input: TInput) => NoticeDescriptor<R> | undefined;
-	readonly onSuccess?: (value: A, input: TInput) => NoticeDescriptor<R> | undefined;
-}
-function Entry({ entry, render }: { readonly entry: NoticeEntry; readonly render: (notice: Notice) => ReactNode }) {
+export interface NoticeFeedback<TInput, A, E, R = never> extends SharedNoticeFeedback<TInput, A, E, R, ReactNode> {}
+function Entry({ entry, render }: { readonly entry: NoticeEntry<ReactNode>; readonly render: (notice: Notice) => ReactNode }) {
 	const result = useAtomValue(entry.status);
 	return render({
 		action: entry.action === undefined ? undefined : { ...entry.action, pending: result.waiting, result },
@@ -44,7 +33,7 @@ function Entry({ entry, render }: { readonly entry: NoticeEntry; readonly render
 		message: entry.message,
 	});
 }
-function Entries({ store, render }: { readonly store: ReturnType<typeof noticeStore>; readonly render: (notice: Notice) => ReactNode }) {
+function Entries({ store, render }: { readonly store: ReturnType<typeof noticeStore<ReactNode>>; readonly render: (notice: Notice) => ReactNode }) {
 	const entries = useAtomValue(store.entries);
 	return entries.map((entry) => createElement(Entry, { entry, key: entry.id, render }));
 }
@@ -59,17 +48,10 @@ export function NoticeHost({
 	readonly runtime?: NoticeClock | undefined;
 }): ReactNode {
 	const registry = useContext(RegistryContext);
-	const store = useMemo(() => noticeStore(registry, runtime), [registry, runtime]);
+	const store = useMemo(() => noticeStore<ReactNode>(registry, runtime), [registry, runtime]);
 	useLayoutEffect(() => {
 		store.active = true;
-		return () => {
-			store.active = false;
-			queueMicrotask(() => {
-				if (!store.active) {
-					store.close();
-				}
-			});
-		};
+		return () => closeInactiveNotice(store);
 	}, [store]);
 	return createElement(NoticeContext.Provider, { value: store }, createElement(Fragment, null, children, createElement(Entries, { render, store })));
 }

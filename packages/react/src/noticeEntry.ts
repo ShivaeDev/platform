@@ -2,30 +2,30 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { NoticeDescriptor } from "#notices.ts";
+import type { NoticeDescriptor } from "#noticeTypes.ts";
 
-export interface NoticeAction {
+export interface NoticeAction<TMessage = unknown> {
 	readonly atom: Atom.AtomResultFn<void, unknown, unknown>;
-	readonly label: NoticeDescriptor["message"];
+	readonly label: TMessage;
 }
 export type NoticeClock = Pick<Atom.AtomRuntime<never, unknown>, "atom">;
-export interface NoticeEntry {
-	readonly action?: { readonly label: NoticeDescriptor["message"]; readonly run: () => void } | undefined;
+export interface NoticeEntry<TMessage = unknown> {
+	readonly action?: { readonly label: TMessage; readonly run: () => void } | undefined;
 	readonly dismiss: () => void;
 	readonly id: number;
-	readonly message: NoticeDescriptor["message"];
+	readonly message: TMessage;
 	readonly release: () => void;
 	readonly status: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 }
 const idle = Atom.make(AsyncResult.initial<unknown, unknown>());
-export function noticeEntry(
+export function noticeEntry<TMessage>(
 	registry: AtomRegistry.AtomRegistry,
 	clock: NoticeClock,
 	id: number,
-	descriptor: Pick<NoticeDescriptor, "message" | "expiresIn">,
+	descriptor: Pick<NoticeDescriptor<never, TMessage>, "message" | "expiresIn">,
 	remove: (id: number) => void,
-	action: NoticeAction | undefined,
-): NoticeEntry {
+	action: NoticeAction<TMessage> | undefined,
+): NoticeEntry<TMessage> {
 	let active = true;
 	function dismiss() {
 		if (active) {

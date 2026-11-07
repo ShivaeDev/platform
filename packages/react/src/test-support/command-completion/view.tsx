@@ -1,9 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
 import { Suspense, useMemo, useState } from "react";
+import { NoticeHost } from "#client/notices.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { NoticeHost } from "#notices.ts";
 import type { CompletionClient } from "#test/command-completion/client.ts";
 
 export interface CompletionScreen {

@@ -1,7 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { Children, type ReactElement, type ReactNode } from "react";
 import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
-import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary.ts";
+import { PermissionBoundary } from "@shivaedev/react/client/adapters/permissionBoundary.ts";
 
 export function Shell({ children }: { readonly children: ReactNode }): ReactElement {
 	const pending = useRouterState({ select: (state) => state.isLoading });

@@ -1,16 +1,7 @@
 {"path":"packages/react/src/adapters/loadQuery.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/adapters/queryHandoff.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/adapters/queryRoute.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/adapters/useLoaderHandoff.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}
-{"path":"packages/react/src/NoticeContext.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/src/PermissionContext.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/src/RecheckContext.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/src/SignOutRegistryContext.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/noticeEntry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/noticeStore.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/sessionRecheck.ts","rule":"effect/boundary","count":2}
-{"path":"packages/react/src/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
-{"path":"packages/react/src/notices.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/adapters/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}

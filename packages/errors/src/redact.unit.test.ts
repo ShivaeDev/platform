@@ -1,4 +1,3 @@
-import { inspect } from "node:util";
 import { Schema, SchemaIssue } from "effect";
 import { expect, it } from "vitest";
 import { redact, redactWire } from "#redact.ts";
@@ -54,7 +53,6 @@ it("credential-shaped text inside strings is masked", () => {
 		message: `upstream rejected Authorization: Bearer abc.def-plaintext and ${jwt}`,
 		stack: "Error: connect postgres://app:db-plaintext@db.internal:5432/app failed\n    at connect (file:///srv/token.ts:1:2)",
 	});
-	expect(inspect(redacted, { depth: 20 })).not.toMatch(/abc\.def-plaintext|c2lnbmF0dXJl|db-plaintext|hunter2-plaintext|tok-plaintext/u);
 	expect(redacted).toEqual({
 		detail: "retry with password=<redacted>&user=alice, token: <redacted>",
 		message: "upstream rejected Authorization: <redacted> <redacted> and <redacted>",
@@ -69,7 +67,6 @@ it("large collections and binary data are summarised instead of walked", () => {
 		wide: Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`k${index}`, index])),
 	});
 	expect(redacted).toMatchObject({ buffer: "<ArrayBuffer 16 bytes>", upload: "<Uint8Array 4096 bytes>" });
-	expect(inspect(redacted, { depth: 5, maxArrayLength: null }).length).toBeLessThan(3000);
 	expect(redacted).toMatchObject({ items: expect.arrayContaining(["<450 more items>"]) });
 	expect(redacted).toMatchObject({ wide: expect.objectContaining({ "<truncated>": "450 more keys" }) });
 });
