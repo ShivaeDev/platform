@@ -24,41 +24,29 @@ The results are native Railway definitions that an app combines into its project
 
 ## Choose the database settings
 
-`databaseService` is asynchronous: await it inside an async `defineRailway` callback or at module level. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `backupSchedules` and `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
+`databaseService` is asynchronous: await it inside an async `defineRailway` callback or at module level. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
 
 ### Backups and image updates
 
-Daily, weekly and monthly [Railway volume backups](https://docs.railway.com/volumes/backups) are enabled by default. Set `backupSchedules: ["WEEKLY", "MONTHLY"]` to replace that schedule, `[]` to disable it, or `null` to pass Railway's native null value. Railway controls retention and storage charges. The schedule is attached through `volumeAttachments[volume.name]` with the native volume address, `/var/lib/postgresql/data` mount path and `backupSchedules`; Railway resolves the volume ID. The volume definition is included by Railway when it compiles the attachment, so it need not be repeated in the project's resources.
+Railway stores [volume backup schedules](https://docs.railway.com/volumes/backups) and image auto-update windows outside the IaC config. Declare the desired settings in your app's TypeScript module, then run the package CLI with Node to check them through Railway's GraphQL API. The command reads backup kinds from `volumeInstanceBackupScheduleList` and auto-update settings from `environment.config.services[serviceId].source.autoUpdates`. Missing auto-update read-back is reported as unknown.
 
-Use the existing attached volume's exact Railway name when adopting a database. Run `railway config plan` and check that the schedule targets that volume before applying. A different volume name describes a different volume.
+The command checks that daily, weekly and monthly backups are present and that minor-version auto-updates use the declared windows. Railway owns backup cron and retention: the command displays those values as information and never changes them. Check mode only reads. Pass `--apply` to set the declared backup kinds and auto-update windows; matching settings are left alone.
 
-The Railway Postgres image receives minor and patch auto-updates as soon as Railway makes them available: `source.autoUpdates` is `{ type: "minor", tagMode: "sha", schedule: null }`. SHA tracking follows changes behind the floating major tag, such as `:18`, without a maintenance window. The helper keeps Railway's image rather than building a custom image.
-
-For an existing database with an unchanged image tag, Railway CLI's `is_equivalent_database_source` skips the source diff, including `autoUpdates`. Set the policy once in the Railway service's image source settings: enable minor updates (which include patches), select SHA tracking, and use the anytime schedule. If using the API, set the service's source `autoUpdates` to the object above through Railway's environment configuration API, keyed by the actual service ID. Verify the saved source policy in Railway; a successful IaC apply alone does not prove that policy changed.
-
-For the API step, send this mutation to Railway's authenticated GraphQL API:
-
-```graphql
-mutation SetPostgresImageUpdates($environmentId: String!, $patch: EnvironmentConfig!) {
-	environmentPatchCommit(environmentId: $environmentId, patch: $patch)
-}
+```ts
+export const postgresSchedules = {
+	backupKinds: ["DAILY", "WEEKLY", "MONTHLY"],
+	autoUpdates: {
+		type: "minor",
+		schedule: Array.from({ length: 7 }, (_, day) => ({ day, startHour: 0, endHour: 24 })),
+	},
+};
 ```
 
-Supply these variables with your actual environment and service IDs. The patch changes only the image update policy:
+Set `RAILWAY_TOKEN` (or `RAILWAY_API_TOKEN`), `RAILWAY_ENVIRONMENT_ID`, `RAILWAY_SERVICE_ID` and `RAILWAY_POSTGRES_VOLUME_INSTANCE_ID`, then run the command from the app root. `--config` selects the TypeScript module exporting `postgresSchedules`; it defaults to `.railway/postgres-schedules.ts`.
 
-```json
-{
-	"environmentId": "YOUR_ENVIRONMENT_ID",
-	"patch": {
-		"services": {
-			"YOUR_SERVICE_ID": {
-				"source": {
-					"autoUpdates": { "type": "minor", "tagMode": "sha", "schedule": null }
-				}
-			}
-		}
-	}
-}
+```sh
+node node_modules/@shivaedev/deploy/dist/cli.js
+node node_modules/@shivaedev/deploy/dist/cli.js --apply
 ```
 
 ### Page-cache trimming and startup
@@ -99,7 +87,6 @@ export default defineRailway(async (ctx) => {
 	const database = await databaseService("Postgres", {
 		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 		volume: volume("postgres-data"),
-		backupSchedules: ["DAILY", "WEEKLY"],
 	});
 	const web = webService(
 		"api",
@@ -140,4 +127,4 @@ Install the package alongside its Railway peer:
 pnpm add -D @shivaedev/deploy railway
 ```
 
-These helpers construct definitions; `databaseService` also verifies the image startup metadata. The application owns Railway authentication and applies its project through Railway's tooling.
+These helpers construct definitions; `databaseService` also verifies the image startup metadata. The application owns Railway authentication and applies its project through Railway's tooling. Run the deploy package CLI with Node to check or apply the API-managed backup kinds and auto-update windows.

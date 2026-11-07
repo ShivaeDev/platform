@@ -54,6 +54,7 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
+		"effect": "catalog:",
 		"railway": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
