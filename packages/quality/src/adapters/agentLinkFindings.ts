@@ -5,7 +5,7 @@ import type { RuleInputs } from "#rule.ts";
 
 export const agentLinkFindings = Effect.fn("Quality.agentLinkFindings")(function* ({ files, root }: RuleInputs) {
 	const fs = yield* FileSystem.FileSystem;
-	const findings = yield* Effect.forEach(
+	const claudeFindings = yield* Effect.forEach(
 		files.filter((file) => file === "CLAUDE.md" || file.endsWith("/CLAUDE.md")),
 		(file) =>
 			Effect.gen(function* () {
@@ -19,5 +19,15 @@ export const agentLinkFindings = Effect.fn("Quality.agentLinkFindings")(function
 					: [{ file, message: "Replace CLAUDE.md with a symlink to the AGENTS.md file beside it, and keep the instructions in AGENTS.md." }];
 			}),
 	);
-	return findings.flat();
+	const agentsFindings = yield* Effect.forEach(
+		files.filter((file) => file === "AGENTS.md" || file.endsWith("/AGENTS.md")),
+		(file) =>
+			Effect.gen(function* () {
+				const agents = join(root, file);
+				const claude = join(dirname(agents), "CLAUDE.md");
+				const sibling = yield* orWhenAbsent<FileSystem.File.Info | undefined>(claude, fs.lstat(claude), undefined);
+				return sibling === undefined ? [{ file, message: "Run `ln -s AGENTS.md CLAUDE.md` beside AGENTS.md." }] : [];
+			}),
+	);
+	return [...claudeFindings, ...agentsFindings].flat();
 });

@@ -15,6 +15,26 @@ for (const target of ["AGENTS.md", "./AGENTS.md"]) {
 }
 
 ruleStory.it(
+	"agent links reports AGENTS.md without its CLAUDE.md symlink and gives the repair command",
+	[repositoryHas({ content: "Instructions", path: "docs/AGENTS.md" })],
+	function* ({ check }) {
+		const findings = yield* check(agentLinks);
+
+		expect(findings).toEqual([{ file: "docs/AGENTS.md", message: "Run `ln -s AGENTS.md CLAUDE.md` beside AGENTS.md." }]);
+	},
+);
+
+ruleStory.it(
+	"agent links accepts AGENTS.md with its CLAUDE.md symlink",
+	[repositoryHas({ content: "Instructions", path: "docs/AGENTS.md" }), repositoryLinks("docs/CLAUDE.md", "AGENTS.md")],
+	function* ({ check }) {
+		const findings = yield* check(agentLinks);
+
+		expect(findings).toEqual([]);
+	},
+);
+
+ruleStory.it(
 	"agent links reports a copied CLAUDE.md",
 	[repositoryHas({ content: "Instructions", path: "CLAUDE.md" }, { content: "Instructions", path: "AGENTS.md" })],
 	function* ({ check }) {
@@ -33,7 +53,7 @@ for (const target of ["missing.md", "../AGENTS.md", "AGENTS.md"]) {
 		function* ({ check, locations }) {
 			yield* check(agentLinks);
 
-			expect(yield* locations()).toEqual(["docs/CLAUDE.md"]);
+			expect(yield* locations()).toEqual(["docs/CLAUDE.md", "AGENTS.md"]);
 		},
 	);
 }
