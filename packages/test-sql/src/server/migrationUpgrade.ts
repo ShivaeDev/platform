@@ -1,5 +1,5 @@
-import { Effect, Option } from "effect";
-import { Migrator, SqlClient } from "effect/sql";
+import { Effect, Option, Schema } from "effect";
+import { Migrator, SqlClient, SqlSchema } from "effect/sql";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
 import { tableColumns } from "#server/tableColumns.ts";
 
@@ -20,9 +20,17 @@ export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(funct
 	}
 	const ledger = options.migrations.table ?? "effect_sql_migrations";
 	const identifier = sql`${sql(ledger)}`.compile()[0];
-	const existing = yield* sql<{ readonly name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
+	const existing = yield* SqlSchema.findAll({
+		execute: () => sql`select to_regclass(${identifier})::text as name`.withoutTransform,
+		Request: Schema.Void,
+		Result: Schema.Struct({ name: Schema.NullOr(Schema.String) }),
+	})(undefined);
 	if (existing[0]?.name !== null) {
-		const applied = yield* sql`select migration_id from ${sql(ledger)} limit 1`;
+		const applied = yield* SqlSchema.findAll({
+			execute: () => sql`select migration_id as "migrationId" from ${sql(ledger)} limit 1`.withoutTransform,
+			Request: Schema.Void,
+			Result: Schema.Struct({ migrationId: Schema.Unknown }),
+		})(undefined);
 		if (applied.length > 0) {
 			return yield* invalid("Migration upgrade checks require an empty migration ledger.");
 		}
