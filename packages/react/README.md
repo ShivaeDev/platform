@@ -812,7 +812,7 @@ import type { ReactNode } from "react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
 import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/client/adapters/permissionBoundary.ts";
+import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";

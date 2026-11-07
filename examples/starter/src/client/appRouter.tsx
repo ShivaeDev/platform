@@ -2,7 +2,7 @@ import { type AnyRoute, createRoute, createRouter, type RouterHistory } from "@t
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement } from "react";
-import { PermissionBoundaryError } from "@shivaedev/react/client/adapters/permissionBoundary.ts";
+import { PermissionBoundaryError } from "@shivaedev/react/client/permissionBoundary.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { Shell } from "#client/adapters/Shell.tsx";
 import { Home } from "#client/Home.tsx";

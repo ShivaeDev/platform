@@ -4,6 +4,7 @@ import type { Permission } from "@shivaedev/access/permission.ts";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { can } from "#can.ts";
+import { rethrowPermissionBoundaryError } from "#client/adapters/rethrowPermissionBoundaryError.ts";
 import { PermissionContext } from "#client/PermissionContext.ts";
 
 export interface PermissionBoundaryProps {
@@ -20,7 +21,7 @@ export function useCan(): (permission: Permission) => boolean {
 export function PermissionBoundaryError({ error }: { readonly error: unknown }): ReactNode {
 	const context = useContext(PermissionContext);
 	if (!isForbidden(error)) {
-		throw error;
+		return rethrowPermissionBoundaryError(error);
 	}
 	return context?.fallback;
 }
