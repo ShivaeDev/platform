@@ -68,6 +68,11 @@ github.it("extraction refuses a declared size above the default total cap before
 });
 
 for (const options of [
+	{ entryLimit: -1 },
+	{ entryLimit: 1.5 },
+	{ entryLimit: Number.NaN },
+	{ entryLimit: Number.POSITIVE_INFINITY },
+	{ entryLimit: Number.MAX_SAFE_INTEGER + 1 },
 	{ totalSizeLimit: -1 },
 	{ totalSizeLimit: 1.5 },
 	{ totalSizeLimit: Number.POSITIVE_INFINITY },

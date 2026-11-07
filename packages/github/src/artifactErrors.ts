@@ -21,6 +21,10 @@ export class GitHubArtifactExtractedTooLarge extends Schema.TaggedError<GitHubAr
 	limit: Schema.Number,
 }) {}
 
+export class GitHubArtifactTooManyEntries extends Schema.TaggedError<GitHubArtifactTooManyEntries>()("GitHubArtifactTooManyEntries", {
+	limit: Schema.Number,
+}) {}
+
 export class GitHubArtifactExtractionError extends Schema.TaggedError<GitHubArtifactExtractionError>()("GitHubArtifactExtractionError", {
 	reason: Schema.Literals(["reader-unavailable", "invalid-archive", "invalid-limits"]),
 }) {}
