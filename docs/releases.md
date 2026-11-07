@@ -72,7 +72,9 @@ Publishing validates, builds and checks packed consumers from the pushed main co
 
 Publishing uses npm trusted publishing from main only. The workflow preserves GitHub's original OIDC environment, including `GITHUB_SHA`, so provenance verification matches the workflow identity and published commit. The release PR workflow has no npm credential or OIDC permission.
 
-When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. The check reconstructs only that canonical starter-pin input; all other consumed inputs must be changesets deleted since the base. Altering its generated notes fails validation.
+The Platform release-PR planner compares each public package’s Effect requirements in dependencies, optional dependencies and peers with the manifest of its current version on npm. Catalog references resolve to the workspace’s exact pins. Packages with drift receive a generated patch changeset unless the plan already releases them. This lets Renovate merge Effect catalog bumps without handwritten changesets. Private packages and development-only requirements do not enter this comparison. Workspace versions not yet on npm wait for the publish workflow; other registry errors fail planning.
+
+When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. Release validation reconstructs the canonical framework-version and starter-pin inputs; all other consumed inputs must be changesets deleted since the base. Framework comparison reads immutable npm versions and needs registry access during release planning and validation of version changes. Ordinary pending-changeset checks do not query npm. Altering generated notes fails validation.
 
 The repository uses the workspace `@shivaedev/releases` package. To inspect or prepare a release locally:
 1. Run `pnpm releases plan` (or `pnpm releases plan --json`) and review the requested bumps and automatic dependent releases.
