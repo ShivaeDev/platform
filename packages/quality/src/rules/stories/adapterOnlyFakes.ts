@@ -6,7 +6,7 @@ import { storyProgram } from "#adapters/storyProgram.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
-import { fakeReplacements } from "./fakeReplacements.ts";
+import { fakeReplacements } from "#rules/stories/fakeReplacements.ts";
 
 function internal(path: string): boolean {
 	return !path.split("/").includes("adapters");

@@ -4,10 +4,10 @@ import * as NetAddress from "effect/net/NetAddress";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { type OrderServerOptions, orderHandlers } from "#test/order-example/adapters/runtime.ts";
-import { Orders } from "./contract.ts";
-import { migrations } from "./postgres.ts";
-import { makeOrdersRepository, OrdersRepository } from "./repository.ts";
-import { OrderService } from "./service.ts";
+import { Orders } from "#test/order-example/contract.ts";
+import { migrations } from "#test/order-example/postgres.ts";
+import { makeOrdersRepository, OrdersRepository } from "#test/order-example/repository.ts";
+import { OrderService } from "#test/order-example/service.ts";
 
 export const ORDER_CHANGES = "order_changes";
 

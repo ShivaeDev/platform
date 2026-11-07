@@ -1,9 +1,9 @@
 import type { Endpoint } from "#imports/Endpoint.ts";
+import { type CompiledFence, compileFence, type FenceGraph } from "#imports/fences/evaluate.ts";
+import type { PolicyScope } from "#imports/fences/match.ts";
+import type { Chain, ExampleStep, Fence } from "#imports/fences/model.ts";
 import type { ImportEdge } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";
-import { type CompiledFence, compileFence, type FenceGraph } from "./evaluate.ts";
-import type { PolicyScope } from "./match.ts";
-import type { Chain, ExampleStep, Fence } from "./model.ts";
 
 function endpointOf(step: ExampleStep): Endpoint {
 	return typeof step === "string"

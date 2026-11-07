@@ -1,6 +1,6 @@
 import { fence } from "#imports/fence.ts";
 import { external, folders, modules } from "#imports/fences/selectors.ts";
-import type { Fixture } from "./fixtureTree.ts";
+import type { Fixture } from "#test/fixtureTree.ts";
 
 export const browserFence = fence("browser-stays-off-disk")
 	.because("The browser code runs without Node.")

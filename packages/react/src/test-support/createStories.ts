@@ -1,10 +1,10 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { browserPersistence, draftStorage } from "./draftStorage.ts";
-import { persistedCreateView } from "./persistedCreateView.tsx";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { browserPersistence, draftStorage } from "#test/draftStorage.ts";
+import { persistedCreateView } from "#test/persistedCreateView.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 draftStorage();
 

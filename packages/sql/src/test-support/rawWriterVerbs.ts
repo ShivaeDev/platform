@@ -2,9 +2,9 @@ import { Effect, Queue, Schema } from "effect";
 import { collection, readKeys } from "@shivaedev/changes/keys.ts";
 import { withChangeCoverage } from "@shivaedev/test-kits/sql/testing.ts";
 import { type ChangeDeclaration, changes } from "#changes.ts";
+import type { Body, Step } from "#test/body.ts";
+import type { ChangeFeedEngine } from "#test/changeFeedEngine.ts";
 import type { AnnouncementOptions } from "#transact.ts";
-import type { Body, Step } from "./body.ts";
-import type { ChangeFeedEngine } from "./changeFeedEngine.ts";
 
 export function rawWriterVerbs(engine: ChangeFeedEngine, tell: (line: string) => void) {
 	const { other } = engine;

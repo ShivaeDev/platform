@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { makeWorkerRelease } from "@shivaedev/sql/makeWorkerRelease.ts";
-import { database } from "./database.ts";
+import { database } from "#test/postgres/database.ts";
 
 export function releaseHeld(by: "this deployment" | "another deployment") {
 	return database.trait("database", `${by} holds the database release`, function* (engine) {

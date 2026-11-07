@@ -1,6 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { Effect } from "effect";
-import { httpClient } from "./story.ts";
+import { httpClient } from "#test/http-client/story.ts";
 
 function chunkSizes(chunks: readonly (string | Uint8Array)[]) {
 	return chunks.map((chunk) => (typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk).byteLength).join(" + ");

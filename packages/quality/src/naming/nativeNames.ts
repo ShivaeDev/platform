@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { androidResources } from "./androidResources.ts";
+import { androidResources } from "#naming/androidResources.ts";
 
 const BUNDLE = /\.(?:xcodeproj|xcworkspace|xcassets)$/u;
 

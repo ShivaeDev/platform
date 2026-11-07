@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Cause, Effect, Schema } from "effect";
 import { read } from "@shivaedev/github/read.ts";
-import { decodeTimingSnapshot } from "./timings.ts";
+import { decodeTimingSnapshot } from "#ci/timings.ts";
 
 const MainRun = Schema.Struct({
 	conclusion: Schema.NullOr(Schema.String),

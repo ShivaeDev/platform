@@ -6,9 +6,9 @@ import { SqlClient } from "effect/sql";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createDatabaseEngine } from "./databaseEngine.ts";
-import { inPlace } from "./inPlace.ts";
-import { adminUrl, configured, ITEMS_KEY, values } from "./postgres.ts";
+import { createDatabaseEngine } from "#test/databaseEngine.ts";
+import { inPlace } from "#test/inPlace.ts";
+import { adminUrl, configured, ITEMS_KEY, values } from "#test/postgres.ts";
 
 const sessions = Effect.gen(function* () {
 	const pool = yield* PgPool.PgPool;

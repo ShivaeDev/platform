@@ -15,8 +15,8 @@ import { LiveServer } from "#live-server/service.ts";
 import { subscribe } from "#live-server/subscribe.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "./collectionContract.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "#test/collectionContract.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({

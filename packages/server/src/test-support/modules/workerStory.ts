@@ -10,9 +10,9 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
+import { indexingModule, Published, Publisher, PublishingApi, publishingModule } from "#test/modules/jobs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 import { workerHost } from "#workerHost.ts";
-import { indexingModule, Published, Publisher, PublishingApi, publishingModule } from "./jobs.ts";
 
 interface State {
 	collision?: "shared" | "separate" | "within";

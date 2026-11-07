@@ -1,13 +1,13 @@
 import { Effect } from "effect";
+import { applyBaseline } from "#baseline/compare.ts";
+import { type BaselineEntry, decodeBaseline } from "#baseline/format.ts";
+import { shardOf } from "#baseline/shards.ts";
 import { validOrFail } from "#decoded.ts";
 import type { Session } from "#engine/session.ts";
 import { keyOf } from "#engine/violation.ts";
 import { applyRegistry } from "#exceptions/registry.ts";
 import { gitOrFail, run } from "#git/command.ts";
 import { changesSince } from "#git/history.ts";
-import { applyBaseline } from "./compare.ts";
-import { type BaselineEntry, decodeBaseline } from "./format.ts";
-import { shardOf } from "./shards.ts";
 
 export const looseStagedEntries = Effect.fn("Baseline.looseStagedEntries")(function* (session: Session) {
 	const { root, baseline } = session.config;

@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { fromRef } from "#refs.ts";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 const PositiveFinite = Schema.Finite.check(Schema.isGreaterThan(0));

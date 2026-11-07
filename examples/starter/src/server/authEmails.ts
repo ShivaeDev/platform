@@ -1,6 +1,6 @@
 import { Config, Effect } from "effect";
 import type { BetterAuthEmails } from "@shivaedev/identity/server/better-auth/emails.ts";
-import { AuthEmailQueue } from "./AuthEmailQueue.ts";
+import { AuthEmailQueue } from "#server/AuthEmailQueue.ts";
 
 export const authEmails = Effect.fnUntraced(function* () {
 	const origin = yield* Config.URL("PUBLIC_URL").pipe(Config.withDefault(new URL("http://127.0.0.1:5173")));

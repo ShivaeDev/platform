@@ -1,7 +1,7 @@
 import { Deferred, Effect, Layer } from "effect";
 import { HttpEffect, HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const loggedApplicationRoutes = host.trait(
 	"configured",

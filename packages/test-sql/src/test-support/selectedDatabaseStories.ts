@@ -1,4 +1,4 @@
-import { empty, emptyApp, migrated, migratedApp, storyTable } from "./selectedApp.ts";
+import { empty, emptyApp, migrated, migratedApp, storyTable } from "#test/selectedApp.ts";
 
 for (const [name, given] of [
 	["empty selection", [storyTable, empty]],

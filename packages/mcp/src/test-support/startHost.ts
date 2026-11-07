@@ -12,12 +12,12 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
-import { admissionPolicy } from "./admissionPolicy.ts";
-import { BrowserApi, browserHandlers } from "./browserRpc.ts";
-import { hashGrantToken } from "./hashGrantToken.ts";
-import { jwksEndpoint } from "./jwksEndpoint.ts";
-import { tokenSigner } from "./tokenSigner.ts";
-import { audiences, Roles } from "./tools.ts";
+import { admissionPolicy } from "#test/admissionPolicy.ts";
+import { BrowserApi, browserHandlers } from "#test/browserRpc.ts";
+import { hashGrantToken } from "#test/hashGrantToken.ts";
+import { jwksEndpoint } from "#test/jwksEndpoint.ts";
+import { tokenSigner } from "#test/tokenSigner.ts";
+import { audiences, Roles } from "#test/tools.ts";
 
 async function availablePort() {
 	const server = createServer();

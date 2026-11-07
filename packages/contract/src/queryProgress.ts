@@ -2,7 +2,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type { LiveStatus } from "#live.ts";
 import { type QuerySignals, querySignals, shareQuerySignals } from "#querySignals.ts";
-import { wrapAtom } from "./wrapAtom.ts";
+import { wrapAtom } from "#wrapAtom.ts";
 
 export function queryProgress<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) {
 	const signals = querySignals(atom);

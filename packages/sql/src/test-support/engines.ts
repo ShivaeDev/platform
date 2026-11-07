@@ -3,9 +3,9 @@ import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient";
 import { Context, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { configured, postgresLayer } from "./postgres.ts";
-import { RecordedLogs } from "./RecordedLogs.ts";
-import { withDatabaseClock } from "./withDatabaseClock.ts";
+import { configured, postgresLayer } from "#test/postgres.ts";
+import { RecordedLogs } from "#test/RecordedLogs.ts";
+import { withDatabaseClock } from "#test/withDatabaseClock.ts";
 
 const perStory = Layer.merge(Reactivity.layer, RecordedLogs.layer);
 

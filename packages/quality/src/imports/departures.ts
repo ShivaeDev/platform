@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { ImportCompiler } from "#adapters/import-compiler/service.ts";
+import type { SpecifierSite } from "#imports/specifiers.ts";
+import { workspacePackages } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
-import type { SpecifierSite } from "./specifiers.ts";
-import { workspacePackages } from "./workspace.ts";
 
 export interface Departure extends SpecifierSite {
 	readonly file: string;

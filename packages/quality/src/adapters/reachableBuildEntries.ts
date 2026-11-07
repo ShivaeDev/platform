@@ -1,9 +1,9 @@
+import { bundlerEntries } from "#adapters/bundlerEntries.ts";
+import { bundlerSources } from "#adapters/bundlerSources.ts";
+import { spawnedEntries } from "#adapters/spawnedEntries.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { PackageLayout } from "#naming/packageLayout.ts";
 import type { RuleInputs } from "#rule.ts";
-import { bundlerEntries } from "./bundlerEntries.ts";
-import { bundlerSources } from "./bundlerSources.ts";
-import { spawnedEntries } from "./spawnedEntries.ts";
 
 function scriptsByPackage(layout: PackageLayout): ReadonlyMap<string, readonly string[]> {
 	const scripts = new Map<string, string[]>();

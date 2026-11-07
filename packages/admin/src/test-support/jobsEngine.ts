@@ -12,11 +12,11 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { adminRpc } from "./adminRpc.ts";
-import { jobsClient } from "./jobsClient.ts";
-import { Mail, Private, pages, Sync } from "./jobsPages.ts";
-import { Users } from "./pages.ts";
-import { ScheduledWorker } from "./ScheduledWorker.ts";
+import { adminRpc } from "#test/adminRpc.ts";
+import { jobsClient } from "#test/jobsClient.ts";
+import { Mail, Private, pages, Sync } from "#test/jobsPages.ts";
+import { Users } from "#test/pages.ts";
+import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 
 const { url, configured: postgresConfigured } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 

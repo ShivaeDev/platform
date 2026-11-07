@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { domHost } from "./domHost.ts";
+import { domHost } from "#test/domHost.ts";
 
 export const sharedListHost = Effect.gen(function* () {
 	const items: string[] = [];

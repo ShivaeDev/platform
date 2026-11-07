@@ -2,8 +2,8 @@ import { createMemoryHistory, createRootRouteWithContext, createRoute, createRou
 import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { queryRoute } from "#adapters/queryRoute.ts";
-import type { deniedLiveClient } from "./client.ts";
-import { Note } from "./Note.tsx";
+import type { deniedLiveClient } from "#test/denied-live/client.ts";
+import { Note } from "#test/denied-live/Note.tsx";
 
 type Client = Effect.Success<typeof deniedLiveClient>;
 const root = createRootRouteWithContext<{ readonly client: Client; readonly registry: AtomRegistry.AtomRegistry }>()({ component: Outlet });

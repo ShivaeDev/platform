@@ -8,9 +8,9 @@ import { makePgBoss, type PgBossOptions, pgBossLayer } from "@shivaedev/jobs/ser
 import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 import { failureOf } from "#test/jobs/failureOf.ts";
+import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "#test/jobs/postgres/clientObservers.ts";
+import type { DatabaseEngine, Runtime } from "#test/jobs/postgres/databaseEngine.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/jobs/workers.ts";
-import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "./clientObservers.ts";
-import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
 	readonly retired?: readonly string[];

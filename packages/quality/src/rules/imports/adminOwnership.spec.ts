@@ -1,6 +1,6 @@
+import { adminPaths } from "#rules/imports/adminPaths.ts";
 import { importStory, repositoryHas } from "#test/importStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
-import { adminPaths } from "./adminPaths.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	importStory.it(

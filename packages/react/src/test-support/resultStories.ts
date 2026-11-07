@@ -1,9 +1,9 @@
 import { Cause, Effect } from "effect";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { causeWords, dataWords, statusWords } from "./outcomeWords.ts";
-import { resultSession } from "./resultSession.ts";
-import { screenKit } from "./screenKit.ts";
+import { causeWords, dataWords, statusWords } from "#test/outcomeWords.ts";
+import { resultSession } from "#test/resultSession.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 type ResultKind = "query" | "action";
 interface State {

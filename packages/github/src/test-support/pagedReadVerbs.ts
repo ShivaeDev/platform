@@ -5,7 +5,7 @@ import { list } from "#list.ts";
 import { listBounded } from "#listBounded.ts";
 import { listPages } from "#listPages.ts";
 import type { ListOptions } from "#pagedLists.ts";
-import { answered } from "./outcome.ts";
+import { answered } from "#test/outcome.ts";
 
 class TitlePrefix extends Context.Service<TitlePrefix, string>()("@shivaedev/github/test/TitlePrefix") {}
 const Item = Schema.Struct({ title: Schema.String }).pipe(

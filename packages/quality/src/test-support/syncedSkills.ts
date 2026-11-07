@@ -1,5 +1,5 @@
-import { repositoryStory } from "./repositoryStory.ts";
-import { syncSkillFixture } from "./skillDistribution.ts";
+import { repositoryStory } from "#test/repositoryStory.ts";
+import { syncSkillFixture } from "#test/skillDistribution.ts";
 
 export function syncedSkills(directory = ".") {
 	return repositoryStory.trait(

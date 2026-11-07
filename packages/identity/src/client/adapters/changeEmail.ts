@@ -1,4 +1,4 @@
-import { type AuthActionResult, authCall } from "./authCall.ts";
+import { type AuthActionResult, authCall } from "#client/adapters/authCall.ts";
 
 export interface ChangeEmailInput {
 	readonly "callbackURL"?: string;

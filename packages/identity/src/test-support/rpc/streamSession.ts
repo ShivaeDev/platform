@@ -4,10 +4,10 @@ import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeSocketSession, SocketSession } from "#server/socketSession.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
-import { revalidationClock } from "./revalidationClock.ts";
-import { signOut } from "./sessionLifecycle.ts";
-import { streamSessionEngine } from "./streamSessionEngine.ts";
+import { databaseUrl, postgres } from "#test/rpc/postgres.ts";
+import { revalidationClock } from "#test/rpc/revalidationClock.ts";
+import { signOut } from "#test/rpc/sessionLifecycle.ts";
+import { streamSessionEngine } from "#test/rpc/streamSessionEngine.ts";
 
 type Method = "identity" | "profile" | "accounts" | "optional";
 

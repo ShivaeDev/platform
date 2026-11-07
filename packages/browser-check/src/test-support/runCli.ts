@@ -2,7 +2,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import type { SignIn } from "./startHost.ts";
+import type { SignIn } from "#test/startHost.ts";
 
 export interface CliRun {
 	readonly code: number;

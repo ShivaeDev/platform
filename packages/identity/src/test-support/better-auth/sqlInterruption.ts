@@ -4,9 +4,9 @@ import { vi } from "vitest";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type AuthCall, sqlInterruptHost } from "#test/better-auth/sqlInterruptHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl } from "#test/postgres.ts";
-import { type AuthCall, sqlInterruptHost } from "./sqlInterruptHost.ts";
 
 const postgres = makePostgresTestLayer({
 	maxConnections: 4,

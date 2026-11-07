@@ -1,14 +1,13 @@
 import { realpathSync } from "node:fs";
 import { posix } from "node:path";
+import { type Project, projectsFor } from "#adapters/imports/projects.ts";
+import { resolveImport } from "#adapters/imports/resolve.ts";
 import type { Departure } from "#imports/departures.ts";
 import type { ImportRequest } from "#imports/extract.ts";
 import { type SpecifierSite, specifierSites } from "#imports/specifiers.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
-import { moduleRoot } from "#naming/moduleRoot.ts";
 import type { RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { type Project, projectsFor } from "./projects.ts";
-import { resolveImport } from "./resolve.ts";
 
 const QUERY = /\?.*$/u;
 
@@ -16,15 +15,8 @@ const RELATIVE = /^\.\.?(?:\/|$)/u;
 
 const MAY_BE_RELATIVE = /["'`]\.\.?[/"'`]|\\/u;
 
-const TRAILING_SLASHES = /\/+$/u;
-
 function noAmbient(): boolean {
 	return false;
-}
-
-function leavesLexically(path: string): boolean {
-	const normal = posix.normalize(path).replace(TRAILING_SLASHES, "");
-	return normal === ".." || normal.startsWith("../") || normal.includes("/");
 }
 
 interface FileContext {
@@ -35,19 +27,6 @@ interface FileContext {
 	readonly root: string;
 }
 
-function registersAdmin(from: string, specifier: string, target: string | undefined): boolean {
-	const root = moduleRoot(from);
-	const folder = posix.dirname(from);
-	return (
-		root !== undefined
-		&& (folder === `${root}/client` || folder === `${root}/server`)
-		&& /^registration\.[cm]?[jt]sx?$/u.test(posix.basename(from))
-		&& specifier.startsWith("./admin/")
-		&& target?.startsWith(`${folder}/admin/`) === true
-	);
-}
-
-// A relative import leaves its folder when its path climbs or descends, or when it names a folder whose index file lies below.
 function departureAt(context: FileContext, site: SpecifierSite): Departure | undefined {
 	const path = site.specifier.replace(QUERY, "");
 	if (!RELATIVE.test(path)) {
@@ -56,12 +35,6 @@ function departureAt(context: FileContext, site: SpecifierSite): Departure | und
 	const request: ImportRequest = { kind: "import", line: site.line, specifier: site.specifier, type: site.type };
 	const target = resolveImport(context.root, noAmbient, request, context.from, context.project);
 	const local = target?.kind === "file" ? target.path : undefined;
-	if (registersAdmin(context.path, path, local)) {
-		return undefined;
-	}
-	if (!(leavesLexically(path) || (local !== undefined && posix.dirname(local) !== posix.dirname(context.path)))) {
-		return undefined;
-	}
 	const owner = local === undefined ? undefined : packageOf(context.packages, local);
 	const workspace = owner !== undefined && owner !== packageOf(context.packages, context.path) ? owner.name : undefined;
 	return { ...site, file: context.path, installed: target?.kind === "external" ? target.package : undefined, workspace };

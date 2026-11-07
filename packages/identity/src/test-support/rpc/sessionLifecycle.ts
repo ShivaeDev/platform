@@ -1,7 +1,7 @@
 import type { AuthContext } from "better-auth";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { ORIGIN, type Provider } from "./harness.ts";
+import { ORIGIN, type Provider } from "#test/rpc/harness.ts";
 
 export function expireSession(provider: { readonly auth: { readonly $context: Promise<Pick<AuthContext, "internalAdapter">> } }, token: string) {
 	return Effect.promise(async () => {

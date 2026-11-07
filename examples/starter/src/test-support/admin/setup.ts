@@ -14,10 +14,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
+import { adminCommand } from "#test-support/admin/command.ts";
+import { signedInAccount } from "#test-support/admin/session.ts";
 import { type RunningHost, secret, startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { adminCommand } from "./command.ts";
-import { signedInAccount } from "./session.ts";
 
 interface Engine {
 	cookie: string;

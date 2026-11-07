@@ -1,6 +1,6 @@
 import type { Endpoint } from "#imports/Endpoint.ts";
-import { type Compiler, holdsFiles, packageNamed, trimmed } from "./match.ts";
-import type { Selector } from "./model.ts";
+import { type Compiler, holdsFiles, packageNamed, trimmed } from "#imports/fences/match.ts";
+import type { Selector } from "#imports/fences/model.ts";
 
 export interface Vocabulary {
 	readonly folder: string;

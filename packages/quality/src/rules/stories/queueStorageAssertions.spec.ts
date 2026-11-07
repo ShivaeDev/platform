@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
+import { queueReadouts } from "#rules/stories/queueReadouts.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { queueReadouts } from "./queueReadouts.ts";
 
 for (const code of [
 	"expect(yield* jobsTesting.jobs(queue)).toHaveLength(1);",

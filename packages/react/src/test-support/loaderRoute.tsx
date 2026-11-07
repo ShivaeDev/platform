@@ -6,9 +6,9 @@ import { loadQuery } from "#adapters/loadQuery.ts";
 import { screenPending } from "#adapters/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { type Engine, sessionRegistry } from "./loaderScreenState.ts";
-import { NoteShell } from "./NoteShell.tsx";
-import { SessionRegistry } from "./SessionRegistry.tsx";
+import { type Engine, sessionRegistry } from "#test/loaderScreenState.ts";
+import { NoteShell } from "#test/NoteShell.tsx";
+import { SessionRegistry } from "#test/SessionRegistry.tsx";
 
 function remember(engine: Engine, registry: AtomRegistry.AtomRegistry) {
 	engine.registry = registry;

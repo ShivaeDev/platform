@@ -1,7 +1,7 @@
 import { Clock, Duration, Effect } from "effect";
 import { sendHostMessage } from "#host/adapters/process.ts";
 import { listenHostReadouts } from "#host/adapters/processReadouts.ts";
-import { HostProcessError } from "./ProcessError.ts";
+import { HostProcessError } from "#host/ProcessError.ts";
 
 export const hostProcessReadouts = Effect.gen(function* () {
 	const active = new Map<symbol, string>();

@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Record } from "effect";
-import type { AnyMethod, GenericMethodDescriptor } from "./genericMethod.ts";
-import type { InitializerProof } from "./InitializerProof.ts";
-import type { MethodEntry, MethodInventory, MethodProof, MethodRecord, RuntimeMethodInventory } from "./MethodProof.ts";
-import type { RequirementProof } from "./RequirementProof.ts";
-import type { RequirementRecord, RequirementsOf } from "./ServiceRequirements.ts";
+import type { AnyMethod, GenericMethodDescriptor } from "#genericMethod.ts";
+import type { InitializerProof } from "#InitializerProof.ts";
+import type { MethodEntry, MethodInventory, MethodProof, MethodRecord, RuntimeMethodInventory } from "#MethodProof.ts";
+import type { RequirementProof } from "#RequirementProof.ts";
+import type { RequirementRecord, RequirementsOf } from "#ServiceRequirements.ts";
 
 type BoundMethod<TMethod, TRequirements> = TMethod extends (
 	...arguments_: infer TArguments

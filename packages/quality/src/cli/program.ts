@@ -11,6 +11,7 @@ import { lint } from "#cli/lint.ts";
 import { migrateBaseline } from "#cli/migrateBaseline.ts";
 import { migrateExceptions } from "#cli/migrateExceptions.ts";
 import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
+import { USAGE } from "#cli/usage.ts";
 import { SetupFailure } from "#failure.ts";
 import type { Launch } from "#hooks/command.ts";
 import { installHook } from "#hooks/install.ts";
@@ -18,7 +19,6 @@ import { preCommitHook } from "#hooks/preCommit.ts";
 import { setupHook } from "#hooks/setup.ts";
 import { hookStatus } from "#hooks/status.ts";
 import { uninstallHook } from "#hooks/uninstall.ts";
-import { USAGE } from "./usage.ts";
 
 export interface Invocation {
 	readonly cwd: string;

@@ -6,7 +6,7 @@ import { localOwner } from "#server/localOwner.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
-import { Access, Api, handlers, OwnerOnly, owner } from "./api.ts";
+import { Access, Api, handlers, OwnerOnly, owner } from "#test/local-owner/api.ts";
 
 export const REVALIDATION_INTERVAL = Duration.millis(50);
 

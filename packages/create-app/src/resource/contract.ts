@@ -1,4 +1,4 @@
-import type { ResourceNames } from "./names.ts";
+import type { ResourceNames } from "#resource/names.ts";
 
 export function resourceContract({ name, pascal, table }: ResourceNames) {
 	return `import { Option, Schema } from "effect";

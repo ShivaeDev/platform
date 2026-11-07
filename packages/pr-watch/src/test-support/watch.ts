@@ -1,10 +1,10 @@
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { cliVerbs } from "./cliVerbs.ts";
-import { makeEngine, nativeIo } from "./engine.ts";
-import { githubVerbs } from "./githubVerbs.ts";
-import { processVerbs } from "./processVerbs.ts";
-import { roundVerbs } from "./roundVerbs.ts";
-import { watcherVerbs } from "./watcherVerbs.ts";
+import { cliVerbs } from "#test/cliVerbs.ts";
+import { makeEngine, nativeIo } from "#test/engine.ts";
+import { githubVerbs } from "#test/githubVerbs.ts";
+import { processVerbs } from "#test/processVerbs.ts";
+import { roundVerbs } from "#test/roundVerbs.ts";
+import { watcherVerbs } from "#test/watcherVerbs.ts";
 
 export const watch = storyKit({
 	clock: "test",

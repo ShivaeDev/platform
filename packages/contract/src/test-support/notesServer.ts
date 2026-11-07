@@ -8,7 +8,7 @@ import { subscribe } from "#live-server/subscribe.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { QueryReference } from "#serverMetadata.ts";
-import { Create, Denied, Get, Guard, Note, Notes, notes, Rename, Session } from "./notes.ts";
+import { Create, Denied, Get, Guard, Note, Notes, notes, Rename, Session } from "#test/notes.ts";
 
 export const notesServer = Effect.gen(function* () {
 	const stored = yield* Ref.make(

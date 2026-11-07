@@ -2,7 +2,7 @@ import { volume } from "railway/iac";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
 import type { PageCacheTrim } from "#adapters/railway/postgresStartCommand.ts";
-import { runTrimShell, type TrimCheck } from "./trimShell.ts";
+import { runTrimShell, type TrimCheck } from "#test-support/trimShell.ts";
 
 export const trim = storyKit({
 	create: (): { options: PageCacheTrim } => ({ options: {} }),

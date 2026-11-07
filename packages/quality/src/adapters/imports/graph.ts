@@ -1,12 +1,12 @@
 import { join, posix } from "node:path";
 import ts from "typescript";
+import { type Project, projectsFor } from "#adapters/imports/projects.ts";
+import { isDeclarationFile, presumedTarget, resolveImport } from "#adapters/imports/resolve.ts";
 import { ambientModules } from "#imports/ambient.ts";
 import { type ImportRequest, importsOf } from "#imports/extract.ts";
 import type { ImportEdge, ImportGraph, UnresolvedImport } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { type Project, projectsFor } from "./projects.ts";
-import { isDeclarationFile, presumedTarget, resolveImport } from "./resolve.ts";
 
 const QUERY = /\?.*$/u;
 

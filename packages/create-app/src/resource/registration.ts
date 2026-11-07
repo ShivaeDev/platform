@@ -1,4 +1,4 @@
-import type { ResourceNames } from "./names.ts";
+import type { ResourceNames } from "#resource/names.ts";
 
 export function resourceRegistration({ name, camel, pascal }: ResourceNames) {
 	return `import { resolve } from "node:path";

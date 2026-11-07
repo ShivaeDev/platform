@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
+import { ascii } from "#rules/files/ascii.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { ascii } from "./ascii.ts";
 
 ruleStory.it(
 	"ASCII accepts selected text containing tabs, CRLF and ASCII escapes",

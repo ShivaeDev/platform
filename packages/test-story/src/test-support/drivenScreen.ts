@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
 import type { ScreenDriver } from "#server/screenDriver.ts";
-import type { drivenClock } from "./drivenClock.ts";
+import type { drivenClock } from "#test/drivenClock.ts";
 
 export function drivenScreen<E, THintError>(
 	clock: Effect.Success<typeof drivenClock>,

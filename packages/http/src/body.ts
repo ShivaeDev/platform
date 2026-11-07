@@ -1,6 +1,6 @@
 import { Effect, Schema, Stream } from "effect";
 import type { HttpClientResponse } from "effect/http";
-import { InvalidBodyLimit, ResponseBodyTooLarge } from "./errors.ts";
+import { InvalidBodyLimit, ResponseBodyTooLarge } from "#errors.ts";
 
 export const readBoundedBody = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, limit: number) {
 	const empty = response.request.method === "HEAD" || response.status === 204 || response.status === 205 || response.status === 304;

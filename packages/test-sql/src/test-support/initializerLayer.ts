@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#server/postgres.ts";
-import { adminUrl } from "./postgres.ts";
+import { adminUrl } from "#test/postgres.ts";
 
 export type InitializerSource = "the template URL" | "the supplied client";
 

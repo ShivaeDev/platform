@@ -1,6 +1,6 @@
-import { changeTokenClaim } from "./changeTokenClaim.ts";
-import { mcp } from "./mcp.ts";
-import { holdsToken } from "./traits.ts";
+import { changeTokenClaim } from "#test/changeTokenClaim.ts";
+import { mcp } from "#test/mcp.ts";
+import { holdsToken } from "#test/traits.ts";
 
 export function tokenClaim(name: string, claim: string, value: unknown) {
 	return mcp.traits(

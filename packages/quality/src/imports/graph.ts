@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { ImportCompiler } from "#adapters/import-compiler/service.ts";
+import type { Endpoint } from "#imports/Endpoint.ts";
+import type { ImportKind } from "#imports/extract.ts";
+import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
 import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
-import type { Endpoint } from "./Endpoint.ts";
-import type { ImportKind } from "./extract.ts";
-import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
 
 export interface ImportEdge {
 	readonly from: string;

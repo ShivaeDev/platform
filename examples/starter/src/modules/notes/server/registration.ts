@@ -9,9 +9,9 @@ import { NoteReadAccess, Notes } from "#modules/notes/notes.ts";
 import { jsonPlaceholderNotes } from "#modules/notes/server/adapters/jsonPlaceholder.ts";
 import { adminRegistration } from "#modules/notes/server/admin/registration.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
 import { notesService } from "#modules/notes/server/service.ts";
-import { NotesRepository } from "./Repository.ts";
-import { notesWorker } from "./worker.ts";
+import { notesWorker } from "#modules/notes/server/worker.ts";
 
 const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
 

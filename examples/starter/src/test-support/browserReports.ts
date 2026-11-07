@@ -1,9 +1,9 @@
 import { DateTime, Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { startHost } from "./host.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const browserReports = storyKit({
 	around: withIsolatedDatabase,

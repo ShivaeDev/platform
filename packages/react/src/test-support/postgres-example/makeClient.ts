@@ -1,7 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
-import { Orders } from "./contract.ts";
+import { Orders } from "#test/postgres-example/contract.ts";
 
 export function makeClient(url: string, token?: string) {
 	const { api, Client } = makeRpcClient(Orders, {

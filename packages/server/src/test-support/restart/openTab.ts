@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { RestartNotes } from "./Notes.ts";
+import { RestartNotes } from "#test/restart/Notes.ts";
 
 export const openTab = Effect.fnUntraced(function* (port: number, tab: string) {
 	const registry = yield* Effect.acquireRelease(

@@ -1,6 +1,6 @@
 import { Clock } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { Screen } from "./Screen.ts";
+import { Screen } from "#test/Screen.ts";
 
 export function screenKit<TState, TVerbs extends object>(
 	name: string,

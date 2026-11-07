@@ -2,10 +2,10 @@ import { Effect, Stream } from "effect";
 import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
+import { LiveServer } from "#live-server/service.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
-import { LiveServer } from "./service.ts";
 
 function subscribeQueries<E, R>(
 	subscription: QuerySubscription<E, R>,

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { defineSchedule } from "#server/defineSchedule.ts";
 import { database } from "#test/postgres/database.ts";
 import { controlled, running } from "#test/postgres/traits.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 const Nightly = defineSchedule({ cron: "17 3 * * *", name: "nightly", queue: { retryLimit: 0 } });
 

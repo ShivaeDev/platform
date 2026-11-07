@@ -1,6 +1,6 @@
 import { postgres } from "railway/iac";
-import type { DatabaseServiceConfig } from "./databaseService.ts";
-import { postgresStartCommand } from "./postgresStartCommand.ts";
+import type { DatabaseServiceConfig } from "#adapters/railway/databaseService.ts";
+import { postgresStartCommand } from "#adapters/railway/postgresStartCommand.ts";
 
 export function configurePostgres(
 	name: string,

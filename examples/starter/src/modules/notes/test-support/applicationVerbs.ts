@@ -8,14 +8,14 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
 import type { Note } from "#modules/notes/notes.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
+import type { Account, Engine } from "#modules/notes/test-support/Engine.ts";
+import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "#modules/notes/test-support/live.ts";
+import { foreignOriginRequest, notesRequests, signOutOver } from "#modules/notes/test-support/requests.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
-import type { Account, Engine } from "./Engine.ts";
-import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "./live.ts";
-import { foreignOriginRequest, notesRequests, signOutOver } from "./requests.ts";
 
 export function runningHost(engine: Engine) {
 	if (engine.host === undefined) {

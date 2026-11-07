@@ -6,12 +6,12 @@ import { CodecQueue } from "#test/CodecQueue.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 import type { JobRequest } from "#test/JobRequest.ts";
+import { delivered, finished } from "#test/runtime/delivery.ts";
+import { described, type Fetched, type Options, provided, type RuntimeEngine, runningIn, runtimeEngine, startRuntime } from "#test/runtime/engine.ts";
+import { errorReportingVerbs } from "#test/runtime/errorReporting.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { spanTree } from "#test/spanTree.ts";
 import { ApplicationLog, type Registration, untilWork } from "#test/workers.ts";
-import { delivered, finished } from "./delivery.ts";
-import { described, type Fetched, type Options, provided, type RuntimeEngine, runningIn, runtimeEngine, startRuntime } from "./engine.ts";
-import { errorReportingVerbs } from "./errorReporting.ts";
 
 export const runtime = storyKit({
 	clock: "test",

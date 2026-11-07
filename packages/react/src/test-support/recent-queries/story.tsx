@@ -3,10 +3,10 @@ import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.t
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
+import { App, type Controls } from "#test/recent-queries/App.tsx";
+import { openClient } from "#test/recent-queries/openClient.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { App, type Controls } from "./App.tsx";
-import { openClient } from "./openClient.ts";
 
 export const recentQueries = storyKit({
 	clock: "test",

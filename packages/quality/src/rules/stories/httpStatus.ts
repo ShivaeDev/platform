@@ -4,8 +4,8 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import ts from "typescript";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { defineRule } from "#rule.ts";
-import { matchesAny } from "./matchesAny.ts";
-import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
+import { matchesAny } from "#rules/stories/matchesAny.ts";
+import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	"Branches on an HTTP error status outside the HTTP edge. Handle the typed domain error here and translate it to an HTTP status in the configured edge module.";

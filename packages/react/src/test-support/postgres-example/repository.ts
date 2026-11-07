@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { Order } from "./contract.ts";
+import { Order } from "#test/postgres-example/contract.ts";
 
 class OrderRow extends Model.Class<OrderRow>("OrderRow")({
 	...Order.fields,

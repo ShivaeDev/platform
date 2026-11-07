@@ -8,8 +8,8 @@ import { hostTime } from "@shivaedev/test-kits/host/time.ts";
 import { applicationHost } from "#server/adapters/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { runWorker } from "#server/runWorker.ts";
-import { deploymentTime } from "./deploymentTime.ts";
-import { testPoolSizes } from "./poolSizes.ts";
+import { deploymentTime } from "#test-support/deploymentTime.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
 
 if (process.argv[2] === "web") {
 	NodeRuntime.runMain(

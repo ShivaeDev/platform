@@ -5,8 +5,8 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authOptions } from "#server/authOptions.ts";
+import { secret } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { secret } from "./host.ts";
 
 export const authStartup = storyKit({
 	around: withIsolatedDatabase,

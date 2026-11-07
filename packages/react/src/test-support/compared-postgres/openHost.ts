@@ -3,7 +3,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
-import { Api, migrations, ReadControl, repository } from "./feature.ts";
+import { Api, migrations, ReadControl, repository } from "#test/compared-postgres/feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redacted<string>) {
 	const reads = yield* SubscriptionRef.make(0);

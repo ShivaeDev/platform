@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { unreadable } from "./unreadable.ts";
+import { unreadable } from "#quality/unreadable.ts";
 
 for (const text of [
 	"{",

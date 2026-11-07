@@ -5,10 +5,10 @@ import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { UpsertFilter, UpsertResult } from "#conditionalUpsert.ts";
 import { makeRepository } from "#repository.ts";
-import { onPostgres } from "./engines.ts";
-import { attempt, failureOf } from "./outcome.ts";
-import { PullRequest, revision } from "./revisionModels.ts";
-import { ownTable, readEndings, recorded, records, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { attempt, failureOf } from "#test/outcome.ts";
+import { PullRequest, revision } from "#test/revisionModels.ts";
+import { ownTable, readEndings, recorded, records, uniqueTable } from "#test/writeTables.ts";
 
 export type RevisionCondition = UpsertFilter<typeof PullRequest>;
 

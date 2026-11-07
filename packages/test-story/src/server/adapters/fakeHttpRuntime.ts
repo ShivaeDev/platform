@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
+import { fakeHttpReceive } from "#server/adapters/fakeHttpReceive.ts";
+import { loopbackServer } from "#server/adapters/loopback.ts";
 import { fakeHttpControls } from "#server/fakeHttpControls.ts";
 import type { FakeHttpRequestRecord, FakeHttpServiceOptions } from "#server/fakeHttpService.ts";
 import { fakeHttpSignals } from "#server/fakeHttpSignals.ts";
-import { fakeHttpReceive } from "./fakeHttpReceive.ts";
-import { loopbackServer } from "./loopback.ts";
 
 export const fakeHttpRuntime = Effect.fnUntraced(function* (options: FakeHttpServiceOptions, tell: (line: string) => void) {
 	const clock = yield* Clock.Clock;

@@ -1,11 +1,11 @@
 import { Deferred, Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { PendingCommandScreen } from "./PendingCommandScreen.tsx";
-import { pendingCommandClient, ToggleRejected } from "./pendingCommandClient.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { PendingCommandScreen } from "#test/PendingCommandScreen.tsx";
+import { pendingCommandClient, ToggleRejected } from "#test/pendingCommandClient.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 interface State {
 	client?: ReturnType<typeof pendingCommandClient>;

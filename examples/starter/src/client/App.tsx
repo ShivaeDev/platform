@@ -2,8 +2,8 @@ import { Option } from "effect";
 import { useBrowserErrors } from "@shivaedev/react/client/adapters/useBrowserErrors.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Auth } from "#client/adapters/auth.ts";
-import { SessionApp } from "./SessionApp.tsx";
-import { ThemeToggle } from "./ThemeToggle.tsx";
+import { SessionApp } from "#client/SessionApp.tsx";
+import { ThemeToggle } from "#client/ThemeToggle.tsx";
 
 type SessionProps = Parameters<typeof SessionApp>[0];
 

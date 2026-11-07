@@ -7,7 +7,7 @@ for (const directory of ["", "packages/app/"]) {
 		for (const runtime of ["client", "server"]) {
 			const folder = `${directory}src/modules/${module}/${runtime}`;
 			importStory.it(
-				`imports/aliased accepts the registration's own admin imports in ${folder}`,
+				`imports/aliased reports the registration's own relative admin imports in ${folder}`,
 				[
 					repositoryHas(
 						{ content: 'import "./admin/registration.ts";\nimport "./admin/inbox/routes.ts";', path: `${folder}/registration.tsx` },
@@ -15,10 +15,12 @@ for (const directory of ["", "packages/app/"]) {
 						{ content: "export const inboxRoutes = [];", path: `${folder}/admin/inbox/routes.ts` },
 					),
 				],
-				function* ({ check, findings }) {
+				function* ({ check, sites }) {
 					yield* check(importsAliased);
 
-					yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
+					yield* assertThat(yield* sites(), (actual) =>
+						actual.toEqual([`${folder}/registration.tsx:1 ./admin/registration.ts`, `${folder}/registration.tsx:2 ./admin/inbox/routes.ts`]),
+					);
 				},
 			);
 		}

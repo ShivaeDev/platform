@@ -1,9 +1,9 @@
 import type ts from "typescript";
+import { runtimeOrigins } from "#adapters/units/runtimeOrigins.ts";
+import { firstRuntimeUse, type RuntimeUse } from "#adapters/units/runtimeUse.ts";
 import { type Trail, walkFrom } from "#imports/fences/reach.ts";
 import type { ImportEdge } from "#imports/graph.ts";
 import type { Finding } from "#rule.ts";
-import { runtimeOrigins } from "./runtimeOrigins.ts";
-import { firstRuntimeUse, type RuntimeUse } from "./runtimeUse.ts";
 
 export const PURE_REPAIR = "Exercise the Effect behaviour through the package story kit, or test an existing pure API without the runner.";
 

@@ -1,7 +1,7 @@
 import { DateTime, Effect } from "effect";
 import type { QueueDefinition } from "#server/definition.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { labelOf, runningIn } from "./engine.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/postgres/databaseEngine.ts";
+import { labelOf, runningIn } from "#test/postgres/engine.ts";
 
 export function inspectionVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type Engine, path } from "./host.ts";
+import { type Engine, path } from "#test/host.ts";
 
 function json(url: string) {
 	return Effect.promise(async () => {

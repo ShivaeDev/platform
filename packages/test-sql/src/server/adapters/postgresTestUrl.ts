@@ -1,4 +1,4 @@
-import { environmentVariable } from "./environmentVariable.ts";
+import { environmentVariable } from "#server/adapters/environmentVariable.ts";
 
 export function postgresTestUrl(name: string): { readonly url: string | undefined; readonly configured: boolean } {
 	const value = environmentVariable(name);

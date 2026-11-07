@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { catalogOnly } from "#quality/catalogOnly.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { catalogOnly } from "./catalogOnly.ts";
 
 for (const key of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
 	ruleKit.it(

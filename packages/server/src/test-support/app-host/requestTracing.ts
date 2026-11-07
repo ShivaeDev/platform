@@ -2,9 +2,9 @@ import { Effect, Layer } from "effect";
 import { Authenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
-import { sessions } from "./fixture.ts";
-import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";
-import { host } from "./story.ts";
+import { sessions } from "#test/app-host/fixture.ts";
+import { AuthenticatedPing, Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const defectiveRpc = host.trait("configured", "an untraced loopback RPC handler defects", (state) => {
 	function build() {

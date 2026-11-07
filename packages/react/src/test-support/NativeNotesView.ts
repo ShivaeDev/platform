@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { createElement } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
-import { NotesClient } from "./NotesClient.ts";
+import { NotesClient } from "#test/NotesClient.ts";
 
 const list = NotesClient.query("ListNotes", undefined, {
 	reactivityKeys: ["notes"],

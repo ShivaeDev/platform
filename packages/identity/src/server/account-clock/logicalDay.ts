@@ -1,6 +1,6 @@
 import { DateTime, Effect } from "effect";
-import { boundary } from "./boundary.ts";
-import type { initialize } from "./initialize.ts";
+import { boundary } from "#server/account-clock/boundary.ts";
+import type { initialize } from "#server/account-clock/initialize.ts";
 
 export function logicalDay({ minutes, timezone }: Effect.Success<typeof initialize>) {
 	return Effect.fn("AccountClock.logicalDay")(function* (instant?: DateTime.Utc) {

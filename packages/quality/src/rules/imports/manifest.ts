@@ -9,7 +9,7 @@ import { dependencyNames, type EntryPoint, entryPointsOf, isApplication, provide
 import { developmentCode } from "#naming/developmentCode.ts";
 import { testCode } from "#naming/testCode.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
-import { bundleInputs } from "./bundleInputs.ts";
+import { bundleInputs } from "#rules/imports/bundleInputs.ts";
 
 const QUERY = /\?.*$/u;
 

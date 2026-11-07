@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 export const UNANSWERED_MESSAGE = "Choose or write an answer";

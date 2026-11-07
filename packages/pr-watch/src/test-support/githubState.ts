@@ -1,4 +1,4 @@
-import type { Check, CommitStatus, Pull, Reply } from "./githubModel.ts";
+import type { Check, CommitStatus, Pull, Reply } from "#test/githubModel.ts";
 
 export function makeGitHubState() {
 	const pulls = new Map<number, Pull>();

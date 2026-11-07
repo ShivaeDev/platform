@@ -6,10 +6,10 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployUpdate } from "#client/deployUpdate.ts";
+import { App, startHost } from "#test/deploy-update/host.ts";
+import { View } from "#test/deploy-update/View.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { App, startHost } from "./host.ts";
-import { View } from "./View.tsx";
 
 function activate(state: { readonly failActivation: boolean; readonly activations: string[] }) {
 	if (state.failActivation) {

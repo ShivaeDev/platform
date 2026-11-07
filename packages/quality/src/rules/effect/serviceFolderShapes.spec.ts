@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
+import { serviceFolders } from "#rules/effect/serviceFolders.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { serviceFolderFile } from "#test/serviceFolderFile.ts";
-import { serviceFolders } from "./serviceFolders.ts";
 
 ruleStory.it(
 	"service folders accepts one exported defineService const and type exports",

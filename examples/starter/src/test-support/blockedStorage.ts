@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { vi } from "vitest";
-import { screens } from "./screens.ts";
+import { screens } from "#test-support/screens.ts";
 
 export function blockedStorage(operation: "access" | "read" | "write") {
 	return screens.trait("storage", `browser storage throws on ${operation}`, function* () {

@@ -3,10 +3,10 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect, Path } from "effect";
 import { Command } from "effect/cli";
-import { checkSkills } from "./checkSkills.ts";
-import { readInstalled } from "./installed.ts";
-import { AGENTS_SKILLS, BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD } from "./layout.ts";
-import { syncSkills } from "./syncSkills.ts";
+import { checkSkills } from "#checkSkills.ts";
+import { readInstalled } from "#installed.ts";
+import { AGENTS_SKILLS, BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD } from "#layout.ts";
+import { syncSkills } from "#syncSkills.ts";
 
 const program = Effect.gen(function* () {
 	const path = yield* Path.Path;

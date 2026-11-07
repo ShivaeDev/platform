@@ -1,6 +1,6 @@
 import { Config, Effect, Option, Path } from "effect";
-import { HeavyLockError } from "./error.ts";
-import { HOLDER_ID_ENV } from "./holder.ts";
+import { HeavyLockError } from "#error.ts";
+import { HOLDER_ID_ENV } from "#holder.ts";
 
 const Environment = Config.all({
 	ci: Config.String("CI").pipe(Config.withDefault("")),

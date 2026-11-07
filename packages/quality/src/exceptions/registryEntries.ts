@@ -1,5 +1,5 @@
-import type { ExceptionDeclaration } from "./declaration.ts";
-import type { RegistryEntry } from "./registry.ts";
+import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import type { RegistryEntry } from "#exceptions/registry.ts";
 
 export function registryEntries(declarations: readonly ExceptionDeclaration[]): readonly RegistryEntry[] {
 	return declarations.flatMap(({ files, reason, rules, subject }) =>

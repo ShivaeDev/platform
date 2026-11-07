@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
+import { repositoryPaths } from "#rules/docs/repositoryPaths.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { repositoryPaths } from "./repositoryPaths.ts";
 
 const paths = repositoryHas({ content: "export {};", path: "src/main.ts" }, { content: "Notes", path: "docs/local/notes.txt" });
 

@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
+import { DeleteControl } from "#modules/notes/test-support/DeleteControl.tsx";
+import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { acquireScreen, screenView } from "#test-support/screenState.ts";
-import { DeleteControl } from "./DeleteControl.tsx";
-import type { Screen } from "./screenState.ts";
 
 export const deleteControls = Effect.fnUntraced(function* (engine: Screen) {
 	const view = yield* acquireScreen(engine);

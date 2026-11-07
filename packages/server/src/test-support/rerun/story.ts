@@ -9,8 +9,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost } from "#test/app-host/state.ts";
-import { Api, Note, type RerunState, rerunHost } from "./fixture.ts";
-import { listen } from "./listen.ts";
+import { Api, Note, type RerunState, rerunHost } from "#test/rerun/fixture.ts";
+import { listen } from "#test/rerun/listen.ts";
 
 type Update = Rpc.SuccessChunk<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Api>, "rerun.$changes">>;
 const create = Effect.gen(function* () {

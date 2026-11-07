@@ -4,10 +4,10 @@ import { makeCapture } from "@shivaedev/changes/capture.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
-import { onPostgres } from "./engines.ts";
-import { original, Profile } from "./partialWriteModels.ts";
-import { partialWriteVerbs } from "./partialWriteVerbs.ts";
-import { ownTable, records, statementLog, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { original, Profile } from "#test/partialWriteModels.ts";
+import { partialWriteVerbs } from "#test/partialWriteVerbs.ts";
+import { ownTable, records, statementLog, uniqueTable } from "#test/writeTables.ts";
 
 const partialWriteEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;

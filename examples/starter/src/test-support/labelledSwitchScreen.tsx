@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { SwitchScreen } from "#test-support/SwitchScreen.tsx";
 import { acquireScreen } from "#test-support/screenState.ts";
-import { SwitchScreen } from "./SwitchScreen.tsx";
-import { screens } from "./screens.ts";
+import { screens } from "#test-support/screens.ts";
 
 export function labelledSwitchScreen(label: string, disabled = false) {
 	return screens.trait("screen", `the ${label} switch is open${disabled ? " and disabled" : ""}`, function* (engine) {

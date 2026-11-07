@@ -5,8 +5,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { jsonb } from "#jsonb.ts";
 import { makeRepository } from "#repository.ts";
 import type { FindManyFilter, RepositoryListFilter } from "#repositoryFilter.ts";
-import { onPostgres } from "./engines.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 
 class Profile extends Model.Class<Profile>("JsonbFilterProfile")({
 	details: jsonb(

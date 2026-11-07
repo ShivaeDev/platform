@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { type ObserveOptions, observeUntil } from "./observeUntil.ts";
+import { type ObserveOptions, observeUntil } from "#server/observeUntil.ts";
 
 export const waitForBlockedSessions = Effect.fn("PostgresTest.waitForBlockedSessions")(function* (holderPid: number, options?: ObserveOptions) {
 	const sql = yield* SqlClient.SqlClient;

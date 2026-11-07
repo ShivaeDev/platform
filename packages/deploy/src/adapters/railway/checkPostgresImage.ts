@@ -1,4 +1,4 @@
-import { postgresCmd, postgresEntrypoint } from "./postgresStartCommand.ts";
+import { postgresCmd, postgresEntrypoint } from "#adapters/railway/postgresStartCommand.ts";
 
 export async function checkPostgresImage(image: string) {
 	try {

@@ -4,14 +4,14 @@ import { testingEngine } from "@shivaedev/test-kits/jobs/adapters/testingEngine.
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { QueueDefinition } from "#server/definition.ts";
+import { serverTlsAbsent } from "#test/postgres/connections.ts";
+import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "#test/postgres/controller.ts";
+import { database } from "#test/postgres/database.ts";
+import type { StoryPayload } from "#test/postgres/databaseEngine.ts";
+import { wakeWorkers } from "#test/postgres/driveWorkers.ts";
+import { admin, runningIn, type StartOptions, startRuntime } from "#test/postgres/engine.ts";
+import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf } from "#test/postgres/verbs.ts";
 import type { Registration } from "#test/workers.ts";
-import { serverTlsAbsent } from "./connections.ts";
-import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "./controller.ts";
-import { database } from "./database.ts";
-import type { StoryPayload } from "./databaseEngine.ts";
-import { wakeWorkers } from "./driveWorkers.ts";
-import { admin, runningIn, type StartOptions, startRuntime } from "./engine.ts";
-import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf } from "./verbs.ts";
 
 const started = Effect.fnUntraced(function* (
 	engine: Parameters<typeof startRuntime>[0],
@@ -26,7 +26,7 @@ const started = Effect.fnUntraced(function* (
 	}
 });
 
-import { waitingVerbs } from "./waitingVerbs.ts";
+import { waitingVerbs } from "#test/postgres/waitingVerbs.ts";
 
 export function running(name: string, jobs: readonly Registration[] = [], options?: StartOptions) {
 	return database.trait("runtime", `${name} runs the jobs runtime`, (engine) => started(engine, name, jobs, options));

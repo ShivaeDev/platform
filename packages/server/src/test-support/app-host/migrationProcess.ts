@@ -5,7 +5,7 @@ import { Config, Effect, Layer, Redacted } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { appDatabase } from "#appDatabase.ts";
-import { migrationLoader } from "./migrationLoader.ts";
+import { migrationLoader } from "#test/app-host/migrationLoader.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

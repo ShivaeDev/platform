@@ -2,10 +2,10 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, FileSystem, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail, run } from "#git/command.ts";
+import { forwardingPath, removeForwarding } from "#hooks/forwarding.ts";
+import { hookLocation } from "#hooks/location.ts";
+import { isHookShim } from "#hooks/shim.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
-import { forwardingPath, removeForwarding } from "./forwarding.ts";
-import { hookLocation } from "./location.ts";
-import { isHookShim } from "./shim.ts";
 
 export const uninstallHook = Effect.fn("Hooks.uninstallHook")(function* (cwd: string) {
 	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));

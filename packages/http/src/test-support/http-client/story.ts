@@ -1,10 +1,10 @@
 import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createClientEngine, selectClient } from "./engine.ts";
-import { lifecycleVerbs } from "./lifecycleVerbs.ts";
-import { statusVerbs } from "./statusVerbs.ts";
-import { clientVerbs } from "./verbs.ts";
+import { createClientEngine, selectClient } from "#test/http-client/engine.ts";
+import { lifecycleVerbs } from "#test/http-client/lifecycleVerbs.ts";
+import { statusVerbs } from "#test/http-client/statusVerbs.ts";
+import { clientVerbs } from "#test/http-client/verbs.ts";
 
 export const httpClient = storyKit({
 	create: createClientEngine,

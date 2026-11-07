@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { emptyMount, startMountHost } from "./mountHost.ts";
+import { emptyMount, startMountHost } from "#test/better-auth/mountHost.ts";
 
 export const bearerResponses = storyKit({
 	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provide(memoryStore)) },

@@ -1,7 +1,7 @@
 import type { Effect } from "effect";
 import { useState } from "react";
 import { SessionsView } from "#client/adapters/SessionsView.ts";
-import type { sessionsHost } from "./sessionsHost.ts";
+import type { sessionsHost } from "#test/sessionsHost.ts";
 
 export function SessionsScreenApp({ engine }: { readonly engine: Effect.Success<ReturnType<typeof sessionsHost>> }) {
 	const [signedOut, signOut] = useState(false);

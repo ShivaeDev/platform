@@ -1,8 +1,8 @@
 import { Context, Effect, Layer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
 import { appHost } from "#appHost.ts";
-import { Ping, pingHandlers } from "./ping.ts";
-import { host } from "./story.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { host } from "#test/app-host/story.ts";
 
 class Metadata extends Context.Service<Metadata, { readonly path: HttpRouter.PathInput; readonly content: string }>()(
 	"@shivaedev/server/host-test/Metadata",

@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import type { Effect } from "effect";
+import type { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.ts";
-import type { hookRuntime } from "./hookRuntime.ts";
 
 export function passwordResetOptions<TOptions extends BetterAuthOptions, R>(
 	options: TOptions,

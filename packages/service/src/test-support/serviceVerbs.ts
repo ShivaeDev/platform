@@ -1,6 +1,6 @@
 import { Effect, Exit, Fiber, Layer, Scope, Stream } from "effect";
-import { answerOf, buildOutcomeOf, builtCounter, builtWrapper, type ServiceEngine, serviceLayer } from "./serviceEngine.ts";
-import { CallerFailure, CallerNumber, type CountingMethod, Greeting } from "./serviceFixtures.ts";
+import { answerOf, buildOutcomeOf, builtCounter, builtWrapper, type ServiceEngine, serviceLayer } from "#test/serviceEngine.ts";
+import { CallerFailure, CallerNumber, type CountingMethod, Greeting } from "#test/serviceFixtures.ts";
 
 function present<TValue>(value: TValue | undefined, missing: string) {
 	return value === undefined ? Effect.die(new Error(missing)) : Effect.succeed(value);

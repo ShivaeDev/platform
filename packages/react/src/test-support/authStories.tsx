@@ -9,8 +9,8 @@ import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authAction } from "#client/authAction.ts";
-import { AuthActionControl, AuthFormControl } from "./authControls.tsx";
-import { screenKit } from "./screenKit.ts";
+import { AuthActionControl, AuthFormControl } from "#test/authControls.tsx";
+import { screenKit } from "#test/screenKit.ts";
 
 type Attempt = "wrong password" | "rate limited" | "unknown code" | "missing code" | "offline" | "success" | "invalid email";
 type Mode = "atom" | "Effect form";

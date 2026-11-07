@@ -4,12 +4,12 @@ import { CONFIG_FILE } from "#config/file.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
+import { commandWords, hookCommand, type Launch, shellWords } from "#hooks/command.ts";
+import { globalHooksPath, installForwarding } from "#hooks/forwarding.ts";
+import { hookLocation } from "#hooks/location.ts";
+import { hookShim, isHookShim } from "#hooks/shim.ts";
+import { globalHookStatus } from "#hooks/status.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
-import { commandWords, hookCommand, type Launch, shellWords } from "./command.ts";
-import { globalHooksPath, installForwarding } from "./forwarding.ts";
-import { hookLocation } from "./location.ts";
-import { hookShim, isHookShim } from "./shim.ts";
-import { globalHookStatus } from "./status.ts";
 
 export interface HookInstall {
 	readonly config: string | undefined;

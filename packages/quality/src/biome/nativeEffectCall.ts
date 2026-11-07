@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { Syntax } from "./syntax.ts";
+import type { Syntax } from "#biome/syntax.ts";
 
 function importedFrom(node: ts.Node, module: string): boolean {
 	for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {

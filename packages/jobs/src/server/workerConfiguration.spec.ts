@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
+import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue } from "#server/definition.ts";
 import { runtime } from "#test/runtime/kit.ts";
 import { scheduled, worker } from "#test/workers.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 runtime.it(
 	"a queue without worker options works batches of ten, bursting when a batch is full, with job metadata",

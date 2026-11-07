@@ -2,8 +2,8 @@ import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import ts from "typescript";
 import { requireThat } from "#package-check/io.ts";
-import { checkRuntimeImports } from "./checkRuntimeImports.ts";
-import { type DocumentedImport, documentedImports, importProbe, packageName } from "./imports.ts";
+import { checkRuntimeImports } from "#starter-published/checkRuntimeImports.ts";
+import { type DocumentedImport, documentedImports, importProbe, packageName } from "#starter-published/imports.ts";
 
 export const readDocumentation = Effect.fn("Published.readDocumentation")(function* (root: string, versions: Readonly<Record<string, string>>) {
 	const fs = yield* FileSystem.FileSystem;

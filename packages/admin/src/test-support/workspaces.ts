@@ -9,7 +9,7 @@ import { adminPage } from "#page.ts";
 import { ReadUsers, UsersPermission } from "#permissions.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { Users } from "./pages.ts";
+import { Users } from "#test/pages.ts";
 
 export const ReadWorkspaces = permission("workspaces.read");
 class WorkspacesPermission extends permissionMiddleware<WorkspacesPermission>()("test/WorkspacesPermission", ReadWorkspaces) {}

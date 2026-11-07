@@ -7,8 +7,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 import { postgres, databaseUrl as testDatabaseUrl } from "#test/postgres.ts";
-import { Ping, pingHandlers } from "./ping.ts";
 
 interface PoolState {
 	limit: number;

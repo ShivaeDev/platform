@@ -6,10 +6,10 @@ import { Config, Console, Effect, FileSystem, Schema } from "effect";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import type { PackageManifest } from "@shivaedev/releases/model.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
+import { checkStarterCatalog } from "#release/starterCatalog.ts";
+import { checkStarterPnpm } from "#release/starterPnpm.ts";
+import { validateRelease } from "#release/validate.ts";
 import config from "#release-config";
-import { checkStarterCatalog } from "./starterCatalog.ts";
-import { checkStarterPnpm } from "./starterPnpm.ts";
-import { validateRelease } from "./validate.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 

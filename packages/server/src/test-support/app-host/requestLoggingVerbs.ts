@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import { TestClock } from "effect/testing";
-import { requests } from "./requests.ts";
-import type { HostState } from "./state.ts";
+import { requests } from "#test/app-host/requests.ts";
+import type { HostState } from "#test/app-host/state.ts";
 
 export function requestLoggingVerbs(state: HostState, tell: (line: string) => void) {
 	return {

@@ -4,7 +4,7 @@ import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase, type PostgresTestTemplate } from "#server/database.ts";
 import { storyDatabase } from "#server/storyDatabase.ts";
-import { configured, secondClient, setup } from "./postgres.ts";
+import { configured, secondClient, setup } from "#test/postgres.ts";
 
 export interface AppObservation {
 	clients?: { readonly pg: readonly string[]; readonly sql: readonly string[] };

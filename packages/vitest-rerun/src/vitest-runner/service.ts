@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { VitestRuntime } from "#VitestRuntime.ts";
-import { open } from "./open.ts";
+import { open } from "#vitest-runner/open.ts";
 
 export const VitestRunner = defineService({
 	id: "@shivaedev/vitest-rerun/VitestRunner",

@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
-import { pageHidden } from "./pageHidden.ts";
+import { pageHidden } from "#client/pageHidden.ts";
 
 export function deployUpdate<E = never>(
 	options: ClientOptions & {

@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
+import { serviceModel } from "#rules/effect/serviceModel.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { ownedServiceFiles } from "#test/ownedServiceFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { serviceResolves } from "#test/serviceModelFiles.ts";
-import { serviceModel } from "./serviceModel.ts";
 
 for (const captured of [false, true]) {
 	ruleStory.it(

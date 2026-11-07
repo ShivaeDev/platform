@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as Socket from "effect/socket/Socket";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
-import { Notes } from "./notes.ts";
+import { Notes } from "#test/live-session/notes.ts";
 
 export function connect(
 	url: string,

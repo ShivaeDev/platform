@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { hasPermission, type Permission } from "./permission.ts";
-import { forbidden } from "./refusal.ts";
+import { hasPermission, type Permission } from "#permission.ts";
+import { forbidden } from "#refusal.ts";
 
 export interface PermissionUser {
 	readonly permissions?: readonly Permission[];

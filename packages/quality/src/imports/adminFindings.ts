@@ -1,8 +1,8 @@
 import { posix } from "node:path";
+import { adminEvidence, adminPath, composition, sourceRoot } from "#imports/adminEvidence.ts";
+import type { ImportGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
-import { adminEvidence, adminPath, composition, sourceRoot } from "./adminEvidence.ts";
-import type { ImportGraph } from "./graph.ts";
 
 function reachable(seeds: readonly string[], next: (file: string) => readonly string[]): Set<string> {
 	const reached = new Set<string>();

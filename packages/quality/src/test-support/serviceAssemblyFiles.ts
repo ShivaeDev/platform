@@ -1,8 +1,8 @@
 import { symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import { repositoryStory } from "#test/repositoryStory.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
-import { repositoryStory } from "./repositoryStory.ts";
 
 export function serviceInstalled() {
 	return repositoryStory.trait("repository", "the real service package resolves in the consumer", (engine) => {
@@ -39,7 +39,7 @@ export const ASSEMBLY_INVENTORY =
 export const assemblyFiles: readonly SeedFile[] = [
 	{
 		content:
-			'{"name":"@demo/inventory","type":"module","imports":{"#*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@shivaedev/service":"file:./node_modules/@shivaedev/service","effect":"file:./node_modules/effect"}}',
+			'{"name":"@demo/inventory","type":"module","imports":{"#*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@shivaedev/service":"0.0.0","effect":"0.0.0"}}',
 		path: "package.json",
 	},
 	{ content: 'import { Ref } from "effect"; export const initialize = Ref.make(0);', path: "src/initialize.ts" },

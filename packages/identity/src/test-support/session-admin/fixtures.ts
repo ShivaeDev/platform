@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import type { SessionAdminHost } from "./host.ts";
+import type { SessionAdminHost } from "#test/session-admin/host.ts";
 
 export type Device = "alice" | "bobLaptop" | "bobPhone";
 export type Actor = Device | "anonymous";

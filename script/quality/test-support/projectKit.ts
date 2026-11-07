@@ -7,7 +7,7 @@ import process from "node:process";
 import { Effect } from "effect";
 import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { projectConfig, projectFiles } from "./projectFiles.ts";
+import { projectConfig, projectFiles } from "#quality/test-support/projectFiles.ts";
 
 const load = createRequire(import.meta.url);
 const vitestRoot = dirname(realpathSync(load.resolve("vitest/package.json")));
@@ -46,6 +46,7 @@ function run(root: string, args: readonly string[]) {
 			process.execPath,
 			join(vitestRoot, "vitest.mjs"),
 			"run",
+			"--configLoader=native",
 			"--reporter=default",
 			"--reporter=json",
 			"--outputFile=report.json",

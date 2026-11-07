@@ -8,8 +8,8 @@ import { selfSubject } from "@shivaedev/identity/subject.ts";
 import type { AppModule } from "#AppModule.ts";
 import { appHost } from "#appHost.ts";
 import { appModules } from "#appModules.ts";
+import { Shared } from "#test/request/Shared.ts";
 import { requestViewService } from "#test/request/view/service.ts";
-import { Shared } from "./Shared.ts";
 
 const Value = Schema.Struct({ build: Schema.Number, caller: Schema.String, computation: Schema.Number });
 const Readout = Schema.Struct({ cached: Value, caller: Schema.String, captured: Schema.String, identity: Schema.String, subject: Schema.String });

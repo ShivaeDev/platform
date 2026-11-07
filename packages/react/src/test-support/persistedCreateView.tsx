@@ -4,8 +4,8 @@ import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
-import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
+import { CreateDraftProbe, DirectDraftProbe } from "#test/CreateDraftProbe.tsx";
+import type { CreateEffect, CreateHeld } from "#test/createDraftFields.ts";
 
 export async function persistedCreateView(
 	view: Rendered,

@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
-import { CreateSubmitView, EditorSubmitView, type SubmitState } from "./submitViews.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
+import { CreateSubmitView, EditorSubmitView, type SubmitState } from "#test/submitViews.tsx";
 
 type Control = "Form submit" | "Atom submit" | "Save";
 

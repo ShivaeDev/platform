@@ -2,8 +2,8 @@ import { cpSync, mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem } from "effect";
-import type { appFolder } from "./cli.ts";
-import { templateSource } from "./templateSource.ts";
+import type { appFolder } from "#test/cli.ts";
+import { templateSource } from "#test/templateSource.ts";
 
 export function* createEngine() {
 	const fs = yield* FileSystem.FileSystem;

@@ -1,8 +1,8 @@
 import ts from "typescript";
+import { asymmetricMatcher } from "#adapters/asymmetricMatcher.ts";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { topLevelHelpers, unwrapped } from "#rules/stories/syntax.ts";
-import { asymmetricMatcher } from "./asymmetricMatcher.ts";
 
 const READ_METHODS = new Set([
 	"at",

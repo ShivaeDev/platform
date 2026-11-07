@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type ts from "typescript";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { browserChecker } from "./browserChecker.ts";
-import { departures } from "./departures.ts";
-import { graph } from "./graph.ts";
+import { browserChecker } from "#adapters/import-compiler/browserChecker.ts";
+import { departures } from "#adapters/import-compiler/departures.ts";
+import { graph } from "#adapters/import-compiler/graph.ts";
 
 export const ImportCompiler = defineService({
 	id: "@shivaedev/quality/ImportCompiler",

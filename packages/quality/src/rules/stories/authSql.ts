@@ -3,8 +3,8 @@ import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts"
 import { defineRule } from "#rule.ts";
 import { authTables } from "#rules/stories/adapters/authTables.ts";
 import { sqlTables } from "#rules/stories/adapters/sqlTables.ts";
-import { matchesAny } from "./matchesAny.ts";
-import { sqlTexts } from "./sqlText.ts";
+import { matchesAny } from "#rules/stories/matchesAny.ts";
+import { sqlTexts } from "#rules/stories/sqlText.ts";
 
 const AuthSqlOptions = Schema.Struct({
 	owners: GlobDeclarations,

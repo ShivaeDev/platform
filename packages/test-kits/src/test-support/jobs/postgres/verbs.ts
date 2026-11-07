@@ -5,11 +5,11 @@ import { deadLetterQueueName } from "@shivaedev/jobs/server/health.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { failureOf } from "#test/jobs/failureOf.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/jobs/postgres/databaseEngine.ts";
+import { admin, provided, runningIn, type StartOptions, startRuntime } from "#test/jobs/postgres/engine.ts";
+import { enqueuePayload } from "#test/jobs/postgres/enqueuePayload.ts";
+import { passTime } from "#test/jobs/postgres/timeVerbs.ts";
 import type { Registration } from "#test/jobs/workers.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { admin, provided, runningIn, type StartOptions, startRuntime } from "./engine.ts";
-import { enqueuePayload } from "./enqueuePayload.ts";
-import { passTime } from "./timeVerbs.ts";
 
 type Tell = (line: string) => void;
 

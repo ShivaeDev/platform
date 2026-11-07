@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { application } from "./application.ts";
-import { gitIn } from "./appReadouts.ts";
+import { application } from "#test/application.ts";
+import { gitIn } from "#test/appReadouts.ts";
 
 export function appStaged(path: string) {
 	return application.trait("app", `the author stages ${path}`, (engine) => {

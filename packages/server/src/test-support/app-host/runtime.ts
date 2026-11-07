@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Context, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { requests } from "./requests.ts";
-import { RuntimeValue } from "./runtimeLayer.ts";
-import { type HostState, io, runtimeOf } from "./state.ts";
+import { requests } from "#test/app-host/requests.ts";
+import { RuntimeValue } from "#test/app-host/runtimeLayer.ts";
+import { type HostState, io, runtimeOf } from "#test/app-host/state.ts";
 
 export function readRuntimeValue(state: HostState, override?: string, fromContext = false) {
 	const runtime = runtimeOf(state);

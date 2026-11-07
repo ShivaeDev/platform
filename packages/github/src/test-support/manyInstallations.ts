@@ -5,10 +5,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { githubApp } from "#githubApp.ts";
 import { read } from "#read.ts";
+import { APP_ID, PRIVATE_KEY } from "#test/appFixture.ts";
+import { appServer } from "#test/appServer.ts";
+import { answered } from "#test/outcome.ts";
 import { withInstallation } from "#withInstallation.ts";
-import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
-import { appServer } from "./appServer.ts";
-import { answered } from "./outcome.ts";
 
 const Repositories = Schema.Struct({ repositories: Schema.Array(Schema.Struct({ id: Schema.Number, name: Schema.String })) });
 

@@ -1,4 +1,4 @@
-import { httpClient } from "./story.ts";
+import { httpClient } from "#test/http-client/story.ts";
 
 export const threeLinkedPages = httpClient.trait(
 	"routes",

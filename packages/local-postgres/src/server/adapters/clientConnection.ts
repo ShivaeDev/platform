@@ -1,6 +1,6 @@
 import { Result } from "effect";
+import type { CommandOptions } from "#server/adapters/runCommand.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import type { CommandOptions } from "./runCommand.ts";
 
 export function clientConnection(value: URL, options: CommandOptions = {}) {
 	return Result.gen(function* () {

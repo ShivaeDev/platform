@@ -1,4 +1,4 @@
-import { perAttempt } from "./specFiles.ts";
+import { perAttempt } from "#test/specFiles.ts";
 
 export type IdentityChange = "test name" | "suite name" | "task kind";
 

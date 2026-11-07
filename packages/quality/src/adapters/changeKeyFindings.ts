@@ -2,12 +2,12 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { changeKeyApi } from "#adapters/changeKeyApi.ts";
+import { changeKeyLiterals } from "#adapters/changeKeyLiterals.ts";
 import type { Finding, RuleInputs, SourceFile } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 import { parse } from "#rules/parse.ts";
 import { importBindings } from "#rules/stories/importBindings.ts";
 import { memberName, nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
-import { changeKeyLiterals } from "./changeKeyLiterals.ts";
 
 const APIS = new Set([
 	"invalidateOnCommit",

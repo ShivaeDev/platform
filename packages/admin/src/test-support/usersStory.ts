@@ -1,11 +1,11 @@
 import { Clock, DateTime, Effect, Option, Predicate } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Access } from "./Access.ts";
-import { answered } from "./answers.ts";
-import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { mappedTables } from "./mappedTables.ts";
-import { makeUsersEngine, usersEngine } from "./usersEngine.ts";
+import type { Access } from "#test/Access.ts";
+import { answered } from "#test/answers.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { mappedTables } from "#test/mappedTables.ts";
+import { makeUsersEngine, usersEngine } from "#test/usersEngine.ts";
 
 type Role = typeof Access.Role.Type;
 type Engine = Effect.Success<typeof usersEngine>;

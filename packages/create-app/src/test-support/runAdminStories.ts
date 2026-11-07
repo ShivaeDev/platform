@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { appScript } from "./environment.ts";
+import { appScript } from "#test/environment.ts";
 
 export function runAdminStories(app: string, starter: string, foundationOnly = false) {
 	const child = "src/test-support/deployChild.ts";

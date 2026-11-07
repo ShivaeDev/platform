@@ -1,10 +1,10 @@
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { hookApplication } from "#test/better-auth/hookApplication.ts";
+import { hookHost } from "#test/better-auth/hookHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { CURRENT_PASSWORD } from "#test/passwords.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { hookApplication } from "./hookApplication.ts";
-import { hookHost } from "./hookHost.ts";
 
 const ErrorBody = Schema.Struct({ code: Schema.String, message: Schema.String });
 const passwords = { current: CURRENT_PASSWORD, replacement: "replacement-password" };

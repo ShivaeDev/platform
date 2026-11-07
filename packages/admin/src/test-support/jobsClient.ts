@@ -4,8 +4,8 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { clientRuntime } from "./clientRuntime.ts";
-import type { pages } from "./jobsPages.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
+import type { pages } from "#test/jobsPages.ts";
 
 type Registry = ReturnType<typeof pages>;
 export const jobsClient = Effect.fnUntraced(function* (

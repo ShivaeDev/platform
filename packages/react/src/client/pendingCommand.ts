@@ -3,7 +3,7 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo, useState } from "react";
-import { type ActionState, useAction } from "./resultState.ts";
+import { type ActionState, useAction } from "#client/resultState.ts";
 
 export interface PendingCommandOptions<TInput, TValue> {
 	readonly queries: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[];

@@ -2,14 +2,14 @@ import { join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
 import type { SetupFailure } from "#failure.ts";
+import { FilesystemFailure, orWhenAbsent, readRequiredText } from "#inventory/filesystem.ts";
+import { posix } from "#inventory/ignoreScope.ts";
+import { linesOf } from "#inventory/linesOf.ts";
+import { skillCopies } from "#inventory/skillCopies.ts";
+import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
+import { scopeAbove, walk } from "#inventory/walk.ts";
 import { manifestsIn } from "#manifests/sorted.ts";
 import type { RuleServices, SourceFile } from "#rule.ts";
-import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
-import { posix } from "./ignoreScope.ts";
-import { linesOf } from "./linesOf.ts";
-import { skillCopies } from "./skillCopies.ts";
-import { toolOwnedFiles } from "./toolOwnedFiles.ts";
-import { scopeAbove, walk } from "./walk.ts";
 
 export interface InventoryScope {
 	readonly exclude: readonly string[];

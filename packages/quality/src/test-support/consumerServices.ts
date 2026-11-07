@@ -1,9 +1,9 @@
 import { symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import { repositoryStory } from "#test/repositoryStory.ts";
 import { linkWorkspace } from "#testing/adapters/imports.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
-import { repositoryStory } from "./repositoryStory.ts";
 
 export function effectInstalled() {
 	return repositoryStory.trait("repository", "Effect is installed in the consuming repository", (engine) => {
@@ -17,7 +17,7 @@ export const consumerWorkspace = [
 	{ content: '{"name":"@antumbra/group"}', path: "packages/group/package.json" },
 	{
 		content:
-			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"file:./node_modules/effect"}}',
+			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"0.0.0"}}',
 		path: "packages/group/domain/package.json",
 	},
 ];
@@ -45,7 +45,7 @@ export function workspaceGroupInstalled() {
 export const independentConsumer = [
 	{
 		content:
-			'{"name":"@antumbra/group","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"file:./node_modules/effect"}}',
+			'{"name":"@antumbra/group","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"effect":"0.0.0"}}',
 		path: "packages/group/package.json",
 	},
 	{
@@ -71,7 +71,7 @@ export const independentConsumer = [
 	},
 	{
 		content:
-			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"workspace:*","effect":"file:./node_modules/effect"}}',
+			'{"name":"@antumbra/domain","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/group":"workspace:*","effect":"0.0.0"}}',
 		path: "packages/group/domain/package.json",
 	},
 ];
@@ -81,7 +81,7 @@ export function serviceConsumer(installed: boolean): readonly SeedFile[] {
 	return [
 		{
 			content:
-				'{"name":"@antumbra/app","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/domain":"workspace:*","effect":"file:./node_modules/effect"}}',
+				'{"name":"@antumbra/app","exports":{"./*.ts":{"@shivaedev/source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}},"dependencies":{"@antumbra/domain":"workspace:*","effect":"0.0.0"}}',
 			path: "packages/app/package.json",
 		},
 		{

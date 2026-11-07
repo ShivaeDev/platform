@@ -5,9 +5,9 @@ import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import { planPullRequest } from "#release/planPullRequest.ts";
+import { copyRepository } from "#release/test-support/copyRepository.ts";
+import { git, initRepository } from "#release/test-support/git.ts";
 import config from "#release-config";
-import { copyRepository } from "./copyRepository.ts";
-import { git, initRepository } from "./git.ts";
 
 const write = Effect.fn("ReleaseRepository.write")(function* (root: string, relative: string, text: string) {
 	const fs = yield* FileSystem.FileSystem;

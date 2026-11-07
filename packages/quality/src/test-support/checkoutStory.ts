@@ -2,8 +2,8 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type CheckoutEngine, checkoutVerbs } from "#test/checkoutVerbs.ts";
 import { hookRepository } from "#testing/adapters/hookRepository.ts";
-import { type CheckoutEngine, checkoutVerbs } from "./checkoutVerbs.ts";
 
 function emptyCheckout(): CheckoutEngine {
 	return {

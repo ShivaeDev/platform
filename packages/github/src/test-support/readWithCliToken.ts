@@ -7,7 +7,7 @@ import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { GitHub } from "#github/service.ts";
 import { read } from "#read.ts";
-import { PullRequest } from "./fixtures.ts";
+import { PullRequest } from "#test/fixtures.ts";
 
 export const readWithCliToken = Effect.fnUntraced(function* (
 	apiUrl: string,

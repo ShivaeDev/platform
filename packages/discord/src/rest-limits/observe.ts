@@ -1,6 +1,6 @@
 import { Clock, Effect } from "effect";
 import type { Headers } from "effect/http";
-import type { initialize } from "./initialize.ts";
+import type { initialize } from "#rest-limits/initialize.ts";
 
 export function observe(state: Effect.Success<typeof initialize>) {
 	return Effect.fn("DiscordRestLimits.observe")(function* (route: string, major: string, headers: Headers.Headers) {

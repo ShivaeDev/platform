@@ -4,9 +4,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
-import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
-import { appServer, appServerAt } from "./appServer.ts";
-import { PullRequest } from "./fixtures.ts";
+import { APP_ID, PRIVATE_KEY } from "#test/appFixture.ts";
+import { appServer, appServerAt } from "#test/appServer.ts";
+import { PullRequest } from "#test/fixtures.ts";
 
 type ApiBase = "" | "/" | "/api/v3" | "/api/v3/";
 

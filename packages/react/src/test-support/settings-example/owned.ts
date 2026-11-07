@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { Missing } from "./contract.ts";
-import { EntitiesRepository } from "./repository.ts";
+import { Missing } from "#test/settings-example/contract.ts";
+import { EntitiesRepository } from "#test/settings-example/repository.ts";
 
 export const owned = Effect.fn("SettingsService.owned")(function* (entityId: number) {
 	const { id: userId } = yield* Identity;

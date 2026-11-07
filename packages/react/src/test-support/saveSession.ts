@@ -7,7 +7,7 @@ import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type Create, useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
-import { UnstableSession } from "./UnstableSession.tsx";
+import { UnstableSession } from "#test/UnstableSession.tsx";
 
 const Name = Schema.Struct({ name: Schema.String });
 type Name = typeof Name.Type;

@@ -2,8 +2,8 @@ import type { Effect } from "effect";
 import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import type { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
+import type { NotesRequests } from "#modules/notes/test-support/requests.ts";
 import type { HostOptions, RunningHost } from "#test-support/host.ts";
-import type { NotesRequests } from "./requests.ts";
 
 export interface Account {
 	readonly cookie: string;

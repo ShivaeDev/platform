@@ -1,11 +1,11 @@
 import { posix } from "node:path";
 import ts from "typescript";
+import { buildEntryPaths } from "#adapters/buildEntryPaths.ts";
+import { type BuildBindings, buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
+import { buildArguments, buildHelper } from "#adapters/buildHelper.ts";
+import { importedCall } from "#adapters/importedCall.ts";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { buildEntryPaths } from "./buildEntryPaths.ts";
-import { type BuildBindings, buildEntryValue, buildOption } from "./buildEntryValue.ts";
-import { buildArguments, buildHelper } from "./buildHelper.ts";
-import { importedCall } from "./importedCall.ts";
 
 const ESBUILD = new Set(["build", "buildSync", "context"]);
 

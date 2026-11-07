@@ -1,12 +1,12 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue } from "#server/definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { releaseHeld } from "#test/postgres/releaseTraits.ts";
 import { running, stoppedAfterwards } from "#test/postgres/traits.ts";
 import { scheduled } from "#test/workers.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 const Legacy = defineQueue({ name: "legacy", schema: Schema.Struct({ id: Schema.Number }) });
 const Current = defineQueue({ name: "current", schema: Legacy.schema });

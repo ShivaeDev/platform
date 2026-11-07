@@ -2,10 +2,10 @@ import { Cause, Option, Predicate } from "effect";
 import { createElement, useState } from "react";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import { JobsHealthMetrics } from "./JobsMetrics.tsx";
-import { JobsQueuePicker, JobsQueueView } from "./JobsQueueView.tsx";
-import type { JobsViewClient, RetryJob, RunScheduleNow } from "./jobsTypes.ts";
-import { RunScheduleControl } from "./RunScheduleControl.tsx";
+import { JobsHealthMetrics } from "#client/adapters/JobsMetrics.tsx";
+import { JobsQueuePicker, JobsQueueView } from "#client/adapters/JobsQueueView.tsx";
+import type { JobsViewClient, RetryJob, RunScheduleNow } from "#client/adapters/jobsTypes.ts";
+import { RunScheduleControl } from "#client/adapters/RunScheduleControl.tsx";
 
 export interface JobsViewProps {
 	readonly api: JobsViewClient;

@@ -1,8 +1,8 @@
 import { Cause, Option, Predicate } from "effect";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
+import type { NotesClient } from "#modules/notes/client/make.ts";
 import type { Note } from "#modules/notes/notes.ts";
-import type { NotesClient } from "./make.ts";
 
 export function NoteDelete({
 	client,

@@ -1,8 +1,8 @@
 import ts from "typescript";
+import { specifierSites } from "#imports/specifiers.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { specifierSites } from "./specifiers.ts";
 
 const BARREL = "@effect/platform-node";
 

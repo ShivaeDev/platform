@@ -7,12 +7,12 @@ import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
-import { Access } from "./Access.ts";
-import { clientRuntime } from "./clientRuntime.ts";
-import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { mappedTables } from "./mappedTables.ts";
-import { makeUsersEngine, Page, usersEngine } from "./usersEngine.ts";
-import { availability, rowOf, screenOf, usersReadouts } from "./usersScreenReadouts.ts";
+import { Access } from "#test/Access.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { mappedTables } from "#test/mappedTables.ts";
+import { makeUsersEngine, Page, usersEngine } from "#test/usersEngine.ts";
+import { availability, rowOf, screenOf, usersReadouts } from "#test/usersScreenReadouts.ts";
 
 type Engine = Effect.Success<typeof usersEngine> & {
 	actor: string;

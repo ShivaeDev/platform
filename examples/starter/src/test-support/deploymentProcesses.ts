@@ -2,8 +2,8 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { authPost, credentials } from "./authHttp.ts";
-import { deployChild } from "./deployChild.ts";
+import { authPost, credentials } from "#test-support/authHttp.ts";
+import { deployChild } from "#test-support/deployChild.ts";
 
 type DeployedProcess = Effect.Success<ReturnType<typeof deployChild>>;
 

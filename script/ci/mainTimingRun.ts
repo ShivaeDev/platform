@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { shardTargetMs } from "./shardCount.ts";
+import { shardTargetMs } from "#ci/shardCount.ts";
 
 export interface MainTimingRun {
 	readonly count: number;

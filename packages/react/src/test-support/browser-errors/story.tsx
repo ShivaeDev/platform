@@ -1,8 +1,8 @@
 import { Effect, Queue } from "effect";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { Reporter } from "#test/browser-errors/Reporter.tsx";
 import { Screen } from "#test/Screen.ts";
-import { Reporter } from "./Reporter.tsx";
 
 function browserEvent(kind: "error" | "unhandledrejection", reason: Error | string) {
 	if (kind === "error") {

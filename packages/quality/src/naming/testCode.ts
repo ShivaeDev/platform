@@ -5,10 +5,10 @@ import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { testComposition } from "#imports/testComposition.ts";
 import { packageOf } from "#imports/workspace.ts";
+import { developmentCode } from "#naming/developmentCode.ts";
+import { packageTests } from "#naming/packageTests.ts";
+import { isTestCode } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
-import { developmentCode } from "./developmentCode.ts";
-import { packageTests } from "./packageTests.ts";
-import { isTestCode } from "./testName.ts";
 
 export const testCode = Effect.fn("Tests.testCode")(function* (inputs: RuleInputs) {
 	const posix = yield* Path.Path.pipe(Effect.provide(Path.layer));

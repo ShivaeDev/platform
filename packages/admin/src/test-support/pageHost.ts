@@ -9,8 +9,8 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminPermissionGuard } from "#client/adapters/adminPermissionGuard.ts";
 import { adminDocuments } from "#server/adminDocuments.ts";
-import { answered } from "./answers.ts";
-import { WorkspaceAccess, type WorkspaceRole, Workspaces, workspaceRegistration } from "./workspaces.ts";
+import { answered } from "#test/answers.ts";
+import { WorkspaceAccess, type WorkspaceRole, Workspaces, workspaceRegistration } from "#test/workspaces.ts";
 
 function sessionFor(role: string | undefined) {
 	return role === undefined ? Option.none() : Option.some({ user: { email: "reader@app.test", id: "reader", name: "reader", role } });

@@ -4,9 +4,9 @@ import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
-import { workspaceServer } from "./pageHost.ts";
-import { WorkspaceScreen } from "./WorkspaceScreen.tsx";
-import { WorkspaceAccess, type WorkspaceRole, workspaceRegistration } from "./workspaces.ts";
+import { workspaceServer } from "#test/pageHost.ts";
+import { WorkspaceScreen } from "#test/WorkspaceScreen.tsx";
+import { WorkspaceAccess, type WorkspaceRole, workspaceRegistration } from "#test/workspaces.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

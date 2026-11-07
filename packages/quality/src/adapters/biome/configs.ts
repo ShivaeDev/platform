@@ -1,8 +1,8 @@
 import { posix } from "node:path";
+import { resolvePackage } from "#adapters/biome/resolvePackage.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { type Declaration, decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
 import { itemsOf, type Json, member, type Parsed, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
-import { resolvePackage } from "./resolvePackage.ts";
 
 export interface Preset {
 	readonly declared: readonly Declaration[];

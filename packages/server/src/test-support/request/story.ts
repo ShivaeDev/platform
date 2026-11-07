@@ -5,7 +5,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Api, openHost } from "./feature.ts";
+import { Api, openHost } from "#test/request/feature.ts";
 
 export const requestStory = storyKit({
 	clock: "test",

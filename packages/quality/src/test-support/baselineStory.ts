@@ -4,10 +4,10 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { decodeBaseline } from "#baseline/format.ts";
+import { answerOf, type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
+import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "#test/recordedDebt.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
 import { git, mergeBranch } from "#testing/adapters/git.ts";
-import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "./recordedDebt.ts";
 
 export interface BaselineEngine {
 	answer: CliAnswer | undefined;

@@ -2,7 +2,7 @@ import { Clock, Duration, Effect } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type EventuallyOptions, eventually } from "#eventually.ts";
-import { driveClock } from "./driveClock.ts";
+import { driveClock } from "#test/driveClock.ts";
 
 function notReady(message: string) {
 	return Effect.fail(new Error(message));

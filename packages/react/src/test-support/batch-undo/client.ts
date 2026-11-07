@@ -2,8 +2,8 @@ import { Effect, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { Rows } from "./contract.ts";
-import { makeStore } from "./makeStore.ts";
+import { Rows } from "#test/batch-undo/contract.ts";
+import { makeStore } from "#test/batch-undo/makeStore.ts";
 
 export const makeClient = Effect.gen(function* () {
 	const store = yield* makeStore;

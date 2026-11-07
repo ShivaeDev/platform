@@ -1,8 +1,8 @@
 import { Effect, Fiber, Queue, Stream, SubscriptionRef } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { ending } from "./answers.ts";
-import { type StreamPerson, sessionStreamsEngine } from "./sessionStreamsEngine.ts";
+import { ending } from "#test/answers.ts";
+import { type StreamPerson, sessionStreamsEngine } from "#test/sessionStreamsEngine.ts";
 
 const create = Effect.gen(function* () {
 	const engine = yield* sessionStreamsEngine;

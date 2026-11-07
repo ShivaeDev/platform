@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { NotesRepository } from "./Repository.ts";
-import { notesSqlFailure } from "./sqlFailure.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
+import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const listNotes = Effect.fn("NotesService.listNotes")(function* () {
 	const repository = yield* NotesRepository;

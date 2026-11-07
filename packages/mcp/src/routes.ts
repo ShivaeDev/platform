@@ -5,7 +5,7 @@ import type { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { withSessionUser } from "@shivaedev/identity/server/session.ts";
-import { requestServer } from "./requestServer.ts";
+import { requestServer } from "#requestServer.ts";
 
 export interface Audience<E = never, R = never> {
 	readonly permission?: Permission;

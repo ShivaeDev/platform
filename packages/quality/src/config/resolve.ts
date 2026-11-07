@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { configureRegistered } from "#adapters/rule.ts";
+import type { ConfigInput } from "#config/decode.ts";
 import type { Decoded } from "#decoded.ts";
 import type { ActiveRule } from "#engine/runRules.ts";
 import type { RuleIndex } from "#engine/violation.ts";
 import type { RegisteredRule } from "#rule.ts";
 import { builtInRules } from "#rules/builtIn.ts";
-import type { ConfigInput } from "./decode.ts";
 
 export interface ResolvedRules extends RuleIndex {
 	readonly active: readonly ActiveRule[];

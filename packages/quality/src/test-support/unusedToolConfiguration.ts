@@ -1,4 +1,4 @@
-import { qualityInstalled, repositoryHas } from "./repositoryStory.ts";
+import { qualityInstalled, repositoryHas } from "#test/repositoryStory.ts";
 
 export function unusedToolConfiguration(content: string) {
 	return [

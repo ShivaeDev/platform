@@ -5,10 +5,10 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Cause, Console, Effect, FileSystem, Option, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
-import { addResource } from "./addResource.ts";
-import { CreateAppError } from "./CreateAppError.ts";
-import { createApp } from "./createApp.ts";
-import { updateApp } from "./updateApp.ts";
+import { addResource } from "#addResource.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { createApp } from "#createApp.ts";
+import { updateApp } from "#updateApp.ts";
 
 const program = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;

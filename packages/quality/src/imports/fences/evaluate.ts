@@ -1,10 +1,10 @@
+import { type Compiler, compile, type Matcher } from "#imports/fences/match.ts";
+import type { Fence } from "#imports/fences/model.ts";
+import { labelOf, outgoing, reachedFrom } from "#imports/fences/reach.ts";
+import { compileVocabulary, type Vocabulary } from "#imports/fences/vocabulary.ts";
 import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Finding } from "#rule.ts";
-import { type Compiler, compile, type Matcher } from "./match.ts";
-import type { Fence } from "./model.ts";
-import { labelOf, outgoing, reachedFrom } from "./reach.ts";
-import { compileVocabulary, type Vocabulary } from "./vocabulary.ts";
 
 export type FenceGraph = Pick<ImportGraph, "edges" | "modules">;
 

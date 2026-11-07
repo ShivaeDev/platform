@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { themeStorage } from "#client/adapters/themeStorage.ts";
-import { applyTheme, savedTheme, type Theme } from "./applyTheme.ts";
+import { applyTheme, savedTheme, type Theme } from "#client/applyTheme.ts";
 
 export function ThemeToggle() {
 	const id = useId();

@@ -4,10 +4,10 @@ import { Identity } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
-import { BeforeOrderCommit } from "./BeforeOrderCommit.ts";
-import { Order } from "./contract.ts";
-import { orderMigrations, repositoryLayer } from "./repository.ts";
-import { OrderService } from "./service.ts";
+import { BeforeOrderCommit } from "#test/postgres-example/BeforeOrderCommit.ts";
+import { Order } from "#test/postgres-example/contract.ts";
+import { orderMigrations, repositoryLayer } from "#test/postgres-example/repository.ts";
+import { OrderService } from "#test/postgres-example/service.ts";
 
 export function startWorker(
 	options: {

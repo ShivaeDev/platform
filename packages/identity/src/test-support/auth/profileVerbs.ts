@@ -2,7 +2,7 @@ import { Effect, Logger, Predicate, Result } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { userProfiles } from "#server/better-auth/userProfiles.ts";
-import type { AdminHost } from "./adminHost.ts";
+import type { AdminHost } from "#test/auth/adminHost.ts";
 
 export function profileVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
 	let lookup:

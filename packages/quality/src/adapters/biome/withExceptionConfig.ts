@@ -1,11 +1,11 @@
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
+import { browserOverrides } from "#adapters/biome/browserTargets.ts";
+import { parseConfig, relocateConfig } from "#adapters/biome/relocateConfig.ts";
 import { exceptionConfig } from "#biome/exceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { ignoredPaths } from "#inventory/trackedPaths.ts";
-import { browserOverrides } from "./browserTargets.ts";
-import { parseConfig, relocateConfig } from "./relocateConfig.ts";
 
 export const withExceptionConfig = Effect.fn("Biome.withExceptionConfig")(function* <TValue, TError, TRequirements>(
 	root: string,

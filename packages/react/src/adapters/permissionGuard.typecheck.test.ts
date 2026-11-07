@@ -2,7 +2,7 @@ import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack
 import { expectTypeOf } from "vitest";
 import { permission } from "@shivaedev/access/permission.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
-import { permissionGuard } from "./permissionGuard.ts";
+import { permissionGuard } from "#adapters/permissionGuard.ts";
 
 const root = createRootRouteWithContext<{ readonly session: () => PermissionSession | null }>()({
 	beforeLoad: ({ context, ...route }) => permissionGuard({ session: context.session, signIn: "/login" })(route),

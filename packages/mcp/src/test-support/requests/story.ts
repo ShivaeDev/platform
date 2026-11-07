@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Deferred, Effect, Fiber, Queue, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { call, connect, tool } from "./client.ts";
-import { startServer } from "./startServer.ts";
-import { CallerAnswer, requestTools } from "./tools.ts";
+import { call, connect, tool } from "#test/requests/client.ts";
+import { startServer } from "#test/requests/startServer.ts";
+import { CallerAnswer, requestTools } from "#test/requests/tools.ts";
 
 const start = Effect.fnUntraced(function* () {
 	const directory = yield* Effect.acquireRelease(

@@ -2,8 +2,8 @@ import { type Context, Effect, Option } from "effect";
 import type { CreateCheckRun, FindCheckRun, UpdateCheckRun } from "#checkRunSchemas.ts";
 import type { GitHub } from "#github/service.ts";
 import type { StickyComment } from "#stickyCommentSchemas.ts";
-import type { FakeRepository } from "./fakeRepository.ts";
-import { answered } from "./outcome.ts";
+import type { FakeRepository } from "#test/fakeRepository.ts";
+import { answered } from "#test/outcome.ts";
 
 type Client = Context.Service.Shape<typeof GitHub>;
 type Report = Omit<typeof StickyComment.Type, "owner" | "repo" | "number">;

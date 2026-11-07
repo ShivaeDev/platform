@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
-import { Order } from "./contract.ts";
+import { Order } from "#test/postgres-example/contract.ts";
 
 export function hintWord(hint: QueryUpdate) {
 	return hint._tag === "Result" ? `result ${Schema.decodeUnknownSync(Order)(hint.value).name}` : hint._tag.toLowerCase();

@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { changingIdentity, type IdentityChange } from "./identityFiles.ts";
-import { pendingVerbs } from "./pendingAttempt.ts";
-import { reportReadouts } from "./reports.ts";
+import { changingIdentity, type IdentityChange } from "#test/identityFiles.ts";
+import { pendingVerbs } from "#test/pendingAttempt.ts";
+import { reportReadouts } from "#test/reports.ts";
 import {
 	alwaysFailing,
 	BESIDE,
@@ -18,8 +18,8 @@ import {
 	losingTest,
 	passing,
 	unhandledError,
-} from "./specFiles.ts";
-import { createSuite, listFiles, REPORTS, readFile, runProgram, spawnCli, writeFile } from "./suite.ts";
+} from "#test/specFiles.ts";
+import { createSuite, listFiles, REPORTS, readFile, runProgram, spawnCli, writeFile } from "#test/suite.ts";
 
 function withArgs(args: readonly string[]): string {
 	return args.length === 0 ? "" : ` with ${args.join(" ")}`;

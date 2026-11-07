@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyDatabase } from "#server/storyDatabase.ts";
-import { type InitializerSource, initializerLayer } from "./initializerLayer.ts";
-import { configured } from "./postgres.ts";
-import { tableNames } from "./tableNames.ts";
+import { type InitializerSource, initializerLayer } from "#test/initializerLayer.ts";
+import { configured } from "#test/postgres.ts";
+import { tableNames } from "#test/tableNames.ts";
 
 const appState = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

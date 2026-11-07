@@ -1,10 +1,10 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Publish } from "#publish.ts";
-import { Note } from "./driverVerbs.ts";
-import { type BatchEnding, COMMIT_REFUSED, createEngine, database, labels, type TransactionEnding } from "./engine.ts";
-import { type Change, Current, makeDatabase } from "./fakeDatabase.ts";
-import { verbs } from "./verbs.ts";
+import { Note } from "#test/driverVerbs.ts";
+import { type BatchEnding, COMMIT_REFUSED, createEngine, database, labels, type TransactionEnding } from "#test/engine.ts";
+import { type Change, Current, makeDatabase } from "#test/fakeDatabase.ts";
+import { verbs } from "#test/verbs.ts";
 
 export const changes = storyKit({
 	create: createEngine,

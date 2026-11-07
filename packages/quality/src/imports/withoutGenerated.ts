@@ -1,10 +1,10 @@
 import { basename, posix, relative } from "node:path";
 import { Effect } from "effect";
 import { SetupFailure } from "#failure.ts";
+import type { ImportGraph } from "#imports/graph.ts";
 import { emptyScope, type IgnoreScope, verdictFor, withIgnoreFile } from "#inventory/ignoreScope.ts";
 import { trackedPaths } from "#inventory/trackedPaths.ts";
 import type { RuleInputs } from "#rule.ts";
-import type { ImportGraph } from "./graph.ts";
 
 type Reader = Pick<RuleInputs, "readText" | "root">;
 

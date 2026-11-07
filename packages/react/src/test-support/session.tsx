@@ -1,10 +1,10 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { countedHttp } from "#test/countedHttp.ts";
 import { Editor } from "#test/order-example/Editor.tsx";
 import { makeClient } from "#test/order-example/makeClient.ts";
-import { countedHttp } from "./countedHttp.ts";
-import { SessionRegistry } from "./SessionRegistry.tsx";
+import { SessionRegistry } from "#test/SessionRegistry.tsx";
 
 export interface Session {
 	readonly id: string;

@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#server/postgres.ts";
-import { adminUrl } from "./postgres.ts";
+import { adminUrl } from "#test/postgres.ts";
 
 export class Item extends Model.Class<Item>("Item")({
 	id: Model.GeneratedByDb(Schema.Number),

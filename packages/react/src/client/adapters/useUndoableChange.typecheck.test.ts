@@ -2,8 +2,8 @@ import { Context, Effect, Layer, type Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { useUndoableChange } from "#client/adapters/useUndoableChange.ts";
 import type { deployUpdate } from "#client/deployUpdate.ts";
-import { useUndoableChange } from "./useUndoableChange.ts";
 
 class Store extends Context.Service<Store, { readonly name: string }>()("@shivaedev/react/test/UndoStore") {}
 class Missing extends Context.Service<Missing, { readonly name: string }>()("@shivaedev/react/test/MissingUndoStore") {}

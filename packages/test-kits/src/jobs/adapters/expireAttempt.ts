@@ -1,6 +1,6 @@
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import type { WorkerJob } from "@shivaedev/jobs/server/job.ts";
-import { quotedSchema } from "./quotedSchema.ts";
+import { quotedSchema } from "#jobs/adapters/quotedSchema.ts";
 
 export async function expireAttempt(
 	client: EngineClient,

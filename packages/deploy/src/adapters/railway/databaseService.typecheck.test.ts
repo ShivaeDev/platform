@@ -1,5 +1,5 @@
 import { volume } from "railway/iac";
-import type { DatabaseServiceConfig } from "./databaseService.ts";
+import type { DatabaseServiceConfig } from "#adapters/railway/databaseService.ts";
 
 const disk = volume("postgres-data");
 

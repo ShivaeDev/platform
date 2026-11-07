@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { FileSystem } from "effect";
-import { releasePullRequest } from "./pullRequest.ts";
+import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 export const effectPackages = releasePullRequest.trait("main", "npm packages require Effect 4.1.0", function* ({ root, registry, git }) {
 	const fs = yield* FileSystem.FileSystem;

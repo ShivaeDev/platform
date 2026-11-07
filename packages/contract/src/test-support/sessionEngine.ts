@@ -13,9 +13,9 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { QueryReference } from "#serverMetadata.ts";
+import type { Mark } from "#test/reRead.ts";
 import { Guard, Preferences, preferences, Save, Session } from "#test/sessionContract.ts";
-import type { Mark } from "./reRead.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export type Person = "alice" | "bob";
 export type PreferenceView = "preferences" | "list" | "preference 1";

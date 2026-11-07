@@ -1,10 +1,10 @@
 import { posix } from "node:path";
 import ts from "typescript";
+import { buildEntryPaths } from "#adapters/buildEntryPaths.ts";
+import { buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
+import { importedCall } from "#adapters/importedCall.ts";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { buildEntryPaths } from "./buildEntryPaths.ts";
-import { buildEntryValue, buildOption } from "./buildEntryValue.ts";
-import { importedCall } from "./importedCall.ts";
 
 const COMMANDS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 

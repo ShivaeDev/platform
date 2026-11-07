@@ -7,7 +7,7 @@ import type { Access } from "#test/Access.ts";
 import { adminEngine } from "#test/adminEngine.ts";
 import { answered } from "#test/answers.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
-import { type RoutePaths, routePages } from "./routePages.ts";
+import { type RoutePaths, routePages } from "#test/routePages.ts";
 
 function firstChange<E, R>(changes: Stream.Stream<QueryUpdate, E, R>) {
 	return changes.pipe(

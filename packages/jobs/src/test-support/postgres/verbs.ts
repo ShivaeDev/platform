@@ -7,11 +7,11 @@ import type { QueueDefinition } from "#server/definition.ts";
 import { deadLetterQueueName } from "#server/health.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { JobRequest } from "#test/JobRequest.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/postgres/databaseEngine.ts";
+import { admin, provided, runningIn, type StartOptions, startRuntime } from "#test/postgres/engine.ts";
+import { enqueuePayload } from "#test/postgres/enqueuePayload.ts";
+import { passTime } from "#test/postgres/timeVerbs.ts";
 import type { Registration } from "#test/workers.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { admin, provided, runningIn, type StartOptions, startRuntime } from "./engine.ts";
-import { enqueuePayload } from "./enqueuePayload.ts";
-import { passTime } from "./timeVerbs.ts";
 
 type Tell = (line: string) => void;
 

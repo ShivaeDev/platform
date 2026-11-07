@@ -4,13 +4,13 @@ import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
+import { App } from "#test/reconnect/App.tsx";
+import { makeAuth } from "#test/reconnect/auth.ts";
+import { openHost } from "#test/reconnect/openHost.ts";
+import { settleOnSignal } from "#test/reconnect/settleOnSignal.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { App } from "./App.tsx";
-import { makeAuth } from "./auth.ts";
-import { openHost } from "./openHost.ts";
-import { settleOnSignal } from "./settleOnSignal.ts";
 
 export const reconnectSessions = storyKit({
 	*create() {

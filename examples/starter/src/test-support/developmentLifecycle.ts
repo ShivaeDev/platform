@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { DateTime, Deferred, Effect, Exit, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { developmentServer } from "./developmentServer.ts";
+import { developmentServer } from "#test-support/developmentServer.ts";
 
 type DevelopmentServer = Effect.Success<ReturnType<typeof developmentServer>>;
 

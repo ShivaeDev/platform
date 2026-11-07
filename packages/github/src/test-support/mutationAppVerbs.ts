@@ -1,7 +1,7 @@
 import { type Context, Effect, Schema } from "effect";
 import { GitHub } from "#github/service.ts";
+import type { appServer } from "#test/appServer.ts";
 import { write } from "#write.ts";
-import type { appServer } from "./appServer.ts";
 
 export function mutationAppVerbs(
 	context: Context.Context<Context.Service.Identifier<typeof GitHub>>,

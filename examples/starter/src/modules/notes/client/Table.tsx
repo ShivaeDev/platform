@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Badge } from "#client/ui/badge.tsx";
 import { Button } from "#client/ui/button.tsx";
+import { DataTable, type DataTableFeatures } from "#modules/notes/client/DataTable.tsx";
 import type { Note } from "#modules/notes/notes.ts";
-import { DataTable, type DataTableFeatures } from "./DataTable.tsx";
 
 type SavedNote = typeof Note.Type;
 

@@ -1,5 +1,5 @@
 import { Deferred, Effect, Fiber } from "effect";
-import type { PolicyHost } from "./host.ts";
+import type { PolicyHost } from "#test/sign-in-policy/host.ts";
 
 export const policyProbe = Effect.gen(function* () {
 	const started = yield* Deferred.make<void>();

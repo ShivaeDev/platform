@@ -5,10 +5,10 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { publicConfigLayer } from "@shivaedev/server/rpc-server/publicConfigLayer.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { PublicConfigDeclaration } from "#test/public-config/Declaration.ts";
+import { configView } from "#test/public-config/view.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { PublicConfigDeclaration } from "./Declaration.ts";
-import { configView } from "./view.ts";
 
 interface State {
 	readonly screen: Screen;

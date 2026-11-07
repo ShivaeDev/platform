@@ -1,5 +1,5 @@
+import { sqlTokens, tableAt } from "#rules/stories/adapters/sqlTokens.ts";
 import type { SqlText } from "#rules/stories/sqlText.ts";
-import { sqlTokens, tableAt } from "./sqlTokens.ts";
 
 const SIGNATURES = [
 	["id", "email", "emailverified"],

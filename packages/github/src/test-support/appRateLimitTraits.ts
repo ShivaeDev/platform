@@ -1,5 +1,5 @@
-import { appGithub } from "./appGithub.ts";
-import { budgetHeaders } from "./budgetHeaders.ts";
+import { appGithub } from "#test/appGithub.ts";
+import { budgetHeaders } from "#test/budgetHeaders.ts";
 
 export type AppRoute = "app" | "installation" | "token";
 export type AppLimit = "primary" | "secondary" | "message";

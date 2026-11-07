@@ -2,12 +2,12 @@ import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
+import type { Project } from "#adapters/imports/projects.ts";
 import type { Ambient } from "#imports/ambient.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
 import type { ImportRequest } from "#imports/extract.ts";
 import { builtinName, nameAt, packageNameOf } from "#imports/packageName.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import type { Project } from "./projects.ts";
 
 const NODE_MODULES = "/node_modules/";
 

@@ -1,9 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { baselineStory } from "#test/baselineStory.ts";
+import { writeAll } from "#test/recordedDebt.ts";
 import { commitAll, git } from "#testing/adapters/git.ts";
 import { linkPackage } from "#testing/adapters/tree.ts";
-import { baselineStory } from "./baselineStory.ts";
-import { writeAll } from "./recordedDebt.ts";
 
 export function remoteBranches(refs: Readonly<Record<string, "main" | "work">>, head?: string) {
 	const pointers = Object.entries(refs).map(([ref, branch]) => `${ref} points at ${branch}`);

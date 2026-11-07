@@ -6,7 +6,7 @@ import { Reactivity } from "effect/reactivity";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { otlpReceiver } from "#server/otlpReceiver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { recording } from "./spanRecording.ts";
+import { recording } from "#test/spanRecording.ts";
 
 const database = postgresTestUrl("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
 

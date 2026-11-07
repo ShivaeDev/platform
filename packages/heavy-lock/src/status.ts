@@ -1,5 +1,5 @@
 import { DateTime } from "effect";
-import type { Holder } from "./holder.ts";
+import type { Holder } from "#holder.ts";
 
 export function elapsed(fromMs: number, toMs: number): string {
 	const seconds = Math.max(0, Math.round((toMs - fromMs) / 1000));

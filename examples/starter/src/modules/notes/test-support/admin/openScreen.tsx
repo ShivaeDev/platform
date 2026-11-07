@@ -1,8 +1,8 @@
 import { Effect, Predicate } from "effect";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { AppAccess } from "#AppAccess.ts";
+import type { AdminScreen } from "#modules/notes/test-support/admin/screens.tsx";
 import { appScreen } from "#modules/notes/test-support/appScreen.tsx";
-import type { AdminScreen } from "./screens.tsx";
 
 const warnings = expectNoReactWarnings();
 

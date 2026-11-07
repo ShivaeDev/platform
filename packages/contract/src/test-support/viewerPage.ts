@@ -4,8 +4,8 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
-import { storyRuntime } from "./storyRuntime.ts";
-import { Notes, type viewerEngine } from "./viewerEngine.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
+import { Notes, type viewerEngine } from "#test/viewerEngine.ts";
 
 export type PageQuery = { readonly kind: "list"; readonly title: string } | { readonly kind: "listFor"; readonly userId: string };
 

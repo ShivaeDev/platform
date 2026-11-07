@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { MigrationStartedAt } from "#MigrationStartedAt.ts";
-import type { SchemaComponent } from "./SchemaComponent.ts";
+import type { SchemaComponent } from "#SchemaComponent.ts";
 
 export const readPostgresRelease = Effect.fn("EffectSql.readPostgresRelease")(function* (table = "effect_sql_migrations") {
 	const sql = yield* SqlClient.SqlClient;

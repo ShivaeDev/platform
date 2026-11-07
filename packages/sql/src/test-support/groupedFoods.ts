@@ -6,10 +6,10 @@ import { clientOptions, type SqlNameTransforms } from "#clientOptions.ts";
 import { Model } from "#Model.ts";
 import { postgresLayer } from "#postgresLayer.ts";
 import { makeRepository } from "#repository.ts";
-import { onPostgres } from "./engines.ts";
-import { attempt } from "./outcome.ts";
-import { postgresOptions } from "./postgres.ts";
-import { ownTable, recording, statementKinds, statementLog, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { attempt } from "#test/outcome.ts";
+import { postgresOptions } from "#test/postgres.ts";
+import { ownTable, recording, statementKinds, statementLog, uniqueTable } from "#test/writeTables.ts";
 
 export class Food extends NativeModel.Class<Food>("GroupedFood")({
 	energy: Model.Group({ expected: Schema.NumberFromString, high: Schema.NumberFromString, low: Schema.NumberFromString }, { prefix: "energy_" }),

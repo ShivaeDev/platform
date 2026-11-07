@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import type { FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import type { AppJwt, githubAppCredentials } from "#github/adapters/credentials.ts";
 import type { GitHubAppAccess } from "#github/fake.ts";
-import type { AppJwt, githubAppCredentials } from "./credentials.ts";
 
 export const appProvider = Effect.fnUntraced(function* (credentials: ReturnType<typeof githubAppCredentials>, prefix: string) {
 	const clock = yield* Clock.Clock;

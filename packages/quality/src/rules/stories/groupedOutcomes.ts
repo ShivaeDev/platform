@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
-import { importBindings } from "./importBindings.ts";
-import { storySources } from "./sources.ts";
-import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
+import { importBindings } from "#rules/stories/importBindings.ts";
+import { storySources } from "#rules/stories/sources.ts";
+import { memberName, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	'Checks several outcomes with consecutive expect(yield* …) lines. Let the story\'s words lead: yield* outcomes([["label", () => readout(), expected], …]) from @shivaedev/test-story/server/outcomes.ts, one row per outcome. Keep a plain expect for a single outcome.';

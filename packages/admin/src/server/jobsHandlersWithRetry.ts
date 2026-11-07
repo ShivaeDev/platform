@@ -6,7 +6,7 @@ import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import { JobsNotFailed, type jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { JobsQueueUnregistered } from "#jobs/schemas.ts";
 import { RetryJobs } from "#permissions.ts";
-import { jobsFailures, jobsReadHandlers } from "./jobsHandlers.ts";
+import { jobsFailures, jobsReadHandlers } from "#server/jobsHandlers.ts";
 
 export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[], TService>(
 	page: ReturnType<typeof jobsPageWithRetry<TQueues>>,

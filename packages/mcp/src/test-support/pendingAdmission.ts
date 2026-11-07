@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { admittedMcp } from "./mcp.ts";
+import { admittedMcp } from "#test/mcp.ts";
 
 export function pendingAdmission(name: string) {
 	return admittedMcp.trait("connections", `${name}'s next admission check waits for its provider`, function* (engine) {

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { jobsEngine } from "./jobsEngine.ts";
-import { refused } from "./jobsNames.ts";
+import type { jobsEngine } from "#test/jobsEngine.ts";
+import { refused } from "#test/jobsNames.ts";
 
 export function scheduleActions(engine: Effect.Success<typeof jobsEngine>, tell: (line: string) => void) {
 	return {

@@ -3,12 +3,12 @@ import { Context, Deferred, Effect, Fiber, Layer, Schema } from "effect";
 import { State } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
 import { requestFailure } from "#requestFailure.ts";
+import type { Engine } from "#test/engine.ts";
+import { GRAPHQL, REPOSITORY } from "#test/githubModel.ts";
+import { type FileOperation, type Gate, makeGate } from "#test/io.ts";
+import { clockTime, described, request, snapshotPhrase, transitionLines } from "#test/readouts.ts";
 import { poll } from "#watcher/poll.ts";
 import { Watcher } from "#watcher/service.ts";
-import type { Engine } from "./engine.ts";
-import { GRAPHQL, REPOSITORY } from "./githubModel.ts";
-import { type FileOperation, type Gate, makeGate } from "./io.ts";
-import { clockTime, described, request, snapshotPhrase, transitionLines } from "./readouts.ts";
 
 export function emitTo(engine: Engine) {
 	return (line: WatchEvent) =>

@@ -2,12 +2,12 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createDatabaseEngine } from "./databaseEngine.ts";
-import { databaseVerbs } from "./databaseVerbs.ts";
-import { limitVerbs } from "./limitVerbs.ts";
-import { adminUrl, configured } from "./postgres.ts";
-import { raceVerbs } from "./raceVerbs.ts";
-import { withCatalogClock } from "./withCatalogClock.ts";
+import { createDatabaseEngine } from "#test/databaseEngine.ts";
+import { databaseVerbs } from "#test/databaseVerbs.ts";
+import { limitVerbs } from "#test/limitVerbs.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
+import { raceVerbs } from "#test/raceVerbs.ts";
+import { withCatalogClock } from "#test/withCatalogClock.ts";
 
 export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },

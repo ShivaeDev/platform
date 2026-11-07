@@ -1,4 +1,4 @@
-import { releasePullRequest } from "./pullRequest.ts";
+import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 export const missed = releasePullRequest.trait("main", "an earlier react release is on main but missing from npm", function* ({ pushMain, write }) {
 	yield* write("packages/react/package.json", '{"name":"@shivaedev/react","version":"0.38.0"}\n');

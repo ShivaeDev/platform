@@ -5,9 +5,9 @@ import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { currentDatabase } from "./databaseBlocks.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { attempt } from "./outcome.ts";
+import { currentDatabase } from "#test/databaseBlocks.ts";
+import type { DatabaseEngine } from "#test/databaseEngine.ts";
+import { attempt } from "#test/outcome.ts";
 
 type Wrapper = "a rollback test" | "an isolated block";
 

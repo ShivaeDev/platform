@@ -4,10 +4,10 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { querySignals } from "#querySignals.ts";
-import { shown } from "./answers.ts";
-import { completionEngine, records } from "./completionEngine.ts";
-import { type Mark, markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
+import { shown } from "#test/answers.ts";
+import { completionEngine, records } from "#test/completionEngine.ts";
+import { type Mark, markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
 
 export const completionStory = storyKit({
 	clock: "test",

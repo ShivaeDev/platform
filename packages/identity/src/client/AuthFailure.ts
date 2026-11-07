@@ -1,5 +1,5 @@
 import { type Cause, Schema } from "effect";
-import { AuthFailureCode } from "./AuthFailureCode.ts";
+import { AuthFailureCode } from "#client/AuthFailureCode.ts";
 
 export type AuthFailureWithCodes<TCode extends string> = Pick<AuthFailure, "_tag" | "cause"> &
 	Cause.YieldableError & { readonly code: AuthFailureCode | TCode };

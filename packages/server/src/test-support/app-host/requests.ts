@@ -1,13 +1,13 @@
 import { request } from "node:http";
 import { Effect, Result } from "effect";
 import { answered, decodedErrorWords, resultOf } from "@shivaedev/test-story/server/answers.ts";
-import { call, post } from "./fixture.ts";
-import { healthVerbs } from "./healthVerbs.ts";
-import { createInvite } from "./invites.ts";
-import { directPing, ping } from "./ping.ts";
-import { postBody } from "./postBody.ts";
-import { callPublicFailure } from "./publicFailureRpc.ts";
-import { type HostState, io } from "./state.ts";
+import { call, post } from "#test/app-host/fixture.ts";
+import { healthVerbs } from "#test/app-host/healthVerbs.ts";
+import { createInvite } from "#test/app-host/invites.ts";
+import { directPing, ping } from "#test/app-host/ping.ts";
+import { postBody } from "#test/app-host/postBody.ts";
+import { callPublicFailure } from "#test/app-host/publicFailureRpc.ts";
+import { type HostState, io } from "#test/app-host/state.ts";
 
 type Headers = Readonly<Record<string, string>>;
 

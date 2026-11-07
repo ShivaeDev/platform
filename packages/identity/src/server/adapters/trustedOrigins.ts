@@ -1,6 +1,6 @@
 import { Option } from "effect";
+import { localTransport } from "#server/adapters/local.ts";
 import type { OriginPolicy, OriginRequest, TrustedOriginsOptions } from "#server/origin.ts";
-import { localTransport } from "./local.ts";
 
 export function trustedOrigins(options: TrustedOriginsOptions): OriginPolicy {
 	const sameOrigin = options.sameOrigin === undefined ? undefined : localTransport(options.sameOrigin.trustedProxy);

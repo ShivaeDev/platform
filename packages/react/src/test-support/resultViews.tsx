@@ -3,8 +3,8 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { type ResultState, useAction, useQuery } from "#client/resultState.ts";
-import { causeWords, dataWords, statusWords } from "./outcomeWords.ts";
-import type { Dispatch, ResultEngine } from "./resultEngine.ts";
+import { causeWords, dataWords, statusWords } from "#test/outcomeWords.ts";
+import type { Dispatch, ResultEngine } from "#test/resultEngine.ts";
 
 export function QueryValue<A>({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<A>> }) {
 	return <output>{Option.match(useQuery(atom).data, { onNone: () => "loading", onSome: String })}</output>;

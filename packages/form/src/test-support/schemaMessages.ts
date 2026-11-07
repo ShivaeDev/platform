@@ -1,6 +1,6 @@
 import { Deferred, Effect, Schema, SchemaGetter } from "effect";
 import { Invalid } from "#shape.ts";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 export const Passwords = Schema.Struct({ confirmation: Schema.String, password: Schema.String }).check(
 	Schema.makeFilter((value) => value.password === value.confirmation, { message: "Passwords must match" }),

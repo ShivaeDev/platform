@@ -2,8 +2,8 @@ import { Effect, Option, type Redacted, Result } from "effect";
 import { HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
+import { privateFailures } from "#server/diagnostics.ts";
 import { enqueueWebhookJobs, type WebhookSource } from "#server/registration.ts";
-import { privateFailures } from "./diagnostics.ts";
 
 export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	name: string,

@@ -5,10 +5,10 @@ import { readKeys } from "@shivaedev/changes/keys.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AlreadyDone, StreamConflict, UnsupportedEventVersion } from "#errors.ts";
-import { holdEarlyCommit, outcome, raceRebuildAndCatchUp, writersRace } from "./concurrency.ts";
-import { configured, database } from "./database.ts";
-import { noteEngine, notes } from "./notes.ts";
-import { receiptVerbs } from "./receiptVerbs.ts";
+import { holdEarlyCommit, outcome, raceRebuildAndCatchUp, writersRace } from "#test/concurrency.ts";
+import { configured, database } from "#test/database.ts";
+import { noteEngine, notes } from "#test/notes.ts";
+import { receiptVerbs } from "#test/receiptVerbs.ts";
 
 const create = Effect.gen(function* () {
 	const engine = yield* noteEngine;

@@ -5,9 +5,9 @@ import { Activity, act, StrictMode, Suspense, startTransition } from "react";
 import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { DraftScreen } from "./DraftScreen.tsx";
-import { DraftSuspender } from "./DraftSuspender.tsx";
-import { draftInitial, type Held, type Row } from "./draftFields.ts";
+import { DraftScreen } from "#test/DraftScreen.tsx";
+import { DraftSuspender } from "#test/DraftSuspender.tsx";
+import { draftInitial, type Held, type Row } from "#test/draftFields.ts";
 
 export async function suspendedDraftView(view: Rendered, persistence: Effect.Success<typeof draftPersistence>) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));

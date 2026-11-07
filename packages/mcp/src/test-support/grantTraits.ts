@@ -1,10 +1,10 @@
 import { DateTime, Effect } from "effect";
-import { connects } from "./client.ts";
-import { hashGrantToken } from "./hashGrantToken.ts";
-import { person } from "./host.ts";
-import { mcp } from "./mcp.ts";
-import { oauthVerbs } from "./oauthVerbs.ts";
-import { holdsToken } from "./traits.ts";
+import { connects } from "#test/client.ts";
+import { hashGrantToken } from "#test/hashGrantToken.ts";
+import { person } from "#test/host.ts";
+import { mcp } from "#test/mcp.ts";
+import { oauthVerbs } from "#test/oauthVerbs.ts";
+import { holdsToken } from "#test/traits.ts";
 
 export function consentedClient(name: string, client = name, offline = false) {
 	return mcp.trait("tokens", `${name} has consented to ${client}${offline ? " with offline access" : ""}`, function* (engine) {

@@ -15,7 +15,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
-import { Api, diagnostic, handlers } from "./api.ts";
+import { Api, diagnostic, handlers } from "#test/native-sessions/api.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";
 export const ANDROID_ORIGIN = "https://localhost";

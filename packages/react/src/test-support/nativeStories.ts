@@ -3,11 +3,11 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { NativeNotesView } from "./NativeNotesView.ts";
-import { NotesClient } from "./NotesClient.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { NativeNotesView } from "#test/NativeNotesView.ts";
+import { NotesClient } from "#test/NotesClient.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 interface State {
 	view?: Rendered;

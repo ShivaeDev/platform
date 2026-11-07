@@ -4,7 +4,7 @@ import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.t
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const decodeSession = Schema.decodeUnknownSync(Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String }) })));
 

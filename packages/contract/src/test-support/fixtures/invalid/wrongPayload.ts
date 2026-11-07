@@ -1,3 +1,3 @@
-import { api } from "./client.ts";
+import { api } from "#test/fixtures/invalid/client.ts";
 
 api.get.query({ id: "1" });

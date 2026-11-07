@@ -6,10 +6,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { authMigrationFiles } from "#test/better-auth/migrationFiles.ts";
+import { authMigrationSchema } from "#test/better-auth/migrationSchema.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { authMigrationFiles } from "./migrationFiles.ts";
-import { authMigrationSchema } from "./migrationSchema.ts";
 
 const columns = Effect.flatMap(
 	SqlClient.SqlClient,

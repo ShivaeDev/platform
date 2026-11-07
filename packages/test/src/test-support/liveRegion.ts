@@ -2,9 +2,9 @@ import { Clock, Data, Effect } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { clockReading } from "#test/clockReading.ts";
+import { driveClock } from "#test/driveClock.ts";
 import { withLive } from "#withLive.ts";
-import { clockReading } from "./clockReading.ts";
-import { driveClock } from "./driveClock.ts";
 
 class NotReady extends Data.TaggedError("NotReady")<{ readonly message: string }> {}
 

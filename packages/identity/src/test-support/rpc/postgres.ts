@@ -3,7 +3,7 @@ import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { createProvider } from "./harness.ts";
+import { createProvider } from "#test/rpc/harness.ts";
 
 export const { url: databaseUrl } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 export const postgres = makePostgresTestLayer({

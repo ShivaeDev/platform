@@ -2,9 +2,9 @@ import { Layer } from "effect";
 import { HttpServer } from "effect/http";
 import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
-import { ping } from "./ping.ts";
-import { RuntimeValue, runtimeLayer } from "./runtimeLayer.ts";
-import type { HostState } from "./state.ts";
+import { ping } from "#test/app-host/ping.ts";
+import { RuntimeValue, runtimeLayer } from "#test/app-host/runtimeLayer.ts";
+import type { HostState } from "#test/app-host/state.ts";
 
 async function listening(runtime: Pick<PlatformRuntime<HttpServer.HttpServer, unknown>, "runPromise">) {
 	const server = await runtime.runPromise(HttpServer.HttpServer);

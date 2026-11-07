@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { plural } from "#report/plural.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
-import { isDirective, isPragma, Pragmas } from "./kinds.ts";
-import { commentsOf, type SourceComment } from "./scan.ts";
+import { isDirective, isPragma, Pragmas } from "#rules/comments/kinds.ts";
+import { commentsOf, type SourceComment } from "#rules/comments/scan.ts";
 
 const MaxPerFileOptions = Schema.Struct({
 	allow: Pragmas,

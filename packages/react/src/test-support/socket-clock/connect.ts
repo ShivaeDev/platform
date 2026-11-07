@@ -4,8 +4,8 @@ import * as Atom from "effect/reactivity/Atom";
 import { RpcClient } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { SocketClock } from "@shivaedev/contract/SocketClock.ts";
+import { Notes } from "#test/socket-clock/feature.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { Notes } from "./feature.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string, connections: Queue.Queue<string>, controlled = false) {
 	const configured = controlled ? { runtime: yield* storyRuntime } : {};

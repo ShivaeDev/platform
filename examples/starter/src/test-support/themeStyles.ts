@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { contrastGuidance } from "./contrastGuidance.ts";
-import { focusPairs, textPairs } from "./themePairs.ts";
+import { contrastGuidance } from "#test-support/contrastGuidance.ts";
+import { focusPairs, textPairs } from "#test-support/themePairs.ts";
 
 function failures(css: string, theme: "light" | "dark", pairs: readonly (readonly [string, string])[], minimum: number) {
 	return pairs.flatMap(([foreground, background]) => {

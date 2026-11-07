@@ -13,10 +13,10 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import type { QueryReference } from "#serverMetadata.ts";
-import { shown, times } from "./answers.ts";
-import { type Mark, markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { shown, times } from "#test/answers.ts";
+import { type Mark, markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 const records = collection("bigint-records", Schema.String);
 const Get = query("get", {

@@ -3,11 +3,11 @@ import { TestClock } from "effect/testing";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { View } from "#test/command-reconnect/View.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "#test/socket-clock/connect.ts";
 import { openHost } from "#test/socket-clock/openHost.ts";
-import { View } from "./View.tsx";
 
 export const commandReconnect = storyKit({
 	clock: "test",

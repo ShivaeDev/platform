@@ -4,12 +4,12 @@ import { Clock, ConfigProvider, Context, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type { Options } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
+import { makeIo } from "#test/io.ts";
+import { makeOutput } from "#test/makeOutput.ts";
+import { startServer } from "#test/server.ts";
+import { services } from "#test/services.ts";
+import { makeWatchProcess } from "#test/watchProcess.ts";
 import { Watcher } from "#watcher/service.ts";
-import { makeIo } from "./io.ts";
-import { makeOutput } from "./makeOutput.ts";
-import { startServer } from "./server.ts";
-import { services } from "./services.ts";
-import { makeWatchProcess } from "./watchProcess.ts";
 
 export const nativeIo = Layer.mergeAll(
 	NodeServices.layer,

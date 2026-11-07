@@ -1,12 +1,12 @@
 import { Effect, Option, Scope } from "effect";
 import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
+import { registerJobs, registrationName } from "#server/adapters/register.ts";
 import { retireJobs } from "#server/adapters/retireJobs.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
-import { registerJobs, registrationName } from "./register.ts";
 
 export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,

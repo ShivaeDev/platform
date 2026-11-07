@@ -3,10 +3,10 @@ import { dirname, join } from "node:path";
 import { Console, Effect, FileSystem, Layer } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { chromium } from "playwright";
+import { attempt } from "#adapters/attempt.ts";
+import { pageAdapter } from "#adapters/page.ts";
 import { Browser } from "#Browser.ts";
 import { BrowserCheckError } from "#BrowserCheckError.ts";
-import { attempt } from "./attempt.ts";
-import { pageAdapter } from "./page.ts";
 
 export const playwright = Layer.effect(
 	Browser,

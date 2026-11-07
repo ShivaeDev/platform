@@ -1,5 +1,5 @@
+import { knipFindings } from "#adapters/knip/findings.ts";
 import type { Findings } from "#rule.ts";
-import { knipFindings } from "./findings.ts";
 
 export function knipReport(stdout: string, stderr: string, code: number): Findings {
 	let report: Findings;

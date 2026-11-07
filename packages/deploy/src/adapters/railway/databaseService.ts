@@ -1,7 +1,7 @@
 import type { DatabaseConfig, VolumeMount, VolumeNode } from "railway/iac";
-import { checkPostgresImage } from "./checkPostgresImage.ts";
-import { configurePostgres } from "./configurePostgres.ts";
-import type { PageCacheTrim } from "./postgresStartCommand.ts";
+import { checkPostgresImage } from "#adapters/railway/checkPostgresImage.ts";
+import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
+import type { PageCacheTrim } from "#adapters/railway/postgresStartCommand.ts";
 
 export type DatabaseServiceConfig = DatabaseConfig & {
 	limits: { cpu: number; memoryBytes: number; diskBytes?: number };

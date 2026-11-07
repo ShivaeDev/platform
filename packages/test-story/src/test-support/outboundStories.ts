@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { notesRoutingAfterEachStory, outboundKit, thirdPartyAvailable } from "./outbound.ts";
+import { notesRoutingAfterEachStory, outboundKit, thirdPartyAvailable } from "#test/outbound.ts";
 
 notesRoutingAfterEachStory();
 

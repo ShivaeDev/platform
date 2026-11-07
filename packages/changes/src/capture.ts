@@ -1,5 +1,5 @@
 import { type Context, Effect, Layer, Ref } from "effect";
-import type { Observation, Observer } from "./observe.ts";
+import type { Observation, Observer } from "#observe.ts";
 
 export interface Capture<A> {
 	readonly attempted: Effect.Effect<readonly (readonly A[])[]>;

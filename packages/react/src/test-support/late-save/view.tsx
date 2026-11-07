@@ -7,7 +7,7 @@ import type { FieldFailure, Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import type { SaveState } from "#client/saveState.ts";
-import { Fields, initial, type Model, runtime, type Values } from "./model.ts";
+import { Fields, initial, type Model, runtime, type Values } from "#test/late-save/model.ts";
 
 function save(state: Model, values: Values) {
 	return Effect.as(

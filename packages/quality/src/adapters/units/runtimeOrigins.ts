@@ -1,6 +1,6 @@
 import ts from "typescript";
+import { exportedRuntime, importedRuntime, type RuntimeName, runtimeImport } from "#adapters/units/runtimeImports.ts";
 import { memberName } from "#rules/stories/syntax.ts";
-import { exportedRuntime, importedRuntime, type RuntimeName, runtimeImport } from "./runtimeImports.ts";
 
 function member(receiver: RuntimeName | undefined, name: string): RuntimeName | undefined {
 	return receiver === undefined ? undefined : { ...receiver, path: [...receiver.path, name] };

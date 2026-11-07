@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import process from "node:process";
-import { linkPackage, type SeedFile, seedTree } from "./tree.ts";
+import { linkPackage, type SeedFile, seedTree } from "#testing/adapters/tree.ts";
 
 const BIN = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 

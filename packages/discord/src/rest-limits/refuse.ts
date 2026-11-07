@@ -1,5 +1,5 @@
 import { Clock, Effect, Ref } from "effect";
-import type { initialize } from "./initialize.ts";
+import type { initialize } from "#rest-limits/initialize.ts";
 
 export function refuse(state: Effect.Success<typeof initialize>) {
 	return Effect.fn("DiscordRestLimits.refuse")(function* (route: string, major: string, seconds: number, global: boolean) {

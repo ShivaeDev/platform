@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import type { EventKind } from "#events.ts";
-import type { Engine } from "./engine.ts";
-import { type Answer, type Change, github, type Read } from "./github.ts";
-import type { Check } from "./githubModel.ts";
-import { watch } from "./watch.ts";
-import { pollOnce } from "./watcherVerbs.ts";
+import type { Engine } from "#test/engine.ts";
+import { type Answer, type Change, github, type Read } from "#test/github.ts";
+import type { Check } from "#test/githubModel.ts";
+import { watch } from "#test/watch.ts";
+import { pollOnce } from "#test/watcherVerbs.ts";
 
 function given(change: Change) {
 	return watch.trait("github", change.line, (engine) => {

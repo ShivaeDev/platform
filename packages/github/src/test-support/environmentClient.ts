@@ -7,9 +7,9 @@ import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { GitHub } from "#github/service.ts";
 import { read } from "#read.ts";
-import { fakeRepository } from "./fakeRepository.ts";
-import { FIXTURE_TOKEN, PullRequest } from "./fixtures.ts";
-import { answered } from "./outcome.ts";
+import { fakeRepository } from "#test/fakeRepository.ts";
+import { FIXTURE_TOKEN, PullRequest } from "#test/fixtures.ts";
+import { answered } from "#test/outcome.ts";
 
 export function environmentClient(transport: "Fetch" | "Node") {
 	const github = storyKit({

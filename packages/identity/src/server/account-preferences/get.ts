@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { AccountPreferenceRows } from "#server/account-preferences/Rows.ts";
 import { providerFailure } from "#server/providerFailure.ts";
-import { AccountPreferenceRows } from "./Rows.ts";
 
 export const get = Effect.fn("AccountPreferencesStore.get")(function* (id: string) {
 	const repository = yield* AccountPreferenceRows;

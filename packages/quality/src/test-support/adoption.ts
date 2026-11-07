@@ -4,11 +4,11 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { answerOf, type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { qualityArgs, runQuality } from "#testing/adapters/cli.ts";
 import { branchOff } from "#testing/adapters/git.ts";
 import { qualityTree } from "#testing/adapters/qualityTree.ts";
 import { config, removeSeededTrees } from "#testing/adapters/tree.ts";
-import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 interface Adoption {
 	answer: CliAnswer | undefined;

@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { type EntitySettings, SaveSettings } from "./contract.ts";
-import { owned } from "./owned.ts";
-import { SettingsRepository } from "./repository.ts";
-import { unavailable } from "./unavailable.ts";
+import { type EntitySettings, SaveSettings } from "#test/settings-example/contract.ts";
+import { owned } from "#test/settings-example/owned.ts";
+import { SettingsRepository } from "#test/settings-example/repository.ts";
+import { unavailable } from "#test/settings-example/unavailable.ts";
 
 export const save = Effect.fn("SettingsService.save")((input: typeof EntitySettings.Type) =>
 	Effect.gen(function* () {

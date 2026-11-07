@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 class SaveConnection extends Context.Service<SaveConnection, string>()("@shivaedev/form/test/FailingSaveConnection") {}
 class ConnectionUnavailable extends Data.TaggedError("ConnectionUnavailable")<{ readonly message: string }> {}

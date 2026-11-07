@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { counter, incremented } from "./counter.ts";
-import { lifetime, resource } from "./lifetime.ts";
-import { noteLifetime } from "./lifetimeLog.ts";
+import { counter, incremented } from "#test/counter.ts";
+import { lifetime, resource } from "#test/lifetime.ts";
+import { noteLifetime } from "#test/lifetimeLog.ts";
 
 lifetime.it("passes with a scoped resource", [resource], function* ({ recordsBody }) {
 	yield* recordsBody();

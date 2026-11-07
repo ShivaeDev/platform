@@ -5,8 +5,8 @@ import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
+import type { NotesClient } from "#modules/notes/client/make.ts";
 import { NoteFields } from "#modules/notes/notes.ts";
-import type { NotesClient } from "./make.ts";
 
 export function NoteCreate({ client }: { readonly client: NotesClient }) {
 	const titleId = useId();

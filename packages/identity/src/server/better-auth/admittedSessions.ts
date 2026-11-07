@@ -7,9 +7,9 @@ import {
 	type SessionWithProviderAccounts,
 } from "#server/adapters/betterAuthSessions.ts";
 import { type BearerSessionsOptions, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
+import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
-import { fromStorage, type PolicyStorage, type SignInGate } from "./signInGate.ts";
 
 interface SessionStorage extends PolicyStorage {
 	readonly authCookies: { readonly sessionToken: { readonly name: string } };

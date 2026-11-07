@@ -1,4 +1,4 @@
-import { timers } from "./timers.ts";
+import { timers } from "#test/timers.ts";
 
 timers.it("leaves a timer start unconsumed", [], function* ({ starts, timePasses }) {
 	yield* starts("earlier delivery", ["1 second"]);

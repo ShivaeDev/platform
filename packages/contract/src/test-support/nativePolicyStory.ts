@@ -8,7 +8,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { contract } from "#contract.ts";
 import { query } from "#operation.ts";
-import { answered } from "./answers.ts";
+import { answered } from "#test/answers.ts";
 
 function policyStory(host: "native" | "application") {
 	return storyKit({

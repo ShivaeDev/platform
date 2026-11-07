@@ -1,7 +1,7 @@
 import { Effect, Layer, Scope } from "effect";
-import { acquireHeavyLock, type HeavyLockOptions, type HeavyLockServices } from "./acquire.ts";
-import type { HeavyLockError } from "./error.ts";
-import { HeldLock } from "./HeldLock.ts";
+import { acquireHeavyLock, type HeavyLockOptions, type HeavyLockServices } from "#acquire.ts";
+import type { HeavyLockError } from "#error.ts";
+import { HeldLock } from "#HeldLock.ts";
 
 export function withHeavyLock<A, E, R>(
 	effect: Effect.Effect<A, E, R>,

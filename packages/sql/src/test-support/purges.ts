@@ -1,9 +1,9 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
-import { onPostgres, onSqlite } from "./engines.ts";
-import { purgeEngine, RetainedRow } from "./purgeEngine.ts";
-import { purgeVerbs } from "./purgeVerbs.ts";
+import { onPostgres, onSqlite } from "#test/engines.ts";
+import { purgeEngine, RetainedRow } from "#test/purgeEngine.ts";
+import { purgeVerbs } from "#test/purgeVerbs.ts";
 
 export const purges = storyKit({
 	...onPostgres,

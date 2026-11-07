@@ -4,9 +4,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { int4Array } from "#int4Array.ts";
 import { int8 } from "#int8.ts";
 import { inValues } from "#inValues.ts";
-import { onPostgres } from "./engines.ts";
-import { attempt } from "./outcome.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
+import { onPostgres } from "#test/engines.ts";
+import { attempt } from "#test/outcome.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 
 const Row = Schema.Struct({ id: int8(Schema.BigInt), label: Schema.String, values: int4Array(Schema.Array(Schema.Int)) });
 const RestrictedRow = Schema.Struct({

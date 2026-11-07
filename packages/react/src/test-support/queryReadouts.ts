@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { native, type State, view } from "./queryState.ts";
+import { native, type State, view } from "#test/queryState.ts";
 
 function text(state: State, selector: string) {
 	return view(state).container.querySelector(selector)?.textContent ?? "none";

@@ -6,7 +6,7 @@ import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts"
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { Create, type Note, NoteReadAccess, Notes, notes, Update } from "#modules/notes/notes.ts";
-import { notesClientHost } from "./clientHost.ts";
+import { notesClientHost } from "#modules/notes/test-support/clientHost.ts";
 
 export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];

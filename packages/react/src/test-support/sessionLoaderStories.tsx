@@ -2,11 +2,11 @@ import { Deferred, Effect } from "effect";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { loaderSession, Unavailable } from "./loaderSession.ts";
-import { type Screen, screenWarnings } from "./Screen.ts";
-import { SessionLoaderApp } from "./SessionLoaderApp.tsx";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { loaderSession, Unavailable } from "#test/loaderSession.ts";
+import { type Screen, screenWarnings } from "#test/Screen.ts";
+import { SessionLoaderApp } from "#test/SessionLoaderApp.tsx";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 type Mode = "route" | "direct";
 type Failure = "Unauthorized" | "Unavailable";

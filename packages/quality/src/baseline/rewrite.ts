@@ -1,5 +1,5 @@
+import { type BaselineEntry, byPathAndRule, encodeEntry, linesOf } from "#baseline/format.ts";
 import { keyOf } from "#engine/violation.ts";
-import { type BaselineEntry, byPathAndRule, encodeEntry, linesOf } from "./format.ts";
 
 interface Row {
 	readonly entry: BaselineEntry;

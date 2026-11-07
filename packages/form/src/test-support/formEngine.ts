@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { DraftSession } from "#draftSession.ts";
 import type { Config, FieldFailure, Fields, Form, Name, Path } from "#shape.ts";
-import type { draftStorage } from "./draftStorage.ts";
+import type { draftStorage } from "#test/draftStorage.ts";
 
 export interface HeldSave {
 	armed: boolean;

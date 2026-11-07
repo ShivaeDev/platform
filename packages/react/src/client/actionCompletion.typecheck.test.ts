@@ -1,6 +1,6 @@
 import { type Cause, Context, Effect, Layer, type Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useAction } from "./resultState.ts";
+import { useAction } from "#client/resultState.ts";
 
 class Titles extends Context.Service<Titles, { readonly prefix: string }>()("@shivaedev/react/test/Titles") {}
 class Missing extends Context.Service<Missing, { readonly value: number }>()("@shivaedev/react/test/Missing") {}

@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
-import { packTemplate } from "./packTemplate.ts";
+import { packTemplate } from "#packTemplate.ts";
 
 if (import.meta.main) {
 	NodeRuntime.runMain(

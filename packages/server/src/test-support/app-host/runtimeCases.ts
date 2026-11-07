@@ -1,7 +1,7 @@
 import { Cause, Context, Effect, Equal, Exit, Layer } from "effect";
 import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
-import { RuntimeOther, RuntimeValue } from "./runtimeLayer.ts";
-import { type HostState, runtimeOf } from "./state.ts";
+import { RuntimeOther, RuntimeValue } from "#test/app-host/runtimeLayer.ts";
+import { type HostState, runtimeOf } from "#test/app-host/state.ts";
 
 async function failureResults(exit: () => Promise<Exit.Exit<unknown, unknown>>, promise: () => Promise<unknown>, failure: unknown) {
 	const result = await exit();

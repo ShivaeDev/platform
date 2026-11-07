@@ -2,7 +2,7 @@ import { Deferred, Effect } from "effect";
 import type { Migrator } from "effect/sql";
 import { readPostgresRelease } from "#postgresRelease.ts";
 import type { SchemaComponent } from "#SchemaComponent.ts";
-import type { MigrationEngine } from "./migrationEngine.ts";
+import type { MigrationEngine } from "#test/migrationEngine.ts";
 
 export type MigrationName =
 	| "add_order_four"

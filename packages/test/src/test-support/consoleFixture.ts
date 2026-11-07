@@ -1,7 +1,7 @@
 import { Console, Effect, Layer } from "effect";
 import * as TestConsole from "effect/testing/TestConsole";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
-import { note } from "./lifecycleLog.ts";
+import { note } from "#test/lifecycleLog.ts";
 
 for (const clock of ["live", "test"] as const) {
 	const { effectApp } = makeEffectIt({ clock, layer: Layer.empty, makeHarness: () => Effect.void });

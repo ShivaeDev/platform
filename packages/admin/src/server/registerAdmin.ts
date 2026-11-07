@@ -3,7 +3,7 @@ import type { Rpc, RpcGroup } from "effect/rpc";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AdminPage } from "#page.ts";
 import type { AdminRegistry } from "#registry.ts";
-import { pagePermissions } from "./pagePermissions.ts";
+import { pagePermissions } from "#server/pagePermissions.ts";
 
 type HandlerLayers<TPages extends readonly AdminPage[]> = {
 	readonly [TPage in TPages[number] as TPage["id"]]: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<TPage["contract"]["application"]>>, unknown, unknown>;

@@ -1,6 +1,6 @@
 import { createConnection, createServer, type Socket } from "node:net";
+import { notificationFilter } from "#server/adapters/notificationFilter.ts";
 import type { DisconnectProxyOptions } from "#server/disconnectProxy.ts";
-import { notificationFilter } from "./notificationFilter.ts";
 
 export async function openDisconnectProxy(destination: string, options: DisconnectProxyOptions) {
 	const target = new URL(destination);

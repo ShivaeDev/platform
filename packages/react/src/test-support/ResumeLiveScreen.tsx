@@ -3,7 +3,7 @@ import { Option } from "effect";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { resumeLiveClient } from "./resumeLiveClient.ts";
+import type { resumeLiveClient } from "#test/resumeLiveClient.ts";
 
 type Client = ReturnType<typeof resumeLiveClient>;
 

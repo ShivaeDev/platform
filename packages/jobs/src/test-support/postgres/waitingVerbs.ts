@@ -2,11 +2,11 @@ import { Deferred, Effect, Fiber } from "effect";
 import type { JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "#server/definition.ts";
 import { failureOf } from "#test/failureOf.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { driveWorkers, wakeWorkers } from "#test/postgres/driveWorkers.ts";
+import { admin, controllerWorking, until } from "#test/postgres/engine.ts";
+import { deadLetterSources, idOf, testingOf } from "#test/postgres/verbs.ts";
 import { untilWork } from "#test/workers.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { driveWorkers, wakeWorkers } from "./driveWorkers.ts";
-import { admin, controllerWorking, until } from "./engine.ts";
-import { deadLetterSources, idOf, testingOf } from "./verbs.ts";
 
 type Tell = (line: string) => void;
 

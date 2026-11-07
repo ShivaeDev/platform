@@ -1,4 +1,4 @@
-import { type MarkdownLine, withoutCodeSpans } from "./markdownLines.ts";
+import { type MarkdownLine, withoutCodeSpans } from "#docs/markdownLines.ts";
 
 export interface MarkdownLink {
 	readonly line: number;

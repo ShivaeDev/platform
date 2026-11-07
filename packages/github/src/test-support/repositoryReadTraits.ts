@@ -1,6 +1,6 @@
 import type { FakeHttpReply } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { github } from "./github.ts";
-import { repositoryFixtures } from "./repositoryFixtures.ts";
+import { github } from "#test/github.ts";
+import { repositoryFixtures } from "#test/repositoryFixtures.ts";
 
 export const dailyRepositoryReads = github.trait(
 	"github",

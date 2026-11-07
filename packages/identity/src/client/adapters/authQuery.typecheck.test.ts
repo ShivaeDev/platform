@@ -1,7 +1,7 @@
 import type { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { authQuery } from "./authQuery.ts";
+import { authQuery } from "#client/adapters/authQuery.ts";
 
 const consent = authQuery((id: string, _signal) =>
 	Promise.resolve(

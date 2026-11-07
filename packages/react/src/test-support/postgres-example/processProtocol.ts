@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Order } from "./contract.ts";
+import { Order } from "#test/postgres-example/contract.ts";
 
 export const Configuration = Schema.Struct({
 	applicationName: Schema.String,

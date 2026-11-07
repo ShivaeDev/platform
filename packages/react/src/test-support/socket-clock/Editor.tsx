@@ -1,6 +1,6 @@
 import { Cause, type Effect, Option } from "effect";
 import { useAction } from "#client/resultState.ts";
-import type { connect } from "./connect.ts";
+import type { connect } from "#test/socket-clock/connect.ts";
 
 type Client = Effect.Success<ReturnType<typeof connect>>;
 export function Editor({ client }: { readonly client: Client }) {

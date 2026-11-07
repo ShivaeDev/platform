@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
-import { application, type Flag } from "./application.ts";
-import { appScript } from "./environment.ts";
-import { createAppIn, generateApp } from "./generate.ts";
-import { templateSource } from "./templateSource.ts";
+import { application, type Flag } from "#test/application.ts";
+import { appScript } from "#test/environment.ts";
+import { createAppIn, generateApp } from "#test/generate.ts";
+import { templateSource } from "#test/templateSource.ts";
 
 export const configuredIdentity = application.trait("workspace", "the user's global Git config names App Author <author@example.com>", (engine) => {
 	const config = join(engine.root, "global.gitconfig");

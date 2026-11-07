@@ -1,4 +1,4 @@
-import type { ResourceNames } from "./names.ts";
+import type { ResourceNames } from "#resource/names.ts";
 
 export function resourceCreate({ name, pascal }: ResourceNames) {
 	return `import { Effect } from "effect";

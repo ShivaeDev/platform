@@ -1,9 +1,9 @@
 import type { Tracer } from "effect";
 import { Effect } from "effect";
 import { afterEach } from "vitest";
-import { afterTracingApp } from "./afterTracingApp.ts";
-import { noteLifetime } from "./lifetimeLog.ts";
-import { describeSpan } from "./spanRecording.ts";
+import { afterTracingApp } from "#test/afterTracingApp.ts";
+import { noteLifetime } from "#test/lifetimeLog.ts";
+import { describeSpan } from "#test/spanRecording.ts";
 
 let recorded: readonly Tracer.NativeSpan[] = [];
 

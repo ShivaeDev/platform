@@ -1,12 +1,12 @@
 import { Effect, Layer } from "effect";
+import { inspectionReads } from "#server/adapters/inspectionReads.ts";
+import { jobEngine } from "#server/adapters/jobEngine.ts";
 import { JobEngine } from "#server/engine.ts";
 import { InspectionEngine } from "#server/InspectionEngine.ts";
 import { JobQueues } from "#server/JobQueues.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import { PgBossInspectionReads } from "#server/services/inspection/service.ts";
 import { PgBossOperations } from "#server/services/operations/service.ts";
-import { inspectionReads } from "./inspectionReads.ts";
-import { jobEngine } from "./jobEngine.ts";
 export function operationsLayer(names: readonly string[]) {
 	return Layer.unwrap(
 		Effect.gen(function* () {

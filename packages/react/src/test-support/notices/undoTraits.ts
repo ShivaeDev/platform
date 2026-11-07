@@ -1,7 +1,7 @@
-import { open, optionWords } from "./open.tsx";
-import { noticesStory } from "./story.tsx";
-import { noticeVerbs } from "./verbs.tsx";
-import type { NoticeScreen } from "./view.tsx";
+import { open, optionWords } from "#test/notices/open.tsx";
+import { noticesStory } from "#test/notices/story.tsx";
+import { noticeVerbs } from "#test/notices/verbs.tsx";
+import type { NoticeScreen } from "#test/notices/view.tsx";
 
 export function undoWaiting(title: string, options: Partial<NoticeScreen> = {}) {
 	return noticesStory.trait("screen", `alice removed ${title}${optionWords(options)} and the server holds her Undo`, function* (engine) {

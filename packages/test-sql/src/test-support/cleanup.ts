@@ -4,10 +4,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type WatchedClock, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { cleanupVerbs } from "./cleanupVerbs.ts";
-import { createDatabaseEngine, type DatabaseEngine } from "./databaseEngine.ts";
-import { adminUrl, configured } from "./postgres.ts";
-import { withCatalogClock } from "./withCatalogClock.ts";
+import { cleanupVerbs } from "#test/cleanupVerbs.ts";
+import { createDatabaseEngine, type DatabaseEngine } from "#test/databaseEngine.ts";
+import { adminUrl, configured } from "#test/postgres.ts";
+import { withCatalogClock } from "#test/withCatalogClock.ts";
 
 export interface CleanupEngine {
 	readonly cleanupClock: WatchedClock;

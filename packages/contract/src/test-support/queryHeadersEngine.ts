@@ -12,7 +12,7 @@ import type { ClientOptions } from "#clientOptions.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import { query } from "#operation.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const records = collection("header-records", Schema.Number);
 class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/contract/test/QueryHeaders") {}

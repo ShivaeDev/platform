@@ -3,7 +3,7 @@ import { expectTypeOf } from "vitest";
 import type { QueueOptions } from "@shivaedev/jobs/server/queueOptions.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import type { WorkerOptions } from "@shivaedev/jobs/server/workerOptions.ts";
-import { defineEmailQueue } from "./defineEmailQueue.ts";
+import { defineEmailQueue } from "#server/defineEmailQueue.ts";
 
 const Message = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Confirm"), url: Schema.Redacted(Schema.String) }),

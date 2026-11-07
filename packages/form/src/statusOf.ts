@@ -1,10 +1,10 @@
 import { Equal } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRef from "effect/reactivity/AtomRef";
-import type { FieldMessages } from "./messages.ts";
-import { asPath, type KeySelectors, type PathMessage, retainedPath } from "./paths.ts";
-import { fromRef } from "./refs.ts";
-import type { Path } from "./shape.ts";
+import type { FieldMessages } from "#messages.ts";
+import { asPath, type KeySelectors, type PathMessage, retainedPath } from "#paths.ts";
+import { fromRef } from "#refs.ts";
+import type { Path } from "#shape.ts";
 
 interface State {
 	readonly failures: readonly PathMessage[];

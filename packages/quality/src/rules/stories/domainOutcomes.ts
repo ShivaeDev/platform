@@ -3,10 +3,10 @@ import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { defineRule } from "#rule.ts";
 import { internalValue, shapeModule } from "#rules/stories/adapters/outcomeShapes.ts";
-import { importBindings } from "./importBindings.ts";
-import { storyOrigins } from "./origins.ts";
-import { storySources } from "./sources.ts";
-import { findingAt, memberName, nodesWhere, unwrapped } from "./syntax.ts";
+import { importBindings } from "#rules/stories/importBindings.ts";
+import { storyOrigins } from "#rules/stories/origins.ts";
+import { storySources } from "#rules/stories/sources.ts";
+import { findingAt, memberName, nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	'Uses an Exit, Cause or Result value or reads an internal outcome tag in a story. Have the kit\'s verb or readout return the outcome in the domain\'s words, such as "unauthorized" or "rolled back", and expect that; build failing inputs in a kit trait.';

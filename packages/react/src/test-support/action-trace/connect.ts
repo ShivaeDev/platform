@@ -3,7 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { actionTrace } from "#actionTrace.ts";
-import { Api } from "./Api.ts";
+import { Api } from "#test/action-trace/Api.ts";
 
 export function connect(url: string) {
 	class Client extends AtomRpc.Service<Client>()("action-story/Client", {

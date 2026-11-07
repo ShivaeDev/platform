@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { ViewEditor } from "./draftFields.ts";
-import { browserPersistence, draftStorage } from "./draftStorage.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { suspendedDraftView } from "./suspendedDraftView.tsx";
+import type { ViewEditor } from "#test/draftFields.ts";
+import { browserPersistence, draftStorage } from "#test/draftStorage.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { suspendedDraftView } from "#test/suspendedDraftView.tsx";
 
 draftStorage();
 

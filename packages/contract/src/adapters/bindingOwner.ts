@@ -1,6 +1,6 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { clientId } from "#adapters/clientId.ts";
 import type { KeyContext } from "#clientKeys.ts";
-import { clientId } from "./clientId.ts";
 
 export interface BindingOwner {
 	readonly context: KeyContext;

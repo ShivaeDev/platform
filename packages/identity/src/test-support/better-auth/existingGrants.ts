@@ -1,5 +1,5 @@
 import { DateTime, Effect } from "effect";
-import { oauthGrants } from "./oauthGrants.ts";
+import { oauthGrants } from "#test/better-auth/oauthGrants.ts";
 
 export const existingGrants = oauthGrants.trait(
 	"grants",

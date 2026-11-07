@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { ArtifactExtractionOptions } from "#artifactExtraction.ts";
 import type { GitHub } from "#github/service.ts";
-import type { artifactFixture } from "./artifactFixture.ts";
-import { answered } from "./outcome.ts";
-import { type ArchiveEntry, zipArchive } from "./zipArchive.ts";
+import type { artifactFixture } from "#test/artifactFixture.ts";
+import { answered } from "#test/outcome.ts";
+import { type ArchiveEntry, zipArchive } from "#test/zipArchive.ts";
 
 export function artifactVerbs(client: typeof GitHub.Service, archive: ReturnType<typeof artifactFixture>["state"], tell: (line: string) => void) {
 	return {

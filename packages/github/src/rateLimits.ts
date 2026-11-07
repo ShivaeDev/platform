@@ -1,6 +1,6 @@
 import { Clock, DateTime, Effect } from "effect";
 import type { HttpClientResponse } from "effect/http";
-import type { GitHubRateLimited } from "./errors.ts";
+import type { GitHubRateLimited } from "#errors.ts";
 
 export interface RateLimitObservation {
 	readonly limit: number;

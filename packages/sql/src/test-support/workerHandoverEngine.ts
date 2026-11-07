@@ -5,7 +5,7 @@ import * as TestClock from "effect/testing/TestClock";
 import { coordinateWorkerRelease } from "#coordinateWorkerRelease.ts";
 import { postgresRelease } from "#postgresRelease.ts";
 import { releaseWorkers } from "#releaseWorkers.ts";
-import { handoverWorker } from "./handoverWorker.ts";
+import { handoverWorker } from "#test/handoverWorker.ts";
 
 export type Loop = "heartbeat" | "poll";
 

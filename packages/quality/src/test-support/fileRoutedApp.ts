@@ -1,4 +1,4 @@
-import { repositoryHas } from "./ruleStory.ts";
+import { repositoryHas } from "#test/ruleStory.ts";
 
 export const ROUTE_CONTENT = "export const Route = {};\n";
 export const APP = "apps/store";

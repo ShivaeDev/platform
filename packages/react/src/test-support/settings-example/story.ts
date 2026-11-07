@@ -3,10 +3,10 @@ import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTes
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createEngine, type Engine } from "./engine.ts";
-import { openScreen } from "./openScreen.tsx";
-import { migrations } from "./repository.ts";
-import { editorVerbs, verbs } from "./verbs.ts";
+import { createEngine, type Engine } from "#test/settings-example/engine.ts";
+import { openScreen } from "#test/settings-example/openScreen.tsx";
+import { migrations } from "#test/settings-example/repository.ts";
+import { editorVerbs, verbs } from "#test/settings-example/verbs.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 export const settingsStory = storyKit({

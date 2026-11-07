@@ -9,7 +9,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
-import { Documents, ReadAccess, readAccess } from "./policyServicesContract.ts";
+import { Documents, ReadAccess, readAccess } from "#test/policyServicesContract.ts";
 
 export type Person = "alice" | "bob";
 

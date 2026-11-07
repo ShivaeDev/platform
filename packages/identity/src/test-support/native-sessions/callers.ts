@@ -1,4 +1,4 @@
-import type { Account } from "./requests.ts";
+import type { Account } from "#test/native-sessions/requests.ts";
 
 export type ForgedBearer = "missing" | "unsigned" | "prefixed" | "tampered" | "malformed" | "invented";
 

@@ -3,10 +3,10 @@ import ts from "typescript";
 import { storyProgram } from "#adapters/storyProgram.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
-import { iterationOrigin, type Origin } from "./collectionOrigins.ts";
-import { importFrom, importOrigin } from "./importOrigin.ts";
-import { returnValues } from "./returnValues.ts";
-import { memberName } from "./syntax.ts";
+import { iterationOrigin, type Origin } from "#rules/stories/collectionOrigins.ts";
+import { importFrom, importOrigin } from "#rules/stories/importOrigin.ts";
+import { returnValues } from "#rules/stories/returnValues.ts";
+import { memberName } from "#rules/stories/syntax.ts";
 
 export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 	const program = storyProgram(inputs, graph);

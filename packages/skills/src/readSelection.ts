@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Order, Path, Schema } from "effect";
-import { SELECTION_FIELD } from "./layout.ts";
-import { SkillsError } from "./SkillsError.ts";
+import { SELECTION_FIELD } from "#layout.ts";
+import { SkillsError } from "#SkillsError.ts";
 
 const ConsumerManifest = Schema.fromJsonString(Schema.Struct({ [SELECTION_FIELD]: Schema.optional(Schema.Array(Schema.String)) }));
 

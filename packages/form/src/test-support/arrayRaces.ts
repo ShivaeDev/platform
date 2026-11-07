@@ -1,7 +1,7 @@
 import { Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { answerAccess, answerMoves, answerVerbs } from "./answers.ts";
-import { formStories } from "./formStories.ts";
+import { answerAccess, answerMoves, answerVerbs } from "#test/answers.ts";
+import { formStories } from "#test/formStories.ts";
 
 const Answers = Schema.Struct({ answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.String })) });
 type Answer = (typeof Answers.Encoded)["answers"][number];

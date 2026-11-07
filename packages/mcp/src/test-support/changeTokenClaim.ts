@@ -1,6 +1,6 @@
 import { verifyJwsAccessToken } from "better-auth/oauth2";
 import { Effect } from "effect";
-import type { Engine } from "./host.ts";
+import type { Engine } from "#test/host.ts";
 
 export const changeTokenClaim = Effect.fnUntraced(function* (engine: Engine, name: string, claim: string, value: unknown) {
 	const token = engine.tokens.get(name);

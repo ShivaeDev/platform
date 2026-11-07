@@ -6,8 +6,8 @@ import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { type Entry, parseBody, renderEntries } from "@shivaedev/releases/sections.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
+import { type PublishedPackage, PublishedPackages } from "#release/publishedPackages.ts";
 import config from "#release-config";
-import { type PublishedPackage, PublishedPackages } from "./publishedPackages.ts";
 
 export const publishNotes = Effect.fn("Release.publishNotes")(function* (
 	root: string,

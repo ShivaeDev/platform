@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { repositoryStory } from "#test/repositoryStory.ts";
 import { git } from "#testing/adapters/git.ts";
-import { repositoryStory } from "./repositoryStory.ts";
 
 export function repositoryTracks(...paths: readonly string[]) {
 	return repositoryStory.trait("history", `git tracks ${paths.join(", ")}, ignored or not, without a commit`, (engine) => {

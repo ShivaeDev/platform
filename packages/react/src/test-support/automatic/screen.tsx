@@ -3,7 +3,7 @@ import { Option } from "effect";
 import { useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
-import type { connect } from "./connect.ts";
+import type { connect } from "#test/automatic/connect.ts";
 
 export function Read({ client, id }: { readonly client: ReturnType<typeof connect>; readonly id: number }) {
 	const query = useQuery((id === 1 ? client.api : client.preview).get.query({ id }));

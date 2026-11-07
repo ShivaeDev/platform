@@ -7,9 +7,9 @@ import { SecureRandom } from "effect/crypto";
 import type { HeavyLockOptions } from "#acquire.ts";
 import { decodeHolder, type Holder } from "#holder.ts";
 import { reclaim, release, tryAcquire } from "#lockFile.ts";
-import type { CliRun } from "./cliProcess.ts";
-import type { Command, Hold } from "./commands.ts";
-import { startTime } from "./startTime.ts";
+import type { CliRun } from "#test/cliProcess.ts";
+import type { Command, Hold } from "#test/commands.ts";
+import { startTime } from "#test/startTime.ts";
 
 const LOCK_PATHS = ["explicit", "HEAVY_PROCESS_LOCK", "HOME"] as const;
 

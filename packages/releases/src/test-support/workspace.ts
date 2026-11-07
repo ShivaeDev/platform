@@ -5,9 +5,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ReleasePlan } from "#model.ts";
 import { planRelease } from "#planner.ts";
 import { collectReleaseNotes } from "#releaseNotes.ts";
-import { effectApi } from "./effectApi.ts";
-import { makeFixture, runCli } from "./fixture.ts";
-import { manifestOf, rangeOn } from "./manifests.ts";
+import { effectApi } from "#test/effectApi.ts";
+import { makeFixture, runCli } from "#test/fixture.ts";
+import { manifestOf, rangeOn } from "#test/manifests.ts";
 
 const WORKSPACE_FOLDERS = [".changeset", "modules", "packages"];
 const decodePlan = Schema.decodeUnknownSync(Schema.fromJsonString(ReleasePlan));

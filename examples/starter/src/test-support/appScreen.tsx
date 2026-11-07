@@ -13,10 +13,10 @@ import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import type { ClientRegistration } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
-import { createCookieHost } from "./createCookieHost.ts";
-import type { RunningHost } from "./host.ts";
-import { acquireScreen, type ScreenSurface } from "./screenState.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { createCookieHost } from "#test-support/createCookieHost.ts";
+import type { RunningHost } from "#test-support/host.ts";
+import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const appScreen = Effect.fn("AppStory.appScreen")(function* (options: {
 	readonly account: { readonly name: string; readonly role?: typeof AppAccess.Role.Type };

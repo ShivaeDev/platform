@@ -3,8 +3,8 @@ import { Option, Schema } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useEditor } from "#client/editor.ts";
-import { type EntitySettings, Settings } from "./contract.ts";
-import type { makeClient } from "./makeClient.ts";
+import { type EntitySettings, Settings } from "#test/settings-example/contract.ts";
+import type { makeClient } from "#test/settings-example/makeClient.ts";
 
 const Draft = Schema.Struct({
 	...Settings.fields,

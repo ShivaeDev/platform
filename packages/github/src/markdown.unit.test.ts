@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { codeSpan, details, plainText, tableCell } from "./markdown.ts";
+import { codeSpan, details, plainText, tableCell } from "#markdown.ts";
 
 it("uses a fence longer than every hostile backtick run", () => {
 	expect(codeSpan("a`b``c``` @team <script> 😀")).toBe("````a`b``c``` @team <script> 😀````");

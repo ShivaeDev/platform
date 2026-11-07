@@ -3,8 +3,8 @@ import * as TestClock from "effect/testing/TestClock";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { passes, untilTimer } from "#server/watchedClock.ts";
-import { attempt, background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
+import { attempt, background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
 
 function timerKit(clock: "test" | DateTime.Utc = "test") {
 	return storyKit({

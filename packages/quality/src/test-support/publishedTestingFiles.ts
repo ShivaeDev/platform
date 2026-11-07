@@ -1,5 +1,5 @@
+import { exportsPackage } from "#test/exportsPackage.ts";
 import { FILE_PATH_EXPORTS } from "#testing/adapters/packageExports.ts";
-import { exportsPackage } from "./exportsPackage.ts";
 
 export const RUNTIME_MANIFEST = "packages/runtime/package.json";
 

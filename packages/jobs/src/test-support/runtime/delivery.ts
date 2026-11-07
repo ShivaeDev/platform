@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
 import type { Job } from "pg-boss";
 import { failureOf } from "#test/failureOf.ts";
-import type { Fetched, RuntimeEngine } from "./engine.ts";
+import type { Fetched, RuntimeEngine } from "#test/runtime/engine.ts";
 
 export const finished = Effect.fnUntraced(function* (engine: RuntimeEngine) {
 	for (const pending of engine.pending.splice(0)) {

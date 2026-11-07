@@ -7,7 +7,7 @@ import { close, start } from "#test/app-host/lifecycle.ts";
 import { requests } from "#test/app-host/requests.ts";
 import { emptyHost } from "#test/app-host/state.ts";
 import { wireAnswers } from "#test/app-host/wireAnswers.ts";
-import { configuredHost, PublicConfig } from "./fixture.ts";
+import { configuredHost, PublicConfig } from "#test/public-config/fixture.ts";
 
 export const configuration = storyKit({
 	after: { configured: start },

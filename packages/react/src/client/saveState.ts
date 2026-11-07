@@ -5,7 +5,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { useCallback, useContext, useEffect } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { FieldFailure, type Fields, type Form, Invalid } from "@shivaedev/form/shape.ts";
-import { useSessionRecheck } from "./sessionBoundary.ts";
+import { useSessionRecheck } from "#client/sessionBoundary.ts";
 
 const idle = Atom.make(AsyncResult.initial());
 const clean = Atom.make(false);

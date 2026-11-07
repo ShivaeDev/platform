@@ -1,7 +1,7 @@
 import { Effect, Redacted } from "effect";
 import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
+import { ClientEngine } from "#server/lifecycle.ts";
 import type { PgBossOptions } from "#server/service.ts";
-import { ClientEngine } from "./lifecycle.ts";
 
 export const acquireClient = Effect.fnUntraced(function* (options: PgBossOptions) {
 	const { connectionString, clientFactory, clientCacheKey, stop, ...settings } = options;

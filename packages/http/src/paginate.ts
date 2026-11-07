@@ -1,7 +1,7 @@
 import { Effect, Option, Stream } from "effect";
 import { FetchHttpClient, type HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
-import { PaginationLinkError } from "./errors.ts";
-import { nextLink } from "./nextLink.ts";
+import { PaginationLinkError } from "#errors.ts";
+import { nextLink } from "#nextLink.ts";
 
 const nextRequest = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse) {
 	const link = nextLink(response.headers.link);

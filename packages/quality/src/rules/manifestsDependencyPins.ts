@@ -7,7 +7,6 @@ import { defineRule, type Finding } from "#rule.ts";
 const SECTIONS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"] as const;
 const EXACT =
 	/^(?:npm:(?:@[^/\s]+\/)?[^@\s]+@)?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*)?(?:\+[\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*)?$/u;
-const LOCAL = /^(?:workspace:|file:|link:)/u;
 
 function dependencyFinding(
 	file: string,
@@ -16,7 +15,7 @@ function dependencyFinding(
 	version: string,
 	catalogs: ReturnType<typeof catalogEntries>,
 ): readonly Finding[] {
-	if (LOCAL.test(version)) {
+	if (version.startsWith("workspace:")) {
 		return [];
 	}
 	const catalog = version.startsWith("catalog:") ? version.slice("catalog:".length) : undefined;
@@ -29,7 +28,7 @@ function dependencyFinding(
 		: [
 				{
 					file,
-					message: `${section} entry "${name}: ${version}" must ${catalogs.present || catalog !== undefined ? 'use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml' : "pin an exact version, including for npm aliases"}. Workspace, file and link dependencies stay local.`,
+					message: `${section} entry "${name}: ${version}" must ${catalogs.present || catalog !== undefined ? 'use "catalog:" (or a named catalog) with an entry for this dependency in pnpm-workspace.yaml' : "pin an exact npm version, including for npm aliases"}. Use "workspace:" for workspace dependencies; replace "file:" and "link:" with npm versions or workspace/catalog references.`,
 					subject: `${section}.${name}`,
 				},
 			];

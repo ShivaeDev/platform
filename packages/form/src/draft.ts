@@ -1,7 +1,7 @@
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRef from "effect/reactivity/AtomRef";
-import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, settledBaseline, untouched } from "./draftValues.ts";
-import type { Persistence, StoredValues } from "./persistence.ts";
+import { accepted, changed, changedFields, type Draft, type Entries, merged, mergeObserved, settledBaseline, untouched } from "#draftValues.ts";
+import type { Persistence, StoredValues } from "#persistence.ts";
 
 export function draft<TValues extends Entries>(initial: TValues, persistence?: Persistence<TValues>) {
 	const none: Entries = {};

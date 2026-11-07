@@ -10,7 +10,7 @@ import {
 } from "@shivaedev/identity/middleware.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
-import { Api, handlers, Note, notes, saveNote } from "./fixture.ts";
+import { Api, handlers, Note, notes, saveNote } from "#test/command-changes/fixture.ts";
 
 function signedInSession(id: string) {
 	return { user: { email: `${id}@example.test`, id, name: id, providerAccounts: Effect.succeed([]) } };

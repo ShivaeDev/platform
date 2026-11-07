@@ -10,7 +10,7 @@ import {
 import { OauthGrants } from "@shivaedev/identity/server/oauthGrants.ts";
 import type { OriginPolicy } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { bearer, type JwksSource } from "./bearer.ts";
+import { bearer, type JwksSource } from "#adapters/bearer.ts";
 
 export function mcpProvider({ scopes = ["mcp"], ...options }: OauthResourceOptions): ReturnType<typeof betterAuthOauthProvider> {
 	return betterAuthOauthProvider({ ...options, scopes });

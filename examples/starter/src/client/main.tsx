@@ -1,9 +1,9 @@
 import { RegistryProvider } from "@effect/atom-react";
 import { Effect } from "effect";
 import { createRoot } from "react-dom/client";
+import { App } from "#client/App.tsx";
 import { makeAuth } from "#client/adapters/auth.ts";
-import { App } from "./App.tsx";
-import { applyTheme, savedTheme } from "./applyTheme.ts";
+import { applyTheme, savedTheme } from "#client/applyTheme.ts";
 import "#client/main.css";
 
 Effect.runSync(

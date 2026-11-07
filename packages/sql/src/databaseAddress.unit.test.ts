@@ -1,6 +1,6 @@
 import { Redacted } from "effect";
 import { expect, it } from "vitest";
-import { databaseAddress } from "./databaseAddress.ts";
+import { databaseAddress } from "#databaseAddress.ts";
 
 it.each([
 	["postgresql://user:secret@db.internal:6432/app", { host: "db.internal", port: 6432 }],

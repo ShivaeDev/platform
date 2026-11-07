@@ -1,6 +1,6 @@
 import { Effect, Schema, SchemaGetter } from "effect";
 import { defineQueue } from "#server/definition.ts";
-import { ApplicationLog } from "./workers.ts";
+import { ApplicationLog } from "#test/workers.ts";
 
 export const CodecQueue = defineQueue({
 	name: "caller-codec",

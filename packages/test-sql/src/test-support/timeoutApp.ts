@@ -7,7 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import { setup } from "./postgres.ts";
+import { setup } from "#test/postgres.ts";
 
 export interface CloneObservation {
 	readonly database: string;

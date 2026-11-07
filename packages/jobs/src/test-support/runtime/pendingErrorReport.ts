@@ -1,5 +1,5 @@
-import { holdErrorReport } from "./errorReporting.ts";
-import { runtime } from "./kit.ts";
+import { holdErrorReport } from "#test/runtime/errorReporting.ts";
+import { runtime } from "#test/runtime/kit.ts";
 
 export function pendingErrorReport(interruptible = true) {
 	return runtime.trait(

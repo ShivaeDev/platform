@@ -1,7 +1,7 @@
 import { Clock, Effect } from "effect";
+import { database } from "#test/postgres/database.ts";
+import { type StartOptions, startRuntime } from "#test/postgres/engine.ts";
 import type { Registration } from "#test/workers.ts";
-import { database } from "./database.ts";
-import { type StartOptions, startRuntime } from "./engine.ts";
 
 export function runningWithClockOffset(name: string, jobs: readonly Registration[], offset: number, options: StartOptions) {
 	return database.trait("runtime", `${name} runs with its clock ${offset} ms from PostgreSQL`, function* (engine) {

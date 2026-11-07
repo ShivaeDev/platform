@@ -5,10 +5,10 @@ import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
+import { NoteCreate } from "#modules/notes/client/Create.tsx";
+import type { NotesClient } from "#modules/notes/client/make.ts";
+import { NotesTable } from "#modules/notes/client/Table.tsx";
 import type { Note } from "#modules/notes/notes.ts";
-import { NoteCreate } from "./Create.tsx";
-import type { NotesClient } from "./make.ts";
-import { NotesTable } from "./Table.tsx";
 
 export function NotesScreen({
 	client,

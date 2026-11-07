@@ -5,8 +5,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { OptionalKeys } from "#fieldPath.ts";
 import { form } from "#form.ts";
 import { type Encoded, FieldFailure, type Fields, Invalid, type Name, type Path } from "#shape.ts";
-import type { draftStorage } from "./draftStorage.ts";
-import type { FormEngine } from "./formEngine.ts";
+import type { draftStorage } from "#test/draftStorage.ts";
+import type { FormEngine } from "#test/formEngine.ts";
 
 export type FormDriver<TFields extends Fields, A, E, R, TRuntimeError, TSupport> = ReturnType<
 	typeof formDriver<TFields, A, E, R, TRuntimeError, TSupport>

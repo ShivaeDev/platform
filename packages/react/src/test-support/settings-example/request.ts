@@ -1,8 +1,8 @@
 import { Effect, Predicate } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { SaveSettings, type Settings } from "./contract.ts";
-import { makeClient } from "./makeClient.ts";
-import { withReact } from "./withReact.ts";
+import { SaveSettings, type Settings } from "#test/settings-example/contract.ts";
+import { makeClient } from "#test/settings-example/makeClient.ts";
+import { withReact } from "#test/settings-example/withReact.ts";
 
 function outcome(failure: unknown) {
 	if (failure instanceof SaveSettings.Rejection.InvalidSettings) {

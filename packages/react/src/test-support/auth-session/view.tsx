@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { useLayoutEffect } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
-import type { SessionClient } from "./client.ts";
+import type { SessionClient } from "#test/auth-session/client.ts";
 
 export interface Frame {
 	readonly busy: boolean;

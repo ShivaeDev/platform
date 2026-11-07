@@ -1,7 +1,7 @@
 import { Cause, Effect } from "effect";
 import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
 import { resyncPayload } from "#notifyPayload.ts";
-import type { ChangeFeedEngine } from "./changeFeedEngine.ts";
+import type { ChangeFeedEngine } from "#test/changeFeedEngine.ts";
 
 export function commandPublicationVerbs(engine: ChangeFeedEngine, tell: (line: string) => void, delivered: () => Effect.Effect<unknown>) {
 	function inFeed<A, E, R>(effect: Effect.Effect<A, E, R>) {

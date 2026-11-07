@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { Deferred, Effect, Fiber } from "effect";
-import { perAttempt } from "./specFiles.ts";
-import { runProgram, type Suite, writeFile } from "./suite.ts";
+import { perAttempt } from "#test/specFiles.ts";
+import { runProgram, type Suite, writeFile } from "#test/suite.ts";
 
 export const holdRerun = Effect.fn("VitestRerunSuite.holdRerun")(function* (suite: Suite) {
 	const server = yield* Effect.acquireRelease(

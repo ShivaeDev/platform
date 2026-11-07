@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { compositeRecordKey } from "#compositeRecordKey.ts";
-import { type ChangeKeysEngine, changeKeysEngine, keyWords } from "./changeKeysEngine.ts";
-import { changeKeysVerbs, ID_BEYOND_NUMBER } from "./changeKeysVerbs.ts";
-import { compositeLedger, LedgerEntry } from "./compositeLedger.ts";
-import { onPostgres } from "./engines.ts";
-import { OwnedRow, setupOwnedRows } from "./postgresOwnedRows.ts";
+import { type ChangeKeysEngine, changeKeysEngine, keyWords } from "#test/changeKeysEngine.ts";
+import { changeKeysVerbs, ID_BEYOND_NUMBER } from "#test/changeKeysVerbs.ts";
+import { compositeLedger, LedgerEntry } from "#test/compositeLedger.ts";
+import { onPostgres } from "#test/engines.ts";
+import { OwnedRow, setupOwnedRows } from "#test/postgresOwnedRows.ts";
 
 function inspect(engine: ChangeKeysEngine) {
 	return { createdIds: engine.createdIds, endings: engine.endings, woken: engine.woken };

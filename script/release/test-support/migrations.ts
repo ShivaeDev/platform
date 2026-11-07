@@ -1,4 +1,4 @@
-import { releasePullRequest } from "./pullRequest.ts";
+import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 export const migrationPlan = releasePullRequest.trait(
 	"main",

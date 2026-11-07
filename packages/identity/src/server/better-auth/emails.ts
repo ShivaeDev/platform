@@ -1,5 +1,5 @@
 import type { Duration, Effect, Redacted } from "effect";
-import type { BetterAuthHookError } from "./databaseHooks.ts";
+import type { BetterAuthHookError } from "#server/better-auth/databaseHooks.ts";
 
 interface Message {
 	readonly url: Redacted.Redacted<string>;

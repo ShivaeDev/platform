@@ -4,7 +4,7 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer } from "effect";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { Socket } from "effect/socket";
-import { Api } from "./feature.ts";
+import { Api } from "#test/unix-host/feature.ts";
 
 export function httpClient(path: string) {
 	const agent = Layer.effect(

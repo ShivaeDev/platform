@@ -1,6 +1,6 @@
-import { colorContrast } from "./colorContrast.ts";
-import { nearestLightness } from "./nearestLightness.ts";
-import { themeColor, withThemeColor } from "./themeColor.ts";
+import { colorContrast } from "#test-support/colorContrast.ts";
+import { nearestLightness } from "#test-support/nearestLightness.ts";
+import { themeColor, withThemeColor } from "#test-support/themeColor.ts";
 
 export function contrastGuidance(css: string, theme: "light" | "dark", foreground: string, background: string, minimum: number) {
 	const ratio = colorContrast(css, theme, foreground, background);

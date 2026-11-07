@@ -5,7 +5,7 @@ import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts"
 import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
-import { stylesheetImporters } from "./stylesheetImporters.ts";
+import { stylesheetImporters } from "#rules/files/stylesheetImporters.ts";
 
 const DEFAULT_TOOL_OWNED: readonly string[] = [".*", "package.json", "tsconfig*.json", "biome.json", "biome.jsonc", "*.config.*"];
 

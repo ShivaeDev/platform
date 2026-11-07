@@ -2,8 +2,8 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect, Layer, Queue } from "effect";
 import { RpcClient } from "effect/rpc";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
+import { Api, Notes, Summary } from "#test/connection/feature.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { Api, Notes, Summary } from "./feature.ts";
 
 export const connect = Effect.fnUntraced(function* (url: string) {
 	const events = yield* Queue.unbounded<string>();

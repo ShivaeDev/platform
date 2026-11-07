@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { TestClock } from "effect/testing";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import type { socialEngine } from "./socialEngine.ts";
+import type { socialEngine } from "#test/better-auth/socialEngine.ts";
 
 type SocialEngine = Effect.Success<ReturnType<typeof socialEngine>>;
 

@@ -5,10 +5,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import type { QueryReference } from "#serverMetadata.ts";
-import { answered, failure, thrown, times } from "./answers.ts";
-import { markQuery, reRead } from "./reRead.ts";
-import { type Person, type PreferenceView, type SessionEngine, sessionEngine } from "./sessionEngine.ts";
-import { settled } from "./settled.ts";
+import { answered, failure, thrown, times } from "#test/answers.ts";
+import { markQuery, reRead } from "#test/reRead.ts";
+import { type Person, type PreferenceView, type SessionEngine, sessionEngine } from "#test/sessionEngine.ts";
+import { settled } from "#test/settled.ts";
 
 const READ_LABELS: Record<PreferenceView, string> = { list: "list", "preference 1": "get:1", preferences: "self" };
 

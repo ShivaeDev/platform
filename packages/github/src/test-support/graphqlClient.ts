@@ -6,9 +6,9 @@ import { GitHub } from "#github/service.ts";
 import { githubApp } from "#githubApp.ts";
 import { graphql } from "#graphql.ts";
 import { read } from "#read.ts";
-import { APP_ID, APP_TOKEN, PRIVATE_KEY } from "./appFixture.ts";
-import { appServerAt } from "./appServer.ts";
-import { answered } from "./outcome.ts";
+import { APP_ID, APP_TOKEN, PRIVATE_KEY } from "#test/appFixture.ts";
+import { appServerAt } from "#test/appServer.ts";
+import { answered } from "#test/outcome.ts";
 
 type Base = "" | "/" | "/api/v3" | "/api/v3/";
 class Prefix extends Context.Service<Prefix, string>()("@shivaedev/github/test/GraphQLPrefix") {}

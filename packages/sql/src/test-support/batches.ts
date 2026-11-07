@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
-import { BatchReading, Generated, Measurement, type ReadingInput, WIDE_COLUMNS, Wide } from "./batchModels.ts";
-import { KeyPrefix } from "./conflictModels.ts";
-import { onPostgres } from "./engines.ts";
-import { kept, ownTable, readEndings, readReturned, records, uniqueTable } from "./writeTables.ts";
+import { BatchReading, Generated, Measurement, type ReadingInput, WIDE_COLUMNS, Wide } from "#test/batchModels.ts";
+import { KeyPrefix } from "#test/conflictModels.ts";
+import { onPostgres } from "#test/engines.ts";
+import { kept, ownTable, readEndings, readReturned, records, uniqueTable } from "#test/writeTables.ts";
 
 const SOURCE_PREFIX = "encoded/";
 

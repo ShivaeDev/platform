@@ -1,5 +1,5 @@
 import { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import type { Permission } from "./permission.ts";
+import type { Permission } from "#permission.ts";
 
 export function forbidden(permission: Permission): Forbidden {
 	return new Forbidden({ message: `Permission required: ${permission.name} (${permission.strength})` });

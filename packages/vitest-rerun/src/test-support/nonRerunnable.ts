@@ -1,6 +1,6 @@
-import { rerunStory } from "./kit.ts";
-import { perAttempt } from "./specFiles.ts";
-import { writeFile } from "./suite.ts";
+import { rerunStory } from "#test/kit.ts";
+import { perAttempt } from "#test/specFiles.ts";
+import { writeFile } from "#test/suite.ts";
 
 export function workerCrashesOnce() {
 	return rerunStory.trait("tests", "a worker exits during its first test execution and would pass on a rerun", (suite) =>

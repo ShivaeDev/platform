@@ -4,14 +4,14 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { withClientProtocol } from "#adapters/withClientProtocol.ts";
+import { clientActivities, makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
+import { connectionProtocol, protocolConnections } from "#connectionProtocol.ts";
+import { commandConnections } from "#connectionReadiness.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
-import { clientActivities, makeActivity } from "./clientActivities.ts";
-import { connectionProtocol, protocolConnections } from "./connectionProtocol.ts";
-import { commandConnections } from "./connectionReadiness.ts";
-import { socketProtocol } from "./socketProtocol.ts";
+import { socketProtocol } from "#socketProtocol.ts";
 
 declare const window: ResumeWindow | undefined;
 

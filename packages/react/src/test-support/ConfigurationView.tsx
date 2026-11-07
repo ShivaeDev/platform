@@ -5,7 +5,7 @@ import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
-import { type ConfigurationProps, type Current, Destination, type Name, Rejected } from "./configurationModel.ts";
+import { type ConfigurationProps, type Current, Destination, type Name, Rejected } from "#test/configurationModel.ts";
 
 const query = Atom.make(AsyncResult.success({ name: "stored" }));
 export function ConfigurationView(props: ConfigurationProps) {

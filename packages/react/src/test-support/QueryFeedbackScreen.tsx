@@ -3,7 +3,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { QueryView } from "#client/QueryView.ts";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
-import type { Unavailable } from "./queryView.ts";
+import type { Unavailable } from "#test/queryView.ts";
 
 function UnexpectedFailure() {
 	return <p data-crash>Unexpected failure</p>;

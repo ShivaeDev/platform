@@ -1,7 +1,7 @@
 import { Effect, Predicate, Queue, Stream } from "effect";
 import { words } from "@shivaedev/test-story/server/answers.ts";
-import type { Host } from "./host.ts";
-import { client } from "./requests.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import { client } from "#test/native-sessions/requests.ts";
 
 function hintWords(hint: unknown) {
 	return Predicate.hasProperty(hint, "_tag") ? words(String(hint._tag)) : `unreadable update ${JSON.stringify(hint)}`;

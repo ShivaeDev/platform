@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { automatic } from "./automatic.ts";
-import { live } from "./engine.ts";
-import { automaticVerbs } from "./verbs.ts";
+import { automatic } from "#test/automatic/automatic.ts";
+import { live } from "#test/automatic/engine.ts";
+import { automaticVerbs } from "#test/automatic/verbs.ts";
 
 export function notesShown() {
 	return automatic.trait("screen", "alice's screen shows live notes First and Second", live);

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { DatabaseEngine } from "./databaseEngine.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 
 export function wakeWorkers(engine: DatabaseEngine, queue?: string) {
 	for (const [name, runtime] of engine.runtimes) {

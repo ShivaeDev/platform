@@ -2,8 +2,8 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
-import { connectionLimitHint } from "./connectionLimitHint.ts";
-import { databaseName } from "./databaseOwner.ts";
+import { connectionLimitHint } from "#server/connectionLimitHint.ts";
+import { databaseName } from "#server/databaseOwner.ts";
 
 export const administer = Effect.fn("PostgresTest.administer")(function* <A>(
 	url: Redacted.Redacted<string>,

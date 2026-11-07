@@ -2,9 +2,9 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
-import { cliAnswer } from "./answers.ts";
-import { gitIn } from "./appReadouts.ts";
-import { updates } from "./updates.ts";
+import { cliAnswer } from "#test/answers.ts";
+import { gitIn } from "#test/appReadouts.ts";
+import { updates } from "#test/updates.ts";
 
 export const AS_RELEASED = { from: "the starter as released today" } as const;
 export type Change = Readonly<Record<string, string | null | typeof AS_RELEASED | ((current: string) => string)>>;

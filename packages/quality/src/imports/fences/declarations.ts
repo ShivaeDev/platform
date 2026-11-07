@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { decodeWith } from "#decoded.ts";
-import type { Fence, Selector } from "./model.ts";
+import type { Fence, Selector } from "#imports/fences/model.ts";
 
 const SelectorInput: Schema.Codec<Selector> = Schema.suspend(() =>
 	Schema.Union([

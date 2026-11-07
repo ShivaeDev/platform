@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type Person, roleAdoptionHost } from "#test/better-auth/roleAdoptionHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { type Person, roleAdoptionHost } from "./roleAdoptionHost.ts";
 
 export const roleAdoption = storyKit({
 	around: withIdentityDatabase,

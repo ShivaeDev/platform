@@ -3,11 +3,11 @@ import { TestClock } from "effect/testing";
 import type { vi } from "vitest";
 import { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 import { DraftStorageProvider, type PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
-import type { Row, Save, ViewEditor } from "./draftFields.ts";
-import { browserPersistence } from "./draftStorage.ts";
-import { persistedDraftView } from "./persistedDraftView.tsx";
-import type { Screen } from "./Screen.ts";
-import { settleScreen } from "./settleScreen.ts";
+import type { Row, Save, ViewEditor } from "#test/draftFields.ts";
+import { browserPersistence } from "#test/draftStorage.ts";
+import { persistedDraftView } from "#test/persistedDraftView.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 export type Field = "name" | "quantity";
 export type SaveMode = "immediate" | "held" | "rejected";

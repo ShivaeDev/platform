@@ -1,10 +1,10 @@
 import { Effect, Option } from "effect";
 import type { Headers } from "effect/http";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { transportOriginRequest } from "./origin.ts";
-import { resolveRole } from "./resolveRole.ts";
-import { SessionPolicy } from "./SessionPolicy.ts";
-import type { SessionShape } from "./session.ts";
+import { transportOriginRequest } from "#server/origin.ts";
+import { resolveRole } from "#server/resolveRole.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
+import type { SessionShape } from "#server/session.ts";
 
 export const sessionRequest = Effect.fnUntraced(function* (headers: Headers.Headers, rpc: string) {
 	const policy = yield* SessionPolicy;

@@ -4,9 +4,9 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import type { ClientModule } from "#client/Module.ts";
 import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
-import { appAuth } from "./appAuth.ts";
-import { acquireScreen } from "./screenState.ts";
-import { screens } from "./screens.ts";
+import { appAuth } from "#test-support/appAuth.ts";
+import { acquireScreen } from "#test-support/screenState.ts";
+import { screens } from "#test-support/screens.ts";
 
 expectNoReactWarnings();
 

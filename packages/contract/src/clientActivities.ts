@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { activityState } from "#adapters/activityState.ts";
 import { clientConnection } from "#adapters/clientConnection.ts";
-import { wrapAtom } from "./wrapAtom.ts";
+import { wrapAtom } from "#wrapAtom.ts";
 
 type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();

@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { exactCatalogVersion } from "./exactCatalogVersion.ts";
 
 for (const version of ["^4.0.4", "~4.0.4", "latest", "workspace:*", "4.0", "npm:effect@^4.0.4"]) {
 	ruleKit.it(

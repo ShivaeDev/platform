@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { hookApplication } from "#test/better-auth/hookApplication.ts";
+import { credentials, type HookHost, hookHost } from "#test/better-auth/hookHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { hookApplication } from "./hookApplication.ts";
-import { credentials, type HookHost, hookHost } from "./hookHost.ts";
 
 const Session = Schema.NullOr(Schema.Struct({ user: Schema.Struct({ email: Schema.String, name: Schema.String }) }));
 const ErrorBody = Schema.Struct({ code: Schema.String, message: Schema.String });

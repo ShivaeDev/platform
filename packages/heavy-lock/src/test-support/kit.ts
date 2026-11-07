@@ -6,13 +6,13 @@ import { Effect } from "effect";
 import { SecureRandom } from "effect/crypto";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { HOLDER_ID_ENV } from "#holder.ts";
-import { cli } from "./cli.ts";
-import { acquireInScope, buildLayer, commandVerbs, startCommand } from "./commands.ts";
-import { draft } from "./draft.ts";
-import { cleanupFails, draftWriteFails } from "./fileFaults.ts";
-import { createLock, type HolderProcess, lockDirectory, lockVerbs, readLock, seedHolder, writeLock } from "./lock.ts";
-import { protocolVerbs, writeReference } from "./protocol.ts";
-import { reclamation } from "./reclamation.ts";
+import { cli } from "#test/cli.ts";
+import { acquireInScope, buildLayer, commandVerbs, startCommand } from "#test/commands.ts";
+import { draft } from "#test/draft.ts";
+import { cleanupFails, draftWriteFails } from "#test/fileFaults.ts";
+import { createLock, type HolderProcess, lockDirectory, lockVerbs, readLock, seedHolder, writeLock } from "#test/lock.ts";
+import { protocolVerbs, writeReference } from "#test/protocol.ts";
+import { reclamation } from "#test/reclamation.ts";
 
 export const CLI_TIMEOUT_MS = 20_000;
 

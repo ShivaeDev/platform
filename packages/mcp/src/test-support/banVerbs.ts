@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { type Engine, person } from "./host.ts";
+import { type Engine, person } from "#test/host.ts";
 
 const PASSWORD = "correct-horse-battery-staple";
 

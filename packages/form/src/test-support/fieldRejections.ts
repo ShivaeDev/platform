@@ -2,7 +2,7 @@ import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { Conflict, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rejecting } from "#fieldRejection.ts";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const Profile = Schema.Struct({ profile: Schema.Struct({ email: Schema.String, name: Schema.String }) });
 const initialValues = { profile: { email: "alice@example.com", name: "Taken" } };

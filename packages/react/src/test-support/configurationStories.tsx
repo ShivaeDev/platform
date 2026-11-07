@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { ConfigurationView } from "./ConfigurationView.tsx";
-import { type ConfigurationProps, type Current, firstRuntime, Name, NormalizedName, secondRuntime } from "./configurationModel.ts";
-import { draftStorage } from "./draftStorage.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { ConfigurationView } from "#test/ConfigurationView.tsx";
+import { type ConfigurationProps, type Current, firstRuntime, Name, NormalizedName, secondRuntime } from "#test/configurationModel.ts";
+import { draftStorage } from "#test/draftStorage.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 draftStorage();
 

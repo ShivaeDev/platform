@@ -4,7 +4,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { authenticateSocket } from "@shivaedev/contract/socketAuthentication.ts";
-import { Api } from "./api.ts";
+import { Api } from "#test/local-owner/api.ts";
 
 export function httpClient(url: string, token?: string) {
 	const protocol = RpcClient.layerProtocolHttp({

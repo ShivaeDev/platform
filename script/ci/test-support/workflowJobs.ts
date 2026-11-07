@@ -1,4 +1,4 @@
-import { planning } from "./planning.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
 export function workflowJobs(seconds: Readonly<Record<string, number>>) {
 	return planning.trait("workspace", "the workflow has completed jobs", (engine) => {

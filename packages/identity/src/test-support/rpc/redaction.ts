@@ -6,8 +6,8 @@ import { redactingErrorReporter } from "@shivaedev/errors/redactCause.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
-import { Crashes, Handlers, SECRETS } from "./defectFixture.ts";
-import { recorder } from "./harness.ts";
+import { Crashes, Handlers, SECRETS } from "#test/rpc/defectFixture.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
 type Kind = "an object defect" | "an error defect";
 

@@ -4,7 +4,7 @@ import { FetchHttpClient, HttpClient } from "effect/http";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { RemoteStatusError } from "#errors.ts";
 import { filterStatus } from "#filterStatus.ts";
-import { type Lifecycle, makeLifecycle, observeClient } from "./observation.ts";
+import { type Lifecycle, makeLifecycle, observeClient } from "#test/http-client/observation.ts";
 
 interface ClientSelection {
 	readonly clients: Map<"fetch" | "node", HttpClient.HttpClient>;

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import type { Engine } from "./engine.ts";
-import type { Read } from "./github.ts";
-import { REPOSITORY } from "./githubModel.ts";
-import { pollOnce } from "./watcherVerbs.ts";
+import type { Engine } from "#test/engine.ts";
+import type { Read } from "#test/github.ts";
+import { REPOSITORY } from "#test/githubModel.ts";
+import { pollOnce } from "#test/watcherVerbs.ts";
 
 export function roundVerbs(engine: Engine, tell: (line: string) => void) {
 	return {

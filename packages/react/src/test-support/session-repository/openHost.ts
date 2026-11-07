@@ -5,7 +5,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appDatabase, appHost } from "@shivaedev/server/appDatabase.ts";
-import { Api, migrations, ReadAccess, repository } from "./feature.ts";
+import { Api, migrations, ReadAccess, repository } from "#test/session-repository/feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (databaseUrl: Redacted.Redacted<string>) {
 	const allowed = new Set(["alice", "bob"]);

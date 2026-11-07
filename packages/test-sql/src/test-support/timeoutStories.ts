@@ -1,4 +1,4 @@
-import { timeoutApp } from "./timeoutApp.ts";
+import { timeoutApp } from "#test/timeoutApp.ts";
 
 timeoutApp.it(
 	"hangs past its timeout with a job worker running",

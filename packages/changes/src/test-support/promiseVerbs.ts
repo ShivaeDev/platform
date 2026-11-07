@@ -1,8 +1,8 @@
 import { Deferred, Effect, Exit, Fiber } from "effect";
-import { type Body, effectOf } from "./body.ts";
-import { Note } from "./driverVerbs.ts";
-import { COMMIT_REFUSED, database, type Engine, endingOf } from "./engine.ts";
-import { Current } from "./fakeDatabase.ts";
+import { type Body, effectOf } from "#test/body.ts";
+import { Note } from "#test/driverVerbs.ts";
+import { COMMIT_REFUSED, database, type Engine, endingOf } from "#test/engine.ts";
+import { Current } from "#test/fakeDatabase.ts";
 
 async function transact<A>(callback: () => Promise<A>, commit: () => Promise<void>): Promise<A> {
 	const value = await callback();

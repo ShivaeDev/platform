@@ -1,7 +1,7 @@
 import { Result } from "effect";
 import { expect, it } from "vitest";
-import { MarkdownBudgetTooSmall } from "./errors.ts";
-import { renderRows, renderSections } from "./markdownRows.ts";
+import { MarkdownBudgetTooSmall } from "#errors.ts";
+import { renderRows, renderSections } from "#markdownRows.ts";
 
 it("retains complete rows at an exact UTF-8 boundary and reports every dropped row", () => {
 	const rows = ["😀", "&#64;team", ...Array.from({ length: 10 }, () => "too long")];

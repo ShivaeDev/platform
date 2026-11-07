@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { FileSystem } from "effect";
-import { app } from "./app.ts";
+import { app } from "#starter-published/test-support/app.ts";
 
 export function documentationFixture(markdown: string, source = "docs/framework/add-a-feature.md") {
 	return app.trait("source", `the documentation in ${source} describes these imports`, function* ({ root }) {

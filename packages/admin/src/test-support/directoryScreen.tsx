@@ -10,11 +10,11 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
-import { Access } from "./Access.ts";
-import { clientRuntime } from "./clientRuntime.ts";
-import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { mappedTables } from "./mappedTables.ts";
-import { makeUsersEngine, Page } from "./usersEngine.ts";
+import { Access } from "#test/Access.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
+import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import { mappedTables } from "#test/mappedTables.ts";
+import { makeUsersEngine, Page } from "#test/usersEngine.ts";
 
 const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

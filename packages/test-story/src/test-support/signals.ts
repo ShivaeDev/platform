@@ -1,8 +1,8 @@
 import { Clock, Effect, Queue, Scope, Stream } from "effect";
 import { storyKit } from "#server/storyKit.ts";
 import { collectUntil, type SignalNotReceived, until } from "#server/until.ts";
-import { attempt } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
+import { attempt } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
 
 interface SignalValue {
 	readonly status: string;

@@ -5,8 +5,8 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { ActivityPageView, activityPageClient } from "./activityPageView.ts";
-import { readPageHost } from "./readPageHost.ts";
+import { ActivityPageView, activityPageClient } from "#test/activityPageView.ts";
+import { readPageHost } from "#test/readPageHost.ts";
 
 expectNoReactWarnings();
 

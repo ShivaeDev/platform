@@ -1,5 +1,5 @@
 import sortPackageJson from "sort-package-json";
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const LIBRARY_MANIFEST = "modules/library/package.json";
 

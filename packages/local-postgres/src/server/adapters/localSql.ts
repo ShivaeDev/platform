@@ -1,10 +1,10 @@
 import { Effect } from "effect";
+import { clientConnection } from "#server/adapters/clientConnection.ts";
+import type { docker } from "#server/adapters/docker.ts";
+import { sqlInContainer } from "#server/adapters/localContainer.ts";
+import { type CommandOptions, missingCommand, runCommand } from "#server/adapters/runCommand.ts";
 import { assertLocalDatabase } from "#server/assertLocalDatabase.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import { clientConnection } from "./clientConnection.ts";
-import type { docker } from "./docker.ts";
-import { sqlInContainer } from "./localContainer.ts";
-import { type CommandOptions, missingCommand, runCommand } from "./runCommand.ts";
 
 export function localSql(localDocker: (args: readonly string[], options?: CommandOptions) => ReturnType<typeof docker>) {
 	return Effect.fn("LocalPostgres.sql")(function* (value: string | URL, query: string) {

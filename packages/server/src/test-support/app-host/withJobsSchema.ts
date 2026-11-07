@@ -4,7 +4,7 @@ import { getRollbackPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import { installPgBossSchema, pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { migrationHost } from "./migrationStory.ts";
+import { migrationHost } from "#test/app-host/migrationStory.ts";
 
 export function withJobsSchema(version: "missing" | "older" | "current" | "without deferrals") {
 	return migrationHost.trait("schema", `a current ledger and ${version} pg-boss schema`, function* (state) {

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { isConflict } from "@shivaedev/errors/taxonomy.ts";
 import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import { useCreate } from "#client/create.ts";
-import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
-import { InvoiceLineDraft, InvoiceLineForm, values } from "./Screen.ts";
+import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
+import { InvoiceLineDraft, InvoiceLineForm, values } from "#test/invoice-line-editor/Screen.ts";
 
 export function InvoiceLineOneShot({
 	opening,

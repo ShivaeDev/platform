@@ -5,9 +5,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHubApp } from "#app/service.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { githubApp } from "#githubApp.ts";
-import { APP_ID, PRIVATE_KEY } from "./appFixture.ts";
-import { appServer } from "./appServer.ts";
-import { answered } from "./outcome.ts";
+import { APP_ID, PRIVATE_KEY } from "#test/appFixture.ts";
+import { appServer } from "#test/appServer.ts";
+import { answered } from "#test/outcome.ts";
 
 export const viewerRepositories = storyKit({
 	*create() {

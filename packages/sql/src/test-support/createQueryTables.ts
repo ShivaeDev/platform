@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { SqlClient } from "effect/sql";
-import { ownTable } from "./writeTables.ts";
+import { ownTable } from "#test/writeTables.ts";
 
 export const TABLES = ["copies", "ledger", "lines", "partialRows", "payments", "results", "runs", "samples", "sources"] as const;
 export type Table = (typeof TABLES)[number];

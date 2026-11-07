@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
+import { type AppConnection, type ClientRegistration, connectModules } from "#client/Module.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
-import { type AppConnection, type ClientRegistration, connectModules } from "./Module.ts";
 
 const modules = [foundationRegistration, notesRegistration] as const;
 type Registered = Effect.Success<ReturnType<(typeof modules)[number]>>;

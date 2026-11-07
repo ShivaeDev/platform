@@ -5,8 +5,8 @@ import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
 import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
-import type { ClientConnection } from "./Module.ts";
-import { clientModules } from "./modules.ts";
+import type { ClientConnection } from "#client/Module.ts";
+import { clientModules } from "#client/modules.ts";
 
 const defaultConnection: ClientConnection = (session) => clientModules(session);
 

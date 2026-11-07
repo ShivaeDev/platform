@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
+import type { docker as localDocker } from "#server/adapters/docker.ts";
+import { POSTGRES_IMAGE } from "#server/adapters/localContainer.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
 import type { PostgresCommandError } from "#server/PostgresCommandError.ts";
 import { PostgresSettingError } from "#server/PostgresSettingError.ts";
 import type { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
-import type { docker as localDocker } from "./docker.ts";
-import { POSTGRES_IMAGE } from "./localContainer.ts";
 
 type Query = (query: string) => Effect.Effect<string, LocalPostgresError | PostgresCommandError, ChildProcessSpawner.ChildProcessSpawner>;
 

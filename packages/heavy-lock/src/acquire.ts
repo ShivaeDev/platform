@@ -2,14 +2,14 @@ import { Duration, Effect, type FileSystem, Option, type Path, type Scope } from
 import { SecureRandom } from "effect/crypto";
 import type { ChildProcessSpawner } from "effect/process";
 import { currentProcess } from "#adapters/currentProcess.ts";
-import { currentBranch } from "./currentBranch.ts";
-import { failWith, HeavyLockError } from "./error.ts";
-import { HeldLock, type HeldLockShape } from "./HeldLock.ts";
-import { HOLDER_ID_ENV } from "./holder.ts";
-import { readHolder } from "./lockFile.ts";
-import { processStartTime } from "./processStart.ts";
-import { readSettings } from "./settings.ts";
-import { waitForLock } from "./wait.ts";
+import { currentBranch } from "#currentBranch.ts";
+import { failWith, HeavyLockError } from "#error.ts";
+import { HeldLock, type HeldLockShape } from "#HeldLock.ts";
+import { HOLDER_ID_ENV } from "#holder.ts";
+import { readHolder } from "#lockFile.ts";
+import { processStartTime } from "#processStart.ts";
+import { readSettings } from "#settings.ts";
+import { waitForLock } from "#wait.ts";
 
 export interface HeavyLockOptions {
 	readonly command?: string | undefined;

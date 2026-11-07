@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { McpClient, McpClientError, McpProtocol, McpSchema } from "effect/ai";
 import { FetchHttpClient } from "effect/http";
-import { type Engine, named, path } from "./host.ts";
-import { AdminAnswer } from "./tools.ts";
+import { type Engine, named, path } from "#test/host.ts";
+import { AdminAnswer } from "#test/tools.ts";
 
 const REFUSALS = new Map([
 	[401, "unauthorized"],

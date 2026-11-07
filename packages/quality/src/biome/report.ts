@@ -2,10 +2,10 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path, Schema } from "effect";
 import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
 import { toolContractDefaults } from "#adapters/biome/toolContractDefaults.ts";
+import { recognizeDiagnostics } from "#biome/recognizeDiagnostics.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
 import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
-import { recognizeDiagnostics } from "./recognizeDiagnostics.ts";
 
 const Position = Schema.Struct({ column: Schema.optionalKey(Schema.Int), line: Schema.Int });
 
