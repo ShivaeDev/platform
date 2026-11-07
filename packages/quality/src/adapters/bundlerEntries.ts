@@ -28,7 +28,7 @@ function entryOption(call: ts.CallExpression): string | undefined {
 	return imported?.module === "esbuild" && ESBUILD.has(imported.name) ? "entryPoints" : undefined;
 }
 
-function entriesOf(call: ts.CallExpression, file: string, cwd: string, bindings: BuildBindings): readonly string[] {
+function entriesOf(call: ts.CallExpression, cwd: string, root: string, bindings: BuildBindings): readonly string[] {
 	const option = entryOption(call);
 	const [argument] = call.arguments;
 	const options = argument === undefined ? undefined : buildEntryValue(argument, new Set(), bindings);
@@ -36,21 +36,21 @@ function entriesOf(call: ts.CallExpression, file: string, cwd: string, bindings:
 		return [];
 	}
 	const configs = option === "input" && ts.isArrayLiteralExpression(options) ? options.elements : [options];
-	return configs.flatMap((config) => configuredEntries(config, option, file, cwd, bindings));
+	return configs.flatMap((config) => configuredEntries(config, option, cwd, root, bindings));
 }
 
-function configuredEntries(value: ts.Expression, option: string, file: string, cwd: string, bindings: BuildBindings): readonly string[] {
+function configuredEntries(value: ts.Expression, option: string, cwd: string, root: string, bindings: BuildBindings): readonly string[] {
 	const options = buildEntryValue(value, new Set(), bindings);
 	if (!ts.isObjectLiteralExpression(options)) {
 		return [];
 	}
 	const directory = buildOption(options, "absWorkingDir");
-	const working = directory === undefined ? cwd : buildEntryPaths(directory, cwd, file, new Set(), bindings)[0];
+	const working = directory === undefined ? cwd : buildEntryPaths(directory, cwd, root, new Set(), bindings)[0];
 	if (working === undefined) {
 		return [];
 	}
 	const entries = buildOption(options, option);
-	return entries === undefined ? [] : buildEntryPaths(entries, cwd, file, new Set(), bindings).map((path) => posix.resolve(cwd, working, path));
+	return entries === undefined ? [] : buildEntryPaths(entries, cwd, root, new Set(), bindings).map((path) => posix.resolve(cwd, working, path));
 }
 
 export function bundlerEntries(
@@ -75,11 +75,7 @@ export function bundlerEntries(
 			return;
 		}
 		if (ts.isCallExpression(node)) {
-			entries.push(
-				...entriesOf(node, posix.join(root, node.getSourceFile().fileName), posix.join(root, directory), bindings).map((path) =>
-					posix.relative(root, path),
-				),
-			);
+			entries.push(...entriesOf(node, posix.join(root, directory), root, bindings).map((path) => posix.relative(root, path)));
 			const helper = buildHelper(node, sources, bindings);
 			if (helper?.body !== undefined && !active.has(helper)) {
 				entries.push(posix.relative(root, posix.resolve(root, helper.getSourceFile().fileName)));

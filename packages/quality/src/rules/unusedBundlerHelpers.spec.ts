@@ -79,7 +79,7 @@ ${script}`
 }
 
 ruleStory.it(
-	"code/unused follows Rolldown entries through a package import alias, mapped helper configs and imported.meta.dirname",
+	"code/unused follows Rolldown entries through a package import alias, mapped helper configs and import.meta.dirname",
 	[
 		effectResolves(),
 		repositoryHas(
@@ -120,5 +120,51 @@ export const watchAll = (root: string) => watch(configs(root));`,
 		const findings = yield* check(unusedCode);
 
 		expect(findings).toEqual([expect.objectContaining({ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" })]);
+	},
+);
+
+ruleStory.it(
+	"code/unused follows Rolldown entries rooted at import.meta.dirname inside a workspace package",
+	[
+		effectResolves(),
+		repositoryHas(
+			{ content: JSON.stringify({ name: "workspace", private: true, type: "module" }), path: "package.json" },
+			{ content: 'packages:\n  - "apps/*"\n', path: "pnpm-workspace.yaml" },
+			{
+				content: JSON.stringify({
+					devDependencies: { effect: "*", rolldown: "*" },
+					imports: { "#script/*": "./script/*" },
+					name: "desktop",
+					private: true,
+					scripts: { build: "node script/build.ts" },
+					type: "module",
+				}),
+				path: "apps/desktop/package.json",
+			},
+			{
+				content: `import { dirname } from "node:path";
+import { Effect } from "effect";
+import { bundleMainAndPreload } from "#script/adapters/bundler.ts";
+const desktopRoot = dirname(import.meta.dirname);
+void Effect.runPromise(Effect.gen(function* () { yield* bundleMainAndPreload(desktopRoot); }));`,
+				path: "apps/desktop/script/build.ts",
+			},
+			{
+				content: `import { join } from "node:path";
+import { Effect } from "effect";
+import { build } from "rolldown";
+const configs = (root: string) => [{ input: join(root, "src", "main.ts") }, { input: join(root, "src", "preload.ts") }];
+export const bundleMainAndPreload = (root: string) => Effect.promise(() => Promise.all(configs(root).map((config) => build(config))));`,
+				path: "apps/desktop/script/adapters/bundler.ts",
+			},
+			{ content: "export const main = 1;", path: "apps/desktop/src/main.ts" },
+			{ content: "export const preload = 1;", path: "apps/desktop/src/preload.ts" },
+			{ content: "export const abandoned = 1;", path: "apps/desktop/src/abandoned.ts" },
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(unusedCode);
+
+		expect(findings).toEqual([expect.objectContaining({ file: "apps/desktop/src/abandoned.ts", subject: "files:apps/desktop/src/abandoned.ts" })]);
 	},
 );
