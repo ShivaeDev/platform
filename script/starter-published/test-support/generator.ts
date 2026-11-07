@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command, writeJson } from "#package-check/io.ts";
+import type { Package } from "#package-check/model.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 
 const unpublished = { name: "@shivaedev/sql", version: "999.0.0" };
@@ -12,6 +13,7 @@ export const generator = storyKit({
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-generator-story-" });
+		yield* fs.symlink(join(process.cwd(), "script"), join(root, "script"));
 		const archives = join(root, "archives");
 		const dependency = join(root, "dependency");
 		const createApp = join(root, "create-app");
@@ -35,16 +37,21 @@ export const generator = storyKit({
 		const dependencyArchive = join(archives, "sql.tgz");
 		yield* command(dependency, "pnpm", ["pack", "--out", dependencyArchive]);
 		yield* command(createApp, "pnpm", ["pack", "--out", archive]);
-		const tarballs = { "@shivaedev/create-app": archive, [unpublished.name]: dependencyArchive };
-		return { archive, root, tarballs };
+		yield* fs.makeDirectory(join(root, "examples/starter"), { recursive: true });
+		yield* writeJson(join(root, "examples/starter/published-versions.json"), { [unpublished.name]: unpublished.version });
+		const packages: Package[] = [
+			{ directory: createApp, manifest: { name: "@shivaedev/create-app", version: "1.0.0" }, tarball: archive },
+			{ directory: dependency, manifest: unpublished, tarball: dependencyArchive },
+		];
+		return { packages, root };
 	},
 	layer: NodeServices.layer,
 	name: "packed starter generator",
 	stages: [],
-	verbs: ({ archive, root, tarballs }, story) => ({
+	verbs: ({ packages, root }, story) => ({
 		generate: Effect.fn("GeneratorStory.generate")(function* () {
 			story.tell(`the packed create-app depends on ${unpublished.name}@${unpublished.version}, which the registry does not have`);
-			yield* generateStarter(process.cwd(), root, archive, tarballs);
+			yield* generateStarter(root, root, packages);
 		}),
 		starterOrigin: Effect.fn("GeneratorStory.starterOrigin")(function* () {
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, "starter/origin"));

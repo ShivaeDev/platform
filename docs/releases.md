@@ -76,6 +76,8 @@ The Platform release-PR planner compares each public package’s Effect requirem
 
 When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. Release validation reconstructs the canonical framework-version and starter-pin inputs; all other consumed inputs must be changesets deleted since the base. Framework comparison reads immutable npm versions and needs registry access during release planning and validation of version changes. Ordinary pending-changeset checks do not query npm. Altering generated notes fails validation.
 
+Packed starter is the single pre-merge generated-app check, required on every pull request and in the merge queue. It runs `check:published --archives .ci/packages` with the packed create-app command, taking pinned versions already on npm from npm and only matching unreleased pins from the PR’s archives. This exposes published declaration and Effect peer mismatches that workspace sources can hide. There is no post-publish starter workflow.
+
 The repository uses the workspace `@shivaedev/releases` package. To inspect or prepare a release locally:
 1. Run `pnpm releases plan` (or `pnpm releases plan --json`) and review the requested bumps and automatic dependent releases.
 2. Use the automated release PR when starter pins change; it derives the `@shivaedev/create-app` patch automatically.

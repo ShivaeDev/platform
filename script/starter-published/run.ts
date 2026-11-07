@@ -35,5 +35,5 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (
 	);
 	const warnings = `${stdout}\n${stderr}`.split(/\r?\n/u).filter((line) => line.includes("Timeout terminating forks worker"));
 	yield* requireThat(warnings.length === 0, `Generated app in ${cwd}: Vitest workers did not exit cleanly:\n${warnings.join("\n")}`);
-	yield* requireThat(code === 0, `Generated app: pnpm run ci failed (exit ${code}).`);
+	yield* requireThat(code === 0, `Generated app: pnpm run ci failed (exit ${code}).\n${stdout}\n${stderr}`);
 }, Effect.scoped);
