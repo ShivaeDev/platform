@@ -67,7 +67,7 @@ function writeLargeRepository(root: string): void {
 		const content = [
 			'import { Effect } from "effect";',
 			"",
-			`interface ${name}Input { readonly value: string; readonly values: readonly string[]; readonly enabled: boolean }`,
+			`interface ${name}Input { readonly enabled: boolean; readonly value: string; readonly values: readonly string[] }`,
 			`export const ${name} = Effect.fn("${name}")(function* (input: ${name}Input) {`,
 			'\treturn input.enabled ? input.value + ":" + input.values.join(":") : input.value;',
 			"});",
