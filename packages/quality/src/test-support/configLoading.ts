@@ -86,6 +86,7 @@ export const configLoading = storyKit({
 				const loaded = loadedConfig(engine);
 				return {
 					baseline: loaded.baseline,
+					entries: loaded.entries,
 					file: relative(engine.root, loaded.file),
 					registry: loaded.registry,
 					root: relative(engine.root, loaded.root),

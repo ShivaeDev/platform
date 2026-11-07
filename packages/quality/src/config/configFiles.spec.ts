@@ -5,6 +5,7 @@ import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const DEFAULT_SETTINGS = {
 	baseline: "quality-baseline.jsonl",
+	entries: [],
 	file: "quality.config.ts",
 	registry: "quality/registry.json",
 	root: "",
@@ -28,6 +29,16 @@ for (const [repository, traits] of [
 		},
 	);
 }
+
+configLoading.it(
+	"quality loads repository-relative runtime-built entries from its config",
+	[configFile('export default { entries: ["script/perf/driver.ts", "script/workers/**/*.ts"] };\n')],
+	function* ({ loads, settings }) {
+		yield* loads();
+
+		yield* assertThat(yield* settings(), (actual) => actual.toMatchObject({ entries: ["script/perf/driver.ts", "script/workers/**/*.ts"] }));
+	},
+);
 
 configLoading.it(
 	"quality takes the repository root from the folder of a config chosen by its path",

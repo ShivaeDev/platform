@@ -38,6 +38,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 	setManifestFiles(readText, inventory.manifestFiles);
 	const inputs = {
 		configFile: relative(config.root, config.file),
+		entries: config.entries,
 		exceptions: config.exceptions,
 		files: inventory.files,
 		nonEffectFolders: config.nonEffectFolders,
