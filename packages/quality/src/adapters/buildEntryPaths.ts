@@ -3,12 +3,26 @@ import ts from "typescript";
 import { type BuildBindings, buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
 import { importedCall } from "#adapters/importedCall.ts";
 
-function pathFromCall(node: ts.CallExpression, cwd: string, paths: (expression: ts.Expression) => readonly string[]): readonly string[] {
+function pathFromCall(
+	node: ts.CallExpression,
+	cwd: string,
+	file: string,
+	paths: (expression: ts.Expression) => readonly string[],
+): readonly string[] {
 	if (node.expression.getText() === "process.cwd" && node.arguments.length === 0) {
 		return [cwd];
 	}
 	const imported = importedCall(node);
-	if (imported === undefined || !/^(?:node:)?path$/u.test(imported.module) || (imported.name !== "join" && imported.name !== "resolve")) {
+	if (imported?.module === "node:url" && imported.name === "fileURLToPath" && node.arguments[0] !== undefined) {
+		const argument = node.arguments[0];
+		return ts.isPropertyAccessExpression(argument)
+			&& ts.isMetaProperty(argument.expression)
+			&& argument.expression.keywordToken === ts.SyntaxKind.ImportKeyword
+			&& argument.name.text === "url"
+			? [file]
+			: [];
+	}
+	if (imported === undefined || !/^(?:node:)?path$/u.test(imported.module) || !["join", "resolve", "dirname"].includes(imported.name)) {
 		return [];
 	}
 	const parts = node.arguments.map(paths);
@@ -16,7 +30,13 @@ function pathFromCall(node: ts.CallExpression, cwd: string, paths: (expression: 
 		return [];
 	}
 	const values = parts.flat();
-	return [imported.name === "resolve" ? posix.resolve(cwd, ...values) : posix.join(...values)];
+	if (imported.name === "resolve") {
+		return [posix.resolve(cwd, ...values)];
+	}
+	if (imported.name === "dirname") {
+		return [posix.dirname(values[0] ?? "")];
+	}
+	return [posix.join(...values)];
 }
 
 function valuesOf(node: ts.Expression): readonly ts.Expression[] {
@@ -57,5 +77,5 @@ export function buildEntryPaths(
 	) {
 		return [posix.dirname(file)];
 	}
-	return ts.isCallExpression(node) ? pathFromCall(node, cwd, paths) : valuesOf(node).flatMap(paths);
+	return ts.isCallExpression(node) ? pathFromCall(node, cwd, file, paths) : valuesOf(node).flatMap(paths);
 }
