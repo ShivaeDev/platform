@@ -5,11 +5,13 @@ import {
 	GitHubArtifactExtractedTooLarge,
 	GitHubArtifactExtractionError,
 	GitHubArtifactSymlink,
+	GitHubArtifactTooManyEntries,
 } from "#artifactErrors.ts";
 import { artifactPaths } from "#artifactPaths.ts";
 
 export interface ArtifactExtractionOptions {
 	readonly compressionRatioLimit?: number;
+	readonly entryLimit?: number;
 	readonly totalSizeLimit?: number;
 }
 
@@ -21,16 +23,29 @@ export interface ArtifactFile {
 export const extractArtifactArchive = Effect.fn("GitHub.extractArtifactArchive")(function* (bytes: Uint8Array, options: ArtifactExtractionOptions) {
 	const totalSizeLimit = options.totalSizeLimit ?? 100 * 1024 * 1024;
 	const compressionRatioLimit = options.compressionRatioLimit ?? 100;
-	if (!Number.isSafeInteger(totalSizeLimit) || totalSizeLimit < 0 || !Number.isFinite(compressionRatioLimit) || compressionRatioLimit <= 0) {
+	const entryLimit = options.entryLimit ?? 10_000;
+	if (
+		!Number.isSafeInteger(totalSizeLimit)
+		|| totalSizeLimit < 0
+		|| !Number.isFinite(compressionRatioLimit)
+		|| compressionRatioLimit <= 0
+		|| !Number.isSafeInteger(entryLimit)
+		|| entryLimit < 0
+	) {
 		return yield* new GitHubArtifactExtractionError({ reason: "invalid-limits" });
 	}
 	const entries = yield* zipEntries(bytes);
 	const pathOf = artifactPaths();
 	const files: ArtifactFile[] = [];
 	let total = 0;
+	let count = 0;
 	yield* entries.pipe(
 		Stream.runForEach((entry) =>
 			Effect.gen(function* () {
+				if (count === entryLimit) {
+					return yield* new GitHubArtifactTooManyEntries({ limit: entryLimit });
+				}
+				count += 1;
 				const path = yield* pathOf(entry.path, entry.directory);
 				yield* validateEntry(entry, total, { compressionRatioLimit, totalSizeLimit });
 				const content = yield* entry.read({ compressionRatioLimit, remaining: totalSizeLimit - total, totalSizeLimit });
@@ -46,7 +61,7 @@ export const extractArtifactArchive = Effect.fn("GitHub.extractArtifactArchive")
 
 type ZipEntry = Stream.Success<Effect.Success<ReturnType<typeof zipEntries>>>;
 
-const validateEntry = Effect.fnUntraced(function* (entry: ZipEntry, total: number, options: Required<ArtifactExtractionOptions>) {
+const validateEntry = Effect.fnUntraced(function* (entry: ZipEntry, total: number, options: Required<Omit<ArtifactExtractionOptions, "entryLimit">>) {
 	if (entry.symlink) {
 		return yield* new GitHubArtifactSymlink({ path: entry.path });
 	}

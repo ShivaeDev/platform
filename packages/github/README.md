@@ -257,13 +257,14 @@ const files = Effect.gen(function* () {
 		byteLimit: 10 * 1024 * 1024,
 		totalSizeLimit: 100 * 1024 * 1024,
 		compressionRatioLimit: 100,
+		entryLimit: 10_000,
 	});
 });
 ```
 
 Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is an array of `{ path, bytes }` files (`ArtifactFile` from `artifactExtraction.ts`), with relative POSIX paths and `Uint8Array` contents. Directory entries are validated and omitted from the result. Extraction happens in memory and writes no files. The ZIP reader loads on demand; other GitHub operations do not need it.
 
-`byteLimit` caps the downloaded ZIP while streaming and fails with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. Extraction defaults to a `totalSizeLimit` of 100 MiB across all entries and a per-entry `compressionRatioLimit` of 100:1. Both caps are inclusive. The total limit must be a non-negative safe integer; the ratio must be finite and positive. Limits check declared sizes before decompression and emitted bytes before retaining them. No partial file list is returned after a refusal.
+`byteLimit` caps the downloaded ZIP while streaming and fails with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. Extraction defaults to a `totalSizeLimit` of 100 MiB across all entries, a per-entry `compressionRatioLimit` of 100:1, and an `entryLimit` of 10,000 files and directories. All caps are inclusive. The total and entry limits must be non-negative safe integers; the ratio must be finite and positive. The entry cap is checked before validating or reading each entry, including directories omitted from the result. Limits check declared sizes before decompression and emitted bytes before retaining them. No partial file list is returned after a refusal.
 
 Extraction failures come from `artifactErrors.ts`:
 
@@ -274,6 +275,7 @@ Extraction failures come from `artifactErrors.ts`:
 | `GitHubArtifactDuplicateEntry({ path })`          | Duplicate paths and file/directory conflicts                                                                      |
 | `GitHubArtifactCompressionRatio({ path, limit })` | An entry exceeds the ratio cap                                                                                    |
 | `GitHubArtifactExtractedTooLarge({ limit })`      | Combined extracted contents exceed the total cap                                                                  |
+| `GitHubArtifactTooManyEntries({ limit })`         | The number of files and directories exceeds the entry cap                                                         |
 | `GitHubArtifactExtractionError({ reason })`       | Missing reader (`"reader-unavailable"`), malformed ZIP (`"invalid-archive"`) or invalid caps (`"invalid-limits"`) |
 
 Paths remain case-sensitive.

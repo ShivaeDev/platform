@@ -8,6 +8,7 @@ import {
 	GitHubArtifactExtractionError,
 	GitHubArtifactPathTraversal,
 	GitHubArtifactSymlink,
+	GitHubArtifactTooManyEntries,
 } from "#artifactErrors.ts";
 import {
 	GitHubAppError,
@@ -43,6 +44,7 @@ const phrases = [
 	on(GitHubArtifactDuplicateEntry, ({ path }) => `duplicate archive entry: ${path}`),
 	on(GitHubArtifactCompressionRatio, ({ limit, path }) => `archive entry ${path} exceeds ${limit}:1 compression`),
 	on(GitHubArtifactExtractedTooLarge, ({ limit }) => `extracted archive over ${size(limit)}`),
+	on(GitHubArtifactTooManyEntries, ({ limit }) => `archive over ${limit} entries`),
 	on(GitHubArtifactExtractionError, ({ reason }) => `archive extraction failed: ${reason}`),
 	on(GitHubRateLimited, ({ resource, retryAt }) => `rate limited on ${resource} until ${clockTime(retryAt)}`),
 	on(GitHubPermissionDenied, ({ path }) => `permission denied at ${path}`),
