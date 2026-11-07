@@ -4,7 +4,7 @@ import { application } from "#test/application.ts";
 import { permissiveUmask, restrictiveUmask } from "#test/traits.ts";
 
 const APP_WORDS = ["pnpm dev", "pnpm test", "docs/framework/"];
-const STARTER_WORDS = ["starter", "check:published", "--registry", "published-versions"];
+const STARTER_WORDS = ["starter", "check:published", "published-versions"];
 const UPDATE_WORDS = ["pnpm dlx @shivaedev/create-app@latest update", "`.create-app.json` records the generator version"];
 
 application.it(
