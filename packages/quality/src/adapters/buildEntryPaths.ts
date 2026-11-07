@@ -3,10 +3,14 @@ import ts from "typescript";
 import { type BuildBindings, buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
 import { importedCall } from "#adapters/importedCall.ts";
 
+function sourcePath(node: ts.Node, root: string): string {
+	return posix.resolve(root, node.getSourceFile().fileName);
+}
+
 function pathFromCall(
 	node: ts.CallExpression,
 	cwd: string,
-	file: string,
+	root: string,
 	paths: (expression: ts.Expression) => readonly string[],
 ): readonly string[] {
 	if (node.expression.getText() === "process.cwd" && node.arguments.length === 0) {
@@ -19,7 +23,7 @@ function pathFromCall(
 			&& ts.isMetaProperty(argument.expression)
 			&& argument.expression.keywordToken === ts.SyntaxKind.ImportKeyword
 			&& argument.name.text === "url"
-			? [file]
+			? [sourcePath(argument, root)]
 			: [];
 	}
 	if (imported === undefined || !/^(?:node:)?path$/u.test(imported.module) || !["join", "resolve", "dirname"].includes(imported.name)) {
@@ -53,7 +57,7 @@ function valuesOf(node: ts.Expression): readonly ts.Expression[] {
 export function buildEntryPaths(
 	expression: ts.Expression,
 	cwd: string,
-	file: string,
+	root: string,
 	active: ReadonlySet<ts.Node> = new Set(),
 	bindings: BuildBindings = new Map(),
 ): readonly string[] {
@@ -63,7 +67,7 @@ export function buildEntryPaths(
 	}
 	const visited = new Set([...active, node]);
 	function paths(value: ts.Expression) {
-		return buildEntryPaths(value, cwd, file, visited, bindings);
+		return buildEntryPaths(value, cwd, root, visited, bindings);
 	}
 	if (ts.isStringLiteralLike(node)) {
 		return [node.text];
@@ -75,7 +79,7 @@ export function buildEntryPaths(
 		(ts.isIdentifier(node) && node.text === "__dirname")
 		|| (ts.isPropertyAccessExpression(node) && node.expression.kind === ts.SyntaxKind.MetaProperty && node.name.text === "dirname")
 	) {
-		return [posix.dirname(posix.resolve(cwd, node.getSourceFile().fileName))];
+		return [posix.dirname(sourcePath(node, root))];
 	}
-	return ts.isCallExpression(node) ? pathFromCall(node, cwd, file, paths) : valuesOf(node).flatMap(paths);
+	return ts.isCallExpression(node) ? pathFromCall(node, cwd, root, paths) : valuesOf(node).flatMap(paths);
 }
