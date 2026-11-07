@@ -6,6 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BaselineEntry, encodeBaseline } from "#baseline/format.ts";
 import { manifest } from "#test/applicationFiles.ts";
 import { qualityWithHeap, type Run } from "#testing/adapters/cli.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { linkPackage, packageRoot } from "#testing/adapters/tree.ts";
 
 const SOURCE_COUNT = 4415;
@@ -57,13 +58,18 @@ function writeLargeRepository(root: string): void {
 	linkPackage(root);
 	const baseline: BaselineEntry[] = [];
 	for (let index = 0; index < SOURCE_COUNT; index += 1) {
-		const path = `src/source-${String(index).padStart(4, "0")}.ts`;
-		writeFileSync(join(root, path), "export {};\n");
+		const path = index === 0 ? "src/index.ts" : `src/source${String(index).padStart(4, "0")}.ts`;
+		const content =
+			index === 0
+				? Array.from({ length: SOURCE_COUNT - 1 }, (_, importIndex) => `import "./source${String(importIndex + 1).padStart(4, "0")}.ts";`).join("\n")
+				: "export {};\n";
+		writeFileSync(join(root, path), content);
 		for (const rule of RULE_IDS.slice(0, index < LAST_RULE_FILE_COUNT ? 5 : 4)) {
 			baseline.push({ count: 1, file: path, rule });
 		}
 	}
 	writeFileSync(join(root, "quality-baseline.jsonl"), encodeBaseline(baseline));
+	formatTree(root);
 }
 
 export const largeHeapLint = storyKit({
