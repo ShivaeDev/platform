@@ -70,7 +70,7 @@ function writeLargeRepository(root: string): void {
 			"",
 			`interface ${inputName} { readonly enabled: boolean; readonly value: string; readonly values: readonly string[] }`,
 			`export const ${name} = Effect.fn("${name}")(function* (input: ${inputName}) {`,
-			'\treturn yield* Effect.succeed(input.enabled ? input.value + ":" + input.values.join(":") : input.value);',
+			`\treturn yield* Effect.succeed(input.enabled ? \`\${input.value}:\${input.values.join(":")}\` : input.value);`,
 			"});",
 		].join("\n");
 		writeFileSync(join(root, path), content);
