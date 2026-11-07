@@ -40,7 +40,7 @@ export const databaseStartup = storyKit({
 		savedPostgresSettings: () => Effect.map(engine.savedSettings, (rows) => Object.fromEntries(rows.map(({ name, setting }) => [name, setting]))),
 		start: () => {
 			story.tell("the application host starts against PostgreSQL");
-			return startHost();
+			return startHost({ railwayReplica: true });
 		},
 	}),
 });

@@ -2,8 +2,10 @@ import { Effect } from "effect";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { postgres } from "#test/postgres.ts";
+import { databaseUrl, postgres } from "#test/postgres.ts";
 import { settingsEngine } from "#test/postgres-settings/engine.ts";
+
+export const postgresSettingsCanApply = databaseUrl !== undefined && new URL(databaseUrl).port !== "55432";
 
 export const postgresSettings = storyKit({
 	around: withIsolatedDatabase,

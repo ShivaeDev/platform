@@ -7,11 +7,12 @@ import {
 	hostKind,
 	nonSuperuser,
 	postgresSettings,
+	postgresSettingsCanApply,
 	railwayDeployment,
 	railwayRun,
 } from "#test/postgres-settings/story.ts";
 
-postgresSettings.it(
+postgresSettings.it.runIf(postgresSettingsCanApply)(
 	"a non-superuser warns with the setting, live and wanted values and startup still runs migrations",
 	[railwayDeployment, configuredSetting("log_min_duration_sample", "12000", "13s"), nonSuperuser],
 	function* ({ migrationRan, recordedWarnings, start }) {
@@ -39,7 +40,7 @@ for (const [description, traits] of [
 	});
 }
 
-postgresSettings.it(
+postgresSettings.it.runIf(postgresSettingsCanApply)(
 	"startup logs a restart-only setting with its wanted value while leaving the live value until restart",
 	[railwayDeployment, configuredSetting("max_files_per_process", "1000", "1001")],
 	function* ({ liveSetting, recordedWarnings, restartIsPending, start }) {
@@ -57,7 +58,7 @@ postgresSettings.it(
 	},
 );
 
-postgresSettings.it(
+postgresSettings.it.runIf(postgresSettingsCanApply)(
 	"a refused value warns with the setting, live and wanted values and startup still runs migrations",
 	[railwayDeployment, configuredSetting("log_min_duration_sample", "12000", "-2")],
 	function* ({ migrationRan, recordedWarnings, start }) {
@@ -94,7 +95,7 @@ for (const host of ["database", "http", "deferred", "worker"] as const) {
 			},
 		);
 	}
-	postgresSettings.it(
+	postgresSettings.it.runIf(postgresSettingsCanApply)(
 		`${host} startup on Railway applies the declared PostgreSQL setting`,
 		[hostKind(host), railwayDeployment, configuredSetting("log_min_duration_sample", "12000", "13s")],
 		function* ({ liveSetting, settingReloads, start }) {

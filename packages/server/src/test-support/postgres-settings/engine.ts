@@ -2,7 +2,6 @@ import { ConfigProvider, Context, Effect, Layer, Logger, Redacted, Tracer } from
 import { Migrator, SqlClient } from "effect/sql";
 import type { PostgresSettings } from "@shivaedev/sql/postgresSettings.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import { settingsEndpoint } from "#test/postgres-settings/adapters/endpoint.ts";
@@ -13,7 +12,6 @@ export const settingsEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const logs: Array<{ level: string; message: unknown }> = [];
 	const spans: Tracer.NativeSpan[] = [];
-	const proxy = yield* disconnectProxy(Redacted.value(database.url));
 	const state: {
 		databaseUrl: Redacted.Redacted<string>;
 		env: Record<string, string>;
@@ -21,7 +19,7 @@ export const settingsEngine = Effect.fnUntraced(function* () {
 		migrated: boolean;
 		settings: PostgresSettings;
 	} = {
-		databaseUrl: Redacted.make(proxy.url),
+		databaseUrl: database.url,
 		env: {},
 		host: "database",
 		migrated: false,
@@ -78,7 +76,9 @@ export const settingsEngine = Effect.fnUntraced(function* () {
 			}),
 		state,
 		*useDevelopmentPort(source: "authority" | "parameters") {
-			state.databaseUrl = Redacted.make(yield* settingsEndpoint(Redacted.value(database.url), source));
+			const databaseUrl = Redacted.value(database.url);
+			state.databaseUrl =
+				new URL(databaseUrl).port === "55432" ? Redacted.make(databaseUrl) : Redacted.make(yield* settingsEndpoint(databaseUrl, source));
 		},
 		*withoutSuperuser() {
 			const url = new URL(Redacted.value(state.databaseUrl));
