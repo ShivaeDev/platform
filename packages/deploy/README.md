@@ -136,7 +136,7 @@ export default defineRailway((ctx, project) =>
 
 Override the migration through native `preDeploy`, `preDeployCommand`, `run.preDeploy` or `deploy.preDeployCommand` options. Set `preDeploy: []` to disable it. Set `deploy.drainingSeconds: 0` to disable worker draining. Explicit empty strings for proxy variables are preserved, so choose their values according to the application's transport trust policy.
 
-Install the package alongside its Railway peer:
+Install the package alongside its Railway peer. Effect applications already provide the required `effect` peer.
 
 ```sh
 pnpm add -D @shivaedev/deploy railway
