@@ -5,7 +5,7 @@ import { FetchHttpClient } from "effect/http";
 import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
 import { checkServer } from "#package-check/adapters/server.ts";
 import { command, requireThat } from "#package-check/io.ts";
-import { bins, type Package, Versions } from "#package-check/model.ts";
+import { bins, decodeVersions, type Package, Versions } from "#package-check/model.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 const Case = Schema.Struct({
@@ -88,7 +88,9 @@ const runBin = Effect.fn("Packed.runBin")(function* (
 ) {
 	let env = scenario.env;
 	if (scenario.packedInstall) {
-		const tarballs = yield* pinnedTarballs(packages).pipe(Effect.provide(FetchHttpClient.layer));
+		const fs = yield* FileSystem.FileSystem;
+		const pins = decodeVersions(yield* fs.readFileString(join(root, "examples/starter/published-versions.json")));
+		const tarballs = yield* pinnedTarballs(packages, pins).pipe(Effect.provide(FetchHttpClient.layer));
 		env = { ...env, "PATH": yield* packedInstaller(root, consumer, tarballs) };
 	}
 	const environment = Object.entries(env ?? {});

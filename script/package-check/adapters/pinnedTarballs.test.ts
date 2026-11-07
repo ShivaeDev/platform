@@ -11,9 +11,13 @@ for (const workspaceVersion of ["1.0.0", "1.1.0"]) {
 	);
 }
 
-pinnedStarter.it("an unpublished starter pin typechecks against its matching release archive", [releasePin("1.1.0")], function* ({ typecheck }) {
-	expect(yield* typecheck()).toBeUndefined();
-});
+pinnedStarter.it(
+	"an unpublished starter catalog pin typechecks against its matching release archive",
+	[releasePin("1.1.0")],
+	function* ({ typecheck }) {
+		expect(yield* typecheck()).toBeUndefined();
+	},
+);
 
 pinnedStarter.it("a registry outage fails instead of substituting workspace sources", [registryUnavailable], function* ({ typecheck }) {
 	expect(yield* typecheck()).toContain("npm lookup for @fixture/starter-pin failed with HTTP 503");

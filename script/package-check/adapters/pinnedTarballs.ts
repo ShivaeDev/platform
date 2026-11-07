@@ -6,11 +6,11 @@ import type { Package } from "#package-check/model.ts";
 
 const RegistryPackage = Schema.Struct({ versions: Schema.Record(Schema.String, Schema.Unknown) });
 
-export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (packages: readonly Package[]) {
+export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (packages: readonly Package[], pins: Readonly<Record<string, string>>) {
 	const client = yield* HttpClient.HttpClient;
 	const registry = yield* Config.String("npm_config_registry").pipe(Config.withDefault("https://registry.npmjs.org"));
 	const entries = yield* Effect.forEach(
-		packages,
+		packages.filter(({ manifest }) => pins[manifest.name] === manifest.version),
 		Effect.fn("Packed.lookupPinnedTarball")(function* ({ manifest: { name, version }, tarball }) {
 			const response = yield* client.get(`${registry}/${encodeURIComponent(name)}`, {
 				headers: { accept: "application/vnd.npm.install-v1+json" },
@@ -22,7 +22,7 @@ export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (pack
 					return [];
 				}
 			}
-			return [[`${name}@${version}`, tarball]] as const;
+			return [[name, tarball]] as const;
 		}),
 		{ concurrency: 4 },
 	);

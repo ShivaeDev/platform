@@ -59,7 +59,6 @@ export const pinnedStarter = storyKit({
 			"export declare function assertLocalDatabase(value: string, names: readonly string[], ports?: readonly string[]): void;\n",
 		);
 		const app = join(root, "app");
-		yield* fs.writeFileString(join(app, "pnpm-workspace.yaml"), `packages: []\nregistry: ${registry.url}\n`);
 		yield* writeJson(join(app, "tsconfig.json"), { compilerOptions: { noEmit: true, strict: true, types: [] }, include: ["test.ts"] });
 		yield* fs.writeFileString(
 			join(app, "test.ts"),
@@ -74,11 +73,13 @@ export const pinnedStarter = storyKit({
 		typecheck: Effect.fn("PinnedStarter.typecheck")(function* () {
 			story.tell("the packed consumer installs the starter's pin and typechecks its adapter");
 			return yield* Effect.gen(function* () {
-				const tarballs = yield* pinnedTarballs([pkg]).pipe(
+				const tarballs = yield* pinnedTarballs([pkg], { [NAME]: pin }).pipe(
 					Effect.provide(FetchHttpClient.layer),
 					Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ "npm_config_registry": registry.url }))),
 				);
-				yield* writeJson(join(app, "package.json"), { dependencies: { [NAME]: pin }, private: true });
+				const fs = yield* FileSystem.FileSystem;
+				yield* fs.writeFileString(join(app, "pnpm-workspace.yaml"), `packages: []\nregistry: ${registry.url}\ncatalog:\n  "${NAME}": "${pin}"\n`);
+				yield* writeJson(join(app, "package.json"), { dependencies: { [NAME]: "catalog:" }, private: true });
 				const path = yield* packedInstaller(process.cwd(), root, tarballs);
 				yield* command(app, "env", [`PATH=${path}`, "pnpm", "install"]);
 				yield* command(app, join(process.cwd(), "node_modules/.bin/tsc"), ["--project", "tsconfig.json"]);
