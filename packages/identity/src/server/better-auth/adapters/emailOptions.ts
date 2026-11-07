@@ -3,8 +3,8 @@ import { Effect, Redacted, Schema } from "effect";
 import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
 import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
+import type { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
-import type { hookRuntime } from "./hookRuntime.ts";
 
 type Outgoing = { [TKind in AuthEmail["_tag"]]: Omit<Extract<AuthEmail, { readonly _tag: TKind }>, "url"> }[AuthEmail["_tag"]];
 

@@ -1,6 +1,6 @@
 import { Deferred, Effect, Result } from "effect";
-import { type Application, orderId } from "./applicationEngine.ts";
-import { screenVerbs, settleOrders } from "./screenVerbs.ts";
+import { type Application, orderId } from "#test/order-example/applicationEngine.ts";
+import { screenVerbs, settleOrders } from "#test/order-example/screenVerbs.ts";
 
 export function outcomeOf<A, E>(effect: Effect.Effect<A, E>) {
 	return effect.pipe(

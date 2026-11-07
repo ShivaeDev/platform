@@ -15,7 +15,7 @@ import { postgresStore } from "#adapters/postgresStore.ts";
 import { postgresTestDatabase } from "#postgresTestDatabase.ts";
 import { rateLimit } from "#rateLimit.ts";
 import { Store } from "#Store.ts";
-import { limit, makeLimiter } from "./makeLimiter.ts";
+import { limit, makeLimiter } from "#test/makeLimiter.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 

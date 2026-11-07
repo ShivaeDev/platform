@@ -5,9 +5,9 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
-import { Api } from "./api.ts";
-import { type Host, NATIVE_ORIGIN } from "./host.ts";
-import type { Account } from "./requests.ts";
+import { Api } from "#test/native-sessions/api.ts";
+import { type Host, NATIVE_ORIGIN } from "#test/native-sessions/host.ts";
+import type { Account } from "#test/native-sessions/requests.ts";
 
 export const openProfile = Effect.fnUntraced(function* (host: Host, account: Account, owner: Account = account, restricted = false) {
 	const closed = yield* Deferred.make<{ code: number; reason: string }>();

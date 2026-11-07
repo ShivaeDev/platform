@@ -3,11 +3,11 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { CommandPublication, CommandPublicationError, type CommandPublisher } from "@shivaedev/changes/commandPublication.ts";
-import { listenForChanges } from "./listenForChanges.ts";
-import { encodeKeys, resyncPayload } from "./notifyPayload.ts";
-import { PostgresChangeListener } from "./PostgresChangeListener.ts";
-import { PostgresChangeResync } from "./PostgresChangeResync.ts";
-import { BeforeCommit, CommittedSink, invalidateOnCommit, transact } from "./transact.ts";
+import { listenForChanges } from "#listenForChanges.ts";
+import { encodeKeys, resyncPayload } from "#notifyPayload.ts";
+import { PostgresChangeListener } from "#PostgresChangeListener.ts";
+import { PostgresChangeResync } from "#PostgresChangeResync.ts";
+import { BeforeCommit, CommittedSink, invalidateOnCommit, transact } from "#transact.ts";
 
 export interface PostgresNotification {
 	readonly payload: string;

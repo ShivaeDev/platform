@@ -10,7 +10,7 @@ import { authSession as readSession } from "@shivaedev/identity/client/adapters/
 import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authSession } from "#client/authSession.ts";
-import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";
+import { Notes, ReadPermission, type Role, Roles } from "#test/permission-routes/feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) {
 	const requests: string[] = [];

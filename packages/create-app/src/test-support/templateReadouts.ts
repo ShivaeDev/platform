@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Effect, Schema } from "effect";
 import { catalogEntries } from "@shivaedev/quality/adapters/catalogEntries.ts";
 import { decodeTemplate } from "#template.ts";
-import type { Engine } from "./generate.ts";
+import type { Engine } from "#test/generate.ts";
 
 const Ranges = Schema.Record(Schema.String, Schema.String);
 const decodeManifest = Schema.decodeUnknownSync(

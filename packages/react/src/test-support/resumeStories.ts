@@ -2,12 +2,12 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { ResumeLiveScreen } from "./ResumeLiveScreen.tsx";
-import { resumeLiveClient } from "./resumeLiveClient.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
-import { syntheticNative } from "./syntheticNative.ts";
+import { ResumeLiveScreen } from "#test/ResumeLiveScreen.tsx";
+import { resumeLiveClient } from "#test/resumeLiveClient.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
+import { syntheticNative } from "#test/syntheticNative.ts";
 
 type Source = "native" | "browser";
 

@@ -1,6 +1,6 @@
 import { Effect, type Schema, SchemaParser } from "effect";
-import { messageAtPath, messagesByField } from "./messages.ts";
-import { type Encoded, type Fields, Invalid, type Name, type Snapshot } from "./shape.ts";
+import { messageAtPath, messagesByField } from "#messages.ts";
+import { type Encoded, type Fields, Invalid, type Name, type Snapshot } from "#shape.ts";
 
 export function validation<TFields extends Fields>(
 	schema: Schema.Struct<TFields>,

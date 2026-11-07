@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import { conditionalKit } from "./conditionalKit.ts";
+import { conditionalKit } from "#test/conditionalKit.ts";
 
 const { given, kit } = conditionalKit(true);
 const focused = kit.it.only;

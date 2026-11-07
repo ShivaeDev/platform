@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { openTab } from "./openTab.ts";
-import { startHost } from "./startHost.ts";
+import { openTab } from "#test/restart/openTab.ts";
+import { startHost } from "#test/restart/startHost.ts";
 
 export const restartStory = storyKit({
 	clock: "test",

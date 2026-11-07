@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { vi } from "@effect/vitest";
 import { Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
 import { main } from "#main.ts";
-import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
+import { type SuiteConfig, vitestConfig } from "#test/specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 export const REPORTS = "reports";

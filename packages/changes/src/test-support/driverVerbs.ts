@@ -1,8 +1,8 @@
 import { Context, Effect, Exit } from "effect";
 import type { CommitFrame, Outcome } from "#frame.ts";
-import { type Body, effectOf } from "./body.ts";
-import { database, type Engine, labels } from "./engine.ts";
-import { type Change, Current } from "./fakeDatabase.ts";
+import { type Body, effectOf } from "#test/body.ts";
+import { database, type Engine, labels } from "#test/engine.ts";
+import { type Change, Current } from "#test/fakeDatabase.ts";
 
 export const Note = Context.Reference<string>("@shivaedev/changes/ChangesStory/Note", { defaultValue: () => "no note" });
 

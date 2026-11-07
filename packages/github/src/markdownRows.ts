@@ -1,5 +1,5 @@
 import { Result } from "effect";
-import { MarkdownBudgetTooSmall } from "./errors.ts";
+import { MarkdownBudgetTooSmall } from "#errors.ts";
 
 export interface MarkdownRowsOptions {
 	readonly byteLimit?: number;

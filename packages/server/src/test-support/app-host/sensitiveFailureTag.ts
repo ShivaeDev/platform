@@ -2,7 +2,7 @@ import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export function sensitiveFailureTag(source: "schema" | "host") {
 	return host.trait("configured", `the ${source} marks error tags as sensitive`, (state) => {

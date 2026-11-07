@@ -2,7 +2,7 @@ import { Context, type Duration, Effect, Option, type Scope } from "effect";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { socketMonitor } from "#server/adapters/socketMonitor.ts";
-import type { SessionShape } from "./session.ts";
+import type { SessionShape } from "#server/session.ts";
 
 export type SessionSnapshot = SessionShape & { readonly user: { readonly permissions?: readonly Permission[] } };
 type Lookup = Effect.Effect<Option.Option<SessionSnapshot>, AuthUnavailable | Forbidden>;

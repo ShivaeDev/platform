@@ -5,8 +5,8 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Config, Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { setupInstaller } from "./setupInstaller.ts";
-import { hoistedPieces, starterModules } from "./starterModules.ts";
+import { setupInstaller } from "#test/setupInstaller.ts";
+import { hoistedPieces, starterModules } from "#test/starterModules.ts";
 
 export function appFolder(
 	root: string,

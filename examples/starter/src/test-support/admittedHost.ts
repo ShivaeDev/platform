@@ -15,7 +15,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { secret } from "./host.ts";
+import { secret } from "#test-support/host.ts";
 
 const Api = RpcGroup.make(
 	Rpc.make("Accounts", {

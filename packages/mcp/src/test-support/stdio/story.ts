@@ -11,7 +11,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { connect, tool } from "#test/requests/client.ts";
 import { startServer } from "#test/requests/startServer.ts";
-import { ResourceAnswer, resourceFile, resourceTools } from "./tools.ts";
+import { ResourceAnswer, resourceFile, resourceTools } from "#test/stdio/tools.ts";
 
 const start = Effect.fnUntraced(function* (protocol: typeof McpProtocol.v2025_11_25 | typeof McpProtocol.v2026_07_28) {
 	const directory = yield* Effect.acquireRelease(

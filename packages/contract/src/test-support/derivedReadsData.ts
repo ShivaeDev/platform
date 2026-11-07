@@ -4,7 +4,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { lists, records, TimelineData, Unavailable } from "./derivedReadsContract.ts";
+import { lists, records, TimelineData, Unavailable } from "#test/derivedReadsContract.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 

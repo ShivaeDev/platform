@@ -1,5 +1,5 @@
 import { Result } from "effect";
-import { GitHubAddressInvalid } from "./errors.ts";
+import { GitHubAddressInvalid } from "#errors.ts";
 
 export interface RepositoryAddress {
 	readonly kind: "remote" | "shorthand" | "pull-request";

@@ -5,11 +5,11 @@ import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { readPostgresRelease } from "#postgresRelease.ts";
-import { type ComponentName, componentOf, described, loaderOf, type Migration } from "./migrationCatalog.ts";
-import { migrationConcurrency } from "./migrationConcurrency.ts";
-import type { Applied, MigrationEngine } from "./migrationEngine.ts";
-import { failureOf, outcomeOf } from "./outcome.ts";
-import { singleConnectionMigration } from "./singleConnectionMigration.ts";
+import { type ComponentName, componentOf, described, loaderOf, type Migration } from "#test/migrationCatalog.ts";
+import { migrationConcurrency } from "#test/migrationConcurrency.ts";
+import type { Applied, MigrationEngine } from "#test/migrationEngine.ts";
+import { failureOf, outcomeOf } from "#test/outcome.ts";
+import { singleConnectionMigration } from "#test/singleConnectionMigration.ts";
 
 export interface RunOptions {
 	readonly components?: readonly ComponentName[];

@@ -2,8 +2,8 @@ import type { AnyRouter } from "@tanstack/react-router";
 import type { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
-import type { loaderHost } from "./loaderHost.ts";
-import { settleScreen } from "./settleScreen.ts";
+import type { loaderHost } from "#test/loaderHost.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 type Host = Effect.Success<ReturnType<typeof loaderHost>>;
 

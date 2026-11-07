@@ -3,9 +3,9 @@ import { Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { clientIpHost } from "#test/better-auth/clientIpHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {
 	env: Record<string, string>;

@@ -1,22 +1,22 @@
 import { Cause, Effect, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { causeWords } from "@shivaedev/test-story/server/answers.ts";
-import { adminVerbs } from "./adminVerbs.ts";
-import { browserErrorReadouts } from "./browserErrorReadouts.ts";
-import { clientAbortVerbs } from "./clientAbortVerbs.ts";
-import { connectionSecurity, serverOffersTls } from "./connectionSecurity.ts";
-import { databaseVerbs } from "./databaseVerbs.ts";
-import { fieldScopeVerbs } from "./fieldScopeVerbs.ts";
-import { close, hasService } from "./lifecycle.ts";
-import { receiveMaskedFailure } from "./maskedFailureApi.ts";
-import { requestLoggingVerbs } from "./requestLoggingVerbs.ts";
-import { requests } from "./requests.ts";
-import { runtimeVerbs } from "./runtime.ts";
-import type { HostState } from "./state.ts";
-import { subscriptionVerbs } from "./subscription.ts";
-import { timeoutVerbs } from "./timeoutVerbs.ts";
-import { traceVerbs } from "./traceVerbs.ts";
-import { wireAnswers } from "./wireAnswers.ts";
+import { adminVerbs } from "#test/app-host/adminVerbs.ts";
+import { browserErrorReadouts } from "#test/app-host/browserErrorReadouts.ts";
+import { clientAbortVerbs } from "#test/app-host/clientAbortVerbs.ts";
+import { connectionSecurity, serverOffersTls } from "#test/app-host/connectionSecurity.ts";
+import { databaseVerbs } from "#test/app-host/databaseVerbs.ts";
+import { fieldScopeVerbs } from "#test/app-host/fieldScopeVerbs.ts";
+import { close, hasService } from "#test/app-host/lifecycle.ts";
+import { receiveMaskedFailure } from "#test/app-host/maskedFailureApi.ts";
+import { requestLoggingVerbs } from "#test/app-host/requestLoggingVerbs.ts";
+import { requests } from "#test/app-host/requests.ts";
+import { runtimeVerbs } from "#test/app-host/runtime.ts";
+import type { HostState } from "#test/app-host/state.ts";
+import { subscriptionVerbs } from "#test/app-host/subscription.ts";
+import { timeoutVerbs } from "#test/app-host/timeoutVerbs.ts";
+import { traceVerbs } from "#test/app-host/traceVerbs.ts";
+import { wireAnswers } from "#test/app-host/wireAnswers.ts";
 
 function statusKind(status: number) {
 	if (status >= HttpStatus.fromLiteral("InternalServerError")) {

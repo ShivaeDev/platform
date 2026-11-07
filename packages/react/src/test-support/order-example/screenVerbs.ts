@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
-import type { Application } from "./applicationEngine.ts";
-import { getContainer } from "./screens.ts";
+import type { Application } from "#test/order-example/applicationEngine.ts";
+import { getContainer } from "#test/order-example/screens.ts";
 
 export function settleOrders(engine: Application) {
 	return Effect.forEach(engine.screens.values(), (screen) => screen.driver.settle(), { discard: true });

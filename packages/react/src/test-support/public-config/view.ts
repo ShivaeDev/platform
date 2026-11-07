@@ -2,7 +2,7 @@ import { Option } from "effect";
 import { createElement } from "react";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { useQuery } from "#client/resultState.ts";
-import { PublicConfigDeclaration } from "./Declaration.ts";
+import { PublicConfigDeclaration } from "#test/public-config/Declaration.ts";
 
 function configQuery(url: string) {
 	const { api } = makeRpcClient(PublicConfigDeclaration, { url });

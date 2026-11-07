@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ExceptionDeclaration } from "./declaration.ts";
+import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 
 function objectOf(expression: ts.Expression): ts.ObjectLiteralExpression | undefined {
 	if (ts.isObjectLiteralExpression(expression)) {

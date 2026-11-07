@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { application } from "./application.ts";
+import { application } from "#test/application.ts";
 
 export const webhooksFeature = application.trait("app", "the app registers the queued webhook adoption feature beside notes", (engine) => {
 	const app = join(engine.root, engine.app);

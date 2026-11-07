@@ -9,7 +9,7 @@ import { bind, makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { stream } from "#operation.ts";
 import { socketIdentity } from "#rpcClient.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export type StreamPerson = "alice" | "bob";
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}

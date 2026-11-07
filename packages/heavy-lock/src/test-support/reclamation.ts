@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber, FileSystem, Option } from "effect";
 import { reclaim } from "#lockFile.ts";
-import type { Lock } from "./lock.ts";
+import type { Lock } from "#test/lock.ts";
 
 export function reclamation(engine: Lock, tell: (line: string) => void) {
 	let pending: { readonly resume: Deferred.Deferred<void>; readonly fiber: Fiber.Fiber<void, unknown> } | undefined;

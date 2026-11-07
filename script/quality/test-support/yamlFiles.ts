@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { qualityKit } from "./kit.ts";
+import { qualityKit } from "#quality/test-support/kit.ts";
 
 export const PNPM_LOCKFILE = `lockfileVersion: '9.0'
 

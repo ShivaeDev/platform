@@ -1,7 +1,7 @@
 import ts from "typescript";
+import { type BodyReference, dataFactory, serviceFactory } from "#adapters/bodyReference.ts";
 import { importFrom } from "#rules/stories/importOrigin.ts";
 import { memberName } from "#rules/stories/syntax.ts";
-import { type BodyReference, dataFactory, serviceFactory } from "./bodyReference.ts";
 
 export function storyBody(body: ts.Expression, checker: ts.TypeChecker) {
 	const declaration = checker.getTypeAtLocation(body).getCallSignatures()[0]?.declaration;

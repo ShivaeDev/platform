@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { Effect } from "effect";
+import { databaseUrlReads } from "#adapters/databaseUrlReads.ts";
+import { storyProgram } from "#adapters/storyProgram.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
 import { findingAt } from "#rules/stories/syntax.ts";
-import { databaseUrlReads } from "./databaseUrlReads.ts";
-import { storyProgram } from "./storyProgram.ts";
 
 const MESSAGE =
 	"Reads a *DATABASE_URL variable directly in test-support. Use postgresTestUrl(name) from @shivaedev/test-sql/server/adapters/postgresTestUrl.ts so missing PostgreSQL URLs fail in CI instead of silently skipping tests.";

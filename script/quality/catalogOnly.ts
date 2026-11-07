@@ -1,5 +1,5 @@
 import { defineRule, type Finding } from "@shivaedev/quality/rule.ts";
-import { manifestFiles } from "./manifestFiles.ts";
+import { manifestFiles } from "#quality/manifestFiles.ts";
 
 const DEPENDENCY_KEYS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"] as const;
 

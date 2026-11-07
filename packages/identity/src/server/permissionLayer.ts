@@ -6,10 +6,10 @@ import { requirePermission } from "@shivaedev/access/requirePermission.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
-import { recheckSession } from "./recheckSession.ts";
-import { revalidateStream } from "./revalidateStream.ts";
-import { SessionPolicy } from "./SessionPolicy.ts";
-import { withSessionUser } from "./session.ts";
+import { recheckSession } from "#server/recheckSession.ts";
+import { revalidateStream } from "#server/revalidateStream.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
+import { withSessionUser } from "#server/session.ts";
 
 export function permissionLayer<TMiddleware>(
 	middleware: Context.Key<TMiddleware, RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never>> & {

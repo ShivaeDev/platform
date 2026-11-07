@@ -5,7 +5,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { awaitHostStart, reportHostReady } from "@shivaedev/test-kits/host/processChild.ts";
 import { appHost } from "#appHost.ts";
-import { RestartNotes } from "./Notes.ts";
+import { RestartNotes } from "#test/restart/Notes.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

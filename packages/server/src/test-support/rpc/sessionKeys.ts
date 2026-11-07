@@ -6,12 +6,12 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { createProvider, ORIGIN } from "./createProvider.ts";
-import { type Feed, followHints } from "./followHints.ts";
-import { openSessionKeysHost } from "./openSessionKeysHost.ts";
-import { postChanges } from "./postChanges.ts";
-import type { Boundary } from "./sessionKeysApi.ts";
-import { upgrade } from "./upgrade.ts";
+import { createProvider, ORIGIN } from "#test/rpc/createProvider.ts";
+import { type Feed, followHints } from "#test/rpc/followHints.ts";
+import { openSessionKeysHost } from "#test/rpc/openSessionKeysHost.ts";
+import { postChanges } from "#test/rpc/postChanges.ts";
+import type { Boundary } from "#test/rpc/sessionKeysApi.ts";
+import { upgrade } from "#test/rpc/upgrade.ts";
 
 type Caller = "alice" | "bob" | "second";
 

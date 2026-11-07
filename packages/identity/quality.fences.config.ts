@@ -1,6 +1,6 @@
 import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anyOf, anything, external, files, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
-import identityManifest from "./package.json" with { type: "json" };
+import identityManifest from "#manifest" with { type: "json" };
 
 const IDENTITY_OPTIONAL_PEERS = Object.entries(identityManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)

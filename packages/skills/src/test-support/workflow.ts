@@ -2,8 +2,8 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { parse } from "yaml";
-import { CLI, exec } from "./cli.ts";
-import { writeFile } from "./fixture.ts";
+import { CLI, exec } from "#test/cli.ts";
+import { writeFile } from "#test/fixture.ts";
 
 const TEMPLATE = fileURLToPath(new URL("../../templates/sync-skills.yml", import.meta.url));
 const BRANCH = "change-selection";

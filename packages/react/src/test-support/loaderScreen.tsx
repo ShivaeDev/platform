@@ -1,8 +1,8 @@
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { loaderHost } from "./loaderHost.ts";
-import type { Engine } from "./loaderScreenState.ts";
-import { loaderVerbs } from "./loaderVerbs.ts";
+import { loaderHost } from "#test/loaderHost.ts";
+import type { Engine } from "#test/loaderScreenState.ts";
+import { loaderVerbs } from "#test/loaderVerbs.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

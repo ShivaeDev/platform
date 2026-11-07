@@ -2,8 +2,8 @@ import { Effect, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { post } from "#test/app-host/fixture.ts";
+import { clientIpHost } from "#test/better-auth/clientIpHost.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {
 	readonly env: Record<string, string>;

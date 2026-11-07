@@ -1,11 +1,11 @@
 import { type Context, Effect } from "effect";
+import { listJobs } from "#server/adapters/listJobs.ts";
+import { queueAdministration } from "#server/adapters/queueAdministration.ts";
+import { runScheduleNow } from "#server/adapters/runScheduleNow.ts";
+import { settleDeferral } from "#server/adapters/settleDeferral.ts";
 import type { PgBossClient } from "#server/client.ts";
 import type { JobEngine } from "#server/engine.ts";
 import { toPgBossError } from "#server/error.ts";
-import { listJobs } from "./listJobs.ts";
-import { queueAdministration } from "./queueAdministration.ts";
-import { runScheduleNow } from "./runScheduleNow.ts";
-import { settleDeferral } from "./settleDeferral.ts";
 
 export function jobEngine(client: PgBossClient, schema = "pgboss"): Context.Service.Shape<typeof JobEngine> {
 	return {

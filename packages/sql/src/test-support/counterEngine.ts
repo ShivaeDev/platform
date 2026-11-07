@@ -5,8 +5,8 @@ import { bucket } from "@shivaedev/changes/buckets.ts";
 import { makeCapture } from "@shivaedev/changes/capture.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeRepository } from "#repository.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 import { ChangeObserver } from "#transact.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
 
 export class Counter extends Model.Class<Counter>("Counter")({
 	count: bucket(Schema.Int),

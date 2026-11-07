@@ -1,9 +1,9 @@
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import type { privateClient } from "./privateClient.ts";
-import { processClient } from "./processClient.ts";
-import { startProcess } from "./startProcess.ts";
+import type { privateClient } from "#test/postgres-example/privateClient.ts";
+import { processClient } from "#test/postgres-example/processClient.ts";
+import { startProcess } from "#test/postgres-example/startProcess.ts";
 
 export const createProcesses = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;

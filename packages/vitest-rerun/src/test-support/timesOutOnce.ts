@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { rerunStory } from "./kit.ts";
-import { perAttempt } from "./specFiles.ts";
-import { writeFile } from "./suite.ts";
+import { rerunStory } from "#test/kit.ts";
+import { perAttempt } from "#test/specFiles.ts";
+import { writeFile } from "#test/suite.ts";
 
 const vitest = JSON.stringify(fileURLToPath(import.meta.resolve("vitest")));
 const browser = JSON.stringify(fileURLToPath(import.meta.resolve("vitest/internal/browser")));

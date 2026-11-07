@@ -1,13 +1,26 @@
 import { Effect, Option, Queue, Redacted, Ref, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Access } from "./Access.ts";
-import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { describeCopy, describeJob, firstPage, idOf, nameCopies, named, nameOf, nextPage, type Page, refused, sourceOf, views } from "./jobsNames.ts";
-import { Mail, Sync } from "./jobsPages.ts";
-import { ScheduledWorker } from "./ScheduledWorker.ts";
-import { scheduleActions } from "./scheduleActions.ts";
-import { Scheduled } from "./scheduled.ts";
+import type { Access } from "#test/Access.ts";
+import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
+import {
+	describeCopy,
+	describeJob,
+	firstPage,
+	idOf,
+	nameCopies,
+	named,
+	nameOf,
+	nextPage,
+	type Page,
+	refused,
+	sourceOf,
+	views,
+} from "#test/jobsNames.ts";
+import { Mail, Sync } from "#test/jobsPages.ts";
+import { ScheduledWorker } from "#test/ScheduledWorker.ts";
+import { scheduleActions } from "#test/scheduleActions.ts";
+import { Scheduled } from "#test/scheduled.ts";
 
 export type JobsView = keyof ReturnType<typeof views>;
 

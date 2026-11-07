@@ -1,4 +1,4 @@
-import { runtime } from "./kit.ts";
+import { runtime } from "#test/runtime/kit.ts";
 
 export function settlementFailsWith(error: Error) {
 	return runtime.trait("client", "the database rejects job completion", (engine) => {

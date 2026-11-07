@@ -4,7 +4,7 @@ import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { isClientSettled } from "#clientActivity.ts";
-import { commandEngine } from "./engine.ts";
+import { commandEngine } from "#test/commands/engine.ts";
 
 export const commands = storyKit({
 	clock: "test",

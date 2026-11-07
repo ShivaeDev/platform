@@ -3,9 +3,9 @@ import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { type OtlpSpan, otlpReceiver } from "#server/otlpReceiver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { bytesInWords } from "./httpClient.ts";
+import { background } from "#test/attempt.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { bytesInWords } from "#test/httpClient.ts";
 
 const exportWork = Effect.gen(function* () {
 	const parent = yield* Effect.currentSpan;

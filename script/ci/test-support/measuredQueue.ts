@@ -7,7 +7,7 @@ import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHub } from "@shivaedev/github/github/service.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { planning } from "./planning.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
 function measuredGithub(args: string[], emptyNewest = false) {
 	if (args[1]?.includes("workflows/ci.yml/runs?event=merge_group&status=success&per_page=10")) {

@@ -5,7 +5,7 @@ import { HttpIncomingMessage, HttpRouter, HttpServer, HttpServerResponse } from 
 import * as NetAddress from "effect/net/NetAddress";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { RequestBodyTooLarge, readBoundedBody } from "#server/boundedBody.ts";
-import { exchange, type RouteState, sizes } from "./transport.ts";
+import { exchange, type RouteState, sizes } from "#test/request-body/transport.ts";
 
 function failureOf(error: { readonly _tag: string }) {
 	return error instanceof RequestBodyTooLarge ? `request body over ${error.limit} bytes` : `unexpected failure: ${error._tag}`;

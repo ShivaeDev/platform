@@ -1,9 +1,9 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import type { PostgresMigrationOptions } from "./migrations.ts";
-import { postgresRelease } from "./postgresRelease.ts";
-import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
+import type { PostgresMigrationOptions } from "#migrations.ts";
+import { postgresRelease } from "#postgresRelease.ts";
+import { runSchemaComponent, type SchemaComponent } from "#SchemaComponent.ts";
 
 export interface PendingPostgresMigrations {
 	readonly components: readonly { readonly name: string; readonly detail: string }[];

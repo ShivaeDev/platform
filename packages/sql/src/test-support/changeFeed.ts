@@ -1,13 +1,13 @@
 import { Effect, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type ChangeFeedEngine, changeFeedEngine, type FeedTiming } from "./changeFeedEngine.ts";
-import { instrumentedClient } from "./changeFeedListener.ts";
-import { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "./changeFeedTables.ts";
-import { changeFeedVerbs, keyOf } from "./changeFeedVerbs.ts";
-import { commandPublicationVerbs } from "./commandPublicationVerbs.ts";
-import { onPostgres } from "./engines.ts";
-import { listenerVerbs, startFeed } from "./listenerVerbs.ts";
-import { rawWriterVerbs } from "./rawWriterVerbs.ts";
+import { type ChangeFeedEngine, changeFeedEngine, type FeedTiming } from "#test/changeFeedEngine.ts";
+import { instrumentedClient } from "#test/changeFeedListener.ts";
+import { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "#test/changeFeedTables.ts";
+import { changeFeedVerbs, keyOf } from "#test/changeFeedVerbs.ts";
+import { commandPublicationVerbs } from "#test/commandPublicationVerbs.ts";
+import { onPostgres } from "#test/engines.ts";
+import { listenerVerbs, startFeed } from "#test/listenerVerbs.ts";
+import { rawWriterVerbs } from "#test/rawWriterVerbs.ts";
 
 export const changeFeed = storyKit({
 	...onPostgres,

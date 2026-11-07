@@ -5,8 +5,8 @@ import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { Screen } from "#test/Screen.ts";
-import { Editor } from "./Editor.tsx";
-import { makeClient } from "./makeClient.ts";
+import { Editor } from "#test/settings-example/Editor.tsx";
+import { makeClient } from "#test/settings-example/makeClient.ts";
 
 export function openScreen(screen: Screen, url: string, token: string, entityId: number, tell: (line: string) => void) {
 	const client = makeClient(url, token, entityId);

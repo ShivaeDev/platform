@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import { native } from "./queryState.ts";
-import { queryStories } from "./queryStories.ts";
-import { queryVerbs } from "./queryVerbs.ts";
-import { queryView, type Unavailable } from "./queryView.ts";
+import { native } from "#test/queryState.ts";
+import { queryStories } from "#test/queryStories.ts";
+import { queryVerbs } from "#test/queryVerbs.ts";
+import { queryView, type Unavailable } from "#test/queryView.ts";
 
 export function nativeQueryAnswered(answer: string) {
 	return queryStories.trait("screen", `a native query showed its answer ${answer}`, function* ({ screen, state }) {

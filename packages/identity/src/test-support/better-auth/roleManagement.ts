@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type ManagedRole, type Person, type RoleActor, roleManagementHost } from "#test/better-auth/roleManagementHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { type ManagedRole, type Person, type RoleActor, roleManagementHost } from "./roleManagementHost.ts";
 
 export const roleManagement = storyKit({
 	around: withIdentityDatabase,

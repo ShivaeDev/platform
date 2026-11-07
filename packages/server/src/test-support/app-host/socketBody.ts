@@ -2,7 +2,7 @@ import * as NodeWs from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as Socket from "effect/socket/Socket";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { hostOptions } from "./story.ts";
+import { hostOptions } from "#test/app-host/story.ts";
 
 export const socketBody = storyKit({
 	...hostOptions(),

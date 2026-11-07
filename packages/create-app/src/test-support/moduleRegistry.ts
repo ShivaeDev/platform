@@ -1,4 +1,4 @@
-import { AS_RELEASED, starterAt010, starterAt020 } from "./updateTraits.ts";
+import { AS_RELEASED, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
 function legacyImport(source: string) {
 	return source.replaceAll("#admin/foundation.ts", "#admin/modules.ts");

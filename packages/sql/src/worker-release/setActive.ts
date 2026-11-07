@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { initializeWorkerRelease } from "./initialize.ts";
+import type { initializeWorkerRelease } from "#worker-release/initialize.ts";
 
 export function setActive(state: Effect.Success<typeof initializeWorkerRelease>) {
 	return Effect.fn("WorkerRelease.setActive")(function* (next: boolean) {

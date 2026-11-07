@@ -1,6 +1,6 @@
 import { Effect, Predicate } from "effect";
 import { words } from "@shivaedev/test-story/server/answers.ts";
-import { type HostState, io } from "./state.ts";
+import { type HostState, io } from "#test/app-host/state.ts";
 
 export type AdminCaller = "member" | "signed-out caller";
 

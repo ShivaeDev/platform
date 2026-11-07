@@ -4,11 +4,11 @@ import { Migrator } from "effect/sql";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appDatabase.ts";
-import { sessions, staticAssets } from "./fixture.ts";
-import { useForwardingProxy } from "./lifecycle.ts";
-import { Ping, pingHandlers } from "./ping.ts";
-import { runtimeRoutes } from "./runtimeRoutes.ts";
-import { host } from "./story.ts";
+import { sessions, staticAssets } from "#test/app-host/fixture.ts";
+import { useForwardingProxy } from "#test/app-host/lifecycle.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
+import { runtimeRoutes } from "#test/app-host/runtimeRoutes.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const assets = host.trait("configured", "the host serves the fixture SPA and a readiness route", (state) =>
 	Effect.promise(async () => {

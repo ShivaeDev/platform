@@ -1,8 +1,8 @@
 import { Cache, type Duration, Effect, Exit, Schema } from "effect";
 import { HttpClient, UrlParams } from "effect/http";
-import { readBoundedJson } from "./body.ts";
-import { InvalidBodyLimit, isRemoteStatusError, ResponseBodyTooLarge } from "./errors.ts";
-import { filterStatus } from "./filterStatus.ts";
+import { readBoundedJson } from "#body.ts";
+import { InvalidBodyLimit, isRemoteStatusError, ResponseBodyTooLarge } from "#errors.ts";
+import { filterStatus } from "#filterStatus.ts";
 
 export class ReadClientError extends Schema.TaggedError<ReadClientError>()("ReadClientError", {
 	reason: Schema.Literals(["timeout", "body-too-large", "status", "decode", "transport", "invalid-limit"]),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exceptionConfig } from "./exceptionConfig.ts";
+import { exceptionConfig } from "#biome/exceptionConfig.ts";
 
 const REASON = "The external format requires it.";
 

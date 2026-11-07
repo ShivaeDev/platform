@@ -3,11 +3,11 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { LiveConnection } from "#automaticLive.ts";
-import { answered, shown, times } from "./answers.ts";
-import { type LocalEngine, localEngine } from "./localEngine.ts";
-import type { Note } from "./notes.ts";
-import { markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
+import { answered, shown, times } from "#test/answers.ts";
+import { type LocalEngine, localEngine } from "#test/localEngine.ts";
+import type { Note } from "#test/notes.ts";
+import { markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
 
 export type View = "note 1" | "note 2" | "note 3" | "the list";
 

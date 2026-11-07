@@ -3,7 +3,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { rpcBoundary } from "#boundary.ts";
 import { redactingErrorReporter } from "#redactCause.ts";
 import { InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
-import { observe, Rejection, RequestDetails, recordingReporter } from "./errorObservations.ts";
+import { observe, Rejection, RequestDetails, recordingReporter } from "#test/errorObservations.ts";
 
 interface Pending {
 	readonly complete: Deferred.Deferred<string>;

@@ -13,10 +13,10 @@ import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { Api, migrations } from "#test/session-repository/feature.ts";
+import { Note } from "#test/session-repository/Note.tsx";
+import { openHost } from "#test/session-repository/openHost.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { Api, migrations } from "./feature.ts";
-import { Note } from "./Note.tsx";
-import { openHost } from "./openHost.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({ migrations: { ...migrations, lockTimeout: "5 seconds" }, url: Redacted.make(url ?? "postgresql://disabled") });

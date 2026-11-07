@@ -1,8 +1,8 @@
 import { Effect, Option, Schema } from "effect";
 import type { ScheduleDefinition } from "#server/definition.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { runningIn } from "./engine.ts";
-import { answer, testingOf } from "./verbs.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { runningIn } from "#test/postgres/engine.ts";
+import { answer, testingOf } from "#test/postgres/verbs.ts";
 
 export function scheduleVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

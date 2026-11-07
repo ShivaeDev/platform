@@ -7,8 +7,8 @@ import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { useSignOut } from "#client/adapters/useSignOut.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Auth } from "./auth.ts";
-import { connect } from "./connect.ts";
+import type { Auth } from "#test/reconnect/auth.ts";
+import { connect } from "#test/reconnect/connect.ts";
 
 type Client = ReturnType<typeof connect>;
 

@@ -3,9 +3,9 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { mintSessions } from "./fixtures.ts";
-import { sessionAdminHost } from "./host.ts";
-import { sessionAdminVerbs } from "./verbs.ts";
+import { mintSessions } from "#test/session-admin/fixtures.ts";
+import { sessionAdminHost } from "#test/session-admin/host.ts";
+import { sessionAdminVerbs } from "#test/session-admin/verbs.ts";
 
 export const sessionAdmin = storyKit({
 	around: withIdentityDatabase,

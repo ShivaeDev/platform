@@ -1,8 +1,8 @@
 import { Effect } from "effect";
+import { read } from "#github/read.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
 import { repository } from "#repositoryPaths.ts";
 import { CollaboratorPermission } from "#repositorySchemas.ts";
-import { read } from "./read.ts";
 
 export function getCollaboratorPermission(state: GitHubState) {
 	return Effect.fn("GitHub.getCollaboratorPermission")(function* (owner: string, repo: string, username: string, byteLimit?: number) {

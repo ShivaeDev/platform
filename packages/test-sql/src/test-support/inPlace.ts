@@ -1,7 +1,7 @@
 import { Effect, type Scope } from "effect";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import type { Services } from "./databaseBlocks.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
+import type { Services } from "#test/databaseBlocks.ts";
+import type { DatabaseEngine } from "#test/databaseEngine.ts";
 
 export function inPlace<A, E>(engine: DatabaseEngine, place: string, effect: Effect.Effect<A, E, Services | Scope.Scope>) {
 	if (place === "the shared database") {

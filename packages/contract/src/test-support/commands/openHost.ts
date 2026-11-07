@@ -5,7 +5,7 @@ import { Context, Deferred, Effect, Layer, Queue, Stream } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
-import { Counter } from "./Counter.ts";
+import { Counter } from "#test/commands/Counter.ts";
 
 export const openHost = Effect.gen(function* () {
 	const sockets = new Set<Socket>();

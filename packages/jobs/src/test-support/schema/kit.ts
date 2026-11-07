@@ -12,7 +12,7 @@ import { listingVerbs } from "#test/postgres/listingVerbs.ts";
 import { readouts } from "#test/postgres/readouts.ts";
 import { answer, runtimeVerbs } from "#test/postgres/verbs.ts";
 import { waitingVerbs } from "#test/postgres/waitingVerbs.ts";
-import { deferralVerbs } from "./deferralVerbs.ts";
+import { deferralVerbs } from "#test/schema/deferralVerbs.ts";
 
 export interface SchemaState {
 	engine: DatabaseEngine;

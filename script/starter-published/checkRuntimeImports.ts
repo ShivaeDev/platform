@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { command } from "#package-check/io.ts";
-import { type DocumentedImport, packageName } from "./imports.ts";
+import { type DocumentedImport, packageName } from "#starter-published/imports.ts";
 
 export const checkRuntimeImports = Effect.fn("Published.checkRuntimeImports")(function* (
 	consumer: string,

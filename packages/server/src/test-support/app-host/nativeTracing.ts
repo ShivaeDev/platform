@@ -1,5 +1,5 @@
 import { Layer, Tracer } from "effect";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 export const nativeTracing = host.trait("configured", "a native tracer retains application span values", (state) => {
 	const tracer = Tracer.make({

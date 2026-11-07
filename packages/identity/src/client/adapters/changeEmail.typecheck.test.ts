@@ -2,7 +2,7 @@ import { createAuthClient } from "better-auth/client";
 import type { Effect } from "effect";
 import { expectTypeOf } from "vitest";
 import type { AuthFailure } from "#client/AuthFailure.ts";
-import { changeEmail } from "./changeEmail.ts";
+import { changeEmail } from "#client/adapters/changeEmail.ts";
 
 const submit = changeEmail(createAuthClient());
 const changed = submit({ newEmail: "alice-new@example.test", password: "current-password" });

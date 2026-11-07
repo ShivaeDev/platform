@@ -2,11 +2,11 @@ import { Config, Effect, Layer, Option, type Redacted } from "effect";
 import { otlpTracing } from "@shivaedev/server/otlpTracing.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { emailMailerLayer } from "./emailMailerLayer.ts";
-import { JobsClientFactory } from "./JobsClientFactory.ts";
-import { jobsLayer } from "./jobsLayer.ts";
-import { serverModules } from "./modules.ts";
-import type { PoolSizes } from "./PoolSizes.ts";
+import { emailMailerLayer } from "#server/emailMailerLayer.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
+import { jobsLayer } from "#server/jobsLayer.ts";
+import { serverModules } from "#server/modules.ts";
+import type { PoolSizes } from "#server/PoolSizes.ts";
 
 export function applicationWorker<R = never, E = never, TRequirements = never>(config?: {
 	readonly poolSizes?: PoolSizes;

@@ -1,7 +1,7 @@
 import { Context, Data, Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const none = { support: () => undefined, verbs: () => ({}) };

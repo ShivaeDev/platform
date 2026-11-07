@@ -1,6 +1,6 @@
 import { Deferred, Effect, type Fiber } from "effect";
 import { SqlClient } from "effect/sql";
-import { RecordedLogs } from "./RecordedLogs.ts";
+import { RecordedLogs } from "#test/RecordedLogs.ts";
 
 export type Applied = ReadonlyArray<readonly [id: number, name: string]>;
 

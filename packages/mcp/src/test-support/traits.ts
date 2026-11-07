@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { mcpBearerToken } from "@shivaedev/test-kits/mcp/adapters/bearerToken.ts";
-import { connects } from "./client.ts";
-import { type Engine, person } from "./host.ts";
-import { mcp } from "./mcp.ts";
+import { connects } from "#test/client.ts";
+import { type Engine, person } from "#test/host.ts";
+import { mcp } from "#test/mcp.ts";
 
 function sign(engine: Engine, payload: Record<string, string | number>) {
 	return Effect.promise(async () => (await engine.auth.api.signJWT({ body: { payload } })).token);

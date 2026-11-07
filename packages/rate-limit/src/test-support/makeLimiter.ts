@@ -4,7 +4,7 @@ import { TestClock } from "effect/testing";
 import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { type RateLimitOptions, rateLimit } from "#rateLimit.ts";
 import { Store, StoreError } from "#Store.ts";
-import { makeRpcLimiter } from "./makeRpcLimiter.ts";
+import { makeRpcLimiter } from "#test/makeRpcLimiter.ts";
 
 export const limit = { key: "notes:alice", per: 2, window: "1 minute" } as const;
 

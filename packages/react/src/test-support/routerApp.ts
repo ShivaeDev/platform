@@ -4,8 +4,8 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { queryRoute } from "#adapters/queryRoute.ts";
 import type { QueryRouteRedirect } from "#adapters/queryRouteFailure.ts";
 import { signInSearch } from "#signInSearch.ts";
-import { noteQuery } from "./noteQuery.ts";
-import type { routerClient } from "./routerClient.ts";
+import { noteQuery } from "#test/noteQuery.ts";
+import type { routerClient } from "#test/routerClient.ts";
 import {
 	RouterFailure,
 	RouterNote,
@@ -15,7 +15,7 @@ import {
 	RouterShell,
 	RouterSignIn,
 	SharedNotFound,
-} from "./routerScreens.tsx";
+} from "#test/routerScreens.tsx";
 
 export const root = createRootRouteWithContext<{
 	readonly client: ReturnType<typeof routerClient>;

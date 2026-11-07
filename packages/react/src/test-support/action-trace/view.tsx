@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { useAction } from "#client/resultState.ts";
-import type { connect } from "./connect.ts";
+import type { connect } from "#test/action-trace/connect.ts";
 
 type Client = ReturnType<typeof connect>;
 const EmptyFields = Schema.Struct({});

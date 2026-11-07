@@ -7,7 +7,7 @@ import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { answered } from "./answers.ts";
+import { answered } from "#test/answers.ts";
 
 class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
 class Counter extends Context.Service<Counter, { value: bigint; unavailable: boolean }>()("@shivaedev/contract/test/CustomChangesCounter") {}

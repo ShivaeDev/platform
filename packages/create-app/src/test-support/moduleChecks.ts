@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { scriptOutcome } from "./answers.ts";
-import { appScript, workspaceConditions } from "./environment.ts";
+import { scriptOutcome } from "#test/answers.ts";
+import { appScript, workspaceConditions } from "#test/environment.ts";
 
 export function moduleChecks(app: () => string, starter: string, story: { readonly tell: (line: string) => void }) {
 	function run(script: "build" | "typecheck") {

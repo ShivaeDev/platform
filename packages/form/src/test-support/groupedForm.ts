@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import * as Field from "#field.ts";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 const Food = Schema.Struct({ energy: Schema.Struct({ expected: Field.number(), high: Field.number(), low: Field.number() }) });
 

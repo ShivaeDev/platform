@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { declarationFiles } from "./declarationFiles.ts";
+import { declarationFiles } from "#test/declarationFiles.ts";
 
 export const declarations = storyKit({
 	clock: "test",

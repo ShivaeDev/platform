@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AnswerList } from "./AnswerList.tsx";
-import { makeAnswerForm } from "./makeAnswerForm.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { AnswerList } from "#test/AnswerList.tsx";
+import { makeAnswerForm } from "#test/makeAnswerForm.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 type Answer = "first" | "second" | "third";
 

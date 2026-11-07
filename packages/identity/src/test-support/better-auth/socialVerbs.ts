@@ -3,9 +3,9 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { readProviderAccounts } from "./providerAccounts.ts";
-import type { socialEngine } from "./socialEngine.ts";
-import { socialSignInVerbs } from "./socialSignInVerbs.ts";
+import { readProviderAccounts } from "#test/better-auth/providerAccounts.ts";
+import type { socialEngine } from "#test/better-auth/socialEngine.ts";
+import { socialSignInVerbs } from "#test/better-auth/socialSignInVerbs.ts";
 
 type SocialEngine = Effect.Success<ReturnType<typeof socialEngine>>;
 

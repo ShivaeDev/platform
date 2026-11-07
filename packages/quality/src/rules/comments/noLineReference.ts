@@ -1,4 +1,4 @@
-import { definePatternRule } from "./definePattern.ts";
+import { definePatternRule } from "#rules/comments/definePattern.ts";
 
 const SOURCE_EXTENSION =
 	"(?:[cm]?[jt]sx?|json5?|mdx?|css|scss|less|html?|vue|svelte|astro|ya?ml|toml|sql|prisma|graphql|gql|go|rs|py|rb|java|kt|swift|sh)";

@@ -5,8 +5,8 @@ import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts
 import { makePostgresTestLayer } from "#server/postgres.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { outcomeOf } from "./outcome.ts";
-import { configured, setup } from "./postgres.ts";
+import { outcomeOf } from "#test/outcome.ts";
+import { configured, setup } from "#test/postgres.ts";
 
 const create = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

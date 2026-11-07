@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import { backfillPostgres } from "#backfillPostgres.ts";
+import { type BackfillEngine, type BackfillRow, ProgressRejected, storedBackfillProgress, storedBackfillRows } from "#test/backfillEngine.ts";
 import { CommittedSink, invalidateOnCommit } from "#transact.ts";
-import { type BackfillEngine, type BackfillRow, ProgressRejected, storedBackfillProgress, storedBackfillRows } from "./backfillEngine.ts";
 
 export function runBackfill(engine: BackfillEngine, run: string, batchSize = 2) {
 	const { sql, tables } = engine;

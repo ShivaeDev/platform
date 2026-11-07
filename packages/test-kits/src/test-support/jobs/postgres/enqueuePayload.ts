@@ -2,7 +2,7 @@ import type { Schema } from "effect";
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
-import type { StoryPayload } from "./databaseEngine.ts";
+import type { StoryPayload } from "#test/jobs/postgres/databaseEngine.ts";
 
 export function enqueuePayload<TPayload extends StoryPayload>(
 	jobs: PgBossService,

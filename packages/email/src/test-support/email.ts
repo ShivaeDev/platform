@@ -7,7 +7,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Mailer } from "#server/log-mailer/service.ts";
-import { configured, Emails, postgres } from "./fixture.ts";
+import { configured, Emails, postgres } from "#test/fixture.ts";
 
 export const email = storyKit({
 	around: withIsolatedDatabase,

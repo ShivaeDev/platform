@@ -1,7 +1,7 @@
 import { Context, Deferred, Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 class Names extends Context.Service<Names, { readonly normalize: (name: string) => Effect.Effect<string> }>()("@shivaedev/form/test/Names") {}
 

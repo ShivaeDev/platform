@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Migrator } from "effect/sql";
-import type { PostgresMigrationOptions } from "./migrations.ts";
-import { type PendingPostgresMigrations, pendingPostgresMigrations } from "./pendingPostgresMigrations.ts";
+import type { PostgresMigrationOptions } from "#migrations.ts";
+import { type PendingPostgresMigrations, pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 
 export const assertPostgresMigrations = Effect.fn("EffectSql.assertPostgresMigrations")(function* <R, E = never>(
 	options: Pick<PostgresMigrationOptions<R, E>, "loader" | "table" | "components" | "release">,

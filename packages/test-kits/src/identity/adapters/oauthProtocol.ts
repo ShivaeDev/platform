@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Clock, Effect } from "effect";
 import type { FakeHttpReply, FakeHttpRequest, FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { type OauthProtocolOptions, oauthAuthorization } from "#identity/adapters/oauthAuthorization.ts";
+import { oidcTokens } from "#identity/adapters/oidcTokens.ts";
 import type { OauthProfile } from "#identity/oauth.ts";
-import { type OauthProtocolOptions, oauthAuthorization } from "./oauthAuthorization.ts";
-import { oidcTokens } from "./oidcTokens.ts";
 
 function validVerifier(query: URLSearchParams, form: URLSearchParams) {
 	return (

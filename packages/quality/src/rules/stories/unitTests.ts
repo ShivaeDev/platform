@@ -4,10 +4,10 @@ import { packageNameOf } from "#imports/packageName.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+import { engineOf } from "#rules/stories/engineOf.ts";
+import { pureNetImport } from "#rules/stories/pureNetImport.ts";
+import { type Stand, standIns } from "#rules/stories/unitSyntax.ts";
 import { usesDom } from "#rules/test-names/usesDom.ts";
-import { engineOf } from "./engineOf.ts";
-import { pureNetImport } from "./pureNetImport.ts";
-import { type Stand, standIns } from "./unitSyntax.ts";
 
 const RELATIVE = /^[./#]/u;
 

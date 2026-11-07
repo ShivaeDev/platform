@@ -6,8 +6,8 @@ import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
-import { sessions } from "./fixture.ts";
-import { host } from "./story.ts";
+import { sessions } from "#test/app-host/fixture.ts";
+import { host } from "#test/app-host/story.ts";
 
 const Echo = RpcGroup.make(Rpc.make("echo", { payload: { text: Schema.String }, success: Schema.String }));
 export function message(text: string, id = "1") {

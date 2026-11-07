@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { snapshotMemory } from "./snapshotMemory.ts";
+import { snapshotMemory } from "#test/snapshotMemory.ts";
 
 snapshotMemory.it("collects a snapshot while its told line remains in the running story", [], function* ({ collectGarbage, releaseSnapshot, story }) {
 	const snapshot = releaseSnapshot();

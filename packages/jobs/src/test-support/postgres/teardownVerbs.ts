@@ -1,8 +1,8 @@
 import { Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { runningIn, until } from "./engine.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { runningIn, until } from "#test/postgres/engine.ts";
 
 type Tell = (line: string) => void;
 

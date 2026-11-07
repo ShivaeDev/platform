@@ -11,12 +11,12 @@ import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { answered, shown, streams, updateWords } from "./answers.ts";
-import { Note, Notes, notes } from "./notes.ts";
-import { notesServer } from "./notesServer.ts";
-import { type Mark, markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { answered, shown, streams, updateWords } from "#test/answers.ts";
+import { Note, Notes, notes } from "#test/notes.ts";
+import { notesServer } from "#test/notesServer.ts";
+import { type Mark, markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 const memoryEngine = Effect.gen(function* () {
 	const runtime = yield* storyRuntime;

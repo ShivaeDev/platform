@@ -3,9 +3,9 @@ import type { Headers } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
+import { authCall } from "#server/adapters/authCall.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
-import { authCall } from "./authCall.ts";
 
 const ExpiringSession = Schema.Struct({ session: Schema.Struct({ expiresAt: Schema.Date }) });
 

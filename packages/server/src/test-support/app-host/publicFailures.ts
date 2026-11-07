@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { appHost } from "#appHost.ts";
-import { publicFailureRpc } from "./publicFailureRpc.ts";
-import { host } from "./story.ts";
+import { publicFailureRpc } from "#test/app-host/publicFailureRpc.ts";
+import { host } from "#test/app-host/story.ts";
 
 const handlers = publicFailureRpc.toLayer({ publicFailure: (payload) => Effect.fail(payload) });
 

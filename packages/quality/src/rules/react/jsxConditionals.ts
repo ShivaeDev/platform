@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { defineRule, type Finding } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-import { jsxChildDecision } from "./jsxChildDecision.ts";
+import { jsxChildDecision } from "#rules/react/jsxChildDecision.ts";
 
 const REPAIR =
 	"Decide before the JSX with an if and early return, or a variable computed above the return; or extract a component that receives the data and returns null when it has nothing to show.";

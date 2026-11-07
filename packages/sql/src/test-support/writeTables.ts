@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { Fragment } from "effect/sql/Statement";
 import * as Statement from "effect/sql/Statement";
-import { endingOf } from "./outcome.ts";
+import { endingOf } from "#test/outcome.ts";
 
 export function uniqueTable(prefix: string) {
 	return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;

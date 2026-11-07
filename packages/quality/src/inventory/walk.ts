@@ -1,10 +1,10 @@
 import { dirname, join, relative, sep } from "node:path";
 import { Effect, FileSystem } from "effect";
 import type { SetupFailure } from "#failure.ts";
+import { type FilesystemFailure, orWhenAbsent, readOptionalText } from "#inventory/filesystem.ts";
+import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "#inventory/ignoreScope.ts";
+import { ignoredPaths, trackedPaths } from "#inventory/trackedPaths.ts";
 import type { RuleServices } from "#rule.ts";
-import { type FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.ts";
-import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignoreScope.ts";
-import { ignoredPaths, trackedPaths } from "./trackedPaths.ts";
 
 const SKIPPED = new Set([".git", ".worktrees", "node_modules"]);
 

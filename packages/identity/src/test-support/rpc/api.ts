@@ -7,7 +7,7 @@ import type { OriginPolicy } from "#server/origin.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
-import { httpClient, type Provider, recorder, rpcHttp, serve } from "./harness.ts";
+import { httpClient, type Provider, recorder, rpcHttp, serve } from "#test/rpc/harness.ts";
 
 const Account = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
 	.middleware(Authenticated)

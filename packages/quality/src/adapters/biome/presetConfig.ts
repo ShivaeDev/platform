@@ -1,10 +1,10 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
+import { resolvePackage } from "#adapters/biome/resolvePackage.ts";
+import { PRESET, rootConfig } from "#adapters/biome/rootConfig.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
 import { parseJsonc } from "#rules/suppressions/biome/json.ts";
-import { resolvePackage } from "./resolvePackage.ts";
-import { PRESET, rootConfig } from "./rootConfig.ts";
 
 function problem(file: string, message: string): { readonly _tag: "Problem"; readonly findings: readonly Finding[] } {
 	return { _tag: "Problem", findings: [{ file, message }] };

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { Order } from "./contract.ts";
-import { answerWord } from "./hintWords.ts";
-import { client, type ProcessEngine, process } from "./processEngine.ts";
+import { Order } from "#test/postgres-example/contract.ts";
+import { answerWord } from "#test/postgres-example/hintWords.ts";
+import { client, type ProcessEngine, process } from "#test/postgres-example/processEngine.ts";
 
 type Client = "a" | "b" | "another";
 

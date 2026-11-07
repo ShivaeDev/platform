@@ -6,8 +6,8 @@ import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { DraftScreen } from "./DraftScreen.tsx";
-import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
+import { DraftScreen } from "#test/DraftScreen.tsx";
+import { draftInitial, type Held, type Row, type Save } from "#test/draftFields.ts";
 
 export async function persistedDraftView(
 	view: Rendered,

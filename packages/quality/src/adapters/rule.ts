@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { describeIssue, type StandardSchemaV1 } from "#adapters/standardSchema.ts";
 import { validOrFail } from "#decoded.ts";
 import type { Configured, Findings, RegisteredRule, RuleContext } from "#rule.ts";
-import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
 
 export type RuleCheckResult<TServices> = Findings | PromiseLike<Findings> | Effect.Effect<Findings, unknown, TServices>;
 

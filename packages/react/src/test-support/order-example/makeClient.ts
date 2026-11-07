@@ -2,7 +2,7 @@ import { Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
-import { Orders } from "./contract.ts";
+import { Orders } from "#test/order-example/contract.ts";
 
 export function makeClient({
 	url,

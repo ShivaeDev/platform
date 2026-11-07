@@ -2,10 +2,10 @@ import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { FormOptionsView } from "./FormOptionsView.tsx";
-import { type Kind, TitleCheck } from "./formOptionsModel.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { FormOptionsView } from "#test/FormOptionsView.tsx";
+import { type Kind, TitleCheck } from "#test/formOptionsModel.ts";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 interface State {
 	readonly calls: Map<string, PromiseWithResolvers<string | undefined>>;

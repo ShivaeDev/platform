@@ -1,13 +1,13 @@
 import { Effect } from "effect";
-import { batchVerb } from "./batchVerb.ts";
-import { type Body, effectOf } from "./body.ts";
-import { captureVerbs } from "./captureVerbs.ts";
-import { databaseActions } from "./databaseActions.ts";
-import { driverVerbs } from "./driverVerbs.ts";
-import type { Engine } from "./engine.ts";
-import { observationVerbs } from "./observationVerbs.ts";
-import { orderVerbs } from "./orderVerbs.ts";
-import { promiseVerbs } from "./promiseVerbs.ts";
+import { batchVerb } from "#test/batchVerb.ts";
+import { type Body, effectOf } from "#test/body.ts";
+import { captureVerbs } from "#test/captureVerbs.ts";
+import { databaseActions } from "#test/databaseActions.ts";
+import { driverVerbs } from "#test/driverVerbs.ts";
+import type { Engine } from "#test/engine.ts";
+import { observationVerbs } from "#test/observationVerbs.ts";
+import { orderVerbs } from "#test/orderVerbs.ts";
+import { promiseVerbs } from "#test/promiseVerbs.ts";
 
 export type Place = "outside any transaction" | "in a transaction" | "in a batch" | "in a driver's transaction";
 

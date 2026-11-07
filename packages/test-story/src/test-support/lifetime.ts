@@ -1,6 +1,6 @@
 import { Clock, DateTime, Effect } from "effect";
 import { storyKit } from "#server/storyKit.ts";
-import { noteLifetime, recordLifetime } from "./lifetimeLog.ts";
+import { noteLifetime, recordLifetime } from "#test/lifetimeLog.ts";
 
 export const lifetime = storyKit({
 	after: {

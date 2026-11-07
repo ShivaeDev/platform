@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Screen } from "./Screen.ts";
-import { saveSession } from "./saveSession.ts";
-import { screenKit } from "./screenKit.ts";
+import type { Screen } from "#test/Screen.ts";
+import { saveSession } from "#test/saveSession.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 type SaveKind = "create" | "editor";
 interface State {

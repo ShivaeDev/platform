@@ -22,7 +22,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionsPage } from "#sessions/Page.ts";
-import { clientRuntime } from "./clientRuntime.ts";
+import { clientRuntime } from "#test/clientRuntime.ts";
 
 const Access = roleSet(role("admin", [ManageSessions]), role("user", []));
 

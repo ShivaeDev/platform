@@ -2,10 +2,10 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Predicate } from "effect";
 import { SqlClient } from "effect/sql";
 import { words } from "@shivaedev/test-story/server/answers.ts";
-import { type ClientAbortState, observed } from "./clientAbortFixture.ts";
-import { databaseOf, type HostState, io } from "./state.ts";
-import { attributesOf } from "./traceVerbs.ts";
-import { wireAnswers } from "./wireAnswers.ts";
+import { type ClientAbortState, observed } from "#test/app-host/clientAbortFixture.ts";
+import { databaseOf, type HostState, io } from "#test/app-host/state.ts";
+import { attributesOf } from "#test/app-host/traceVerbs.ts";
+import { wireAnswers } from "#test/app-host/wireAnswers.ts";
 
 const SERVER_KIND = 2;
 const RESYNC_KEY = /^@shivaedev\/contract\/resync\//u;

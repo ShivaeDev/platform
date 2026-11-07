@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { Effect } from "effect";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { storyKit } from "#server/storyKit.ts";
-import { noteLifetime } from "./lifetimeLog.ts";
+import { noteLifetime } from "#test/lifetimeLog.ts";
 
 const hostFetch = fetch;
 

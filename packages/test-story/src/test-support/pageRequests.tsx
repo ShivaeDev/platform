@@ -5,8 +5,8 @@ import { domPage } from "#server/domPage.ts";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { background } from "./attempt.ts";
-import { ErrorPage } from "./ErrorPage.tsx";
+import { background } from "#test/attempt.ts";
+import { ErrorPage } from "#test/ErrorPage.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

@@ -2,9 +2,9 @@ import { createServer, type IncomingMessage, request } from "node:http";
 import { isIP } from "node:net";
 import * as Effect from "effect/Effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { loopbackServer } from "#server/adapters/loopback.ts";
+import { proxyConnections } from "#server/adapters/proxyConnections.ts";
 import type { ForwardingProxyOptions } from "#server/forwardingProxy.ts";
-import { loopbackServer } from "./loopback.ts";
-import { proxyConnections } from "./proxyConnections.ts";
 
 export function makeForwardingProxy(upstream: string, options: ForwardingProxyOptions) {
 	const connections = proxyConnections();

@@ -6,12 +6,12 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { connect } from "#test/action-trace/connect.ts";
+import { Jobs, migrations, Work } from "#test/action-trace/feature.ts";
+import { openHost } from "#test/action-trace/openHost.ts";
+import { Action, Create, Editor } from "#test/action-trace/view.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { connect } from "./connect.ts";
-import { Jobs, migrations, Work } from "./feature.ts";
-import { openHost } from "./openHost.ts";
-import { Action, Create, Editor } from "./view.tsx";
 
 function recordingTracer() {
 	const spans: Tracer.Span[] = [];

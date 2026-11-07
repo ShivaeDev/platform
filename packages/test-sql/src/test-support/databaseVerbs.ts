@@ -4,11 +4,11 @@ import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { observeUntil } from "#server/observeUntil.ts";
+import type { DatabaseEngine } from "#test/databaseEngine.ts";
+import { databaseQueries } from "#test/databaseQueries.ts";
+import { inPlace } from "#test/inPlace.ts";
 import { Items } from "#test/items/service.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { databaseQueries } from "./databaseQueries.ts";
-import { inPlace } from "./inPlace.ts";
-import { writeItem } from "./writeItem.ts";
+import { writeItem } from "#test/writeItem.ts";
 
 export type Ending = "succeeds" | "fails with rejected" | "dies with assertion failed";
 

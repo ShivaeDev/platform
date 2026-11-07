@@ -6,9 +6,9 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
-import { httpClient, liveClient } from "./client.ts";
-import { Api, handlers, Note } from "./feature.ts";
-import { staleSocket } from "./staleSocket.ts";
+import { httpClient, liveClient } from "#test/unix-host/client.ts";
+import { Api, handlers, Note } from "#test/unix-host/feature.ts";
+import { staleSocket } from "#test/unix-host/staleSocket.ts";
 
 const openHost = Effect.fnUntraced(function* (path: string, tcp: boolean) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);

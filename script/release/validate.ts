@@ -4,8 +4,8 @@ import { checkReleaseCoverage } from "@shivaedev/releases/checkReleaseCoverage.t
 import { computePlan } from "@shivaedev/releases/planner.ts";
 import { readHistory } from "@shivaedev/releases/readHistory.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
+import { starterPinsInput } from "#release/starterPinsInput.ts";
 import config from "#release-config";
-import { starterPinsInput } from "./starterPinsInput.ts";
 
 export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 	root: string,

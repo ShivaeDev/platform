@@ -6,12 +6,12 @@ import { Clock, Config, Console, Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
 import { frozenPasses } from "#release/adapters/frozenPasses.ts";
+import { compareRelease } from "#release/compare.ts";
+import { git as releaseGit } from "#release/git.ts";
+import { releaseGitHub } from "#release/gitHub.ts";
+import { planPullRequest } from "#release/planPullRequest.ts";
+import { releasePrSummary } from "#release/prSummary.ts";
 import config from "#release-config";
-import { compareRelease } from "./compare.ts";
-import { git as releaseGit } from "./git.ts";
-import { releaseGitHub } from "./gitHub.ts";
-import { planPullRequest } from "./planPullRequest.ts";
-import { releasePrSummary } from "./prSummary.ts";
 
 export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(function* (root: string, github: ReturnType<typeof releaseGitHub>) {
 	function git(...args: readonly string[]) {

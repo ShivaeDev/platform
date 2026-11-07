@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { FileSystem, Schema } from "effect";
 import { writeJson } from "#package-check/io.ts";
-import { archives } from "./archives.ts";
+import { archives } from "#package-check/test-support/archives.ts";
 
 const Inventory = Schema.fromJsonString(
 	Schema.Struct({

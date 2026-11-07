@@ -2,9 +2,9 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { type Capture, makeCapture } from "@shivaedev/changes/capture.ts";
-import { bucketRows } from "./bucketRows.ts";
-import type { compositeLedger } from "./compositeLedger.ts";
-import type { setupOwnedRows } from "./postgresOwnedRows.ts";
+import { bucketRows } from "#test/bucketRows.ts";
+import type { compositeLedger } from "#test/compositeLedger.ts";
+import type { setupOwnedRows } from "#test/postgresOwnedRows.ts";
 
 export interface ChangeKeysEngine {
 	readonly buckets: Effect.Success<typeof bucketRows>;

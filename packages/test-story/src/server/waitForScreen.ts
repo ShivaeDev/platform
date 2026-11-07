@@ -3,8 +3,8 @@ import * as Queue from "effect/Queue";
 import * as Result from "effect/Result";
 import { screenAct } from "#server/adapters/screenAct.ts";
 import { screenMutations } from "#server/adapters/screenMutations.ts";
+import { observeScreen } from "#server/observeScreen.ts";
 import type { ScreenDriverOptions } from "#server/screenDriver.ts";
-import { observeScreen } from "./observeScreen.ts";
 
 type WaitOptions = Required<Pick<ScreenDriverOptions, "act">> & {
 	readonly activity?: ScreenDriverOptions["activity"];

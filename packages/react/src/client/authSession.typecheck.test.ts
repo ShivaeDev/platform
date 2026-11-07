@@ -5,7 +5,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
-import { authSession } from "./authSession.ts";
+import { authSession } from "#client/authSession.ts";
 
 interface Session {
 	readonly user: { readonly name: string };

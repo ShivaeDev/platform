@@ -4,11 +4,11 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { type HintViewer, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { answered, shown, times, updateWords } from "./answers.ts";
-import { type Mark, markQuery, reRead } from "./reRead.ts";
-import { settled } from "./settled.ts";
-import { type Notes, notes, Row, viewerEngine } from "./viewerEngine.ts";
-import { type ViewerPage, viewerPage } from "./viewerPage.ts";
+import { answered, shown, times, updateWords } from "#test/answers.ts";
+import { type Mark, markQuery, reRead } from "#test/reRead.ts";
+import { settled } from "#test/settled.ts";
+import { type Notes, notes, Row, viewerEngine } from "#test/viewerEngine.ts";
+import { type ViewerPage, viewerPage } from "#test/viewerPage.ts";
 
 type Viewer = "alice" | "bob";
 type QueryReferences = Rpc.Payload<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.$changes">>["queries"];

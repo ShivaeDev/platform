@@ -11,8 +11,8 @@ import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { notesClient } from "#modules/notes/test-support/client.ts";
+import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
-import { screenAuth } from "./screenAuth.ts";
 
 const warnings = expectNoReactWarnings();
 

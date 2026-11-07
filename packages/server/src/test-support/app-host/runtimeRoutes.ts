@@ -1,9 +1,9 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { readRuntimeValue } from "./runtime.ts";
-import { recreatedDevelopmentRuntime, sharedDevelopmentRuntime } from "./runtimeCaching.ts";
-import { runtimeCases } from "./runtimeCases.ts";
-import type { HostState } from "./state.ts";
+import { readRuntimeValue } from "#test/app-host/runtime.ts";
+import { recreatedDevelopmentRuntime, sharedDevelopmentRuntime } from "#test/app-host/runtimeCaching.ts";
+import { runtimeCases } from "#test/app-host/runtimeCases.ts";
+import type { HostState } from "#test/app-host/state.ts";
 
 function json(evaluate: () => Promise<unknown>) {
 	return Effect.promise(async () => HttpServerResponse.jsonUnsafe(await evaluate()));

@@ -5,7 +5,7 @@ import { Model } from "effect/schema";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import type { SessionUserValue } from "#identity.ts";
-import { providerFailure } from "./providerFailure.ts";
+import { providerFailure } from "#server/providerFailure.ts";
 
 class MachineToken extends Model.Class<MachineToken>("IdentityMachineToken")({
 	id: Schema.String,

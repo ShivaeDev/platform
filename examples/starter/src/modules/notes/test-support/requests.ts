@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { Note } from "#modules/notes/notes.ts";
+import type { RpcAddress } from "#modules/notes/test-support/Engine.ts";
+import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { authPost } from "#test-support/authHttp.ts";
-import type { RpcAddress } from "./Engine.ts";
-import { notesHttp } from "./http.ts";
 
 function named(note: Pick<Note, "id"> & { readonly title?: string }) {
 	return note.title === undefined ? `note ${note.id}` : JSON.stringify(note.title);

@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { capture } from "./capture.ts";
-import { get } from "./get.ts";
-import { AccountPreferenceRows } from "./Rows.ts";
-import { set } from "./set.ts";
+import { capture } from "#server/account-preferences/capture.ts";
+import { get } from "#server/account-preferences/get.ts";
+import { AccountPreferenceRows } from "#server/account-preferences/Rows.ts";
+import { set } from "#server/account-preferences/set.ts";
 
 export const AccountPreferencesStore = defineService({
 	id: "@shivaedev/identity/AccountPreferencesStore",

@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
-import { PrefixedKey } from "./conflictModels.ts";
+import { PrefixedKey } from "#test/conflictModels.ts";
 
 export class BatchReading extends Model.Class<BatchReading>("BatchReading")({
 	amount: Schema.NumberFromString,

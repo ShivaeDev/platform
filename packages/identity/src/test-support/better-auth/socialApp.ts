@@ -1,10 +1,10 @@
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { seedCookies } from "@shivaedev/test-story/server/adapters/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { socialEngine } from "#test/better-auth/socialEngine.ts";
+import { socialVerbs } from "#test/better-auth/socialVerbs.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { socialEngine } from "./socialEngine.ts";
-import { socialVerbs } from "./socialVerbs.ts";
 
 const definition = {
 	around: withIdentityDatabase,

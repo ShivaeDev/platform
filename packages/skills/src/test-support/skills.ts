@@ -1,10 +1,10 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Option, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runCli } from "./cli.ts";
-import { type Fixture, makeFixture } from "./fixture.ts";
-import { operations } from "./operations.ts";
-import { pushedCommit, runStep } from "./workflow.ts";
+import { runCli } from "#test/cli.ts";
+import { type Fixture, makeFixture } from "#test/fixture.ts";
+import { operations } from "#test/operations.ts";
+import { pushedCommit, runStep } from "#test/workflow.ts";
 
 export const MANIFEST = ".agents/skills/.shivaedev-skills.json";
 

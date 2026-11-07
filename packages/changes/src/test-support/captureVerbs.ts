@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { type Capture, makeCapture } from "#capture.ts";
-import { type Body, effectOf } from "./body.ts";
-import { type Engine, labels } from "./engine.ts";
-import type { Change } from "./fakeDatabase.ts";
+import { type Body, effectOf } from "#test/body.ts";
+import { type Engine, labels } from "#test/engine.ts";
+import type { Change } from "#test/fakeDatabase.ts";
 
 export function captureVerbs(engine: Engine, tell: (line: string) => void) {
 	let capture: Capture<Change> | undefined;

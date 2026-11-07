@@ -1,6 +1,6 @@
 import { defineRule, type Finding, type Rule } from "#rule.ts";
-import { isDirective, textOf } from "./kinds.ts";
-import { commentsOf, type SourceComment } from "./scan.ts";
+import { isDirective, textOf } from "#rules/comments/kinds.ts";
+import { commentsOf, type SourceComment } from "#rules/comments/scan.ts";
 
 interface PatternRule<TId extends string> {
 	readonly description: string;

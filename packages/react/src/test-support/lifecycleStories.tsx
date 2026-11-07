@@ -5,9 +5,9 @@ import { Activity, act, type ReactNode, StrictMode } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { Answer, Round } from "./lifecycleViews.tsx";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
+import { Answer, Round } from "#test/lifecycleViews.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
 
 function registryState(registry: AtomRegistry.AtomRegistry | undefined) {
 	if (registry === undefined) {

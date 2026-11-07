@@ -8,8 +8,8 @@ import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { connect } from "./connect.ts";
-import { Notes, Read } from "./screen.tsx";
+import { connect } from "#test/automatic/connect.ts";
+import { Notes, Read } from "#test/automatic/screen.tsx";
 
 export async function openScreen(url: string, runtime: Atom.RuntimeFactory) {
 	window.location.href = url;

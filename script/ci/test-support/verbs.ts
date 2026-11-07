@@ -3,11 +3,11 @@ import { mainShardPlan } from "#ci/mainShardPlan.ts";
 import { mergeConsumerTimings } from "#ci/mergeConsumerTimings.ts";
 import { balancedShards, parseShard } from "#ci/shard.ts";
 import { consumerShardMs, jobDurations, shardTargetMs, wallTimeShardCount } from "#ci/shardCount.ts";
+import { mergeTimingArtifacts } from "#ci/test-support/mergeTimingArtifacts.ts";
+import type { Workspace } from "#ci/test-support/workspace.ts";
+import { workspaceCoverage } from "#ci/test-support/workspaceCoverage.ts";
 import { testPackages } from "#ci/testPackages.ts";
 import { decodeTimingSnapshot, durationEstimates, mergeConsumerTimingReports, type TimingSnapshot } from "#ci/timings.ts";
-import { mergeTimingArtifacts } from "./mergeTimingArtifacts.ts";
-import type { Workspace } from "./workspace.ts";
-import { workspaceCoverage } from "./workspaceCoverage.ts";
 
 export function verbs(engine: Workspace) {
 	function vitest() {

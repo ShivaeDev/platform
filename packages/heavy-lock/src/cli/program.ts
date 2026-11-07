@@ -1,8 +1,8 @@
 import { Cause, Console, Effect, Queue } from "effect";
 import { acquireHeavyLock } from "#acquire.ts";
 import { type ForwardedSignal, receiveSignals, signalExitCode } from "#adapters/signals.ts";
+import { type CommandLine, runCommand } from "#cli/runCommand.ts";
 import { HeavyLockError } from "#error.ts";
-import { type CommandLine, runCommand } from "./runCommand.ts";
 
 const FAILED = 1;
 

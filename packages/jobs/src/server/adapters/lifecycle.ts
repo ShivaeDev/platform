@@ -1,12 +1,12 @@
 import { type Context, Effect, Exit, Scope } from "effect";
+import { acquireCachedClient, releaseCachedClient } from "#server/adapters/clientCache.ts";
+import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { observeClientErrors } from "#server/clientErrors.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import { PgBossClientOptionsError, toPgBossError } from "#server/error.ts";
 import { jobStorePlans } from "#server/jobStorePlans.ts";
 import type { AcquireClientOptions, ClientEngine } from "#server/lifecycle.ts";
-import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
-import { defaultClientFactory } from "./defaultClientFactory.ts";
 
 export interface StartingClient {
 	readonly client: PgBossClient;

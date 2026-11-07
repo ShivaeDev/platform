@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { Delete } from "#modules/notes/notes.ts";
-import { changed } from "./changed.ts";
-import { getNote } from "./get.ts";
-import { NotesRepository } from "./Repository.ts";
-import { notesSqlFailure } from "./sqlFailure.ts";
+import { changed } from "#modules/notes/server/changed.ts";
+import { getNote } from "#modules/notes/server/get.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
+import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const deleteNote = Effect.fn("NotesService.deleteNote")(
 	function* (input: typeof Delete.payload.Type) {

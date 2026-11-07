@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { hooked } from "#server/hooked.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { attempt } from "./attempt.ts";
+import { attempt } from "#test/attempt.ts";
 
 export const hookRunner = storyKit({
 	create: () => ({ calls: 0 }),

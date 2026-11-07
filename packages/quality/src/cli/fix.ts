@@ -2,6 +2,7 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, FileSystem, Path } from "effect";
 import { biomeReport } from "#biome/report.ts";
 import { changedRanges } from "#cli/changedRanges.ts";
+import { MAX_FIX_ROUNDS } from "#cli/limits.ts";
 import { loadConfig } from "#config/load.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
@@ -10,7 +11,6 @@ import { walk } from "#inventory/walk.ts";
 import { sortManifests } from "#manifests/sorted.ts";
 import { plural } from "#report/plural.ts";
 import type { RuleServices } from "#rule.ts";
-import { MAX_FIX_ROUNDS } from "./limits.ts";
 
 function isBinary(bytes: Uint8Array): boolean {
 	return bytes.includes(0);

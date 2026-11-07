@@ -2,8 +2,8 @@ import process from "node:process";
 import { Effect } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { emptyMount, startMountHost } from "#test/better-auth/mountHost.ts";
 import { withControlledDate } from "#test/clock.ts";
-import { emptyMount, startMountHost } from "./mountHost.ts";
 
 const engine = emptyMount();
 await Effect.runPromise(

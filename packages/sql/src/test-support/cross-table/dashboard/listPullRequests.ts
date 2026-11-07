@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { DashboardConfig } from "./Config.ts";
-import { PullRequestWithOptionalReport, Since } from "./rows.ts";
+import { DashboardConfig } from "#test/cross-table/dashboard/Config.ts";
+import { PullRequestWithOptionalReport, Since } from "#test/cross-table/dashboard/rows.ts";
 
 export const listPullRequests = Effect.fn("Dashboard.listPullRequests")(function* (request: typeof Since.Type) {
 	const sql = yield* SqlClient.SqlClient;

@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { queryHeadersEngine, records } from "./queryHeadersEngine.ts";
+import { queryHeadersEngine, records } from "#test/queryHeadersEngine.ts";
 
 export const queryHeadersStory = storyKit({
 	clock: "test",

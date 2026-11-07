@@ -1,8 +1,8 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
+import { importEntry, importKey } from "#package-check/imports.ts";
 import { command } from "#package-check/io.ts";
 import { bins, type Manifest, type Package, targets } from "#package-check/model.ts";
-import { importEntry, importKey } from "./imports.ts";
 
 export interface Entry {
 	readonly json: boolean;

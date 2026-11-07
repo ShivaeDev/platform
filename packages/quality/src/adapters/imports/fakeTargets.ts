@@ -1,8 +1,8 @@
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
+import { projectsFor } from "#adapters/imports/projects.ts";
+import { resolveImport } from "#adapters/imports/resolve.ts";
 import type { RuleInputs } from "#rule.ts";
-import { projectsFor } from "./projects.ts";
-import { resolveImport } from "./resolve.ts";
 
 export interface FakeModule {
 	readonly file: string;

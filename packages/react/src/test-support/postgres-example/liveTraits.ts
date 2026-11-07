@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { integration } from "./integration.ts";
-import type { LiveEngine } from "./liveEngine.ts";
-import { liveVerbs, markBaseline, settleEditors } from "./liveVerbs.ts";
+import { integration } from "#test/postgres-example/integration.ts";
+import type { LiveEngine } from "#test/postgres-example/liveEngine.ts";
+import { liveVerbs, markBaseline, settleEditors } from "#test/postgres-example/liveVerbs.ts";
 
 function quiet() {
 	return undefined;

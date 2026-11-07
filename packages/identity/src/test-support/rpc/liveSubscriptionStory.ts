@@ -3,11 +3,11 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
-import { documents, liveSubscriptionEngine } from "./liveSubscriptionEngine.ts";
-import { DocumentRoles } from "./liveSubscriptionProvider.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
-import { revalidationClock } from "./revalidationClock.ts";
-import { expireSession, signOut } from "./sessionLifecycle.ts";
+import { documents, liveSubscriptionEngine } from "#test/rpc/liveSubscriptionEngine.ts";
+import { DocumentRoles } from "#test/rpc/liveSubscriptionProvider.ts";
+import { databaseUrl, postgres } from "#test/rpc/postgres.ts";
+import { revalidationClock } from "#test/rpc/revalidationClock.ts";
+import { expireSession, signOut } from "#test/rpc/sessionLifecycle.ts";
 
 export const liveSubscriptionStory = storyKit({
 	around: withIdentityDatabase,

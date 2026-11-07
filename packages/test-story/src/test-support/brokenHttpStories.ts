@@ -1,4 +1,4 @@
-import { brokenHttpApp, handlerThrows } from "./brokenHttpApp.ts";
+import { brokenHttpApp, handlerThrows } from "#test/brokenHttpApp.ts";
 
 for (const [kind, thrown] of [
 	["error", new Error("reply crashed")],

@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migratePostgres } from "#migrations.ts";
-import { onPostgres } from "./engines.ts";
-import { componentOf, described, loaderOf, type Migration } from "./migrationCatalog.ts";
-import { migrationEngine } from "./migrationEngine.ts";
-import { migrationVerbs, type RunOptions } from "./migrationVerbs.ts";
+import { onPostgres } from "#test/engines.ts";
+import { componentOf, described, loaderOf, type Migration } from "#test/migrationCatalog.ts";
+import { migrationEngine } from "#test/migrationEngine.ts";
+import { migrationVerbs, type RunOptions } from "#test/migrationVerbs.ts";
 
 export const migrationRuns = storyKit({
 	...onPostgres,

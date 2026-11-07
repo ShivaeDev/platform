@@ -4,10 +4,10 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
+import { useSessionRecheck } from "#client/sessionBoundary.ts";
 import { NoticeContext } from "#NoticeContext.ts";
 import { publishNotice } from "#noticeStore.ts";
 import type { NoticeFeedback } from "#notices.ts";
-import { useSessionRecheck } from "./sessionBoundary.ts";
 
 export interface ActionOptions<TInput, A, E, R = never> {
 	readonly concurrent?: boolean;

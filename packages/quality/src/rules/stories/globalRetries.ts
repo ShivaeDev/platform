@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { defineRule } from "#rule.ts";
-import type { Origin } from "./collectionOrigins.ts";
-import { storyOrigins } from "./origins.ts";
-import { retryOption } from "./retryOption.ts";
-import { memberName, nodesWhere } from "./syntax.ts";
+import type { Origin } from "#rules/stories/collectionOrigins.ts";
+import { storyOrigins } from "#rules/stories/origins.ts";
+import { retryOption } from "#rules/stories/retryOption.ts";
+import { memberName, nodesWhere } from "#rules/stories/syntax.ts";
 
 const BUILDERS = new Set(["each", "for", "extend", "runIf", "skipIf", "layer"]);
 const MESSAGE =

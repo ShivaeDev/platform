@@ -2,9 +2,9 @@ import { Deferred, Effect, Fiber } from "effect";
 import type { SqlClient } from "effect/sql";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
-import { described, type Migration } from "./migrationCatalog.ts";
-import type { Applied, MigrationEngine } from "./migrationEngine.ts";
-import type { RunOptions } from "./migrationVerbs.ts";
+import { described, type Migration } from "#test/migrationCatalog.ts";
+import type { Applied, MigrationEngine } from "#test/migrationEngine.ts";
+import type { RunOptions } from "#test/migrationVerbs.ts";
 
 function waitersOn(sql: SqlClient.SqlClient, key: string, count: number) {
 	const waiting = sql<{ readonly waiting: number }>`select count(*)::integer as waiting from pg_locks

@@ -2,9 +2,9 @@ import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
+import { connect } from "#test/automatic/connect.ts";
+import { busy, type Engine } from "#test/automatic/engine.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { connect } from "./connect.ts";
-import { busy, type Engine } from "./engine.ts";
 
 export function automaticVerbs(engine: Engine) {
 	function say(line: string) {

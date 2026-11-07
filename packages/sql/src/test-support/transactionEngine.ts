@@ -3,9 +3,9 @@ import { Context, Data, Effect, type Fiber, Layer, type Queue } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { sqlReasonOf } from "./outcome.ts";
-import { postgresLayer } from "./postgres.ts";
-import { RecordedLogs } from "./RecordedLogs.ts";
+import { sqlReasonOf } from "#test/outcome.ts";
+import { postgresLayer } from "#test/postgres.ts";
+import { RecordedLogs } from "#test/RecordedLogs.ts";
 
 export class Rejected extends Data.TaggedError("Rejected")<{ readonly message: string }> {}
 export class Unavailable extends Data.TaggedError("Unavailable")<{ readonly message: string }> {}

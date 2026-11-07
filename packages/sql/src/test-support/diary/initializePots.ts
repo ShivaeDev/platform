@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "#repository.ts";
+import { Pot } from "#test/diary/Pot.ts";
+import { PotStorage } from "#test/diary/PotStorage.ts";
 import { ownTable } from "#test/writeTables.ts";
-import { Pot } from "./Pot.ts";
-import { PotStorage } from "./PotStorage.ts";
 
 export const initializePots = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

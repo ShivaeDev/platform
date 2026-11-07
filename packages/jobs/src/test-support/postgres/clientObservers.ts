@@ -1,8 +1,8 @@
 import { Deferred, Effect } from "effect";
 import { type Job, PgBoss, type WorkOptions } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 import { notifyWork } from "#test/workers.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
 
 export function observeWakes(engine: DatabaseEngine, runtime: string, client: PgBossClient): PgBossClient {
 	const notify = client.notifyWorker?.bind(client);

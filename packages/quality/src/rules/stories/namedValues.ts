@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
-import { storySources } from "./sources.ts";
-import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
+import { storySources } from "#rules/stories/sources.ts";
+import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	'Passes a numeric literal or a matcher-only spec-local numeric const to toBe or toHaveLength. Assert the observed items, write the literal where accepted (zero or a process exitCode), or derive the value from the story\'s inputs. For HTTP statuses, import * as HttpStatus from "effect/http/HttpStatus" and use HttpStatus.fromLiteral("NotFound"), for example.';

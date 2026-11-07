@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { compute } from "./compute.ts";
+import { compute } from "#test/request/view/compute.ts";
 
 export const initialize = Effect.gen(function* () {
 	const { id } = yield* SessionUser;

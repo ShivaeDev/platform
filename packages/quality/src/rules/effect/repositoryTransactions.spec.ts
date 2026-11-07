@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
+import { sqlTransact } from "#rules/effect/sqlTransact.ts";
 import { changeKeysResolve } from "#test/changeKeys.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { transactionConsumer } from "#test/transactionConsumer.ts";
-import { sqlTransact } from "./sqlTransact.ts";
 
 const REJECTED = [
 	'yield* sql.withTransaction(Effect.gen(function* () { yield* notes.insert({ id: 1, name: "first" }); yield* notes.insert({ id: 2, name: "second" }); }));',

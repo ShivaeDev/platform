@@ -3,9 +3,9 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Create } from "#modules/notes/notes.ts";
-import { enqueueNote } from "./enqueue.ts";
-import { NotesRepository } from "./Repository.ts";
-import { notesSqlFailure } from "./sqlFailure.ts";
+import { enqueueNote } from "#modules/notes/server/enqueue.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
+import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const createNote = Effect.fn("NotesService.createNote")(function* ({ title }: typeof Create.payload.Type) {
 	const repository = yield* NotesRepository;

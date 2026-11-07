@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
-import { screenActions } from "./screenActions.ts";
-import type { Screen } from "./screenState.ts";
+import { screenActions } from "#modules/notes/test-support/screenActions.ts";
+import type { Screen } from "#modules/notes/test-support/screenState.ts";
 
 export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 	function auth() {

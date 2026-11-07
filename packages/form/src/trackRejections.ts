@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { asPath, type Key, retainedPath } from "./paths.ts";
-import { type ArrayKeys, FieldFailure, type Fields, type Holder } from "./shape.ts";
-import type { statusOf } from "./statusOf.ts";
+import { asPath, type Key, retainedPath } from "#paths.ts";
+import { type ArrayKeys, FieldFailure, type Fields, type Holder } from "#shape.ts";
+import type { statusOf } from "#statusOf.ts";
 
 export function trackRejections<TFields extends Fields>(
 	values: Holder,

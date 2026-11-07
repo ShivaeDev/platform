@@ -4,6 +4,9 @@ import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Note } from "#modules/notes/notes.ts";
+import { holdJob } from "#modules/notes/test-support/holdJob.ts";
+import { watchedNote } from "#modules/notes/test-support/live.ts";
+import { type NotesRequests, notesRequests } from "#modules/notes/test-support/requests.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
 import {
 	type DeploymentEngine,
@@ -14,9 +17,6 @@ import {
 	webAddress,
 } from "#test-support/deploymentProcesses.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
-import { holdJob } from "./holdJob.ts";
-import { watchedNote } from "./live.ts";
-import { type NotesRequests, notesRequests } from "./requests.ts";
 
 interface Account {
 	readonly cookie: string;

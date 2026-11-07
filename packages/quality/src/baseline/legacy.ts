@@ -1,8 +1,8 @@
 import { Schema } from "effect";
+import { countOf } from "#baseline/compare.ts";
+import type { BaselineEntry } from "#baseline/format.ts";
 import { type Decoded, decodeWith } from "#decoded.ts";
 import { groupBy, keyOf, type Violation } from "#engine/violation.ts";
-import { countOf } from "./compare.ts";
-import type { BaselineEntry } from "./format.ts";
 
 export const LEGACY_BASELINE = "quality/baseline.json";
 

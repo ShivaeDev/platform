@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { FlakyTests } from "#flakyTests.ts";
-import { decodeJsonReport, type JsonReport } from "./jsonReport.ts";
-import { RAN } from "./specFiles.ts";
-import { lastRun, listFiles, REPORTS, readFile, type Suite } from "./suite.ts";
+import { decodeJsonReport, type JsonReport } from "#test/jsonReport.ts";
+import { RAN } from "#test/specFiles.ts";
+import { lastRun, listFiles, REPORTS, readFile, type Suite } from "#test/suite.ts";
 
 export interface Testcase {
 	readonly classname: string;

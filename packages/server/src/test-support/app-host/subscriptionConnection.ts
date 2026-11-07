@@ -2,8 +2,8 @@ import { IncomingMessage } from "node:http";
 import { toIncomingMessage } from "@effect/platform-node/NodeHttpServerRequest";
 import { Effect, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { host } from "./story.ts";
-import { type SubscriptionState, subscribe } from "./subscription.ts";
+import { host } from "#test/app-host/story.ts";
+import { type SubscriptionState, subscribe } from "#test/app-host/subscription.ts";
 
 export function subscriptionConnection(mode: SubscriptionState["mode"]) {
 	return host.trait("configured", `a real HTTP subscription uses ${mode} cancellation`, (state) => {

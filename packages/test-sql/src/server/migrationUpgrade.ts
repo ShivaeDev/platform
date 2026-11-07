@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
-import { tableColumns } from "./tableColumns.ts";
+import { tableColumns } from "#server/tableColumns.ts";
 
 export interface MigrationUpgradeOptions<R = never, E = never> {
 	readonly migrations: PostgresMigrationOptions<R, E>;

@@ -10,7 +10,7 @@ import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, maybeAuthenticatedLayer } from "#server/session.ts";
 import type { SocketSession } from "#server/socketSession.ts";
-import { createProvider } from "./harness.ts";
+import { createProvider } from "#test/rpc/harness.ts";
 
 const Api = RpcGroup.make(Rpc.make("identity", { stream: true, success: Schema.String }))
 	.middleware(Authenticated)

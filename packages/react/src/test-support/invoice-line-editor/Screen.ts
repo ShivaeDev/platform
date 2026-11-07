@@ -6,7 +6,7 @@ import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { QueryView } from "#client/QueryView.ts";
-import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
+import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 
 export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
 type InvoiceLineFields = typeof InvoiceLineDraft.fields;

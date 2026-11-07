@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { libraryTiers } from "#quality/libraryTiers.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { libraryTiers } from "./libraryTiers.ts";
 
 for (const key of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
 	ruleKit.it(

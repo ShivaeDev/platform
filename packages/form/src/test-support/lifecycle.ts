@@ -1,8 +1,8 @@
 import { Effect, Schema, Scope } from "effect";
 import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { formStories } from "#test/formStories.ts";
 import { PROFILE_KEY } from "#test/profileKey.ts";
-import { formStories } from "./formStories.ts";
 
 export const names = formStories(() => Schema.Struct({ name: Schema.Trim }), {
 	config: () => ({ initialValues: { name: "First" }, onSubmit: Effect.succeed }),

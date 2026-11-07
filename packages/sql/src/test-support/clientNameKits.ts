@@ -6,8 +6,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clientOptions } from "#clientOptions.ts";
 import { postgresLayer } from "#postgresLayer.ts";
 import { makeRepository } from "#repository.ts";
-import { configured, postgresOptions } from "./postgres.ts";
-import { ownTable, records, uniqueTable } from "./writeTables.ts";
+import { configured, postgresOptions } from "#test/postgres.ts";
+import { ownTable, records, uniqueTable } from "#test/writeTables.ts";
 
 class DatedRow extends Model.Class<DatedRow>("DatedRow")({
 	createdAt: Schema.Date,

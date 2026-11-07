@@ -5,9 +5,9 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AccountPreferenceValues } from "#accountPreferences.ts";
+import { preferencesHost } from "#test/account-preferences/host.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { preferencesHost } from "./host.ts";
 
 export const preferences = storyKit({
 	around: withIdentityDatabase,

@@ -8,10 +8,10 @@ import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { until } from "#server/until.ts";
-import { createSettlingApp } from "./createSettlingApp.ts";
-import { readPageHost } from "./readPageHost.ts";
-import { SettlingApp } from "./SettlingApp.tsx";
-import { settlingSignals } from "./settlingSignals.ts";
+import { createSettlingApp } from "#test/createSettlingApp.ts";
+import { readPageHost } from "#test/readPageHost.ts";
+import { SettlingApp } from "#test/SettlingApp.tsx";
+import { settlingSignals } from "#test/settlingSignals.ts";
 
 expectNoReactWarnings();
 

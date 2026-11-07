@@ -3,10 +3,10 @@ import { Migrator, SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
-import { Api, feature, handlers, sessions } from "./fixture.ts";
-import { Ping } from "./ping.ts";
-import { databaseOf } from "./state.ts";
-import { postgresHost } from "./story.ts";
+import { Api, feature, handlers, sessions } from "#test/app-host/fixture.ts";
+import { Ping } from "#test/app-host/ping.ts";
+import { databaseOf } from "#test/app-host/state.ts";
+import { postgresHost } from "#test/app-host/story.ts";
 
 export const postgresFeature = postgresHost.trait("configured", "PostgreSQL migrations precede the fixture feature", function* (state) {
 	const destination = Redacted.value(databaseOf(state).url);

@@ -1,7 +1,7 @@
 import type * as Effect from "effect/Effect";
 import type { screenElements } from "#server/adapters/screenElements.ts";
 import type { ScreenTarget } from "#server/screenDriver.ts";
-import { targetName } from "./targetName.ts";
+import { targetName } from "#server/targetName.ts";
 
 export function screenInteractions(elements: ReturnType<typeof screenElements>, perform: (line: string, action: () => void) => Effect.Effect<void>) {
 	return {

@@ -2,7 +2,7 @@ import process from "node:process";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Logger } from "effect";
 import { mcpStdio } from "#stdio.ts";
-import { resourceFile, resourceTools } from "./tools.ts";
+import { resourceFile, resourceTools } from "#test/stdio/tools.ts";
 
 const file = process.argv[2];
 if (file === undefined) {

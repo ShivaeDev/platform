@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
-import { linkStarterModules } from "./starterModules.ts";
+import { linkStarterModules } from "#test/starterModules.ts";
 
 const Variables = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Array(Schema.String))));
 const evaluate = `

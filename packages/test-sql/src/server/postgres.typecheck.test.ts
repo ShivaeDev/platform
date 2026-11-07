@@ -6,11 +6,11 @@ import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
+import type { PostgresTestDatabase, PostgresTestServices } from "#server/database.ts";
+import { makePostgresTestLayer } from "#server/postgres.ts";
+import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "#server/withTestTransaction.ts";
 import { Missing } from "#test/missing/service.ts";
-import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
-import { makePostgresTestLayer } from "./postgres.ts";
-import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
-import { withTestTransaction } from "./withTestTransaction.ts";
 
 const body = Effect.gen(function* () {
 	yield* Scope.Scope;

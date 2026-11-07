@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
+import { contextCapture } from "#rules/effect/contextCapture.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { contextCapture } from "./contextCapture.ts";
 
 for (const [name, content] of [
 	[

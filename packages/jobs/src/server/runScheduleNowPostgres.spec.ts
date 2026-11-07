@@ -1,9 +1,9 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
 import { database } from "#test/postgres/database.ts";
 import { running } from "#test/postgres/traits.ts";
 import { scheduled } from "#test/workers.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 const Nightly = defineSchedule({ cron: "17 3 * * *", name: "nightly", schedule: { key: "daily", startAfter: 86_400 } });
 

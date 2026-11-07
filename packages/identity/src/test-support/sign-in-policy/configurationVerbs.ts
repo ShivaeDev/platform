@@ -1,5 +1,5 @@
 import { Cause, Config, Effect, Exit } from "effect";
-import type { PolicyHost, policyHost } from "./host.ts";
+import type { PolicyHost, policyHost } from "#test/sign-in-policy/host.ts";
 
 interface ConfigurationEngine {
 	readonly env: Record<string, string>;

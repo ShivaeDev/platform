@@ -3,9 +3,9 @@ import { TestClock } from "effect/testing";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { onPostgres } from "./engines.ts";
-import { groupPurgeEngine, rejectSecondGroup, seedGroups } from "./groupPurges.ts";
-import { failureOf } from "./outcome.ts";
+import { onPostgres } from "#test/engines.ts";
+import { groupPurgeEngine, rejectSecondGroup, seedGroups } from "#test/groupPurges.ts";
+import { failureOf } from "#test/outcome.ts";
 
 function hintName(key: Key) {
 	if (key._tag === "Item") {

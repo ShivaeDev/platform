@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#server/database.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
 import { withTestTransaction } from "#server/withTestTransaction.ts";
-import { secondClient, setup } from "./postgres.ts";
+import { secondClient, setup } from "#test/postgres.ts";
 
 function transactionState(open: Option.Option<unknown>): "open" | "none" {
 	return Option.isSome(open) ? "open" : "none";

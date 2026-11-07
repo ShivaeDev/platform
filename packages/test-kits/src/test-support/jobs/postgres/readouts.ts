@@ -1,9 +1,9 @@
 import { Effect, Option } from "effect";
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { Job } from "@shivaedev/jobs/server/job.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { admin, anyRuntime, errorOf, labelOf } from "./engine.ts";
-import { deadLetterSources, lookup } from "./verbs.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/jobs/postgres/databaseEngine.ts";
+import { admin, anyRuntime, errorOf, labelOf } from "#test/jobs/postgres/engine.ts";
+import { deadLetterSources, lookup } from "#test/jobs/postgres/verbs.ts";
 
 export function readouts(engine: DatabaseEngine) {
 	return {

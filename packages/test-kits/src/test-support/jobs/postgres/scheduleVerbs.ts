@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import type { ScheduleDefinition } from "@shivaedev/jobs/server/definition.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { answer, testingOf } from "./verbs.ts";
+import type { DatabaseEngine } from "#test/jobs/postgres/databaseEngine.ts";
+import { answer, testingOf } from "#test/jobs/postgres/verbs.ts";
 
 export function scheduleVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

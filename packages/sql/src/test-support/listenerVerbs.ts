@@ -2,9 +2,9 @@ import { Deferred, type Duration, Effect, Exit, Fiber, Layer, Logger, Queue, Sco
 import type { SqlError } from "effect/sql/SqlError";
 import * as TestClock from "effect/testing/TestClock";
 import { type PostgresChangeClient, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
-import type { ChangeFeedEngine } from "./changeFeedEngine.ts";
-import { instrumentedClient } from "./changeFeedListener.ts";
-import { endingOf } from "./outcome.ts";
+import type { ChangeFeedEngine } from "#test/changeFeedEngine.ts";
+import { instrumentedClient } from "#test/changeFeedListener.ts";
+import { endingOf } from "#test/outcome.ts";
 
 export function startFeed(engine: ChangeFeedEngine, channel: string, client: PostgresChangeClient) {
 	const { events } = engine;

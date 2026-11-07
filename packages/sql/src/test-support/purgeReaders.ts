@@ -5,9 +5,9 @@ import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { changesRpc } from "@shivaedev/contract/serverMetadata.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { bucketRows } from "#test/bucketRows.ts";
+import { onPostgres } from "#test/engines.ts";
 import { ChangeObserver } from "#transact.ts";
-import { bucketRows } from "./bucketRows.ts";
-import { onPostgres } from "./engines.ts";
 
 const readerEngine = Effect.fnUntraced(function* () {
 	const { keys, rows } = yield* bucketRows;

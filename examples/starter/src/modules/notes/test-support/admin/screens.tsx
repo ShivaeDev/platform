@@ -6,13 +6,13 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AppAccess } from "#AppAccess.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
+import { openScreen } from "#modules/notes/test-support/admin/openScreen.tsx";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { startHost } from "#test-support/host.ts";
 import { configured, postgres } from "#test-support/postgres.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
-import { openScreen } from "./openScreen.tsx";
 
 type Account = Effect.Success<ReturnType<typeof mintUser>>;
 export interface AdminScreen extends ScreenSurface {

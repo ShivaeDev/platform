@@ -2,11 +2,11 @@ import { Effect, Fiber, Queue, Stream } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import type { Caller } from "./callers.ts";
-import { callers } from "./callers.ts";
-import type { Host } from "./host.ts";
-import { NATIVE_ORIGIN, REVALIDATION_INTERVAL } from "./host.ts";
-import { type Account, authRequest, client, login } from "./requests.ts";
+import type { Caller } from "#test/native-sessions/callers.ts";
+import { callers } from "#test/native-sessions/callers.ts";
+import type { Host } from "#test/native-sessions/host.ts";
+import { NATIVE_ORIGIN, REVALIDATION_INTERVAL } from "#test/native-sessions/host.ts";
+import { type Account, authRequest, client, login } from "#test/native-sessions/requests.ts";
 
 export function sessionVerbs(host: Host, accounts: Map<string, Account>, tell: (line: string) => void) {
 	const { account, headersOf, callerWords } = callers(accounts);

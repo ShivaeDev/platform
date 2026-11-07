@@ -1,6 +1,6 @@
 import { DateTime, Effect } from "effect";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
-import { admittedMcp } from "./mcp.ts";
+import { admittedMcp } from "#test/mcp.ts";
 
 export function admittedUser(name: string) {
 	return admittedMcp.trait("people", `${name} already has an admitted account and a minted browser session`, function* (engine) {

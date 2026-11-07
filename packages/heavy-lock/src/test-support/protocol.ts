@@ -3,8 +3,8 @@ import process from "node:process";
 import { Effect, Option } from "effect";
 import { decodeHolder, type Holder } from "#holder.ts";
 import { tryAcquire } from "#lockFile.ts";
-import { type Lock, readLock, writeLock } from "./lock.ts";
-import { startTime } from "./startTime.ts";
+import { type Lock, readLock, writeLock } from "#test/lock.ts";
+import { startTime } from "#test/startTime.ts";
 
 export const REFERENCE_HOLDER = "the reference holder";
 

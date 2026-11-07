@@ -1,4 +1,4 @@
-import { starterAt010, starterAt020 } from "./updateTraits.ts";
+import { starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
 export const legacyWorkerRegistry = starterAt010("registers workers separately from application modules", {
 	"src/server/workerModules.ts": `import { Layer } from "effect";

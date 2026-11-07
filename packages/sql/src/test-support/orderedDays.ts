@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { onPostgres } from "./engines.ts";
-import { orderedDaysEngine } from "./orderedDaysEngine.ts";
-import { orderedDaysRace } from "./orderedDaysRace.ts";
-import { attempt } from "./outcome.ts";
+import { onPostgres } from "#test/engines.ts";
+import { orderedDaysEngine } from "#test/orderedDaysEngine.ts";
+import { orderedDaysRace } from "#test/orderedDaysRace.ts";
+import { attempt } from "#test/outcome.ts";
 
 export const orderedDays = storyKit({
 	...onPostgres,

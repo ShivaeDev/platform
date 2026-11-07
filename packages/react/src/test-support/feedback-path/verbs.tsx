@@ -1,11 +1,11 @@
 import { Deferred, Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { Notice } from "#notices.ts";
+import { type FeatureScreen, FeedbackView } from "#test/feedback-path/view.tsx";
 import { Rejected } from "#test/notices/Api.ts";
 import { type HeldKind, noticeClient } from "#test/notices/client.ts";
 import type { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { type FeatureScreen, FeedbackView } from "./view.tsx";
 
 export type Session = "alice" | "bob";
 

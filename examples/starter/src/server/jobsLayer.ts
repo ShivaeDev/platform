@@ -1,6 +1,6 @@
 import { Effect, Layer, type Redacted } from "effect";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { JobsClientFactory } from "./JobsClientFactory.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 
 export function jobsLayer(connectionString: Redacted.Redacted<string>, max?: number) {
 	return Layer.unwrap(

@@ -3,7 +3,7 @@ import { FileSystem } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { writeJson } from "#package-check/io.ts";
 import type { Manifest } from "#package-check/model.ts";
-import { archives } from "./archives.ts";
+import { archives } from "#package-check/test-support/archives.ts";
 
 function exportTraits(line: string, manifest: Manifest, files: Readonly<Record<string, string>>) {
 	return archives.trait("workspace", line, function* ({ root }) {

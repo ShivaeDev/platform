@@ -3,8 +3,8 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
+import { onPostgres } from "#test/engines.ts";
 import { type TupleColumnType, tupleIn } from "#tupleIn.ts";
-import { onPostgres } from "./engines.ts";
 
 class EncodedTupleRow extends Model.Class<EncodedTupleRow>("EncodedTupleColumnRow")({ id: Schema.Int, value: Schema.NumberFromString }) {}
 

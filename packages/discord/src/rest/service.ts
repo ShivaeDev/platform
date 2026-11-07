@@ -2,9 +2,9 @@ import { HttpClient } from "effect/http";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { DiscordConfig } from "#DiscordConfig.ts";
 import { DiscordToken } from "#DiscordToken.ts";
+import { initialize } from "#rest/initialize.ts";
+import { request } from "#rest/request.ts";
 import { DiscordRestLimits } from "#rest-limits/service.ts";
-import { initialize } from "./initialize.ts";
-import { request } from "./request.ts";
 
 export const DiscordRest = defineService({
 	id: "@shivaedev/discord/DiscordRest",

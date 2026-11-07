@@ -1,6 +1,6 @@
 import { atLeast, atMost, greaterThan, lessThan } from "#server/adapters/outcomeMatchers.ts";
 import { outcomes } from "#server/outcomes.ts";
-import { outcomeTable } from "./outcomeTable.ts";
+import { outcomeTable } from "#test/outcomeTable.ts";
 
 outcomeTable.it("one wrong row", [], function* ({ next }) {
 	yield* outcomes([

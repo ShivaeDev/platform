@@ -1,11 +1,11 @@
 import { posix } from "node:path";
 import ts from "typescript";
+import type { BodyReference } from "#adapters/bodyReference.ts";
+import { bodyReferences, storyBody } from "#adapters/bodyReferences.ts";
+import { serviceAccess } from "#adapters/serviceAccess.ts";
 import { isTestSupport, testName } from "#naming/testName.ts";
 import { engineOf } from "#rules/stories/engineOf.ts";
 import { memberName, unwrapped } from "#rules/stories/syntax.ts";
-import type { BodyReference } from "./bodyReference.ts";
-import { bodyReferences, storyBody } from "./bodyReferences.ts";
-import { serviceAccess } from "./serviceAccess.ts";
 
 export interface EngineEscape {
 	readonly node: ts.Node;

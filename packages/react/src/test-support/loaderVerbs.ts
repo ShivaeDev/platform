@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { idleRegistry } from "./idleRegistry.ts";
-import { type Engine, opened, sessionRegistry, settle } from "./loaderScreenState.ts";
+import { idleRegistry } from "#test/idleRegistry.ts";
+import { type Engine, opened, sessionRegistry, settle } from "#test/loaderScreenState.ts";
 
 export function loaderVerbs(engine: Engine, story: { tell: (line: string) => void }) {
 	const { host } = engine;

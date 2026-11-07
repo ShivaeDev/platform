@@ -8,8 +8,8 @@ import { hostProcessReadouts } from "@shivaedev/test-kits/host/processReadouts.t
 import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import { otlpTracing } from "#otlpTracing.ts";
-import { observeFinalizers } from "./observeFinalizers.ts";
-import { HTTP_GRACE_MILLIS, ShutdownApi } from "./ShutdownApi.ts";
+import { observeFinalizers } from "#test/app-host/observeFinalizers.ts";
+import { HTTP_GRACE_MILLIS, ShutdownApi } from "#test/app-host/ShutdownApi.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

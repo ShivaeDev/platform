@@ -1,7 +1,7 @@
 import { isInaccessible } from "dom-accessibility-api";
+import { isRendered } from "#server/adapters/screenAccessibility.ts";
+import { screenQueries } from "#server/adapters/screenQueries.ts";
 import { screenText } from "#server/screenText.ts";
-import { isRendered } from "./screenAccessibility.ts";
-import { screenQueries } from "./screenQueries.ts";
 
 export function screenLoading(root: () => HTMLElement, dialogs: boolean) {
 	const queries = screenQueries(root, dialogs);

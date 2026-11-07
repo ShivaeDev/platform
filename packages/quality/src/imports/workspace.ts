@@ -1,8 +1,8 @@
 import { posix } from "node:path";
 import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
+import { globMatcher } from "#imports/globMatcher.ts";
+import { pnpmWorkspacePatterns } from "#imports/pnpmWorkspacePatterns.ts";
 import type { RuleInputs } from "#rule.ts";
-import { globMatcher } from "./globMatcher.ts";
-import { pnpmWorkspacePatterns } from "./pnpmWorkspacePatterns.ts";
 
 export interface WorkspacePackage {
 	readonly directory: string;

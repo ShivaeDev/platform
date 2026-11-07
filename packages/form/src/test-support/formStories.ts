@@ -3,10 +3,10 @@ import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
 import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Name, Path, Submitter } from "#shape.ts";
-import { draftStorage } from "./draftStorage.ts";
-import type { FormEngine } from "./formEngine.ts";
-import { type FormDriver, formDriver, formVerbs } from "./formVerbs.ts";
-import { registry as freshRegistry } from "./registry.ts";
+import { draftStorage } from "#test/draftStorage.ts";
+import type { FormEngine } from "#test/formEngine.ts";
+import { type FormDriver, formDriver, formVerbs } from "#test/formVerbs.ts";
+import { registry as freshRegistry } from "#test/registry.ts";
 
 interface Definition<TFields extends Fields, A, E, R, TRuntimeError, TSupport, TVerbs> {
 	readonly config: (support: TSupport) => Config<TFields, A, E, R, TRuntimeError>;

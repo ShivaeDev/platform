@@ -4,8 +4,8 @@ import { acquireHeavyLock } from "#acquire.ts";
 import { HeavyLockError } from "#error.ts";
 import { HeldLock, type HeldLockShape } from "#HeldLock.ts";
 import { HOLDER_ID_ENV } from "#holder.ts";
+import { configured, type Lock, nameOf } from "#test/lock.ts";
 import { heavyLockLayer, withHeavyLock } from "#withHeavyLock.ts";
-import { configured, type Lock, nameOf } from "./lock.ts";
 
 type Observation =
 	| { readonly kind: "runs" }

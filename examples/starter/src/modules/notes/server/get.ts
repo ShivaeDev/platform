@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { NotesRepository } from "./Repository.ts";
-import { notesSqlFailure } from "./sqlFailure.ts";
+import { NotesRepository } from "#modules/notes/server/Repository.ts";
+import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const getNote = Effect.fn("NotesService.getNote")(function* (id: number) {
 	const repository = yield* NotesRepository;

@@ -1,6 +1,6 @@
 import { FileSystem } from "effect";
-import { HISTORY, write } from "./fixture.ts";
-import { workspace } from "./workspace.ts";
+import { HISTORY, write } from "#test/fixture.ts";
+import { workspace } from "#test/workspace.ts";
 
 export const ROOT = "@test/root";
 

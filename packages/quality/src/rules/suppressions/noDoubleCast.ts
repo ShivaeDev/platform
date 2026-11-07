@@ -3,8 +3,8 @@ import ts from "typescript";
 import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 import { parse } from "#rules/parse.ts";
-import { hiddenCast, SQL_ROW_CAST } from "./hiddenCast.ts";
-import { readonlyWrite, writeCandidate } from "./readonlyWrite.ts";
+import { hiddenCast, SQL_ROW_CAST } from "#rules/suppressions/hiddenCast.ts";
+import { readonlyWrite, writeCandidate } from "#rules/suppressions/readonlyWrite.ts";
 
 const BRIDGES: ReadonlyMap<ts.SyntaxKind, string> = new Map([
 	[ts.SyntaxKind.UnknownKeyword, "unknown"],

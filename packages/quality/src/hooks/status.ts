@@ -3,10 +3,10 @@ import { Console, Effect, Path } from "effect";
 import { executable } from "#adapters/executable.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
+import { forwardingPath, globalHooksPath } from "#hooks/forwarding.ts";
+import { type HookLocation, hookLocation } from "#hooks/location.ts";
+import { isHookShim } from "#hooks/shim.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
-import { forwardingPath, globalHooksPath } from "./forwarding.ts";
-import { type HookLocation, hookLocation } from "./location.ts";
-import { isHookShim } from "./shim.ts";
 
 export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (location: HookLocation) {
 	const { resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));

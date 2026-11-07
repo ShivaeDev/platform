@@ -1,7 +1,7 @@
 import { Effect, Redacted } from "effect";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
+import { expireAttempt } from "#jobs/adapters/expireAttempt.ts";
 import { PgBossTestingError } from "#jobs/error.ts";
-import { expireAttempt } from "./expireAttempt.ts";
 
 export function testingEngine(client: EngineClient, schema: string) {
 	return {

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { linkedWorkerSpans } from "@shivaedev/test-kits/jobs/testing.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { labelOf } from "./engine.ts";
-import { idOf } from "./verbs.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { labelOf } from "#test/postgres/engine.ts";
+import { idOf } from "#test/postgres/verbs.ts";
 
 export function traceReadouts(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

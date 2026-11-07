@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { trustedProxyRanges } from "./trustedProxyRanges.ts";
+import { trustedProxyRanges } from "#server/adapters/trustedProxyRanges.ts";
 
 for (const [reason, trust, ranges] of [
 	["no proxy trust", undefined, []],

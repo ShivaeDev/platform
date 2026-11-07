@@ -4,9 +4,9 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "#bind.ts";
-import { Notes } from "./notes.ts";
-import { notesServer } from "./notesServer.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { Notes } from "#test/notes.ts";
+import { notesServer } from "#test/notesServer.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const localEngine = Effect.gen(function* () {
 	const server = yield* notesServer;

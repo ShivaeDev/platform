@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { makeQuickAmounts, QuickAmounts } from "./quickAmounts.ts";
+import { makeQuickAmounts, QuickAmounts } from "#test/quickAmounts.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

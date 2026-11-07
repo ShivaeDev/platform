@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { Table } from "./createQueryTables.ts";
-import type { QueryEngine } from "./queryEngine.ts";
+import type { Table } from "#test/createQueryTables.ts";
+import type { QueryEngine } from "#test/queryEngine.ts";
 
 interface PlanNode {
 	readonly "Actual Loops": number;

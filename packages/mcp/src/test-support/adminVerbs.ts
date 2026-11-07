@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { type Engine, person } from "./host.ts";
-import { Roles } from "./tools.ts";
+import { type Engine, person } from "#test/host.ts";
+import { Roles } from "#test/tools.ts";
 
 function adminRequest(engine: Engine, route: string, actor: string, body: Record<string, string>) {
 	return Effect.promise(async () => {

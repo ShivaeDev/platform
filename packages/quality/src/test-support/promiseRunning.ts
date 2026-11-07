@@ -1,8 +1,8 @@
 import { Deferred, Effect } from "effect";
 import { runRules } from "#engine/runRules.ts";
 import { defineRule, type Findings } from "#rule.ts";
-import { inputsOf } from "./inputs.ts";
-import { qualityLifecycle } from "./qualityLifecycle.ts";
+import { inputsOf } from "#test/inputs.ts";
+import { qualityLifecycle } from "#test/qualityLifecycle.ts";
 
 export const promiseRunning = qualityLifecycle.trait(
 	"running",

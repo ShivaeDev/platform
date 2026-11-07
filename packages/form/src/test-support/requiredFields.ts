@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Invalid } from "#shape.ts";
-import { formStories } from "./formStories.ts";
+import { formStories } from "#test/formStories.ts";
 
 export const RequiredFields = Schema.Struct({
 	code: Schema.String.check(Schema.isMinLength(3)),

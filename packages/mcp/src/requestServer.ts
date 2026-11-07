@@ -3,7 +3,7 @@ import { McpProtocol, McpServer } from "effect/ai";
 import { HttpRouter } from "effect/http";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
-import type { McpOptions } from "./routes.ts";
+import type { McpOptions } from "#routes.ts";
 
 export const requestServer = Effect.fn("Mcp.requestServer")(function* <E, R>(options: McpOptions<E, R>) {
 	const user = yield* SessionUser;

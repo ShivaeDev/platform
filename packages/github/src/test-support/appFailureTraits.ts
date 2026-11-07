@@ -1,5 +1,5 @@
 import * as HttpStatus from "effect/http/HttpStatus";
-import { appGithub } from "./appGithub.ts";
+import { appGithub } from "#test/appGithub.ts";
 
 export const exchangeDropped = appGithub.trait("github", "GitHub drops token-exchange connections", function* ({ server }) {
 	yield* server.scriptFault("token", { kind: "drop" }, { repeat: true });

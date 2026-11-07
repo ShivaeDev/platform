@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { DashboardConfig } from "./Config.ts";
-import { PullRequest } from "./pullRequests.ts";
-import { ReportedPullRequest } from "./rows.ts";
+import { DashboardConfig } from "#test/cross-table/dashboard/Config.ts";
+import { PullRequest } from "#test/cross-table/dashboard/pullRequests.ts";
+import { ReportedPullRequest } from "#test/cross-table/dashboard/rows.ts";
 
 export const findReport = Effect.fn("Dashboard.findReport")(function* (pullRequestId: typeof PullRequest.fields.id.Type) {
 	const sql = yield* SqlClient.SqlClient;

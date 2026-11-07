@@ -1,6 +1,6 @@
 import { Data, Effect, type Schema, Semaphore } from "effect";
+import { draftCodec } from "#adapters/draftCodec.ts";
 import type { DraftOperation, PersistedDraftConfig, Persistence } from "#persistence.ts";
-import { draftCodec } from "./draftCodec.ts";
 
 class DraftStorageUnavailable extends Data.TaggedError("DraftStorageUnavailable")<{ readonly cause: unknown }> {}
 

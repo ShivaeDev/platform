@@ -3,9 +3,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { connect } from "./connect.ts";
-import { Editor } from "./Editor.tsx";
-import { openHost } from "./openHost.ts";
+import { connect } from "#test/socket-clock/connect.ts";
+import { Editor } from "#test/socket-clock/Editor.tsx";
+import { openHost } from "#test/socket-clock/openHost.ts";
 
 export const socketClockStory = storyKit({
 	clock: "test",

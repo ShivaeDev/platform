@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import type { Effect } from "effect";
-import type { BetterAuthHookError } from "./databaseHooks.ts";
+import type { BetterAuthHookError } from "#server/better-auth/databaseHooks.ts";
 
 type NativePasswordReset = NonNullable<NonNullable<BetterAuthOptions["emailAndPassword"]>["onPasswordReset"]>;
 

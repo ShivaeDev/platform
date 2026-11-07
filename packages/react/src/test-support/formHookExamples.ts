@@ -12,7 +12,7 @@ import {
 	saveTitle,
 	Title,
 	TitleConflict,
-} from "./formHookFixtures.ts";
+} from "#test/formHookFixtures.ts";
 
 export function useEditorExample() {
 	const editor = useEditor({

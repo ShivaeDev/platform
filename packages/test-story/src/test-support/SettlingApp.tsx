@@ -1,7 +1,7 @@
 import { Deferred, Effect, SubscriptionRef } from "effect";
 import { useState } from "react";
-import { ActivityPageView } from "./activityPageView.ts";
-import type { createSettlingApp } from "./createSettlingApp.ts";
+import { ActivityPageView } from "#test/activityPageView.ts";
+import type { createSettlingApp } from "#test/createSettlingApp.ts";
 
 type App = Effect.Success<ReturnType<typeof createSettlingApp>>;
 

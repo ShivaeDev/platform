@@ -4,10 +4,10 @@ import * as PgPool from "@effect/sql-pg/PgPool";
 import { Effect, Exit, Fiber, Queue, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { onPostgres } from "./engines.ts";
-import { outcomeOf } from "./outcome.ts";
-import { postgresOptions } from "./postgres.ts";
-import { Rejected } from "./transactionEngine.ts";
+import { onPostgres } from "#test/engines.ts";
+import { outcomeOf } from "#test/outcome.ts";
+import { postgresOptions } from "#test/postgres.ts";
+import { Rejected } from "#test/transactionEngine.ts";
 
 interface Reservation {
 	readonly pid: unknown;

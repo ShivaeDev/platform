@@ -2,11 +2,11 @@ import { Option } from "effect";
 import { useState } from "react";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import { JobDetail, JobRecord } from "./JobDetail.tsx";
-import { JobPagination } from "./JobPagination.tsx";
-import { JobsQueryPanel } from "./JobsQueryPanel.tsx";
-import { JobTable } from "./JobTable.tsx";
-import type { AdminJob, JobsViewClient, RetryJob } from "./jobsTypes.ts";
+import { JobDetail, JobRecord } from "#client/adapters/JobDetail.tsx";
+import { JobPagination } from "#client/adapters/JobPagination.tsx";
+import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
+import { JobTable } from "#client/adapters/JobTable.tsx";
+import type { AdminJob, JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
 
 export function JobList({
 	api,

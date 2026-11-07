@@ -10,7 +10,7 @@ import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import { query } from "#operation.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export class ReadFailed extends Schema.TaggedError<ReadFailed>()("ReadFailed", {}) {}
 export const records = collection("completion-records", Schema.Number);

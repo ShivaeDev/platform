@@ -5,8 +5,8 @@ import { SqlClient } from "effect/sql";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { Api } from "./Api.ts";
-import { Jobs, Work } from "./feature.ts";
+import { Api } from "#test/action-trace/Api.ts";
+import { Jobs, Work } from "#test/action-trace/feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (tracer: Tracer.Tracer) {
 	const database = yield* PostgresTestDatabase;

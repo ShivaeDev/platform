@@ -1,4 +1,4 @@
-import type { External, Selector, Target } from "./model.ts";
+import type { External, Selector, Target } from "#imports/fences/model.ts";
 
 function target(selector: Selector): Target {
 	return { except: (...excluded) => target({ base: selector, excluded: excluded.map((member) => member.selector), kind: "except" }), selector };

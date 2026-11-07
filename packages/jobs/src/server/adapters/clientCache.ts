@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
+import type { StartingClient } from "#server/adapters/lifecycle.ts";
 import type { ClientOptions } from "#server/clientOptions.ts";
 import { PgBossClientOptionsError } from "#server/error.ts";
-import type { StartingClient } from "./lifecycle.ts";
 
 interface CachedClient {
 	readonly client: StartingClient;

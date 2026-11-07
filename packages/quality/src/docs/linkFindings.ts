@@ -1,10 +1,10 @@
 import { join, posix } from "node:path";
 import { Effect, Result } from "effect";
 import ts from "typescript";
+import type { MarkdownLine } from "#docs/markdownLines.ts";
+import { markdownLinks } from "#docs/markdownLinks.ts";
+import { type Repository, repositoryLink } from "#docs/repositoryLink.ts";
 import type { Finding } from "#rule.ts";
-import type { MarkdownLine } from "./markdownLines.ts";
-import { markdownLinks } from "./markdownLinks.ts";
-import { type Repository, repositoryLink } from "./repositoryLink.ts";
 
 export interface LinkContext {
 	readonly anchors: (path: string) => Effect.Effect<ReadonlySet<string> | undefined>;

@@ -1,10 +1,10 @@
 import { DateTime, Effect } from "effect";
 import { Model } from "effect/schema";
+import { attempt } from "#test/outcome.ts";
+import { original, type Profile, printed } from "#test/partialWriteModels.ts";
+import type { PartialWriteEngine } from "#test/partialWrites.ts";
+import { kept, readEndings, readReturned, recording, statementKinds } from "#test/writeTables.ts";
 import { ChangeObserver, transact } from "#transact.ts";
-import { attempt } from "./outcome.ts";
-import { original, type Profile, printed } from "./partialWriteModels.ts";
-import type { PartialWriteEngine } from "./partialWrites.ts";
-import { kept, readEndings, readReturned, recording, statementKinds } from "./writeTables.ts";
 
 export function partialWriteVerbs(engine: PartialWriteEngine, tell: (line: string) => void) {
 	const { byOwner, profiles, records, log, capture, sql, tableName } = engine;

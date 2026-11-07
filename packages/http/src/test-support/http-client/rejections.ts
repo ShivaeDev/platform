@@ -4,7 +4,7 @@ import { FetchHttpClient, HttpClient, type HttpClientResponse } from "effect/htt
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readBoundedJson } from "#body.ts";
 import { filterStatus } from "#filterStatus.ts";
-import { connections, type Reply } from "./connections.ts";
+import { connections, type Reply } from "#test/http-client/connections.ts";
 
 function byteLimit(reply: Reply) {
 	if (reply === "invalid") {

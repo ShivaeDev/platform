@@ -1,7 +1,7 @@
 import { Console, Effect, FileSystem, Path } from "effect";
 import { checkSkills } from "#checkSkills.ts";
 import { syncSkills } from "#syncSkills.ts";
-import type { Fixture } from "./fixture.ts";
+import type { Fixture } from "#test/fixture.ts";
 
 export const printedOrFailed = Effect.fn("SkillsStory.printedOrFailed")(function* (
 	repo: string,

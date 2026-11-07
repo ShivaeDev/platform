@@ -6,11 +6,11 @@ import { act } from "react";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { routerApp } from "./routerApp.ts";
-import { type NoteFailure, type NoteMissing, routerClient } from "./routerClient.ts";
-import { type Screen, screenWarnings } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { routerApp } from "#test/routerApp.ts";
+import { type NoteFailure, type NoteMissing, routerClient } from "#test/routerClient.ts";
+import { type Screen, screenWarnings } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 interface State {
 	readonly client: ReturnType<typeof routerClient>;

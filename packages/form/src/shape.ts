@@ -3,9 +3,9 @@ import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
 import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/reactivity/Reactivity";
-import type { FieldPath, OptionalKeys, OptionalPath, ValueAt } from "./fieldPath.ts";
-import type { FieldMessages } from "./messages.ts";
-import type { PersistedDraftConfig } from "./persistence.ts";
+import type { FieldPath, OptionalKeys, OptionalPath, ValueAt } from "#fieldPath.ts";
+import type { FieldMessages } from "#messages.ts";
+import type { PersistedDraftConfig } from "#persistence.ts";
 
 export type Fields = Schema.Struct.Fields;
 

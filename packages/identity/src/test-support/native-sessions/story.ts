@@ -1,15 +1,15 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
+import { callers } from "#test/native-sessions/callers.ts";
+import { diagnosticVerbs } from "#test/native-sessions/diagnosticVerbs.ts";
+import { type Host, NATIVE_ORIGIN, startHost } from "#test/native-sessions/host.ts";
+import { mintAccounts } from "#test/native-sessions/mintAccounts.ts";
+import type { Account } from "#test/native-sessions/requests.ts";
+import { requestVerbs } from "#test/native-sessions/requestVerbs.ts";
+import { socketVerbs } from "#test/native-sessions/socketVerbs.ts";
+import { sessionVerbs } from "#test/native-sessions/verbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { callers } from "./callers.ts";
-import { diagnosticVerbs } from "./diagnosticVerbs.ts";
-import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
-import { mintAccounts } from "./mintAccounts.ts";
-import type { Account } from "./requests.ts";
-import { requestVerbs } from "./requestVerbs.ts";
-import { socketVerbs } from "./socketVerbs.ts";
-import { sessionVerbs } from "./verbs.ts";
 
 interface State {
 	readonly accounts: Map<string, Account>;

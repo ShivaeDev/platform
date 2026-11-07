@@ -1,5 +1,5 @@
 import * as HttpStatus from "effect/http/HttpStatus";
-import { budgetHeaders } from "./budgetHeaders.ts";
+import { budgetHeaders } from "#test/budgetHeaders.ts";
 
 export const mutationRoutes = {
 	deleteComment: {

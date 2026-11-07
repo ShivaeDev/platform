@@ -5,10 +5,10 @@ import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
-import { storyOrigins } from "./origins.ts";
-import { storyPrerequisites } from "./prerequisites.ts";
-import { nodesWhere, unwrapped } from "./syntax.ts";
-import { storyUsesInputs } from "./usesInputs.ts";
+import { storyOrigins } from "#rules/stories/origins.ts";
+import { storyPrerequisites } from "#rules/stories/prerequisites.ts";
+import { nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
+import { storyUsesInputs } from "#rules/stories/usesInputs.ts";
 
 function ignoresEngine(call: ts.CallExpression, checker: ts.TypeChecker): boolean {
 	const traits = call.arguments[1];

@@ -1,10 +1,10 @@
 import { BigDecimal, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { createQueryTables, type Table } from "#test/createQueryTables.ts";
 import { crossTableReads } from "#test/cross-table/reads.ts";
-import { createQueryTables, type Table } from "./createQueryTables.ts";
-import { onPostgres } from "./engines.ts";
-import { type QueryEngine, queryEngine } from "./queryEngine.ts";
-import { queryVerbs } from "./queryVerbs.ts";
+import { onPostgres } from "#test/engines.ts";
+import { type QueryEngine, queryEngine } from "#test/queryEngine.ts";
+import { queryVerbs } from "#test/queryVerbs.ts";
 
 export const queries = storyKit({
 	...onPostgres,

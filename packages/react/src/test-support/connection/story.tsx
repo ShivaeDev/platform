@@ -7,10 +7,10 @@ import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { connect } from "#test/connection/connect.ts";
+import { openHost } from "#test/connection/openHost.ts";
+import { View } from "#test/connection/View.tsx";
 import { Screen } from "#test/Screen.ts";
-import { connect } from "./connect.ts";
-import { openHost } from "./openHost.ts";
-import { View } from "./View.tsx";
 
 export const connections = storyKit({
 	clock: "test",

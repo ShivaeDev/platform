@@ -1,7 +1,7 @@
 import { Context, Effect, Exit } from "effect";
-import { add, type Buffer, type CommitFrame, keyed, makeBuffer, makeFrame, settled } from "./frame.ts";
-import { type Observation, type Observer, unobserved } from "./observe.ts";
-import { type Publish, type PublishFailure, publisher } from "./publish.ts";
+import { add, type Buffer, type CommitFrame, keyed, makeBuffer, makeFrame, settled } from "#frame.ts";
+import { type Observation, type Observer, unobserved } from "#observe.ts";
+import { type Publish, type PublishFailure, publisher } from "#publish.ts";
 
 export type BeforeCommit<A, E = never, R = never> = (changes: readonly A[]) => Effect.Effect<void, E, R>;
 

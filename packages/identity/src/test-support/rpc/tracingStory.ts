@@ -4,9 +4,9 @@ import { Rpc, type RpcClient, RpcMessage, RpcTest } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { RequestTracing } from "#middleware.ts";
 import { type RequestTracingOptions, requestTracingLayer } from "#server/tracing.ts";
-import { annotationsOf, recorder } from "./harness.ts";
-import { rejectionAnswer } from "./rejectionAnswer.ts";
-import { Accounts, Handlers, REGISTRATION_SECRETS, registration } from "./tracingFixture.ts";
+import { annotationsOf, recorder } from "#test/rpc/harness.ts";
+import { rejectionAnswer } from "#test/rpc/rejectionAnswer.ts";
+import { Accounts, Handlers, REGISTRATION_SECRETS, registration } from "#test/rpc/tracingFixture.ts";
 
 const openTracing = Effect.fnUntraced(function* (options: RequestTracingOptions, recorded: ReturnType<typeof recorder>) {
 	const services = yield* Layer.build(Layer.mergeAll(Handlers, requestTracingLayer(options), recorded.layer));

@@ -8,7 +8,6 @@ import { GitHub } from "#github/service.ts";
 import { githubApp, type InstallationScope } from "#githubApp.ts";
 import { list } from "#list.ts";
 import { read } from "#read.ts";
-import { verifyWebhook } from "#verifyWebhook.ts";
 import {
 	APP_ID,
 	APP_TOKEN,
@@ -20,15 +19,16 @@ import {
 	WORKFLOW_BODY,
 	WRONG_SECRET,
 	webhookSignature,
-} from "./appFixture.ts";
-import { appServer } from "./appServer.ts";
-import { appTransport } from "./appTransport.ts";
-import { PullRequest } from "./fixtures.ts";
-import { mutationAppVerbs } from "./mutationAppVerbs.ts";
-import { answered } from "./outcome.ts";
-import { pooledApp } from "./pooledApp.ts";
-import { telemetry } from "./telemetry.ts";
-import { seenIn } from "./telemetryReadouts.ts";
+} from "#test/appFixture.ts";
+import { appServer } from "#test/appServer.ts";
+import { appTransport } from "#test/appTransport.ts";
+import { PullRequest } from "#test/fixtures.ts";
+import { mutationAppVerbs } from "#test/mutationAppVerbs.ts";
+import { answered } from "#test/outcome.ts";
+import { pooledApp } from "#test/pooledApp.ts";
+import { telemetry } from "#test/telemetry.ts";
+import { seenIn } from "#test/telemetryReadouts.ts";
+import { verifyWebhook } from "#verifyWebhook.ts";
 
 const App = Schema.Struct({ appId: Schema.Number, slug: Schema.String }).pipe(Schema.encodeKeys({ appId: "id" }));
 const Installation = Schema.Struct({ account: Schema.Struct({ login: Schema.String }), installationId: Schema.Number }).pipe(

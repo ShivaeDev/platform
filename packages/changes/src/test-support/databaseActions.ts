@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { type Body, effectOf } from "./body.ts";
-import { database, type Engine, labels } from "./engine.ts";
-import { type Change, Current, type FakeDatabase } from "./fakeDatabase.ts";
+import { type Body, effectOf } from "#test/body.ts";
+import { database, type Engine, labels } from "#test/engine.ts";
+import { type Change, Current, type FakeDatabase } from "#test/fakeDatabase.ts";
 
 export const REJECTED = "rejected";
 

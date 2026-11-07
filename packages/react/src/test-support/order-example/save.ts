@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { SaveOrder, type SaveOrderInput } from "./contract.ts";
-import { owned } from "./owned.ts";
-import { publicOrder } from "./public.ts";
-import { OrdersRepository } from "./repository.ts";
-import { unavailable } from "./unavailable.ts";
+import { SaveOrder, type SaveOrderInput } from "#test/order-example/contract.ts";
+import { owned } from "#test/order-example/owned.ts";
+import { publicOrder } from "#test/order-example/public.ts";
+import { OrdersRepository } from "#test/order-example/repository.ts";
+import { unavailable } from "#test/order-example/unavailable.ts";
 
 export const save = Effect.fn("OrderService.save")((input: SaveOrderInput) =>
 	Effect.gen(function* () {

@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { emptyAsNull } from "./emptyAsNull.ts";
+import { emptyAsNull } from "#emptyAsNull.ts";
 
 export interface NumberOptions {
 	readonly integer?: boolean;

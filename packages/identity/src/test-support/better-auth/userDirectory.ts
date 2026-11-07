@@ -4,10 +4,10 @@ import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { ChangeObserver, transact } from "@shivaedev/sql/transact.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
+import { directoryHost } from "#test/better-auth/directoryHost.ts";
+import { mappedTables, pluginMappedTables } from "#test/better-auth/pluginMappedTables.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { directoryHost } from "./directoryHost.ts";
-import { mappedTables, pluginMappedTables } from "./pluginMappedTables.ts";
 
 function recordPublished(published: unknown[]) {
 	return (event: Observation<unknown>) =>

@@ -3,10 +3,10 @@ import { RpcClient } from "effect/rpc";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
-import { httpClient, recorder, rpcHttp, serve } from "./harness.ts";
-import { rejectionAnswer } from "./rejectionAnswer.ts";
-import { Invalid, Profiles, Handlers as RenameHandlers, type RenameRejection } from "./renameFixture.ts";
-import { Api, Handlers as SaveHandlers, type SaveOutcome } from "./saveFixture.ts";
+import { httpClient, recorder, rpcHttp, serve } from "#test/rpc/harness.ts";
+import { rejectionAnswer } from "#test/rpc/rejectionAnswer.ts";
+import { Invalid, Profiles, Handlers as RenameHandlers, type RenameRejection } from "#test/rpc/renameFixture.ts";
+import { Api, Handlers as SaveHandlers, type SaveOutcome } from "#test/rpc/saveFixture.ts";
 
 const Group = Profiles.merge(Api);
 const createRejections = Effect.gen(function* () {

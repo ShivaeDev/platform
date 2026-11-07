@@ -3,7 +3,7 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Console, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { testPackages } from "./testPackages.ts";
+import { testPackages } from "#ci/testPackages.ts";
 
 const program = Effect.gen(function* () {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;

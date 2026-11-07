@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import { SetupFailure } from "#failure.ts";
-import { run } from "./command.ts";
+import { run } from "#git/command.ts";
 
 export interface Base {
 	readonly commit: string;

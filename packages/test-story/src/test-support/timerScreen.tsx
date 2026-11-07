@@ -8,7 +8,7 @@ import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { watchedClock } from "#server/watchedClock.ts";
-import { TimerSearch } from "./TimerSearch.tsx";
+import { TimerSearch } from "#test/TimerSearch.tsx";
 
 expectNoReactWarnings();
 

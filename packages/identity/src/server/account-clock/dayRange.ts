@@ -1,7 +1,7 @@
 import { DateTime, Effect, Schema } from "effect";
-import { boundary } from "./boundary.ts";
-import type { initialize } from "./initialize.ts";
-import { LogicalDay } from "./settings.ts";
+import { boundary } from "#server/account-clock/boundary.ts";
+import type { initialize } from "#server/account-clock/initialize.ts";
+import { LogicalDay } from "#server/account-clock/settings.ts";
 
 export function dayRange({ minutes, timezone }: Effect.Success<typeof initialize>) {
 	const decodeDay = Schema.decodeUnknownEffect(LogicalDay);

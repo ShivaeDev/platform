@@ -1,7 +1,7 @@
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { type NoticeAction, type NoticeClock, type NoticeEntry, noticeEntry } from "#noticeEntry.ts";
 import type { NoticeDescriptor } from "#notices.ts";
-import { type NoticeAction, type NoticeClock, type NoticeEntry, noticeEntry } from "./noticeEntry.ts";
 
 export function noticeStore(registry: AtomRegistry.AtomRegistry, clock: NoticeClock) {
 	const entries = Atom.make<readonly NoticeEntry[]>([]);

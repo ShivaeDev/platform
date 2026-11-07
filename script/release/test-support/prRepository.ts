@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { initRepository, git as repositoryGit } from "./git.ts";
+import { initRepository, git as repositoryGit } from "#release/test-support/git.ts";
 
 export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepository")(function* () {
 	const fs = yield* FileSystem.FileSystem;

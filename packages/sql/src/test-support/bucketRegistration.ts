@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
-import { onPostgres } from "./engines.ts";
+import { onPostgres } from "#test/engines.ts";
 
 const schemas = {
 	bigint: Schema.BigIntFromString,

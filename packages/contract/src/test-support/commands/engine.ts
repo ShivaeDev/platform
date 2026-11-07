@@ -6,10 +6,10 @@ import * as Socket from "effect/socket/Socket";
 import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
 import { SocketClock } from "#SocketClock.ts";
+import { Counter } from "#test/commands/Counter.ts";
+import { openHost } from "#test/commands/openHost.ts";
 import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { Counter } from "./Counter.ts";
-import { openHost } from "./openHost.ts";
 
 export const commandEngine = Effect.gen(function* () {
 	const host = yield* openHost;

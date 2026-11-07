@@ -8,8 +8,8 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { emptyMount, type MountEngine, PROVIDER_SECRETS, type ProviderView, startMountHost } from "#test/better-auth/mountHost.ts";
 import { storyClock, withControlledDate } from "#test/clock.ts";
-import { emptyMount, type MountEngine, PROVIDER_SECRETS, type ProviderView, startMountHost } from "./mountHost.ts";
 
 const clients = { alice: "198.51.100.10", bob: "198.51.100.20" } as const;
 

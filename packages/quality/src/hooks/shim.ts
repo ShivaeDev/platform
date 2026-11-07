@@ -1,4 +1,4 @@
-import { type HookCommand, shellWords } from "./command.ts";
+import { type HookCommand, shellWords } from "#hooks/command.ts";
 
 export const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
 

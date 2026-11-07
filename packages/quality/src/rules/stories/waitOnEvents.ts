@@ -5,9 +5,9 @@ import { defineRule } from "#rule.ts";
 import { eventConsumption, repeatedEventConsumption } from "#rules/stories/adapters/eventConsumption.ts";
 import { failingSleep } from "#rules/stories/adapters/failureDeadline.ts";
 import { realTime } from "#rules/stories/adapters/realTime.ts";
-import { bindsModule, type ImportBinding, importBindings } from "./importBindings.ts";
-import { storyWaitSources } from "./sources.ts";
-import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
+import { bindsModule, type ImportBinding, importBindings } from "#rules/stories/importBindings.ts";
+import { storyWaitSources } from "#rules/stories/sources.ts";
+import { memberName, syntaxFindings, unwrapped } from "#rules/stories/syntax.ts";
 
 const MESSAGE =
 	"Waits on time in a story or reachable test-support: a sleep, a real timer, a wall-clock read such as Date.now(), polling with eventually or waitFor, fake timers or a clock adjustment in the spec. Settle on the engine's own signal through a kit verb, such as a Deferred the engine completes, story.runUntil or screenDriver's settle(). A deadline bounds a failure but does not prove completion; reaching it must fail the story. When time passing is the behaviour, name it in a kit verb that advances TestClock.";

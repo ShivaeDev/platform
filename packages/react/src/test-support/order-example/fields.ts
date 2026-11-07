@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Order } from "./contract.ts";
+import { Order } from "#test/order-example/contract.ts";
 
 export const DraftFields = Schema.Struct({
 	name: Order.fields.name,

@@ -4,9 +4,9 @@ import * as NetAddress from "effect/net/NetAddress";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
 import { handlers } from "#test/settings-example/adapters/handlers.ts";
-import { SettingsContract } from "./contract.ts";
-import { migrations, repositories } from "./repository.ts";
-import { SettingsService } from "./service.ts";
+import { SettingsContract } from "#test/settings-example/contract.ts";
+import { migrations, repositories } from "#test/settings-example/repository.ts";
+import { SettingsService } from "#test/settings-example/service.ts";
 
 export const startHost = Effect.fn("Settings.startHost")(function* (
 	databaseUrl: Redacted.Redacted<string>,

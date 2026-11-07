@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { makeClient } from "#test/batch-undo/client.ts";
+import { database, hasPostgres } from "#test/batch-undo/database.ts";
+import { type Props, View } from "#test/batch-undo/View.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { makeClient } from "./client.ts";
-import { database, hasPostgres } from "./database.ts";
-import { type Props, View } from "./View.tsx";
 
 export const batchUndoStory = storyKit({
 	around: withIsolatedDatabase,

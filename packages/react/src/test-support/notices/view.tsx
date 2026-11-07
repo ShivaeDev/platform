@@ -7,9 +7,9 @@ import { useCreate } from "#client/create.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { type Notice, NoticeHost } from "#notices.ts";
-import type { NoticeClient } from "./client.ts";
-import { EditorOperations } from "./EditorOperations.tsx";
-import { Fields } from "./Fields.ts";
+import type { NoticeClient } from "#test/notices/client.ts";
+import { EditorOperations } from "#test/notices/EditorOperations.tsx";
+import { Fields } from "#test/notices/Fields.ts";
 
 export interface NoticeScreen {
 	readonly client: NoticeClient;

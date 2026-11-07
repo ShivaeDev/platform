@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { FileSystem } from "effect";
-import { app } from "./app.ts";
+import { app } from "#starter-published/test-support/app.ts";
 
 export const existingOverrides = app.trait("source", "the workspace has a stale archive, another override and a catalog", function* ({ directory }) {
 	yield* (yield* FileSystem.FileSystem).writeFileString(

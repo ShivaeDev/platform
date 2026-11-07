@@ -3,9 +3,9 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { type HintViewer, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { answered, updateWords } from "./answers.ts";
-import { documents } from "./policyServicesContract.ts";
-import { type Person, policyServicesEngine } from "./policyServicesEngine.ts";
+import { answered, updateWords } from "#test/answers.ts";
+import { documents } from "#test/policyServicesContract.ts";
+import { type Person, policyServicesEngine } from "#test/policyServicesEngine.ts";
 
 export const policyServicesStory = storyKit({
 	clock: "test",

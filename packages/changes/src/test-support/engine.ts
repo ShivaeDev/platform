@@ -1,6 +1,6 @@
 import { Cause, type Deferred, Effect, Exit, type Fiber, Option } from "effect";
 import { type Channel, type ChannelOptions, makeChannel } from "#channel.ts";
-import { type Change, Current, captureLogs, type FakeDatabase, label, makeDatabase } from "./fakeDatabase.ts";
+import { type Change, Current, captureLogs, type FakeDatabase, label, makeDatabase } from "#test/fakeDatabase.ts";
 
 type Configured = ChannelOptions<Change, Current, string>;
 

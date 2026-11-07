@@ -7,9 +7,9 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hasPostgres, orderDatabase } from "#test/order-example/postgres.ts";
 import { startHost } from "#test/order-example/startHost.ts";
-import type { Screen } from "./Screen.ts";
-import { screenKit } from "./screenKit.ts";
-import { type Session, sessions, shell } from "./session.tsx";
+import type { Screen } from "#test/Screen.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { type Session, sessions, shell } from "#test/session.tsx";
 
 type User = "alice" | "bob";
 

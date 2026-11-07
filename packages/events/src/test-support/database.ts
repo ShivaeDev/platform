@@ -3,7 +3,7 @@ import { Migrator } from "effect/sql";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { postgresMigration } from "#postgresMigration.ts";
-import { noteMigration } from "./notes.ts";
+import { noteMigration } from "#test/notes.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 

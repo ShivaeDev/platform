@@ -6,11 +6,11 @@ import { SqlClient } from "effect/sql";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appDatabase.ts";
 import { orderHandlers } from "#test/postgres-example/adapters/orderHandlers.ts";
-import { BeforeOrderCommit } from "./BeforeOrderCommit.ts";
-import { Orders, type Rejected } from "./contract.ts";
-import { Preferences, privateHandlers } from "./privateFeature.ts";
-import { orderMigrations, repositoryLayer } from "./repository.ts";
-import { OrderService } from "./service.ts";
+import { BeforeOrderCommit } from "#test/postgres-example/BeforeOrderCommit.ts";
+import { Orders, type Rejected } from "#test/postgres-example/contract.ts";
+import { Preferences, privateHandlers } from "#test/postgres-example/privateFeature.ts";
+import { orderMigrations, repositoryLayer } from "#test/postgres-example/repository.ts";
+import { OrderService } from "#test/postgres-example/service.ts";
 
 export interface ServerOptions {
 	readonly applicationName?: string;

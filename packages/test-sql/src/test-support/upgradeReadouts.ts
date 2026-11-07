@@ -3,9 +3,9 @@ import { SqlClient } from "effect/sql";
 import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertModelColumns } from "#server/assertModelColumns.ts";
-import { Item, types } from "./migrationUpgrade.ts";
-import { failureOf, timesOf } from "./outcome.ts";
-import type { UpgradeEngine } from "./upgradeStory.ts";
+import { Item, types } from "#test/migrationUpgrade.ts";
+import { failureOf, timesOf } from "#test/outcome.ts";
+import type { UpgradeEngine } from "#test/upgradeStory.ts";
 
 export function upgradeReadouts(engine: UpgradeEngine, story: Story<UpgradeEngine>) {
 	return {

@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { optionalField } from "#optionalField.ts";
 import { makeReadClient } from "#readClient.ts";
-import { createClientEngine } from "./engine.ts";
+import { createClientEngine } from "#test/http-client/engine.ts";
 
 const Food = Schema.Struct({ energy: optionalField(Schema.Number), name: Schema.String });
 

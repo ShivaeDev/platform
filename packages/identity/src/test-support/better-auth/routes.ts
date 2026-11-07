@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { passwordUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { NATIVE_ORIGIN, PASSWORD, type RouteState, routeHost } from "#test/better-auth/routeHost.ts";
+import { routeVerbs } from "#test/better-auth/routeVerbs.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { NATIVE_ORIGIN, PASSWORD, type RouteState, routeHost } from "./routeHost.ts";
-import { routeVerbs } from "./routeVerbs.ts";
 
 export const routes = storyKit({
 	after: {

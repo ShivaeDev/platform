@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import ts from "typescript";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
-import { failureFindings } from "./failureFindings.ts";
-import { effectProgram } from "./program.ts";
+import { failureFindings } from "#rules/effect/failureFindings.ts";
+import { effectProgram } from "#rules/effect/program.ts";
 
 function checkFailures(inputs: RuleInputs): readonly Finding[] {
 	const program = effectProgram(inputs, false);

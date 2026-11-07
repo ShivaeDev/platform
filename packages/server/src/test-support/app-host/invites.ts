@@ -6,7 +6,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { appHost } from "#appHost.ts";
-import type { HostState } from "./state.ts";
+import type { HostState } from "#test/app-host/state.ts";
 
 class Issuer extends Context.Service<Issuer, string>()("@shivaedev/server/test/InviteIssuer") {}
 const Invites = contract("invites", {

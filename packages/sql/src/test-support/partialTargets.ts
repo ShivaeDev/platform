@@ -3,10 +3,10 @@ import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
+import { onPostgres } from "#test/engines.ts";
+import { endingOf } from "#test/outcome.ts";
+import { kept, ownTable, readEndings, readReturned, recorded, records, uniqueTable } from "#test/writeTables.ts";
 import { transact } from "#transact.ts";
-import { onPostgres } from "./engines.ts";
-import { endingOf } from "./outcome.ts";
-import { kept, ownTable, readEndings, readReturned, recorded, records, uniqueTable } from "./writeTables.ts";
 
 class PartialRow extends Model.Class<PartialRow>("PartialRow")({
 	a: Schema.String,

@@ -4,7 +4,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
-import { Api, migrations, Preview, repository } from "./feature.ts";
+import { Api, migrations, Preview, repository } from "#test/automatic/feature.ts";
 
 class Observed extends RpcMiddleware.Service<Observed>()("@shivaedev/react/test/AutomaticRequests") {}
 

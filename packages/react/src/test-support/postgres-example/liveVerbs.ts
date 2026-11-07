@@ -1,8 +1,8 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
+import { answerWord } from "#test/postgres-example/hintWords.ts";
+import { apiSave, type LiveEngine, view } from "#test/postgres-example/liveEngine.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { answerWord } from "./hintWords.ts";
-import { apiSave, type LiveEngine, view } from "./liveEngine.ts";
 
 type Editor = "writer" | "reader";
 

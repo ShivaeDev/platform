@@ -3,10 +3,10 @@ import { composeBindings } from "@shivaedev/contract/composeBindings.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { ComposedModuleScreen } from "./ComposedModuleScreen.tsx";
-import { composedModule } from "./composedModule.ts";
-import { screenKit } from "./screenKit.ts";
-import { settleScreen } from "./settleScreen.ts";
+import { ComposedModuleScreen } from "#test/ComposedModuleScreen.tsx";
+import { composedModule } from "#test/composedModule.ts";
+import { screenKit } from "#test/screenKit.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 
 interface State {
 	view?: Rendered;

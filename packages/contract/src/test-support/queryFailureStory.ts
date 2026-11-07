@@ -7,8 +7,8 @@ import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bind } from "#bind.ts";
-import { ClientOffline, Guard, Records } from "./queryFailureContract.ts";
-import { storyRuntime } from "./storyRuntime.ts";
+import { ClientOffline, Guard, Records } from "#test/queryFailureContract.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const queryFailureStory = storyKit({
 	clock: "test",

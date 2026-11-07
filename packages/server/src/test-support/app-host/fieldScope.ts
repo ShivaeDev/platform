@@ -2,8 +2,8 @@ import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup, RpcMiddleware } from "effect/rpc";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "#appHost.ts";
-import { ambiguous, scoped } from "./fieldScopeApi.ts";
-import { host } from "./story.ts";
+import { ambiguous, scoped } from "#test/app-host/fieldScopeApi.ts";
+import { host } from "#test/app-host/story.ts";
 
 function diagnostic(name: string, state: string) {
 	return Effect.logInfo(name).pipe(Effect.annotateLogs({ state }), Effect.andThen(Effect.annotateCurrentSpan({ state })));

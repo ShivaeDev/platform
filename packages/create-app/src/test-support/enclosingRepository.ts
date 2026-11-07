@@ -1,8 +1,8 @@
 import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { gitIn } from "./appReadouts.ts";
-import { updates } from "./updates.ts";
+import { gitIn } from "#test/appReadouts.ts";
+import { updates } from "#test/updates.ts";
 
 export const enclosingRepository = updates.trait(
 	"customized",

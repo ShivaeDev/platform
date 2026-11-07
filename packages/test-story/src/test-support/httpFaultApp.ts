@@ -3,8 +3,8 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { type FakeHttpRequest, fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { httpClient } from "./httpClient.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { httpClient } from "#test/httpClient.ts";
 
 async function* replyChunks(pieces: readonly (string | Uint8Array)[], gates: readonly { promise: Promise<void> }[]) {
 	for (const [index, piece] of pieces.entries()) {

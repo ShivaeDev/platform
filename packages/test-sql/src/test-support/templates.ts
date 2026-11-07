@@ -4,9 +4,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PostgresTestTemplate } from "#server/database.ts";
 import { storyDatabase } from "#server/storyDatabase.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import { configured } from "./postgres.ts";
-import { tableNames } from "./tableNames.ts";
-import { preparation, templateLayer } from "./templateLayer.ts";
+import { configured } from "#test/postgres.ts";
+import { tableNames } from "#test/tableNames.ts";
+import { preparation, templateLayer } from "#test/templateLayer.ts";
 
 const items = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

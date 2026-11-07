@@ -4,9 +4,9 @@ import { HttpBody, HttpClient } from "effect/http";
 import { OtlpExporter } from "effect/observability";
 import type { OtlpSpan } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
-import { finishExports } from "./finishExports.ts";
-import { ping } from "./ping.ts";
-import { type HostState, io, runtimeOf } from "./state.ts";
+import { finishExports } from "#test/app-host/finishExports.ts";
+import { ping } from "#test/app-host/ping.ts";
+import { type HostState, io, runtimeOf } from "#test/app-host/state.ts";
 
 const SERVER_KIND = 2;
 const statusWords = ["unset", "ok", "error"];

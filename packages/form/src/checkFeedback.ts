@@ -2,8 +2,8 @@ import { Duration, Effect, Equal } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
-import { fromRef } from "./refs.ts";
-import type { Encoded, Fields, Name, Services } from "./shape.ts";
+import { fromRef } from "#refs.ts";
+import type { Encoded, Fields, Name, Services } from "#shape.ts";
 
 export function checkFeedback<TFields extends Fields, R, E>(
 	runtime: Atom.AtomRuntime<Services<TFields, R>, E>,

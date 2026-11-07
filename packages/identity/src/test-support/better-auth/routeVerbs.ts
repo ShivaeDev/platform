@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { NATIVE_ORIGIN, PASSWORD, type RouteState } from "./routeHost.ts";
+import { NATIVE_ORIGIN, PASSWORD, type RouteState } from "#test/better-auth/routeHost.ts";
 
 function sessionHeaders(response: Response) {
 	const token = response.headers.get("set-auth-token");

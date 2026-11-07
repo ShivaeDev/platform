@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type { QueryOptions } from "#client/resultState.ts";
-import { type heldReads, queryView, type Unavailable } from "./queryView.ts";
-import type { Screen } from "./Screen.ts";
+import { type heldReads, queryView, type Unavailable } from "#test/queryView.ts";
+import type { Screen } from "#test/Screen.ts";
 
 export interface State {
 	marked?: { readonly content: Element | null; readonly shell: Element | null };

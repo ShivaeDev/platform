@@ -1,10 +1,10 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
 import { defineQueue } from "#server/definition.ts";
 import { running, runtime } from "#test/runtime/kit.ts";
 import { scheduled, worker } from "#test/workers.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 const Emails = defineQueue({ name: "emails", queue: { retryLimit: 5 }, schema: Schema.Struct({ id: Schema.NumberFromString }) });
 const Cleanup = defineSchedule({ cron: "17 3 * * *", name: "cleanup" });

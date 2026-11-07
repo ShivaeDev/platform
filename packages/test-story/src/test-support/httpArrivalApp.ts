@@ -2,8 +2,8 @@ import { type Duration, Effect, Fiber } from "effect";
 import { type FakeHttpRequestRecord, fakeHttpService } from "#server/fakeHttpService.ts";
 import { storyKit } from "#server/storyKit.ts";
 import { type SignalNotReceived, until } from "#server/until.ts";
-import { drivenClock } from "./drivenClock.ts";
-import { httpClient } from "./httpClient.ts";
+import { drivenClock } from "#test/drivenClock.ts";
+import { httpClient } from "#test/httpClient.ts";
 
 export const httpArrivalApp = storyKit({
 	clock: "test",

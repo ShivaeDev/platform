@@ -4,8 +4,8 @@ import { useInsertionEffect, useMemo, useRef } from "react";
 import { fieldRejectionOf, type RejectField } from "@shivaedev/form/fieldRejection.ts";
 import type { Decoded, Fields } from "@shivaedev/form/shape.ts";
 import type { AtomServices } from "#AtomServices.ts";
+import { useNoticePublisher } from "#adapters/useNoticePublisher.ts";
 import type { NoticeFeedback } from "#notices.ts";
-import { useNoticePublisher } from "./useNoticePublisher.ts";
 
 export function useSubmissionCallbacks<TFields extends Fields, A, E, R, TRuntime, TRuntimeError>(
 	fields: Schema.Struct<TFields>,

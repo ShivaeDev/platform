@@ -5,9 +5,9 @@ import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import type { Access } from "./Access.ts";
-import { answered } from "./answers.ts";
-import { collectionDatabase, collectionEngine, configured } from "./collectionEngine.ts";
+import type { Access } from "#test/Access.ts";
+import { answered } from "#test/answers.ts";
+import { collectionDatabase, collectionEngine, configured } from "#test/collectionEngine.ts";
 
 export const collectionStory = storyKit({
 	around: withIsolatedDatabase,

@@ -1,6 +1,6 @@
 import ts from "typescript";
-import { effectName, type FailureOperation, failureOperations, fileSystemCall } from "./failureOperations.ts";
-import { successRecovery } from "./successRecovery.ts";
+import { effectName, type FailureOperation, failureOperations, fileSystemCall } from "#rules/effect/failureOperations.ts";
+import { successRecovery } from "#rules/effect/successRecovery.ts";
 
 interface FailureFinding {
 	readonly message: string;

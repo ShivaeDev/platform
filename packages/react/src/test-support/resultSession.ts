@@ -4,7 +4,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { type ActionState, type QueryState, useAction, useQuery } from "#client/resultState.ts";
-import { UnstableSession } from "./UnstableSession.tsx";
+import { UnstableSession } from "#test/UnstableSession.tsx";
 
 interface Held<A, E> {
 	current?: QueryState<A, E> | ActionState<void, A, E>;

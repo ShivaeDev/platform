@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { clientModules } from "#client/modules.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
-import { appAuth } from "./appAuth.ts";
-import { acquireScreen } from "./screenState.ts";
-import { screens } from "./screens.ts";
-import { sessionModule } from "./sessionModule.tsx";
+import { appAuth } from "#test-support/appAuth.ts";
+import { acquireScreen } from "#test-support/screenState.ts";
+import { screens } from "#test-support/screens.ts";
+import { sessionModule } from "#test-support/sessionModule.tsx";
 
 export function sessionModulesScreen(name: "notes" | "tasks", signedIn: boolean) {
 	return screens.trait("screen", `${signedIn ? "alice" : "a signed-out visitor"} opens the ${name} module`, function* (engine) {

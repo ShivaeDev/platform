@@ -1,4 +1,4 @@
-import { planning } from "./planning.ts";
+import { planning } from "#ci/test-support/planning.ts";
 
 export const discoveryWorkspace = planning.trait("workspace", "new packages await discovery", ({ workspace }) => {
 	workspace.package("new-package", { test: "vitest run" });

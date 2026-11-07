@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply, FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { zipArchive } from "./zipArchive.ts";
+import { zipArchive } from "#test/zipArchive.ts";
 
 export const ARCHIVE = zipArchive([{ content: "Artifact report\n", path: "report.txt" }]);
 

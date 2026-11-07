@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { defineRule, type Finding } from "#rule.ts";
-import { parse } from "./parse.ts";
-import { secondNames } from "./secondNames.ts";
+import { parse } from "#rules/parse.ts";
+import { secondNames } from "#rules/secondNames.ts";
 
 const BARREL_FILE = /^index\.tsx?$/u;
 

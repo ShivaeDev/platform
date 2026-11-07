@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { deniedLiveApp } from "#test/denied-live/app.tsx";
+import { deniedLiveClient } from "#test/denied-live/client.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
-import { deniedLiveApp } from "./app.tsx";
-import { deniedLiveClient } from "./client.ts";
 
 export const deniedLive = storyKit({
 	clock: "test",

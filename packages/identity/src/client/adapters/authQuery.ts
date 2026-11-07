@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { AuthActionResult } from "./authCall.ts";
+import type { AuthActionResult } from "#client/adapters/authCall.ts";
 
 export function authQuery<TInput, A, E extends object = never>(
 	run: (input: TInput, signal: AbortSignal) => Promise<AuthActionResult<A, E>>,

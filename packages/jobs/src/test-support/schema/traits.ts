@@ -9,8 +9,8 @@ import { installPgBossSchema } from "#server/schema.ts";
 import type { StoryPayload } from "#test/postgres/databaseEngine.ts";
 import { type StartOptions, startRuntime } from "#test/postgres/engine.ts";
 import { enqueueAs } from "#test/postgres/verbs.ts";
+import { engineFor, schemaKit } from "#test/schema/kit.ts";
 import type { Registration } from "#test/workers.ts";
-import { engineFor, schemaKit } from "./kit.ts";
 
 export const installedTemplate = schemaKit.trait(
 	"database",

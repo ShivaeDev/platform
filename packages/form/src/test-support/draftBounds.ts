@@ -1,8 +1,8 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { TestClock } from "effect/testing";
-import type { draftStorage } from "./draftStorage.ts";
-import { formStories } from "./formStories.ts";
+import type { draftStorage } from "#test/draftStorage.ts";
+import { formStories } from "#test/formStories.ts";
 
 function storedBytes({ config, saved }: ReturnType<typeof draftStorage>) {
 	return new TextEncoder().encode(saved.get(config.key) ?? "").byteLength;

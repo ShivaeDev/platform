@@ -3,10 +3,10 @@ import { SqlClient } from "effect/sql";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
+import { onPostgres } from "#test/engines.ts";
+import { outcomeOf } from "#test/outcome.ts";
+import { Rejected } from "#test/transactionEngine.ts";
 import { transact } from "#transact.ts";
-import { onPostgres } from "./engines.ts";
-import { outcomeOf } from "./outcome.ts";
-import { Rejected } from "./transactionEngine.ts";
 
 export type HolderEnding = "commits" | "is interrupted" | "rolls back";
 

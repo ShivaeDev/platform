@@ -9,9 +9,9 @@ import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
+import { Api, notesModule, TitleSource, tasksModule } from "#test/modules/features.ts";
 import { TestRoles } from "#test/permissions.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { Api, notesModule, TitleSource, tasksModule } from "./features.ts";
 
 interface State {
 	readonly calls: string[];

@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema, SchemaGetter } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { appHost } from "#appHost.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 const BranchFailure = Schema.Struct({ contact: Schema.String.annotate({ sensitive: true }), other: Schema.String, swap: Schema.Boolean }).pipe(
 	Schema.encodeTo(Schema.Struct({ left: Schema.String, right: Schema.String, wireSwap: Schema.Boolean }), {

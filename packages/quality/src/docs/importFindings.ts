@@ -1,10 +1,10 @@
 import { Effect } from "effect";
+import { type DocumentedImport, documentedImports } from "#docs/documentedImports.ts";
+import { type DocumentedModule, documentedModule } from "#docs/documentedModule.ts";
+import { exportsName } from "#docs/exportsName.ts";
 import { packageNameOf } from "#imports/packageName.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 import type { Finding } from "#rule.ts";
-import { type DocumentedImport, documentedImports } from "./documentedImports.ts";
-import { type DocumentedModule, documentedModule } from "./documentedModule.ts";
-import { exportsName } from "./exportsName.ts";
 
 export interface ImportContext {
 	readonly exports: ReadonlyMap<string, unknown>;

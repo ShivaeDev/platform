@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Config, Effect, Schema } from "effect";
-import { databaseProbe } from "./databaseProbe.ts";
-import { linkStarterModules } from "./starterModules.ts";
+import { databaseProbe } from "#test/databaseProbe.ts";
+import { linkStarterModules } from "#test/starterModules.ts";
 
 export function appScript(app: string, script: string, args: readonly string[] = [], environment: readonly string[] = []) {
 	if (!existsSync(join(app, "node_modules"))) {

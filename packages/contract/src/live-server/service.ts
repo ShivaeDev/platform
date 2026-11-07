@@ -2,10 +2,10 @@ import { Random } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { LiveDispatcher } from "#adapters/LiveDispatcher.ts";
-import { initialize } from "./initialize.ts";
-import { register } from "./register.ts";
-import { resync } from "./resync.ts";
-import { stream } from "./stream.ts";
+import { initialize } from "#live-server/initialize.ts";
+import { register } from "#live-server/register.ts";
+import { resync } from "#live-server/resync.ts";
+import { stream } from "#live-server/stream.ts";
 
 export const LiveServer = defineService({
 	id: "@shivaedev/contract/LiveServer",

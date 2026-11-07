@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { Effect } from "effect";
-import { cliAnswer, scriptOutcome } from "./answers.ts";
-import { runCli } from "./cli.ts";
-import { appScript, workspaceConditions } from "./environment.ts";
-import type { Engine } from "./generate.ts";
+import { cliAnswer, scriptOutcome } from "#test/answers.ts";
+import { runCli } from "#test/cli.ts";
+import { appScript, workspaceConditions } from "#test/environment.ts";
+import type { Engine } from "#test/generate.ts";
 
 export function resourceActions(engine: Engine, story: { readonly tell: (line: string) => void }) {
 	function app() {

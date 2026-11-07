@@ -2,9 +2,9 @@ import { Deferred, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { Screen } from "#test/Screen.ts";
-import type { openScreen } from "./openScreen.tsx";
-import { startHost } from "./startHost.ts";
-import { withReact } from "./withReact.ts";
+import type { openScreen } from "#test/settings-example/openScreen.tsx";
+import { startHost } from "#test/settings-example/startHost.ts";
+import { withReact } from "#test/settings-example/withReact.ts";
 
 export const createEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;

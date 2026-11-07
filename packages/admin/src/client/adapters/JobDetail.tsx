@@ -1,8 +1,8 @@
 import { DateTime, Option } from "effect";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { JobButton } from "./JobButton.tsx";
-import { JobsQueryPanel } from "./JobsQueryPanel.tsx";
-import type { AdminJob, JobsViewClient, RetryJob } from "./jobsTypes.ts";
+import { JobButton } from "#client/adapters/JobButton.tsx";
+import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
+import type { AdminJob, JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
 
 export function JobDetail({
 	api,

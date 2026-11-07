@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { captureReactWarnings, type Rendered, render } from "#client/adapters/react.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { BrokenScreen, FailureBoundary } from "./failureBoundary.tsx";
+import { BrokenScreen, FailureBoundary } from "#test/failureBoundary.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { NoticeHost } from "#notices.ts";
-import type { CompletionClient } from "./client.ts";
+import type { CompletionClient } from "#test/command-completion/client.ts";
 
 export interface CompletionScreen {
 	readonly attempts: string[];

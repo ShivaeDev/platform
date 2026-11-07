@@ -3,15 +3,15 @@ import { Effect, Path, type Scope } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
+import { type BaselineFile, readBaseline, readInput } from "#engine/baselineFile.ts";
+import { runRules } from "#engine/runRules.ts";
+import type { Violation } from "#engine/violation.ts";
 import { staleBiomeExceptions } from "#exceptions/biomeFindings.ts";
 import type { RegistryEntry, StaleRegistryEntry } from "#exceptions/registry.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
 import type { RuleServices } from "#rule.ts";
-import { type BaselineFile, readBaseline, readInput } from "./baselineFile.ts";
-import { runRules } from "./runRules.ts";
-import type { Violation } from "./violation.ts";
 
 export interface Session {
 	readonly baseline: BaselineFile;

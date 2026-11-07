@@ -1,7 +1,7 @@
 import { Cause, Effect, ErrorReporter } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
-import { host } from "./story.ts";
+import { host } from "#test/app-host/story.ts";
 
 function diagnostic(field: string) {
 	return `${field} at https://example.test/${field}?code="hidden-${field}-code with spaces"&state=hidden-${field}-state\nmore hidden-${field}-value#"hidden-${field}-fragment with spaces"`;

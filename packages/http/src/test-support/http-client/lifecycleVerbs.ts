@@ -1,7 +1,7 @@
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { readBoundedText } from "#body.ts";
-import type { ClientEngine } from "./engine.ts";
+import type { ClientEngine } from "#test/http-client/engine.ts";
 
 function signal(gate: Deferred.Deferred<void>, name: string) {
 	return until(Stream.fromEffect(Deferred.await(gate)), () => true, { name });

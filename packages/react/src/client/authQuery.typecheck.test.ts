@@ -2,8 +2,8 @@ import type { Cause, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { authQuery as readAuthQuery } from "@shivaedev/identity/client/adapters/authQuery.ts";
-import { authQuery } from "./authQuery.ts";
-import { useQuery } from "./resultState.ts";
+import { authQuery } from "#client/authQuery.ts";
+import { useQuery } from "#client/resultState.ts";
 
 const consent = authQuery(
 	readAuthQuery((id: string, _signal) =>

@@ -5,8 +5,8 @@ import { PostgresTestDatabase } from "#server/database.ts";
 import { waitForBlockedSessions } from "#server/waitForBlockedSessions.ts";
 import { waitForHeldLock } from "#server/waitForHeldLock.ts";
 import { withIsolatedDatabase } from "#server/withIsolatedDatabase.ts";
-import { lockProcess } from "./lockProcess.ts";
-import { adminUrl, configured, secondClient, setup } from "./postgres.ts";
+import { lockProcess } from "#test/lockProcess.ts";
+import { adminUrl, configured, secondClient, setup } from "#test/postgres.ts";
 
 type Actor = "alice" | "bob";
 type Process = Effect.Success<ReturnType<typeof lockProcess>>;

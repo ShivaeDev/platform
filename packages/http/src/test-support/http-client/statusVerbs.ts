@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { HttpClientRequest } from "effect/http";
 import { checkStatus } from "#checkStatus.ts";
-import type { ClientEngine } from "./engine.ts";
+import type { ClientEngine } from "#test/http-client/engine.ts";
 
 export function statusVerbs({ client, rawClient, remote }: ClientEngine, story: { tell: (line: string) => void }) {
 	return {

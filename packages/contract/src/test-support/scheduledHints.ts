@@ -4,8 +4,8 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { hintWords, times } from "./answers.ts";
-import { notes } from "./notes.ts";
+import { hintWords, times } from "#test/answers.ts";
+import { notes } from "#test/notes.ts";
 
 const scheduledHintsEngine = Effect.gen(function* () {
 	const scheduler = yield* Scheduler.Scheduler;

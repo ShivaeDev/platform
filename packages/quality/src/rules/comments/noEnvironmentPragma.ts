@@ -1,4 +1,4 @@
-import { definePatternRule } from "./definePattern.ts";
+import { definePatternRule } from "#rules/comments/definePattern.ts";
 
 export const noEnvironmentPragma = definePatternRule({
 	description:

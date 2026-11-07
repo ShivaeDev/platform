@@ -3,7 +3,7 @@ import { Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPackedArchive } from "#package-check/archive.ts";
 import { command, writeJson } from "#package-check/io.ts";
-import { PackedFixture } from "./PackedFixture.ts";
+import { PackedFixture } from "#package-check/test-support/PackedFixture.ts";
 
 export const archiveRegressions = storyKit({
 	after: {

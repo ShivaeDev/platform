@@ -1,4 +1,4 @@
-import { waitScreen } from "./waitScreen.tsx";
+import { waitScreen } from "#test/waitScreen.tsx";
 
 waitScreen.it("names a removal that never happens", [], function* ({ gone }) {
 	yield* gone(".notice", { timeout: 30 });

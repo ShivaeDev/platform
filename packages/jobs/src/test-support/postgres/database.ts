@@ -3,22 +3,22 @@ import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { connectionVerbs } from "./connections.ts";
-import { controllerVerbs } from "./controller.ts";
-import { databaseEngine } from "./databaseEngine.ts";
-import { deferralVerbs } from "./deferralVerbs.ts";
-import { engineVerbs } from "./engineVerbs.ts";
-import { inspectionVerbs } from "./inspectionVerbs.ts";
-import { postgresConfigured, postgresLayer } from "./layer.ts";
-import { listingVerbs } from "./listingVerbs.ts";
-import { readouts } from "./readouts.ts";
-import { releaseVerbs } from "./releaseVerbs.ts";
-import { scheduleVerbs } from "./scheduleVerbs.ts";
-import { teardownVerbs } from "./teardownVerbs.ts";
-import { timeVerbs } from "./timeVerbs.ts";
-import { traceReadouts } from "./traceReadouts.ts";
-import { runtimeVerbs } from "./verbs.ts";
-import { waitingVerbs } from "./waitingVerbs.ts";
+import { connectionVerbs } from "#test/postgres/connections.ts";
+import { controllerVerbs } from "#test/postgres/controller.ts";
+import { databaseEngine } from "#test/postgres/databaseEngine.ts";
+import { deferralVerbs } from "#test/postgres/deferralVerbs.ts";
+import { engineVerbs } from "#test/postgres/engineVerbs.ts";
+import { inspectionVerbs } from "#test/postgres/inspectionVerbs.ts";
+import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
+import { listingVerbs } from "#test/postgres/listingVerbs.ts";
+import { readouts } from "#test/postgres/readouts.ts";
+import { releaseVerbs } from "#test/postgres/releaseVerbs.ts";
+import { scheduleVerbs } from "#test/postgres/scheduleVerbs.ts";
+import { teardownVerbs } from "#test/postgres/teardownVerbs.ts";
+import { timeVerbs } from "#test/postgres/timeVerbs.ts";
+import { traceReadouts } from "#test/postgres/traceReadouts.ts";
+import { runtimeVerbs } from "#test/postgres/verbs.ts";
+import { waitingVerbs } from "#test/postgres/waitingVerbs.ts";
 
 export const database = storyKit({
 	around: withIsolatedDatabase,

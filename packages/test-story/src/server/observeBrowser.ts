@@ -4,8 +4,8 @@ import * as Atom from "effect/reactivity/Atom";
 import * as RpcClient from "effect/rpc/RpcClient";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
 import * as Socket from "effect/socket/Socket";
+import { browserReadObserver } from "#server/browserReadObserver.ts";
 import type { BrowserReadsOptions } from "#server/browserReads.ts";
-import { browserReadObserver } from "./browserReadObserver.ts";
 
 export const observeBrowser = Effect.fnUntraced(function* (options: BrowserReadsOptions) {
 	const { observeProtocol, ...observed } = yield* browserReadObserver(options.contracts);

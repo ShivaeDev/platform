@@ -1,9 +1,9 @@
 import { type Cause, Layer, type Option } from "effect";
 import type { SecureRandom } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
-import { useClock } from "./useClock.ts";
-import { useNewId } from "./useNewId.ts";
-import { usePromiseAction } from "./usePromiseAction.ts";
+import { useClock } from "#client/adapters/useClock.ts";
+import { useNewId } from "#client/adapters/useNewId.ts";
+import { usePromiseAction } from "#client/adapters/usePromiseAction.ts";
 
 export function useHandlerTypes(runtime: Atom.AtomRuntime<SecureRandom.SecureRandom>) {
 	const id: string = useNewId(runtime)();

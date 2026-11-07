@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { PackageManifest } from "#model.ts";
-import { write } from "./fixture.ts";
+import { write } from "#test/fixture.ts";
 
 const Json = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
 const Manifest = Schema.fromJsonString(PackageManifest);

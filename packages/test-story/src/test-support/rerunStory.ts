@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { basename, dirname, resolve } from "node:path";
-import { runStories } from "./runStories.ts";
+import { runStories } from "#test/runStories.ts";
 
 export function rerunStory(report: string) {
 	const command = report.slice(report.lastIndexOf("Rerun: ") + "Rerun: ".length);

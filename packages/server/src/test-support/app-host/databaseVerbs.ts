@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
-import { ping } from "./ping.ts";
-import { type HostState, io } from "./state.ts";
+import { ping } from "#test/app-host/ping.ts";
+import { type HostState, io } from "#test/app-host/state.ts";
 
 const connection = SqlClient.SqlClient.use(
 	(sql) => sql`select inet_server_addr()::text as address, inet_server_port() as port, current_database() as database`,

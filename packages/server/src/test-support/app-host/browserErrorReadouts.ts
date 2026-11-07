@@ -1,6 +1,6 @@
 import { Cause, Effect } from "effect";
-import type { HostState } from "./state.ts";
-import { attributesOf } from "./traceVerbs.ts";
+import type { HostState } from "#test/app-host/state.ts";
+import { attributesOf } from "#test/app-host/traceVerbs.ts";
 
 export function browserErrorReadouts(state: HostState) {
 	return {

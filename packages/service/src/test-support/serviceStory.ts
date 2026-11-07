@@ -1,7 +1,7 @@
 import { Deferred, Effect, Layer, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { builtCounter, serviceEngine, serviceLayer } from "./serviceEngine.ts";
-import { serviceVerbs } from "./serviceVerbs.ts";
+import { builtCounter, serviceEngine, serviceLayer } from "#test/serviceEngine.ts";
+import { serviceVerbs } from "#test/serviceVerbs.ts";
 
 export const serviceStory = storyKit({
 	create: serviceEngine,

@@ -1,5 +1,5 @@
-import { appGithub } from "./appGithub.ts";
-import { budgetHeaders } from "./budgetHeaders.ts";
+import { appGithub } from "#test/appGithub.ts";
+import { budgetHeaders } from "#test/budgetHeaders.ts";
 
 export function rejectsMutation(route: "putLabel" | "deleteComment") {
 	return appGithub.trait("github", `GitHub rejects the next ${route} mutation with 401`, function* ({ server }) {

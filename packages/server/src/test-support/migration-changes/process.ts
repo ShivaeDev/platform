@@ -3,7 +3,7 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { appDatabase } from "#appDatabase.ts";
-import { migrationChangesLoader } from "./loader.ts";
+import { migrationChangesLoader } from "#test/migration-changes/loader.ts";
 
 NodeRuntime.runMain(
 	Effect.gen(function* () {

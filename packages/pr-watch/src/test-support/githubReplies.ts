@@ -1,7 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
-import { githubGraphql } from "./githubGraphql.ts";
-import { GRAPHQL, type GraphqlQuery, OPEN_LIST, pullDetail, QUEUE_REFS, REPOSITORY, type Reply } from "./githubModel.ts";
-import type { GitHubState } from "./githubState.ts";
+import { githubGraphql } from "#test/githubGraphql.ts";
+import { GRAPHQL, type GraphqlQuery, OPEN_LIST, pullDetail, QUEUE_REFS, REPOSITORY, type Reply } from "#test/githubModel.ts";
+import type { GitHubState } from "#test/githubState.ts";
 
 export function githubReplies(state: GitHubState) {
 	const { pulls, open, queueRefs, checks, statuses, checkRuns, overrides, extraHeaders } = state;

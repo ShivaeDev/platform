@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { compiler } from "./compiler.ts";
+import { compiler } from "#test/compiler.ts";
 
 // One tsc run checks every invalid fixture, and each story reads its own file's diagnostics from that run.
 let invalidRun: ReturnType<typeof compiler.invalid> | undefined;

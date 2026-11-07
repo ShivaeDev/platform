@@ -1,7 +1,7 @@
 import type { TestContext } from "@effect/vitest";
 import { Context, Effect, Layer, Option, type Tracer } from "effect";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
-import { clockReading } from "./clockReading.ts";
+import { clockReading } from "#test/clockReading.ts";
 
 export class Greeting extends Context.Service<Greeting, string>()("@shivaedev/test/test/Greeting") {}
 

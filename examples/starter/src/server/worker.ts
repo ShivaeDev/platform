@@ -1,5 +1,5 @@
 import { Layer } from "effect";
-import { applicationWorker } from "./applicationWorker.ts";
-import { runWorker } from "./runWorker.ts";
+import { applicationWorker } from "#server/applicationWorker.ts";
+import { runWorker } from "#server/runWorker.ts";
 
 runWorker(Layer.launch(applicationWorker()));

@@ -1,6 +1,6 @@
 import { Cause, Option, Result } from "effect";
 import { createElement, Fragment, type ReactNode } from "react";
-import type { QueryState } from "./resultState.ts";
+import type { QueryState } from "#client/resultState.ts";
 
 export interface QueryViewProps<A, E> {
 	readonly content: (data: A, query: QueryState<A, E>) => ReactNode;

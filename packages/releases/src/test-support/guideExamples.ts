@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { write } from "./fixture.ts";
-import { workspace } from "./workspace.ts";
+import { write } from "#test/fixture.ts";
+import { workspace } from "#test/workspace.ts";
 
 const guide = readFileSync(new URL("../../../../docs/releases.md", import.meta.url), "utf8");
 export const guideExamples = [...guide.matchAll(/```markdown\n(?<text>[\s\S]*?)\n```/gu)].map((match) => match.groups?.text ?? "");

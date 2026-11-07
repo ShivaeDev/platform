@@ -6,12 +6,12 @@ import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { decodeExceptions } from "#exceptions/declaration.ts";
 import { decodeRegistry } from "#exceptions/registry.ts";
+import { type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { quality } from "#testing/adapters/cli.ts";
 import { git } from "#testing/adapters/git.ts";
 import { writes } from "#testing/adapters/hookRepository.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
-import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 
 interface ExceptionEngine {
 	answer: CliAnswer | undefined;

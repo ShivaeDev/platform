@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import { JobList } from "./JobList.tsx";
-import { JobsMetrics } from "./JobsMetrics.tsx";
-import { JobsQueryPanel } from "./JobsQueryPanel.tsx";
-import type { JobsViewClient, RetryJob } from "./jobsTypes.ts";
+import { JobList } from "#client/adapters/JobList.tsx";
+import { JobsMetrics } from "#client/adapters/JobsMetrics.tsx";
+import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
+import type { JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
 
 export function JobsQueueView({
 	api,

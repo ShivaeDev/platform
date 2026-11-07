@@ -11,7 +11,7 @@ const FENCE_CONFIG = [
 ].join("\n");
 
 export const importFenceRepository: readonly SeedFile[] = [
-	{ content: '{ "type": "module", "devDependencies": { "@shivaedev/quality": "file:./node_modules/@shivaedev/quality" } }', path: "package.json" },
+	{ content: '{ "type": "module", "devDependencies": { "@shivaedev/quality": "0.0.0" } }', path: "package.json" },
 	{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
 	{
 		content:

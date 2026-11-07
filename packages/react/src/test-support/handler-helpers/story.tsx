@@ -7,9 +7,9 @@ import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { screenPending } from "#adapters/screenPending.ts";
+import { Digest } from "#test/handler-helpers/Digest.tsx";
+import { View } from "#test/handler-helpers/View.tsx";
 import { Screen } from "#test/Screen.ts";
-import { Digest } from "./Digest.tsx";
-import { View } from "./View.tsx";
 
 export const handlers = storyKit({
 	after: {

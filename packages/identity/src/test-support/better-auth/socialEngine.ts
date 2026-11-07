@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { fakeOauthProvider } from "@shivaedev/test-kits/identity/oauth.ts";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
-import { socialHost } from "./socialHost.ts";
+import { socialHost } from "#test/better-auth/socialHost.ts";
 
 export const socialEngine = Effect.fn("SocialStory.socialEngine")(function* () {
 	const provider = yield* fakeOauthProvider();

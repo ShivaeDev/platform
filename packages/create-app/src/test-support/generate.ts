@@ -1,7 +1,7 @@
 import { Effect } from "effect";
-import { cliAnswer } from "./answers.ts";
-import { runCli } from "./cli.ts";
-import type { createEngine } from "./createEngine.ts";
+import { cliAnswer } from "#test/answers.ts";
+import { runCli } from "#test/cli.ts";
+import type { createEngine } from "#test/createEngine.ts";
 
 export type Engine = ReturnType<typeof createEngine> extends Generator<unknown, infer TEngine, never> ? TEngine : never;
 

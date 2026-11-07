@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
+import { type SkillsRepository, skillReadouts } from "#test/skillDistribution.ts";
 import { commitAll, git } from "#testing/adapters/git.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
-import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { type SkillsRepository, skillReadouts } from "./skillDistribution.ts";
 
 interface RepositoryEngine extends SkillsRepository {
 	answer: CliAnswer | undefined;

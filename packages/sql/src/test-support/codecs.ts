@@ -3,11 +3,11 @@ import { SqlClient } from "effect/sql";
 import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
+import { Payment, payment, Sample } from "#test/codecModels.ts";
+import { onPostgres } from "#test/engines.ts";
+import { attempt, endingOf } from "#test/outcome.ts";
+import { ownTable, records, uniqueTable } from "#test/writeTables.ts";
 import { transact } from "#transact.ts";
-import { Payment, payment, Sample } from "./codecModels.ts";
-import { onPostgres } from "./engines.ts";
-import { attempt, endingOf } from "./outcome.ts";
-import { ownTable, records, uniqueTable } from "./writeTables.ts";
 
 type PaymentInput = typeof Payment.insert.Type;
 type Filter = NonNullable<NonNullable<Parameters<Effect.Success<ReturnType<typeof paymentRepository>>["count"]>[0]>["where"]>;

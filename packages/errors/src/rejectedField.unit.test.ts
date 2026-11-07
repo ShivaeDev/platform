@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { expect, it } from "vitest";
+import { rejectedField } from "#rejectedField.ts";
 import { Conflict } from "#taxonomy.ts";
-import { rejectedField } from "./rejectedField.ts";
 
 it("extracts a field rejection from an error instance", () => {
 	expect(rejectedField(new Conflict({ field: "name", message: "Name is taken" }))).toEqual(Option.some({ field: "name", message: "Name is taken" }));

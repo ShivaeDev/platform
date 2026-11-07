@@ -6,14 +6,14 @@ import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { App } from "#test/live-session/App.tsx";
+import type { connect } from "#test/live-session/connect.ts";
+import { sessionCookie } from "#test/live-session/cookie.ts";
+import { openHost } from "#test/live-session/openHost.ts";
+import { shell } from "#test/live-session/shell.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
-import { App } from "./App.tsx";
-import type { connect } from "./connect.ts";
-import { sessionCookie } from "./cookie.ts";
-import { openHost } from "./openHost.ts";
-import { shell } from "./shell.tsx";
 
 type Host = Awaited<ReturnType<typeof openHost>>;
 

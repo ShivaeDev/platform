@@ -5,7 +5,7 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import { type MemberScreen, memberScreens } from "#server/adapters/memberScreens.ts";
 import { screenDriver } from "#server/screenDriver.ts";
 import { storyKit } from "#server/storyKit.ts";
-import { type DialogKind, MemberPreferences, type PortalTarget } from "./MemberPreferences.tsx";
+import { type DialogKind, MemberPreferences, type PortalTarget } from "#test/MemberPreferences.tsx";
 
 expectNoReactWarnings();
 

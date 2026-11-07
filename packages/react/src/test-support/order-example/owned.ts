@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { OrderNotFound } from "./contract.ts";
-import { OrdersRepository } from "./repository.ts";
+import { OrderNotFound } from "#test/order-example/contract.ts";
+import { OrdersRepository } from "#test/order-example/repository.ts";
 
 export const owned = Effect.fn("OrderService.owned")(function* (id: number) {
 	const { id: userId } = yield* Identity;

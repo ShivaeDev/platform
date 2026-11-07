@@ -11,10 +11,10 @@ import { permissionRoute } from "@shivaedev/identity/server/adapters/permissionR
 import { permissionLayer } from "@shivaedev/identity/server/permissionLayer.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
+import { staticAssets } from "#test/app-host/fixture.ts";
+import type { HostState } from "#test/app-host/state.ts";
+import { host } from "#test/app-host/story.ts";
 import { TestRoles, ToolsPermission, UseTools } from "#test/permissions.ts";
-import { staticAssets } from "./fixture.ts";
-import type { HostState } from "./state.ts";
-import { host } from "./story.ts";
 
 const Admin = RpcGroup.make(
 	Rpc.make("adminRead", { success: Schema.String }),

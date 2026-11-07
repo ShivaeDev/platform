@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
+import { type RuntimeEngine, runningIn } from "#test/runtime/engine.ts";
 import { ApplicationLog } from "#test/workers.ts";
-import { type RuntimeEngine, runningIn } from "./engine.ts";
 
 export const holdErrorReport = Effect.fnUntraced(function* (engine: RuntimeEngine, interruptible: boolean) {
 	const state = engine.errorReport;

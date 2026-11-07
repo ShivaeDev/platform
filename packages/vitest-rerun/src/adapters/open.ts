@@ -1,14 +1,14 @@
 import { Effect } from "effect";
 import * as VitestNode from "vitest/node";
+import { deferCoverageThresholds } from "#adapters/deferCoverageThresholds.ts";
+import { mergeSnapshotSummary } from "#adapters/mergeSnapshotSummary.ts";
+import { RerunJunitReporter } from "#adapters/RerunJunitReporter.ts";
+import { TimedJsonReporter } from "#adapters/TimedJsonReporter.ts";
+import type { Files } from "#adapters/tasks.ts";
+import { writeMergedReports } from "#adapters/writeMergedReports.ts";
 import { failWith } from "#error.ts";
 import type { Snapshot } from "#snapshot.ts";
 import type { RunOptions, Selection } from "#VitestRuntime.ts";
-import { deferCoverageThresholds } from "./deferCoverageThresholds.ts";
-import { mergeSnapshotSummary } from "./mergeSnapshotSummary.ts";
-import { RerunJunitReporter } from "./RerunJunitReporter.ts";
-import { TimedJsonReporter } from "./TimedJsonReporter.ts";
-import type { Files } from "./tasks.ts";
-import { writeMergedReports } from "./writeMergedReports.ts";
 
 function promise<A>(message: string, run: () => Promise<A>) {
 	return Effect.tryPromise({ catch: failWith(message), try: run });

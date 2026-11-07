@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { extendedMarket, village } from "./market.ts";
-import { loafOrdered } from "./orders.ts";
-import { flourInStock } from "./stock.ts";
+import { extendedMarket, village } from "#test/market.ts";
+import { loafOrdered } from "#test/orders.ts";
+import { flourInStock } from "#test/stock.ts";
 
 extendedMarket.it("reads the stock and the order", [loafOrdered, flourInStock], function* ({ orders, stock }) {
 	yield* stock.read();

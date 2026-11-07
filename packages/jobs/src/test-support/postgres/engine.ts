@@ -8,9 +8,9 @@ import type { PgBossClient } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
+import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "#test/postgres/clientObservers.ts";
+import type { DatabaseEngine, Runtime } from "#test/postgres/databaseEngine.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
-import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "./clientObservers.ts";
-import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
 	readonly retired?: readonly string[];

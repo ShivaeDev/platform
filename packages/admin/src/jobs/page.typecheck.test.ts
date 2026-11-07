@@ -7,12 +7,12 @@ import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import type { ListedJob } from "@shivaedev/jobs/server/health.ts";
 import type { JobState } from "@shivaedev/jobs/server/job.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { jobsPage } from "#jobs/page.ts";
+import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { jobsPage } from "./page.ts";
-import { jobsPageWithRetry } from "./retryPage.ts";
 
 class DecodePayload extends Context.Service<DecodePayload, string>()("@shivaedev/admin/test/DecodePayload") {}
 class EncodePayload extends Context.Service<EncodePayload, string>()("@shivaedev/admin/test/EncodePayload") {}

@@ -1,7 +1,7 @@
 import { Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { type HostState, io } from "./state.ts";
+import { type HostState, io } from "#test/app-host/state.ts";
 
 export function healthVerbs(state: HostState, tell: (line: string) => void) {
 	function health() {

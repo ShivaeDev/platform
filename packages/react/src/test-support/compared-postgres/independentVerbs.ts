@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { until } from "@shivaedev/test-story/server/until.ts";
-import { openScreen } from "./openScreen.ts";
-import type { Engine } from "./story.ts";
+import { openScreen } from "#test/compared-postgres/openScreen.ts";
+import type { Engine } from "#test/compared-postgres/story.ts";
 
 export function independentVerbs(engine: Engine) {
 	return {

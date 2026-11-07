@@ -10,7 +10,7 @@ import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { handlers, migrations, Pots, Viewer } from "./fixture.ts";
+import { handlers, migrations, Pots, Viewer } from "#test/command-results/fixture.ts";
 
 export const engine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;

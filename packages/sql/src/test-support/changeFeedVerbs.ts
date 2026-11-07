@@ -3,11 +3,11 @@ import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { withChangeCoverage } from "@shivaedev/test-kits/sql/testing.ts";
 import { migratePostgres } from "#migrations.ts";
+import type { Body, Step } from "#test/body.ts";
+import type { ChangeFeedEngine, FeedTables } from "#test/changeFeedEngine.ts";
+import { endingOf, failureOf, outcomeOf } from "#test/outcome.ts";
+import { Rejected, Unavailable } from "#test/transactionEngine.ts";
 import { type InvalidationKeys, invalidateOnCommit, transact } from "#transact.ts";
-import type { Body, Step } from "./body.ts";
-import type { ChangeFeedEngine, FeedTables } from "./changeFeedEngine.ts";
-import { endingOf, failureOf, outcomeOf } from "./outcome.ts";
-import { Rejected, Unavailable } from "./transactionEngine.ts";
 
 function described(error: SqlError) {
 	return error.reason._tag === "UnknownError" && error.reason.message !== "" ? error.reason.message : failureOf(error);

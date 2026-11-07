@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
+import { agentLinks } from "#rules/docs/agentLinks.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
-import { agentLinks } from "./agentLinks.ts";
 
 for (const target of ["AGENTS.md", "./AGENTS.md"]) {
 	ruleStory.it(

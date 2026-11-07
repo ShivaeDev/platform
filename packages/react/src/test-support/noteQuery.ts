@@ -1,5 +1,5 @@
 import { queryRoute } from "#adapters/queryRoute.ts";
-import type { RouterSearch, root } from "./routerApp.ts";
+import type { RouterSearch, root } from "#test/routerApp.ts";
 
 export const noteQuery = queryRoute(
 	({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>

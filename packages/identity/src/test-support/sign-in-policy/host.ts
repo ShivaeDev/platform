@@ -18,8 +18,8 @@ import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "
 import { requestTracingLayer } from "#server/tracing.ts";
 import { ProviderAccounts, providerAccountHandlers, readProviderAccounts } from "#test/better-auth/providerAccounts.ts";
 import { recorder } from "#test/rpc/harness.ts";
-import { mintSessions } from "./mintSessions.ts";
-import { storedPolicy } from "./stored.ts";
+import { mintSessions } from "#test/sign-in-policy/mintSessions.ts";
+import { storedPolicy } from "#test/sign-in-policy/stored.ts";
 
 const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
 	.middleware(Authenticated)

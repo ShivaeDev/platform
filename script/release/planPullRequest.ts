@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { planRelease } from "@shivaedev/releases/planner.ts";
+import { starterPinsInput } from "#release/starterPinsInput.ts";
 import config from "#release-config";
-import { starterPinsInput } from "./starterPinsInput.ts";
 
 export const planPullRequest = Effect.fn("Release.planPullRequest")(function* (root: string) {
 	const plan = yield* planRelease(root, config);

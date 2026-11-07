@@ -3,7 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeRepository } from "#repository.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 
 export class RetainedRow extends Model.Class<RetainedRow>("RetainedRow")({ id: Schema.Int }) {}
 

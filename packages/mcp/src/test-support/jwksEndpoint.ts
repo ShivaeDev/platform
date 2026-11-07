@@ -1,7 +1,7 @@
 import { toIncomingMessage } from "@effect/platform-node/NodeHttpServerRequest";
 import { Effect, Layer, Logger, References } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import type { tokenSigner } from "./tokenSigner.ts";
+import type { tokenSigner } from "#test/tokenSigner.ts";
 
 export function jwksEndpoint(
 	auth: { readonly api: { readonly getJwks: () => Promise<{ readonly keys: readonly object[] }> } },

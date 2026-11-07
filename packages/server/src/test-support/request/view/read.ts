@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { Subject } from "@shivaedev/identity/subject.ts";
-import type { initialize } from "./initialize.ts";
+import type { initialize } from "#test/request/view/initialize.ts";
 
 export function read(state: Effect.Success<typeof initialize>) {
 	return Effect.fn("RequestViewService.read")(function* () {

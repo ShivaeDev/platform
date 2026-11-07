@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { posix, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { decodeDeclarations } from "#imports/fences/declarations.ts";
+import type { Fence } from "#imports/fences/model.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
-import { decodeDeclarations } from "./declarations.ts";
-import type { Fence } from "./model.ts";
 
 const BOUNDARY_FILE = "quality.fences.config.ts";
 

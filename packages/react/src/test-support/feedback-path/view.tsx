@@ -4,11 +4,11 @@ import { QueryView } from "#client/QueryView.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { type Notice, NoticeHost } from "#notices.ts";
+import { Commands } from "#test/feedback-path/Commands.tsx";
+import { Form } from "#test/feedback-path/Form.tsx";
 import type { NoticeClient } from "#test/notices/client.ts";
 import { NoticeCard } from "#test/notices/view.tsx";
 import { SessionRegistry } from "#test/SessionRegistry.tsx";
-import { Commands } from "./Commands.tsx";
-import { Form } from "./Form.tsx";
 
 export interface FeatureScreen {
 	readonly callbacks: string[];

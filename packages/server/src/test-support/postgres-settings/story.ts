@@ -3,7 +3,7 @@ import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgres } from "#test/postgres.ts";
-import { settingsEngine } from "./engine.ts";
+import { settingsEngine } from "#test/postgres-settings/engine.ts";
 
 export const postgresSettings = storyKit({
 	around: withIsolatedDatabase,

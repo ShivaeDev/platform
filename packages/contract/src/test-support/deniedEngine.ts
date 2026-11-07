@@ -11,8 +11,8 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { socketIdentity } from "#rpcClient.ts";
-import { Access, Guard, Records } from "./deniedContract.ts";
-import { syntheticNative } from "./resumeSources.ts";
+import { Access, Guard, Records } from "#test/deniedContract.ts";
+import { syntheticNative } from "#test/resumeSources.ts";
 
 export const deniedEngine = Effect.gen(function* () {
 	const access: typeof Access.Service = { allowed: false, checks: 0, rejection: "denied" };

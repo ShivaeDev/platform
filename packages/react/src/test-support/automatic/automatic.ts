@@ -3,9 +3,9 @@ import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTes
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { open } from "./engine.ts";
-import { migrations } from "./feature.ts";
-import { screenVerbs } from "./screenVerbs.ts";
+import { open } from "#test/automatic/engine.ts";
+import { migrations } from "#test/automatic/feature.ts";
+import { screenVerbs } from "#test/automatic/screenVerbs.ts";
 
 const { url: databaseUrl, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({

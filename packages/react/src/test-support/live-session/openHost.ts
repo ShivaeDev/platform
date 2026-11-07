@@ -10,7 +10,7 @@ import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { Notes, notes, ReadAccess } from "./notes.ts";
+import { Notes, notes, ReadAccess } from "#test/live-session/notes.ts";
 
 export async function openHost(clock: Clock.Clock) {
 	const state: { active: string[]; allowed: boolean; lookups: number; reads: number; session: string | undefined; title: string } = {

@@ -2,9 +2,9 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path } from "effect";
 import { type RouterOptions, tanstackRoutes } from "#adapters/tanstackRoutes.ts";
 import { SetupFailure } from "#failure.ts";
-import { readRequiredText } from "./filesystem.ts";
-import { posix as portable } from "./ignoreScope.ts";
-import { walk } from "./walk.ts";
+import { readRequiredText } from "#inventory/filesystem.ts";
+import { posix as portable } from "#inventory/ignoreScope.ts";
+import { walk } from "#inventory/walk.ts";
 
 const CONFIG = /^(?:tsr\.config\.json|vite\.config\.[cm]?[jt]s)$/u;
 const CODE = /\.[jt]sx?$/u;

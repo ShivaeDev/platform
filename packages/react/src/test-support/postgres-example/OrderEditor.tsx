@@ -3,8 +3,8 @@ import { Option, Schema } from "effect";
 import { createElement } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useEditor } from "#client/editor.ts";
-import { Order } from "./contract.ts";
-import type { makeClient } from "./makeClient.ts";
+import { Order } from "#test/postgres-example/contract.ts";
+import type { makeClient } from "#test/postgres-example/makeClient.ts";
 
 const Draft = Schema.Struct({ name: Order.fields.name, quantity: Schema.NumberFromString });
 function values(order: Order) {

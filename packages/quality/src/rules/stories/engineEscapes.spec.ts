@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
+import { storyEngine } from "#rules/stories/engine.ts";
 import { engineBody, engineBodyFiles } from "#test/engineBody.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
-import { storyEngine } from "./engine.ts";
 
 for (const [code, reason] of [
 	["const raw = yield* Orders; yield* raw.save();", "Reads a raw service handle"],

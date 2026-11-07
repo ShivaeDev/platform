@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { atomRemoved, idleRegistry } from "./idleRegistry.ts";
-import { loaderRoute } from "./loaderRoute.tsx";
-import { loaderScreen } from "./loaderScreen.tsx";
-import { sessionRegistry, settle } from "./loaderScreenState.ts";
-import { findLink, refresh, respond } from "./loaderVerbs.ts";
+import { atomRemoved, idleRegistry } from "#test/idleRegistry.ts";
+import { loaderRoute } from "#test/loaderRoute.tsx";
+import { loaderScreen } from "#test/loaderScreen.tsx";
+import { sessionRegistry, settle } from "#test/loaderScreenState.ts";
+import { findLink, refresh, respond } from "#test/loaderVerbs.ts";
 
 export function noteShown(title: string) {
 	return loaderScreen.trait("screen", `the note route loaded and shows ${title}`, function* (engine) {

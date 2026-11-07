@@ -15,9 +15,9 @@ import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
+import { AdminApi, adminHandlers, adminRoutes } from "#test/auth/adminApi.ts";
+import { countQueries } from "#test/auth/countQueries.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
-import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
-import { countQueries } from "./countQueries.ts";
 
 export const REVALIDATION_INTERVAL = Duration.millis(100);
 

@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { positiveRefusalFindings } from "#adapters/positiveRefusalFindings.ts";
 import { importGraph } from "#imports/graph.ts";
 import { defineRule } from "#rule.ts";
-import { storyOrigins } from "./origins.ts";
-import { storySources } from "./sources.ts";
+import { storyOrigins } from "#rules/stories/origins.ts";
+import { storySources } from "#rules/stories/sources.ts";
 
 export const positiveRefusals = defineRule({
 	check: Effect.fn("Stories.check")(function* (inputs) {

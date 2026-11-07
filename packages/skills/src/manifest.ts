@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
-import { MANIFEST } from "./layout.ts";
-import { SkillsError } from "./SkillsError.ts";
+import { MANIFEST } from "#layout.ts";
+import { SkillsError } from "#SkillsError.ts";
 
 export const Manifest = Schema.Struct({
 	skills: Schema.Record(Schema.String, Schema.String),

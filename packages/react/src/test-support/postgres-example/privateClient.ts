@@ -3,8 +3,8 @@ import { Effect, ManagedRuntime, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
-import { Preferences } from "./privateFeature.ts";
-import { recorded } from "./recorded.ts";
+import { Preferences } from "#test/postgres-example/privateFeature.ts";
+import { recorded } from "#test/postgres-example/recorded.ts";
 
 export async function privateClient(url: string, account: "alice" | "bob") {
 	const registry = AtomRegistry.make();

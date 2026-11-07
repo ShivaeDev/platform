@@ -1,10 +1,10 @@
 import { Console, Effect, type FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type { Scope } from "#baseline/update.ts";
+import { shrinkBaseline } from "#cli/baseline.ts";
 import type { SetupFailure } from "#failure.ts";
 import { resolveBase } from "#git/base.ts";
 import { changesSince } from "#git/history.ts";
-import { shrinkBaseline } from "./baseline.ts";
 
 function followedMoves(root: string, against: string | undefined): Effect.Effect<Scope, SetupFailure, ChildProcessSpawner.ChildProcessSpawner> {
 	return resolveBase(root, against).pipe(

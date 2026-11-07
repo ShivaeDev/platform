@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { RpcClient } from "effect/rpc";
-import { ConnectionReadiness, connectionReadiness } from "./connectionReadiness.ts";
+import { ConnectionReadiness, connectionReadiness } from "#connectionReadiness.ts";
 
 export const protocolConnections = new WeakMap<RpcClient.Protocol["Service"], Effect.Success<typeof connectionReadiness>>();
 

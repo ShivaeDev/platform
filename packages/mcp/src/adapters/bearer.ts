@@ -3,7 +3,7 @@ import { verifyJwsAccessToken } from "better-auth/oauth2";
 import { Effect, Option } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { InvalidTokenClaim } from "./InvalidTokenClaim.ts";
+import { InvalidTokenClaim } from "#adapters/InvalidTokenClaim.ts";
 
 export type JwksSource = Parameters<typeof verifyJwsAccessToken>[1]["jwksFetch"];
 

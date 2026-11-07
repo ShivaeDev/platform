@@ -1,10 +1,10 @@
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { noticeClient } from "#test/notices/client.ts";
+import { noticeClockVerbs } from "#test/notices/clock.ts";
+import { noticeReadouts } from "#test/notices/readouts.ts";
+import type { State } from "#test/notices/state.ts";
+import { noticeVerbs } from "#test/notices/verbs.tsx";
 import { screenKit } from "#test/screenKit.ts";
-import { noticeClient } from "./client.ts";
-import { noticeClockVerbs } from "./clock.ts";
-import { noticeReadouts } from "./readouts.ts";
-import type { State } from "./state.ts";
-import { noticeVerbs } from "./verbs.tsx";
 
 export const noticesStory = storyKit({
 	...screenKit(

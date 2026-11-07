@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { start, teardown } from "#test/app-host/lifecycle.ts";
+import { emptyHost, type HostState } from "#test/app-host/state.ts";
+import { hostVerbs } from "#test/app-host/verbs.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
-import { start, teardown } from "./lifecycle.ts";
-import { emptyHost, type HostState } from "./state.ts";
-import { hostVerbs } from "./verbs.ts";
 
 export function hostOptions() {
 	return {

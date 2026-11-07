@@ -1,6 +1,6 @@
 import type { FakeHttpReply } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { budgetHeaders } from "./budgetHeaders.ts";
-import { graphqlClient } from "./graphqlClient.ts";
+import { budgetHeaders } from "#test/budgetHeaders.ts";
+import { graphqlClient } from "#test/graphqlClient.ts";
 
 export function graphqlAnswers(description: string, reply: FakeHttpReply, times = 1) {
 	return graphqlClient.trait("github", `GitHub answers GraphQL with ${description}`, function* ({ root }) {

@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
-import { changeTokenClaim } from "./changeTokenClaim.ts";
-import { type Engine, named } from "./host.ts";
+import { changeTokenClaim } from "#test/changeTokenClaim.ts";
+import { type Engine, named } from "#test/host.ts";
 
 export function tokenVerbs(engine: Engine, tell: (line: string) => void) {
 	return {

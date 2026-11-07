@@ -3,11 +3,11 @@ import { Context, Deferred, type Duration, Effect, Exit, Layer, type Queue, Scop
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { type ListenerControls, type ListenerEvents, listenerEvents } from "./changeFeedListener.ts";
-import type { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "./changeFeedTables.ts";
-import { liveStreams } from "./liveStreams.ts";
-import { postgresLayer } from "./postgres.ts";
-import { RecordedLogs } from "./RecordedLogs.ts";
+import { type ListenerControls, type ListenerEvents, listenerEvents } from "#test/changeFeedListener.ts";
+import type { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "#test/changeFeedTables.ts";
+import { liveStreams } from "#test/liveStreams.ts";
+import { postgresLayer } from "#test/postgres.ts";
+import { RecordedLogs } from "#test/RecordedLogs.ts";
 
 export interface FeedTables {
 	copies?: Effect.Success<typeof copiesTables>["copies"];

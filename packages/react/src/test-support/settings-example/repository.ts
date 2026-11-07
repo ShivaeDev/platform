@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { EntitySettings } from "./contract.ts";
+import { EntitySettings } from "#test/settings-example/contract.ts";
 
 class Entity extends Model.Class<Entity>("Entity")({
 	id: Schema.Number,

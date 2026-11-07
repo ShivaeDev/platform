@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { McpClient } from "effect/ai";
-import { type HostOptions, startHost } from "./startHost.ts";
+import { type HostOptions, startHost } from "#test/startHost.ts";
 
 type Host = Effect.Success<ReturnType<typeof startHost>>;
 

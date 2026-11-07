@@ -4,10 +4,10 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import { AdminApi } from "./adminApi.ts";
-import { type AdminHost, REVALIDATION_INTERVAL } from "./adminHost.ts";
-import { adminRouteVerbs } from "./adminRouteVerbs.ts";
-import { profileVerbs } from "./profileVerbs.ts";
+import { AdminApi } from "#test/auth/adminApi.ts";
+import { type AdminHost, REVALIDATION_INTERVAL } from "#test/auth/adminHost.ts";
+import { adminRouteVerbs } from "#test/auth/adminRouteVerbs.ts";
+import { profileVerbs } from "#test/auth/profileVerbs.ts";
 
 export function adminVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
 	const protocol = Layer.suspend(() =>

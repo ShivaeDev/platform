@@ -1,7 +1,7 @@
 import { DateTime, Effect, Option, type Schema } from "effect";
 import type { DeadLetteredJob, JobPage, ListedJob } from "#server/health.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { errorOf, labelOf, provided, runningIn } from "./engine.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/postgres/databaseEngine.ts";
+import { errorOf, labelOf, provided, runningIn } from "#test/postgres/engine.ts";
 
 type Listing = "failed" | "dead-lettered";
 type Listed = ListedJob<unknown> | DeadLetteredJob<unknown>;

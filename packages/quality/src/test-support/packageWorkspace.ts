@@ -1,10 +1,10 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
+import { baselineStory, setupRun } from "#test/baselineStory.ts";
+import { editedShard, editsPhrase, readOrUndefined, type ShardEdits, sourceOf, writeAll } from "#test/recordedDebt.ts";
 import { commitAll, git } from "#testing/adapters/git.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { linkPackage, packageRoot } from "#testing/adapters/tree.ts";
-import { baselineStory, setupRun } from "./baselineStory.ts";
-import { editedShard, editsPhrase, readOrUndefined, type ShardEdits, sourceOf, writeAll } from "./recordedDebt.ts";
 
 export const ALPHA_SHARD = "packages/alpha/quality-baseline.jsonl";
 

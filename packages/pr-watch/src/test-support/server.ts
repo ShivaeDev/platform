@@ -3,10 +3,10 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { Received } from "./githubModel.ts";
-import { githubReplies } from "./githubReplies.ts";
-import { makeGitHubState } from "./githubState.ts";
-import { serverSignals } from "./serverSignals.ts";
+import type { Received } from "#test/githubModel.ts";
+import { githubReplies } from "#test/githubReplies.ts";
+import { makeGitHubState } from "#test/githubState.ts";
+import { serverSignals } from "#test/serverSignals.ts";
 
 export async function startServer(now: () => number) {
 	const directory = await mkdtemp(join(tmpdir(), "pr-watch-"));

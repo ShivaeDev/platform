@@ -5,7 +5,7 @@ import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { inValues } from "#inValues.ts";
 import { makeRepository } from "#repository.ts";
-import { ownTable, uniqueTable } from "./writeTables.ts";
+import { ownTable, uniqueTable } from "#test/writeTables.ts";
 
 class Run extends Model.Class<Run>("PurgeRun")({ id: Schema.Int, owner: bucket(Schema.String) }) {}
 class Child extends Model.Class<Child>("PurgeChild")({ id: Schema.Int, owner: bucket(Schema.String), runId: bucket(Schema.Int) }) {}

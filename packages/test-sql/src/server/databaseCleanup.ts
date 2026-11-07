@@ -1,9 +1,9 @@
 import { Clock, Effect, type Exit, Fiber, Predicate, Schedule } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PostgresOptions } from "@shivaedev/sql/postgresLayer.ts";
-import { CleanupClock } from "./clocks.ts";
-import { abandonedDatabase } from "./databaseOwner.ts";
-import { administer } from "./databases.ts";
+import { CleanupClock } from "#server/clocks.ts";
+import { abandonedDatabase } from "#server/databaseOwner.ts";
+import { administer } from "#server/databases.ts";
 
 export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(function* (
 	url: Parameters<typeof administer>[0],

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { memberName, unwrapped } from "./syntax.ts";
+import { memberName, unwrapped } from "#rules/stories/syntax.ts";
 
 function vitestBindings(source: ts.SourceFile): ReadonlyMap<string, string> {
 	const names = new Map<string, string>();

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { repositoryStory } from "#test/repositoryStory.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
-import { repositoryStory } from "./repositoryStory.ts";
 
 export function findingsBaselined() {
 	return repositoryStory.trait("history", "quality baseline write has recorded every finding in quality-baseline.jsonl", (engine) =>

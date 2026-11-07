@@ -1,9 +1,9 @@
 import { Effect, Queue, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, readKeys } from "@shivaedev/changes/keys.ts";
+import { LiveDispatcher } from "#adapters/LiveDispatcher.ts";
 import type { initialize } from "#live-server/initialize.ts";
 import { liveHintQueue } from "#liveHintQueue.ts";
-import { LiveDispatcher } from "./LiveDispatcher.ts";
 
 export const openLiveHints = Effect.fn("LiveServer.openLiveHints")(function* (state: Effect.Success<typeof initialize>, keys: readonly Key[]) {
 	const reactivity = yield* Reactivity.Reactivity;

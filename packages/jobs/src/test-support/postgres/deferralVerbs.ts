@@ -1,7 +1,7 @@
 import { DateTime, Effect } from "effect";
 import type { QueueDefinition } from "#server/definition.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { idOf, testingOf } from "./verbs.ts";
+import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
+import { idOf, testingOf } from "#test/postgres/verbs.ts";
 
 export function deferralVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

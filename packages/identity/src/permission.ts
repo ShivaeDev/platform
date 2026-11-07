@@ -1,7 +1,7 @@
 import { RpcMiddleware } from "effect/rpc";
 import { hasPermission as evaluateGrant, type Permission } from "@shivaedev/access/permission.ts";
-import type { Identity, SessionUser, SessionUserValue } from "./identity.ts";
-import { IdentityFailures } from "./middleware.ts";
+import type { Identity, SessionUser, SessionUserValue } from "#identity.ts";
+import { IdentityFailures } from "#middleware.ts";
 
 export function permissionMiddleware<TSelf>() {
 	return <const TName extends string>(name: TName, permission: Permission) =>

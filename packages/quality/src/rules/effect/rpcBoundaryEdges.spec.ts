@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
+import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
 import { rpcBoundaryImports, rpcBoundaryResolves } from "#test/rpcBoundaryResolves.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { rpcBoundary } from "./rpcBoundary.ts";
 
 for (const { name, code } of [
 	{ code: 'const read = Effect.succeed("note").pipe(expose(Schema.String, options));', name: "rpcBoundary" },

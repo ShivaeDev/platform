@@ -1,7 +1,7 @@
 import { Context, type Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { Order } from "./contract.ts";
+import { Order } from "#test/order-example/contract.ts";
 
 export class OrderRow extends Model.Class<OrderRow>("OrderRow")({
 	...Order.fields,

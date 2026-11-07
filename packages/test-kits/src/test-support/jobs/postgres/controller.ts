@@ -3,10 +3,10 @@ import type { FindJobsOptions, JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { failureOf } from "#test/jobs/failureOf.ts";
-import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { driveWorkers } from "./driveWorkers.ts";
-import { labelOf, runningIn } from "./engine.ts";
-import { idOf, testingOf } from "./verbs.ts";
+import type { DatabaseEngine, StoryPayload } from "#test/jobs/postgres/databaseEngine.ts";
+import { driveWorkers } from "#test/jobs/postgres/driveWorkers.ts";
+import { labelOf, runningIn } from "#test/jobs/postgres/engine.ts";
+import { idOf, testingOf } from "#test/jobs/postgres/verbs.ts";
 
 type Tell = (line: string) => void;
 

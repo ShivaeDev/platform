@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { testingEngine } from "@shivaedev/test-kits/jobs/adapters/testingEngine.ts";
-import type { DatabaseEngine } from "./databaseEngine.ts";
-import { admin } from "./engine.ts";
-import { idOf } from "./verbs.ts";
+import type { DatabaseEngine } from "#test/jobs/postgres/databaseEngine.ts";
+import { admin } from "#test/jobs/postgres/engine.ts";
+import { idOf } from "#test/jobs/postgres/verbs.ts";
 
 export function engineVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {

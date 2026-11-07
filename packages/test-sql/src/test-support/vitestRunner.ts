@@ -3,8 +3,8 @@ import { Effect } from "effect";
 import type { TaskMeta } from "vitest";
 import { runVitest } from "@shivaedev/test/adapters/runVitest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { configured } from "./postgres.ts";
-import type { CloneObservation } from "./timeoutApp.ts";
+import { configured } from "#test/postgres.ts";
+import type { CloneObservation } from "#test/timeoutApp.ts";
 
 export type ConsumerStory = "the first story" | "the next story" | "the isolated story";
 export type TimeoutStory = "the hanging story" | "the next story";

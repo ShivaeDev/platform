@@ -7,10 +7,10 @@ import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { QueueJobs, queueJobTimings } from "#ci/queueJobTimings.ts";
+import { mergeTimingArtifacts } from "#ci/test-support/mergeTimingArtifacts.ts";
+import { workflowJob } from "#ci/test-support/workflowJob.ts";
+import { workspace } from "#ci/test-support/workspace.ts";
 import type { TimingSnapshot } from "#ci/timings.ts";
-import { mergeTimingArtifacts } from "./mergeTimingArtifacts.ts";
-import { workflowJob } from "./workflowJob.ts";
-import { workspace } from "./workspace.ts";
 
 export const timingCollection = storyKit({
 	clock: "test",
