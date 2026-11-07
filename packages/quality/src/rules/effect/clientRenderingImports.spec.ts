@@ -2,6 +2,29 @@ import { expect } from "@effect/vitest";
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
+ruleStory.it(
+	"effect/adapter-imports accepts recharts for client charts and reports it in server modules",
+	[
+		repositoryHas(
+			{ content: '{"dependencies":{"recharts":"*"}}', path: "package.json" },
+			{ content: 'import * as RechartsPrimitive from "recharts";', path: "src/client/components/ui/chart.tsx" },
+			{ content: 'import { BarChart } from "recharts";', path: "src/server/chart.ts" },
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(adapterImports);
+
+		expect(findings).toEqual([
+			{
+				file: "src/server/chart.ts",
+				line: 1,
+				message:
+					'Imports outside library "recharts" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.',
+			},
+		]);
+	},
+);
+
 for (const path of ["src/client/Navigation.tsx", "src/modules/notes/client/Navigation.tsx"]) {
 	ruleStory.it(
 		`effect/adapter-imports accepts UI, router and styling imports in the client component ${path}`,
