@@ -21,7 +21,8 @@
 		},
 		"files": {},
 		"output": "pnpm dev",
-		"packedInstall": true
+		"packedInstall": true,
+		"typecheck": "my-app"
 	},
 	"heavy-lock": {
 		"absent": ["locks/heavy-process.lock"],
