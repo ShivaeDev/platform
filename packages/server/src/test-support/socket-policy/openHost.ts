@@ -6,6 +6,7 @@ import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appDatabase.ts";
+import { roleView } from "#test/socket-policy/role/service.ts";
 import { Api, ManageNotes } from "./feature.ts";
 import { handlers, migrations } from "./handlers.ts";
 
@@ -26,6 +27,7 @@ export const openHost = Effect.gen(function* () {
 						id,
 						name: id,
 						permissions: id === "admin" && access.admin ? [ManageNotes] : [],
+						role: id === "admin" && access.admin ? "admin" : "reader",
 					};
 					return Option.some({ user });
 				}),
@@ -33,7 +35,15 @@ export const openHost = Effect.gen(function* () {
 		streamRevalidationInterval: "1 hour",
 	});
 	const services = yield* Layer.build(
-		appHost({ config: { databaseUrl: database.url, port: 0 }, group: Api, handlers, migrations, postgresSettings: {}, sessions }),
+		appHost({
+			config: { databaseUrl: database.url, port: 0 },
+			group: Api,
+			handlers,
+			migrations,
+			postgresSettings: {},
+			requestServices: roleView.layer,
+			sessions,
+		}),
 	);
 	const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(services));
 	if (!NetAddress.isInetAddress(address)) {

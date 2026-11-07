@@ -7,7 +7,7 @@ import { prependMiddleware } from "@shivaedev/contract/prependMiddleware.ts";
 import { ReadPolicyGuard, readPolicyGuardLayer } from "@shivaedev/contract/ReadPolicyGuard.ts";
 import { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
 import { publishCommand } from "#publishCommand.ts";
-import type { RequestServices } from "#requestServices.ts";
+import { type RequestServices, RequestServicesLayer } from "#requestServices.ts";
 import { tracedGroup } from "#tracedGroup.ts";
 
 export const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
@@ -33,6 +33,10 @@ export const hostRpc = Effect.fnUntraced(function* <R extends Rpc.Any, TServices
 		Effect.provideService(ReadPolicyGuard, readPolicy),
 		Effect.provideService(CommandGuard, publication),
 		Effect.provide(subjectLayers(group)),
-		Effect.provide(Layer.succeed(requestsMiddleware, (effect) => Effect.provide(effect, requestLayer))),
+		Effect.provide(
+			Layer.succeed(requestsMiddleware, (effect) =>
+				effect.pipe(Effect.provideService(RequestServicesLayer, { requestLayer }), Effect.provide(requestLayer)),
+			),
+		),
 	);
 });

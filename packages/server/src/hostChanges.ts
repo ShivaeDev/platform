@@ -12,6 +12,7 @@ import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { RequestServicesLayer } from "#requestServices.ts";
 import { rerunQuery } from "#rerunQuery.ts";
 
 export function hostChanges<R extends Rpc.Any>(
@@ -32,10 +33,19 @@ const initializeHostChanges = Effect.fnUntraced(function* (group: RpcGroup.RpcGr
 	function subscribe(rpc: Rpc.AnyWithProps, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
-				const subscription = yield* resolveChanges(rpc, queries);
+				const requestServices = Layer.fresh((yield* RequestServicesLayer).requestLayer);
+				const resolved = yield* resolveChanges(rpc, queries);
+				const subscription = {
+					...resolved,
+					authorized: Effect.provide(resolved.authorized, requestServices),
+					...(resolved.readScopes === undefined ? {} : { readScopes: Effect.provide(resolved.readScopes, requestServices) }),
+				};
 				const viewer = yield* CurrentViewer;
 				const refresh = refreshSession(viewer, rpc._tag);
-				const read = rerunQuery(group, options);
+				const rerun = rerunQuery(group, options);
+				function read(query: Parameters<typeof rerun>[0]) {
+					return Effect.provide(rerun(query), requestServices);
+				}
 				type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
 				const pending = subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>>({ ...subscription, refresh }, read);
 				const stream = Option.isSome(changes)

@@ -1,9 +1,15 @@
-import type { Schema } from "effect";
+import { Context, Layer, type Schema } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
 import type { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import type { Subject } from "@shivaedev/identity/subject.ts";
 
 export type RequestContext = Identity | OptionalIdentity | SessionUser | SessionUserWithProviderAccounts | Subject;
+export const RequestServicesLayer = Context.Reference<{ readonly requestLayer: Layer.Layer<never, never, unknown> }>(
+	"@shivaedev/server/RequestServicesLayer",
+	{
+		defaultValue: () => ({ requestLayer: Layer.empty }),
+	},
+);
 export type RequestRequirements<TRpcs extends Rpc.Any, TRequirements> = TRpcs extends unknown
 	? Exclude<TRequirements, Rpc.ExtractProvides<TRpcs, TRpcs["_tag"]>>
 	: never;
