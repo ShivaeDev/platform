@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.70.3 - 2026-11-07
+
+### Fixed
+
+- Accept recharts imports in `client/` folders for shadcn charts while continuing to report them in server modules. Prefer shadcn's Chart component (`ChartContainer` and friends) over raw recharts primitives where it covers the case.
+
 ## 0.70.2 - 2026-11-07
 
 ### Fixed
