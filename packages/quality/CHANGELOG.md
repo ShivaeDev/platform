@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.70.1 - 2026-11-07
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.10.0 to 0.10.1.
+- Update `@shivaedev/heavy-lock` from 0.11.0 to 0.11.1.
+- Update `@shivaedev/service` from 0.8.0 to 0.8.1.
+- Update `@shivaedev/skills` from 0.8.0 to 0.8.1.
+- Update `@shivaedev/test-story` from 0.45.1 to 0.45.2.
+
 ## 0.70.0 - 2026-11-07
 
 ### Breaking
