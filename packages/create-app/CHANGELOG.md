@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.12 - 2026-11-07
+
+### Fixed
+
+- Generated apps validate their test database through `local-postgres` before running tests, accepting localhost port 5432 and refusing remote hosts and redirecting connection parameters.
+
 ## 0.43.11 - 2026-11-07
 
 ### Changed
