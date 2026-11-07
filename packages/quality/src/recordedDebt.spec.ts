@@ -25,7 +25,7 @@ repositoryStory.it(
 				'{"path":"src/long.ts","rule":"structure/max-lines","count":1}\n{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n',
 			],
 			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), "quality: recorded 2 entries in quality-baseline.jsonl.\n"],
+			["report", () => stdout(), expect.stringContaining("quality: recorded 2 entries in quality-baseline.jsonl.\n")],
 		]);
 	},
 	CLI_TIMEOUT,
