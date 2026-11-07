@@ -1,4 +1,4 @@
-import { Effect, type Schema, Stream } from "effect";
+import { Cause, Effect, Option, type Schema, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
@@ -51,10 +51,8 @@ export function automaticLive(
 	enabled = true,
 	resumeWindow?: ResumeWindow,
 ) {
-	function assertOwner(get: Atom.AtomContext) {
-		if (owner !== undefined && owner.registry !== get.registry) {
-			throw new Error("A session-scoped query belongs to its binding registry");
-		}
+	function ownerFailure(get: Atom.AtomContext) {
+		return owner !== undefined && owner.registry !== get.registry ? new Error("A session-scoped query belongs to its binding registry") : undefined;
 	}
 	const paused = pausedByRuntime(service.runtime);
 	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
@@ -62,7 +60,10 @@ export function automaticLive(
 	const target = resumeWindow ?? (typeof window === "undefined" ? undefined : window);
 	const signal = resumeSignal({ ...(target === undefined ? {} : { window: target }), ...(resume === undefined ? {} : { native: resume }) });
 	const connection = Atom.make((get) => {
-		assertOwner(get);
+		const error = ownerFailure(get);
+		if (error !== undefined) {
+			return { connection: "failed", failure: Option.some(Cause.die(error)), needsResync: true, pending: 0 } as const;
+		}
 		get.mount(service.runtime);
 		return get(status);
 	}).pipe(Atom.setIdleTTL(0));
@@ -91,9 +92,9 @@ export function automaticLive(
 			),
 		});
 		const gated = automaticQuery({
-			assertOwner,
 			clientStatuses: clientActivities.get(service)?.statuses,
 			equivalent,
+			ownerFailure,
 			paused,
 			ready,
 			signals,
@@ -102,12 +103,14 @@ export function automaticLive(
 			subscription,
 			subscriptionVersion: delivery.updates,
 		});
-		shareQuerySignals(gated, atom);
-		Object.assign(gated, { initialValueTarget: atom });
-		if (Atom.isSerializable(atom)) {
-			Object.assign(gated, { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] });
-		}
-		return gated;
+		const result = Object.assign(
+			Object.create(Object.getPrototypeOf(gated)),
+			gated,
+			{ initialValueTarget: atom },
+			Atom.isSerializable(atom) ? { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] } : {},
+		);
+		shareQuerySignals(result, atom);
+		return result;
 	}
 	return { query, subscription: { connection, identity: socketIdentity, paused, status } };
 }

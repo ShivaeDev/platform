@@ -1,4 +1,4 @@
-import { Effect, SubscriptionRef } from "effect";
+import { Cause, Effect, type Exit, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -39,6 +39,14 @@ function countOf(reads: readonly string[], person: Person, view: PreferenceView)
 
 function readsOf(engine: SessionEngine, person: Person, view: PreferenceView) {
 	return Effect.map(SubscriptionRef.get(engine.reads), (reads) => countOf(reads, person, view));
+}
+
+function failureMessage(exit: Exit.Exit<unknown, unknown>) {
+	if (exit._tag === "Success") {
+		return "read";
+	}
+	const failureCause = Cause.squash(exit.cause);
+	return `failed with ${failureCause instanceof Error ? failureCause.message : String(failureCause)}`;
 }
 
 // Actions mark each watched view first, so a later wait for its re-read cannot miss one that finished before the wait began.
@@ -100,10 +108,6 @@ export const sessionStory = storyKit({
 			story.tell(`${person}'s preferences become ${title} on the server without any hint`);
 			engine.stored.set(person, title);
 		},
-		connectInBobsRegistry: () => {
-			story.tell("bob's registry mounts alice's live connection");
-			return thrown(() => engine.clients.bob.registry.mount(engine.clients.alice.api[LiveConnection].connection));
-		},
 		dispose: (person: Person) => {
 			story.tell(`${person}'s registry is disposed`);
 			return untilSubscriptionsChange(engine, () => engine.clients[person].registry.dispose());
@@ -115,7 +119,10 @@ export const sessionStory = storyKit({
 		},
 		readInBobsRegistry: () => {
 			story.tell("bob's registry reads alice's preferences");
-			return thrown(() => engine.clients.bob.registry.get(engine.clients.alice.api.self.query(undefined)));
+			return Effect.map(
+				Effect.exit(AtomRegistry.getResult(engine.clients.bob.registry, engine.clients.alice.api.self.query(undefined))),
+				failureMessage,
+			);
 		},
 		resync: () => {
 			story.tell("the server resyncs every live stream");

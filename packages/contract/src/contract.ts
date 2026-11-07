@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware } from "effect/rpc";
-import { declarationError, type Unique } from "#declarationError.ts";
+import { DeclarationError, declarationError, type Unique } from "#declarationError.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
@@ -43,10 +43,7 @@ export interface Contract<
 }
 
 function assertValid(name: string, operations: readonly (QueryShape | CommandShape | StreamShape)[]) {
-	const error = declarationError(name, operations);
-	if (error !== undefined) {
-		throw new Error(error);
-	}
+	return declarationError(name, operations);
 }
 
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
@@ -109,7 +106,7 @@ export function contract(
 	},
 ): DeclaredGroup {
 	const { queries = [], commands = [], streams = [], keyScope } = operations;
-	assertValid(name, [...queries, ...commands, ...streams]);
+	const error = assertValid(name, [...queries, ...commands, ...streams]);
 	const rpcs = [...queries, ...commands, ...streams].map((operation) => {
 		const rpc = Rpc.make(`${name}.${operation.name}`, {
 			error: operation.kind === "query" ? Schema.Union([operation.error, QueryReadDenied]) : operation.error,
@@ -123,7 +120,8 @@ export function contract(
 	const application = RpcGroup.make(...rpcs);
 	const changes = changesRpc(name, queries).middleware(ReadPolicyGuard);
 	const subjectChanges = operations.subject === undefined ? changes : changes.middleware(subjectMiddleware(`${name}.$changes`, operations.subject));
-	const group = application.add(keyScope === undefined ? subjectChanges : subjectChanges.annotate(KeyScope, keyScope));
+	const built = application.add(keyScope === undefined ? subjectChanges : subjectChanges.annotate(KeyScope, keyScope));
+	const group = error === undefined ? built : built.annotate(DeclarationError, error);
 	return withDeclaration(group, application, {
 		commands,
 		keyScope,

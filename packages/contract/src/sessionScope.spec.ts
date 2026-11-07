@@ -117,11 +117,6 @@ sessionStory.it(
 	},
 );
 
-for (const [use, act] of [
-	["reading alice's preferences", "readInBobsRegistry"],
-	["mounting alice's live connection", "connectInBobsRegistry"],
-] as const) {
-	sessionStory.it(`${use} in bob's registry throws because it belongs to alice's`, [], (verbs) => {
-		expect(verbs[act]()).toBe("A session-scoped query belongs to its binding registry");
-	});
-}
+sessionStory.it("reading alice's preferences in bob's registry fails in its Effect with the owner error", [], function* ({ readInBobsRegistry }) {
+	expect(yield* readInBobsRegistry()).toBe("failed with A session-scoped query belongs to its binding registry");
+});

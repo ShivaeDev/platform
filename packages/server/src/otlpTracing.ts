@@ -1,10 +1,10 @@
 import { Config, ConfigProvider, Context, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
+import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { localTracing } from "#localTracing.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
-import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 import { redactingTracer } from "#redactingTracer.ts";
 import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
 
