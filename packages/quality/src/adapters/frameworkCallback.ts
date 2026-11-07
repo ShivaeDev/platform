@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { callbackEscapes } from "#adapters/callbackEscapes.ts";
+import { contextualCallbackType } from "#adapters/foreignCallback.ts";
 import { frameworkOwner } from "#adapters/frameworkOwner.ts";
 import { effectApi, resolvedValue } from "#adapters/serviceModelSyntax.ts";
 
@@ -20,11 +21,19 @@ function wrapsEffectFunction(checker: ts.TypeChecker, expression: ts.Expression)
 	return effectApi(checker, callee, "fn") || effectApi(checker, callee, "fnUntraced");
 }
 
+function suppliedCallback(checker: ts.TypeChecker, node: ts.Node, local: ReadonlySet<ts.SourceFile>): boolean {
+	const contextual = contextualCallbackType(checker, node);
+	return (contextual === undefined ? [] : checker.getNonNullableType(contextual).getCallSignatures()).some((signature) => supplied(signature, local));
+}
+
 export function frameworkCallback(checker: ts.TypeChecker, node: ts.Node, local: ReadonlySet<ts.SourceFile>, seen = new Set<ts.Node>()): boolean {
 	if (seen.has(node)) {
 		return false;
 	}
 	seen.add(node);
+	if (ts.isMethodDeclaration(node) && suppliedCallback(checker, node, local)) {
+		return true;
+	}
 	if (!(ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
 		return false;
 	}
@@ -44,8 +53,7 @@ export function frameworkCallback(checker: ts.TypeChecker, node: ts.Node, local:
 		}
 		return !callbackEscapes(checker, node.parent, node);
 	}
-	const contextual = checker.getContextualType(node);
-	if ((contextual === undefined ? [] : checker.getNonNullableType(contextual).getCallSignatures()).some((signature) => supplied(signature, local))) {
+	if (suppliedCallback(checker, node, local)) {
 		return true;
 	}
 	const property = node.parent;

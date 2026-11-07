@@ -3,6 +3,7 @@ import ts from "typescript";
 import { foreignResources } from "#adapters/foreignResources.ts";
 import { frameworkCallback, parameterSite } from "#adapters/frameworkCallback.ts";
 import { localFunctions } from "#adapters/localFunctions.ts";
+import { ownedServiceParameters } from "#adapters/ownedServiceParameters.ts";
 import { reactComponent, reactPropParameters } from "#adapters/reactComponent.ts";
 import type { Finding } from "#rule.ts";
 import { layerConstructor } from "#rules/effect/layerConstructor.ts";
@@ -30,6 +31,7 @@ export function serviceFindings(
 	services: ReturnType<typeof serviceTypes>,
 ): readonly Finding[] {
 	const resource = foreignResources(checker, sources);
+	const owned = ownedServiceParameters(checker, sources);
 	const props = reactPropParameters(checker, sources);
 	const findings = new Map<ts.ParameterDeclaration, Finding>();
 	const visited = new Set<ts.Type>();
@@ -44,6 +46,7 @@ export function serviceFindings(
 				!(ts.isParameter(parameter) && local.has(parameter.getSourceFile()))
 				|| implementationParameter(checker, parameter, services)
 				|| resource(parameter)
+				|| owned(parameter)
 				|| frameworkCallback(checker, parameter.parent, local)
 				|| reactComponent(checker, parameter.parent)
 				|| props.has(parameter)

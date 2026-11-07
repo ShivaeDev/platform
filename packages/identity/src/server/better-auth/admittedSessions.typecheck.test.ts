@@ -10,7 +10,9 @@ interface ApplicationSession {
 	readonly user: { readonly email: string; readonly id: string; readonly name: string; readonly tenant: string };
 }
 
-export function admittedSessionTypes(mounted: Effect.Success<ReturnType<typeof betterAuthMount>>, getSession: GetSession<ApplicationSession>) {
+declare const mounted: Effect.Success<ReturnType<typeof betterAuthMount>>;
+
+export function admittedSessionTypes(getSession: GetSession<ApplicationSession>) {
 	const plain = mounted.admittedSessions(getSession);
 	const accounts = mounted.admittedSessions(getSession, (headers) => mounted.auth.api.listUserAccounts({ headers }));
 	expectTypeOf(plain).toEqualTypeOf<SessionProvider<ApplicationSession>>();

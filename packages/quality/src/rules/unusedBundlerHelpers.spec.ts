@@ -4,6 +4,16 @@ import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
 for (const [form, script, helper] of [
+	[
+		"mapped configs",
+		'const configs = [{ entryPoints: ["src/main.ts"] }, { entryPoints: ["src/preload.ts"] }]; configs.map((config) => build(config));',
+		undefined,
+	],
+	[
+		"mapped Bun configs",
+		'const configs = [{ entrypoints: ["src/main.ts"] }, { entrypoints: ["src/preload.ts"] }]; configs.map((config) => Bun.build(config));',
+		undefined,
+	],
 	["a local helper", 'const entries = ["src/main.ts", "src/preload.ts"]; bundle(entries);', undefined],
 	["a spread", 'const entries = ["src/main.ts", "src/preload.ts"]; bundle([...entries]);', undefined],
 	[
@@ -51,7 +61,9 @@ ${script}`
 			),
 		],
 		function* ({ check }) {
-			expect(yield* check(unusedCode)).toEqual([expect.objectContaining({ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" })]);
+			const findings = yield* check(unusedCode);
+
+			expect(findings).toEqual([expect.objectContaining({ file: "src/abandoned.ts", subject: "files:src/abandoned.ts" })]);
 		},
 	);
 }

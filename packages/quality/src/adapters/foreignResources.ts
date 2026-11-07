@@ -1,12 +1,9 @@
 import ts from "typescript";
+import { foreignCallbackParameter, foreignDeclaration } from "#adapters/foreignCallback.ts";
+import { parameterOrigins } from "#adapters/parameterOrigins.ts";
 import { serviceProperty } from "#adapters/serviceAssemblySyntax.ts";
 import { effectApi, resolvedValue } from "#adapters/serviceModelSyntax.ts";
 import { returnValues } from "#rules/stories/returnValues.ts";
-
-function foreign(node: ts.Declaration): boolean {
-	const file = node.getSourceFile().fileName.replaceAll("\\", "/");
-	return file.includes("/node_modules/") && !/\/(?:effect|@effect|@shivaedev)\//u.test(file);
-}
 
 function constructed(checker: ts.TypeChecker, node: ts.Node, seen = new Set<ts.Node>()): boolean {
 	if (seen.has(node)) {
@@ -30,7 +27,7 @@ function constructed(checker: ts.TypeChecker, node: ts.Node, seen = new Set<ts.N
 
 function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewExpression, seen: Set<ts.Node>): boolean {
 	const signature = checker.getResolvedSignature(node);
-	if (signature?.declaration !== undefined && foreign(signature.declaration)) {
+	if (signature?.declaration !== undefined && foreignDeclaration(signature.declaration)) {
 		return true;
 	}
 	if (ts.isCallExpression(node)) {
@@ -48,42 +45,21 @@ function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewEx
 }
 
 export function foreignResources(checker: ts.TypeChecker, sources: readonly ts.SourceFile[]) {
-	let calls: Map<ts.ParameterDeclaration, ts.Expression[]> | undefined;
-	function argumentsIn() {
-		if (calls !== undefined) {
-			return calls;
-		}
-		const arguments_ = new Map<ts.ParameterDeclaration, ts.Expression[]>();
-		function visit(node: ts.Node): void {
-			if (ts.isCallExpression(node)) {
-				const declaration = checker.getResolvedSignature(node)?.declaration;
-				for (const [index, parameter] of (declaration?.parameters ?? []).entries()) {
-					const argument = node.arguments[index];
-					if (argument !== undefined && ts.isParameter(parameter)) {
-						const values = arguments_.get(parameter) ?? [];
-						values.push(argument);
-						arguments_.set(parameter, values);
-					}
-				}
-			}
-			ts.forEachChild(node, visit);
-		}
-		for (const source of sources) {
-			visit(source);
-		}
-		calls = arguments_;
-		return arguments_;
-	}
+	const originates = parameterOrigins(checker, sources);
 	return (parameter: ts.ParameterDeclaration): boolean => {
 		const source = parameter.getSourceFile();
 		if (!/(?:^|\/)adapters\//u.test(source.fileName)) {
 			return false;
 		}
 		const type = checker.getTypeAtLocation(parameter);
-		if (!(type.getSymbol()?.declarations ?? []).some(foreign) || type.getProperty("~effect/Context/Service") !== undefined) {
+		if (!(type.getSymbol()?.declarations ?? []).some(foreignDeclaration) || type.getProperty("~effect/Context/Service") !== undefined) {
 			return false;
 		}
-		const values = argumentsIn().get(parameter) ?? [];
-		return values.length > 0 && values.every((value) => constructed(checker, value));
+		return originates(parameter, (value) => {
+			const declaration = ts.isIdentifier(value) ? checker.getSymbolAtLocation(value)?.valueDeclaration : value;
+			return (
+				(declaration !== undefined && ts.isParameter(declaration) && foreignCallbackParameter(checker, declaration)) || constructed(checker, value)
+			);
+		});
 	};
 }

@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { browserLibraryType } from "#adapters/browserLibraryType.ts";
 import { callerContextData } from "#adapters/callerContextData.ts";
+import { nonEmptyContext } from "#adapters/nonEmptyContext.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";
@@ -72,14 +73,18 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		const contextual = declaration !== undefined && ts.isObjectLiteralExpression(declaration) ? checker.getContextualType(declaration) : undefined;
 		return contextual !== undefined && shapes.has(contextual);
 	}
-	function nonEmptyContext(context: ts.Type): boolean {
-		const variance = propertyType(context, "_Services");
-		const parameter = variance?.getCallSignatures()[0]?.parameters[0];
-		if (parameter === undefined) {
-			return false;
+	function serviceReturn(type: ts.Type): boolean {
+		if (type.isUnionOrIntersection()) {
+			return type.types.some(serviceReturn);
 		}
-		const required = checker.getTypeOfSymbol(parameter);
-		return !((checker.getBaseConstraintOfType(required) ?? required).flags & ts.TypeFlags.Never);
+		const context = propertyType(type, CONTEXT);
+		return (
+			type.getProperty(SERVICE) !== undefined
+			|| (!computation(type) && (implementation(type) || (context !== undefined && nonEmptyContext(checker, context))))
+		);
+	}
+	function factoryService(type: ts.Type): boolean {
+		return !initializerState && type.getCallSignatures().some((signature) => serviceReturn(signature.getReturnType()));
 	}
 	function carries(type: ts.Type, seen = new Set<ts.Type>()): boolean {
 		if (
@@ -107,7 +112,7 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		}
 		const context = propertyType(type, CONTEXT);
 		if (context !== undefined) {
-			return nonEmptyContext(context);
+			return nonEmptyContext(checker, context);
 		}
 		if (computation(type)) {
 			return false;
@@ -118,6 +123,7 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 		}
 		return (
 			implementation(type)
+			|| factoryService(type)
 			|| checker.getIndexInfosOfType(type).some((index) => carries(index.type, seen))
 			|| type.getProperties().some((property) => !(property.flags & ts.SymbolFlags.Method) && carries(checker.getTypeOfSymbol(property), seen))
 		);

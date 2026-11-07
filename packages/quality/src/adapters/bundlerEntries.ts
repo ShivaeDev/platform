@@ -4,6 +4,7 @@ import { buildEntryPaths } from "#adapters/buildEntryPaths.ts";
 import { type BuildBindings, buildEntryValue, buildOption } from "#adapters/buildEntryValue.ts";
 import { buildArguments, buildHelper } from "#adapters/buildHelper.ts";
 import { importedCall } from "#adapters/importedCall.ts";
+import { mappedBuildBindings } from "#adapters/mappedBuildBindings.ts";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 
@@ -21,6 +22,9 @@ function entryOption(call: ts.CallExpression): string | undefined {
 		return "entrypoints";
 	}
 	const imported = importedCall(call);
+	if (imported?.module === "rolldown" && ["build", "watch"].includes(imported.name)) {
+		return "input";
+	}
 	return imported?.module === "esbuild" && ESBUILD.has(imported.name) ? "entryPoints" : undefined;
 }
 
@@ -28,7 +32,16 @@ function entriesOf(call: ts.CallExpression, file: string, cwd: string, bindings:
 	const option = entryOption(call);
 	const [argument] = call.arguments;
 	const options = argument === undefined ? undefined : buildEntryValue(argument, new Set(), bindings);
-	if (option === undefined || options === undefined || !ts.isObjectLiteralExpression(options)) {
+	if (option === undefined || options === undefined) {
+		return [];
+	}
+	const configs = option === "input" && ts.isArrayLiteralExpression(options) ? options.elements : [options];
+	return configs.flatMap((config) => configuredEntries(config, option, file, cwd, bindings));
+}
+
+function configuredEntries(value: ts.Expression, option: string, file: string, cwd: string, bindings: BuildBindings): readonly string[] {
+	const options = buildEntryValue(value, new Set(), bindings);
+	if (!ts.isObjectLiteralExpression(options)) {
 		return [];
 	}
 	const directory = buildOption(options, "absWorkingDir");
@@ -55,7 +68,9 @@ export function bundlerEntries(
 		if (ts.isFunctionLike(node)) {
 			const body = callbackBody(node);
 			if (body !== undefined) {
-				visit(body, bindings, active);
+				for (const mapped of mappedBuildBindings(node, bindings)) {
+					visit(body, mapped, active);
+				}
 			}
 			return;
 		}
