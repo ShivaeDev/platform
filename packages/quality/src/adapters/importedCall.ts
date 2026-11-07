@@ -13,15 +13,19 @@ function calledName(expression: ts.LeftHandSideExpression, clause: ts.ImportClau
 	return namespace === expression.expression.text ? expression.name.text : undefined;
 }
 
-export function importedCall(call: ts.CallExpression): { readonly module: string; readonly name: string } | undefined {
-	for (const statement of call.getSourceFile().statements) {
+export function importedName(expression: ts.LeftHandSideExpression): { readonly module: string; readonly name: string } | undefined {
+	for (const statement of expression.getSourceFile().statements) {
 		if (!(ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) || statement.importClause === undefined) {
 			continue;
 		}
-		const name = calledName(call.expression, statement.importClause);
+		const name = calledName(expression, statement.importClause);
 		if (name !== undefined) {
 			return { module: statement.moduleSpecifier.text, name };
 		}
 	}
 	return undefined;
+}
+
+export function importedCall(call: ts.CallExpression): { readonly module: string; readonly name: string } | undefined {
+	return importedName(call.expression);
 }
