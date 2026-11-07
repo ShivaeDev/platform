@@ -8,6 +8,7 @@ import { migrateDatabase } from "#server/migrateDatabase.ts";
 const { url, configured } = postgresTestUrl("TEST_DATABASE_URL");
 
 export { configured };
+export const postgresSettingsCanApply = url !== undefined && new URL(url).port !== "55432";
 export const postgres = makePostgresTestLayer({
 	...clientOptions({ url: Redacted.make(url ?? "postgresql://integration-tests-disabled") }),
 	initialize: (templateUrl) => migrateDatabase(templateUrl).pipe(Effect.provide(NodeCrypto.layer)),

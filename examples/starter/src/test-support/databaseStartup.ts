@@ -4,7 +4,7 @@ import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { startHost } from "#test-support/host.ts";
-import { configured, postgres } from "#test-support/postgres.ts";
+import { postgres, postgresSettingsCanApply } from "#test-support/postgres.ts";
 
 const priorSettings = {
 	"idle_in_transaction_session_timeout": "0",
@@ -34,7 +34,7 @@ export const databaseStartup = storyKit({
 	},
 	layer: postgres,
 	name: "database startup",
-	runIf: configured,
+	runIf: postgresSettingsCanApply,
 	stages: ["settings"],
 	verbs: (engine, story) => ({
 		savedPostgresSettings: () => Effect.map(engine.savedSettings, (rows) => Object.fromEntries(rows.map(({ name, setting }) => [name, setting]))),
