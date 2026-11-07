@@ -1,4 +1,4 @@
-import { type Cause, Effect, type Result, Scope } from "effect";
+import { type Cause, Effect, type Result, type Schema, Scope } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
@@ -19,5 +19,5 @@ const race = raceWithLock({
 });
 
 expectTypeOf<Effect.Success<typeof race>>().toEqualTypeOf<Result.Result<never, "full">[]>();
-expectTypeOf<Effect.Error<typeof race>>().toEqualTypeOf<"lock failed" | SqlError | Cause.TimeoutError | NeverSettled<number>>();
+expectTypeOf<Effect.Error<typeof race>>().toEqualTypeOf<"lock failed" | SqlError | Schema.SchemaError | Cause.TimeoutError | NeverSettled<number>>();
 expectTypeOf<Effect.Services<typeof race>>().toEqualTypeOf<Dependency | SqlClient.SqlClient | Reactivity.Reactivity>();

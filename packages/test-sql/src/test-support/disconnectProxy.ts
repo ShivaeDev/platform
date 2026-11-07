@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Exit, Fiber, Layer, Option, Redacted, Scope } from "effect";
 import { SqlClient, type SqlConnection } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { disconnectProxy } from "#server/disconnectProxy.ts";
@@ -23,7 +24,10 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 			const peer = yield* disconnectProxy(destination.toString()).pipe(Scope.provide(scope));
 			const context = yield* Layer.build(PgClient.layer({ maxConnections: 1, url: Redacted.make(peer.url) }));
 			const sql = Context.get(context, SqlClient.SqlClient);
-			const connection: { current?: SqlConnection.Connection; query?: Fiber.Fiber<readonly (readonly unknown[])[] | string> } = {};
+			const connection: {
+				current?: SqlConnection.Connection;
+				query?: Fiber.Fiber<readonly (readonly unknown[])[] | string, SqlError>;
+			} = {};
 			return { connection, peer, scope, sql };
 		},
 		name: "PostgreSQL fault proxy",
@@ -31,7 +35,7 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 		stages: ["connection"],
 		verbs: ({ connection, peer, scope, sql }, story) => {
 			const query = Effect.suspend(() => connection.current?.executeValues("select 42", []) ?? sql`select 42`.values).pipe(
-				Effect.catch(() => Effect.succeed("connection failed")),
+				Effect.catchTag("SqlError", (error) => (error.reason._tag === "ConnectionError" ? Effect.succeed("connection failed") : Effect.fail(error))),
 			);
 			function pending() {
 				if (connection.query === undefined) {
