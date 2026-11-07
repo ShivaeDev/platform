@@ -104,7 +104,7 @@ export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly 
 	const results = yield* Effect.forEach(
 		rules.filter((rule) => rule !== validation),
 		(rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"),
-		{ concurrency: "unbounded" },
+		{ concurrency: 2 },
 	);
 	const seen = new Set<string>();
 	return results.flat().filter((finding) => {
