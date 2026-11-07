@@ -72,6 +72,7 @@
 		"dependency": "react",
 		"files": [
 			"dist/client/QueryView.d.ts",
+			"dist/client/permissionBoundary.d.ts",
 			"dist/client/sessionBoundary.d.ts",
 			"dist/client/NoticeContext.d.ts",
 			"dist/client/PermissionContext.d.ts",
