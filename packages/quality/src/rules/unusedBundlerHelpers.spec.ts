@@ -1,10 +1,16 @@
 import { expect } from "@effect/vitest";
 import { unusedCode } from "#rules/unusedCode.ts";
+import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
 for (const [form, script, helper] of [
 	["a local helper", 'const entries = ["src/main.ts", "src/preload.ts"]; bundle(entries);', undefined],
 	["a spread", 'const entries = ["src/main.ts", "src/preload.ts"]; bundle([...entries]);', undefined],
+	[
+		"an Effect acquisition callback",
+		'import { Effect } from "effect"; const entries = ["src/main.ts", "src/preload.ts"]; void Effect.runPromise(Effect.gen(function* () { yield* Effect.promise(() => bundle(entries)); }));',
+		undefined,
+	],
 	[
 		"an imported helper",
 		'import { bundle } from "./bundle.ts"; const entries = ["src/main.ts", "src/preload.ts"]; bundle(entries);',
@@ -14,9 +20,16 @@ for (const [form, script, helper] of [
 	ruleStory.it(
 		`code/unused follows desktop entries through ${form} and tool configs while reporting abandoned files`,
 		[
+			...(script.includes('from "effect"') ? [effectResolves()] : []),
 			repositoryHas(
 				{
-					content: '{"name":"desktop","private":true,"type":"module","scripts":{"build":"node script/build.ts"},"devDependencies":{"esbuild":"*"}}',
+					content: JSON.stringify({
+						devDependencies: { esbuild: "*", ...(script.includes('from "effect"') ? { effect: "*" } : {}) },
+						name: "desktop",
+						private: true,
+						scripts: { build: "node script/build.ts" },
+						type: "module",
+					}),
 					path: "package.json",
 				},
 				{

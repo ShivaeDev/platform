@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { importGraph } from "#imports/graph.ts";
+import { developmentCode } from "#naming/developmentCode.ts";
 import { testCode } from "#naming/testCode.ts";
 import { defineRule } from "#rule.ts";
 
@@ -7,8 +8,9 @@ export const noTestCode = defineRule({
 	check: Effect.fn("Imports.check")(function* (inputs) {
 		const graph = yield* importGraph(inputs);
 		const isTestCode = yield* testCode(inputs);
+		const tooling = yield* developmentCode(inputs);
 		return graph.edges
-			.filter((edge) => !isTestCode(edge.from) && edge.to.kind === "file" && isTestCode(edge.to.path))
+			.filter((edge) => !(isTestCode(edge.from) || tooling(edge.from)) && edge.to.kind === "file" && isTestCode(edge.to.path))
 			.map((edge) => ({
 				file: edge.from,
 				line: edge.line,

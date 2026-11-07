@@ -9,5 +9,6 @@
 - Treat a Layer's own Scope, allocated maps and Ref-backed handles and closures as owned initializer state.
 - Accept application-kit Context merges and Layer acquisition under an explicit restart scope while rejecting ambient context capture.
 - Recognise private test-composition packages consumed only by tests, test support and package development scripts.
-- Follow variable entry lists through bundler helpers and recognise conventional dependency-cruiser configs as entries.
+- Follow variable and spread entry lists through invoked local/imported bundler helpers and Effect acquisition callbacks, and recognise conventional dependency-cruiser configs as entries.
+- Count tool dependencies resolved through Node's `createRequire(...).resolve(...)` as used.
 - Recognise explicit Vitest config and reporter paths and typed foreign adapter plugins as default-export tool contracts.

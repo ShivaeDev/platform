@@ -6,6 +6,7 @@ import { isTooling } from "#imports/isTooling.ts";
 import { testComposition } from "#imports/testComposition.ts";
 import { packageOf } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
+import { developmentCode } from "./developmentCode.ts";
 import { packageTests } from "./packageTests.ts";
 import { isTestCode } from "./testName.ts";
 
@@ -34,11 +35,7 @@ export const testCode = Effect.fn("Tests.testCode")(function* (inputs: RuleInput
 	const graph = yield* importGraph(inputs);
 	const directories = new Set(policies.filter((policy) => policy.private).map((policy) => policy.owner.directory));
 	const scripted = new Set(policies.flatMap((policy) => policy.scripts));
-	function developmentFile(path: string) {
-		const directory = packageOf(graph.packages, path)?.directory ?? ".";
-		const local = posix.relative(directory, path);
-		return testFile(path) || isTooling(directory, path) || (!local.includes("/") && scripted.has(path));
-	}
+	const tooling = yield* developmentCode(inputs);
 	for (const path of graph.modules) {
 		const owner = packageOf(graph.packages, path);
 		if (owner === undefined) {
@@ -58,10 +55,10 @@ export const testCode = Effect.fn("Tests.testCode")(function* (inputs: RuleInput
 	const composition = testComposition(
 		graph,
 		graph.packages.filter((owner) => directories.has(owner.directory)),
-		developmentFile,
+		(path) => testFile(path) || tooling(path),
 	);
 	return (path: string) => {
 		const owner = packageOf(graph.packages, path);
-		return developmentFile(path) || (owner !== undefined && composition.has(owner));
+		return testFile(path) || (owner !== undefined && composition.has(owner));
 	};
 });

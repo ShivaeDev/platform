@@ -9,6 +9,12 @@ import { importedCall } from "./importedCall.ts";
 
 const ESBUILD = new Set(["build", "buildSync", "context"]);
 
+function callbackBody(node: ts.Node): ts.ConciseBody | undefined {
+	return (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && ts.isCallExpression(node.parent) && node.parent.arguments.includes(node)
+		? node.body
+		: undefined;
+}
+
 function entryOption(call: ts.CallExpression): string | undefined {
 	const expression = call.expression;
 	if (ts.isPropertyAccessExpression(expression) && expression.expression.getText() === "Bun" && expression.name.text === "build") {
@@ -47,6 +53,10 @@ export function bundlerEntries(
 	const entries: string[] = [];
 	function visit(node: ts.Node, bindings: BuildBindings, active: ReadonlySet<ts.Node>): void {
 		if (ts.isFunctionLike(node)) {
+			const body = callbackBody(node);
+			if (body !== undefined) {
+				visit(body, bindings, active);
+			}
 			return;
 		}
 		if (ts.isCallExpression(node)) {

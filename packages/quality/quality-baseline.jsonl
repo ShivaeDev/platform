@@ -1,4 +1,3 @@
-{"path":"packages/quality/package.json","rule":"code/unused","count":1}
 {"path":"packages/quality/src/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/baseline/legacy.ts","rule":"effect/boundary","count":2}
