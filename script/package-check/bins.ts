@@ -1,8 +1,8 @@
 import { basename, dirname, join } from "node:path";
-import { stripVTControlCharacters } from "node:util";
 import { Effect, FileSystem, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
+import { plainOutput } from "#package-check/adapters/plainOutput.ts";
 import { checkServer } from "#package-check/adapters/server.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeVersions, type Package, Versions } from "#package-check/model.ts";
@@ -72,7 +72,7 @@ const checkVersion = Effect.fn("Packed.checkVersion")(function* (consumer: strin
 	if (!enabled) {
 		return;
 	}
-	const output = stripVTControlCharacters(yield* command(consumer, bin, ["--version"])).trim();
+	const output = plainOutput(yield* command(consumer, bin, ["--version"]));
 	yield* requireThat(
 		output === `${basename(bin)} v${version}`,
 		`${bin}: --version reported ${JSON.stringify(output)}, expected ${basename(bin)} v${version}`,

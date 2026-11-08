@@ -1,9 +1,8 @@
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, FileSystem } from "effect";
+import { Effect, FileSystem, Path } from "effect";
+import { parsedArguments } from "#adapters/parsedArguments.ts";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { command, requireThat } from "#package-check/io.ts";
@@ -12,15 +11,15 @@ import { checkStarters } from "#starter-published/check.ts";
 import { checkDocumentation, readDocumentation } from "#starter-published/documentation.ts";
 import { installDocumentation } from "#starter-published/installDocumentation.ts";
 
-const { values } = parseArgs({
-	options: {
-		archives: { type: "string" },
-		variant: { type: "string" },
-	},
-});
-const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const program = Effect.gen(function* () {
+	const { values } = yield* parsedArguments({
+		options: {
+			archives: { type: "string" },
+			variant: { type: "string" },
+		},
+	});
 	const fs = yield* FileSystem.FileSystem;
+	const root = resolve(yield* (yield* Path.Path).fromFileUrl(new URL("..", import.meta.url)));
 	yield* requireThat(
 		values.variant === undefined || values.variant === "full" || values.variant === "minimal",
 		"The starter variant must be full or minimal.",

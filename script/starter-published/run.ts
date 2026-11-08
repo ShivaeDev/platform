@@ -1,5 +1,4 @@
-import process from "node:process";
-import { Effect, Stream } from "effect";
+import { Effect, type PlatformError, type Sink, Stdio, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { requireThat } from "#package-check/io.ts";
 
@@ -9,6 +8,9 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (
 	environment: Readonly<Record<string, string>> = {},
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	const stdio = yield* Stdio.Stdio;
+	const stdoutSink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = stdio.stdout();
+	const stderrSink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = stdio.stderr();
 	yield* Effect.log("Generated app: pnpm run ci");
 	const child = yield* spawner.spawn(
 		ChildProcess.make("pnpm", ["run", "ci"], {
@@ -19,16 +21,8 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (
 	);
 	const [stdout, stderr, code] = yield* Effect.all(
 		[
-			child.stdout.pipe(
-				Stream.tap((chunk) => Effect.sync(() => process.stdout.write(chunk))),
-				Stream.decodeText,
-				Stream.mkString,
-			),
-			child.stderr.pipe(
-				Stream.tap((chunk) => Effect.sync(() => process.stderr.write(chunk))),
-				Stream.decodeText,
-				Stream.mkString,
-			),
+			child.stdout.pipe(Stream.tapSink(stdoutSink), Stream.decodeText, Stream.mkString),
+			child.stderr.pipe(Stream.tapSink(stderrSink), Stream.decodeText, Stream.mkString),
 			child.exitCode,
 		],
 		{ concurrency: "unbounded" },
