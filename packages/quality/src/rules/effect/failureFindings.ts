@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { effectName, type FailureOperation, failureOperations, fileSystemCall } from "#rules/effect/failureOperations.ts";
-import { successRecovery } from "#rules/effect/successRecovery.ts";
+import { successRecovery, translatesFailure } from "#rules/effect/successRecovery.ts";
 
 interface FailureFinding {
 	readonly message: string;
@@ -30,7 +30,11 @@ function operationFailure(checker: ts.TypeChecker, operation: FailureOperation, 
 	return undefined;
 }
 
-export function failureFindings(checker: ts.TypeChecker, node: ts.CallExpression): readonly FailureFinding[] {
+function storyReadout(checker: ts.TypeChecker, name: string | undefined, handler: ts.Node, testSupport: boolean): boolean {
+	return testSupport && (name === "catch" || name === "catchAll") && translatesFailure(checker, handler);
+}
+
+export function failureFindings(checker: ts.TypeChecker, node: ts.CallExpression, testSupport: boolean): readonly FailureFinding[] {
 	const findings: FailureFinding[] = [];
 	const name = effectName(checker, node.expression);
 	if (name === "retry" && unboundedRetry(node)) {
@@ -41,7 +45,12 @@ export function failureFindings(checker: ts.TypeChecker, node: ts.CallExpression
 		});
 	}
 	const handler = node.arguments.at(-1);
-	if (["catch", "catchAll", "catchCause", "catchAllCause"].includes(name ?? "") && handler !== undefined && successRecovery(checker, handler)) {
+	if (
+		["catch", "catchAll", "catchCause", "catchAllCause"].includes(name ?? "")
+		&& handler !== undefined
+		&& successRecovery(checker, handler)
+		&& !storyReadout(checker, name, handler, testSupport)
+	) {
 		findings.push({
 			message:
 				"Catch turns every failure into success. Catch a named reason with catchTag or catchIf and re-fail the rest, or model an explicit unavailable state.",
