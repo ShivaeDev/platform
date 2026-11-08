@@ -2,9 +2,9 @@ import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, R
 import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import { registrationName } from "#server/adapters/register.ts";
-import type { PgBossClient } from "#server/client.ts";
 import { PgBossError } from "#server/error.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";

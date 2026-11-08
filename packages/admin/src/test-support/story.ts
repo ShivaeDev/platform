@@ -1,9 +1,11 @@
 import { Cause, Effect, Layer, Option, Ref, Stream } from "effect";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import type { Access } from "#test/Access.ts";
+import { Access as AccessRoles } from "#test/Access.ts";
 import { adminEngine } from "#test/adminEngine.ts";
 import { answered } from "#test/answers.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
@@ -69,15 +71,29 @@ export function signedInAs(role: typeof Access.Role.Type) {
 	);
 }
 
-function outcome(build: () => unknown, success: string) {
-	return Effect.sync(() => {
-		try {
-			build();
-			return success;
-		} catch (error) {
-			return error instanceof Error ? error.message : String(error);
-		}
-	});
+function adminOutcome<A, E>(effect: Effect.Effect<A, E>, success: string) {
+	return effect.pipe(
+		Effect.as(success),
+		Effect.catchCause((cause) => {
+			const error = Cause.squash(cause);
+			if (
+				error instanceof Error
+				&& /^(?:Duplicate admin (?:page id|RPC tag|path): |Overlapping admin paths: |Admin detail path .* must be under page path |Missing admin handlers: |Unregistered admin handlers: )/u.test(
+					error.message,
+				)
+			) {
+				return Effect.succeed(error.message);
+			}
+			return Effect.failCause(cause);
+		}),
+	);
+}
+
+function outcome(registry: ReturnType<typeof adminRegistry>, pages: readonly { readonly id: string }[], success: string) {
+	const handlers = Object.fromEntries(pages.map(({ id }) => [id, Layer.empty]));
+	const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [registry, handlers]);
+	const policy = { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) }, roles: AccessRoles };
+	return adminOutcome(Layer.build(registration.handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)))).pipe(Effect.scoped), success);
 }
 
 type HandlerPage = "jobs" | "reports" | "users";
@@ -89,28 +105,22 @@ export const registrationStory = storyKit({
 	verbs: (registry, story) => ({
 		composeRoutes: (composition: "together" | "modules", ...routes: readonly RoutePaths[]) => {
 			story.tell(`compose ${routes.map((route) => route.detail ?? route.path).join(" and ")} ${composition}`);
-			return outcome(() => {
-				const pages = routePages(routes);
-				return composition === "together" ? adminRegistry(...pages) : mergeAdminRegistries(...pages.map((page) => adminRegistry(page)));
-			}, "composed");
+			const pages = routePages(routes);
+			const combined = composition === "together" ? adminRegistry(...pages) : mergeAdminRegistries(...pages.map((page) => adminRegistry(page)));
+			return outcome(combined, pages, "composed");
 		},
 		composeWithJobs: (page: keyof typeof pagesBesideJobs) => {
 			story.tell(`compose a registry of the jobs page and ${page}`);
-			return outcome(() => Reflect.apply(mergeAdminRegistries, undefined, [adminRegistry(Jobs), adminRegistry(pagesBesideJobs[page])]), "composed");
+			const pages = [Jobs, pagesBesideJobs[page]];
+			const combined = mergeAdminRegistries(...pages.map((value) => adminRegistry(value)));
+			return outcome(combined, pages, "composed");
 		},
 		startHandlersFor: (...pages: readonly HandlerPage[]) => {
 			story.tell(`start the jobs and users handlers with handlers for ${pages.join(" and ")}`);
 			const handlers = Object.fromEntries(pages.map((page) => [page, Layer.empty]));
 			// The handler map's type already rejects missing and extra pages; the story checks the runtime guard behind it.
 			const registration: { readonly handlers: Layer.Layer<never, unknown> } = Reflect.apply(registerAdmin, undefined, [registry, handlers]);
-			return Layer.build(registration.handlers).pipe(
-				Effect.scoped,
-				Effect.as("started"),
-				Effect.catchCause((cause) => {
-					const error = Cause.squash(cause);
-					return Effect.succeed(error instanceof Error ? error.message : String(error));
-				}),
-			);
+			return adminOutcome(Layer.build(registration.handlers).pipe(Effect.scoped), "started");
 		},
 	}),
 });

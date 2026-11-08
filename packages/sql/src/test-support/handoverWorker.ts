@@ -1,6 +1,6 @@
 import { type Context, Deferred, Effect, Layer, Schema, type Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
+import type { PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { isSensitiveKey, redactText } from "@shivaedev/errors/sensitive.ts";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 
 type Listener = (error: Error) => void;
 

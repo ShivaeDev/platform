@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { JobReadOptions, PgBossClient } from "#server/client.ts";
+import type { JobReadOptions, PgBossClient } from "#server/adapters/client.ts";
 import { toPgBossError } from "#server/error.ts";
 
 export function inspectionJobs(client: PgBossClient) {

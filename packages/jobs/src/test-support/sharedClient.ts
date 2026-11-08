@@ -4,7 +4,7 @@ import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { defineQueue } from "#server/definition.ts";
 import { makePgBoss, pgBossLayer } from "#server/service.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";

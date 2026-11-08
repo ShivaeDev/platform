@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { logClientError } from "#server/clientErrors.ts";
+import { logClientError } from "#server/adapters/clientErrors.ts";
 
 export const clientErrorLogger = Effect.fnUntraced(function* () {
 	const run = Effect.runForkWith(yield* Effect.context<never>());

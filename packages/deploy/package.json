@@ -61,6 +61,7 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"effect": "catalog:",
 		"railway": "catalog:"
 	},
 	"engines": {

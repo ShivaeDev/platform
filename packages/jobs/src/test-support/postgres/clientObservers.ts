@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { type Job, PgBoss, type WorkOptions } from "pg-boss";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import type { DatabaseEngine } from "#test/postgres/databaseEngine.ts";
 import { notifyWork } from "#test/workers.ts";
 

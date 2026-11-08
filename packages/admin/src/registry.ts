@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { RpcGroup } from "effect/rpc";
 import { validateAdminRoutes } from "#adapters/validateAdminRoutes.ts";
 import type { AdminPage } from "#page.ts";
@@ -38,20 +39,23 @@ export function mergeAdminRegistries(...registries: readonly AnyAdminRegistry[])
 }
 
 export function adminRegistry<const TPages extends readonly AdminPage[]>(...pages: TPages & UniquePageIds<TPages>): AdminRegistry<TPages> {
-	const ids = new Set<string>();
-	const tags = new Set<string>();
-	function unique(seen: Set<string>, value: string, kind: string) {
-		if (seen.has(value)) {
-			throw new Error(`Duplicate admin ${kind}: ${value}`);
-		}
-		seen.add(value);
-	}
-	for (const page of pages) {
-		unique(ids, page.id, "page id");
-		for (const tag of page.contract.requests.keys()) {
-			unique(tags, tag, "RPC tag");
-		}
-	}
-	validateAdminRoutes(pages.map((page) => page.route));
 	return { group: RpcGroup.make().merge(...pages.map((page) => page.contract)), pages };
 }
+
+export const validateAdminRegistry = Effect.fnUntraced(function* (pages: readonly AdminPage[]) {
+	const ids = new Set<string>();
+	const tags = new Set<string>();
+	for (const page of pages) {
+		if (ids.has(page.id)) {
+			yield* Effect.die(new Error(`Duplicate admin page id: ${page.id}`));
+		}
+		ids.add(page.id);
+		for (const tag of page.contract.requests.keys()) {
+			if (tags.has(tag)) {
+				yield* Effect.die(new Error(`Duplicate admin RPC tag: ${tag}`));
+			}
+			tags.add(tag);
+		}
+	}
+	yield* validateAdminRoutes(pages.map((page) => page.route));
+});

@@ -1,9 +1,9 @@
 import { Schema } from "effect";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { inspectionDeferrals } from "#server/adapters/inspectionDeferrals.ts";
 import { inspectionJobs } from "#server/adapters/inspectionJobs.ts";
 import { inspectionOperation } from "#server/adapters/inspectionOperation.ts";
 import { inspectionSnapshot } from "#server/adapters/inspectionSnapshot.ts";
-import type { PgBossClient } from "#server/client.ts";
 import type { QueueDefinition } from "#server/definition.ts";
 import { quotedSchema } from "#server/storedRows.ts";
 

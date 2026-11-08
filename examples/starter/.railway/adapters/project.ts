@@ -1,10 +1,11 @@
+import { Effect } from "effect";
 import { project, type RailwayContext, volume } from "railway/iac";
 import { databaseService } from "@shivaedev/deploy/adapters/railway/databaseService.ts";
 import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
 import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
-export async function railwayProject(ctx: RailwayContext) {
-	const database = await databaseService("Postgres", {
+export const railwayProject = Effect.fnUntraced(function* (ctx: RailwayContext) {
+	const database = yield* databaseService("Postgres", {
 		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 		volume: volume("postgres-data"),
 	});
@@ -33,4 +34,4 @@ export async function railwayProject(ctx: RailwayContext) {
 		tracing: { autoInstrumentation: false, enabled: true },
 	});
 	return project(ctx.projectName ?? "app", { resources: [database, web, worker] });
-}
+});

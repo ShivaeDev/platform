@@ -1,5 +1,5 @@
 import { Effect, Redacted } from "effect";
-import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
+import type { PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import type { ScheduleDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossInspectionService } from "@shivaedev/jobs/server/inspection.ts";
 import { PgBossTestingError } from "#jobs/error.ts";

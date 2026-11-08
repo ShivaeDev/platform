@@ -2,6 +2,7 @@ import { Cause, Effect, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { causeWords } from "@shivaedev/test-story/server/answers.ts";
 import { adminVerbs } from "#test/app-host/adminVerbs.ts";
+import { applicationClockVerbs } from "#test/app-host/applicationClockVerbs.ts";
 import { browserErrorReadouts } from "#test/app-host/browserErrorReadouts.ts";
 import { clientAbortVerbs } from "#test/app-host/clientAbortVerbs.ts";
 import { connectionSecurity, serverOffersTls } from "#test/app-host/connectionSecurity.ts";
@@ -31,6 +32,7 @@ function statusKind(status: number) {
 export function hostVerbs(state: HostState, story: { tell: (line: string) => void }) {
 	return {
 		...adminVerbs(state, story.tell),
+		...applicationClockVerbs(state, story.tell),
 		...browserErrorReadouts(state),
 		connectionSecurity: () => connectionSecurity(state),
 		serverOffersTls: () => serverOffersTls(state),

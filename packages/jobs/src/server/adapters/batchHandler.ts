@@ -1,7 +1,7 @@
 import { Cause, Clock, Effect, Exit } from "effect";
 import { batchClockOffset } from "#server/adapters/batchClockOffset.ts";
-import type { PgBossClient } from "#server/client.ts";
-import { deadlineOf } from "#server/deadlineOf.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
+import { deadlineOf, validateDeadline } from "#server/deadlineOf.ts";
 import { deferredAttempt } from "#server/deferral.ts";
 import { toPgBossError } from "#server/error.ts";
 import { failureOutput } from "#server/failureOutput.ts";
@@ -60,6 +60,7 @@ export function batchHandler<R>(
 		throw new TypeError("This pg-boss client does not support complete and fail");
 	}
 	const handle = Effect.fnUntraced(function* (job: WorkerJob<unknown>, offset: number) {
+		yield* validateDeadline(job);
 		if (job.signal.aborted) {
 			return "interrupted";
 		}
@@ -81,6 +82,9 @@ export function batchHandler<R>(
 	return (jobs: readonly WorkerJob<unknown>[]) =>
 		Effect.gen(function* () {
 			const offset = yield* batchClockOffset(client, schema, name);
+			for (const job of jobs) {
+				yield* validateDeadline(job);
+			}
 			const deadline = Math.max(...jobs.map((job) => deadlineOf(job) + offset));
 			const waitForExpiry = waitForBatchExpiry(client, name, jobs, deadline).pipe(Effect.tapError(Effect.logError));
 			let expired = false;

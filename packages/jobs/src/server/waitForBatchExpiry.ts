@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
 import type { WorkerJob } from "#server/job.ts";
 

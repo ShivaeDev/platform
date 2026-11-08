@@ -4,8 +4,8 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
 import { Forbidden } from "#adapters/Forbidden.ts";
+import { PermissionBoundary } from "#adapters/permissionBoundary.ts";
 import { useSignOut } from "#client/adapters/useSignOut.ts";
-import { PermissionBoundary } from "#client/permissionBoundary.ts";
 import type { permissionApp } from "#test/permission-routes/app.tsx";
 
 type App = ReturnType<typeof permissionApp>;

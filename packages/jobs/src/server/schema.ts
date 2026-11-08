@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { installSchema } from "#server/adapters/installSchema.ts";
+import { pgBossSchemaStatus } from "#server/adapters/pgBossSchemaStatus.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
 
 const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
@@ -35,9 +35,9 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 				installed === undefined || installed.name === null
 					? []
 					: yield* sql`select version from ${table}`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledVersion)));
-			const required = pgBossPackage.pgboss.schema;
-			if (row === undefined || row.version < required) {
-				return `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`;
+			const status = pgBossSchemaStatus(schema, row?.version);
+			if (status !== undefined) {
+				return status;
 			}
 			const job = sql`${sql(schema)}.${sql("job")}`;
 			const deferrals = sql`${sql(schema)}.${sql("effect_job_deferral")}`;

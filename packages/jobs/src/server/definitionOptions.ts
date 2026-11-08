@@ -1,11 +1,17 @@
+import { Effect } from "effect";
 import type { QueueOptions } from "#server/queueOptions.ts";
 
+export const DEFAULT_MAX_DEFERRALS = 10;
+
 export function maxDeferrals(options: QueueOptions | undefined): number {
-	const limit = options?.maxDeferrals ?? 10;
+	return options?.maxDeferrals ?? DEFAULT_MAX_DEFERRALS;
+}
+
+export function validateMaxDeferrals(limit: number): Effect.Effect<void> {
 	if (!Number.isSafeInteger(limit) || limit < 0) {
-		throw new RangeError("maxDeferrals must be a nonnegative safe integer");
+		return Effect.die(new RangeError("maxDeferrals must be a nonnegative safe integer"));
 	}
-	return limit;
+	return Effect.void;
 }
 
 export function nativeQueueOptions(options: QueueOptions | undefined) {

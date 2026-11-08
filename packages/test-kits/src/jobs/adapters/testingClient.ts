@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBossClient } from "@shivaedev/jobs/server/client.ts";
+import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
 import type { WorkerJob } from "@shivaedev/jobs/server/job.ts";

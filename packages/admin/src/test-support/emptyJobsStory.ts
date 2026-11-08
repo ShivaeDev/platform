@@ -26,12 +26,13 @@ const emptyJobsEngine = Effect.gen(function* () {
 	);
 	const page = jobsPage();
 	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
+	const jobs = Context.get(context, Jobs);
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const auth = Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
 	const client = yield* RpcTest.makeClient(page.contract).pipe(
 		Effect.provide(hostChanges(registration.group).pipe(Layer.provideMerge(registration.handlers))),
 		Effect.provide(auth),
-		Effect.provideService(Jobs, Context.get(context, Jobs)),
+		Effect.provide(Layer.succeed(Jobs, jobs)),
 	);
 	return { client, session };
 });
