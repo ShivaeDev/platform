@@ -11,6 +11,7 @@ const TRANSLATIONS = [
 	"export const direct = Effect.catch(work, (error) => Effect.succeed(failureOf(error)));",
 	`export const piped = work.pipe(Effect.catch((error) => ${INTERPOLATED}));`,
 	'export const tagged = work.pipe(Effect.catch((error) => Effect.succeed(error.name === "Unavailable" ? "unavailable" : "refused")));',
+	"export const wrapped = work.pipe(Effect.catch((error) => (Effect.succeed(failureOf(error)))));",
 ].join("\n");
 
 ruleStory.it(
@@ -27,14 +28,12 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(failureHonesty);
 
-		yield* assertThat(yield* locations(), (actual) =>
-			actual.toEqual(["packages/kit/src/readouts.ts:4", "packages/kit/src/readouts.ts:5", "packages/kit/src/readouts.ts:6"]),
-		);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([4, 5, 6, 7].map((line) => `packages/kit/src/readouts.ts:${line}`)));
 	},
 );
 
 ruleStory.it(
-	"effect/failure-honesty reports a test-support catch that ignores its error on any branch or catches the whole cause",
+	"effect/failure-honesty reports a test-support catch that ignores its error on any branch, catches the whole cause or translates through a named handler",
 	[
 		repositoryHas({
 			content: [
@@ -44,6 +43,7 @@ ruleStory.it(
 				'export const unused = work.pipe(Effect.catch((error) => Effect.succeed("unrecognized failure")));',
 				'export const branch = work.pipe(Effect.catch((error) => error.name === "A" ? Effect.succeed(error.name) : Effect.succeed("other")));',
 				"export const cause = work.pipe(Effect.catchCause((failure) => Effect.succeed(String(failure))));",
+				"const translate = (error: unknown) => Effect.succeed(String(error)); export const named = work.pipe(Effect.catch(translate));",
 			].join("\n"),
 			path: "packages/kit/src/test-support/readouts.ts",
 		}),
@@ -52,7 +52,7 @@ ruleStory.it(
 		yield* check(failureHonesty);
 
 		yield* assertThat(yield* locations(), (actual) =>
-			actual.toEqual([3, 4, 5, 6].map((line) => `packages/kit/src/test-support/readouts.ts:${line}`)),
+			actual.toEqual([3, 4, 5, 6, 7].map((line) => `packages/kit/src/test-support/readouts.ts:${line}`)),
 		);
 	},
 );
