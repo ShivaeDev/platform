@@ -1,7 +1,12 @@
 ---
-"@shivaedev/quality": patch
+"@shivaedev/quality": minor
 ---
+
+### Breaking
+
+- Quality's Vitest DOM environment moved under `adapters/`. Replace `@shivaedev/quality/domEnvironment.config.ts` with `@shivaedev/quality/adapters/domEnvironment.config.ts`.
+- Quality's CLI runner bridge moved under `adapters/`. Replace `@shivaedev/quality/cli/runMain.ts` with `@shivaedev/quality/adapters/runMain.ts`.
 
 ### Changed
 
-- Quality's Vitest DOM environment and runner bridge moved under `adapters/`: import `@shivaedev/quality/adapters/domEnvironment.config.ts` and `@shivaedev/quality/adapters/runMain.ts` in place of `@shivaedev/quality/domEnvironment.config.ts` and `@shivaedev/quality/cli/runMain.ts`. `appTestConfig` now returns Vitest's `ViteUserConfig` type.
+- `appTestConfig` now returns Vitest's `ViteUserConfig` type.
