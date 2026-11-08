@@ -1,6 +1,6 @@
 import { Context, type Effect } from "effect";
 import type { KeysetPageQuery } from "@shivaedev/sql/keysetPage.ts";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import type { PgBossError } from "#server/error.ts";
 import type { PgBossService } from "#server/service.ts";
 

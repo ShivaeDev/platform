@@ -1,6 +1,6 @@
 import { Cause, type Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
-import type { PgBossClientFactory } from "#server/client.ts";
+import type { PgBossClientFactory } from "#server/adapters/client.ts";
 import { PgBossError } from "#server/error.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#server/service.ts";
@@ -130,8 +130,9 @@ export const startRuntime = Effect.fnUntraced(function* (engine: RuntimeEngine, 
 	const built = yield* provided(engine, Layer.buildWithScope(layer, scope)).pipe(Effect.exit);
 	if (Exit.isFailure(built)) {
 		const error = Option.getOrUndefined(Cause.findErrorOption(built.cause));
+		const failure = error ?? Cause.squash(built.cause);
 		engine.startups.set(name, error === undefined ? "died" : failureOf(error));
-		engine.failureMessages.set(name, error instanceof Error ? error.message : String(error));
+		engine.failureMessages.set(name, failure instanceof Error ? failure.message : String(failure));
 		return;
 	}
 	engine.startups.set(name, "started");

@@ -9,6 +9,7 @@ import { jobsHandlers, jobsReadHandlers } from "@shivaedev/admin/server/jobsHand
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -57,6 +58,7 @@ export const registeredJobs = jobsRedaction.trait(
 			Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url, supervise: false })),
 		);
 		const jobs = Context.get(yield* Layer.build(services), Jobs);
+		const inspection = yield* jobs.inspection();
 		const id = Option.getOrThrow(yield* jobs.enqueue(Mail, { recipient: "private-recipient@example.test" }, { retryLimit: 0 }));
 		yield* testing.waitForIdle;
 		const handlers = Layer.mergeAll(
@@ -64,14 +66,14 @@ export const registeredJobs = jobsRedaction.trait(
 			typedFailureHandlers,
 			JobDetails.toLayer({
 				jobFailure: () =>
-					jobsReadHandlers(page, Jobs)
+					jobsReadHandlers(page)
 						["admin.jobs.job"]({ id, queue: Mail.name })
 						.pipe(
 							Effect.orDie,
 							Effect.flatMap((job) => Effect.fail(Option.getOrThrow(job))),
 						),
 			}),
-		).pipe(Layer.provide(Layer.succeed(Jobs, jobs)));
+		).pipe(Layer.provide(Layer.merge(Layer.succeed(Jobs, jobs), Layer.succeed(PgBossInspection, inspection))));
 		state.build = () =>
 			appHost({
 				config: state.config,

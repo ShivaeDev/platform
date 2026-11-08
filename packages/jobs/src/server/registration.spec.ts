@@ -84,6 +84,16 @@ runtime.it(
 
 const Duplicate = defineQueue({ name: "duplicate", schema: Schema.Struct({}) });
 const DuplicateSchedule = defineSchedule({ cron: "17 3 * * *", name: "duplicate" });
+const InvalidDeferrals = defineQueue({ name: "invalid-deferrals", queue: { maxDeferrals: -1 }, schema: Schema.Struct({}) });
+
+runtime.it("a negative maxDeferrals fails when the jobs runtime starts", [], function* ({ failureMessage, start, startup }) {
+	yield* start("app", [InvalidDeferrals]);
+
+	yield* outcomes([
+		["app runtime", () => startup("app"), "died"],
+		["declaration failure", () => failureMessage("app"), "maxDeferrals must be a nonnegative safe integer"],
+	]);
+});
 
 runtime.it(
 	"a queue and a schedule with the same name fail registration before any queue or worker is created",

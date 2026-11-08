@@ -1,7 +1,7 @@
 import { Clock, Deferred, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { PgBossClient } from "#server/client.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { CodecQueue } from "#test/CodecQueue.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";

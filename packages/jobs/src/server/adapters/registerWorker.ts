@@ -1,13 +1,13 @@
 import { Effect, Fiber, Scope } from "effect";
 import { batchHandler } from "#server/adapters/batchHandler.ts";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { jobEngine } from "#server/adapters/jobEngine.ts";
-import type { PgBossClient } from "#server/client.ts";
+import { retryWake } from "#server/adapters/retryWake.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import { deferrableAttempt } from "#server/deferrableAttempt.ts";
 import { JobEngine } from "#server/engine.ts";
-import { toPgBossError } from "#server/error.ts";
+import { type PgBossError, toPgBossError } from "#server/error.ts";
 import type { WorkerJob } from "#server/job.ts";
-import { retryWake } from "#server/retryWake.ts";
 import { traceJob } from "#server/tracing.ts";
 import type { WorkerOptions } from "#server/workerOptions.ts";
 
@@ -25,11 +25,13 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 	const workerScope = yield* Scope.fork(scope);
 	const fibers = yield* Scope.fork(workerScope);
 	const engine = jobEngine(client, schema);
+	let registration: Promise<string>;
+	let registrationEffect: Effect.Effect<string, PgBossError>;
 	function runJob(job: WorkerJob<unknown>, deadline: number) {
 		return traceJob(deferrableAttempt(run(job, deadline), job, maxDeferrals).pipe(Effect.provideService(JobEngine, engine)), job, name);
 	}
 	function afterRetry(attempt: WorkerJob<unknown>) {
-		return retryWake(client, schema, name, attempt.id, registration).pipe(Effect.forkIn(fibers), Effect.asVoid);
+		return retryWake(client, schema, name, attempt.id, registrationEffect).pipe(Effect.forkIn(fibers), Effect.asVoid);
 	}
 	const handle = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),
@@ -41,14 +43,15 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 			return batchHandler(client, name, schema, runJob, afterRetry);
 		},
 	});
-	const registration: Promise<string> = yield* Effect.try({
+	registration = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),
 		try: () =>
 			client.work(name, { ...options, includeMetadata: true }, (jobs) =>
 				execute(handle(jobs).pipe(Effect.forkIn(fibers), Effect.flatMap(Fiber.join))),
 			),
 	});
-	const id = yield* Effect.tryPromise({ catch: (error) => toPgBossError("register", error, name), try: () => registration });
+	registrationEffect = Effect.tryPromise({ catch: (error) => toPgBossError("register", error, name), try: () => registration });
+	const id = yield* registrationEffect;
 	const graceful = stop?.graceful !== false;
 	const timeout = stop?.timeout ?? 30_000;
 	const drain = Effect.tryPromise({

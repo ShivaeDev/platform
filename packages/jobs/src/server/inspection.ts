@@ -1,9 +1,9 @@
 import type { DateTime, Effect, Schema } from "effect";
 import { Context } from "effect";
+import type { JobReadOptions } from "#server/adapters/client.ts";
 import type { inspectionChanges } from "#server/adapters/inspectionChanges.ts";
 import { inspectionLayer } from "#server/adapters/inspectionLayer.ts";
 import type { inspectionReads } from "#server/adapters/inspectionReads.ts";
-import type { JobReadOptions } from "#server/client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 import type { PgBossError, PgBossPayloadError } from "#server/error.ts";
 import type { Job } from "#server/job.ts";

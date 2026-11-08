@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { registrationNames } from "#server/adapters/register.ts";
-import type { PgBossClient } from "#server/client.ts";
 import type { JobRegistration } from "#server/definition.ts";
 import { toPgBossError } from "#server/error.ts";
 import { deadLetterQueueName } from "#server/health.ts";
