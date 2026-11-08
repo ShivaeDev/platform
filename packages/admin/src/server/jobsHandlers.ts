@@ -1,8 +1,9 @@
-import { DateTime, Effect, Option, type Schema } from "effect";
+import { type Context, DateTime, Effect, Layer, Option, type Schema } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { readJobFailure } from "@shivaedev/jobs/server/readJobFailure.ts";
+import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import type { jobsPage } from "#jobs/page.ts";
 import { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
@@ -79,6 +80,16 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[]>(pag
 	};
 }
 
-export function jobsHandlers<const TQueues extends readonly JobsEntry[]>(page: ReturnType<typeof jobsPage<TQueues>>) {
-	return page.contract.application.toLayer(jobsReadHandlers(page));
+export function jobsHandlers<const TQueues extends readonly JobsEntry[], TService>(
+	page: ReturnType<typeof jobsPage<TQueues>>,
+	service: Context.Service<TService, PgBossService>,
+) {
+	return page.contract.application.toLayer(jobsReadHandlers(page)).pipe(
+		Layer.provide(
+			Layer.effect(
+				PgBossInspection,
+				Effect.flatMap(service, (jobs) => jobs.inspection()),
+			),
+		),
+	);
 }

@@ -26,7 +26,7 @@ const Jobs = makePgBoss("test/JobsRedaction");
 const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ recipient: Schema.String }) });
 const page = jobsPage(Mail);
 const JobDetails = RpcGroup.make(Rpc.make("jobFailure", { error: jobSchema(Mail), success: Schema.Void }));
-const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page) });
+const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
 
 export const jobsRedaction = storyKit({
 	...hostOptions(),

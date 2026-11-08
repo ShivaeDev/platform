@@ -4,7 +4,6 @@ import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -89,7 +88,6 @@ export const jobsEngine = Effect.gen(function* () {
 		),
 	).pipe(Effect.provideService(Scope.Scope, scope));
 	const jobs = Context.get(context, Jobs);
-	const inspection = yield* jobs.inspection();
 	const beforeRegistration = readCount();
 	const registry = pages();
 	const page = registry.pages[0];
@@ -101,7 +99,7 @@ export const jobsEngine = Effect.gen(function* () {
 		registration.group,
 		hostChanges(registration.group)
 			.pipe(Layer.provideMerge(registration.handlers))
-			.pipe(Layer.provide(Layer.merge(Layer.succeed(Jobs, jobs), Layer.succeed(PgBossInspection, inspection)))),
+			.pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
 	);
 
 	return {
