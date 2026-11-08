@@ -1,0 +1,7 @@
+import type { Package } from "#package-check/model.ts";
+
+export function matchingWorkspaceTarballs(packages: readonly Package[], pins: Readonly<Record<string, string>>) {
+	return Object.fromEntries(
+		packages.filter(({ manifest }) => pins[manifest.name] === manifest.version).map(({ manifest, tarball }) => [manifest.name, tarball]),
+	);
+}
