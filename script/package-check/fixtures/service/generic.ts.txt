@@ -1,5 +1,5 @@
 import { Context, Effect } from "effect"
-import { defineService } from "@shivaedev/service/adapters/defineService.ts"
+import { defineService } from "@shivaedev/service/defineService.ts"
 import { genericMethod } from "@shivaedev/service/genericMethod.ts"
 
 class NumberCaller extends Context.Service<NumberCaller, number>()("consumer/NumberCaller") {}

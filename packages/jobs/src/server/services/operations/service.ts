@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { JobEngine } from "#server/engine.ts";
 import { JobQueues } from "#server/JobQueues.ts";
 import { PgBoss } from "#server/PgBoss.ts";

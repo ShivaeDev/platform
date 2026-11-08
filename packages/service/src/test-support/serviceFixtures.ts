@@ -1,5 +1,5 @@
 import { Context, Data, Deferred, Effect, Stream } from "effect";
-import { defineService } from "#adapters/defineService.ts";
+import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 
 export class Greeting extends Context.Service<Greeting, string>()("@shivaedev/service/story/Greeting") {}

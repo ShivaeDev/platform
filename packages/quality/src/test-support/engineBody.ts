@@ -3,7 +3,7 @@ import type { SeedFile } from "#testing/adapters/tree.ts";
 export const engineBodyFiles: readonly SeedFile[] = [
 	{
 		content:
-			'import { Context, Schema } from "effect"; import { defineService } from "@shivaedev/service/adapters/defineService.ts"; export const Tasks = defineService({}); export class Draft extends Schema.Class<Draft>("Draft")({}) {} export class Orders extends Context.Service<Orders, { save(): unknown }>()("Orders") {} export function makeOrders() { return {}; } export class Client {}',
+			'import { Context, Schema } from "effect"; import { defineService } from "@shivaedev/service/defineService.ts"; export const Tasks = defineService({}); export class Draft extends Schema.Class<Draft>("Draft")({}) {} export class Orders extends Context.Service<Orders, { save(): unknown }>()("Orders") {} export function makeOrders() { return {}; } export class Client {}',
 		path: "src/runtime.ts",
 	},
 	{ content: 'export { Orders as Store, makeOrders as createStore } from "./runtime.ts";', path: "src/exported.ts" },

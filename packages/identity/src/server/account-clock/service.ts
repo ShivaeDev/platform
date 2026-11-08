@@ -1,4 +1,4 @@
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { dayRange } from "#server/account-clock/dayRange.ts";
 import { initialize } from "#server/account-clock/initialize.ts";
 import { logicalDay } from "#server/account-clock/logicalDay.ts";

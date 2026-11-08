@@ -1,4 +1,4 @@
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { initializeWorkerRelease } from "#worker-release/initialize.ts";
 import { registerWorkerRelease } from "#worker-release/register.ts";

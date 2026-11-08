@@ -45,7 +45,7 @@ ruleStory.it(
 					"```md",
 					"`src/missing.ts`",
 					"```",
-					"`packages/<name>/src` `src/*.ts` `pnpm src/run.ts` `https://example.com/src/file.ts` `@shivaedev/service/adapters/defineService.ts`",
+					"`packages/<name>/src` `src/*.ts` `pnpm src/run.ts` `https://example.com/src/file.ts` `@shivaedev/service/defineService.ts`",
 				].join("\n"),
 				path: "docs/guide.md",
 			},

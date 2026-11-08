@@ -1,5 +1,5 @@
 import { Context, Data, Effect, Layer, type PubSub, type Scope } from "effect";
-import { defineService } from "#adapters/defineService.ts";
+import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
 import type { ServiceRequirements } from "#ServiceRequirements.ts";
 

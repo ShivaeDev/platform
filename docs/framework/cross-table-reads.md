@@ -17,7 +17,7 @@ The dashboard [service](../../packages/sql/src/test-support/cross-table/dashboar
 ```ts
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { DashboardConfig } from "./Config.ts";
 import { findReport } from "./findReport.ts";
 import { listPullRequests } from "./listPullRequests.ts";

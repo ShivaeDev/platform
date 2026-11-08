@@ -11,7 +11,7 @@ ruleStory.it(
 		serviceResolves(),
 		repositoryHas(
 			{
-				content: `import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+				content: `import { defineService } from "@shivaedev/service/defineService.ts";
 import { initialize } from "./initialize.ts";
 import { read } from "./read.ts";
 export const Inventory = defineService({ id: "app/Inventory", initialize, requires: [], methods: (state) => ({ read: read(state) }) });`,

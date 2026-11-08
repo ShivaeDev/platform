@@ -27,7 +27,7 @@ export const ${pascal}Repository = defineRepository({ id: "app/${pascal}Reposito
 export function resourceService({ camel, pascal }: ResourceNames) {
 	return `import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { create } from "./create.ts";
 import { list } from "./list.ts";
 import { ${pascal}Repository } from "./Repository.ts";

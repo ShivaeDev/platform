@@ -1,5 +1,5 @@
 import { HttpClient } from "effect/http";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { DiscordConfig } from "#DiscordConfig.ts";
 import { DiscordToken } from "#DiscordToken.ts";
 import { initialize } from "#rest/initialize.ts";

@@ -34,7 +34,7 @@ for (const replacement of [
 for (const source of [
 	'import { Layer } from "effect"; import { Mail } from "./adapters/mail.ts"; Layer.succeed(Mail, {});',
 	'import { Layer, FileSystem } from "effect"; Layer.succeed(FileSystem.FileSystem, {});',
-	'import { Layer } from "effect"; import { defineService } from "@shivaedev/service/adapters/defineService.ts"; const Fixture = defineService({}); Layer.succeed(Fixture, {});',
+	'import { Layer } from "effect"; import { defineService } from "@shivaedev/service/defineService.ts"; const Fixture = defineService({}); Layer.succeed(Fixture, {});',
 	"const fixture = `Layer.succeed(Orders, {});`;",
 ] as const) {
 	ruleStory.it(

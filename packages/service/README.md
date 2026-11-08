@@ -23,7 +23,7 @@ The service lists its requirements once and names its operations:
 ```ts
 import { Effect } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { add } from "#bookmarks/add.ts";
 import { BookmarkRows } from "#bookmarks/BookmarkRows.ts";
 import { list } from "#bookmarks/list.ts";
@@ -81,7 +81,7 @@ The service module imports it:
 
 ```ts
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { greet } from "#greetings/greet.ts";
 import { Prefix } from "#Prefix.ts";
 
@@ -225,7 +225,7 @@ The assembly imports the generic operation and marks it in the inventory:
 
 ```ts
 import { Context, Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { preserve } from "#preserve.ts";
 
@@ -260,11 +260,13 @@ Dependency binding wraps the operation's outer returned Effect. A Stream returne
 
 Import the module that defines the name:
 
-| Module                                         | Name                                                                               | Use                                                                                     |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `@shivaedev/service/adapters/defineService.ts` | `defineService(definition)`                                                        | Create a native service with its `.layer`.                                              |
-| `@shivaedev/service/genericMethod.ts`          | `genericMethod(method)`                                                            | Preserve a generic Effect-returning function and its caller requirements.               |
-| `@shivaedev/service/ServiceRequirements.ts`    | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
+| Module                                      | Name                                                                               | Use                                                                                     |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `@shivaedev/service/defineService.ts`       | `defineService(definition)`                                                        | Create a native service with its `.layer`.                                              |
+| `@shivaedev/service/genericMethod.ts`       | `genericMethod(method)`                                                            | Preserve a generic Effect-returning function and its caller requirements.               |
+| `@shivaedev/service/ServiceRequirements.ts` | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
+
+The public `defineService` entry stays at `@shivaedev/service/defineService.ts`. Its context-capturing requirement binder lives in `@shivaedev/service/adapters/requirementLayer.ts`.
 
 The definition's fields are:
 

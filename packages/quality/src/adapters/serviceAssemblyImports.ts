@@ -77,7 +77,7 @@ export function serviceAssemblyImports(source: ts.SourceFile): ServiceAssemblyIm
 			continue;
 		}
 		collectValueImports(imported.clause, values);
-		if (imported.module === "@shivaedev/service/adapters/defineService.ts") {
+		if (imported.module === "@shivaedev/service/defineService.ts") {
 			collectDefinitionImport(imported.clause, definitions, unsupported);
 		}
 		if (imported.module === "@shivaedev/service/genericMethod.ts") {

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { capture } from "#server/account-preferences/capture.ts";
 import { get } from "#server/account-preferences/get.ts";
 import { AccountPreferenceRows } from "#server/account-preferences/Rows.ts";

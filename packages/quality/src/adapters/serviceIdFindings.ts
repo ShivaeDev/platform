@@ -20,7 +20,7 @@ function literalId(checker: ts.TypeChecker, call: ts.CallExpression, ownPackage:
 	const reference = boundaryReference(checker, callee) ?? "";
 	let id = call.arguments[0];
 	if (
-		(ownPackage && reference === "#adapters/defineService.ts.defineService")
+		(ownPackage && reference === "#defineService.ts.defineService")
 		|| /^@shivaedev\/service\/defineService(?:\.ts)?\.defineService$/u.test(reference)
 	) {
 		id = definitionId(id);

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "#adapters/defineService.ts";
+import { defineService } from "#defineService.ts";
 
 defineService({
 	id: "@shivaedev/service/invalid/MethodValue",

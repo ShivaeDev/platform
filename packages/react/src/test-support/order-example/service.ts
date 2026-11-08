@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { get } from "#test/order-example/get.ts";
 import { list } from "#test/order-example/list.ts";
 import { OrdersRepository } from "#test/order-example/repository.ts";

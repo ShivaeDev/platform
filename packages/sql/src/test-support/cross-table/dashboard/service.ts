@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { DashboardConfig } from "#test/cross-table/dashboard/Config.ts";
 import { findReport } from "#test/cross-table/dashboard/findReport.ts";
 import { listPullRequests } from "#test/cross-table/dashboard/listPullRequests.ts";

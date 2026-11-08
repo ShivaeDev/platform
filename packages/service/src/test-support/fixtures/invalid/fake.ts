@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect";
-import { defineService } from "#adapters/defineService.ts";
+import { defineService } from "#defineService.ts";
 
 const Fakeable = defineService({
 	id: "@shivaedev/service/invalid/Fakeable",

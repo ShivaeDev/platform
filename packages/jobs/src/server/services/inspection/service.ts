@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { InspectionEngine } from "#server/InspectionEngine.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import { busy } from "#server/services/inspection/busy.ts";

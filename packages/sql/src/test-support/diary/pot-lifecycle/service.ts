@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { Pots } from "#test/diary/Pots.ts";
 import { settlePot } from "#test/diary/pot-lifecycle/settle.ts";
 

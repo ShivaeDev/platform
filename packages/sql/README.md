@@ -226,7 +226,7 @@ Keep each operation in its own module. The two service assemblies import those o
 
 ```ts
 import { Effect, Layer } from "effect";
-import { defineService } from "@shivaedev/service/adapters/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { loadPot } from "#pots/loadPot.ts";
 import { Pots } from "#pots/Pots.ts";
 import { settlePot } from "#pots/settlePot.ts";
