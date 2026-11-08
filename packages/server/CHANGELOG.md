@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.2 - 2026-11-08
+
+### Fixed
+
+- Long `TestClock` steps in stories no longer wake the browser-error rate limiter's cleanup every simulated minute.
+
 ## 0.33.1 - 2026-11-08
 
 ### Changed

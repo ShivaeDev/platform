@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.31 - 2026-11-08
+
+### Fixed
+
+- generated applications return an Effect from their Railway config and yield `databaseService` before composing service definitions.
+
 ## 0.43.30 - 2026-11-08
 
 ### Changed

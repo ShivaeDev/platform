@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.24.0 - 2026-11-08
+
+### Breaking
+
+- `jobsReadHandlers` now takes only the page and reads the `PgBossInspection` service from its Effect environment. Direct callers migrate from `jobsReadHandlers(JobsPage, JobsService)` to `jobsReadHandlers(JobsPage)` and provide `PgBossInspection`; `jobsHandlers` and `jobsHandlersWithRetry` keep their existing service-tag parameters and provide inspection internally.
+- duplicate page ids, RPC tags and routes now fail with the same messages when the handler Layer is built, rather than while `adminRegistry` is called. `validateAdminRoutes` now returns an Effect; direct callers should yield it instead of calling synchronously.
+
 ## 0.23.7 - 2026-11-08
 
 ### Changed

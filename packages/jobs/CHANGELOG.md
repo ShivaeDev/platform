@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.42.0 - 2026-11-08
+
+### Changed
+
+- invalid `maxDeferrals` declarations now fail with the same message when a jobs Layer is built, rather than while `defineQueue` or `defineSchedule` is called.
+
+### Breaking
+
+- the pg-boss client types, retry wake helper and client error observer moved from `server/client.ts`, `server/retryWake.ts` and `server/clientErrors.ts` into `server/adapters/`. Update internal adapter imports accordingly; callers typing a custom client factory can derive its type from `PgBossOptions["clientFactory"]` in `server/service.ts`.
+
 ## 0.41.4 - 2026-11-07
 
 ### Changed
