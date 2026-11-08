@@ -87,3 +87,22 @@ for (const specifier of ["./local.ts", "#local.ts"]) {
 		},
 	);
 }
+
+importStory.it(
+	"imports/aliased accepts relative imports between root tool configs, which no alias reaches, and still reports one between src/ modules",
+	[
+		repositoryHas(
+			{ content: '{"name":"app","type":"module","imports":{"#*.ts":"./src/*.ts"}}', path: "package.json" },
+			{ content: "export default { test: {} };", path: "vitest.config.ts" },
+			{ content: 'import base from "./vitest.config.ts";\nexport default base;', path: "vitest.coverage.config.ts" },
+			{ content: 'import base from "./vitest.config.ts";\nexport default base;', path: "vitest.screens.config.ts" },
+			{ content: 'import { local } from "./local.ts";\nexport const value = local;', path: "src/main.ts" },
+			{ content: "export const local = 1;", path: "src/local.ts" },
+		),
+	],
+	function* ({ check, sites }) {
+		yield* check(importsAliased);
+
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["src/main.ts:1 ./local.ts"]));
+	},
+);

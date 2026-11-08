@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { usePendingCommand } from "#client/pendingCommand.ts";
 import { useQuery } from "#client/resultState.ts";
 import type { PendingClient } from "#test/pendingCommandClient.ts";
+import type { PushedSwitchClient } from "#test/pushedSwitchClient.ts";
 
 function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
 	const toggle = usePendingCommand(client.command(id), {
@@ -35,6 +36,22 @@ export function PendingCommandScreen({ client }: { readonly client: PendingClien
 					<ToggleRow client={client} enabled={row.enabled} id={row.id} key={row.id} />
 				))}
 			</ul>
+		</section>
+	);
+}
+export function PushedSwitchScreen({ client }: { readonly client: PushedSwitchClient }) {
+	const current = useQuery(client.query);
+	const enabled = Option.getOrElse(current.data, () => false);
+	const toggle = usePendingCommand(client.set, { queries: [client.query], value: enabled, wanted: (input) => input.enabled });
+	if (Option.isNone(current.data)) {
+		return null;
+	}
+	return (
+		<section>
+			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value })} type="button">
+				Enabled
+			</button>
+			<output data-command={toggle.result._tag} />
 		</section>
 	);
 }

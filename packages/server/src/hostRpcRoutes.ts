@@ -79,7 +79,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
-			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
+			const wire = yield* redactingRpcSerialization(sensitive);
 			const httpWire: typeof wire = {
 				...wire,
 				makeUnsafe: () => {

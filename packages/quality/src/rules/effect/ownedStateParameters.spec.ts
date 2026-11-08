@@ -53,3 +53,57 @@ ${otherCall}`,
 		},
 	);
 }
+
+ruleStory.it(
+	"service parameters keeps imported owned state through helpers at every depth and reports a borrowed Scope",
+	[
+		effectResolves(),
+		serviceResolves(),
+		repositoryHas(
+			{
+				content: `import { defineService } from "@shivaedev/service/defineService.ts";
+import { initialize } from "./initialize.ts";
+import { execute } from "./execute.ts";
+export const Fabric = defineService({ id: "app/Fabric", initialize, requires: [], methods: (state) => ({ execute: execute(state) }) });`,
+				path: "src/fabric/service.ts",
+			},
+			{
+				content: `import { Effect, Scope } from "effect";
+import type { State } from "./state.ts";
+export const initialize = Effect.fn("Fabric.initialize")(function* () { return { lifetime: yield* Scope.Scope, attachments: new Map() } satisfies State; })();`,
+				path: "src/fabric/initialize.ts",
+			},
+			{
+				content: `import type { Scope } from "effect";
+export interface State { readonly lifetime: Scope.Scope; readonly attachments: Map<string, Scope.Closeable> }`,
+				path: "src/fabric/state.ts",
+			},
+			{
+				content: `import { Effect } from "effect";
+import type { State } from "./state.ts";
+import { run } from "./operation.ts";
+export const execute = (state: State) => Effect.fn("Fabric.execute")(function* (id: string) { return yield* run(state, id); });`,
+				path: "src/fabric/execute.ts",
+			},
+			{
+				content: `import { Effect } from "effect";
+import type { State } from "./state.ts";
+import { close } from "./close.ts";
+export const run = Effect.fn("Fabric.operation")(function* (state: State, id: string) { yield* close(state, id); });`,
+				path: "src/fabric/operation.ts",
+			},
+			{
+				content: `import { Effect, Exit, Scope } from "effect";
+import type { State } from "./state.ts";
+export const close = Effect.fn("Fabric.close")(function* (state: State, id: string) { const e = state.attachments.get(id); if (e) yield* Scope.close(e, Exit.void); });
+export const borrowed = (scope: Scope.Scope) => scope;`,
+				path: "src/fabric/close.ts",
+			},
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(serviceParameters);
+
+		expect(findings).toEqual([expect.objectContaining({ file: "src/fabric/close.ts", line: 4 })]);
+	},
+);

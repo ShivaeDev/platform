@@ -38,24 +38,37 @@ function declared(scope: ts.SourceFile | ts.Block, name: string): Helper | undef
 	return undefined;
 }
 
+function localHelper(expression: ts.Expression, call: ts.CallExpression): Helper | undefined {
+	if (!ts.isIdentifier(expression)) {
+		return undefined;
+	}
+	for (let scope: ts.Node | undefined = call.parent; scope !== undefined; scope = scope.parent) {
+		const helper = ts.isSourceFile(scope) || ts.isBlock(scope) ? declared(scope, expression.text) : undefined;
+		if (helper !== undefined) {
+			return helper;
+		}
+	}
+	return undefined;
+}
+
+export function importedSource(node: ts.Node, module: string, sources: ReadonlyMap<string, ts.SourceFile>): ts.SourceFile | undefined {
+	if (!(module.startsWith(".") || module.startsWith("#"))) {
+		return undefined;
+	}
+	const modulePath = module.startsWith("#") ? module.slice(1) : posix.join(posix.dirname(node.getSourceFile().fileName), module);
+	return sources.get(modulePath) ?? [...sources.values()].find((candidate) => candidate.fileName.replaceAll("\\", "/").endsWith(`/${modulePath}`));
+}
+
+function importedHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>): Helper | undefined {
+	const imported = importedCall(call);
+	const source = imported === undefined ? undefined : importedSource(call, imported.module, sources);
+	return source === undefined || imported === undefined ? undefined : declared(source, imported.name);
+}
+
 export function buildHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>, bindings: BuildBindings): Helper | undefined {
 	const expression = buildEntryValue(call.expression, new Set(), bindings);
 	if (ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) {
 		return expression;
 	}
-	if (ts.isIdentifier(expression)) {
-		for (let scope: ts.Node | undefined = call.parent; scope !== undefined; scope = scope.parent) {
-			const helper = ts.isSourceFile(scope) || ts.isBlock(scope) ? declared(scope, expression.text) : undefined;
-			if (helper !== undefined) {
-				return helper;
-			}
-		}
-	}
-	const imported = importedCall(call);
-	if (imported === undefined || !imported.module.startsWith(".")) {
-		return undefined;
-	}
-	const path = posix.join(posix.dirname(call.getSourceFile().fileName), imported.module);
-	const source = sources.get(path);
-	return source === undefined ? undefined : declared(source, imported.name);
+	return localHelper(expression, call) ?? importedHelper(call, sources);
 }

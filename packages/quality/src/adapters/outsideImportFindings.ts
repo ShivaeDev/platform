@@ -2,10 +2,12 @@ import { Effect } from "effect";
 import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { importGraph } from "#imports/graph.ts";
+import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageNameOf } from "#imports/packageName.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
+import { entryModules } from "#rules/effect/boundaryReference.ts";
 
 const CLIENT_RENDERING_LIBRARIES = new Set([
 	"react",
@@ -21,10 +23,11 @@ const CLIENT_RENDERING_LIBRARIES = new Set([
 	"tailwind-merge",
 ]);
 
-function exempt(path: string, name: string): boolean {
+function exempt(directory: string, path: string, name: string): boolean {
 	return (
 		/(?:^|\/)(?:adapters|test-support)\//u.test(path)
-		|| (name === "vitest" && testName(path)?.modifiers.includes("unit") === true)
+		|| isPackageRootConfig(directory, path)
+		|| (name === "vitest" && testName(path) !== undefined)
 		|| name === "effect"
 		|| name.startsWith("@effect/")
 		|| name.startsWith("@shivaedev/")
@@ -58,23 +61,23 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 			.filter((edge) => edge.missing === undefined && !/^[.#/]/u.test(edge.specifier))
 			.map((edge) => ({ ...edge, name: packageNameOf(edge.specifier) })),
 	];
-	return sites.flatMap((site) => {
+	const outside = sites.filter((site) => {
 		const directory = packageOf(graph.packages, site.from)?.directory ?? ".";
-		if (
+		return !(
 			workspace.has(site.name)
 			|| site.type
 			|| site.kind !== "import"
-			|| exempt(site.from, site.name)
+			|| exempt(directory, site.from, site.name)
 			|| !(site.name.startsWith("node:") || runtime.get(directory)?.has(site.name))
-		) {
-			return [];
-		}
-		return [
-			{
-				file: site.from,
-				line: site.line,
-				message: `Imports outside library "${site.specifier}" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.`,
-			},
-		];
+		);
 	});
+	const processImporters = new Set(outside.flatMap((site) => (site.name === "node:process" ? [site.from] : [])));
+	const entries = entryModules(inputs.sources.filter((file) => processImporters.has(file.path)));
+	return outside
+		.filter((site) => !(site.name === "node:process" && entries.has(site.from)))
+		.map((site) => ({
+			file: site.from,
+			line: site.line,
+			message: `Imports outside library "${site.specifier}" as a value. Move the integration into an adapters/ module with explicit imports that exposes Effect values; use import type for types. Read environment variables with Config instead of process.env, including in adapters/.`,
+		}));
 });

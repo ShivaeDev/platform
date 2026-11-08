@@ -2,7 +2,7 @@ import ts from "typescript";
 
 export type BuildBindings = ReadonlyMap<ts.ParameterDeclaration, ts.Expression>;
 
-function declaredValue(statements: readonly ts.Statement[], name: string): ts.Expression | undefined {
+export function declaredValue(statements: readonly ts.Statement[], name: string): ts.Expression | undefined {
 	for (const statement of statements) {
 		if (!(ts.isVariableStatement(statement) && statement.declarationList.flags & ts.NodeFlags.Const)) {
 			continue;

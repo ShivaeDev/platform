@@ -7,13 +7,12 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 export const NativeOrigins = Schema.Array(
 	Schema.String.check(
 		Schema.makeFilter((origin) => {
-			try {
-				const url = new URL(origin);
-				const authority = url.origin === "null" ? `${url.protocol}//${url.host}` : url.origin;
-				return url.host !== "" && !origin.includes("*") && authority === origin;
-			} catch {
+			if (!URL.canParse(origin)) {
 				return false;
 			}
+			const url = new URL(origin);
+			const authority = url.origin === "null" ? `${url.protocol}//${url.host}` : url.origin;
+			return url.host !== "" && !origin.includes("*") && authority === origin;
 		}),
 	),
 );

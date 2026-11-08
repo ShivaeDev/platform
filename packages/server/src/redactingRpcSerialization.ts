@@ -1,5 +1,5 @@
-import { type Effect, Predicate } from "effect";
-import type { RpcSerialization } from "effect/rpc";
+import { Effect, Predicate } from "effect";
+import { RpcSerialization } from "effect/rpc";
 import { redactWire } from "@shivaedev/errors/redact.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import { REDACTED } from "@shivaedev/errors/sensitive.ts";
@@ -7,10 +7,8 @@ import { REDACTED } from "@shivaedev/errors/sensitive.ts";
 function isRequestId(value: unknown): value is string | number {
 	return typeof value === "string" || typeof value === "number";
 }
-export function redactingRpcSerialization(
-	wire: RpcSerialization.RpcSerialization["Service"],
-	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
-): typeof wire {
+export const redactingRpcSerialization = Effect.fnUntraced(function* (sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>) {
+	const wire: RpcSerialization.RpcSerialization["Service"] = yield* RpcSerialization.RpcSerialization;
 	function reason(value: unknown, tag: string | undefined): unknown {
 		const redacted = redactWire(value, sensitive.forRpc(tag));
 		if (Predicate.isObjectOrArray(redacted)) {
@@ -62,7 +60,7 @@ export function redactingRpcSerialization(
 			}
 			return {
 				...parser,
-				decode: (data) => {
+				decode: (data: Uint8Array | string) => {
 					const decoded = parser.decode(data);
 					for (const request of decoded) {
 						if (
@@ -78,8 +76,8 @@ export function redactingRpcSerialization(
 					}
 					return decoded;
 				},
-				encode: (value) => parser.encode(response(value)),
+				encode: (value: unknown) => parser.encode(response(value)),
 			};
 		},
 	};
-}
+});

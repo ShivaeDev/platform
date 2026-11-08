@@ -35,6 +35,7 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 });
 
 export const loose = defineConfig({ local: rules });
+export const declaredEntries = defineConfig({ entries: ["script/perf/driver.ts", "script/workers/**/*.ts"] });
 
 export const customService: QualityConfig<readonly [typeof customServiceRule, typeof todo, typeof limited]> = defineConfig({
 	local: [customServiceRule, todo, limited],

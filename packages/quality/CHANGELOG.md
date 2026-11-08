@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.74.2 - 2026-11-08
+
+### Fixed
+
+- `effect/adapter-imports` and `effect/boundary` accept a tool config directly in a package's folder, such as `vitest.config.ts`, because the tool loads it from that fixed path; configs deeper in the package stay checked.
+- `effect/adapter-imports` accepts `node:process` in entry modules (cli, main and entry files, `runMain` callers and the `import.meta.url` argv guard), so it no longer contradicts Biome's `noProcessGlobal`; other builtins there, and `node:process` elsewhere, stay reported.
+- `effect/adapter-imports` accepts Vitest imports in every test and spec, also in packages that list Vitest as a peer; Vitest in shipped source stays reported.
+- `code/unused` and `files/named-after-export` treat `.railway/postgres-schedules.ts`, which `@shivaedev/deploy` loads from its default path, as an entry that keeps its name.
+- `imports/aliased` accepts relative imports between tool configs directly in a package's folder, which no `#` alias reaches.
+
+## 0.74.1 - 2026-11-08
+
+### Fixed
+
+- `code/unused`: Count declared dependencies named in a Rolldown, esbuild or Bun `external` list as used by the package whose build script bundles them, including lists imported from another module and narrowed with `.filter`. Dependencies that nothing imports or names as external are still reported.
+
+## 0.74.0 - 2026-11-07
+
+### Added
+
+- Add `entries` to `quality.config.ts` for files reached through runtime-built paths.
+
+### Fixed
+
+- `code/unused`: Resolve `import.meta.dirname`, `__dirname` and `fileURLToPath(import.meta.url)` in build and spawn scripts from the repository root, so entries of a workspace package's bundler or child-process script are no longer resolved under a doubled package folder and reported as unused with everything they import.
+
+## 0.73.3 - 2026-11-07
+
+### Fixed
+
+- Bound lint's peak memory by running at most two rules concurrently and releasing cached TypeScript source files after each package in `effect/service-parameters`.
+
+## 0.73.2 - 2026-11-07
+
+### Fixed
+
+- `code/unused`: Follow Rolldown helpers through package import aliases and local config helpers, and resolve `import.meta.dirname` from the file that contains it.
+- `effect/service-parameters`: Recognize host callbacks whose property type unions a function with an object hook.
+- `effect/service-parameters`: Keep owned service state recognized when imported `Effect.fn` operations pass it through helpers across files.
+
 ## 0.73.1 - 2026-11-07
 
 ### Changed

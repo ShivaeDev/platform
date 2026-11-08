@@ -828,9 +828,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.1.1
-      esbuild:
-        specifier: 'catalog:'
-        version: 0.28.2
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
@@ -1839,9 +1836,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
