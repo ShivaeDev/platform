@@ -10,12 +10,13 @@ for (const render of [
 	"export const Provider = ({ connection }: Props) => connection.active ? <RegistryContext.Provider value={connection.registry} /> : null;",
 ]) {
 	ruleStory.it(
-		"service parameters accepts module-level React connection props beside an ordinary registry parameter",
+		"service parameters accepts module-level React connection props beside an Effect body that takes the registry or the props",
 		[
 			effectResolves(),
 			repositoryLinks("node_modules/@types/react", `${packageRoot}/../react/node_modules/@types/react`),
 			repositoryHas({
 				content: `import { createContext, createElement, type ReactNode } from "react";
+import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 const RegistryContext = createContext<AtomRegistry.AtomRegistry | undefined>(undefined);
 export interface Props {
@@ -23,8 +24,8 @@ export interface Props {
  readonly connect: (registry: AtomRegistry.AtomRegistry) => unknown;
 }
 ${render}
-export const inspect = (registry: AtomRegistry.AtomRegistry) => registry;
-export const Pretender = (props: Props) => props.connection;`,
+export const inspect = Effect.fn(function* (registry: AtomRegistry.AtomRegistry) { return registry; });
+export const Pretender = Effect.fn(function* (props: Props) { return props.connection; });`,
 				path: "src/provider.tsx",
 			}),
 		],
