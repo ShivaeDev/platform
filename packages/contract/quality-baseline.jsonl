@@ -1,5 +1,0 @@
-{"path":"packages/contract/src/adapters/bindingOwner.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/automaticLive.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/contract/src/bind.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/contract/src/contract.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/clientOperations.ts","rule":"effect/service-parameters","count":2}
