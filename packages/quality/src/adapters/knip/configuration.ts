@@ -4,9 +4,11 @@ import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { mockEntries } from "#adapters/knip/mockEntries.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import type { ReachableBuilds } from "#adapters/reachableBuilds.ts";
 import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import type { PackageManifest } from "#PackageManifest.ts";
 import type { RuleInputs } from "#rule.ts";
 
 const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}", "src/test-support/**", "*.config.{ts,mts,cts,js,mjs,cjs}"];
@@ -38,10 +40,17 @@ function importPaths(imports: Readonly<Record<string, unknown>>) {
 	);
 }
 
+function externalDependencies(manifest: PackageManifest, externals: ReadonlySet<string>): readonly string[] {
+	const dependencies = [manifest.dependencies, manifest.devDependencies, manifest.optionalDependencies, manifest.peerDependencies].flatMap((names) =>
+		Object.keys(names ?? {}),
+	);
+	return dependencies.filter((name) => externals.has(name));
+}
+
 export async function knipConfiguration(
 	inputs: RuleInputs,
 	toolOwned: readonly string[] = [],
-	programmatic: ReadonlySet<string> = new Set(),
+	builds: ReachableBuilds = { entries: new Set(), externals: new Map() },
 	declared: readonly string[] = declaredEntries(inputs),
 ) {
 	const packages = await workspacePackages(inputs);
@@ -58,7 +67,7 @@ export async function knipConfiguration(
 			.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)
 			.map(({ path }) => posix.relative(directory, path));
 		const scriptEntries = sources.filter((path) => scripted.has(posix.join(directory, path)));
-		const bundled = sources.filter((path) => programmatic.has(posix.join(directory, path)) || mocked.has(posix.join(directory, path)));
+		const bundled = sources.filter((path) => builds.entries.has(posix.join(directory, path)) || mocked.has(posix.join(directory, path)));
 		const bins = exportTargets(manifest.bin).map((target) => target.replace(/^\.\//u, ""));
 		const binaries = sources.filter(
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
@@ -90,6 +99,8 @@ export async function knipConfiguration(
 					...styles,
 					...workspaceEntries,
 				],
+				// A bundle leaves its externals as runtime imports, which the bundling package's own dependencies satisfy.
+				ignoreDependencies: externalDependencies(manifest, builds.externals.get(directory === "." ? "" : directory) ?? new Set()),
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles, ...workspaceEntries],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },

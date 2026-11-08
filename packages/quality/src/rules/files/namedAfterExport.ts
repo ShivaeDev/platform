@@ -5,7 +5,7 @@ import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
 import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
-import { programmaticEntries } from "#inventory/programmaticEntries.ts";
+import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
 import { knownDataExports } from "#naming/adapters/plainData.ts";
 import { constantModule } from "#naming/constantModule.ts";
@@ -116,7 +116,7 @@ export const namedAfterExport = defineRule({
 		Effect.gen(function* () {
 			const { options, root, sources } = inputs;
 			const layout = yield* packageLayout(inputs);
-			const entries = yield* programmaticEntries(inputs);
+			const { entries } = yield* programmaticBuilds(inputs);
 			const routes = yield* routeFiles(root);
 			const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
 			return sources

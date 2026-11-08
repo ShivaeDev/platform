@@ -24,6 +24,6 @@ export const importsAliased = defineRule({
 			})),
 		),
 	description:
-		"Import own modules through the package.json `imports` aliases, including same-folder modules. Import other packages by their names and exported paths.",
+		"Import own modules through the package.json `imports` aliases, including same-folder modules; tool configs directly in a package's folder, which no alias reaches, may import each other relatively. Import other packages by their names and exported paths.",
 	id: "imports/aliased",
 });

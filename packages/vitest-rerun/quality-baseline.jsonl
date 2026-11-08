@@ -1,6 +1,4 @@
 {"path":"packages/vitest-rerun/package.json","rule":"code/unused","count":1}
-{"path":"packages/vitest-rerun/src/cli.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/vitest-rerun/src/attempt.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/vitest-rerun/src/snapshot.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/vitest-rerun/src/nonRerunnable.spec.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/vitest-rerun/src/attempt.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/rerun.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/vitest-rerun/src/snapshot.ts","rule":"effect/adapter-imports","count":1}

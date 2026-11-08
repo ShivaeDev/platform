@@ -1,5 +1,8 @@
 import { join } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
+import { isPackageRootConfig } from "#imports/isTooling.ts";
+import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
 import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
@@ -54,9 +57,6 @@ function checkBoundary(inputs: RuleInputs): readonly Finding[] {
 	const checker = program.getTypeChecker();
 	const call = boundaryCalls(checker);
 	return inputs.sources.flatMap((file) => {
-		if (/(?:^|\/)(?:adapters|test-support)\//u.test(file.path)) {
-			return [];
-		}
 		const source = parse(file) === undefined ? undefined : program.getSourceFile(join(inputs.root, file.path));
 		const findings: Finding[] = [];
 		const entryPoint = source !== undefined && boundaryEntryPoint(file.path, source, checker);
@@ -79,21 +79,29 @@ function checkBoundary(inputs: RuleInputs): readonly Finding[] {
 }
 
 export const effectBoundary = defineRule({
-	check: (inputs) => {
-		const groups = new Map<string, RuleInputs["sources"][number][]>();
-		for (const source of inputs.sources) {
-			if (/(?:^|\/)(?:adapters|test-support)\//u.test(source.path) || !/\.[cm]?[jt]sx?$/u.test(source.path)) {
-				continue;
-			}
-			const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
-			const sources = groups.get(group) ?? [];
-			sources.push(source);
-			groups.set(group, sources);
-		}
-		return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
-	},
+	check: (inputs) =>
+		Effect.map(
+			Effect.promise(() => workspacePackages(inputs)),
+			(packages) => {
+				const groups = new Map<string, RuleInputs["sources"][number][]>();
+				for (const source of inputs.sources) {
+					if (
+						/(?:^|\/)(?:adapters|test-support)\//u.test(source.path)
+						|| !/\.[cm]?[jt]sx?$/u.test(source.path)
+						|| isPackageRootConfig(packageOf(packages, source.path)?.directory ?? ".", source.path)
+					) {
+						continue;
+					}
+					const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
+					const sources = groups.get(group) ?? [];
+					sources.push(source);
+					groups.set(group, sources);
+				}
+				return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
+			},
+		),
 	description:
-		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });

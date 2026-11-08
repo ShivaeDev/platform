@@ -1,10 +1,8 @@
 {"path":"packages/quality/src/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/baseline/legacy.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/cli.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/cli/args.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/cli/migrateExceptions.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/cli/runMain.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/cli/runMain.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/adapter-imports","count":3}
 {"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/boundary","count":1}
@@ -37,4 +35,3 @@
 {"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":5}
-{"path":"packages/quality/vitest.config.ts","rule":"effect/adapter-imports","count":2}

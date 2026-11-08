@@ -30,12 +30,14 @@ function directSources(files: readonly SourceFile[]): Map<string, ts.SourceFile>
 	return sources;
 }
 
+function fileEdges(graph: ImportGraph): readonly (readonly [from: string, to: string])[] {
+	return graph.edges.flatMap((edge) => (!edge.type && edge.to.kind === "file" ? [[edge.from, edge.to.path] as const] : []));
+}
+
 function importedBy(graph: ImportGraph): ReadonlyMap<string, readonly string[]> {
 	const importers = new Map<string, string[]>();
-	for (const edge of graph.edges) {
-		if (!edge.type && edge.to.kind === "file") {
-			importers.set(edge.to.path, [...(importers.get(edge.to.path) ?? []), edge.from]);
-		}
+	for (const [from, to] of fileEdges(graph)) {
+		importers.set(to, [...(importers.get(to) ?? []), from]);
 	}
 	return importers;
 }
@@ -57,4 +59,21 @@ export function bundlerSources(files: readonly SourceFile[], graph: ImportGraph)
 		}
 	}
 	return sources;
+}
+
+export function bundlerModules(
+	sources: ReadonlyMap<string, ts.SourceFile>,
+	files: readonly SourceFile[],
+	graph: ImportGraph,
+): ReadonlyMap<string, ts.SourceFile> {
+	const filesByPath = new Map(files.map((file) => [file.path, file]));
+	const modules = new Map(sources);
+	for (const [from, to] of fileEdges(graph)) {
+		const file = sources.has(from) && !modules.has(to) ? filesByPath.get(to) : undefined;
+		const source = file === undefined ? undefined : parse(file);
+		if (source !== undefined) {
+			modules.set(to, source);
+		}
+	}
+	return modules;
 }
