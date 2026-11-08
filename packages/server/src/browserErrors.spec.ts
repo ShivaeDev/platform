@@ -134,3 +134,16 @@ host.it(
 		]);
 	},
 );
+
+host.it(
+	"after a browser report, thirty days passing in one step never wakes the rate limiter's cleanup on the application clock",
+	[],
+	function* ({ reportBrowserError, daysPass, applicationClockWakeups }) {
+		const response = yield* reportBrowserError("before the long wait");
+
+		yield* daysPass(30);
+
+		expect(response.status).toBe(HttpStatus.fromLiteral("Accepted"));
+		expect(yield* applicationClockWakeups()).toBe(0);
+	},
+);
