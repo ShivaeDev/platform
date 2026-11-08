@@ -2,7 +2,7 @@ import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import type * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { directScreenAct, screenAct, screenPerform } from "#server/adapters/screenAct.ts";
+import { directScreenAct, type ScreenAct, screenAct, screenPerform } from "#server/adapters/screenAct.ts";
 import { screenElements } from "#server/adapters/screenElements.ts";
 import { nextScreenHint } from "#server/nextScreenHint.ts";
 import { screenInteractions } from "#server/screenInteractions.ts";
@@ -16,7 +16,7 @@ import type { ScreenClock } from "#server/watchedClock.ts";
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 
 export interface ScreenDriverOptions {
-	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
+	readonly act?: ScreenAct;
 	readonly activity?: ScreenSignal;
 	readonly clock?: ScreenClock;
 	readonly loadingTimeoutMs?: number;

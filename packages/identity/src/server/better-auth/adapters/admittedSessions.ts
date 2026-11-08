@@ -7,7 +7,7 @@ import {
 	type SessionWithProviderAccounts,
 } from "#server/adapters/betterAuthSessions.ts";
 import { type BearerSessionsOptions, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
-import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
+import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/adapters/signInGate.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
 

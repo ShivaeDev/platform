@@ -1,7 +1,7 @@
 import { type Cause, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { ProviderAccountValue } from "#identity.ts";
-import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
+import type { SignInPolicy } from "#server/better-auth/adapters/signInGate.ts";
 import type { Revocation, SignInAnswer } from "#test/sign-in-policy/answers.ts";
 import { type fakeGitHub, type GitHubAccount, ORGANIZATION } from "#test/sign-in-policy/fakeGitHub.ts";
 import type { PolicyHost } from "#test/sign-in-policy/host.ts";

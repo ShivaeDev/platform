@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { PgBossInspectionService } from "@shivaedev/jobs/server/inspection.ts";
 import type { PgBossTestingError } from "#jobs/error.ts";
-import { testingInspection } from "#jobs/testingOperation.ts";
+import { testingInspection } from "#jobs/testingInspection.ts";
 
 export interface TestingBatch {
 	readonly jobs: ReadonlyMap<string, number>;

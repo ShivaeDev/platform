@@ -1,5 +1,5 @@
+import type { LooseDefinition } from "#server/adapters/seed.ts";
 import type { AnyEffect } from "#server/hooked.ts";
-import type { LooseDefinition } from "#server/seed.ts";
 import type { StoryKit } from "#server/storyKit.ts";
 
 export const kitDefinition: unique symbol = Symbol("story kit definition");

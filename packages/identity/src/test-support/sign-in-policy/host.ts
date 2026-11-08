@@ -12,7 +12,7 @@ import { Identity } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
+import type { SignInPolicy } from "#server/better-auth/adapters/signInGate.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
