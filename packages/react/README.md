@@ -182,12 +182,12 @@ Each `useUpdateBlocker(update, true)` holds its own blocker until it becomes fal
 
 #### Mount the notice host
 
-Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
+Mount the optional `NoticeHost` from `@shivaedev/react/client/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
 
 ```tsx
 import { Cause } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { NoticeHost, type Notice } from "@shivaedev/react/notices.ts";
+import { NoticeHost, type Notice } from "@shivaedev/react/client/notices.ts";
 
 function renderNotice(notice: Notice) {
 	const action = notice.action;

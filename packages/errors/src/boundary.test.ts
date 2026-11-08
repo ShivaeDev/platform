@@ -1,7 +1,12 @@
+import { ErrorReporter } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
 import { errors, releaseFails, unavailableFallback } from "#test/errors.ts";
+
+class SourceFault extends Error {
+	override readonly [ErrorReporter.attributes] = { requestId: "request-1" };
+}
 
 errors.it("a successful request keeps its value", [], function* ({ answer, succeed }) {
 	yield* succeed("saved");
@@ -37,16 +42,25 @@ for (const kind of ["failure", "defect"] as const) {
 	errors.it(
 		`an unexpected ${kind} becomes an internal rejection, retains the original fault and keeps it off the wire`,
 		[],
-		function* ({ answer, fault, retainedFaults, wireAnswer }) {
-			const original = new Error("database password=private-value");
+		function* ({ answer, fault, recordedReports, retainedFaults, wireAnswer }) {
+			const original = new SourceFault("database password=private-value");
 
 			yield* fault(kind, original);
 
 			const rejection = yield* answer();
 			const retained = yield* retainedFaults();
+			const reports = yield* recordedReports();
 			const wire = yield* wireAnswer();
+			const reported = reports[0]?.[kind === "failure" ? "failures" : "defects"]?.[0];
 			expect(rejection).toBeInstanceOf(InternalServerError);
 			expect(retained[0]).toBe(original);
+			expect(reported).toBeInstanceOf(Error);
+			expect(reported).not.toBe(original);
+			expect(reported).toHaveProperty("message", "database password=<redacted>");
+			expect(reported).toHaveProperty("stack", expect.stringContaining("password=<redacted>"));
+			expect(reported).toHaveProperty(ErrorReporter.attributes, { requestId: "request-1" });
+			expect(reported).toHaveProperty(ErrorReporter.severity, "Error");
+			expect(original).not.toHaveProperty(ErrorReporter.severity);
 			expect(wire).toEqual({ _tag: "InternalServerError", message: "Internal server error" });
 		},
 	);

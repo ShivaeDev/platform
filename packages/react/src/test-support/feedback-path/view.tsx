@@ -1,9 +1,9 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { StrictMode } from "react";
+import { type Notice, NoticeHost } from "#client/notices.ts";
 import { QueryView } from "#client/QueryView.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { type Notice, NoticeHost } from "#notices.ts";
 import { Commands } from "#test/feedback-path/Commands.tsx";
 import { Form } from "#test/feedback-path/Form.tsx";
 import type { NoticeClient } from "#test/notices/client.ts";
