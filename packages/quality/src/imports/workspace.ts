@@ -46,7 +46,7 @@ function matchers(patterns: readonly string[]) {
 const memberOf = Effect.fn("Imports.memberOf")(function* (inputs: Reader) {
 	const pnpm = yield* inputs.readText(PNPM_WORKSPACE);
 	const patterns = [
-		...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)),
+		...(pnpm === undefined ? [] : yield* Effect.fromResult(pnpmWorkspacePatterns(pnpm))),
 		...npmPatterns(yield* readPackageManifest(inputs.readText, MANIFEST)),
 	];
 	const included = yield* matchers(patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map(normalized));

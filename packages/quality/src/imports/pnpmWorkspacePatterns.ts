@@ -1,4 +1,9 @@
-import { Schema } from "effect";
+import { Data, Result, Schema } from "effect";
+
+export class PnpmWorkspaceFailure extends Data.TaggedError("PnpmWorkspaceFailure")<{
+	readonly cause?: unknown;
+	readonly message: string;
+}> {}
 
 function keyPattern(key: string): RegExp {
 	return new RegExp(`^(?:${key}|"${key}"|'${key}')\\s*:`, "u");
@@ -10,8 +15,8 @@ const SPACE = /\s/u;
 
 const LINE_BREAK = /\r?\n/u;
 
-function failure(problem: string, cause?: unknown): Error {
-	return new Error(`pnpm-workspace.yaml: ${problem}`, { cause });
+function failure(problem: string, cause?: unknown): PnpmWorkspaceFailure {
+	return new PnpmWorkspaceFailure({ cause, message: `pnpm-workspace.yaml: ${problem}` });
 }
 
 function withoutComment(line: string): string {
@@ -29,22 +34,20 @@ function withoutComment(line: string): string {
 	return line.trimEnd();
 }
 
-function scalar(raw: string, key: string): string {
+function scalar(raw: string, key: string): Result.Result<string, PnpmWorkspaceFailure> {
 	const value = raw.trim();
 	if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
-		try {
-			return Schema.decodeUnknownSync(Schema.fromJsonString(Schema.String))(value);
-		} catch (error) {
-			throw failure(`cannot read "${value}" in ${key}`, error);
-		}
+		return Result.mapError(Schema.decodeUnknownResult(Schema.fromJsonString(Schema.String))(value), (error) =>
+			failure(`cannot read "${value}" in ${key}`, error),
+		);
 	}
 	if (value.startsWith("'") && value.endsWith("'") && value.length > 1) {
-		return value.slice(1, -1).replaceAll("''", "'");
+		return Result.succeed(value.slice(1, -1).replaceAll("''", "'"));
 	}
 	if (value === "" || value.includes(": ") || value.endsWith(":") || ["[", "{", "'", '"'].some((opening) => value.startsWith(opening))) {
-		throw failure(`cannot read "${value}" in ${key}`);
+		return Result.fail(failure(`cannot read "${value}" in ${key}`));
 	}
-	return value;
+	return Result.succeed(value);
 }
 
 const FLOW_INDICATOR = /[{}[\]]/u;
@@ -55,20 +58,20 @@ interface FlowScan {
 	quote: string | undefined;
 }
 
-function flowScalar(raw: string, key: string): string {
+function flowScalar(raw: string, key: string): Result.Result<string, PnpmWorkspaceFailure> {
 	const value = raw.trim();
 	const quoted = value.startsWith('"') || value.startsWith("'");
 	if (!quoted && FLOW_INDICATOR.test(value)) {
-		throw failure(`cannot read "${value}" in ${key}; quote a pattern that holds { } [ ] or ,`);
+		return Result.fail(failure(`cannot read "${value}" in ${key}; quote a pattern that holds { } [ ] or ,`));
 	}
 	return scalar(value, key);
 }
 
-function closed(scan: FlowScan, rest: string, key: string): readonly string[] {
+function closed(scan: FlowScan, rest: string, key: string): Result.Result<readonly string[], PnpmWorkspaceFailure> {
 	if (rest.trim() !== "") {
-		throw failure(`cannot read "${rest.trim()}" after the ${key} list`);
+		return Result.fail(failure(`cannot read "${rest.trim()}" after the ${key} list`));
 	}
-	return [...scan.entries, scan.current].filter((entry) => entry.trim() !== "").map((entry) => flowScalar(entry, key));
+	return Result.all([...scan.entries, scan.current].filter((entry) => entry.trim() !== "").map((entry) => flowScalar(entry, key)));
 }
 
 function scanned(scan: FlowScan, char: string): "close" | undefined {
@@ -87,7 +90,7 @@ function scanned(scan: FlowScan, char: string): "close" | undefined {
 	return undefined;
 }
 
-function flowList(lines: readonly string[], key: string): readonly string[] {
+function flowList(lines: readonly string[], key: string): Result.Result<readonly string[], PnpmWorkspaceFailure> {
 	const scan: FlowScan = { current: "", entries: [], quote: undefined };
 	for (const [number, line] of lines.map(withoutComment).entries()) {
 		for (let index = number === 0 ? 1 : 0; index < line.length; index += 1) {
@@ -97,34 +100,36 @@ function flowList(lines: readonly string[], key: string): readonly string[] {
 		}
 		scan.current += " ";
 	}
-	throw failure(`the ${key} list never closes`);
+	return Result.fail(failure(`the ${key} list never closes`));
 }
 
-function blockList(lines: readonly string[], key: string): readonly string[] {
-	const patterns: string[] = [];
-	for (const line of lines.map(withoutComment)) {
-		const trimmed = line.trim();
-		if (trimmed === "") {
-			continue;
+function blockList(lines: readonly string[], key: string): Result.Result<readonly string[], PnpmWorkspaceFailure> {
+	return Result.gen(function* () {
+		const patterns: string[] = [];
+		for (const line of lines.map(withoutComment)) {
+			const trimmed = line.trim();
+			if (trimmed === "") {
+				continue;
+			}
+			const item = trimmed === ITEM || trimmed.startsWith(`${ITEM} `);
+			if (!(item || line.startsWith(" ") || line.startsWith("\t"))) {
+				break;
+			}
+			if (!item) {
+				return yield* Result.fail(failure(`cannot read "${trimmed}" in ${key}`));
+			}
+			patterns.push(yield* scalar(trimmed.slice(ITEM.length), key));
 		}
-		const item = trimmed === ITEM || trimmed.startsWith(`${ITEM} `);
-		if (!(item || line.startsWith(" ") || line.startsWith("\t"))) {
-			break;
-		}
-		if (!item) {
-			throw failure(`cannot read "${trimmed}" in ${key}`);
-		}
-		patterns.push(scalar(trimmed.slice(ITEM.length), key));
-	}
-	return patterns;
+		return patterns;
+	});
 }
 
-export function pnpmWorkspaceList(text: string, key: string): readonly string[] {
+export function pnpmWorkspaceList(text: string, key: string): Result.Result<readonly string[], PnpmWorkspaceFailure> {
 	const pattern = keyPattern(key);
 	const lines = text.split(LINE_BREAK);
 	const start = lines.findIndex((line) => pattern.test(line));
 	if (start === -1) {
-		return [];
+		return Result.succeed([]);
 	}
 	const rest = withoutComment(lines[start] ?? "")
 		.replace(pattern, "")
@@ -133,11 +138,11 @@ export function pnpmWorkspaceList(text: string, key: string): readonly string[] 
 		return flowList([rest, ...lines.slice(start + 1)], key);
 	}
 	if (rest !== "") {
-		throw failure(`cannot read "${rest}" in ${key}`);
+		return Result.fail(failure(`cannot read "${rest}" in ${key}`));
 	}
 	return blockList(lines.slice(start + 1), key);
 }
 
-export function pnpmWorkspacePatterns(text: string): readonly string[] {
+export function pnpmWorkspacePatterns(text: string): Result.Result<readonly string[], PnpmWorkspaceFailure> {
 	return pnpmWorkspaceList(text, "packages");
 }

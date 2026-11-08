@@ -1,4 +1,3 @@
-import { Schema } from "effect";
 import rawTrees from "#test/fixtures/import-trees.json" with { type: "json" };
 import type { SeedFile } from "#testing/adapters/tree.ts";
 
@@ -26,14 +25,8 @@ const STORIES = {
 
 export type TreeName = keyof typeof STORIES;
 
-const trees = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Array(Schema.Struct({ content: Schema.String, path: Schema.String }))))(
-	rawTrees,
-);
+const trees: Readonly<Record<TreeName, readonly SeedFile[]>> = rawTrees;
 
 export function fixtureTree(name: TreeName): Fixture {
-	const files = trees[name];
-	if (files === undefined) {
-		throw new Error(`fixtures/import-trees.json holds no tree named ${name}`);
-	}
-	return { files, story: STORIES[name] };
+	return { files: trees[name], story: STORIES[name] };
 }

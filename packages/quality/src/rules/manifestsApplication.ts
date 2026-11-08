@@ -1,5 +1,5 @@
 import { dirname, posix, relative, resolve, sep } from "node:path";
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { pnpmWorkspaceList } from "#imports/pnpmWorkspacePatterns.ts";
 import { workspacePackages } from "#imports/workspace.ts";
@@ -48,10 +48,9 @@ const hoistFindings = Effect.fn("Manifests.hoistFindings")(function* (
 	if (workspace === undefined) {
 		return [{ file: manifestPath, message: `Depends on "${PLATFORM}" without a pnpm-workspace.yaml. ${repair}`, subject: HOIST_KEY }];
 	}
-	const parsed = yield* Effect.try({ catch: (cause) => cause, try: () => pnpmWorkspaceList(workspace.text, HOIST_KEY) }).pipe(Effect.result);
-	if (parsed._tag === "Failure") {
-		const cause = parsed.failure;
-		return [{ file: workspace.path, message: `${cause instanceof Error ? cause.message : String(cause)}. Write ${HOIST_LINE}.`, subject: HOIST_KEY }];
+	const parsed = pnpmWorkspaceList(workspace.text, HOIST_KEY);
+	if (Result.isFailure(parsed)) {
+		return [{ file: workspace.path, message: `${parsed.failure.message}. Write ${HOIST_LINE}.`, subject: HOIST_KEY }];
 	}
 	const patterns = parsed.success;
 	const included = patterns.some((pattern) => !pattern.startsWith("!") && hoists(pattern));

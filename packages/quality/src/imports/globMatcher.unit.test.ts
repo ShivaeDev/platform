@@ -44,5 +44,6 @@ describe("globMatcher", () => {
 		expect(refusal("packages/[ab")).toBe('cannot read the workspace pattern "packages/[ab": a [ never closes');
 		expect(refusal("packages/+(a|b)")).toBe('cannot read the workspace pattern "packages/+(a|b)": extended globs are not supported');
 		expect(refusal("packages/{1..3}")).toBe('cannot read the workspace pattern "packages/{1..3}": brace ranges are not supported');
+		expect(refusal("packages/[z-a]")).toContain("Invalid regular expression");
 	});
 });

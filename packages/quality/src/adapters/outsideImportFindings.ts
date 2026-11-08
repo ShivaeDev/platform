@@ -5,6 +5,7 @@ import type { GlobFailure } from "#imports/globMatcher.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageNameOf } from "#imports/packageName.ts";
+import type { PnpmWorkspaceFailure } from "#imports/pnpmWorkspacePatterns.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
@@ -42,7 +43,7 @@ function exempt(directory: string, path: string, name: string): boolean {
 
 export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(function* (
 	inputs: RuleInputs,
-): Effect.fn.Return<readonly Finding[], GlobFailure | ImportAnalysisFailure | ManifestReadFailure> {
+): Effect.fn.Return<readonly Finding[], GlobFailure | ImportAnalysisFailure | ManifestReadFailure | PnpmWorkspaceFailure> {
 	const graph = yield* importGraph(inputs);
 	const owners = [...graph.packages.map((owner) => owner.directory), "."];
 	const runtime = new Map(

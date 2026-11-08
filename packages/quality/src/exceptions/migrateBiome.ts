@@ -1,4 +1,6 @@
+import { Result } from "effect";
 import ts from "typescript";
+import { MigrationFailure } from "#exceptions/MigrationFailure.ts";
 import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
 
 function nameOf(property: ts.ObjectLiteralElementLike): string | undefined {
@@ -34,11 +36,13 @@ function settingPath(rule: string): readonly string[] {
 	return tool === "files" ? ["files", "includes"] : [tool === "lint" ? "linter" : "assist", tool === "lint" ? "rules" : "actions", group, name];
 }
 
-export function migrateBiome(text: string, file: string, declarations: readonly Declaration[]): string {
+export function migrateBiome(text: string, file: string, declarations: readonly Declaration[]): Result.Result<string, MigrationFailure> {
 	const source = ts.parseJsonText(file, text);
 	const root = source.statements[0]?.expression;
 	if (ts.parseConfigFileTextToJson(file, text).error !== undefined || root === undefined || !ts.isObjectLiteralExpression(root)) {
-		throw new Error(`Cannot migrate invalid Biome config ${file}. Repair it, then run quality exceptions migrate again.`);
+		return Result.fail(
+			new MigrationFailure({ message: `Cannot migrate invalid Biome config ${file}. Repair it, then run quality exceptions migrate again.` }),
+		);
 	}
 	const globals = declarations.filter((entry) => entry.rule === "files/includes");
 	const stripped = strip(
@@ -46,7 +50,7 @@ export function migrateBiome(text: string, file: string, declarations: readonly 
 		globals.map((entry) => settingPath(entry.rule)),
 	);
 	if (!ts.isObjectLiteralExpression(stripped)) {
-		throw new Error(`Cannot migrate ${file}.`);
+		return Result.fail(new MigrationFailure({ message: `Cannot migrate ${file}.` }));
 	}
 	const properties = stripped.properties.flatMap((property) => {
 		if (nameOf(property) !== "overrides" || !ts.isPropertyAssignment(property) || !ts.isArrayLiteralExpression(property.initializer)) {
@@ -74,5 +78,7 @@ export function migrateBiome(text: string, file: string, declarations: readonly 
 			? []
 			: [ts.factory.updatePropertyAssignment(property, property.name, ts.factory.updateArrayLiteralExpression(property.initializer, overrides))];
 	});
-	return `${ts.createPrinter().printNode(ts.EmitHint.Expression, ts.factory.updateObjectLiteralExpression(root, properties), source)}\n`;
+	return Result.succeed(
+		`${ts.createPrinter().printNode(ts.EmitHint.Expression, ts.factory.updateObjectLiteralExpression(root, properties), source)}\n`,
+	);
 }
