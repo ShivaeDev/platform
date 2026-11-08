@@ -25,7 +25,7 @@ export const mergeBaseline = Effect.fn("Baseline.mergeBaseline")(
 		const entries = yield* Effect.forEach([base, ours, theirs], (path) =>
 			Effect.gen(function* () {
 				const raw = yield* fs.readFileString(path);
-				return yield* validOrFail(path, yield* Effect.promise(() => decodeBaseline(raw)));
+				return yield* validOrFail(path, decodeBaseline(raw));
 			}),
 		);
 		yield* fs.writeFileString(ours, encodeBaseline(mergeEntries(entries[0] ?? [], entries[1] ?? [], entries[2] ?? [])));

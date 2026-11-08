@@ -33,6 +33,6 @@ export type ExceptionDeclaration = typeof ExceptionDeclaration.Type;
 
 const ExceptionDeclarations = Schema.Array(ExceptionDeclaration);
 
-export function decodeExceptions(value: unknown): Promise<Decoded<readonly ExceptionDeclaration[]>> {
+export function decodeExceptions(value: unknown): Decoded<readonly ExceptionDeclaration[]> {
 	return decodeWith(ExceptionDeclarations, value);
 }

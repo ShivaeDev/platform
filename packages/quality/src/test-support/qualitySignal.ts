@@ -5,33 +5,34 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import { qualityArgs } from "#testing/adapters/cli.ts";
 import { isolatedEnvironment } from "#testing/adapters/git.ts";
-import { defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
+import { defaultTree, linkEffect, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 export const qualitySignal = storyKit({
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
 		const root = defaultTree({
 			content: `import { MessageChannel } from "node:worker_threads";
+import { Effect } from "effect";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 export default {
 local: [defineRule({
 	id: "local/wait",
 	description: "Waits for interruption.",
-	check: ({ signal }) => new Promise(resolve => {
+	check: () => Effect.callback(() => {
 		const { port1, port2 } = new MessageChannel();
 		port1.on("message", () => {});
-		signal.addEventListener("abort", () => {
+		console.log("local rule ready");
+		return Effect.sync(() => {
 			port1.close();
 			port2.close();
 			console.log("local rule aborted");
-			resolve([]);
-		}, { once: true });
-		console.log("local rule ready");
+		});
 	})
 })], sources: ["src"]
 }`,
 			path: "quality.config.ts",
 		});
+		linkEffect(root);
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const child = yield* spawner.spawn(
 			ChildProcess.make(process.execPath, qualityArgs(["lint"]), {

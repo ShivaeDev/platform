@@ -3,7 +3,7 @@ import { defineRule } from "@shivaedev/quality/rule.ts";
 import { MIGRATION_FILE_PATTERN, MIGRATIONS_DIRECTORY } from "@shivaedev/sql/migration.ts";
 
 export const migrationConvention = defineRule({
-	check: async () =>
+	check: () =>
 		QUALITY_DIRECTORY === MIGRATIONS_DIRECTORY
 		&& QUALITY_PATTERN.source === MIGRATION_FILE_PATTERN.source
 		&& QUALITY_PATTERN.flags === MIGRATION_FILE_PATTERN.flags

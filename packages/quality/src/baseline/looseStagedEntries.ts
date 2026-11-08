@@ -20,10 +20,10 @@ export const looseStagedEntries = Effect.fn("Baseline.looseStagedEntries")(funct
 	const entries: BaselineEntry[] = [];
 	for (const path of paths) {
 		const raw = yield* gitOrFail(root, ["show", `:./${path}`]);
-		const decoded = yield* validOrFail(path, yield* Effect.promise(() => decodeBaseline(raw)));
+		const decoded = yield* validOrFail(path, decodeBaseline(raw));
 		const tracked = head.code === 0 ? yield* gitOrFail(root, ["ls-tree", "HEAD", "--", path]) : "";
 		const previous = tracked === "" ? undefined : yield* gitOrFail(root, ["show", `HEAD:./${path}`]);
-		const before = yield* validOrFail(path, yield* Effect.promise(() => decodeBaseline(previous)));
+		const before = yield* validOrFail(path, decodeBaseline(previous));
 		const counts = new Map(before.map((entry) => [keyOf(entry.rule, entry.file), entry.count]));
 		entries.push(...decoded.filter((entry) => changed.files.has(entry.file) || counts.get(keyOf(entry.rule, entry.file)) !== entry.count));
 	}

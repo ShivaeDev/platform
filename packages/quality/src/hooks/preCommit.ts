@@ -15,10 +15,10 @@ const commitScripts = Effect.fnUntraced(function* (root: string) {
 
 	const file = join(root, "package.json");
 	const readText = yield* manifestReader(root);
-	const manifest = yield* Effect.tryPromise({
-		catch: (cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause instanceof Error ? cause.message : String(cause)}` }),
-		try: () => readPackageManifest(readText, file),
-	});
+	const manifest = yield* Effect.mapError(
+		readPackageManifest(readText, file),
+		(cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause.message}` }),
+	);
 	if (manifest === undefined) {
 		return { manager: "npm", scripts: [] };
 	}
@@ -27,7 +27,7 @@ const commitScripts = Effect.fnUntraced(function* (root: string) {
 		return yield* new SetupFailure({ message: `${file}: unsupported packageManager "${manager}". Use npm, pnpm, yarn or bun.` });
 	}
 	return { manager, scripts: ["typecheck", "quality:commit"].filter((script) => manifest.scripts?.[script] !== undefined) };
-}, Effect.scoped);
+});
 
 const runScript = Effect.fnUntraced(
 	function* (root: string, manager: string, script: string) {

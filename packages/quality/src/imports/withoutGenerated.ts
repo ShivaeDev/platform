@@ -19,7 +19,7 @@ const NODE_MODULES = "node_modules";
 const PLACEHOLDERS = new Set([".gitkeep", ".keep"]);
 
 const withIgnoreFileIn = Effect.fn("Imports.withIgnoreFileIn")(function* (reader: Reader, scope: IgnoreScope, directory: string) {
-	const contents = yield* Effect.promise(() => reader.readText(posix.join(directory, IGNORE_FILE)));
+	const contents = yield* reader.readText(posix.join(directory, IGNORE_FILE));
 	return contents === undefined || contents === "" ? scope : withIgnoreFile(scope, posix.join(reader.root, directory), contents);
 });
 

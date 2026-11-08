@@ -14,7 +14,8 @@ export const todo = defineRule({
 const Limit = Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) });
 
 export const maxFiles = defineRule({
-	check: async ({ files, options }) => (files.length > options.max ? [{ file: ".", message: `${files.length} files exceed ${options.max}.` }] : []),
+	check: ({ files, options }) =>
+		Effect.succeed(files.length > options.max ? [{ file: ".", message: `${files.length} files exceed ${options.max}.` }] : []),
 	description: "Keep the repository small.",
 	id: "local/max-files",
 	options: Schema.toStandardSchemaV1(Limit, { parseOptions: { onExcessProperty: "error" } }),
@@ -36,6 +37,17 @@ export const echo = defineRule({
 	description: "Reports its option.",
 	id: "local/echo",
 	options: shouting,
+});
+
+export const readsNotes = defineRule({
+	check: ({ readText }) =>
+		Effect.gen(function* () {
+			const present = yield* readText("notes.md");
+			const absent = yield* readText("absent.md");
+			return [{ file: "notes.md", message: `${present?.trim()} then ${String(absent)}` }];
+		}),
+	description: "Reports what it read.",
+	id: "local/reads-notes",
 });
 
 export const definedRules = [todo, maxFiles, echo];

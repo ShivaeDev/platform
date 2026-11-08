@@ -13,7 +13,7 @@ const AuthSqlOptions = Schema.Struct({
 export const authSql = defineRule({
 	check: ({ options, ...inputs }) =>
 		Effect.gen(function* () {
-			const queries = yield* Effect.promise(() => sqlTexts(inputs));
+			const queries = yield* sqlTexts(inputs);
 			function owns(file: string): boolean {
 				return matchesAny(file, globPatterns(options.owners));
 			}

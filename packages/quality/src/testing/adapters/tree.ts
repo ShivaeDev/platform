@@ -28,6 +28,10 @@ export function linkPackage(root: string): void {
 	symlinkSync(packageRoot, join(root, "node_modules", "@shivaedev", "quality"), "dir");
 }
 
+export function linkEffect(root: string): void {
+	symlinkSync(join(packageRoot, "node_modules", "effect"), join(root, "node_modules", "effect"), "dir");
+}
+
 export const DEFAULT_FILES: readonly SeedFile[] = [
 	{ content: "node_modules/\n", path: ".gitignore" },
 	{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },

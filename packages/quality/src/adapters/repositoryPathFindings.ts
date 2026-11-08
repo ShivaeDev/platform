@@ -48,7 +48,7 @@ export const repositoryPathFindings = Effect.fn("Docs.repositoryPathFindings")(f
 	const roots = new Set(files.map((file) => file.split("/")[0]));
 	const findings: Finding[] = [];
 	for (const file of files.filter((path) => isDocument(path) && posix.basename(path) !== "CLAUDE.md")) {
-		const text = yield* Effect.promise(() => readText(file));
+		const text = yield* readText(file);
 		for (const reference of references(text ?? "")) {
 			const { path, span, line } = reference;
 			if (!(path.startsWith("./") || path.startsWith("../") || roots.has(path.split("/")[0]))) {

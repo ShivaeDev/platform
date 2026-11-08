@@ -23,13 +23,13 @@ import(api).then(() => { process.chdir(root); return import(entry); })
 .catch(error => { console.error(error); process.exitCode = 1; });
 `;
 export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) {
-	if ((yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined) {
+	if ((yield* readPackageManifest(inputs.readText, "package.json")) === undefined) {
 		return [];
 	}
 	const files = yield* toolOwnedFiles(inputs.root);
 	const builds = yield* programmaticBuilds(inputs);
 	const declared = declaredEntries(inputs);
-	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files, builds, declared));
+	const configuration = yield* knipConfiguration(inputs, files, builds, declared);
 	const checked = new Set([
 		...inputs.files,
 		...declared,

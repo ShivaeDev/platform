@@ -15,7 +15,7 @@ const ownerOf = Effect.fn("Biome.ownerOf")(function* (inputs: Pick<RuleInputs, "
 	let directory = posix.dirname(path);
 	for (;;) {
 		const file = posix.join(directory, "package.json");
-		const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, file));
+		const manifest = yield* readPackageManifest(inputs.readText, file);
 		if (manifest !== undefined || directory === ".") {
 			return { directory, manifest };
 		}
@@ -33,7 +33,7 @@ const brought = Effect.fn("Biome.brought")(function* (inputs: Pick<RuleInputs, "
 	if (!isApplication(owner.manifest)) {
 		return false;
 	}
-	const entryPoints = yield* Effect.promise(() => entryPointsOf(inputs, owner.directory, owner.manifest, new Map()));
+	const entryPoints = yield* entryPointsOf(inputs, owner.directory, owner.manifest, new Map());
 	const development = isTestCode(path) || isTooling(owner.directory, path);
 	return provider(entryPoints, name, development, true) !== undefined;
 });

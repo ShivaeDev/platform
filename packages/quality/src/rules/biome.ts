@@ -24,7 +24,7 @@ function findingOf(diagnostic: Diagnostic): Finding {
 }
 
 const presetFinding = Effect.fn("Biome.presetFinding")(function* (inputs: Pick<RuleInputs, "readText">) {
-	const { extendsPreset, path } = yield* Effect.promise(() => rootConfig(inputs.readText));
+	const { extendsPreset, path } = yield* rootConfig(inputs.readText);
 	return extendsPreset ? [] : [{ file: path, message: `Extend "${PRESET}" from the root Biome config.`, subject: "preset" }];
 });
 

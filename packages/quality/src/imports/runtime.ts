@@ -77,9 +77,8 @@ export const runtimeDeclarationProblems = Effect.fn("Imports.runtimeDeclarationP
 	packages: readonly WorkspacePackage[],
 ) {
 	const problems = yield* Effect.forEach([...packages, { directory: ".", name: "." }], (owner) =>
-		Effect.flatMap(
-			Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
-			(manifest) => problemsFor(inputs.root, owner, manifest),
+		Effect.flatMap(readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json")), (manifest) =>
+			problemsFor(inputs.root, owner, manifest),
 		),
 	);
 	return problems.flat();
@@ -90,7 +89,7 @@ export const runtimeOf = Effect.fn("Imports.runtimeOf")(function* (inputs: RuleI
 	const manifests = new Map(
 		yield* Effect.forEach(owners, (owner) =>
 			Effect.map(
-				Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
+				readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json")),
 				(manifest) => [owner.directory, manifest] as const,
 			),
 		),

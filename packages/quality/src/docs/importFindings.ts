@@ -4,13 +4,14 @@ import { type DocumentedModule, documentedModule } from "#docs/documentedModule.
 import { exportsName } from "#docs/exportsName.ts";
 import { packageNameOf } from "#imports/packageName.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
-import type { Finding } from "#rule.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import type { Finding, RuleInputs } from "#rule.ts";
 
 export interface ImportContext {
 	readonly exports: ReadonlyMap<string, unknown>;
 	readonly owner: string | undefined;
 	readonly packages: ReadonlyMap<string, WorkspacePackage>;
-	readonly readText: (path: string) => Effect.Effect<string | undefined>;
+	readonly readText: RuleInputs["readText"];
 	readonly root: string;
 }
 
@@ -25,7 +26,7 @@ function problem(
 	entry: DocumentedImport,
 	module: DocumentedModule,
 	owner: WorkspacePackage,
-): Effect.Effect<string | undefined> {
+): Effect.Effect<string | undefined, FilesystemFailure> {
 	if (module.kind === "missing") {
 		return Effect.succeed(`"${entry.specifier}" names no module of ${owner.name}. Use the path of a module its package.json "exports" maps.`);
 	}
@@ -38,7 +39,7 @@ function problem(
 	);
 }
 
-export function importFindings(context: ImportContext, file: string, markdown: string): Effect.Effect<readonly Finding[]> {
+export function importFindings(context: ImportContext, file: string, markdown: string): Effect.Effect<readonly Finding[], FilesystemFailure> {
 	const entries = documentedImports(markdown, { owner: context.owner, packages: (name) => context.packages.has(name) });
 	const unique = [...new Map(entries.map((entry) => [`${entry.line} ${entry.specifier} ${entry.name ?? ""}`, entry])).values()];
 	return Effect.map(

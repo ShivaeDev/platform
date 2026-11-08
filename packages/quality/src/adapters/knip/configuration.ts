@@ -1,5 +1,6 @@
 import { globSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
+import { Effect } from "effect";
 import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { mockEntries } from "#adapters/knip/mockEntries.ts";
@@ -47,18 +48,21 @@ function externalDependencies(manifest: PackageManifest, externals: ReadonlySet<
 	return dependencies.filter((name) => externals.has(name));
 }
 
-export async function knipConfiguration(
+export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 	inputs: RuleInputs,
 	toolOwned: readonly string[] = [],
 	builds: ReachableBuilds = { entries: new Set(), externals: new Map() },
 	declared: readonly string[] = declaredEntries(inputs),
 ) {
-	const packages = await workspacePackages(inputs);
-	const manifests = await Promise.all(
-		[".", ...packages.map(({ directory }) => directory)].map(async (directory) => {
-			const manifest = (await readPackageManifest(inputs.readText, posix.join(directory, "package.json"))) ?? {};
-			return { directory, manifest };
-		}),
+	const packages = yield* workspacePackages(inputs);
+	const manifests = yield* Effect.forEach(
+		[".", ...packages.map(({ directory }) => directory)],
+		(directory) =>
+			Effect.map(readPackageManifest(inputs.readText, posix.join(directory, "package.json")), (manifest) => ({
+				directory,
+				manifest: manifest ?? {},
+			})),
+		{ concurrency: "unbounded" },
 	);
 	const scripted = new Set(manifests.flatMap(({ directory, manifest }) => scriptPaths(directory, manifest.scripts ?? {})));
 	const mocked = new Set(mockEntries(inputs));
@@ -124,4 +128,4 @@ export async function knipConfiguration(
 		tags: [],
 		workspaces: Object.fromEntries(workspaces),
 	};
-}
+});

@@ -38,6 +38,6 @@ const ConfigInput = Schema.Struct({
 
 export type ConfigInput = typeof ConfigInput.Type;
 
-export function decodeConfig(value: unknown): Promise<Decoded<ConfigInput>> {
+export function decodeConfig(value: unknown): Decoded<ConfigInput> {
 	return decodeWith(ConfigInput, value);
 }

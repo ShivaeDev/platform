@@ -32,7 +32,7 @@ export const shadcn = storyKit({
 				config.active.filter((rule) => rule.id === "structure/max-lines" || rule.id === "comments/no-todo"),
 				{
 					...inventory,
-					readText: () => Promise.resolve(undefined),
+					readText: () => Effect.succeed(undefined),
 					root: engine.root,
 				},
 			);

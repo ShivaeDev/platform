@@ -3,7 +3,7 @@ import { describeIssue, type StandardSchemaV1 } from "#adapters/standardSchema.t
 import { validOrFail } from "#decoded.ts";
 import type { Configured, Findings, RegisteredRule, RuleContext } from "#rule.ts";
 
-export type RuleCheckResult<TServices> = Findings | PromiseLike<Findings> | Effect.Effect<Findings, unknown, TServices>;
+export type RuleCheckResult<TServices> = Findings | Effect.Effect<Findings, unknown, TServices>;
 
 export const ruleConfiguration = Symbol("@shivaedev/quality/ruleConfiguration");
 
@@ -43,9 +43,8 @@ export function configureWith<TInput, TOptions, TServices>(
 							inputs.configFile ?? "quality.config.ts",
 							issues.length === 0 ? { _tag: "Valid", value: undefined } : { _tag: "Invalid", issues },
 						);
-						const signal = yield* Effect.abortSignal;
-						const checked = check({ ...inputs, options: value, signal });
-						return yield* Effect.isEffect(checked) ? checked : Effect.promise(() => Promise.resolve(checked));
+						const checked = check(context);
+						return Effect.isEffect(checked) ? yield* checked : checked;
 					}),
 				),
 		};

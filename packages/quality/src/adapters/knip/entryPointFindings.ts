@@ -29,13 +29,13 @@ export const entryPointFindings = Effect.fn("Knip.entryPointFindings")(function*
 	const workspace = new Map(graph.packages.map(({ name, directory }) => [name, directory]));
 	const directories = [".", ...graph.packages.map(({ directory }) => directory)];
 	const policies = new Map(
-		yield* Effect.promise(() =>
-			Promise.all(
-				directories.map(async (directory) => {
-					const manifest = await readPackageManifest(inputs.readText, posix.join(directory, "package.json"));
-					return [directory, isApplication(manifest) ? await entryPointsOf(inputs, directory, manifest, workspace) : []] as const;
-				}),
-			),
+		yield* Effect.forEach(
+			directories,
+			Effect.fnUntraced(function* (directory) {
+				const manifest = yield* readPackageManifest(inputs.readText, posix.join(directory, "package.json"));
+				return [directory, isApplication(manifest) ? yield* entryPointsOf(inputs, directory, manifest, workspace) : []] as const;
+			}),
+			{ concurrency: "unbounded" },
 		),
 	);
 	function owner(path: string) {

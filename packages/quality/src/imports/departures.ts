@@ -11,7 +11,7 @@ export interface Departure extends SpecifierSite {
 }
 
 export const departures = Effect.fn("Imports.departures")(function* (inputs: RuleInputs) {
-	const packages = yield* Effect.promise(() => workspacePackages(inputs));
+	const packages = yield* workspacePackages(inputs);
 	const compiler = yield* ImportCompiler;
 	return yield* compiler.departures(inputs, packages);
 }, Effect.provide(ImportCompiler.layer));

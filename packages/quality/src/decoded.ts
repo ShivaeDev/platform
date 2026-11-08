@@ -4,13 +4,11 @@ import { SetupFailure } from "#failure.ts";
 
 export type Decoded<TValue> = { readonly _tag: "Valid"; readonly value: TValue } | { readonly _tag: "Invalid"; readonly issues: readonly string[] };
 
-export function decodeWith<TSchema extends Schema.ConstraintDecoder<unknown>>(schema: TSchema, value: unknown): Promise<Decoded<TSchema["Type"]>> {
+export function decodeWith<TSchema extends Schema.ConstraintDecoder<unknown>>(schema: TSchema, value: unknown): Decoded<TSchema["Type"]> {
 	const result = Schema.decodeUnknownResult(schema, { errors: "all", onExcessProperty: "error" })(value);
-	return Promise.resolve(
-		Result.isSuccess(result)
-			? { _tag: "Valid", value: result.success }
-			: { _tag: "Invalid", issues: SchemaIssue.makeFormatterStandardSchemaV1()(result.failure.issue).issues.map(describeIssue) },
-	);
+	return Result.isSuccess(result)
+		? { _tag: "Valid", value: result.success }
+		: { _tag: "Invalid", issues: SchemaIssue.makeFormatterStandardSchemaV1()(result.failure.issue).issues.map(describeIssue) };
 }
 
 export function validOrFail<TValue>(file: string, decoded: Decoded<TValue>): Effect.Effect<TValue, SetupFailure> {

@@ -1,5 +1,5 @@
 import * as NodePath from "@effect/platform-node/NodePath";
-import { Effect, Path, type Scope } from "effect";
+import { Effect, Path } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
@@ -30,7 +30,7 @@ function setup<TValue, TRequirements>(effect: Effect.Effect<TValue, Error, TRequ
 
 export const scan = Effect.fn("Engine.scan")(function* (
 	config: ResolvedConfig,
-): Effect.fn.Return<Pick<Session, "inventory" | "staleRegistry" | "violations">, SetupFailure, RuleServices | Scope.Scope> {
+): Effect.fn.Return<Pick<Session, "inventory" | "staleRegistry" | "violations">, SetupFailure, RuleServices> {
 	const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
 	const inventory = yield* setup(collectInventory(config.root, config));
@@ -49,7 +49,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 	const violations = yield* runRules(config.active, inputs);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
 	return { inventory, staleRegistry, violations };
-}, Effect.scoped);
+});
 
 export const openSession = Effect.fn("Engine.openSession")(function* (
 	cwd: string,

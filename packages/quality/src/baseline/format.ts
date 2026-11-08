@@ -33,12 +33,12 @@ export function linesOf(raw: string | undefined): ReadonlyArray<{ readonly line:
 		.filter((row) => row.text.trim() !== "");
 }
 
-export async function decodeBaseline(raw: string | undefined): Promise<Decoded<readonly BaselineEntry[]>> {
+export function decodeBaseline(raw: string | undefined): Decoded<readonly BaselineEntry[]> {
 	const issues: string[] = [];
 	const entries: BaselineEntry[] = [];
 	const seen = new Set<string>();
 	for (const { line, text } of linesOf(raw)) {
-		const decoded = await decodeWith(BaselineLine, text);
+		const decoded = decodeWith(BaselineLine, text);
 		if (decoded._tag === "Invalid") {
 			issues.push(...decoded.issues.map((issue) => `line ${line}: ${issue}`));
 			continue;

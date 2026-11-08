@@ -1,8 +1,9 @@
 import { dirname, posix, relative, resolve, sep } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { pnpmWorkspaceList } from "#imports/pnpmWorkspacePatterns.ts";
 import { workspacePackages } from "#imports/workspace.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import { DEPENDENCY_FIELDS, dependencyNames, entryPointsOf, isApplication, PLATFORM } from "#manifests/entryPoints.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 
@@ -28,7 +29,7 @@ function ancestors(root: string, directory: string): readonly string[] {
 const nearestWorkspace = Effect.fn("Manifests.nearestWorkspace")(function* (inputs: Pick<RuleInputs, "readText" | "root">, directory: string) {
 	for (const candidate of ancestors(inputs.root, directory)) {
 		const path = posix.join(relative(inputs.root, candidate).split(sep).join("/") || ".", "pnpm-workspace.yaml");
-		const text = yield* Effect.promise(() => inputs.readText(path));
+		const text = yield* inputs.readText(path);
 		if (text !== undefined) {
 			return { path, text };
 		}
@@ -40,7 +41,7 @@ const hoistFindings = Effect.fn("Manifests.hoistFindings")(function* (
 	inputs: Pick<RuleInputs, "readText" | "root">,
 	manifestPath: string,
 	directory: string,
-): Effect.fn.Return<readonly Finding[]> {
+): Effect.fn.Return<readonly Finding[], FilesystemFailure> {
 	const workspace = yield* nearestWorkspace(inputs, directory);
 	const target = workspace?.path ?? posix.join(directory, "pnpm-workspace.yaml");
 	const repair = `Add \`${HOIST_LINE}\` to ${target} so the pieces platform brings resolve by their own names.`;
@@ -69,10 +70,8 @@ const duplicateFindings = Effect.fn("Manifests.duplicateFindings")(function* (
 	directory: string,
 	manifest: unknown,
 	workspace: ReadonlyMap<string, string>,
-): Effect.fn.Return<readonly Finding[]> {
-	const entryPoints = (yield* Effect.promise(() => entryPointsOf(inputs, directory, manifest, workspace))).filter(
-		(entry) => entry.declared !== undefined,
-	);
+): Effect.fn.Return<readonly Finding[], ManifestReadFailure> {
+	const entryPoints = (yield* entryPointsOf(inputs, directory, manifest, workspace)).filter((entry) => entry.declared !== undefined);
 	return DEPENDENCY_FIELDS.flatMap((field) =>
 		dependencyNames(manifest, field).flatMap((name) => {
 			const entry = entryPoints.find((candidate) => candidate.provides.has(name));
@@ -92,7 +91,7 @@ const duplicateFindings = Effect.fn("Manifests.duplicateFindings")(function* (
 export const manifestsApplication = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const packages = yield* Effect.promise(() => workspacePackages(inputs));
+			const packages = yield* workspacePackages(inputs);
 			const workspace = new Map(packages.map((owner) => [owner.name, owner.directory]));
 			const directories = [".", ...packages.map((owner) => owner.directory)];
 			const findings = yield* Effect.forEach(
@@ -100,7 +99,7 @@ export const manifestsApplication = defineRule({
 				(directory) =>
 					Effect.gen(function* () {
 						const manifestPath = posix.join(directory, "package.json");
-						const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, manifestPath));
+						const manifest = yield* readPackageManifest(inputs.readText, manifestPath);
 						if (!isApplication(manifest)) {
 							return [];
 						}

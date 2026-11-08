@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import { run } from "#testing/adapters/run.ts";
@@ -13,7 +14,7 @@ export function inputsOf(seed: Seed): RuleInputs {
 	const sources = (seed.sources ?? []).map((file) => ({ lines: linesOf(file.content), path: file.path, text: file.content }));
 	return {
 		files: seed.files ?? sources.map((file) => file.path),
-		readText: (path) => Promise.resolve(seed.texts?.[path]),
+		readText: (path) => Effect.succeed(seed.texts?.[path]),
 		root: "/virtual",
 		sources,
 	};

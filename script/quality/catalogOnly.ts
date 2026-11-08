@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { defineRule, type Finding } from "@shivaedev/quality/rule.ts";
 import { manifestFiles } from "#quality/manifestFiles.ts";
 
@@ -19,8 +20,8 @@ function dependencyFinding(path: string, key: string, internal: ReadonlySet<stri
 }
 
 export const catalogOnly = defineRule({
-	check: async (inputs) => {
-		const manifests = await manifestFiles(inputs);
+	check: Effect.fn("CatalogOnly.check")(function* (inputs) {
+		const manifests = yield* manifestFiles(inputs);
 		const internal = new Set(
 			manifests.filter(({ path }) => path !== "package.json").flatMap(({ fields }) => (fields?.name === undefined ? [] : [fields.name])),
 		);
@@ -29,7 +30,7 @@ export const catalogOnly = defineRule({
 				Object.entries(fields?.[key] ?? {}).flatMap(([name, spec]) => dependencyFinding(path, key, internal, name, spec)),
 			),
 		);
-	},
+	}),
 	description: "Use workspace:* for internal packages and catalog: for external dependencies.",
 	id: "manifests/catalog-only",
 });

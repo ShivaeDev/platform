@@ -37,10 +37,7 @@ function findingsIn(file: string, text: string): readonly Finding[] {
 
 const unversionedInstalls = Effect.fn("Docs.unversionedInstalls")(function* (inputs: RuleInputs) {
 	const findings = yield* Effect.forEach(inputs.files.filter(isDocument), (file) =>
-		Effect.map(
-			Effect.promise(() => inputs.readText(file)),
-			(text) => (text === undefined ? [] : findingsIn(file, text)),
-		),
+		Effect.map(inputs.readText(file), (text) => (text === undefined ? [] : findingsIn(file, text))),
 	);
 	return findings.flat();
 });
