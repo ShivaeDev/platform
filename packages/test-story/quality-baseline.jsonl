@@ -15,7 +15,6 @@
 {"path":"packages/test-story/src/server/failureStory.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/fixedClock.dom.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/genreFilter.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/test-story/src/server/genreTags.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/hostTracing.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/httpAbandoned.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/test-story/src/server/httpAfterAct.spec.ts","rule":"effect/adapter-imports","count":1}

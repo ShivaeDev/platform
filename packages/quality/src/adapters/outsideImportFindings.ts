@@ -21,9 +21,13 @@ const CLIENT_RENDERING_LIBRARIES = new Set([
 	"tailwind-merge",
 ]);
 
+// Path functions compute strings and touch no file system or process state, so they need no adapter.
+const PURE_BUILTINS = new Set(["node:path", "node:path/posix", "node:path/win32"]);
+
 function exempt(path: string, name: string): boolean {
 	return (
 		/(?:^|\/)(?:adapters|test-support)\//u.test(path)
+		|| PURE_BUILTINS.has(name)
 		|| (name === "vitest" && testName(path)?.modifiers.includes("unit") === true)
 		|| name === "effect"
 		|| name.startsWith("@effect/")
