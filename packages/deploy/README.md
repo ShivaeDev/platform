@@ -5,26 +5,31 @@ Railway applications repeat the same database wiring, backup, migration, proxy a
 ## Describe your application
 
 ```ts
-import { project, volume } from "railway/iac";
+import { Effect } from "effect";
+import { volume } from "railway/iac";
+import { defineRailway } from "@shivaedev/deploy/adapters/railway/define.ts";
 import { databaseService } from "@shivaedev/deploy/adapters/railway/databaseService.ts";
 import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
 import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
-const database = await databaseService("Postgres", {
-	limits: { cpu: 2, memoryBytes: 1_073_741_824 },
-	volume: volume("postgres-data"),
-});
-const web = webService("web", { start: "pnpm start" }, database);
-const worker = workerService("worker", { start: "pnpm worker" }, database);
-
-export default project("my-app", { resources: [database, web, worker] });
+export default defineRailway((ctx, project) =>
+	Effect.gen(function* () {
+		const database = yield* databaseService("Postgres", {
+			limits: { cpu: 2, memoryBytes: 1_073_741_824 },
+			volume: volume("postgres-data"),
+		});
+		const web = webService("web", { start: "pnpm start" }, database);
+		const worker = workerService("worker", { start: "pnpm worker" }, database);
+		return project(ctx.projectName ?? "my-app", { resources: [database, web, worker] });
+	}),
+);
 ```
 
-The results are native Railway definitions that an app combines into its project.
+`defineRailway` runs the Effect config when Railway evaluates it. `databaseService` returns an Effect that checks the image startup metadata and fails with a typed `Error` if the registry request fails or the startup chain changes.
 
 ## Choose the database settings
 
-`databaseService` is asynchronous: await it inside an async `defineRailway` callback or at module level. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
+`databaseService` checks the Postgres image startup metadata before yielding its definition. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
 
 ### Backups and image updates
 
@@ -80,50 +85,54 @@ Both service functions take a service name and Railway's `ServiceConfigInput`. K
 `workerService` defaults `deploy.drainingSeconds` to `75`. Other deploy settings coexist with that default. It adds no web migration or proxy variables.
 
 ```ts
-import { defineRailway, project, volume } from "railway/iac";
+import { Effect } from "effect";
+import { volume } from "railway/iac";
+import { defineRailway } from "@shivaedev/deploy/adapters/railway/define.ts";
 import { databaseService } from "@shivaedev/deploy/adapters/railway/databaseService.ts";
 import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
 import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
-export default defineRailway(async (ctx) => {
-	const database = await databaseService("Postgres", {
-		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
-		volume: volume("postgres-data"),
-	});
-	const web = webService(
-		"api",
-		{
-			build: { builder: "RAILPACK", buildCommand: "pnpm build" },
-			start: "pnpm serve",
-			preDeploy: "pnpm db:migrate",
-			env: {
-				AUTH_CLIENT_IP_HEADER: "x-forwarded-for",
-				TRUSTED_PROXY: "10.0.0.0/8",
-				PUBLIC_URL: ctx.shared.PUBLIC_URL,
+export default defineRailway((ctx, project) =>
+	Effect.gen(function* () {
+		const database = yield* databaseService("Postgres", {
+			limits: { cpu: 2, memoryBytes: 1_073_741_824 },
+			volume: volume("postgres-data"),
+		});
+		const web = webService(
+			"api",
+			{
+				build: { builder: "RAILPACK", buildCommand: "pnpm build" },
+				start: "pnpm serve",
+				preDeploy: "pnpm db:migrate",
+				env: {
+					AUTH_CLIENT_IP_HEADER: "x-forwarded-for",
+					TRUSTED_PROXY: "10.0.0.0/8",
+					PUBLIC_URL: ctx.shared.PUBLIC_URL,
+				},
+				deploy: {
+					limitOverride: { containers: { cpu: 2, memoryBytes: 1_073_741_824 } },
+				},
 			},
-			deploy: {
-				limitOverride: { containers: { cpu: 2, memoryBytes: 1_073_741_824 } },
+			database,
+		);
+		const worker = workerService(
+			"jobs",
+			{
+				start: "pnpm jobs",
+				deploy: { drainingSeconds: 120 },
 			},
-		},
-		database,
-	);
-	const worker = workerService(
-		"jobs",
-		{
-			start: "pnpm jobs",
-			deploy: { drainingSeconds: 120 },
-		},
-		database,
-	);
-	return project(ctx.projectName ?? "my-app", {
-		resources: [database, web, worker],
-	});
-});
+			database,
+		);
+		return project(ctx.projectName ?? "my-app", {
+			resources: [database, web, worker],
+		});
+	}),
+);
 ```
 
 Override the migration through native `preDeploy`, `preDeployCommand`, `run.preDeploy` or `deploy.preDeployCommand` options. Set `preDeploy: []` to disable it. Set `deploy.drainingSeconds: 0` to disable worker draining. Explicit empty strings for proxy variables are preserved, so choose their values according to the application's transport trust policy.
 
-Install the package alongside its Railway peer:
+Install the package alongside its Railway peer. Effect applications already provide the required `effect` peer.
 
 ```sh
 pnpm add -D @shivaedev/deploy railway
