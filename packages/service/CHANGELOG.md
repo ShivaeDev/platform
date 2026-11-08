@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-08
+
+### Added
+
+- Expose `requirementLayer` at `@shivaedev/service/adapters/requirementLayer.ts` for binding declared requirements in the service Layer.
+
 ## 0.8.2 - 2026-11-07
 
 ### Fixed

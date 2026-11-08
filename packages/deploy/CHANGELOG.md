@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-11-08
+
+### Breaking
+
+- `databaseService` returns an Effect with an `Error` failure, and `defineRailway` accepts an Effect-returning callback. Migrate `defineRailway(async (ctx) => { const database = await databaseService(...); return project(...); })` to `defineRailway((ctx, project) => Effect.gen(function* () { const database = yield* databaseService(...); return project(ctx.projectName ?? "my-app", { resources: [database] }); }))`.
+
 ## 0.5.1 - 2026-11-07
 
 ### Fixed

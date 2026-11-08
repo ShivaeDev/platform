@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.1 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/service` from 0.8.2 to 0.9.0.
+
 ## 0.17.0 - 2026-11-07
 
 ### Breaking

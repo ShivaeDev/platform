@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.40.15 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.23.7 to 0.24.0.
+- Update `@shivaedev/contract` from 0.43.3 to 0.43.4.
+- Update `@shivaedev/email` from 0.7.6 to 0.7.7.
+- Update `@shivaedev/github` from 0.17.0 to 0.17.1.
+- Update `@shivaedev/identity` from 0.30.5 to 0.30.6.
+- Update `@shivaedev/jobs` from 0.41.4 to 0.42.0.
+- Update `@shivaedev/rate-limit` from 0.6.7 to 0.6.8.
+- Update `@shivaedev/react` from 0.46.6 to 0.46.7.
+- Update `@shivaedev/server` from 0.33.1 to 0.33.2.
+- Update `@shivaedev/service` from 0.8.2 to 0.9.0.
+- Update `@shivaedev/sql` from 0.46.3 to 0.46.4.
+- Update `@shivaedev/webhooks` from 0.11.8 to 0.11.9.
+
 ## 0.40.14 - 2026-11-08
 
 ### Changed
