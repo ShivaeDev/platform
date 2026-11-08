@@ -51,17 +51,18 @@ function localHelper(expression: ts.Expression, call: ts.CallExpression): Helper
 	return undefined;
 }
 
-function importedHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>): Helper | undefined {
-	const imported = importedCall(call);
-	if (imported === undefined || !(imported.module.startsWith(".") || imported.module.startsWith("#"))) {
+export function importedSource(node: ts.Node, module: string, sources: ReadonlyMap<string, ts.SourceFile>): ts.SourceFile | undefined {
+	if (!(module.startsWith(".") || module.startsWith("#"))) {
 		return undefined;
 	}
-	const modulePath = imported.module.startsWith("#")
-		? imported.module.slice(1)
-		: posix.join(posix.dirname(call.getSourceFile().fileName), imported.module);
-	const source =
-		sources.get(modulePath) ?? [...sources.values()].find((candidate) => candidate.fileName.replaceAll("\\", "/").endsWith(`/${modulePath}`));
-	return source === undefined ? undefined : declared(source, imported.name);
+	const modulePath = module.startsWith("#") ? module.slice(1) : posix.join(posix.dirname(node.getSourceFile().fileName), module);
+	return sources.get(modulePath) ?? [...sources.values()].find((candidate) => candidate.fileName.replaceAll("\\", "/").endsWith(`/${modulePath}`));
+}
+
+function importedHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>): Helper | undefined {
+	const imported = importedCall(call);
+	const source = imported === undefined ? undefined : importedSource(call, imported.module, sources);
+	return source === undefined || imported === undefined ? undefined : declared(source, imported.name);
 }
 
 export function buildHelper(call: ts.CallExpression, sources: ReadonlyMap<string, ts.SourceFile>, bindings: BuildBindings): Helper | undefined {

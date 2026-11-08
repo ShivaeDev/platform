@@ -1,5 +1,5 @@
-import { bundlerEntries } from "#adapters/bundlerEntries.ts";
-import { bundlerSources } from "#adapters/bundlerSources.ts";
+import { bundlerModules, bundlerSources } from "#adapters/bundlerSources.ts";
+import { bundlerTargets } from "#adapters/bundlerTargets.ts";
 import { spawnedEntries } from "#adapters/spawnedEntries.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { PackageLayout } from "#naming/packageLayout.ts";
@@ -39,22 +39,31 @@ function importsOf(graph: ImportGraph): ReadonlyMap<string, readonly string[]> {
 	return imports;
 }
 
-export function reachableBuildEntries(inputs: RuleInputs, graph: ImportGraph, layout: PackageLayout): ReadonlySet<string> {
+export interface ReachableBuilds {
+	readonly entries: ReadonlySet<string>;
+	readonly externals: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+export function reachableBuilds(inputs: RuleInputs, graph: ImportGraph, layout: PackageLayout): ReachableBuilds {
 	const imports = importsOf(graph);
 	const sources = new Map(inputs.sources.map((source) => [source.path, source]));
 	const syntax = bundlerSources(inputs.sources, graph);
+	const modules = bundlerModules(syntax, inputs.sources, graph);
 	const entries = new Set<string>();
+	const externals = new Map<string, ReadonlySet<string>>();
 	for (const [directory, scripts] of scriptsByPackage(layout)) {
-		for (const path of reachable(scripts, imports)) {
+		const targets = [...reachable(scripts, imports)].flatMap((path) => {
 			const source = sources.get(path);
 			if (source === undefined) {
-				continue;
+				return [];
 			}
-			const bundled = syntax.has(path) ? bundlerEntries(source, inputs.root, directory, syntax) : [];
-			for (const entry of [...bundled, ...spawnedEntries(source, inputs.root, directory)].filter((target) => sources.has(target))) {
-				entries.add(entry);
-			}
+			const bundled = syntax.has(path) ? bundlerTargets(source, inputs.root, directory, syntax, modules) : { entries: [], externals: [] };
+			return [{ entries: [...bundled.entries, ...spawnedEntries(source, inputs.root, directory)], externals: bundled.externals }];
+		});
+		for (const entry of targets.flatMap((target) => target.entries).filter((target) => sources.has(target))) {
+			entries.add(entry);
 		}
+		externals.set(directory, new Set(targets.flatMap((target) => target.externals)));
 	}
-	return entries;
+	return { entries, externals };
 }
