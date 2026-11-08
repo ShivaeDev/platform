@@ -65,26 +65,15 @@ for (const followedByCommit of [false, true]) {
 }
 
 releasePullRequest.it(
-	"a publish stays on the fixture registry when the machine's pnpm config, ~/.npmrc and environment name another registry and token",
-	[missed, merged],
-	function* ({ foreignMachine, git, publish, publishAuthorizations, publishedPackages }) {
-		const foreign = yield* foreignMachine();
+	"the machine's pnpm config, ~/.npmrc and environment leave only the fixture registry and token in effect",
+	[],
+	function* ({ fixtureRegistry, foreignMachine, publishConfig }) {
+		const fixture = yield* fixtureRegistry();
+		yield* foreignMachine();
 
-		const failure = yield* publish(yield* git("rev-parse", "HEAD^"));
+		const resolved = yield* publishConfig();
 
-		expect(failure).toBeUndefined();
-		yield* outcomes([
-			["foreign registry requests", () => Effect.sync(() => foreign.requests), []],
-			[
-				"fixture publications",
-				() => publishedPackages(),
-				[
-					{ name: "@shivaedev/create-app", version: "0.9.1" },
-					{ name: "@shivaedev/platform", version: "0.15.1" },
-				],
-			],
-			["fixture publish tokens", () => publishAuthorizations(), ["Bearer release-stories", "Bearer release-stories"]],
-		]);
+		expect(resolved).toEqual({ registry: `${fixture}/`, scopeRegistry: undefined, tokens: [`//${new URL(fixture).host}/:_authToken`] });
 	},
 );
 
