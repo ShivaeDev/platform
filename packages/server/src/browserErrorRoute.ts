@@ -1,4 +1,4 @@
-import { ByteSize, Cause, Effect, ErrorReporter, Layer, Option, Schema } from "effect";
+import { ByteSize, Cause, Clock, Effect, ErrorReporter, Layer, Option, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RateLimiter } from "effect/persistence";
@@ -53,6 +53,9 @@ const receiveReport = Effect.fnUntraced(function* (options: BrowserErrorOptions,
 	return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Accepted") });
 });
 
+// The store's cleanup sleeps forever, so on the application clock a long TestClock step would wake it once per simulated minute.
+const rateLimiterStore = RateLimiter.layerStoreMemory.pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())));
+
 export function browserErrorRoute(trustedProxy?: string, options: BrowserErrorOptions = {}) {
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
@@ -99,5 +102,5 @@ export function browserErrorRoute(trustedProxy?: string, options: BrowserErrorOp
 				),
 			);
 		}),
-	).pipe(Layer.provide(RateLimiter.layer.pipe(Layer.provide(RateLimiter.layerStoreMemory))));
+	).pipe(Layer.provide(RateLimiter.layer.pipe(Layer.provide(rateLimiterStore))));
 }

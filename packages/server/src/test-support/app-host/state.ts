@@ -15,6 +15,7 @@ export interface HostState {
 	address: unknown;
 	adminSession: { role: string; unavailable: boolean };
 	agent?: Agent;
+	applicationClockWakeups: number;
 	applicationName?: string;
 	assets?: string | AssetOptions;
 	bindAddress: string;
@@ -64,6 +65,7 @@ export function emptyHost(): HostState {
 	return {
 		address: undefined,
 		adminSession: { role: "user", unavailable: false },
+		applicationClockWakeups: 0,
 		bindAddress: "",
 		build: (state) => otlpHost(state),
 		calls: [],
