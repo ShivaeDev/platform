@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { AdminRoute } from "#page.ts";
 
 function overlaps(left: string, right: string): boolean {
@@ -11,26 +12,24 @@ function overlaps(left: string, right: string): boolean {
 	);
 }
 
-function pathsOf(route: AdminRoute): readonly string[] {
-	const page = route.path.replace(/\/$/u, "");
-	const detail = route.detail?.replace(/\/$/u, "");
-	if (detail !== undefined && !detail.startsWith(`${page}/`)) {
-		throw new Error(`Admin detail path ${route.detail} must be under page path ${route.path}`);
-	}
-	return detail === undefined ? [page] : [page, detail];
-}
-
-export function validateAdminRoutes(routes: readonly AdminRoute[]): void {
+export const validateAdminRoutes = Effect.fnUntraced(function* (routes: readonly AdminRoute[]) {
 	const paths: string[] = [];
-	for (const path of routes.flatMap(pathsOf)) {
-		const normalized = path.replace(/\$[^/]+/gu, "$");
-		if (paths.includes(normalized)) {
-			throw new Error(`Duplicate admin path: ${normalized}`);
+	for (const route of routes) {
+		const page = route.path.replace(/\/$/u, "");
+		const detail = route.detail?.replace(/\/$/u, "");
+		if (detail !== undefined && !detail.startsWith(`${page}/`)) {
+			yield* Effect.die(new Error(`Admin detail path ${route.detail} must be under page path ${route.path}`));
 		}
-		const existing = paths.find((candidate) => overlaps(candidate, normalized));
-		if (existing !== undefined) {
-			throw new Error(`Overlapping admin paths: ${existing} and ${normalized}`);
+		for (const path of detail === undefined ? [page] : [page, detail]) {
+			const normalized = path.replace(/\$[^/]+/gu, "$");
+			if (paths.includes(normalized)) {
+				yield* Effect.die(new Error(`Duplicate admin path: ${normalized}`));
+			}
+			const existing = paths.find((candidate) => overlaps(candidate, normalized));
+			if (existing !== undefined) {
+				yield* Effect.die(new Error(`Overlapping admin paths: ${existing} and ${normalized}`));
+			}
+			paths.push(normalized);
 		}
-		paths.push(normalized);
 	}
-}
+});

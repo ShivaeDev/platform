@@ -11,7 +11,7 @@ export default [
 		.from(workspace.except(hosts))
 		.mayNotImport(hosts)
 		.demonstratedBy({
-			illegal: ["packages/jobs/src/server/client.ts", "packages/server/src/appHost.ts"],
-			legal: ["packages/jobs/src/server/client.ts", external("effect")],
+			illegal: ["packages/jobs/src/server/adapters/client.ts", "packages/server/src/appHost.ts"],
+			legal: ["packages/jobs/src/server/adapters/client.ts", external("effect")],
 		}),
 ];

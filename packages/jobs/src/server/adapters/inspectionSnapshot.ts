@@ -1,6 +1,6 @@
 import { Schema } from "effect";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { inspectionOperation } from "#server/adapters/inspectionOperation.ts";
-import type { PgBossClient } from "#server/client.ts";
 import { quotedSchema } from "#server/storedRows.ts";
 
 const Rows = Schema.Array(

@@ -174,6 +174,8 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
+`jobsHandlers` uses the shared `PgBossInspection` service internally and provides it from the application-specific jobs service tag. Direct calls to `jobsReadHandlers` use the `PgBossInspection` service from the caller's Effect environment.
+
 The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. Jobs decodes the durable payload and masks native `Redacted` values and sensitive keys before the RPC response. Payloads are diagnostic `data: unknown`; narrow them before reading fields. Result serialization does not run the queue's payload encoder or require its encoding services.
 
 Schedule definitions from `defineSchedule` can be passed beside queues. For a worker-only schedule, share a browser-safe object such as `const Cleanup = { name: "cleanup" } as const`. Pass `Cleanup` to `jobsPage` and spread it into the worker's `defineSchedule({ ...Cleanup, cron: "17 3 * * *" })`. The page needs no server import or worker registration. Scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. Calling `jobsPage()` with no arguments registers the same read-only page and serves health with no jobs and zero totals.
@@ -205,12 +207,19 @@ Use `jobsPageWithRetry` and `jobsHandlersWithRetry` when administrators should b
 ```ts
 import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
 import { jobsHandlersWithRetry } from "@shivaedev/admin/server/jobsHandlersWithRetry.ts";
+import { Effect, Layer } from "effect";
+import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 
 const JobsPage = jobsPageWithRetry({ name: "mail", schema: MailPayload });
 const Admin = adminRegistry(JobsPage);
 const registration = registerAdmin(Admin, {
 	jobs: jobsHandlersWithRetry(JobsPage, JobsService),
 });
+const inspection = Layer.effect(
+	PgBossInspection,
+	Effect.flatMap(JobsService, (jobs) => jobs.inspection()),
+);
+const handlers = registration.handlers.pipe(Layer.provide(inspection));
 ```
 
 This variant adds `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the handler. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.

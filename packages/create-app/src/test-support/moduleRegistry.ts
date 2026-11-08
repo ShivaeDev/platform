@@ -46,13 +46,14 @@ import { foundation } from "#admin/modules.ts";
 const AdminJobs = makePgBoss("app/AdminJobs");
 
 export function foundationRegistration() {
+	const jobs = AdminJobs.layer({ jobs: [] });
 	return {
 		...registerAdmin(foundation.admin, {
 			jobs: jobsHandlers(foundation.JobsPage, AdminJobs),
 			sessions: sessionsHandlers,
 			users: usersHandlers(foundation.UsersPage),
 		}),
-		services: AdminJobs.layer({ jobs: [] }),
+		services: jobs,
 	};
 }
 `,

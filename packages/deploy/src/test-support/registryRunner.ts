@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import { volume } from "railway/iac";
+import { Effect } from "effect";
+import { createRailwayContext, project, volume } from "railway/iac";
 import { databaseService } from "#adapters/railway/databaseService.ts";
+import { defineRailway } from "#adapters/railway/define.ts";
 
 interface Scenario {
 	cmd?: string[];
@@ -55,11 +57,17 @@ function registryResponse(url: string): Promise<Response> {
 }
 
 try {
-	const database = await databaseService("Postgres", {
-		limits: { cpu: 1, memoryBytes: 536_870_912 },
-		volume: volume("postgres-data"),
-	});
-	process.stdout.write(JSON.stringify({ database, requests }));
+	const program = defineRailway((ctx, makeProject) =>
+		Effect.gen(function* () {
+			const database = yield* databaseService("Postgres", {
+				limits: { cpu: 1, memoryBytes: 536_870_912 },
+				volume: volume("postgres-data"),
+			});
+			return makeProject(ctx.projectName ?? "my-app", { resources: [database] });
+		}),
+	);
+	const definition = await program(createRailwayContext(), project);
+	process.stdout.write(JSON.stringify({ database: definition.resources?.[0], requests }));
 } catch (error) {
 	const messages: string[] = [];
 	for (let cause = error; cause instanceof Error; cause = cause.cause) {

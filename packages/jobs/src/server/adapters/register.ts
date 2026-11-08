@@ -1,10 +1,11 @@
 import { Effect, Scope } from "effect";
+import type { PgBossClient } from "#server/adapters/client.ts";
 import { ensureQueue } from "#server/adapters/ensureQueue.ts";
 import { registerWorker } from "#server/adapters/registerWorker.ts";
 import { workerDiagnostics } from "#server/adapters/workerDiagnostics.ts";
-import type { PgBossClient } from "#server/client.ts";
 import type { StopOptions } from "#server/clientOptions.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#server/definition.ts";
+import { validateMaxDeferrals } from "#server/definitionOptions.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#server/error.ts";
 import { runQueueWorker } from "#server/runQueueWorker.ts";
 
@@ -89,6 +90,9 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	stop?: StopOptions,
 ) {
 	const scope = yield* Scope.fork(yield* Effect.scope, "parallel");
+	for (const registration of registrations) {
+		yield* validateMaxDeferrals(registrationDefinition(registration).maxDeferrals);
+	}
 	yield* Effect.try({ catch: (error) => toPgBossError("register", error), try: () => registrationNames(registrations) });
 	yield* prepareQueues(client, registrations, replaceWorkers);
 	if (!startWorkers) {

@@ -5,7 +5,7 @@ import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
 	"adoption records outside imports in one row per file and tightening removes repaired import debt",
-	[qualityInstalled(), repositoryHas({ content: 'import "node:fs";\nimport "node:path";\n', path: "src/work.ts" }), biomeFormatted(), committed()],
+	[qualityInstalled(), repositoryHas({ content: 'import "node:fs";\nimport "node:os";\n', path: "src/work.ts" }), biomeFormatted(), committed()],
 	function* ({ outcome, reads, runs, stdout, writes }) {
 		yield* runs("lint");
 

@@ -1,7 +1,7 @@
 import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import { PgBoss } from "pg-boss";
+import type { PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import { defaultClientFactory } from "@shivaedev/jobs/server/adapters/defaultClientFactory.ts";
-import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
 import type { JobRegistration } from "@shivaedev/jobs/server/definition.ts";
 import { PgBossError } from "@shivaedev/jobs/server/error.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "@shivaedev/jobs/server/service.ts";

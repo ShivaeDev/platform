@@ -1,7 +1,7 @@
 import type { Context, Effect, Fiber, Redacted, Schema } from "effect";
 import type { SqlClient } from "effect/sql";
 import { type PgBoss, TestClock } from "pg-boss";
-import type { PgBossClient } from "@shivaedev/jobs/server/client.ts";
+import type { PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import type { JobPayloadSchema } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import type { WorkerRelease } from "@shivaedev/sql/worker-release/service.ts";
