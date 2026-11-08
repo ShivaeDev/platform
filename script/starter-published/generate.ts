@@ -18,7 +18,9 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	const args = [folder, ...(minimal ? ["--minimal"] : [])];
 	const fs = yield* FileSystem.FileSystem;
 	const pins = decodeVersions(yield* fs.readFileString(join(root, "examples/starter/published-versions.json")));
-	const tarballs = yield* pinnedTarballs(packages, pins, { preferWorkspace: true }).pipe(Effect.provide(FetchHttpClient.layer));
+	const tarballs = yield* pinnedTarballs(packages, pins, {
+		preferWorkspace: ["@shivaedev/deploy"],
+	}).pipe(Effect.provide(FetchHttpClient.layer));
 	const archive = packages.find(({ manifest }) => manifest.name === "@shivaedev/create-app")?.tarball;
 	const packed = archive === undefined ? join(temporary, "create-app.tgz") : resolve(root, archive);
 	if (archive === undefined) {

@@ -10,12 +10,11 @@ const RegistryPackage = Schema.Struct({ versions: Schema.Record(Schema.String, S
 export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (
 	packages: readonly Package[],
 	pins: Readonly<Record<string, string>>,
-	options: { preferWorkspace?: boolean } = {},
+	options: { preferWorkspace?: readonly string[] } = {},
 ) {
-	if (options.preferWorkspace) {
-		return matchingWorkspaceTarballs(packages, pins);
-	}
-	const matching = packages.filter(({ manifest }) => pins[manifest.name] === manifest.version);
+	const workspace = matchingWorkspaceTarballs(packages, pins, options.preferWorkspace ?? []);
+	const preferred = new Set(Object.keys(workspace));
+	const matching = packages.filter(({ manifest }) => pins[manifest.name] === manifest.version && !preferred.has(manifest.name));
 	const client = yield* HttpClient.HttpClient;
 	const registry = yield* Config.String("npm_config_registry").pipe(Config.withDefault("https://registry.npmjs.org"));
 	const entries = yield* Effect.forEach(
@@ -35,5 +34,5 @@ export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (
 		}),
 		{ concurrency: 4 },
 	);
-	return Object.fromEntries(entries.flat());
+	return { ...Object.fromEntries(entries.flat()), ...workspace };
 });

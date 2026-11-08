@@ -16,7 +16,7 @@ it("selects workspace archives that match the starter's package pins", () => {
 		},
 	];
 
-	const tarballs = matchingWorkspaceTarballs(packages, { "@shivaedev/deploy": "0.5.1" });
+	const tarballs = matchingWorkspaceTarballs(packages, { "@shivaedev/deploy": "0.5.1", "@shivaedev/platform": "0.40.13" }, ["@shivaedev/deploy"]);
 
 	expect(tarballs).toEqual({ "@shivaedev/deploy": "/archives/deploy.tgz" });
 });
