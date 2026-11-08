@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-11-08
+
+### Breaking
+
+- Error reporting now gives the reporter a copied `Error` with the source message, stack and own annotations, leaving the supplied value unchanged.
+
 ## 0.10.1 - 2026-11-07
 
 ### Changed

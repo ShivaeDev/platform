@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.5 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/github` from 0.17.1 to 0.17.2.
+
 ## 0.12.4 - 2026-11-08
 
 ### Changed

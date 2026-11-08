@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 - 2026-11-08
+
+### Breaking
+
+- Move `testingOperation` from `@shivaedev/test-kits/jobs/testingOperation.ts` to `@shivaedev/test-kits/jobs/adapters/testingOperation.ts`, and `testingInspection` from the same module to `@shivaedev/test-kits/jobs/testingInspection.ts`; update imports to the new paths.
+
 ## 0.10.7 - 2026-11-08
 
 ### Changed
