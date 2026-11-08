@@ -1,4 +1,6 @@
+import { Result } from "effect";
 import type { Endpoint } from "#imports/Endpoint.ts";
+import { BoundaryFailure } from "#imports/fences/BoundaryFailure.ts";
 import { type CompiledFence, compileFence, type FenceGraph } from "#imports/fences/evaluate.ts";
 import type { PolicyScope } from "#imports/fences/match.ts";
 import type { Chain, ExampleStep, Fence } from "#imports/fences/model.ts";
@@ -66,14 +68,14 @@ function declarationIssues(fences: readonly Fence[]): readonly string[] {
 	]);
 }
 
-export function compilePolicy(fences: readonly Fence[], scope: PolicyScope): readonly CompiledFence[] {
+export function compilePolicy(fences: readonly Fence[], scope: PolicyScope): Result.Result<readonly CompiledFence[], BoundaryFailure> {
 	const issues = [...declarationIssues(fences)];
 	const policy = fences.map((fence) => compileFence({ issues, scope }, fence));
 	if (issues.length === 0) {
 		issues.push(...fences.flatMap((fence) => exampleIssues(policy, fence, scope)));
 	}
 	if (issues.length > 0) {
-		throw new Error(`the fence policy is invalid:\n${issues.map((issue) => `  - ${issue}`).join("\n")}`);
+		return Result.fail(new BoundaryFailure({ message: `the fence policy is invalid:\n${issues.map((issue) => `  - ${issue}`).join("\n")}` }));
 	}
-	return policy;
+	return Result.succeed(policy);
 }

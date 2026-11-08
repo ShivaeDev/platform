@@ -1,9 +1,10 @@
 import * as NodePath from "@effect/platform-node/NodePath";
-import { Console, Effect, FileSystem, Path } from "effect";
+import { Console, Effect, FileSystem, Path, type Result } from "effect";
 import { loadConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
 import { readInput } from "#engine/baselineFile.ts";
 import { decodeExceptions, type ExceptionDeclaration } from "#exceptions/declaration.ts";
+import type { MigrationFailure } from "#exceptions/MigrationFailure.ts";
 import { migrateBiome } from "#exceptions/migrateBiome.ts";
 import { migrateConfig } from "#exceptions/migrateConfig.ts";
 import { decodeRegistry } from "#exceptions/registry.ts";
@@ -31,6 +32,10 @@ function merge(entries: readonly ExceptionDeclaration[]): readonly ExceptionDecl
 		}
 	}
 	return merged;
+}
+
+function migrated(result: Result.Result<string, MigrationFailure>): Effect.Effect<string, SetupFailure> {
+	return Effect.mapError(Effect.fromResult(result), (failure) => new SetupFailure({ cause: failure, message: `Error: ${failure.message}` }));
 }
 
 export const migrateExceptions = Effect.fnUntraced(function* (
@@ -61,19 +66,13 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 	]);
 	yield* validOrFail(config.file, decodeExceptions(entries));
 	const text = yield* readInput("", config.file);
-	const next = yield* Effect.try({
-		catch: (cause) => new SetupFailure({ cause, message: String(cause) }),
-		try: () => migrateConfig(text, config.file, entries, config.biomeDeclarations.length > 0),
-	});
+	const next = yield* migrated(migrateConfig(text, config.file, entries, config.biomeDeclarations.length > 0));
 	const updates: Array<{ readonly path: string; readonly text: string }> = [{ path: config.file, text: next }];
 	if (config.biomeDeclarations.length > 0) {
 		for (const file of ["biome.json", "biome.jsonc"]) {
 			const biome = yield* readInput(config.root, file);
 			if (biome !== undefined) {
-				const updated = yield* Effect.try({
-					catch: (cause) => new SetupFailure({ cause, message: String(cause) }),
-					try: () => migrateBiome(biome, file, config.biomeDeclarations),
-				});
+				const updated = yield* migrated(migrateBiome(biome, file, config.biomeDeclarations));
 				updates.push({ path: join(config.root, file), text: updated });
 			}
 		}

@@ -1,3 +1,4 @@
+import { Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { pnpmWorkspacePatterns } from "#imports/pnpmWorkspacePatterns.ts";
 
@@ -16,7 +17,7 @@ const BLOCK = [
 
 describe("pnpm workspace patterns", () => {
 	it("reads a block list through comments at any column, quotes and trailing comments, and stops at the next key", () => {
-		expect(pnpmWorkspacePatterns(BLOCK)).toEqual(["apps/*", "libs/*", "tools/#build", "!**/fixtures/**"]);
+		expect(pnpmWorkspacePatterns(BLOCK)).toEqual(Result.succeed(["apps/*", "libs/*", "tools/#build", "!**/fixtures/**"]));
 	});
 
 	it.for([
@@ -26,7 +27,7 @@ describe("pnpm workspace patterns", () => {
 		["quoted patterns with braces in a flow list", "'packages': [\"apps/{web,admin}\", 'libs/*']\n", ["apps/{web,admin}", "libs/*"]],
 		["no packages key", "catalog:\n  effect: 4.0.0\n", []],
 	] satisfies ReadonlyArray<readonly [unknown, unknown, unknown]>)("reads %s", ([_, text, patterns]) => {
-		expect(pnpmWorkspacePatterns(text)).toEqual(patterns);
+		expect(pnpmWorkspacePatterns(text)).toEqual(Result.succeed(patterns));
 	});
 
 	it.for([
@@ -45,7 +46,8 @@ describe("pnpm workspace patterns", () => {
 	] satisfies ReadonlyArray<readonly [unknown, unknown, unknown]>)(
 		"refuses %s instead of dropping packages, naming the problem",
 		([_, text, reason]) => {
-			expect(() => pnpmWorkspacePatterns(text)).toThrow(`pnpm-workspace.yaml: ${reason}`);
+			const parsed = pnpmWorkspacePatterns(text);
+			expect(Result.isFailure(parsed) ? parsed.failure.message : undefined).toBe(`pnpm-workspace.yaml: ${reason}`);
 		},
 	);
 });
