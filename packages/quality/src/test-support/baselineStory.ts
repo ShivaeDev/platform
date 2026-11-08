@@ -33,7 +33,7 @@ export const baselineStory = storyKit({
 			...cli,
 			decode: (raw: string | undefined) => {
 				story.tell("quality decodes the baseline file");
-				return Effect.promise(() => decodeBaseline(raw));
+				return Effect.sync(() => decodeBaseline(raw));
 			},
 			lastLine: () => Effect.map(cli.stdout(), (stdout) => stdout.trimEnd().split("\n").at(-1)),
 			lengthens: (path: string, lines: number) =>

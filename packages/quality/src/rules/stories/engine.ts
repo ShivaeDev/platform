@@ -25,7 +25,7 @@ function ignoresEngine(call: ts.CallExpression, checker: ts.TypeChecker): boolea
 export const storyEngine = defineRule({
 	check: Effect.fn("Stories.check")(function* (inputs) {
 		const graph = yield* importGraph(inputs);
-		const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, graph.packages));
+		const exempt = yield* storyPrerequisites(inputs, graph.packages);
 		const origins = storyOrigins(inputs, graph);
 		return inputs.sources.flatMap((file) => {
 			const name = testName(file.path);

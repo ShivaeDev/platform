@@ -5,8 +5,8 @@ import type { RuleInputs } from "#rule.ts";
 
 export const packageTests = Effect.fn("Tests.packageTests")(function* (inputs: RuleInputs) {
 	const posix = yield* Path.Path.pipe(Effect.provide(Path.layer));
-	const packages = [...(yield* Effect.promise(() => workspacePackages(inputs)))];
-	if ((yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) !== undefined) {
+	const packages = [...(yield* workspacePackages(inputs))];
+	if ((yield* readPackageManifest(inputs.readText, "package.json")) !== undefined) {
 		packages.push({ directory: ".", name: "." });
 	}
 	const withSource = new Set(

@@ -19,8 +19,8 @@ export interface LegacyEntry extends BaselineEntry {
 	readonly measure?: number | undefined;
 }
 
-export async function decodeLegacyBaseline(raw: string): Promise<Decoded<readonly LegacyEntry[]>> {
-	const decoded = await decodeWith(LegacySchema, raw);
+export function decodeLegacyBaseline(raw: string): Decoded<readonly LegacyEntry[]> {
+	const decoded = decodeWith(LegacySchema, raw);
 	if (decoded._tag === "Invalid") {
 		return decoded;
 	}

@@ -9,6 +9,7 @@ import { linkFindings } from "#docs/linkFindings.ts";
 import { markdownLines } from "#docs/markdownLines.ts";
 import { repositoryOf } from "#docs/repositoryLink.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 
 function field(value: unknown, key: string): unknown {
@@ -21,11 +22,7 @@ function isLink(root: string, file: string): boolean {
 	return real(join(root, file)) !== join(real(root), file);
 }
 
-function reader(inputs: RuleInputs): (path: string) => Effect.Effect<string | undefined> {
-	return (path) => Effect.promise(() => inputs.readText(path));
-}
-
-function anchorsReader(read: ReturnType<typeof reader>): (path: string) => Effect.Effect<ReadonlySet<string> | undefined> {
+function anchorsReader(read: RuleInputs["readText"]): (path: string) => Effect.Effect<ReadonlySet<string> | undefined, FilesystemFailure> {
 	const known = new Map<string, ReadonlySet<string> | undefined>();
 	return (path) =>
 		known.has(path)
@@ -38,27 +35,23 @@ function anchorsReader(read: ReturnType<typeof reader>): (path: string) => Effec
 }
 
 const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
-	const read = reader(inputs);
-	const packages: readonly WorkspacePackage[] = yield* Effect.promise(() => workspacePackages(inputs));
+	const packages: readonly WorkspacePackage[] = yield* workspacePackages(inputs);
 	const manifests = new Map(
 		yield* Effect.forEach(packages, (owner) =>
-			Effect.map(
-				Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
-				(manifest) => [owner.name, manifest] as const,
-			),
+			Effect.map(readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json")), (manifest) => [owner.name, manifest] as const),
 		),
 	);
 	const shared = {
-		anchors: anchorsReader(read),
+		anchors: anchorsReader(inputs.readText),
 		exports: new Map([...manifests].map(([name, manifest]) => [name, field(manifest, "exports")])),
 		packages: new Map(packages.map((owner) => [owner.name, owner])),
-		readText: read,
-		repository: repositoryOf(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))),
+		readText: inputs.readText,
+		repository: repositoryOf(yield* readPackageManifest(inputs.readText, "package.json")),
 		root: inputs.root,
 	};
 	const documents = inputs.files.filter((file) => isDocument(file) && !isLink(inputs.root, file));
 	const findings = yield* Effect.forEach(documents, (file) =>
-		Effect.flatMap(read(file), (text): Effect.Effect<readonly Finding[]> => {
+		Effect.flatMap(inputs.readText(file), (text): Effect.Effect<readonly Finding[], FilesystemFailure> => {
 			if (text === undefined) {
 				return Effect.succeed([]);
 			}

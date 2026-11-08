@@ -46,7 +46,7 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 	if (from !== undefined && raw === undefined) {
 		return yield* new SetupFailure({ message: `${registryPath} does not exist. Pass an existing registry file with --from.` });
 	}
-	const registry = yield* validOrFail(registryPath, yield* Effect.promise(() => decodeRegistry(raw)));
+	const registry = yield* validOrFail(registryPath, decodeRegistry(raw));
 	const entries = merge([
 		...config.exceptions,
 		...registry.map(
@@ -59,7 +59,7 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 		),
 		...config.biomeDeclarations.map(({ includes, reason, rule }): ExceptionDeclaration => ({ files: includes, reason, rules: [`biome/${rule}`] })),
 	]);
-	yield* validOrFail(config.file, yield* Effect.promise(() => decodeExceptions(entries)));
+	yield* validOrFail(config.file, decodeExceptions(entries));
 	const text = yield* readInput("", config.file);
 	const next = yield* Effect.try({
 		catch: (cause) => new SetupFailure({ cause, message: String(cause) }),

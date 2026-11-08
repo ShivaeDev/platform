@@ -29,9 +29,7 @@ export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
 	if (raw === undefined) {
 		return yield* new SetupFailure({ message: `no baseline at ${source} to migrate. Name it with --from <file>.` });
 	}
-	const legacy = source.endsWith(".jsonl")
-		? yield* validOrFail(source, yield* Effect.promise(() => decodeBaseline(raw)))
-		: yield* validOrFail(source, yield* Effect.promise(() => decodeLegacyBaseline(raw)));
+	const legacy = source.endsWith(".jsonl") ? yield* validOrFail(source, decodeBaseline(raw)) : yield* validOrFail(source, decodeLegacyBaseline(raw));
 	const entries = source.endsWith(".jsonl") ? legacy : convertLegacy(legacy, (yield* scan(config)).violations);
 	const fs = yield* FileSystem.FileSystem;
 	const written = Effect.andThen(saveShards(config, new Map(), entries), fs.remove(join(config.root, source)));

@@ -26,7 +26,7 @@ export const readBaseline = Effect.fn("Engine.readBaseline")(function* (
 		if (raw === undefined) {
 			continue;
 		}
-		const entries = yield* validOrFail(path, yield* Effect.promise(() => decodeBaseline(raw)));
+		const entries = yield* validOrFail(path, decodeBaseline(raw));
 		for (const entry of entries) {
 			const expected = shardOf(entry.file, config.baseline);
 			if (expected !== path) {

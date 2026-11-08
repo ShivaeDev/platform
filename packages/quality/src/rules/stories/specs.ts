@@ -61,7 +61,7 @@ function uncoveredRegistration(call: ts.CallExpression, originOf: OriginOf): boo
 export const storySpecs = defineRule({
 	check: Effect.fn("Stories.check")(function* (inputs) {
 		const graph = yield* importGraph(inputs);
-		const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, graph.packages));
+		const exempt = yield* storyPrerequisites(inputs, graph.packages);
 		const origins = storyOrigins(inputs, graph);
 		const unit = unitTests(graph, inputs.sources, runtime(origins.checker, origins.source));
 		return inputs.sources.flatMap((file) => {

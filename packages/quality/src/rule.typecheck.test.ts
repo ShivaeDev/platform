@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { defineConfig, type QualityConfig } from "#config.ts";
-import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext } from "#rule.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext, type RuleInputs } from "#rule.ts";
 import { customServiceRule, type LineAllowance } from "#test/customServiceRule.ts";
 
 const numeric = defineRule({
@@ -12,7 +13,7 @@ const numeric = defineRule({
 });
 
 const textual = defineRule({
-	check: ({ options }) => Promise.resolve([{ file: "label", message: options.label.toUpperCase() }]),
+	check: ({ options }) => Effect.succeed([{ file: "label", message: options.label.toUpperCase() }]),
 	description: "Reports a label.",
 	id: "local/textual",
 	options: Schema.toStandardSchemaV1(Schema.Struct({ label: Schema.String })),
@@ -96,12 +97,38 @@ export const invalidSync = defineRule({
 	id: "local/invalid-sync",
 });
 
-export const invalidPromise = defineRule({
-	// @ts-expect-error Promise results must also contain valid findings.
-	check: () => Promise.resolve([{ file: "bad", message: 2 }]),
-	description: "Rejects invalid Promise findings.",
-	id: "local/invalid-promise",
+export const promiseCheck = defineRule({
+	// @ts-expect-error A check returns findings or an Effect of findings, never a Promise.
+	check: () => Promise.resolve([{ file: "promised", message: "promised" }]),
+	description: "Rejects a Promise check.",
+	id: "local/promise-check",
 });
+
+export const reading = defineRule({
+	check: ({ readText }) =>
+		Effect.gen(function* () {
+			const text = yield* readText("notes.md");
+			const read: string | undefined = text;
+			return read === undefined ? [{ file: "notes.md", message: "missing" }] : [];
+		}),
+	description: "Reads a file through the Effect API.",
+	id: "local/reading",
+});
+
+export function readTextType(inputs: RuleInputs) {
+	const text: Effect.Effect<string | undefined, FilesystemFailure> = inputs.readText("notes.md");
+	// @ts-expect-error readText is an Effect, so a Promise caller cannot await its text.
+	const promised: Promise<string | undefined> = inputs.readText("notes.md");
+	return [text, promised];
+}
+
+export const promiseReader: RuleInputs = {
+	files: [],
+	// @ts-expect-error A supplied readText returns an Effect, not a Promise.
+	readText: () => Promise.resolve(undefined),
+	root: ".",
+	sources: [],
+};
 
 export const invalidEffect = defineRule({
 	// @ts-expect-error Effect results must also contain valid findings.
@@ -114,7 +141,7 @@ type Ready = Extract<Awaited<ReturnType<typeof customServiceRule.configure>>, { 
 export function serviceCheck(ready: Ready) {
 	const check: Effect.Effect<Findings, unknown, LineAllowance> = ready.check({
 		files: [],
-		readText: () => Promise.resolve(undefined),
+		readText: () => Effect.succeed(undefined),
 		root: ".",
 		sources: [],
 	});

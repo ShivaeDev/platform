@@ -66,7 +66,7 @@ export const sharedErrorFindings = Effect.fn("SharedErrorClasses.sharedErrorFind
 	if (sources.length === 0) {
 		return [];
 	}
-	const modules = yield* Effect.promise(() => sharedErrorModules({ ...inputs, sources }));
+	const modules = yield* sharedErrorModules({ ...inputs, sources });
 	if (modules.length === 0) {
 		return [];
 	}

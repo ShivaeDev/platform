@@ -50,7 +50,7 @@ export const manifestsDependencyPins = defineRule({
 				}
 			}
 			for (const file of manifestFiles(inputs)) {
-				const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, file));
+				const manifest = yield* readPackageManifest(inputs.readText, file);
 				findings.push(
 					...SECTIONS.flatMap((section) =>
 						Object.entries(manifest?.[section] ?? {}).flatMap(([name, version]) => dependencyFinding(file, section, name, version, catalogs)),

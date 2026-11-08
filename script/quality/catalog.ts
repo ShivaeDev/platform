@@ -1,5 +1,8 @@
+import { Effect } from "effect";
+import { FilesystemFailure } from "@shivaedev/quality/inventory/filesystem.ts";
 import type { Finding, RuleInputs } from "@shivaedev/quality/rule.ts";
 
+const WORKSPACE = "pnpm-workspace.yaml";
 const HEADING = /^(?<quote>["']?)(?<key>catalog|catalogs|overrides)\k<quote>\s*:(?<rest>.*)$/u;
 const SECTION_END = /^[^\s#]/u;
 const ENTRY = /^\s+(?=[^\s#])(?<quote>["']?)(?<name>[^"':]+)\k<quote>\s*:\s*(?<value>\S.*)$/u;
@@ -55,10 +58,10 @@ export function scanCatalog(workspace: string) {
 	return { entries, findings };
 }
 
-export async function catalog({ readText }: Pick<RuleInputs, "readText">) {
-	const workspace = await readText("pnpm-workspace.yaml");
+export const catalog = Effect.fn("Quality.catalog")(function* ({ readText }: Pick<RuleInputs, "readText">) {
+	const workspace = yield* readText(WORKSPACE);
 	if (workspace === undefined) {
-		throw new Error("required input is missing: pnpm-workspace.yaml");
+		return yield* new FilesystemFailure({ message: `required input is missing: ${WORKSPACE}`, path: WORKSPACE });
 	}
 	return scanCatalog(workspace);
-}
+});

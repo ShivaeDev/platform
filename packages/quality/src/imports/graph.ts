@@ -34,7 +34,7 @@ const build = Effect.fn("Imports.build")(function* (inputs: RuleInputs) {
 			),
 		);
 	}
-	return { ...walked, packages: yield* Effect.promise(() => workspacePackages(inputs)) };
+	return { ...walked, packages: yield* workspacePackages(inputs) };
 });
 
 type Graph = ReturnType<typeof build>;

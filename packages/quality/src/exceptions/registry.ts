@@ -13,8 +13,8 @@ export type RegistryEntry = typeof RegistryEntry.Type;
 
 const RegistryFile = Schema.fromJsonString(Schema.Array(RegistryEntry));
 
-export function decodeRegistry(raw: string | undefined): Promise<Decoded<readonly RegistryEntry[]>> {
-	return raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(RegistryFile, raw);
+export function decodeRegistry(raw: string | undefined): Decoded<readonly RegistryEntry[]> {
+	return raw === undefined ? { _tag: "Valid", value: [] } : decodeWith(RegistryFile, raw);
 }
 
 export interface StaleRegistryEntry {

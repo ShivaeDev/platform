@@ -1,7 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
 import { knipRunning } from "#test/knipRunning.ts";
-import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
@@ -46,19 +45,6 @@ qualityLifecycle.it(
 				["stack frame", () => stderr(), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
 			]),
 		);
-	},
-	CLI_TIMEOUT,
-);
-
-qualityLifecycle.it(
-	"interrupting a rule's Promise check aborts the signal the check received",
-	[promiseRunning],
-	function* ({ interrupts, promiseSignalAborted }) {
-		yield* assertThat(yield* promiseSignalAborted(), (actual) => actual.toBe(false));
-
-		yield* interrupts();
-
-		yield* assertThat(yield* promiseSignalAborted(), (actual) => actual.toBe(true));
 	},
 	CLI_TIMEOUT,
 );

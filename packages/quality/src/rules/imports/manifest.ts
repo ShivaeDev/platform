@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/packageName.ts";
@@ -40,9 +40,9 @@ const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function*
 	graph: ImportGraph,
 	workspace: ReadonlyMap<string, string>,
 	isTestCode: (path: string) => boolean,
-): Effect.fn.Return<ManifestDependencies> {
+): Effect.fn.Return<ManifestDependencies, ManifestReadFailure> {
 	const path = posix.join(owner.directory, "package.json");
-	const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, path));
+	const manifest = yield* readPackageManifest(inputs.readText, path);
 	if (manifest === undefined) {
 		return yield* Effect.die(new Error("the manifest is missing"));
 	}
@@ -50,7 +50,7 @@ const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function*
 		...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate, isTestCode)),
 		application: isApplication(manifest),
 		development: new Set(dependencyNames(manifest, "devDependencies")),
-		entryPoints: yield* Effect.promise(() => entryPointsOf(inputs, owner.directory, manifest, workspace)),
+		entryPoints: yield* entryPointsOf(inputs, owner.directory, manifest, workspace),
 		private: Reflect.get(manifest, "private") === true,
 		shipped: new Set(SHIPPED_FIELDS.flatMap((field) => dependencyNames(manifest, field))),
 	};
@@ -102,7 +102,7 @@ export const importsManifest = defineRule({
 			return testFile(path) || tooling(path);
 		}
 		const root: WorkspacePackage | undefined =
-			(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined ? undefined : { directory: ".", name: "." };
+			(yield* readPackageManifest(inputs.readText, "package.json")) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
 		const workspace = new Map(graph.packages.map((owner) => [owner.name, owner.directory]));
 		const policies = new Map(

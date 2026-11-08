@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { PackageManifest } from "#PackageManifest.ts";
 import type { RuleInputs } from "#rule.ts";
@@ -60,16 +61,16 @@ function fromDependency(directory: string, manifest: PackageManifest, subpath: s
 	return subpath === "" ? undefined : posix.join(directory, subpath);
 }
 
-export async function resolvePackage(readText: RuleInputs["readText"], specifier: string): Promise<string | undefined> {
+export const resolvePackage = Effect.fn("Biome.resolvePackage")(function* (readText: RuleInputs["readText"], specifier: string) {
 	const { name, subpath = "" } = SPECIFIER.exec(specifier)?.groups ?? {};
 	if (name === undefined) {
 		return undefined;
 	}
-	const own = await readPackageManifest(readText, "package.json");
+	const own = yield* readPackageManifest(readText, "package.json");
 	if (own?.name === name && own.exports !== undefined && subpath !== "") {
 		return inPackage("", exported(own.exports, subpath));
 	}
 	const directory = posix.join("node_modules", name);
-	const manifest = await readPackageManifest(readText, posix.join(directory, "package.json"));
+	const manifest = yield* readPackageManifest(readText, posix.join(directory, "package.json"));
 	return manifest === undefined ? undefined : fromDependency(directory, manifest, subpath);
-}
+});

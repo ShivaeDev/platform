@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import ts from "typescript";
+import { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { unwrapped } from "#rules/stories/syntax.ts";
@@ -80,21 +82,23 @@ function queriesIn(file: string, source: ts.SourceFile): readonly SqlText[] {
 	return queries;
 }
 
-export async function sqlTexts(inputs: RuleInputs): Promise<readonly SqlText[]> {
+const sqlFile = Effect.fn("Stories.sqlFile")(function* (inputs: RuleInputs, file: string) {
+	const text = inputs.sources.find((source) => source.path === file)?.text ?? (yield* inputs.readText(file));
+	if (text === undefined) {
+		return yield* new FilesystemFailure({ message: `Cannot read SQL file ${file}. Restore the file or repair its read permissions.`, path: file });
+	}
+	return { file, line: 1, text };
+});
+
+export const sqlTexts = Effect.fn("Stories.sqlTexts")(function* (inputs: RuleInputs) {
 	const code = inputs.sources.flatMap((file) => {
 		const source = parse(file);
 		return source === undefined ? [] : queriesIn(file.path, source);
 	});
-	const sql = await Promise.all(
-		inputs.files
-			.filter((file) => file.endsWith(".sql"))
-			.map(async (file) => {
-				const text = inputs.sources.find((source) => source.path === file)?.text ?? (await inputs.readText(file));
-				if (text === undefined) {
-					throw new Error(`Cannot read SQL file ${file}. Restore the file or repair its read permissions.`);
-				}
-				return { file, line: 1, text };
-			}),
+	const sql = yield* Effect.forEach(
+		inputs.files.filter((file) => file.endsWith(".sql")),
+		(file) => sqlFile(inputs, file),
+		{ concurrency: "unbounded" },
 	);
 	return [...code, ...sql];
-}
+});

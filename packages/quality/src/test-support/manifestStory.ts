@@ -50,10 +50,10 @@ export const manifestStory = storyKit({
 					engine.fileReads.push(file);
 					return reader(file);
 				}
-				engine.manifests = yield* Effect.promise(() =>
-					Promise.all([readPackageManifest(readText, path), readPackageManifest(readText, `./${path}`)]),
-				);
-			}).pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)),
+				engine.manifests = yield* Effect.all([readPackageManifest(readText, path), readPackageManifest(readText, `./${path}`)], {
+					concurrency: "unbounded",
+				});
+			}).pipe(Effect.provide(NodeFileSystem.layer)),
 	}),
 });
 

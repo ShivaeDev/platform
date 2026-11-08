@@ -30,7 +30,7 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### Rule lifecycle
 
-`defineRule` accepts synchronous, Promise and Effect checks. Its callbacks use the schema's decoded option type, while `configure` and config settings use its input type. Use `RegisteredRule` for a list of rules with different option types; each rule keeps its strict callback types. The adapter validates unknown registry input and bridges checks to Effects. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
+`defineRule` accepts checks that return findings or an Effect of findings. Its callbacks use the schema's decoded option type, while `configure` and config settings use its input type. Use `RegisteredRule` for a list of rules with different option types; each rule keeps its strict callback types. The adapter validates unknown registry input and runs each check in the run's scope, where a check composes filesystem and child-process work and stops when the run is interrupted. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
 
 Interrupting a run stops pending manifest reads and its Biome and knip processes and removes their scoped temporary configs before it ends. Expected filesystem failures in rules become findings that name the affected file. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
 
@@ -592,6 +592,7 @@ Import names from their defining module; there is no root entry. The package's `
 The exposed local-rule API supplements the gate; a repository does not need to use it to get the shared policy. Reusable quality policy belongs in Quality itself.
 
 ```ts
+import { Effect } from "effect";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 
 export const noLog = defineRule({
@@ -600,9 +601,19 @@ export const noLog = defineRule({
 	description: "Log through the logger.",
 	id: "local/no-console-log",
 });
+
+export const hasChangelog = defineRule({
+	check: ({ readText }) =>
+		Effect.gen(function* () {
+			const text = yield* readText("CHANGELOG.md");
+			return text === undefined ? [{ file: "CHANGELOG.md", message: "is missing." }] : [];
+		}),
+	description: "Keep a changelog.",
+	id: "local/has-changelog",
+});
 ```
 
-Register it with `defineConfig({ local: [noLog] })`. Its check receives `root`, checked paths in `files`, source files in `sources`, `readText(path)` and decoded `options`, and may return findings directly or asynchronously. For options, provide a [Standard Schema](https://standardschema.dev) validator; an absent options object is validated as `{}`, so defaults belong in the schema, and a rule without a schema refuses options. A finding's optional `subject` distinguishes exceptions within a rule and file. A limit rule reports its amount over the limit as `count` and the limit as `threshold`; the baseline stores the count. Set `registrable: false` when a rule must never be excused by a config exception.
+Register them with `defineConfig({ local: [noLog, hasChangelog] })`. A check receives `root`, checked paths in `files`, source files in `sources`, `readText(path)` and decoded `options`, and returns findings or an Effect of findings. `readText` is an Effect that succeeds with `undefined` for a missing file. For options, provide a [Standard Schema](https://standardschema.dev) validator; an absent options object is validated as `{}`, so defaults belong in the schema, and a rule without a schema refuses options. A finding's optional `subject` distinguishes exceptions within a rule and file. A limit rule reports its amount over the limit as `count` and the limit as `threshold`; the baseline stores the count. Set `registrable: false` when a rule must never be excused by a config exception.
 
 #### Command line
 

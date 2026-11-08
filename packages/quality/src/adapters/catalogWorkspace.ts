@@ -6,7 +6,7 @@ export const catalogWorkspace = Effect.fn("Manifests.catalogWorkspace")(function
 	let directory = root;
 	for (;;) {
 		const file = relative(root, join(directory, "pnpm-workspace.yaml")).split(sep).join("/");
-		const text = yield* Effect.promise(() => readText(file));
+		const text = yield* readText(file);
 		if (text !== undefined) {
 			return { file, text };
 		}

@@ -30,7 +30,7 @@ export const manifestsSourceFirst = defineRule({
 				manifestFiles(inputs),
 				(path) =>
 					Effect.gen(function* () {
-						const entry = yield* Effect.promise(() => manifestEntry(inputs.readText, path));
+						const entry = yield* manifestEntry(inputs.readText, path);
 						if (entry === undefined) {
 							return [];
 						}

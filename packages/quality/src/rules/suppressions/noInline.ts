@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { type SourceComment, scanComments } from "#rules/comments/scan.ts";
 import { suppressionIn } from "#rules/suppressions/in.ts";
@@ -18,21 +19,28 @@ function sitesIn(file: string, comments: readonly SourceComment[]): readonly Sit
 	});
 }
 
-async function stylesheetSites({ files, readText, sources }: RuleInputs): Promise<readonly Site[]> {
+const stylesheetSites = Effect.fn("Suppressions.stylesheetSites")(function* ({ files, readText, sources }: RuleInputs) {
 	const read = files.filter((path) => STYLESHEET.test(path));
-	const texts = await Promise.all(read.map(async (path) => sources.find((source) => source.path === path)?.text ?? (await readText(path))));
+	const texts = yield* Effect.forEach(
+		read,
+		(path) => {
+			const known = sources.find((source) => source.path === path)?.text;
+			return known === undefined ? readText(path) : Effect.succeed(known);
+		},
+		{ concurrency: "unbounded" },
+	);
 	return read.flatMap((path, index) => sitesIn(path, stylesheetComments(path, texts[index] ?? "")));
-}
+});
 
 function allowed(site: Site): boolean {
 	return site.subject === TYPE_TEST_DIRECTIVE && TYPE_TEST.test(site.file);
 }
 
 export const noInline = defineRule({
-	check: async (inputs) =>
-		[...inputs.sources.flatMap((file) => sitesIn(file.path, scanComments(file))), ...(await stylesheetSites(inputs))].filter(
-			(site) => !allowed(site),
-		),
+	check: Effect.fn("NoInline.check")(function* (inputs) {
+		const stylesheets = yield* stylesheetSites(inputs);
+		return [...inputs.sources.flatMap((file) => sitesIn(file.path, scanComments(file))), ...stylesheets].filter((site) => !allowed(site));
+	}),
 	description:
 		"A suppression silences a check at one site instead of fixing the cause. Repair the code that fails the check and remove the suppression. A type test asserts a compile error with @ts-expect-error in a *.typecheck.test.ts or *.typecheck.spec.ts file.",
 	id: "suppressions/no-inline",
