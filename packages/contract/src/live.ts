@@ -49,6 +49,7 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					get.once(options.resume);
 					get.subscribe(options.resume, () => {
 						if (!get.once(paused) && get.once(status).connection !== "failed") {
+							update({ needsResync: true });
 							Queue.offerUnsafe(resumed, undefined);
 						}
 					});

@@ -31,6 +31,8 @@ export function resumeLiveClient(resume?: ResumeSource) {
 	]);
 	const subscriptions: { active: boolean }[] = [];
 	let ended = Effect.runSync(Deferred.make<void>());
+	let resync = Effect.runSync(Deferred.make<void>());
+	Effect.runSync(Deferred.succeed(resync, undefined));
 	const application = Notes.application.toLayer({ "resumeNotes.get": ({ id }) => Effect.sync(() => titles.get(id) ?? "Missing") });
 	const changes = changesHandlerLayer(
 		Notes,
@@ -44,6 +46,7 @@ export function resumeLiveClient(resume?: ResumeSource) {
 							subscription.active = false;
 						}
 						yield* Effect.addFinalizer(() => Effect.sync(close));
+						yield* Deferred.await(resync);
 						const requested = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
 						const updates = yield* compareQueries(requested, rerunQuery(Notes.application, options))({ _tag: "Resync" });
 						return Stream.concat(Stream.fromIterable(updates), Stream.drain(Stream.fromEffect(Deferred.await(ended))));
@@ -64,6 +67,10 @@ export function resumeLiveClient(resume?: ResumeSource) {
 			ended = Effect.runSync(Deferred.make<void>());
 			return Effect.runPromise(Deferred.succeed(previous, undefined));
 		},
+		holdResync: () => {
+			resync = Effect.runSync(Deferred.make<void>());
+		},
+		releaseResync: () => Effect.runPromise(Deferred.succeed(resync, undefined)),
 		rename: (id: number, title: string) => titles.set(id, title),
 		subscriptionStates: () => subscriptions.map((subscription) => (subscription.active ? "open" : "closed")),
 	};

@@ -31,13 +31,41 @@ function live(state: State) {
 	return state.live;
 }
 
+function output(state: State) {
+	return root(state).container.querySelector("output");
+}
+
+function resyncShown(state: State) {
+	return output(state)?.getAttribute("data-needs-resync") === "true";
+}
+
 function liveSettled(state: State) {
-	const output = root(state).container.querySelector("output");
-	return output?.getAttribute("data-live") === "live" && output.getAttribute("data-pending") === "false" && live(state).active() === 2;
+	return (
+		output(state)?.getAttribute("data-live") === "live"
+		&& output(state)?.getAttribute("data-pending") === "false"
+		&& !resyncShown(state)
+		&& live(state).active() === 2
+	);
 }
 
 function settleLive(state: State, screen: Screen) {
 	return settleScreen(root(state).container, () => !liveSettled(state), screen.tell);
+}
+
+function signal(state: State, source: Source, browserEvent: "online" | "visibilitychange") {
+	return () => (source === "native" ? state.native.resume() : window.dispatchEvent(new Event(browserEvent)));
+}
+
+// The resync is held until the screen reports it, so the settle after release cannot read a screen that has not started resyncing yet.
+function heldResync(state: State, screen: Screen, line: string, resume: () => void) {
+	return Effect.sync(() => live(state).holdResync()).pipe(
+		Effect.andThen(screen.act(line, resume)),
+		Effect.andThen(settleScreen(root(state).container, () => !resyncShown(state), screen.tell)),
+	);
+}
+
+function releasedResync(state: State, screen: Screen) {
+	return screen.act("the resync reaches the client", () => live(state).releaseResync()).pipe(Effect.andThen(settleLive(state, screen)));
 }
 
 function resumeVerbs(state: State, screen: Screen) {
@@ -62,14 +90,21 @@ export const resumes = storyKit(
 			...resumeVerbs(state, screen),
 			close: () => screen.act("close the resume screen", () => root(state).unmount()),
 			liveReconnect: (source: Source) =>
-				screen
-					.act(`the ${source} app reconnects`, () => (source === "native" ? state.native.resume() : window.dispatchEvent(new Event("online"))))
-					.pipe(Effect.andThen(settleLive(state, screen))),
+				heldResync(state, screen, `the ${source} app reconnects`, signal(state, source, "online")).pipe(
+					Effect.andThen(releasedResync(state, screen)),
+				),
 			liveResume: (source: Source) =>
-				screen
-					.act(`the ${source} app resumes`, () => (source === "native" ? state.native.resume() : window.dispatchEvent(new Event("visibilitychange"))))
-					.pipe(Effect.andThen(settleLive(state, screen))),
+				heldResync(state, screen, `the ${source} app resumes`, signal(state, source, "visibilitychange")).pipe(
+					Effect.andThen(releasedResync(state, screen)),
+				),
 			nativeSubscription: () => Effect.sync(() => (state.native.listeners.size === 0 ? "released" : "subscribed")),
+			releaseResync: () => releasedResync(state, screen),
+			reported: () =>
+				Effect.sync(() => ({
+					needsResync: output(state)?.getAttribute("data-needs-resync"),
+					pending: output(state)?.getAttribute("data-pending"),
+				})),
+			resumeHoldingResync: (source: Source) => heldResync(state, screen, `the ${source} app resumes`, signal(state, source, "visibilitychange")),
 			shown: () => Effect.sync(() => root(state).container.textContent),
 			subscriptions: () => Effect.sync(() => live(state).subscriptionStates()),
 		}),
