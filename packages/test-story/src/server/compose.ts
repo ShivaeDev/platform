@@ -2,10 +2,10 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { AnyTestLayer } from "@shivaedev/test/types.ts";
 import { engineSummary } from "#server/adapters/engineSummary.ts";
+import type { LooseDefinition } from "#server/adapters/seed.ts";
 import { type KitList, kitDefinition } from "#server/compositionTypes.ts";
 import { hooked } from "#server/hooked.ts";
 import { runUntil } from "#server/runUntil.ts";
-import type { LooseDefinition } from "#server/seed.ts";
 
 export function compose(name: string, kits: KitList): LooseDefinition {
 	const definitions = kits.map((kit) => kit[kitDefinition]);

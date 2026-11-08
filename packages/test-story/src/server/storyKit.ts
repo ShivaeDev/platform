@@ -1,10 +1,10 @@
 import type { TestContext } from "@effect/vitest";
 import type { Effect, Layer, Scope } from "effect";
+import type { LooseDefinition } from "#server/adapters/seed.ts";
 import { compose } from "#server/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#server/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#server/hooked.ts";
 import type { AfterResults, AfterServices, InferredDefinition } from "#server/hookInference.ts";
-import type { LooseDefinition } from "#server/seed.ts";
 import { type StoryCrypto, storyIt } from "#server/storyIt.ts";
 import type { StoryClock, StoryTestOptions } from "#server/storyOptions.ts";
 import { type Parts, trait, traits } from "#server/traits.ts";

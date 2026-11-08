@@ -1,8 +1,9 @@
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import type { ScreenDriverOptions } from "#server/screenDriver.ts";
 
-export function screenAct<E, A = void>(act: NonNullable<ScreenDriverOptions["act"]>, action: Effect.Effect<A, E>) {
+export type ScreenAct = (action: () => Promise<void>) => PromiseLike<void>;
+
+export function screenAct<E, A = void>(act: ScreenAct, action: Effect.Effect<A, E>) {
 	return Effect.callback<A, E>((resume, signal) => {
 		let outcome: Exit.Exit<A, E>;
 		const completed = Promise.resolve(
@@ -19,9 +20,9 @@ export function screenAct<E, A = void>(act: NonNullable<ScreenDriverOptions["act
 	});
 }
 
-export const directScreenAct: NonNullable<ScreenDriverOptions["act"]> = (action) => action();
+export const directScreenAct: ScreenAct = (action) => action();
 
-export function screenPerform(act: NonNullable<ScreenDriverOptions["act"]>, tell: (line: string) => void) {
+export function screenPerform(act: ScreenAct, tell: (line: string) => void) {
 	return (line: string, action: () => void) =>
 		Effect.promise(async () => {
 			tell(line);

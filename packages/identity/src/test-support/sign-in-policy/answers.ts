@@ -1,5 +1,5 @@
 import { Cause, Config, Exit, Option } from "effect";
-import type { RevokedSessions } from "#server/better-auth/revokeUnadmitted.ts";
+import type { RevokedSessions } from "#server/better-auth/adapters/revokeUnadmitted.ts";
 
 export type SignInAnswer = "signed in" | "refused" | "unavailable" | `failed: ${string}`;
 export type RequestAnswer = "ok" | "unauthorized" | "auth unavailable" | `failed: ${string}`;

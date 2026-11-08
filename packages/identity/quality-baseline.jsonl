@@ -1,7 +1,3 @@
-{"path":"packages/identity/src/server/better-auth/admittedSessions.ts","rule":"effect/boundary","count":6}
-{"path":"packages/identity/src/server/better-auth/admittedSessions.typecheck.test.ts","rule":"effect/boundary","count":1}
-{"path":"packages/identity/src/server/better-auth/revokeUnadmitted.ts","rule":"effect/boundary","count":1}
-{"path":"packages/identity/src/server/better-auth/signInGate.ts","rule":"effect/boundary","count":1}
 {"path":"packages/identity/src/server/better-auth/testDatabase.ts","rule":"suppressions/no-double-cast","count":5,"reason":"Fixed SQL shapes support identity database assertions; extra decoding of PostgreSQL-owned metadata would add ceremony to a test probe (likelihood 1 x severity 2 = 2)."}
 {"path":"packages/identity/src/server/redaction.spec.ts","rule":"suppressions/no-double-cast","count":2,"reason":"The stories deliberately attach ignore and severity reporter markers to thrown errors to exercise real redaction; changing those inputs weakens the probes (likelihood 1 x severity 3 = 3)."}
 {"path":"packages/identity/src/test-support/rpc/profile.ts","rule":"effect/failure-honesty","count":1}

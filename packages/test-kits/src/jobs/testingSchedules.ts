@@ -2,8 +2,9 @@ import { Effect, Redacted } from "effect";
 import type { PgBossClient } from "@shivaedev/jobs/server/adapters/client.ts";
 import type { ScheduleDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossInspectionService } from "@shivaedev/jobs/server/inspection.ts";
+import { testingOperation } from "#jobs/adapters/testingOperation.ts";
 import { PgBossTestingError } from "#jobs/error.ts";
-import { testingInspection, testingOperation } from "#jobs/testingOperation.ts";
+import { testingInspection } from "#jobs/testingInspection.ts";
 
 export function testingSchedules(client: () => PgBossClient, inspection: () => PgBossInspectionService) {
 	return {
