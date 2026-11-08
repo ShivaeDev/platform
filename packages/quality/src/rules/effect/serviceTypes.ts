@@ -1,7 +1,8 @@
 import ts from "typescript";
-import { browserLibraryType } from "#adapters/browserLibraryType.ts";
 import { callerContextData } from "#adapters/callerContextData.ts";
+import { clientHandle } from "#adapters/clientHandle.ts";
 import { nonEmptyContext } from "#adapters/nonEmptyContext.ts";
+import { valueType } from "#adapters/valueType.ts";
 
 const SERVICE = "~effect/Context/Service";
 const CONTEXT = "~effect/Context";
@@ -86,26 +87,16 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 	function factoryService(type: ts.Type): boolean {
 		return !initializerState && type.getCallSignatures().some((signature) => serviceReturn(signature.getReturnType()));
 	}
-	function carries(type: ts.Type, seen = new Set<ts.Type>()): boolean {
-		if (
-			seen.has(type)
-			|| contextData.has(type)
-			|| browserLibraryType(type)
-			|| type.flags
-				& (ts.TypeFlags.Any
-					| ts.TypeFlags.Unknown
-					| ts.TypeFlags.Never
-					| ts.TypeFlags.StringLike
-					| ts.TypeFlags.NumberLike
-					| ts.TypeFlags.BooleanLike
-					| ts.TypeFlags.ESSymbolLike
-					| ts.TypeFlags.BigIntLike)
-		) {
+	function exempt(type: ts.Type, handles: boolean): boolean {
+		return contextData.has(type) || valueType(type) || (!handles && clientHandle(type));
+	}
+	function carries(type: ts.Type, handles: boolean, seen = new Set<ts.Type>()): boolean {
+		if (seen.has(type) || exempt(type, handles)) {
 			return false;
 		}
 		seen.add(type);
 		if (type.isUnionOrIntersection()) {
-			return type.types.some((part) => carries(part, seen));
+			return type.types.some((part) => carries(part, handles, seen));
 		}
 		if (type.getProperty(SERVICE) !== undefined) {
 			return true;
@@ -118,14 +109,16 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 			return false;
 		}
 		const constraint = checker.getBaseConstraintOfType(type);
-		if (constraint !== undefined && carries(constraint, seen)) {
+		if (constraint !== undefined && carries(constraint, handles, seen)) {
 			return true;
 		}
 		return (
 			implementation(type)
 			|| factoryService(type)
-			|| checker.getIndexInfosOfType(type).some((index) => carries(index.type, seen))
-			|| type.getProperties().some((property) => !(property.flags & ts.SymbolFlags.Method) && carries(checker.getTypeOfSymbol(property), seen))
+			|| checker.getIndexInfosOfType(type).some((index) => carries(index.type, handles, seen))
+			|| type
+				.getProperties()
+				.some((property) => !(property.flags & ts.SymbolFlags.Method) && carries(checker.getTypeOfSymbol(property), handles, seen))
 		);
 	}
 	return {
@@ -134,10 +127,11 @@ export function serviceTypes(checker: ts.TypeChecker, initializerState = false) 
 			if (known !== undefined) {
 				return known;
 			}
-			const result = carries(type);
+			const result = carries(type, true);
 			carried.set(type, result);
 			return result;
 		},
+		carriesBeyondClientHandles: (type: ts.Type) => carries(type, false),
 		computation,
 		implementation,
 		remember,
