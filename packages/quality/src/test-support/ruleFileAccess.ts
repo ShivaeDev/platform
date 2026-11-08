@@ -30,7 +30,7 @@ export const ruleFileAccess = storyKit({
 		const running: RuleRun = { fiber: undefined };
 		const checked: Checked = { findings: undefined, outcome: undefined };
 		return {
-			check: configured.check({ files: [], readText: () => Promise.resolve(undefined), root, sources: [] }),
+			check: configured.check({ files: [], readText: () => Effect.succeed(undefined), root, sources: [] }),
 			checked,
 			fs,
 			read: fs.readFileString(join(root, "tsconfig.json")),

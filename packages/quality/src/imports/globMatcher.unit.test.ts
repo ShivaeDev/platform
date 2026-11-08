@@ -1,5 +1,11 @@
+import { Result } from "effect";
 import { describe, expect, it } from "vitest";
 import { globMatcher } from "#imports/globMatcher.ts";
+
+function refusal(pattern: string): string | undefined {
+	const matcher = globMatcher(pattern);
+	return Result.isFailure(matcher) ? matcher.failure.message : undefined;
+}
 
 describe("globMatcher", () => {
 	it("matches *, **, ?, braces and character classes the way pnpm does, never a dot segment unless the pattern names the dot", () => {
@@ -22,7 +28,7 @@ describe("globMatcher", () => {
 			["packages/.hidden", "packages/.hidden", true],
 			["packages/.*", "packages/.hidden", true],
 		];
-		expect(cases.map(([pattern, path]) => globMatcher(pattern)(path))).toEqual(cases.map(([, , expected]) => expected));
+		expect(cases.map(([pattern, path]) => Result.getOrThrow(globMatcher(pattern))(path))).toEqual(cases.map(([, , expected]) => expected));
 	});
 
 	it.for([
@@ -30,13 +36,13 @@ describe("globMatcher", () => {
 		["packages/[[:alpha:]]", "character class names are not supported"],
 		["packages/\\*", "escapes are not supported"],
 	] satisfies ReadonlyArray<readonly [unknown, unknown]>)("explains why the workspace pattern %s is unsupported", ([pattern, reason]) => {
-		expect(() => globMatcher(pattern)).toThrow(`cannot read the workspace pattern "${pattern}": ${reason}`);
+		expect(refusal(pattern)).toBe(`cannot read the workspace pattern "${pattern}": ${reason}`);
 	});
 
 	it("refuses a pattern it cannot read instead of matching nothing", () => {
-		expect(() => globMatcher("packages/{a,b")).toThrow('cannot read the workspace pattern "packages/{a,b": a { never closes');
-		expect(() => globMatcher("packages/[ab")).toThrow('cannot read the workspace pattern "packages/[ab": a [ never closes');
-		expect(() => globMatcher("packages/+(a|b)")).toThrow('cannot read the workspace pattern "packages/+(a|b)": extended globs are not supported');
-		expect(() => globMatcher("packages/{1..3}")).toThrow('cannot read the workspace pattern "packages/{1..3}": brace ranges are not supported');
+		expect(refusal("packages/{a,b")).toBe('cannot read the workspace pattern "packages/{a,b": a { never closes');
+		expect(refusal("packages/[ab")).toBe('cannot read the workspace pattern "packages/[ab": a [ never closes');
+		expect(refusal("packages/+(a|b)")).toBe('cannot read the workspace pattern "packages/+(a|b)": extended globs are not supported');
+		expect(refusal("packages/{1..3}")).toBe('cannot read the workspace pattern "packages/{1..3}": brace ranges are not supported');
 	});
 });

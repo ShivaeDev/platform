@@ -1,6 +1,4 @@
 {"path":"packages/quality/src/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/baseline/legacy.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/cli/args.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/cli/migrateExceptions.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/cli/runMain.ts","rule":"effect/boundary","count":1}
@@ -13,14 +11,10 @@
 {"path":"packages/quality/src/imports/fences/check.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/imports/fences/compilePolicy.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/imports/fences/discover.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/quality/src/imports/fences/discover.ts","rule":"effect/boundary","count":10}
-{"path":"packages/quality/src/imports/globMatcher.ts","rule":"effect/boundary","count":11}
-{"path":"packages/quality/src/imports/globMatcher.unit.test.ts","rule":"effect/boundary","count":6}
+{"path":"packages/quality/src/imports/globMatcher.ts","rule":"effect/boundary","count":10}
 {"path":"packages/quality/src/imports/importResolution.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/imports/packageName.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/imports/pnpmWorkspacePatterns.ts","rule":"effect/boundary","count":15}
-{"path":"packages/quality/src/imports/workspace.ts","rule":"effect/boundary","count":10}
-{"path":"packages/quality/src/manifests/entryPoints.ts","rule":"effect/boundary","count":4}
 {"path":"packages/quality/src/manifests/sorted.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/imports/cli.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/rules/imports/fenceCrossings.spec.ts","rule":"effect/boundary","count":4}
@@ -29,9 +23,5 @@
 {"path":"packages/quality/src/rules/imports/policyValidation.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/imports/unresolvedImports.spec.ts","rule":"effect/boundary","count":3}
 {"path":"packages/quality/src/rules/manifestsApplication.ts","rule":"effect/boundary","count":1}
-{"path":"packages/quality/src/rules/stories/prerequisites.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/rules/stories/queueSql.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/rules/stories/sqlText.ts","rule":"effect/boundary","count":5}
-{"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":5}

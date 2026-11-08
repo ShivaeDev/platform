@@ -10,7 +10,7 @@ export const manifestsSorted = defineRule({
 				manifestFiles(inputs),
 				(file) =>
 					Effect.gen(function* () {
-						const text = yield* Effect.promise(() => manifestText(inputs.readText, file));
+						const text = yield* manifestText(inputs.readText, file);
 						return text === undefined || sortingOf(text)._tag === "Sorted"
 							? []
 							: [{ file, message: "Keys are not in sort-package-json order. Run `quality fix`." }];

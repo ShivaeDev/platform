@@ -1,10 +1,11 @@
-type Segment = RegExp | typeof GLOBSTAR;
+import { Data, Result } from "effect";
+import { DOT, GLOBSTAR, type Segment, segmentsMatch } from "#imports/segmentsMatch.ts";
+
+export class GlobFailure extends Data.TaggedError("GlobFailure")<{
+	readonly message: string;
+}> {}
 
 const STAR = "*";
-
-const GLOBSTAR = "**";
-
-const DOT = ".";
 
 const NO_DOT = "(?!\\.)";
 
@@ -119,24 +120,17 @@ function segmentOf(segment: string, whole: string): Segment {
 	return new RegExp(`^${segment.startsWith(DOT) ? "" : NO_DOT}${source}$`, "u");
 }
 
-function segmentsMatch(pattern: readonly Segment[], path: readonly string[]): boolean {
-	const [first, ...rest] = pattern;
-	if (first === undefined) {
-		return path.length === 0;
-	}
-	if (first === GLOBSTAR) {
-		const hidden = path.findIndex((segment) => segment.startsWith(DOT));
-		const reachable = hidden === -1 ? path.length : hidden;
-		return [...path.keys(), path.length].some((skipped) => skipped <= reachable && segmentsMatch(rest, path.slice(skipped)));
-	}
-	const [head, ...tail] = path;
-	return head !== undefined && first.test(head) && segmentsMatch(rest, tail);
-}
-
-export function globMatcher(pattern: string): (path: string) => boolean {
-	if (pattern.includes("\\")) {
-		throw unreadable(pattern, "escapes are not supported");
-	}
+function matcherOf(pattern: string): (path: string) => boolean {
 	const alternatives = expanded(pattern, pattern).map((alternative) => alternative.split("/").map((segment) => segmentOf(segment, pattern)));
 	return (path) => alternatives.some((segments) => segmentsMatch(segments, path.split("/")));
+}
+
+export function globMatcher(pattern: string): Result.Result<(path: string) => boolean, GlobFailure> {
+	if (pattern.includes("\\")) {
+		return Result.fail(new GlobFailure({ message: unreadable(pattern, "escapes are not supported").message }));
+	}
+	return Result.try({
+		catch: (cause) => new GlobFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
+		try: () => matcherOf(pattern),
+	});
 }

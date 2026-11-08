@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export type PackageImports = (importer: string, specifier: string) => string | undefined;
@@ -42,15 +42,12 @@ function matched(imports: unknown, specifier: string): readonly string[] {
 export const packageImports = Effect.fn("Files.packageImports")(function* ({
 	files,
 	readText,
-}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageImports> {
+}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageImports, ManifestReadFailure> {
 	const directories = files.filter((path) => posix.basename(path) === MANIFEST).map((path) => posix.dirname(path));
 	const manifests = yield* Effect.forEach(
 		directories,
 		(directory) =>
-			Effect.map(
-				Effect.promise(() => readPackageManifest(readText, posix.join(directory, MANIFEST))),
-				(manifest) => ({ directory, imports: manifest?.imports }),
-			),
+			Effect.map(readPackageManifest(readText, posix.join(directory, MANIFEST)), (manifest) => ({ directory, imports: manifest?.imports })),
 		{ concurrency: "unbounded" },
 	);
 	const deepestFirst = manifests.toSorted((left, right) => right.directory.length - left.directory.length);

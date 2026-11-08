@@ -15,7 +15,7 @@ const MESSAGE =
 
 export const queueReadoutFindings = Effect.fn("Stories.queueReadoutFindings")(function* (inputs: RuleInputs) {
 	const graph = yield* importGraph(inputs);
-	const root = yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"));
+	const root = yield* readPackageManifest(inputs.readText, "package.json");
 	const program = storyProgram(inputs, graph);
 	const origin = queueTestingOrigin(program.getTypeChecker());
 	return inputs.sources.flatMap((file) => {

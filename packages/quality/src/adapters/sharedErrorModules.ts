@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Effect } from "effect";
 import ts from "typescript";
 import errorsPackage from "@shivaedev/errors/package.json" with { type: "json" };
 import { type Project, projectsFor } from "#adapters/imports/projects.ts";
@@ -46,7 +47,7 @@ function resolveModules(specifiers: readonly string[], from: string, project: Pr
 	});
 }
 
-export async function sharedErrorModules(inputs: RuleInputs): Promise<readonly SharedErrorModule[]> {
+export const sharedErrorModules = Effect.fn("SharedErrors.sharedErrorModules")(function* (inputs: RuleInputs) {
 	const projectOf = projectsFor(inputs.root);
 	const manifests = new Map<string, string>();
 	for (const source of inputs.sources) {
@@ -68,7 +69,7 @@ export async function sharedErrorModules(inputs: RuleInputs): Promise<readonly S
 	}
 	const modules = new Map<string, SharedErrorModule>();
 	for (const [manifestPath, from] of manifests) {
-		const manifest = await readPackageManifest(inputs.readText, relative(inputs.root, manifestPath));
+		const manifest = yield* readPackageManifest(inputs.readText, relative(inputs.root, manifestPath));
 		const exports = manifest?.exports;
 		if (typeof exports !== "object" || exports === null || Array.isArray(exports)) {
 			continue;
@@ -78,4 +79,4 @@ export async function sharedErrorModules(inputs: RuleInputs): Promise<readonly S
 		}
 	}
 	return [...modules.values()];
-}
+});

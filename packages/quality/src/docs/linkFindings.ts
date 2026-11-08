@@ -4,10 +4,11 @@ import ts from "typescript";
 import type { MarkdownLine } from "#docs/markdownLines.ts";
 import { markdownLinks } from "#docs/markdownLinks.ts";
 import { type Repository, repositoryLink } from "#docs/repositoryLink.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Finding } from "#rule.ts";
 
 export interface LinkContext {
-	readonly anchors: (path: string) => Effect.Effect<ReadonlySet<string> | undefined>;
+	readonly anchors: (path: string) => Effect.Effect<ReadonlySet<string> | undefined, FilesystemFailure>;
 	readonly published: string | undefined;
 	readonly repository: Repository | undefined;
 	readonly root: string;
@@ -64,7 +65,7 @@ function placement(context: LinkContext, target: string, to: Destination): strin
 	return undefined;
 }
 
-function problem(context: LinkContext, target: string, to: Destination): Effect.Effect<string | undefined> {
+function problem(context: LinkContext, target: string, to: Destination): Effect.Effect<string | undefined, FilesystemFailure> {
 	const misplaced = placement(context, target, to);
 	const anchor = to.anchor;
 	if (misplaced !== undefined || anchor === undefined || anchor === "" || !to.path.endsWith(".md")) {
@@ -77,7 +78,11 @@ function problem(context: LinkContext, target: string, to: Destination): Effect.
 	);
 }
 
-export function linkFindings(context: LinkContext, file: string, lines: readonly MarkdownLine[]): Effect.Effect<readonly Finding[]> {
+export function linkFindings(
+	context: LinkContext,
+	file: string,
+	lines: readonly MarkdownLine[],
+): Effect.Effect<readonly Finding[], FilesystemFailure> {
 	return Effect.map(
 		Effect.forEach(markdownLinks(lines), (link) => {
 			const to = destination(file, link.target, context.repository);

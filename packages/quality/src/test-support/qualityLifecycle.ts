@@ -21,8 +21,6 @@ export interface Lifecycle {
 	answer: CliAnswer | undefined;
 	fiber: Fiber.Fiber<unknown, unknown> | undefined;
 	readonly output: Output;
-	readonly promiseReady: Deferred.Deferred<void>;
-	promiseSignal: AbortSignal | undefined;
 	readonly root: string;
 	readonly started: Deferred.Deferred<RunningTool>;
 }
@@ -63,8 +61,6 @@ export const qualityLifecycle = storyKit({
 			answer: undefined,
 			fiber: undefined,
 			output: { stderr: "", stdout: "" },
-			promiseReady: yield* Deferred.make<void>(),
-			promiseSignal: undefined,
 			root: defaultTree(config('{ sources: ["src"] }')),
 			started: yield* Deferred.make<RunningTool>(),
 		};
@@ -92,7 +88,6 @@ export const qualityLifecycle = storyKit({
 					story.tell(`the author pipes quality ${args.join(" ")} into a reader that has already exited`);
 					return closedReaderRun(engine, args);
 				}),
-			promiseSignalAborted: () => Effect.sync(() => engine.promiseSignal?.aborted),
 			strayBiomeConfigs: () => Effect.sync(() => readdirSync(engine.root).filter((file) => file.startsWith(".quality-biome-"))),
 			temporaryKnipSourceConfigExists: () =>
 				Effect.map(runningTool(engine), ({ sourceConfig }) => sourceConfig !== undefined && existsSync(sourceConfig)),

@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
@@ -25,20 +26,25 @@ export function dependencyNames(manifest: unknown, field: string): readonly stri
 	return typeof value === "object" && value !== null && !Array.isArray(value) ? Object.keys(value) : [];
 }
 
-async function installedManifest(inputs: Pick<RuleInputs, "readText">, directory: string, name: string, workspace: ReadonlyMap<string, string>) {
+const installedManifest = Effect.fn("Manifests.installedManifest")(function* (
+	inputs: Pick<RuleInputs, "readText">,
+	directory: string,
+	name: string,
+	workspace: ReadonlyMap<string, string>,
+) {
 	const candidates = [
 		...(workspace.has(name) ? [posix.join(workspace.get(name) ?? ".", "package.json")] : []),
 		posix.join(directory, "node_modules", name, "package.json"),
 		posix.join("node_modules", name, "package.json"),
 	];
 	for (const candidate of candidates) {
-		const manifest = await readPackageManifest(inputs.readText, candidate);
+		const manifest = yield* readPackageManifest(inputs.readText, candidate);
 		if (manifest !== undefined) {
 			return manifest;
 		}
 	}
 	return undefined;
-}
+});
 
 function declaration(manifest: unknown, name: string): EntryPoint["declared"] {
 	if (SHIPPED_FIELDS.some((field) => dependencyNames(manifest, field).includes(name))) {
@@ -47,21 +53,27 @@ function declaration(manifest: unknown, name: string): EntryPoint["declared"] {
 	return dependencyNames(manifest, "devDependencies").includes(name) ? "development" : undefined;
 }
 
-export function entryPointsOf(
+export const entryPointsOf = Effect.fn("Manifests.entryPointsOf")(function* (
 	inputs: Pick<RuleInputs, "readText">,
 	directory: string,
 	manifest: unknown,
 	workspace: ReadonlyMap<string, string>,
-): Promise<readonly EntryPoint[]> {
-	return Promise.all(
-		ENTRY_POINTS.map(async ({ name, testOnly }) => ({
-			declared: declaration(manifest, name),
-			name,
-			provides: new Set(dependencyNames(await installedManifest(inputs, directory, name, workspace), "dependencies")),
-			testOnly,
-		})),
+) {
+	return yield* Effect.forEach(
+		ENTRY_POINTS,
+		({ name, testOnly }) =>
+			Effect.map(
+				installedManifest(inputs, directory, name, workspace),
+				(installed): EntryPoint => ({
+					declared: declaration(manifest, name),
+					name,
+					provides: new Set(dependencyNames(installed, "dependencies")),
+					testOnly,
+				}),
+			),
+		{ concurrency: "unbounded" },
 	);
-}
+});
 
 export function isApplication(manifest: unknown): boolean {
 	return DEPENDENCY_FIELDS.some((field) => dependencyNames(manifest, field).includes(PLATFORM));

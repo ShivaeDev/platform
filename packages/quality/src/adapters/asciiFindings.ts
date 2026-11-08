@@ -61,7 +61,7 @@ function nonAsciiLines(bytes: Uint8Array): readonly number[] {
 
 export const asciiFindings = Effect.fn("Quality.asciiFindings")(function* ({ files, options, root }: RuleContext<AsciiOptions>) {
 	const fs = yield* FileSystem.FileSystem;
-	const patterns = options.files.map(globMatcher);
+	const patterns = yield* Effect.forEach(options.files, (pattern) => Effect.fromResult(globMatcher(pattern)));
 	const selected = files.filter((file) => patterns.some((matches) => matches(file)));
 	const findings = yield* Effect.forEach(selected, (file) =>
 		Effect.gen(function* () {

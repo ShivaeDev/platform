@@ -22,10 +22,9 @@ export const toolContractDefaults = Effect.fn("Biome.toolContractDefaults")(func
 	}
 	const readText = yield* manifestReader(root);
 	const contracts = yield* Effect.forEach([...directories], (directory) =>
-		Effect.promise(async () => {
-			const manifest = await readPackageManifest(readText, join(directory, "package.json"));
-			return vitestContractPaths(directory, manifest?.scripts ?? {}).map((path) => resolve(root, path));
-		}),
+		Effect.map(readPackageManifest(readText, join(directory, "package.json")), (manifest) =>
+			vitestContractPaths(directory, manifest?.scripts ?? {}).map((path) => resolve(root, path)),
+		),
 	);
 	return new Set(contracts.flat());
-}, Effect.scoped);
+});

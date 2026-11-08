@@ -1,4 +1,4 @@
-import { echo, maxFiles, todo } from "#test/definedRules.ts";
+import { echo, maxFiles, readsNotes, todo } from "#test/definedRules.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
@@ -30,11 +30,21 @@ ruleStory.it("a rule whose options are left out applies its schema's defaults", 
 	yield* assertThat(findings, (actual) => actual.toEqual([{ file: ".", message: "3 files exceed 2." }]));
 });
 
-ruleStory.it("an asynchronous check receives the options it was given", [repositoryHas(...THREE_FILES)], function* ({ check }) {
+ruleStory.it("an Effect check receives the options it was given", [repositoryHas(...THREE_FILES)], function* ({ check }) {
 	const findings = yield* check(maxFiles, { max: 5 });
 
 	yield* assertThat(findings, (actual) => actual.toEqual([]));
 });
+
+ruleStory.it(
+	"a rule's readText yields a file's text and undefined for a missing file",
+	[repositoryHas({ content: "written down\n", path: "notes.md" })],
+	function* ({ check }) {
+		const findings = yield* check(readsNotes);
+
+		yield* assertThat(findings, (actual) => actual.toEqual([{ file: "notes.md", message: "written down then undefined" }]));
+	},
+);
 
 ruleStory.it("a rule names the option path of each issue its schema raises", [], function* ({ optionIssues }) {
 	const issues = yield* optionIssues(echo, {});

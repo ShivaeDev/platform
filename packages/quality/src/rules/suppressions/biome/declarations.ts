@@ -13,8 +13,8 @@ export const PRESET_DECLARATIONS = "declarations.json";
 
 const ShippedDeclarations = Schema.fromJsonString(Schema.Array(Declaration));
 
-export function decodeShipped(text: string | undefined): Promise<Decoded<readonly Declaration[]>> {
-	return text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(ShippedDeclarations, text);
+export function decodeShipped(text: string | undefined): Decoded<readonly Declaration[]> {
+	return text === undefined ? { _tag: "Valid", value: [] } : decodeWith(ShippedDeclarations, text);
 }
 
 export interface Scoped {

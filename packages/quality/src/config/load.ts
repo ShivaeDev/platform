@@ -53,7 +53,7 @@ export const loadConfig = Effect.fn("Config.loadConfig")(function* (
 	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
 	const { file, loaded } = yield* readConfig(cwd, path);
-	const config = yield* validOrFail(file, yield* Effect.promise(() => decodeConfig(loaded)));
+	const config = yield* validOrFail(file, decodeConfig(loaded));
 	const rules = yield* validOrFail(file, yield* resolveRules(config));
 	return resolved(dirname(file), file, config, rules);
 });

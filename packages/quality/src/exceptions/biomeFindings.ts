@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { biomeReport } from "#biome/report.ts";
 import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import type { StaleRegistryEntry } from "#exceptions/registry.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 
 export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")(function* (inputs: RuleInputs) {
@@ -9,7 +10,7 @@ export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")
 	const declared = declarations.flatMap(({ files, reason, rules }) =>
 		rules.filter((rule) => /^biome\/(?:lint|assist)\//u.test(rule)).flatMap((rule) => files.map((file) => ({ file, reason, rule }))),
 	);
-	const texts = yield* Effect.forEach(declared, ({ file }) => Effect.promise(() => inputs.readText(file)), { concurrency: "unbounded" });
+	const texts = yield* Effect.forEach(declared, ({ file }) => inputs.readText(file), { concurrency: "unbounded" });
 	const entries = declared.filter((_, index) => texts[index] !== undefined);
 	if (entries.length === 0) {
 		return [];
@@ -29,8 +30,11 @@ export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")
 		);
 });
 
-const missingBiomeFile = Effect.fn("Exceptions.missingBiomeFile")(function* (inputs: RuleInputs, file: string): Effect.fn.Return<readonly Finding[]> {
-	const text = yield* Effect.promise(() => inputs.readText(file));
+const missingBiomeFile = Effect.fn("Exceptions.missingBiomeFile")(function* (
+	inputs: RuleInputs,
+	file: string,
+): Effect.fn.Return<readonly Finding[], FilesystemFailure> {
+	const text = yield* inputs.readText(file);
 	return text === undefined
 		? [{ file, message: `This Biome exception names a missing file. Remove it from exceptions in ${inputs.configFile ?? "quality.config.ts"}.` }]
 		: [];

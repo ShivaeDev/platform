@@ -12,7 +12,7 @@ export const storySources = Effect.fn("Stories.storySources")(function* (inputs:
 	const graph = yield* importGraph(inputs);
 	const packages = graph.packages;
 	const origins = storyOrigins(inputs, graph);
-	const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, packages));
+	const exempt = yield* storyPrerequisites(inputs, packages);
 	function hasStory(node: ts.Node): boolean {
 		return (ts.isCallExpression(node) && origins.origin(node.expression) === "story") || ts.forEachChild(node, hasStory) === true;
 	}

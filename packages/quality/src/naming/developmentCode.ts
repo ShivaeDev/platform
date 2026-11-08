@@ -7,9 +7,9 @@ import type { RuleInputs } from "#rule.ts";
 
 export const developmentCode = Effect.fn("Naming.developmentCode")(function* (inputs: RuleInputs) {
 	const posix = yield* Path.Path.pipe(Effect.provide(Path.layer));
-	const packages = yield* Effect.promise(() => workspacePackages(inputs));
+	const packages = yield* workspacePackages(inputs);
 	const scripts = yield* Effect.forEach([".", ...packages.map((owner) => owner.directory)], (directory) =>
-		Effect.promise(() => readPackageManifest(inputs.readText, posix.join(directory, "package.json"))).pipe(
+		readPackageManifest(inputs.readText, posix.join(directory, "package.json")).pipe(
 			Effect.map((manifest) => scriptPaths(directory, manifest?.scripts ?? {})),
 		),
 	);

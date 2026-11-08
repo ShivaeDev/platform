@@ -3,6 +3,7 @@ import type { ChildProcessSpawner } from "effect/process";
 import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
 import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;
@@ -28,9 +29,8 @@ export interface RuleInputs {
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
 	readonly nonEffectFolders?: readonly string[];
-	readonly readText: (path: string) => Promise<string | undefined>;
+	readonly readText: (path: string) => Effect.Effect<string | undefined, FilesystemFailure>;
 	readonly root: string;
-	readonly signal?: AbortSignal;
 	readonly sources: readonly SourceFile[];
 }
 

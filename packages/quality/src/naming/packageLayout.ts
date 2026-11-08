@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export interface PackageLayout {
@@ -46,15 +46,15 @@ function runBy(directory: string, manifest: unknown): readonly string[] {
 export const packageLayout = Effect.fn("Naming.packageLayout")(function* ({
 	files,
 	readText,
-}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageLayout> {
+}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageLayout, ManifestReadFailure> {
 	const directories = ["", ...files.filter((path) => posix.basename(path) === MANIFEST).map((path) => posix.dirname(path))];
 	const manifests = yield* Effect.forEach(
 		[...new Set(directories)],
 		(directory) =>
-			Effect.map(
-				Effect.promise(() => readPackageManifest(readText, directory === "" ? MANIFEST : `${directory}/${MANIFEST}`)),
-				(manifest) => ({ directory: directory === "." ? "" : directory, manifest }),
-			),
+			Effect.map(readPackageManifest(readText, directory === "" ? MANIFEST : `${directory}/${MANIFEST}`), (manifest) => ({
+				directory: directory === "." ? "" : directory,
+				manifest,
+			})),
 		{ concurrency: "unbounded" },
 	);
 	const present = manifests.filter((entry) => entry.manifest !== undefined);

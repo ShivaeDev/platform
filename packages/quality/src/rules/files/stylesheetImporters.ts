@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
+import type { ManifestReadFailure } from "#adapters/manifestInventory.ts";
 import type { RuleInputs, SourceFile } from "#rule.ts";
 import { type PackageImports, packageImports } from "#rules/files/packageImports.ts";
 import { parse } from "#rules/parse.ts";
@@ -44,16 +45,12 @@ function resolver(aliases: PackageImports, present: ReadonlySet<string>, fromSty
 
 export const stylesheetImporters = Effect.fn("Files.stylesheetImporters")(function* (
 	inputs: Pick<RuleInputs, "files" | "readText" | "sources">,
-): Effect.fn.Return<ReadonlyMap<string, readonly string[]>> {
+): Effect.fn.Return<ReadonlyMap<string, readonly string[]>, ManifestReadFailure> {
 	const present = new Set(inputs.files);
 	const aliases = yield* packageImports(inputs);
 	const stylesheets = yield* Effect.forEach(
 		inputs.files.filter((path) => STYLESHEET.test(path)),
-		(path) =>
-			Effect.map(
-				Effect.promise(() => inputs.readText(path)),
-				(text) => ({ path, text: text ?? "" }),
-			),
+		(path) => Effect.map(inputs.readText(path), (text) => ({ path, text: text ?? "" })),
 		{ concurrency: "unbounded" },
 	);
 	const fromModule = resolver(aliases, present, false);

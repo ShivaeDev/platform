@@ -67,7 +67,7 @@ function staleOrRepeated(file: string, weakenings: readonly Weakening[], shipped
 export const biomeOverrides = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const { chains, problems, root } = yield* Effect.promise(() => biomeConfigs(inputs));
+			const { chains, problems, root } = yield* biomeConfigs(inputs);
 			const { declared } = inputs.options;
 			const weakenings = chains.flatMap(weakeningsOf);
 			const shipped = chains.flatMap(shippedBy);
