@@ -1,2 +1,1 @@
 {"path":"packages/server/src/adapters/platformRuntime.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/server/src/development.ts","rule":"effect/adapter-imports","count":1}

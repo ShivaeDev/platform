@@ -13,4 +13,3 @@
 {"path":"packages/react/src/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
 {"path":"packages/react/src/notices.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}

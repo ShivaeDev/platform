@@ -4,6 +4,7 @@ import { type Project, projectsFor } from "#adapters/imports/projects.ts";
 import { resolveImport } from "#adapters/imports/resolve.ts";
 import type { Departure } from "#imports/departures.ts";
 import type { ImportRequest } from "#imports/extract.ts";
+import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { type SpecifierSite, specifierSites } from "#imports/specifiers.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
@@ -36,7 +37,12 @@ function departureAt(context: FileContext, site: SpecifierSite): Departure | und
 	const target = resolveImport(context.root, noAmbient, request, context.from, context.project);
 	const local = target?.kind === "file" ? target.path : undefined;
 	const owner = local === undefined ? undefined : packageOf(context.packages, local);
-	const workspace = owner !== undefined && owner !== packageOf(context.packages, context.path) ? owner.name : undefined;
+	const home = packageOf(context.packages, context.path);
+	const directory = home?.directory ?? ".";
+	if (local !== undefined && isPackageRootConfig(directory, context.path) && isPackageRootConfig(directory, local)) {
+		return undefined;
+	}
+	const workspace = owner !== undefined && owner !== home ? owner.name : undefined;
 	return { ...site, file: context.path, installed: target?.kind === "external" ? target.package : undefined, workspace };
 }
 

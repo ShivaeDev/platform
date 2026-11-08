@@ -1,4 +1,6 @@
 import ts from "typescript";
+import type { SourceFile } from "#rule.ts";
+import { parse } from "#rules/parse.ts";
 
 function importedReference(declaration: ts.Declaration): string | undefined {
 	if (ts.isImportSpecifier(declaration)) {
@@ -65,8 +67,15 @@ export function boundaryReference(checker: ts.TypeChecker, node: ts.Node, seen =
 	return ts.isIdentifier(node) ? symbolReference(checker, node, seen) : undefined;
 }
 
-export function boundaryEntryPoint(path: string, source: ts.SourceFile, checker: ts.TypeChecker): boolean {
-	if (/(?:^|\/)(?:cli|main|entry|[^/]+-cli)\.[cm]?[jt]sx?$|\.(?:config|test|spec)\.[cm]?[jt]sx?$/u.test(path)) {
+const ENTRY_NAME = /(?:^|\/)(?:cli|main|entry|[^/]+-cli)\.[cm]?[jt]sx?$/u;
+
+const RUNNER_HOST = /\.(?:config|test|spec)\.[cm]?[jt]sx?$/u;
+
+export function entryModule(path: string, source: ts.SourceFile, checker: ts.TypeChecker): boolean {
+	if (RUNNER_HOST.test(path)) {
+		return false;
+	}
+	if (ENTRY_NAME.test(path)) {
 		return true;
 	}
 	function visit(node: ts.Node): boolean {
@@ -82,4 +91,23 @@ export function boundaryEntryPoint(path: string, source: ts.SourceFile, checker:
 		return ts.forEachChild(node, visit) ?? false;
 	}
 	return visit(source);
+}
+
+export function boundaryEntryPoint(path: string, source: ts.SourceFile, checker: ts.TypeChecker): boolean {
+	return RUNNER_HOST.test(path) || entryModule(path, source, checker);
+}
+
+// Entry markers name their imports, so each module binds on its own without resolving the program behind it.
+export function entryModules(sources: readonly SourceFile[]): ReadonlySet<string> {
+	const options: ts.CompilerOptions = { allowJs: true, noLib: true, noResolve: true, types: [] };
+	const host = ts.createCompilerHost(options);
+	const parsed = new Map(
+		sources.flatMap((file) => {
+			const source = parse(file);
+			return source === undefined ? [] : [[file.path, source] as const];
+		}),
+	);
+	host.getSourceFile = (path) => parsed.get(path);
+	const checker = ts.createProgram([...parsed.keys()], options, host).getTypeChecker();
+	return new Set([...parsed].flatMap(([path, source]) => (entryModule(path, source, checker) ? [path] : [])));
 }
