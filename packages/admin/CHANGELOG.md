@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.7 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/react` from 0.46.5 to 0.46.6.
+
 ## 0.23.6 - 2026-11-07
 
 ### Changed
