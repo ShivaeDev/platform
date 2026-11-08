@@ -130,8 +130,9 @@ export const startRuntime = Effect.fnUntraced(function* (engine: RuntimeEngine, 
 	const built = yield* provided(engine, Layer.buildWithScope(layer, scope)).pipe(Effect.exit);
 	if (Exit.isFailure(built)) {
 		const error = Option.getOrUndefined(Cause.findErrorOption(built.cause));
+		const failure = error ?? Cause.squash(built.cause);
 		engine.startups.set(name, error === undefined ? "died" : failureOf(error));
-		engine.failureMessages.set(name, error instanceof Error ? error.message : String(error));
+		engine.failureMessages.set(name, failure instanceof Error ? failure.message : String(failure));
 		return;
 	}
 	engine.startups.set(name, "started");
