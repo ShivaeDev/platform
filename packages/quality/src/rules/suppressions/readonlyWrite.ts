@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { freshObject } from "#adapters/freshObject.ts";
 
 function propertyName(node: ts.Expression, checker: ts.TypeChecker): string | undefined {
 	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node)) {
@@ -108,7 +109,7 @@ function constructorInitialization(node: ts.Node, target: ts.Expression | undefi
 
 function callWrite(node: ts.CallExpression, checker: ts.TypeChecker): string | undefined {
 	const target = node.arguments[0];
-	if (target === undefined || constructorInitialization(node, target)) {
+	if (target === undefined || constructorInitialization(node, target) || freshObject(checker, node, target)) {
 		return undefined;
 	}
 	const method = ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : undefined;

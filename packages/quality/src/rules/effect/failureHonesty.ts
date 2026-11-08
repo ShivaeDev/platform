@@ -9,6 +9,7 @@ function checkFailures(inputs: RuleInputs): readonly Finding[] {
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
+		const testSupport = /(?:^|\/)test-support\//u.test(file.path);
 		const findings: Finding[] = [];
 		const reported = new Set<string>();
 		function report(node: ts.Node, message: string): void {
@@ -20,7 +21,7 @@ function checkFailures(inputs: RuleInputs): readonly Finding[] {
 		}
 		function visit(node: ts.Node): void {
 			if (ts.isCallExpression(node)) {
-				for (const finding of failureFindings(checker, node)) {
+				for (const finding of failureFindings(checker, node, testSupport)) {
 					report(finding.node, finding.message);
 				}
 			}
@@ -53,7 +54,7 @@ export const failureHonesty = defineRule({
 		return [...groups.values()].flatMap((sources) => checkFailures({ ...inputs, sources }));
 	},
 	description:
-		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without times or a pacing Schedule, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule that paces retries or model an explicit unavailable state. No config exceptions or inline suppressions; baseline existing debt.",
+		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without times or a pacing Schedule, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule that paces retries or model an explicit unavailable state. In test-support/, a blanket catch whose handler derives its value from the caught error is a readout translation and is accepted. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/failure-honesty",
 	registrable: false,
 });
