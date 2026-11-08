@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { expect } from "vitest";
 import { planning } from "#ci/test-support/planning.ts";
 import { timingArtifacts } from "#ci/test-support/timingArtifacts.ts";
@@ -13,7 +12,7 @@ planning.it(
 	({ mergeTimingArtifacts }) => {
 		const snapshot = mergeTimingArtifacts();
 
-		assert.deepEqual(snapshot, {
+		expect(snapshot).toEqual({
 			runId: "42",
 			sha: "main-sha",
 			shardCount: 3,

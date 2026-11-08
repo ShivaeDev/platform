@@ -1,9 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Cause, Effect, Schema } from "effect";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import { Cause, Effect, FileSystem, Schema } from "effect";
 import { read } from "@shivaedev/github/read.ts";
-import { decodeTimingSnapshot } from "#ci/timings.ts";
+import { readTimingSnapshot } from "#ci/timings.ts";
 
 const MainRun = Schema.Struct({
 	conclusion: Schema.NullOr(Schema.String),
@@ -16,13 +15,12 @@ const Runs = Schema.Struct({ workflowRuns: Schema.Array(MainRun) }).pipe(Schema.
 const Artifacts = Schema.Struct({ artifacts: Schema.Array(Schema.Struct({ expired: Schema.Boolean, id: Schema.Number, name: Schema.String })) });
 const MINIMUM_TEST_SHARDS = 4;
 
+// The inline workflow script provides only the GitHub layer, so the plan brings its own file system.
 export const mainShardPlan = Effect.fn("CI.mainShardPlan")(function* (repository: string, download: (args: string[]) => string) {
 	const fallback = { artifactId: "", count: 8, runId: "" };
 	const selected = { consumers: { ...fallback }, tests: { ...fallback, count: 25 } };
-	const temporary = yield* Effect.acquireRelease(
-		Effect.try(() => mkdtempSync(join(tmpdir(), "platform-shard-plan-"))),
-		(directory) => Effect.sync(() => rmSync(directory, { force: true, recursive: true })),
-	);
+	const fs = yield* FileSystem.FileSystem;
+	const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "platform-shard-plan-" });
 	yield* Effect.gen(function* () {
 		const { workflowRuns: runs } = yield* read(
 			`/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=10`,
@@ -43,7 +41,7 @@ export const mainShardPlan = Effect.fn("CI.mainShardPlan")(function* (repository
 		),
 	);
 	return { consumers: selected.consumers, tests: { ...selected.tests, count: Math.max(MINIMUM_TEST_SHARDS, selected.tests.count) } };
-});
+}, Effect.provide(NodeFileSystem.layer));
 
 const findSnapshot = Effect.fn("CI.findSnapshot")(function* (
 	repository: string,
@@ -86,7 +84,7 @@ const readSnapshot = Effect.fn("CI.readSnapshot")(function* (
 	}
 	const directory = join(temporary, `${artifact}-${run.id}`);
 	yield* Effect.try(() => download(["run", "download", String(run.id), "--repo", repository, "--name", artifact, "--dir", directory]));
-	const snapshot = yield* Effect.try(() => decodeTimingSnapshot(JSON.parse(readFileSync(join(directory, file), "utf8"))));
+	const snapshot = yield* readTimingSnapshot(join(directory, file));
 	return snapshot.runId === String(run.id)
 		&& snapshot.sha === run.headSha
 		&& snapshot.timings.length > 0

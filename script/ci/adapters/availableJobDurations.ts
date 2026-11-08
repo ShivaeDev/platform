@@ -1,11 +1,11 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { jobDurations } from "#ci/shardCount.ts";
 
-export function availableJobDurations(jobs: unknown, name: RegExp, count: number): number[] | undefined {
-	try {
-		return jobDurations(jobs, name, count);
-	} catch (error) {
-		Effect.runSync(Effect.logWarning(`Keeping previous timings: ${error instanceof Error ? error.message : String(error)}`));
-		return undefined;
+export const availableJobDurations = Effect.fn("CI.availableJobDurations")(function* (jobs: unknown, name: RegExp, count: number) {
+	const durations = jobDurations(jobs, name, count);
+	if (Result.isSuccess(durations)) {
+		return durations.success;
 	}
-}
+	yield* Effect.logWarning(`Keeping previous timings: ${durations.failure.message}`);
+	return undefined;
+});

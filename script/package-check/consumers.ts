@@ -1,7 +1,7 @@
-import { statfs } from "node:fs/promises";
 import { Clock, Console, Duration, Effect, FileSystem } from "effect";
 import { balancedShards, type Shard } from "#ci/shard.ts";
-import { decodeTimingSnapshot, durationEstimates } from "#ci/timings.ts";
+import { durationEstimates, readTimingSnapshot } from "#ci/timings.ts";
+import { freeDiskMebibytes } from "#package-check/adapters/freeDiskMebibytes.ts";
 import { checkBins } from "#package-check/bins.ts";
 import { checkConsumer } from "#package-check/consumer.ts";
 import { command, writeJson } from "#package-check/io.ts";
@@ -19,17 +19,18 @@ export function checkConsumers(
 	const timings: { name: string; durationMs: number }[] = [];
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
-		const estimates =
-			timingSnapshot === undefined ? {} : durationEstimates(decodeTimingSnapshot(JSON.parse(yield* fs.readFileString(timingSnapshot))));
+		const estimates = timingSnapshot === undefined ? {} : durationEstimates(yield* readTimingSnapshot(timingSnapshot));
 		const catalog = decodeVersions(yield* command(root, "pnpm", ["config", "get", "catalog", "--json"]));
 		const store = (yield* command(root, "pnpm", ["store", "path", "--silent"])).trim();
-		const selected =
+		const shards = yield* Effect.fromResult(
 			balancedShards(
 				packages,
 				shard.count,
 				(pkg) => pkg.manifest.name,
 				(pkg) => estimates[pkg.manifest.name] ?? 6000,
-			)[shard.index - 1] ?? [];
+			),
+		);
+		const selected = shards[shard.index - 1] ?? [];
 		for (const pkg of selected) {
 			yield* Effect.gen(function* () {
 				const start = yield* Clock.currentTimeNanos;
@@ -55,6 +56,5 @@ export function checkConsumers(
 }
 
 const logFreeDisk = Effect.fn("Packed.logFreeDisk")(function* (temporary: string, name: string) {
-	const { bavail, bsize } = yield* Effect.promise(() => statfs(temporary));
-	yield* Console.log(`Free disk after packed ${name}: ${Math.floor((bavail * bsize) / 1024 ** 2)} MiB`);
+	yield* Console.log(`Free disk after packed ${name}: ${yield* freeDiskMebibytes(temporary)} MiB`);
 });

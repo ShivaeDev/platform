@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as VitestNode from "vitest/node";
-import { TestSequencer } from "#ci/TestSequencer.ts";
+import { TestSequencer } from "#ci/adapters/TestSequencer.ts";
 import type { TimingSnapshot } from "#ci/timings.ts";
 
 export async function vitestFixture() {

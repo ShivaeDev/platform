@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+import { expect } from "vitest";
 import { planning } from "#ci/test-support/planning.ts";
 import { workflowJobs } from "#ci/test-support/workflowJobs.ts";
 
@@ -12,11 +12,8 @@ planning.it(
 	[workflowJobs({ build: 150, "packed consumers (1)": 200, "packed consumers (2)": 160, "tests (1)": 900 })],
 	({ mergeConsumers }) => {
 		const snapshot = mergeConsumers(reports, 240_000);
-		assert.equal(snapshot.shardCount, 4);
-		assert.deepEqual(
-			snapshot.timings.map((item) => item.name),
-			["large", "small"],
-		);
+		expect(snapshot).toMatchObject({ shardCount: 4 });
+		expect(snapshot.timings.map((item) => item.name)).toEqual(["large", "small"]);
 	},
 );
 
@@ -24,10 +21,10 @@ planning.it(
 	"reserves at least a minute for consumers after a slow build",
 	[workflowJobs({ build: 230, "packed consumers (1)": 200, "packed consumers (2)": 160 })],
 	({ mergeConsumers }) => {
-		assert.equal(mergeConsumers(reports, 240_000).shardCount, 6);
+		expect(mergeConsumers(reports, 240_000)).toMatchObject({ shardCount: 6 });
 	},
 );
 
 planning.it("retains previous timings when build timings are unavailable", [workflowJobs({ "packed consumers (1)": 200 })], ({ mergeConsumers }) => {
-	assert.deepEqual(mergeConsumers(reports, 240_000), { runId: "42", sha: "main-sha", timings: [] });
+	expect(mergeConsumers(reports, 240_000)).toEqual({ runId: "42", sha: "main-sha", timings: [] });
 });

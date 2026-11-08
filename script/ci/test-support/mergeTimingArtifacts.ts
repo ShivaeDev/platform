@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { Result } from "effect";
 import type { Workspace } from "#ci/test-support/workspace.ts";
 import { decodeTimingSnapshot } from "#ci/timings.ts";
 
@@ -27,5 +28,5 @@ export function mergeTimingArtifacts(engine: Workspace) {
 		"--target-seconds",
 		"240",
 	]);
-	return decodeTimingSnapshot(JSON.parse(readFileSync(join(root, "snapshot.json"), "utf8")));
+	return Result.getOrThrow(decodeTimingSnapshot(JSON.parse(readFileSync(join(root, "snapshot.json"), "utf8"))));
 }

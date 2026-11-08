@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { mainShardPlan } from "#ci/mainShardPlan.ts";
 import { mergeConsumerTimings } from "#ci/mergeConsumerTimings.ts";
 import { balancedShards, parseShard } from "#ci/shard.ts";
@@ -20,13 +20,13 @@ export function verbs(engine: Workspace) {
 		addExample: (name: string) => engine.workspace.example(name),
 		configure: (zone: string, name: string) => engine.workspace.configured(zone, name),
 		consumerBudget: consumerShardMs,
-		countShards: wallTimeShardCount,
+		countShards: (durations: readonly number[], shardMs: number) => Result.getOrThrow(wallTimeShardCount(durations, shardMs)),
 		discover: () => testPackages(engine.workspace.root).map((pkg) => pkg.name),
 		mergeConsumers: (reports: readonly unknown[], targetMs: number, count = reports.length) =>
-			mergeConsumerTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs }),
-		mergeReports: (reports: readonly unknown[]) => mergeConsumerTimingReports(reports, "42", "main-sha"),
+			Effect.runSync(mergeConsumerTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs })),
+		mergeReports: (reports: readonly unknown[]) => Result.getOrThrow(mergeConsumerTimingReports(reports, "42", "main-sha")),
 		mergeTimingArtifacts: () => mergeTimingArtifacts(engine),
-		parseShard,
+		parseShard: (value: string) => Result.getOrThrow(parseShard(value)),
 		planMain: () => {
 			if (engine.githubLayer === undefined) {
 				throw new Error("Declare measuredQueue before planning snapshots");
@@ -35,27 +35,31 @@ export function verbs(engine: Workspace) {
 		},
 		planMeasured: (names: readonly string[], count: number, snapshot: TimingSnapshot) => {
 			const estimates = durationEstimates(snapshot);
-			return balancedShards(
-				names,
-				count,
-				(name) => name,
-				(name) => estimates[name] ?? 6000,
+			return Result.getOrThrow(
+				balancedShards(
+					names,
+					count,
+					(name) => name,
+					(name) => estimates[name] ?? 6000,
+				),
 			);
 		},
 		planningLogs: () => engine.logs.flat().join("\n"),
 		planShards: (items: readonly { name: string; seconds: number }[], count: number) =>
-			balancedShards(
-				items,
-				count,
-				(item) => item.name,
-				(item) => item.seconds,
+			Result.getOrThrow(
+				balancedShards(
+					items,
+					count,
+					(item) => item.name,
+					(item) => item.seconds,
+				),
 			),
 		readCoverage: (file: string) => Effect.sync(() => workspaceCoverage(file)),
 		readEstimates: durationEstimates,
-		readJobResponse: jobDurations,
-		readJobs: (name: RegExp, count: number) => jobDurations(engine.jobs, name, count),
-		readSnapshot: decodeTimingSnapshot,
-		readTarget: shardTargetMs,
+		readJobResponse: (value: unknown, name: RegExp, count: number) => Result.getOrThrow(jobDurations(value, name, count)),
+		readJobs: (name: RegExp, count: number) => Result.getOrThrow(jobDurations(engine.jobs, name, count)),
+		readSnapshot: (value: unknown) => Result.getOrThrow(decodeTimingSnapshot(value)),
+		readTarget: (seconds: string | undefined) => Result.getOrThrow(shardTargetMs(seconds)),
 		sequence: (count: number, index: number, reversed = false) =>
 			Effect.promise(async () => {
 				const fixture = vitest();
