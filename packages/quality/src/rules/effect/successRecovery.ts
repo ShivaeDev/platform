@@ -42,3 +42,29 @@ export function successRecovery(checker: ts.TypeChecker, handler: ts.Node, seen 
 		return ts.isFunctionDeclaration(declaration) && successRecovery(checker, declaration, seen);
 	});
 }
+
+function mentions(checker: ts.TypeChecker, node: ts.Node, symbol: ts.Symbol): boolean {
+	if (ts.isIdentifier(node) && checker.getSymbolAtLocation(node) === symbol) {
+		return true;
+	}
+	return ts.forEachChild(node, (child) => mentions(checker, child, symbol) || undefined) ?? false;
+}
+
+function derivesFrom(checker: ts.TypeChecker, value: ts.Node, error: ts.Symbol): boolean {
+	if (ts.isParenthesizedExpression(value)) {
+		return derivesFrom(checker, value.expression, error);
+	}
+	if (ts.isConditionalExpression(value)) {
+		return derivesFrom(checker, value.whenTrue, error) && derivesFrom(checker, value.whenFalse, error);
+	}
+	return ts.isCallExpression(value) && value.arguments.some((argument) => mentions(checker, argument, error));
+}
+
+export function translatesFailure(checker: ts.TypeChecker, handler: ts.Node): boolean {
+	if (!(ts.isArrowFunction(handler) || ts.isFunctionExpression(handler))) {
+		return false;
+	}
+	const name = handler.parameters[0]?.name;
+	const error = name !== undefined && ts.isIdentifier(name) ? checker.getSymbolAtLocation(name) : undefined;
+	return error !== undefined && returnValues(handler).every((value) => value !== undefined && derivesFrom(checker, value, error));
+}
