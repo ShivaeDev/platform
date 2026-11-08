@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.33.1 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.23.6 to 0.23.7.
+
 ## 0.33.0 - 2026-11-07
 
 ### Breaking
