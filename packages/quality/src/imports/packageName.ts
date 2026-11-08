@@ -1,17 +1,8 @@
-import { isBuiltin } from "node:module";
-
-const NODE_PREFIX = "node:";
+import { builtinName } from "#adapters/builtinName.ts";
 
 const TYPES_SCOPE = "@types";
 
 const TYPES_SCOPE_SEPARATOR = "__";
-
-export function builtinName(specifier: string): string | undefined {
-	if (!isBuiltin(specifier)) {
-		return undefined;
-	}
-	return specifier.startsWith(NODE_PREFIX) ? specifier : `${NODE_PREFIX}${specifier}`;
-}
 
 function typedName(name: string): string {
 	return name.includes(TYPES_SCOPE_SEPARATOR) ? `@${name.replace(TYPES_SCOPE_SEPARATOR, "/")}` : name;

@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Console, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { services } from "#adapters/runMain.ts";
 import { settle, snapshotOf } from "#cli/fix.ts";
-import { services } from "#cli/runMain.ts";
 import { capturing, type Output } from "#testing/adapters/cli.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
 

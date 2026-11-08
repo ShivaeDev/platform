@@ -102,7 +102,7 @@ function superclassesOf(node: ts.HeritageClause): readonly ts.Expression[] {
 	return node.types.map((base) => base.expression);
 }
 
-export const browserGlobals = Effect.fn("Imports.browserGlobals")(function* (file: SourceFile) {
+const globalsIn = Effect.fn("Imports.globalsIn")(function* (file: SourceFile, browser: ReadonlySet<string>) {
 	const parsed = parse(file);
 	if (parsed === undefined) {
 		return [];
@@ -123,7 +123,7 @@ export const browserGlobals = Effect.fn("Imports.browserGlobals")(function* (fil
 		}
 		const direct = globalName(node, checker);
 		const names = [...destructuredNames(node, checker), ...(direct === undefined ? [] : [direct])];
-		for (const name of names.filter((candidate) => browserNames.has(candidate))) {
+		for (const name of names.filter((candidate) => browser.has(candidate))) {
 			findings.push({
 				file: file.path,
 				line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
@@ -136,3 +136,9 @@ export const browserGlobals = Effect.fn("Imports.browserGlobals")(function* (fil
 	visit(source);
 	return findings;
 }, Effect.provide(ImportCompiler.layer));
+
+export const browserGlobals = Effect.fn("Imports.browserGlobals")(function* (files: readonly SourceFile[]) {
+	const browser = yield* browserNames();
+	const findings = yield* Effect.forEach(files, (file) => globalsIn(file, browser));
+	return findings.flat();
+});

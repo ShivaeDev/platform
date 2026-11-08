@@ -1,7 +1,6 @@
-import { createHash } from "node:crypto";
 import { posix, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { Effect } from "effect";
+import { contentHashedModule } from "#adapters/contentHashedModule.ts";
 import { BoundaryFailure } from "#imports/fences/BoundaryFailure.ts";
 import { decodeDeclarations } from "#imports/fences/declarations.ts";
 import type { Fence } from "#imports/fences/model.ts";
@@ -19,11 +18,10 @@ const boundaryAt = Effect.fn("Fences.boundaryAt")(function* (inputs: RuleInputs,
 	if (text === undefined) {
 		return [];
 	}
-	const url = pathToFileURL(resolve(inputs.root, file));
-	url.searchParams.set("content", createHash("sha256").update(text).digest("hex"));
+	const url = contentHashedModule(resolve(inputs.root, file), text);
 	const loaded: unknown = yield* Effect.tryPromise({
 		catch: (cause) => new BoundaryFailure({ cause, message: messageOf(cause) }),
-		try: () => import(url.href),
+		try: () => import(url),
 	});
 	if (typeof loaded !== "object" || loaded === null || !("default" in loaded)) {
 		return yield* new BoundaryFailure({ message: "export an array of fence() declarations as the default export" });
