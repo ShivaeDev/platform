@@ -1,1 +1,0 @@
-{"path":"packages/identity/src/server/better-auth/testDatabase.ts","rule":"suppressions/no-double-cast","count":5,"reason":"Fixed SQL shapes support identity database assertions; extra decoding of PostgreSQL-owned metadata would add ceremony to a test probe (likelihood 1 x severity 2 = 2)."}
