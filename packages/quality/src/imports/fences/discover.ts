@@ -1,18 +1,14 @@
 import { createHash } from "node:crypto";
 import { posix, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Data, Effect } from "effect";
+import { Effect } from "effect";
+import { BoundaryFailure } from "#imports/fences/BoundaryFailure.ts";
 import { decodeDeclarations } from "#imports/fences/declarations.ts";
 import type { Fence } from "#imports/fences/model.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
 
 const BOUNDARY_FILE = "quality.fences.config.ts";
-
-class BoundaryFailure extends Data.TaggedError("BoundaryFailure")<{
-	readonly cause?: unknown;
-	readonly message: string;
-}> {}
 
 function messageOf(cause: unknown): string {
 	return cause instanceof Error ? cause.message : String(cause);
