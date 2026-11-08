@@ -1,4 +1,4 @@
-import { Cause, type Config, Context, Effect, Layer, type Redacted } from "effect";
+import { Cause, type Config, type Context, Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
@@ -48,9 +48,7 @@ export function webhookRoute<TJobs, const TSources extends Readonly<Record<strin
 export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const context = yield* Effect.context<TJobs | R | SqlClient.SqlClient>();
 			const jobs = yield* options.jobs;
-			const receiving = Context.add(context, WebhookEnqueue, { enqueue: jobs.enqueue });
 			const keys = new Map<string, Redacted.Redacted<string>>();
 			for (const [name, source] of Object.entries(options.sources)) {
 				keys.set(name, yield* source.key);
@@ -68,7 +66,9 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (HttpServerResponse.isHttpServerResponse(body)) {
 						return body;
 					}
-					return yield* receive(name, source, key, body, request.headers, options.receiptsSchema).pipe(Effect.provideContext(receiving));
+					return yield* receive(name, source, key, body, request.headers, options.receiptsSchema).pipe(
+						Effect.provideService(WebhookEnqueue, { enqueue: jobs.enqueue }),
+					);
 				}).pipe(Effect.catch(receiptFailure)),
 			);
 		}),
