@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.47.0 - 2026-11-08
+
+### Added
+
+- Add shared notice descriptor types at `@shivaedev/react/noticeTypes.ts`.
+
+### Breaking
+
+- Move `@shivaedev/react/NoticeContext.ts` to `@shivaedev/react/client/NoticeContext.ts`, `@shivaedev/react/PermissionContext.ts` to `@shivaedev/react/adapters/PermissionContext.ts`, `@shivaedev/react/RecheckContext.ts` to `@shivaedev/react/client/RecheckContext.ts`, `@shivaedev/react/SignOutRegistryContext.ts` to `@shivaedev/react/client/SignOutRegistryContext.ts`, `@shivaedev/react/notices.ts` to `@shivaedev/react/client/notices.ts`, and `@shivaedev/react/sessionRecheck.ts` to `@shivaedev/react/adapters/sessionRecheck.ts`; update imports to the new paths.
+- Move `@shivaedev/react/adapters/useNoticePublisher.ts` to `@shivaedev/react/client/adapters/useNoticePublisher.ts`, `@shivaedev/react/adapters/usePermissionFailure.ts` to `@shivaedev/react/client/adapters/usePermissionFailure.ts`, `@shivaedev/react/adapters/useQueryNotice.ts` to `@shivaedev/react/client/adapters/useQueryNotice.ts`, and `@shivaedev/react/adapters/useSubmissionCallbacks.ts` to `@shivaedev/react/client/adapters/useSubmissionCallbacks.ts`.
+- `useLoaderHandoff` in `@shivaedev/react/adapters/useLoaderHandoff.ts` now reads the registry from React context. Change `useLoaderHandoff(registry, atom)` to `useLoaderHandoff(atom)`.
+
 ## 0.46.7 - 2026-11-08
 
 ### Changed
