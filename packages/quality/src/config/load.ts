@@ -14,6 +14,7 @@ import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly baseline: string;
 	readonly biomeDeclarations: readonly Declaration[];
+	readonly entries: readonly string[];
 	readonly exceptions: readonly ExceptionDeclaration[];
 	readonly file: string;
 	readonly nonEffectFolders: readonly string[];
@@ -33,6 +34,7 @@ function resolved(root: string, file: string, config: ConfigInput, rules: Resolv
 		...rules,
 		baseline: config.baseline ?? "quality-baseline.jsonl",
 		biomeDeclarations: biomeDeclarations(config),
+		entries: config.entries ?? [],
 		exceptions: config.exceptions ?? [],
 		exclude: [],
 		extensions: config.extensions ?? DEFAULT_EXTENSIONS,

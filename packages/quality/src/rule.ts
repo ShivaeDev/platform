@@ -24,6 +24,7 @@ export interface SourceFile {
 
 export interface RuleInputs {
 	readonly configFile?: string;
+	readonly entries?: readonly string[];
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
 	readonly nonEffectFolders?: readonly string[];

@@ -16,6 +16,7 @@ export type BuiltInRules = typeof builtInRules;
 
 export interface QualityConfig<TLocal extends readonly RegisteredRule<unknown>[] = readonly RegisteredRule<unknown>[]> {
 	readonly baseline?: string;
+	readonly entries?: readonly string[];
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;

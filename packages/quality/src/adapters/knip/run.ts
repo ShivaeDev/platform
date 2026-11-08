@@ -4,7 +4,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { knipConfiguration } from "#adapters/knip/configuration.ts";
+import { declaredEntries, knipConfiguration } from "#adapters/knip/configuration.ts";
 import { entryPointFindings } from "#adapters/knip/entryPointFindings.ts";
 import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { knipReport } from "#adapters/knip/report.ts";
@@ -28,8 +28,13 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 	}
 	const files = yield* toolOwnedFiles(inputs.root);
 	const builds = yield* programmaticBuilds(inputs);
-	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files, builds));
-	const checked = new Set([...inputs.files, ...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json"))]);
+	const declared = declaredEntries(inputs);
+	const configuration = yield* Effect.promise(() => knipConfiguration(inputs, files, builds, declared));
+	const checked = new Set([
+		...inputs.files,
+		...declared,
+		...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json")),
+	]);
 	const findings = yield* Effect.scoped(
 		Effect.gen(function* () {
 			const fs = yield* FileSystem.FileSystem;

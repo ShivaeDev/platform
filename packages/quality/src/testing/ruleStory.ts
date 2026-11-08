@@ -1,17 +1,10 @@
 import { Effect, FileSystem, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { configureRegistered } from "#adapters/rule.ts";
 import { services } from "#cli/runMain.ts";
-import type { Finding, Findings, RegisteredRule, Rule } from "#rule.ts";
+import type { Finding } from "#rule.ts";
 import { type Run, runQuality } from "#testing/adapters/cli.ts";
-import { scanned } from "#testing/adapters/imports.ts";
 import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
-
-interface RuleEngine {
-	answer: Run | undefined;
-	findings: Findings | undefined;
-	readonly root: string;
-}
+import { type RuleEngine, ruleChecks } from "#testing/ruleChecks.ts";
 
 const writeAll = Effect.fn("RuleStory.writeAll")(function* (root: string, files: readonly SeedFile[]) {
 	const fs = yield* FileSystem.FileSystem;
@@ -64,7 +57,7 @@ export function makeRuleStory() {
 			Effect.gen(function* () {
 				const fs = yield* FileSystem.FileSystem;
 				const root = yield* fs.makeTempDirectoryScoped({ prefix: "quality-rule-" });
-				const engine: RuleEngine = { answer: undefined, findings: undefined, root };
+				const engine: RuleEngine = { answer: undefined, failure: undefined, findings: undefined, root };
 				return engine;
 			}),
 		inspect: ({ findings }) => ({ findings }),
@@ -72,17 +65,7 @@ export function makeRuleStory() {
 		name: "Quality rule",
 		stages: ["repository"],
 		verbs: (engine, story) => ({
-			check: Effect.fn("RuleStory.check")(function* <TInput>(rule: Rule<string, TInput>, options?: TInput, directory = ".") {
-				story.tell(options === undefined ? `quality checks ${rule.id}` : `quality checks ${rule.id} with ${JSON.stringify(options)}`);
-				const configured = yield* Effect.promise(() => rule.configure(options));
-				if (configured._tag === "Invalid") {
-					return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
-				}
-				const path = yield* Path.Path;
-				const inputs = yield* Effect.promise(() => scanned(path.join(engine.root, directory)));
-				engine.findings = yield* configured.check(inputs);
-				return engine.findings;
-			}),
+			...ruleChecks(engine, story.tell),
 			findings: () => checked(engine),
 			gate: Effect.fn("RuleStory.gate")(function* () {
 				story.tell("quality runs the repository gate");
@@ -99,11 +82,6 @@ export function makeRuleStory() {
 				),
 			locations: () => Effect.map(checked(engine), (findings) => findings.map(locationOf)),
 			messages: () => Effect.map(checked(engine), (findings) => findings.map((finding) => finding.message)),
-			optionIssues: Effect.fn("RuleStory.optionIssues")(function* (rule: RegisteredRule, options: unknown) {
-				story.tell(`quality configures ${rule.id} with ${JSON.stringify(options)}`);
-				const configured = yield* Effect.promise(() => configureRegistered(rule, options));
-				return configured._tag === "Invalid" ? configured.issues : [];
-			}),
 			removes: Effect.fn("RuleStory.removes")(function* (path: string) {
 				story.tell(`the author removes ${path}`);
 				const fs = yield* FileSystem.FileSystem;

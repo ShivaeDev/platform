@@ -26,6 +26,7 @@ const LocalRule = Schema.declare(isRule, { expected: "a rule made with defineRul
 
 const ConfigInput = Schema.Struct({
 	baseline: Schema.optionalKey(Schema.String),
+	entries: Schema.optionalKey(Schema.Array(Schema.String)),
 	exceptions: Schema.optionalKey(Schema.Array(ExceptionDeclaration)),
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),

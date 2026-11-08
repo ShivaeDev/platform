@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.74.0 - 2026-11-07
+
+### Added
+
+- Add `entries` to `quality.config.ts` for files reached through runtime-built paths.
+
+### Fixed
+
+- `code/unused`: Resolve `import.meta.dirname`, `__dirname` and `fileURLToPath(import.meta.url)` in build and spawn scripts from the repository root, so entries of a workspace package's bundler or child-process script are no longer resolved under a doubled package folder and reported as unused with everything they import.
+
 ## 0.73.3 - 2026-11-07
 
 ### Fixed
