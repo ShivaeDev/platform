@@ -1,5 +1,13 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { firstSucceededSecondToggled, pendingCommands, toggledOn, toggleScreen, toggleSucceeded } from "#test/pendingCommandStories.tsx";
+import {
+	firstSucceededSecondToggled,
+	pendingCommands,
+	pushedSwitch,
+	switchShowingPushedOff,
+	toggledOn,
+	toggleScreen,
+	toggleSucceeded,
+} from "#test/pendingCommandStories.tsx";
 
 pendingCommands.it(
 	"a toggled row shows the wanted value before its command answers",
@@ -92,6 +100,23 @@ pendingCommands.it(
 			["row 2 command", () => command(2), "rejected (ToggleRejected: Row 2 is locked)"],
 			["row 2 shown", () => shown(2), "disabled"],
 			["row 2 toggle", () => toggleState(2), "available"],
+		]);
+	},
+);
+
+pushedSwitch.it(
+	"a switch turned on shows On without falling back to Off while its successful command waits for the server's push, and frees the switch when On arrives",
+	[switchShowingPushedOff()],
+	function* ({ commandSucceeds, serverPushes, shown, shownSinceOpening, switchState, toggle }) {
+		yield* toggle();
+		yield* commandSucceeds();
+
+		yield* serverPushes(true);
+
+		yield* outcomes([
+			["shown", () => shown(), "on"],
+			["shown since opening", () => shownSinceOpening(), ["off", "on"]],
+			["switch", () => switchState(), "available"],
 		]);
 	},
 );
