@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";

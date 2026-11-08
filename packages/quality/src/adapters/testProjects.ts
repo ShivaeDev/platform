@@ -75,13 +75,13 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 					exclude: excluding(),
 					include: [named("unit")],
 					name: "pure",
-					setupFiles: [fileURLToPath(import.meta.resolve("#unitIoGuard.config.ts"))],
+					setupFiles: [fileURLToPath(import.meta.resolve("#adapters/unitIoGuard.config.ts"))],
 				},
 			},
 			{
 				extends: true,
 				test: {
-					environment: fileURLToPath(import.meta.resolve("#domEnvironment.config.ts")),
+					environment: fileURLToPath(import.meta.resolve("#adapters/domEnvironment.config.ts")),
 					exclude: excluding(named("slow")),
 					include: [named("dom")],
 					name: "dom",

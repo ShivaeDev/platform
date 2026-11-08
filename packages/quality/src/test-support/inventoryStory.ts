@@ -4,7 +4,7 @@ import { dirname, join, relative, sep } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import { collectInventory, type Inventory, type InventoryScope } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText, writeText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";

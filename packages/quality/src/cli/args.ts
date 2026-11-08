@@ -1,6 +1,6 @@
-import { parseArgs } from "node:util";
 import { Result } from "effect";
-import { ACCEPTS, misplaced, OPTIONS, type Values } from "#cli/misplaced.ts";
+import { commandLine } from "#adapters/commandLine.ts";
+import { ACCEPTS, misplaced, type Values } from "#cli/misplaced.ts";
 import { SUBCOMMANDS } from "#cli/subcommands.ts";
 
 export type Command =
@@ -78,10 +78,7 @@ function commandFor(name: string, values: Values): Parsed {
 }
 
 export function parseCommand(args: readonly string[]): Parsed {
-	const result = Result.try({
-		catch: (error) => (error instanceof Error ? error.message : String(error)),
-		try: () => parseArgs({ allowPositionals: true, args: [...args], options: OPTIONS, strict: true }),
-	});
+	const result = commandLine(args);
 	if (Result.isFailure(result)) {
 		return usage(result.failure);
 	}

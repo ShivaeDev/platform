@@ -49,7 +49,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 	let baseUrl = "";
 	let seededRole: SeedRole = "operator";
 	let reactivity: Reactivity.Reactivity | undefined;
-	let observed: Queue.Dequeue<readonly { email: string; role: string | null }[], SqlError> | undefined;
+	let observed: Queue.Dequeue<readonly { readonly email: string; readonly role: string | null }[], SqlError | Schema.SchemaError> | undefined;
 	const start = Effect.fnUntraced(function* () {
 		const mount = betterAuthMount(options, {
 			defaultRole: "user",

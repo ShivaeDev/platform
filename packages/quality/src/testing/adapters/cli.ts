@@ -3,8 +3,8 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { format } from "node:util";
 import { Config, ConfigProvider, Console, Effect, Option } from "effect";
+import { exitCode, explained, services } from "#adapters/runMain.ts";
 import { program } from "#cli/program.ts";
-import { exitCode, explained, services } from "#cli/runMain.ts";
 import { ISOLATED_ENV, isolatedEnvironment } from "#testing/adapters/git.ts";
 
 export interface Run {

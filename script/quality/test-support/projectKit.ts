@@ -128,7 +128,7 @@ export function withUnitIo(source: string) {
 }
 
 export const sourceMappedGuard = projectKit.trait("configured", "the guard is compiled with source maps enabled", (root) => {
-	const source = new URL("../../../packages/quality/src/unitIoGuard.config.ts", import.meta.url);
+	const source = new URL("../../../packages/quality/src/adapters/unitIoGuard.config.ts", import.meta.url);
 	writeFileSync(
 		join(root, "guard.js"),
 		ts.transpileModule(readFileSync(source, "utf8"), {

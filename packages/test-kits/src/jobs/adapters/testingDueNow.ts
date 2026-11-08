@@ -1,7 +1,7 @@
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { EngineClient } from "@shivaedev/jobs/server/engineClient.ts";
 import { quotedSchema } from "#jobs/adapters/quotedSchema.ts";
-import { testingOperation } from "#jobs/testingOperation.ts";
+import { testingOperation } from "#jobs/adapters/testingOperation.ts";
 
 export function testingDueNow(client: () => EngineClient, schema: () => string, changed: () => void) {
 	function makeDue(queue: Pick<QueueDefinition, "name">, deferredOnly: boolean) {

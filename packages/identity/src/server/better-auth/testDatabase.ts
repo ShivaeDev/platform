@@ -3,6 +3,15 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 
 const StoredSession = Schema.Struct({ expiresAt: Schema.DateTimeUtcFromDate, id: Schema.String });
+const RoleColumn = Schema.Struct({ default: Schema.NullOr(Schema.String), nullable: Schema.String, type: Schema.String });
+const SessionIpAddress = Schema.Struct({ ipAddress: Schema.NullOr(Schema.String) });
+const SessionOwner = Schema.Struct({ email: Schema.String, id: Schema.String, userId: Schema.String });
+const UserRole = Schema.Struct({ email: Schema.String, role: Schema.NullOr(Schema.String) });
+const UserAccount = Schema.Struct({ email: Schema.String, id: Schema.String });
+
+function decodedRows<TRow extends Schema.Constraint, E>(Result: TRow, statement: Effect.Effect<readonly unknown[], E>) {
+	return SqlSchema.findAll({ execute: () => statement, Request: Schema.Void, Result })(undefined);
+}
 
 export const authTestDatabase = Effect.gen(function* () {
 	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
@@ -24,21 +33,23 @@ export const authTestDatabase = Effect.gen(function* () {
 				yield* sql`alter table "user" alter column role drop not null`;
 				yield* sql`update "user" set role = null where id = ${userId}`;
 			}),
-		roleColumn: sql<{ type: string; nullable: string; default: string | null }>`
+		roleColumn: decodedRows(
+			RoleColumn,
+			sql`
 			select data_type as type, is_nullable as nullable, column_default as "default"
 			from information_schema.columns where table_schema = current_schema() and table_name = 'user' and column_name = 'role'`,
-		sessionIpAddresses: sql<{ ipAddress: string | null }>`select "ipAddress" from "session" order by "createdAt", id`,
-		sessions: sql<{
-			email: string;
-			id: string;
-			userId: string;
-		}>`select s.id, s."userId", u.email from "session" s join "user" u on u.id = s."userId" order by u.email, s.id`,
+		),
+		sessionIpAddresses: decodedRows(SessionIpAddress, sql`select "ipAddress" from "session" order by "createdAt", id`),
+		sessions: decodedRows(
+			SessionOwner,
+			sql`select s.id, s."userId", u.email from "session" s join "user" u on u.id = s."userId" order by u.email, s.id`,
+		),
 		sessionsFor: Effect.fnUntraced(function* (userId: string) {
 			const sessions = yield* readSessions(userId);
 			const now = yield* DateTime.now;
 			return sessions.map((session) => ({ ...session, expired: DateTime.toEpochMillis(session.expiresAt) <= DateTime.toEpochMillis(now) }));
 		}),
-		userRoles: sql<{ email: string; role: string | null }>`select email, role from "user" order by email`,
-		users: sql<{ email: string; id: string }>`select id, email from "user" order by email`,
+		userRoles: decodedRows(UserRole, sql`select email, role from "user" order by email`),
+		users: decodedRows(UserAccount, sql`select id, email from "user" order by email`),
 	};
 });

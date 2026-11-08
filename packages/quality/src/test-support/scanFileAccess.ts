@@ -3,7 +3,7 @@ import { join, relative } from "node:path";
 import { Deferred, Effect, Fiber, FileSystem } from "effect";
 import { type PlatformError, systemError } from "effect/PlatformError";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { scan } from "#engine/session.ts";
 import type { Violation } from "#engine/violation.ts";

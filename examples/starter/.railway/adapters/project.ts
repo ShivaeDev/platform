@@ -5,7 +5,7 @@ import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
 import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
 export const railwayProject = Effect.fnUntraced(function* (ctx: RailwayContext) {
-	const database = yield* databaseService("Postgres", {
+	const { database, resources } = yield* databaseService("Postgres", {
 		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 		volume: volume("postgres-data"),
 	});
@@ -33,5 +33,5 @@ export const railwayProject = Effect.fnUntraced(function* (ctx: RailwayContext) 
 		start: "pnpm worker",
 		tracing: { autoInstrumentation: false, enabled: true },
 	});
-	return project(ctx.projectName ?? "app", { resources: [database, web, worker] });
+	return project(ctx.projectName ?? "app", { resources: [...resources, web, worker] });
 });

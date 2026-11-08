@@ -1,11 +1,9 @@
-import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
+import { domEnvironment } from "#test/domEnvironment.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
-const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
-
 storyRunner.it("a timed-out find fails only its own story and the next story renders normally", [], function* ({ run, outcome, results }) {
-	yield* run("findTimeoutStories", DOM);
+	yield* run("findTimeoutStories", domEnvironment);
 
 	expect(yield* outcome("Screen Waits Story: a missing button times out")).toContain('The screen has 0 matches for button named "Missing".');
 	expect(yield* results()).toEqual([

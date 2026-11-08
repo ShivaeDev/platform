@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { Effect, type FileSystem } from "effect";
 import ts from "typescript";
+import { type FilesystemFailure, readRequiredText } from "#inventory/filesystem.ts";
 
 const portable = new Set([
 	"AbortController",
@@ -66,9 +67,8 @@ const portable = new Set([
 	"structuredClone",
 ]);
 
-function namesInDom(): readonly string[] {
-	const path = join(dirname(ts.getDefaultLibFilePath({})), "lib.dom.d.ts");
-	const source = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+function namesInDom(path: string, text: string): readonly string[] {
+	const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
 	return source.statements.flatMap((statement) => {
 		if (ts.isVariableStatement(statement)) {
 			return statement.declarationList.declarations.flatMap(({ name }) => (ts.isIdentifier(name) ? [name.text] : []));
@@ -77,4 +77,12 @@ function namesInDom(): readonly string[] {
 	});
 }
 
-export const browserNames: ReadonlySet<string> = new Set(namesInDom().filter((name) => !portable.has(name)));
+export const browserNames = Effect.fn("Imports.browserNames")(function* (): Effect.fn.Return<
+	ReadonlySet<string>,
+	FilesystemFailure,
+	FileSystem.FileSystem
+> {
+	const path = join(dirname(ts.getDefaultLibFilePath({})), "lib.dom.d.ts");
+	const text = yield* readRequiredText(path);
+	return new Set(namesInDom(path, text).filter((name) => !portable.has(name)));
+});

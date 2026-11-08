@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Cause, Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { linkPackage } from "#testing/adapters/tree.ts";
 

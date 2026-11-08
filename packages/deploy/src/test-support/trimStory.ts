@@ -1,4 +1,3 @@
-import { volume } from "railway/iac";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
 import type { PageCacheTrim } from "#adapters/railway/postgresStartCommand.ts";
@@ -14,7 +13,6 @@ export const trim = storyKit({
 			const database = configurePostgres("Postgres", {
 				limits: { cpu: 1, memoryBytes: 536_870_912 },
 				pageCacheTrim: engine.options,
-				volume: volume("postgres-data"),
 			});
 			return runTrimShell(database.deploy?.startCommand ?? "", checks);
 		},
