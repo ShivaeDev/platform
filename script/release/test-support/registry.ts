@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { vi } from "vitest";
+import { runCommand } from "@shivaedev/releases/runCommand.ts";
 import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 const Publication = Schema.fromJsonString(
@@ -11,6 +13,34 @@ const Publication = Schema.fromJsonString(
 		versions: Schema.Record(Schema.String, Schema.Unknown),
 	}).pipe(Schema.encodeKeys({ attachments: "_attachments" })),
 );
+
+const FOREIGN_HOST = "foreign.example.test";
+
+const PublishConfig = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
+
+export const publishConfig = Effect.fn("ReleaseRegistry.publishConfig")(function* (root: string) {
+	const { stdout } = yield* runCommand(root, "pnpm", ["config", "list", "--json"]);
+	const resolved = yield* Schema.decodeUnknownEffect(PublishConfig)(stdout);
+	return {
+		registry: resolved.registry,
+		scopeRegistry: resolved["@shivaedev:registry"],
+		tokens: Object.keys(resolved).filter((key) => key.endsWith(":_authToken")),
+	};
+});
+
+export const foreignMachine = Effect.fn("ReleaseRegistry.foreignMachine")(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	const home = yield* fs.makeTempDirectoryScoped({ prefix: "release-foreign-machine-" });
+	const config = `@shivaedev:registry=https://${FOREIGN_HOST}/\n//${FOREIGN_HOST}/:_authToken=\${NPM_TOKEN}\n`;
+	yield* fs.makeDirectory(join(home, "pnpm"));
+	yield* fs.writeFileString(join(home, "pnpm/auth.ini"), config);
+	yield* fs.writeFileString(join(home, ".npmrc"), config);
+	vi.stubEnv("HOME", home);
+	vi.stubEnv("NPM_TOKEN", "foreign-token");
+	vi.stubEnv("pnpm_config_registry", `https://${FOREIGN_HOST}/`);
+	vi.stubEnv("XDG_CONFIG_HOME", home);
+	yield* Effect.addFinalizer(() => Effect.sync(() => vi.unstubAllEnvs()));
+});
 
 export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -78,5 +108,6 @@ export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(func
 					const publication = Schema.decodeUnknownSync(Publication)(body.toString());
 					return Object.keys(publication.versions).map((version) => ({ name: publication.name, version }));
 				}),
+		url: server.url,
 	};
 });

@@ -1,4 +1,3 @@
-import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, Exit, Fiber, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
@@ -13,9 +12,10 @@ import { preparePublish } from "#release/preparePublish.ts";
 import { publishNotes } from "#release/publishNotes.ts";
 import { publishPackages } from "#release/publishPackages.ts";
 import { commitHook } from "#release/test-support/commitHook.ts";
+import { isolatedTools } from "#release/test-support/isolatedTools.ts";
 import { releasePrApi } from "#release/test-support/prApi.ts";
 import { releasePrRepository } from "#release/test-support/prRepository.ts";
-import { releaseRegistry } from "#release/test-support/registry.ts";
+import { foreignMachine, publishConfig, releaseRegistry } from "#release/test-support/registry.ts";
 
 const create = Effect.fn("ReleasePullRequest.create")(function* () {
 	const repository = yield* releasePrRepository();
@@ -35,7 +35,7 @@ const create = Effect.fn("ReleasePullRequest.create")(function* () {
 
 export const releasePullRequest = storyKit({
 	create,
-	layer: NodeServices.layer,
+	layer: isolatedTools,
 	name: "Release pull request automation",
 	stages: ["main"],
 	verbs: ({ api, context, git, github, hook, root, pushMain, registry, server }) => {
@@ -72,6 +72,8 @@ export const releasePullRequest = storyKit({
 					Effect.flip,
 					Effect.map((failure) => failure._tag),
 				),
+			fixtureRegistry: () => Effect.succeed(registry.url),
+			foreignMachine,
 			git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
 			preparePush: (before: string) => preparePublish(root, git("rev-parse", "HEAD"), before),
 			publish: (before: string) =>
@@ -80,6 +82,7 @@ export const releasePullRequest = storyKit({
 					const published = yield* publishPackages(root, before);
 					yield* publishNotes(root, "example/workspace", published, head);
 				}).pipe(Effect.provide(context), Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined })),
+			publishConfig: () => publishConfig(root),
 			publishedFile: (name: string, path: string) => registry.file(name, path),
 			publishedPackages: () => Effect.sync(registry.publications),
 			publishNotes: (base: string) =>

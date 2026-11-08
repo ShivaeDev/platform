@@ -64,6 +64,19 @@ for (const followedByCommit of [false, true]) {
 	);
 }
 
+releasePullRequest.it(
+	"the machine's pnpm config, ~/.npmrc and environment leave only the fixture registry and token in effect",
+	[],
+	function* ({ fixtureRegistry, foreignMachine, publishConfig }) {
+		const fixture = yield* fixtureRegistry();
+		yield* foreignMachine();
+
+		const resolved = yield* publishConfig();
+
+		expect(resolved).toEqual({ registry: `${fixture}/`, scopeRegistry: undefined, tokens: [`//${new URL(fixture).host}/:_authToken`] });
+	},
+);
+
 for (const allPublished of [false, true]) {
 	releasePullRequest.it(
 		allPublished
