@@ -3,8 +3,8 @@ import { createElement, type ReactNode, useContext } from "react";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
+import { PermissionContext } from "#adapters/PermissionContext.ts";
 import { can } from "#can.ts";
-import { PermissionContext } from "#PermissionContext.ts";
 
 export interface PermissionBoundaryProps {
 	readonly children: ReactNode;

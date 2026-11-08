@@ -2,8 +2,28 @@ import { Cause, Context, Effect, ErrorReporter, Predicate, Schema } from "effect
 import { redactDiagnosticCause } from "#redactCause.ts";
 import { isSensitiveKey, redactText } from "#sensitive.ts";
 
+class ReportableError extends Error {
+	override readonly [ErrorReporter.severity] = "Error";
+}
+
 function reportable(value: unknown) {
-	return Object.assign(Predicate.isObject(value) ? value : new Error(String(value)), { [ErrorReporter.severity]: "Error" });
+	const message = Predicate.isObject(value) && "message" in value ? String(value.message) : String(value);
+	const reported = new ReportableError(message);
+	if (Predicate.isObject(value)) {
+		for (const key of Reflect.ownKeys(value)) {
+			if (key === "message" || key === "stack" || key === ErrorReporter.severity) {
+				continue;
+			}
+			const descriptor = Object.getOwnPropertyDescriptor(value, key);
+			if (descriptor !== undefined) {
+				Object.defineProperty(reported, key, descriptor);
+			}
+		}
+		if ("stack" in value) {
+			reported.stack = String(value.stack);
+		}
+	}
+	return reported;
 }
 function reportUnexpected(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 	const diagnostic = redactDiagnosticCause(cause);

@@ -5,7 +5,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useMemo } from "react";
 import { useAction } from "#client/resultState.ts";
-import { SignOutRegistryContext } from "#SignOutRegistryContext.ts";
+import { SignOutRegistryContext } from "#client/SignOutRegistryContext.ts";
 
 declare module "@tanstack/react-router" {
 	interface HistoryState {

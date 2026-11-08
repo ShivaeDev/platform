@@ -5,7 +5,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import { keepLoaderQuery } from "#adapters/queryHandoff.ts";
-import { recheckUnauthorized } from "#sessionRecheck.ts";
+import { recheckUnauthorized } from "#adapters/sessionRecheck.ts";
 
 export async function loadQuery<A, E>(
 	registry: AtomRegistry.AtomRegistry,

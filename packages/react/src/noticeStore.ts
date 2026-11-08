@@ -1,10 +1,10 @@
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type NoticeAction, type NoticeClock, type NoticeEntry, noticeEntry } from "#noticeEntry.ts";
-import type { NoticeDescriptor } from "#notices.ts";
+import type { NoticeDescriptor } from "#noticeTypes.ts";
 
-export function noticeStore(registry: AtomRegistry.AtomRegistry, clock: NoticeClock) {
-	const entries = Atom.make<readonly NoticeEntry[]>([]);
+export function noticeStore<TMessage = unknown>(registry: AtomRegistry.AtomRegistry, clock: NoticeClock) {
+	const entries = Atom.make<readonly NoticeEntry<TMessage>[]>([]);
 	let nextId = 0;
 	function remove(id: number) {
 		registry.set(
@@ -22,7 +22,7 @@ export function noticeStore(registry: AtomRegistry.AtomRegistry, clock: NoticeCl
 			registry.set(entries, []);
 		},
 		entries,
-		publish: (descriptor: Pick<NoticeDescriptor, "message" | "expiresIn">, action?: NoticeAction) => {
+		publish: (descriptor: Pick<NoticeDescriptor<never, TMessage>, "message" | "expiresIn">, action?: NoticeAction<TMessage>) => {
 			if (!store.active) {
 				return;
 			}
@@ -33,10 +33,10 @@ export function noticeStore(registry: AtomRegistry.AtomRegistry, clock: NoticeCl
 	};
 	return store;
 }
-export function publishNotice<R, E>(
-	store: ReturnType<typeof noticeStore> | undefined,
+export function publishNotice<R, E, TMessage = unknown>(
+	store: ReturnType<typeof noticeStore<TMessage>> | undefined,
 	runtime: Atom.AtomRuntime<R, E>,
-	descriptor: NoticeDescriptor<R> | undefined,
+	descriptor: NoticeDescriptor<R, TMessage> | undefined,
 ) {
 	if (!(store?.active && descriptor)) {
 		return;

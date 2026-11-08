@@ -73,11 +73,10 @@
 		"files": [
 			"dist/client/QueryView.d.ts",
 			"dist/client/sessionBoundary.d.ts",
-			"dist/NoticeContext.d.ts",
-			"dist/PermissionContext.d.ts",
-			"dist/RecheckContext.d.ts",
-			"dist/SignOutRegistryContext.d.ts",
-			"dist/notices.d.ts"
+			"dist/client/NoticeContext.d.ts",
+			"dist/client/RecheckContext.d.ts",
+			"dist/client/SignOutRegistryContext.d.ts",
+			"dist/client/notices.d.ts"
 		],
 		"name": "native-react-components-and-contexts",
 		"package": "@shivaedev/react",

@@ -1,7 +1,5 @@
-import { RegistryContext } from "@effect/atom-react";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { useContext } from "react";
 import { useLoaderHandoff } from "#adapters/useLoaderHandoff.ts";
 import { type QueryOptions, type QueryState, useQuery } from "#client/resultState.ts";
 import { loadedQuery } from "#loadedQuery.ts";
@@ -15,6 +13,6 @@ export function useLoaderQuery<A, E>(
 	loaded: NoInfer<A>,
 	options: QueryOptions<E> = {},
 ): LoadedQueryState<A, E> {
-	useLoaderHandoff(useContext(RegistryContext), atom);
+	useLoaderHandoff(atom);
 	return loadedQuery(useQuery(atom, options), loaded);
 }

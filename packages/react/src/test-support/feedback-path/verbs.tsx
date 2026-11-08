@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
-import type { Notice } from "#notices.ts";
+import type { Notice } from "#client/notices.ts";
 import { type FeatureScreen, FeedbackView } from "#test/feedback-path/view.tsx";
 import { Rejected } from "#test/notices/Api.ts";
 import { type HeldKind, noticeClient } from "#test/notices/client.ts";

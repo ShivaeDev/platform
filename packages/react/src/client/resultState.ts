@@ -6,12 +6,12 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
-import { usePermissionFailure } from "#adapters/usePermissionFailure.ts";
-import { useQueryNotice } from "#adapters/useQueryNotice.ts";
 import { type ActionOptions, useActionSource } from "#client/actionCompletion.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
+import { usePermissionFailure } from "#client/adapters/usePermissionFailure.ts";
+import { useQueryNotice } from "#client/adapters/useQueryNotice.ts";
+import type { NoticeDescriptor } from "#client/notices.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
-import type { NoticeDescriptor } from "#notices.ts";
 
 export interface ResultState<A, E> {
 	readonly cause: Option.Option<Cause.Cause<E>>;

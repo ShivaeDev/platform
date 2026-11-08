@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
-import { recheckUnauthorized } from "#sessionRecheck.ts";
+import { recheckUnauthorized } from "#adapters/sessionRecheck.ts";
 
 export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown) {
 	const registry = yield* AtomRegistry.AtomRegistry;
