@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 import { catalog } from "#quality/catalog.ts";
 import { manifestFiles } from "#quality/manifestFiles.ts";
@@ -5,9 +6,9 @@ import { manifestFiles } from "#quality/manifestFiles.ts";
 const IGNORED_OVERRIDE_KEYS = ["overrides", "pnpm", "resolutions"] as const;
 
 export const catalogOverrides = defineRule({
-	check: async (inputs) => {
-		const manifests = await manifestFiles(inputs);
-		const workspace = await catalog(inputs);
+	check: Effect.fn("CatalogOverrides.check")(function* (inputs) {
+		const manifests = yield* manifestFiles(inputs);
+		const workspace = yield* catalog(inputs);
 		return [
 			...manifests.flatMap(({ fields, path }) =>
 				IGNORED_OVERRIDE_KEYS.filter((key) => fields?.[key] !== undefined).map((key) => ({
@@ -23,7 +24,7 @@ export const catalogOverrides = defineRule({
 					message: `override "${name}: ${value}" names a version outside the catalog. Pin the version in the catalog and override with "catalog:".`,
 				})),
 		];
-	},
+	}),
 	description: "Keep overrides in pnpm-workspace.yaml and resolve them through the catalog.",
 	id: "manifests/catalog-overrides",
 });

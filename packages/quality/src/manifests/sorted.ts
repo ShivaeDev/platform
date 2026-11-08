@@ -1,5 +1,5 @@
 import { basename, join, relative } from "node:path";
-import { Effect, FileSystem, type Scope } from "effect";
+import { Effect, FileSystem } from "effect";
 import { sortPackageJson } from "sort-package-json";
 import { ManifestFailure, manifestEntry } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
@@ -28,18 +28,14 @@ export function sortingOf(text: string): Sorting {
 
 export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 	root: string,
-): Effect.fn.Return<number, FilesystemFailure | ManifestFailure | SetupFailure, RuleServices | Scope.Scope> {
+): Effect.fn.Return<number, FilesystemFailure | ManifestFailure | SetupFailure, RuleServices> {
 	const fs = yield* FileSystem.FileSystem;
 	const manifests = yield* manifestsIn(root);
 	const readText = yield* manifestReader(root);
 	const written = yield* Effect.forEach(manifests, (path) =>
 		Effect.gen(function* () {
 			const absolute = join(root, path);
-			const entry = yield* Effect.tryPromise({
-				catch: (cause) =>
-					cause instanceof ManifestFailure ? cause : new FilesystemFailure({ message: cause instanceof Error ? cause.message : String(cause), path }),
-				try: () => manifestEntry(readText, path),
-			});
+			const entry = yield* manifestEntry(readText, path);
 			if (entry === undefined) {
 				return false;
 			}
@@ -58,4 +54,4 @@ export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 		),
 	);
 	return written.filter(Boolean).length;
-}, Effect.scoped);
+});

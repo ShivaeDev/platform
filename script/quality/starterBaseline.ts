@@ -4,10 +4,10 @@ import { defineRule } from "@shivaedev/quality/rule.ts";
 
 export const starterBaseline = defineRule({
 	check: Effect.fn("StarterBaseline.check")(function* ({ readText }) {
-		const root = yield* Effect.promise(() => readText("quality-baseline.jsonl"));
-		const starter = yield* Effect.promise(() => readText("examples/starter/quality-baseline.jsonl"));
-		const parent = yield* Effect.promise(() => decodeBaseline(root));
-		const child = yield* Effect.promise(() => decodeBaseline(starter));
+		const root = yield* readText("quality-baseline.jsonl");
+		const starter = yield* readText("examples/starter/quality-baseline.jsonl");
+		const parent = decodeBaseline(root);
+		const child = decodeBaseline(starter);
 		if (parent._tag === "Invalid" || child._tag === "Invalid") {
 			return [{ file: "quality-baseline.jsonl", message: "Repair the invalid baseline before comparing starter debt." }];
 		}

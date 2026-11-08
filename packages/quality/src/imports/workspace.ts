@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { globMatcher } from "#imports/globMatcher.ts";
 import { pnpmWorkspacePatterns } from "#imports/pnpmWorkspacePatterns.ts";
@@ -38,31 +39,38 @@ function normalized(pattern: string): string {
 	return pattern.replace(LEADING_DOT, "").replace(TRAILING_SLASHES, "");
 }
 
-async function memberOf(inputs: Reader): Promise<(directory: string) => boolean> {
-	const pnpm = await inputs.readText(PNPM_WORKSPACE);
-	const patterns = [...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)), ...npmPatterns(await readPackageManifest(inputs.readText, MANIFEST))];
-	const included = patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map((pattern) => globMatcher(normalized(pattern)));
-	const excluded = patterns
-		.filter((pattern) => pattern.startsWith(NEGATION))
-		.map((pattern) => globMatcher(normalized(pattern.slice(NEGATION.length))));
-	return (directory) => included.some((matches) => matches(directory)) && !excluded.some((matches) => matches(directory));
+function matchers(patterns: readonly string[]) {
+	return Effect.forEach(patterns, (pattern) => Effect.fromResult(globMatcher(pattern)));
 }
 
-export async function workspacePackages(inputs: Reader): Promise<readonly WorkspacePackage[]> {
-	const member = await memberOf(inputs);
+const memberOf = Effect.fn("Imports.memberOf")(function* (inputs: Reader) {
+	const pnpm = yield* inputs.readText(PNPM_WORKSPACE);
+	const patterns = [
+		...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)),
+		...npmPatterns(yield* readPackageManifest(inputs.readText, MANIFEST)),
+	];
+	const included = yield* matchers(patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map(normalized));
+	const excluded = yield* matchers(
+		patterns.filter((pattern) => pattern.startsWith(NEGATION)).map((pattern) => normalized(pattern.slice(NEGATION.length))),
+	);
+	return (directory: string) => included.some((matches) => matches(directory)) && !excluded.some((matches) => matches(directory));
+});
+
+export const workspacePackages = Effect.fn("Imports.workspacePackages")(function* (inputs: Reader) {
+	const member = yield* memberOf(inputs);
 	const manifests = manifestFiles(inputs);
 	const directories = manifests
 		.filter((file) => posix.basename(file) === MANIFEST && file !== MANIFEST)
 		.map((manifest) => posix.dirname(manifest))
 		.filter(member);
-	const named = await Promise.all(
-		directories.map(async (directory) => ({
-			directory,
-			name: field(await readPackageManifest(inputs.readText, posix.join(directory, MANIFEST)), "name"),
-		})),
+	const named = yield* Effect.forEach(
+		directories,
+		(directory) =>
+			Effect.map(readPackageManifest(inputs.readText, posix.join(directory, MANIFEST)), (manifest) => ({ directory, name: field(manifest, "name") })),
+		{ concurrency: "unbounded" },
 	);
-	return named.flatMap(({ directory, name }) => (typeof name === "string" ? [{ directory, name }] : []));
-}
+	return named.flatMap(({ directory, name }): readonly WorkspacePackage[] => (typeof name === "string" ? [{ directory, name }] : []));
+});
 
 export function packageOf(packages: readonly WorkspacePackage[], path: string): WorkspacePackage | undefined {
 	const owners = packages.filter((candidate) => path.startsWith(`${candidate.directory}/`));

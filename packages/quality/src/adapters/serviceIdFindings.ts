@@ -66,7 +66,7 @@ function checkPackage(inputs: RuleInputs, prefix: string): readonly Finding[] {
 }
 
 export const serviceIdFindings = Effect.fn("ServiceIds.serviceIdFindings")(function* (inputs: RuleInputs) {
-	const packages = yield* Effect.promise(() => workspacePackages(inputs));
+	const packages = yield* workspacePackages(inputs);
 	const groups = new Map<WorkspacePackage, RuleInputs["sources"][number][]>();
 	for (const source of inputs.sources) {
 		if (!source.path.startsWith("packages/")) {

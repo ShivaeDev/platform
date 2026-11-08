@@ -103,9 +103,9 @@ export function importVerbs(engine: ImportEngine, tell: (line: string) => void) 
 		unresolvedImports: () =>
 			Effect.sync(() => present(engine.graph, "Map the imports before reading them").unresolved.map((request) => request.specifier)),
 		workspaceMembers: () =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell("quality reads the workspace members");
-				return workspacePackages(await scanned(engine.root));
+				return yield* workspacePackages(yield* Effect.promise(() => scanned(engine.root)));
 			}),
 		writes: (...files: readonly SeedFile[]) =>
 			Effect.sync(() => {

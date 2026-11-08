@@ -84,13 +84,13 @@ function findingsIn(file: string, exports: unknown, isPrivate: boolean): readonl
 export const manifestsExportsShape = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const packages = yield* Effect.promise(() => workspacePackages(inputs));
+			const packages = yield* workspacePackages(inputs);
 			const files = ["package.json", ...packages.map((owner) => posix.join(owner.directory, "package.json"))];
 			const findings = yield* Effect.forEach(
 				files,
 				(file) =>
 					Effect.gen(function* () {
-						const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, file));
+						const manifest = yield* readPackageManifest(inputs.readText, file);
 						if (file === "package.json" && manifest === undefined) {
 							return [];
 						}

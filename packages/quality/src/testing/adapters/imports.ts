@@ -21,7 +21,7 @@ export async function scanned(root: string): Promise<RuleInputs> {
 	const inventory = await Effect.runPromise(
 		collectInventory(root, { exclude: [], extensions: EXTENSIONS, sources: ["."] }).pipe(Effect.provide(services)),
 	);
-	const readText: RuleInputs["readText"] = (path) => Effect.runPromise(readOptionalText(join(root, path)).pipe(Effect.provide(NodeFileSystem.layer)));
+	const readText: RuleInputs["readText"] = (path) => readOptionalText(join(root, path)).pipe(Effect.provide(NodeFileSystem.layer));
 	setManifestFiles(readText, inventory.manifestFiles);
 	return { files: inventory.files, readText, root, sources: inventory.sources };
 }

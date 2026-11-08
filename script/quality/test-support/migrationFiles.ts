@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { Effect } from "effect";
+import { manifestReader } from "@shivaedev/quality/adapters/manifestReader.ts";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
 import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
@@ -28,7 +27,7 @@ export const migrationFiles = storyKit({
 			const inventory = yield* collectInventory(engine.root, config);
 			engine.violations = yield* runRules(
 				config.active.filter((rule) => rule.id.startsWith("files/")),
-				{ ...inventory, readText: (path) => readFile(join(engine.root, path), "utf8"), root: engine.root },
+				{ ...inventory, readText: yield* manifestReader(engine.root), root: engine.root },
 			);
 		}),
 		defaultExports: () => engine.defaultExports,

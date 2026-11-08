@@ -17,17 +17,14 @@ export const testCode = Effect.fn("Tests.testCode")(function* (inputs: RuleInput
 		return isTestCode(path) || trees.sourcePath(path) !== undefined;
 	}
 	const policies = yield* Effect.forEach(trees.packages, (owner) =>
-		Effect.map(
-			Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
-			(manifest) => ({
-				owner,
-				private: manifest?.private === true && manifest.bin === undefined && owner.directory !== ".",
-				scripts: scriptPaths(
-					owner.directory,
-					Object.fromEntries(Object.entries(manifest?.scripts ?? {}).filter(([name]) => !/^test(?::|$)/u.test(name))),
-				),
-			}),
-		),
+		Effect.map(readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json")), (manifest) => ({
+			owner,
+			private: manifest?.private === true && manifest.bin === undefined && owner.directory !== ".",
+			scripts: scriptPaths(
+				owner.directory,
+				Object.fromEntries(Object.entries(manifest?.scripts ?? {}).filter(([name]) => !/^test(?::|$)/u.test(name))),
+			),
+		})),
 	);
 	if (!(policies.some((policy) => policy.private) && inputs.sources.some((file) => /\.[cm]?[jt]sx?$/u.test(file.path)))) {
 		return testFile;

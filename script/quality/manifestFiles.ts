@@ -1,4 +1,4 @@
-import { Result, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import type { RuleInputs } from "@shivaedev/quality/rule.ts";
 
 const Dependencies = Schema.Record(Schema.String, Schema.Unknown);
@@ -15,12 +15,15 @@ const Manifest = Schema.Struct({
 const decode = Schema.decodeUnknownResult(Schema.fromJsonString(Manifest));
 const WORKSPACE_MANIFEST = /^(?:packages|examples)\/[^/]+\/package\.json$/u;
 
-export async function manifestFiles({ files, readText }: Pick<RuleInputs, "files" | "readText">) {
+export const manifestFiles = Effect.fn("Quality.manifestFiles")(function* ({ files, readText }: Pick<RuleInputs, "files" | "readText">) {
 	const paths = ["package.json", ...files.filter((file) => WORKSPACE_MANIFEST.test(file))];
-	return await Promise.all(
-		paths.map(async (path) => {
-			const decoded = decode(await readText(path));
-			return { fields: Result.isFailure(decoded) ? undefined : decoded.success, path };
-		}),
+	return yield* Effect.forEach(
+		paths,
+		(path) =>
+			Effect.map(readText(path), (text) => {
+				const decoded = decode(text);
+				return { fields: Result.isFailure(decoded) ? undefined : decoded.success, path };
+			}),
+		{ concurrency: "unbounded" },
 	);
-}
+});

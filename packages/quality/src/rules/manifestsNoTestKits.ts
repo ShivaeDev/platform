@@ -60,10 +60,7 @@ export const manifestsNoTestKits = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
 			const findings = yield* Effect.forEach(manifestFiles(inputs), (path) =>
-				Effect.map(
-					Effect.promise(() => readPackageManifest(inputs.readText, path)),
-					(manifest) => (manifest === undefined ? [] : findingsIn(inputs, path, manifest)),
-				),
+				Effect.map(readPackageManifest(inputs.readText, path), (manifest) => (manifest === undefined ? [] : findingsIn(inputs, path, manifest))),
 			);
 			return findings.flat();
 		}),

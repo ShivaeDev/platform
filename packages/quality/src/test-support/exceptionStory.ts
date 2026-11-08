@@ -77,11 +77,11 @@ export const exceptionStory = storyKit({
 		config: (file = "quality.config.ts") => Effect.sync(() => exportedConfig(engine.root, file)),
 		decodeDeclarations: (value: unknown) => {
 			story.tell("quality decodes exception declarations");
-			return Effect.promise(() => decodeExceptions(value));
+			return Effect.sync(() => decodeExceptions(value));
 		},
 		decodeRegistry: (raw: string | undefined) => {
 			story.tell("quality decodes the exception registry file");
-			return Effect.promise(() => decodeRegistry(raw));
+			return Effect.sync(() => decodeRegistry(raw));
 		},
 		files: () => Effect.sync(() => textsIn(engine.root)),
 		reads: (path: string) => Effect.sync(() => (existsSync(join(engine.root, path)) ? readFileSync(join(engine.root, path), "utf8") : undefined)),

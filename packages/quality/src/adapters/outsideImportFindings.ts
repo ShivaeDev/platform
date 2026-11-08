@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
+import type { GlobFailure } from "#imports/globMatcher.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageNameOf } from "#imports/packageName.ts";
@@ -41,7 +42,7 @@ function exempt(directory: string, path: string, name: string): boolean {
 
 export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(function* (
 	inputs: RuleInputs,
-): Effect.fn.Return<readonly Finding[], ImportAnalysisFailure> {
+): Effect.fn.Return<readonly Finding[], GlobFailure | ImportAnalysisFailure | ManifestReadFailure> {
 	const graph = yield* importGraph(inputs);
 	const owners = [...graph.packages.map((owner) => owner.directory), "."];
 	const runtime = new Map(
@@ -49,7 +50,7 @@ export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(
 			owners,
 			(directory) =>
 				Effect.gen(function* () {
-					const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, `${directory}/package.json`));
+					const manifest = yield* readPackageManifest(inputs.readText, `${directory}/package.json`);
 					return [
 						directory,
 						new Set(Object.keys({ ...manifest?.dependencies, ...manifest?.peerDependencies, ...manifest?.optionalDependencies })),

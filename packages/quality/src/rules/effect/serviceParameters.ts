@@ -9,8 +9,8 @@ import { serviceFindings } from "#rules/effect/serviceFindings.ts";
 
 export const serviceParameters = defineRule({
 	check: Effect.fn("Services.check")(function* (inputs: RuleInputs) {
-		const packages = yield* Effect.promise(() => workspacePackages(inputs));
-		const root = yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"));
+		const packages = yield* workspacePackages(inputs);
+		const root = yield* readPackageManifest(inputs.readText, "package.json");
 		const names = [...packages.map((owner) => owner.name), ...(root?.name === undefined ? [] : [root.name])];
 		const groups = new Map<string, RuleInputs["sources"][number][]>();
 		for (const source of inputs.sources) {
