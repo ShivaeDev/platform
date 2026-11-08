@@ -149,8 +149,8 @@ export function hostLayer(state: InboxState) {
 							jobs: Jobs,
 							receiptsSchema: state.receiptsSchema,
 							sources: registeredSources,
-						}).pipe(Layer.provide(jobs), Layer.provide(senderPreferences), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
-						services: jobs,
+						}).pipe(Layer.provide(jobs), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
+						services: Layer.merge(jobs, senderPreferences),
 					};
 				}),
 				config: { clock, databaseUrl: Redacted.make(databaseUrl.toString()) },

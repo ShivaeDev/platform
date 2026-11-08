@@ -1,7 +1,8 @@
-import { Context, Effect, Layer, Record } from "effect";
-import type { AnyMethod, GenericMethodDescriptor } from "#genericMethod.ts";
+import { Context, type Effect, type Layer } from "effect";
+import { requirementLayer } from "#adapters/requirementLayer.ts";
+import type { GenericMethodDescriptor } from "#genericMethod.ts";
 import type { InitializerProof } from "#InitializerProof.ts";
-import type { MethodEntry, MethodInventory, MethodProof, MethodRecord, RuntimeMethodInventory } from "#MethodProof.ts";
+import type { MethodInventory, MethodProof, MethodRecord, RuntimeMethodInventory } from "#MethodProof.ts";
 import type { RequirementProof } from "#RequirementProof.ts";
 import type { RequirementRecord, RequirementsOf } from "#ServiceRequirements.ts";
 
@@ -50,16 +51,6 @@ export function defineService<
 ): DefinedService<TIdentifier, ServiceShape<TMethods, TRequirements>, Effect.Error<TInitializer>, RequirementsOf<TRequirements>>;
 export function defineService<TState>(definition: RuntimeDefinition<TState>): unknown {
 	const service = Context.Service<string, MethodRecord>(definition.id);
-	const layer = Layer.effect(service)(
-		Effect.gen(function* () {
-			const ambient = yield* Effect.context<string>();
-			const declared = Context.pick(...definition.requires)(ambient);
-			const state = yield* Effect.provide(definition.initialize, declared);
-			return Record.map(definition.methods(state), (entry: MethodEntry) => {
-				const method: AnyMethod = typeof entry === "function" ? entry : entry.method;
-				return (...arguments_: readonly never[]) => Effect.provide(method(...arguments_), declared);
-			});
-		}),
-	);
+	const layer = requirementLayer(service, definition);
 	return Object.assign(service, { layer });
 }
