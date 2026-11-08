@@ -1,9 +1,11 @@
 import { relative } from "node:path";
 import ts from "typescript";
+import { declarationTagParameter } from "#adapters/declarationTagParameter.ts";
 import { foreignResources } from "#adapters/foreignResources.ts";
 import { frameworkCallback, parameterSite } from "#adapters/frameworkCallback.ts";
 import { localFunctions } from "#adapters/localFunctions.ts";
 import { ownedServiceParameters } from "#adapters/ownedServiceParameters.ts";
+import { plainFunction } from "#adapters/plainFunction.ts";
 import { reactComponent, reactPropParameters } from "#adapters/reactComponent.ts";
 import type { Finding } from "#rule.ts";
 import { layerConstructor } from "#rules/effect/layerConstructor.ts";
@@ -33,12 +35,14 @@ export function serviceFindings(
 	const resource = foreignResources(checker, sources);
 	const owned = ownedServiceParameters(checker, sources);
 	const props = reactPropParameters(checker, sources);
+	const declarationTag = declarationTagParameter(checker, services.carries);
 	const findings = new Map<ts.ParameterDeclaration, Finding>();
 	const visited = new Set<ts.Type>();
 	const activeSignatures = new Set<NonNullable<ts.Signature["declaration"]>>();
 	const local = new Set(sources);
 	function parameterFinding(symbol: ts.Symbol, signature?: ts.Signature): void {
-		if (!services.carries(checker.getTypeOfSymbol(symbol))) {
+		const type = checker.getTypeOfSymbol(symbol);
+		if (!services.carries(type)) {
 			return;
 		}
 		for (const parameter of symbol.declarations ?? []) {
@@ -47,6 +51,8 @@ export function serviceFindings(
 				|| implementationParameter(checker, parameter, services)
 				|| resource(parameter)
 				|| owned(parameter)
+				|| (plainFunction(checker, parameter.parent) && !services.carriesBeyondClientHandles(type))
+				|| declarationTag(parameter)
 				|| frameworkCallback(checker, parameter.parent, local)
 				|| reactComponent(checker, parameter.parent)
 				|| props.has(parameter)

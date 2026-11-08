@@ -8,7 +8,7 @@ function supplied(signature: ts.Signature, local: ReadonlySet<ts.SourceFile>): b
 	return signature.declaration !== undefined && !local.has(signature.declaration.getSourceFile());
 }
 
-function wrapsEffectFunction(checker: ts.TypeChecker, expression: ts.Expression): boolean {
+export function wrapsEffectFunction(checker: ts.TypeChecker, expression: ts.Expression): boolean {
 	let callee = expression;
 	let value: ts.Node = ts.isIdentifier(callee) ? resolvedValue(checker, callee) : callee;
 	while (ts.isCallExpression(value)) {

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/events",
-	"version": "0.4.7",
+	"version": "0.4.8",
 	"description": "Durable event history and rebuildable SQL projections for Effect applications",
 	"keywords": [
 		"effect"

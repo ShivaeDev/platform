@@ -27,7 +27,7 @@ export function effectApi(checker: ts.TypeChecker, node: ts.Node, name: string):
 	);
 }
 
-function declarationOf(checker: ts.TypeChecker, node: ts.Node): ts.Declaration | undefined {
+export function declarationOf(checker: ts.TypeChecker, node: ts.Node): ts.Declaration | undefined {
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? checker.getShorthandAssignmentValueSymbol(node.parent)
 		: checker.getSymbolAtLocation(node);
