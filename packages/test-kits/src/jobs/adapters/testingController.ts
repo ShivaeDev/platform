@@ -9,12 +9,13 @@ import { testingClient } from "#jobs/adapters/testingClient.ts";
 import { testingDueNow } from "#jobs/adapters/testingDueNow.ts";
 import { type TestingFetches, testingFetches } from "#jobs/adapters/testingFetches.ts";
 import { testingInspectionClient } from "#jobs/adapters/testingInspectionClient.ts";
+import { testingOperation } from "#jobs/adapters/testingOperation.ts";
 import { testingSignal } from "#jobs/adapters/testingSignal.ts";
 import { testingTime } from "#jobs/adapters/testingTime.ts";
 import { PgBossTestingError } from "#jobs/error.ts";
 import type { PgBossTestingOptions } from "#jobs/testing.ts";
 import { type TestingWork, testingIdle } from "#jobs/testingIdle.ts";
-import { testingInspection, testingOperation } from "#jobs/testingOperation.ts";
+import { testingInspection } from "#jobs/testingInspection.ts";
 import { testingSchedules } from "#jobs/testingSchedules.ts";
 import { testingWaits } from "#jobs/testingWaits.ts";
 export function testingController(settings: PgBossTestingOptions = {}) {

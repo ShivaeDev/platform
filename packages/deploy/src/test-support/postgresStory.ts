@@ -1,13 +1,14 @@
 import { execFileSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import type { DatabaseNode } from "railway/iac";
+import type { DatabaseNode, ResourceNode } from "railway/iac";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 interface DefinitionResult {
 	database?: DatabaseNode;
 	refused?: string;
 	requests: string[];
+	resources?: ResourceNode[];
 }
 
 export const postgres = storyKit({

@@ -34,7 +34,7 @@ const registerInMigration = Effect.gen(function* () {
 	if (!Arr.isReadonlyArrayNonEmpty(users)) {
 		return yield* Effect.die("Migration sign-up stored no user roles");
 	}
-	yield* sql`insert into migrated_registrations ${sql.insert(users)}`;
+	yield* sql`insert into migrated_registrations ${sql.insert(Arr.map(users, ({ email, role }) => ({ email, role })))}`;
 }).pipe(Effect.scoped);
 
 export const authMigrationTransactions = storyKit({

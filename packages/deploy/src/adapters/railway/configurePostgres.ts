@@ -1,8 +1,12 @@
-import { postgres } from "railway/iac";
-import type { DatabaseServiceConfig } from "#adapters/railway/databaseService.ts";
-import { postgresStartCommand } from "#adapters/railway/postgresStartCommand.ts";
+import { type DatabaseConfig, postgres } from "railway/iac";
+import { type PageCacheTrim, postgresStartCommand } from "#adapters/railway/postgresStartCommand.ts";
 
-export function configurePostgres(name: string, { limits, volume, pageCacheTrim, ...config }: DatabaseServiceConfig) {
+export type PostgresConfig = DatabaseConfig & {
+	limits: { cpu: number; memoryBytes: number; diskBytes?: number };
+	pageCacheTrim?: PageCacheTrim;
+};
+
+export function configurePostgres(name: string, { limits, pageCacheTrim, ...config }: PostgresConfig) {
 	const database = postgres(name, config);
 	database.deploy = {
 		...database.deploy,
@@ -10,12 +14,5 @@ export function configurePostgres(name: string, { limits, volume, pageCacheTrim,
 		startCommand: postgresStartCommand(pageCacheTrim),
 	};
 	database.source = { ...database.source, type: "image" };
-	database.volumeAttachments = {
-		[volume.name]: {
-			mountPath: "/var/lib/postgresql/data",
-			volume: volume.address,
-			...(volume.config && { volumeConfig: volume.config }),
-		},
-	};
 	return database;
 }

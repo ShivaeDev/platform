@@ -14,22 +14,28 @@ import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.
 
 export default defineRailway((ctx, project) =>
 	Effect.gen(function* () {
-		const database = yield* databaseService("Postgres", {
+		const { database, resources } = yield* databaseService("Postgres", {
 			limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 			volume: volume("postgres-data"),
 		});
 		const web = webService("web", { start: "pnpm start" }, database);
 		const worker = workerService("worker", { start: "pnpm worker" }, database);
-		return project(ctx.projectName ?? "my-app", { resources: [database, web, worker] });
+		return project(ctx.projectName ?? "my-app", { resources: [...resources, web, worker] });
 	}),
 );
 ```
 
-`defineRailway` runs the Effect config when Railway evaluates it. `databaseService` returns an Effect that checks the image startup metadata and fails with a typed `Error` if the registry request fails or the startup chain changes.
+`defineRailway` runs the Effect config when Railway evaluates it. `databaseService` returns an Effect that checks the image startup metadata and fails with a typed `Error` if the registry request fails or the startup chain changes. It yields `database`, which web and worker services reference, and `resources`, which holds the database and its volume for the project.
 
 ## Choose the database settings
 
-`databaseService` checks the Postgres image startup metadata before yielding its definition. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned definition remains editable for other Railway settings.
+`databaseService` checks the Postgres image startup metadata before yielding its definition. It takes a name, required `limits.cpu` and `limits.memoryBytes`, optional `limits.diskBytes`, Railway's native `region`, a native `volume(...)` definition and optional `pageCacheTrim`. Limits become `deploy.limitOverride.containers`. The returned `database` remains editable for other Railway settings.
+
+`resources` declares the database and a standalone volume, the same shape `railway config pull` writes, with no attachment or mount on the service. For a project that already has the volume, copy its name and config from the pulled file:
+
+```ts
+volume("postgres-volume", { alerts, allowOnlineResize, region, sizeMB });
+```
 
 ### Backups and image updates
 
@@ -74,7 +80,7 @@ Applications declare their Postgres server settings once through server’s `pos
 
 Changing Postgres settings through SQL takes the database out of Railway's support scope for support tickets; the dashboard, Data tab, metrics and backups remain available.
 
-Pass the database as the optional third argument to `webService` and `workerService` to supply its native `DATABASE_URL` reference. Explicit `variables.DATABASE_URL` or `env.DATABASE_URL` overrides that reference, including an empty string; `env` wins over `variables`. Keep the database in the project's resources alongside the services. Existing two-argument calls still work without a database.
+Pass the database as the optional third argument to `webService` and `workerService` to supply its native `DATABASE_URL` reference. Explicit `variables.DATABASE_URL` or `env.DATABASE_URL` overrides that reference, including an empty string; `env` wins over `variables`. Spread `resources` into the project alongside the services. Existing two-argument calls still work without a database.
 
 ## Choose the service settings
 
@@ -94,7 +100,7 @@ import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.
 
 export default defineRailway((ctx, project) =>
 	Effect.gen(function* () {
-		const database = yield* databaseService("Postgres", {
+		const { database, resources } = yield* databaseService("Postgres", {
 			limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 			volume: volume("postgres-data"),
 		});
@@ -124,7 +130,7 @@ export default defineRailway((ctx, project) =>
 			database,
 		);
 		return project(ctx.projectName ?? "my-app", {
-			resources: [database, web, worker],
+			resources: [...resources, web, worker],
 		});
 	}),
 );

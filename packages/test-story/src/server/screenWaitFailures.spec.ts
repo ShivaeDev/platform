@@ -1,8 +1,6 @@
-import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
+import { domEnvironment } from "#test/domEnvironment.ts";
 import { storyRunner } from "#test/storyRunner.ts";
-
-const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
 
 for (const [name, failure, narration] of [
 	["names a removal that never happens", "The screen did not lose .notice within 30ms.", "wait for .notice to disappear"],
@@ -14,7 +12,7 @@ for (const [name, failure, narration] of [
 	],
 ]) {
 	storyRunner.it(`prints a React screen failure that ${name}`, [], function* ({ runStory, outcome }) {
-		yield* runStory("screenWaitStories", `Screen Waits Story: ${name}`, DOM);
+		yield* runStory("screenWaitStories", `Screen Waits Story: ${name}`, domEnvironment);
 
 		const report = yield* outcome();
 		expect(report).toContain(failure);

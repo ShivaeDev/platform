@@ -1,7 +1,7 @@
 import { Duration, Effect } from "effect";
 import type { TestClock } from "effect/testing";
+import { testingOperation } from "#jobs/adapters/testingOperation.ts";
 import type { PgBossTestingError } from "#jobs/error.ts";
-import { testingOperation } from "#jobs/testingOperation.ts";
 
 export function testingTime(
 	clock: TestClock.TestClock | undefined,

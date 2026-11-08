@@ -1,11 +1,9 @@
-import { fileURLToPath } from "node:url";
 import { outcomes } from "#server/outcomes.ts";
+import { domEnvironment } from "#test/domEnvironment.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
-const DOM = { environment: fileURLToPath(new URL("./adapters/domEnvironment.config.ts", import.meta.url)) };
-
 storyRunner.it("starts every DOM story without the cookies and storage an earlier story left", [], function* ({ outcome, run }) {
-	yield* run("carriedDocumentStories", DOM);
+	yield* run("carriedDocumentStories", domEnvironment);
 
 	yield* outcomes([
 		["the earlier story", () => outcome("Visitor Story: signs in, saves a draft and opens a tab"), "passed"],

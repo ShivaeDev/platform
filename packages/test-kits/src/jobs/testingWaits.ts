@@ -6,7 +6,7 @@ import type { Job, JobState } from "@shivaedev/jobs/server/job.ts";
 import type { TestingFetches } from "#jobs/adapters/testingFetches.ts";
 import { PgBossTestingError, PgBossWaitError } from "#jobs/error.ts";
 import type { PgBossTestingWaitOptions } from "#jobs/testing.ts";
-import { testingInspection } from "#jobs/testingOperation.ts";
+import { testingInspection } from "#jobs/testingInspection.ts";
 
 interface Reading<A> {
 	readonly arrived: Option.Option<A>;

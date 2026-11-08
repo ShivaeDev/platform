@@ -1,4 +1,3 @@
-import { volume } from "railway/iac";
 import { expect, it } from "vitest";
 import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
 import { webService } from "#adapters/railway/webService.ts";
@@ -8,7 +7,6 @@ it("PostgreSQL carries explicit limits and leaves API-managed schedules out of I
 	const database = configurePostgres("Postgres", {
 		limits: { cpu: 2, memoryBytes: 1_073_741_824 },
 		region: "europe-west4",
-		volume: volume("postgres-data"),
 	});
 
 	expect(database).toMatchObject({
@@ -17,15 +15,8 @@ it("PostgreSQL carries explicit limits and leaves API-managed schedules out of I
 			multiRegionConfig: { "europe-west4": { numReplicas: 1 } },
 		},
 		engine: "postgres",
-		volumeAttachments: {
-			"postgres-data": {
-				mountPath: "/var/lib/postgresql/data",
-				volume: "volume.postgres-data",
-			},
-		},
 	});
 	expect(database.source).not.toHaveProperty("autoUpdates");
-	expect(database.volumeAttachments?.["postgres-data"]).not.toHaveProperty("backupSchedules");
 });
 
 it.each([
@@ -34,7 +25,6 @@ it.each([
 ])("$name composes with the database without losing application variables", ({ makeService }) => {
 	const database = configurePostgres("primary", {
 		limits: { cpu: 1, memoryBytes: 536_870_912 },
-		volume: volume("primary-data"),
 	});
 	const app = makeService(
 		"app",
@@ -59,7 +49,6 @@ it.each([
 ])("$name preserves explicit database variables over composition", ({ makeService }) => {
 	const database = configurePostgres("primary", {
 		limits: { cpu: 1, memoryBytes: 536_870_912 },
-		volume: volume("primary-data"),
 	});
 	const app = makeService("app", { start: "pnpm start", variables: { "DATABASE_URL": "application" } }, database);
 	const overridden = makeService(
