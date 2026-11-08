@@ -1089,9 +1089,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-kits':
         specifier: workspace:*
         version: link:../test-kits
@@ -2177,9 +2174,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

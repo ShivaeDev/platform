@@ -1,8 +1,15 @@
-import { readFileSync } from "node:fs";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
 
-const version: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+const decodeManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Struct({ version: Schema.String })));
+
+const packageVersion = Effect.gen(function* () {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const { version } = yield* decodeManifest(yield* fs.readFileString(yield* path.fromFileUrl(new URL("../package.json", import.meta.url))));
+	return version;
+});
 
 application.it(
 	"create-app --help describes the command, the optional folder, the --minimal flag and the update and resource subcommands without a packed template",
@@ -22,5 +29,7 @@ application.it(
 );
 
 application.it("create-app --version prints the package version without a packed template", [], function* ({ version: printedVersion }) {
+	const version = yield* packageVersion;
+
 	expect(yield* printedVersion()).toBe(`create-app v${version}`);
 });

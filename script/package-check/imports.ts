@@ -72,12 +72,46 @@ function aliasProblems(imports: ImportMap, packed: ReadonlySet<string>, path: st
 		.map((target) => `${path} imports ${specifier}, whose target ${target} is not packed`);
 }
 
+function literalText(node: ts.Node | undefined): string | undefined {
+	return node !== undefined && ts.isStringLiteralLike(node) ? node.text : undefined;
+}
+
+function moduleName(node: ts.Node, file: ts.SourceFile): string | undefined {
+	if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+		return literalText(node.moduleSpecifier);
+	}
+	if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+		return literalText(node.moduleReference.expression);
+	}
+	if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+		return literalText(node.arguments[0]);
+	}
+	if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
+		return literalText(node.argument.literal);
+	}
+	return ts.isModuleDeclaration(node) && ts.isExternalModule(file) ? literalText(node.name) : undefined;
+}
+
+function moduleNames(path: string, source: string): string[] {
+	const file = ts.createSourceFile(path, source, ts.ScriptTarget.Latest);
+	const names: string[] = [];
+	function visit(node: ts.Node): void {
+		const name = moduleName(node, file);
+		if (name !== undefined) {
+			names.push(name);
+		}
+		ts.forEachChild(node, visit);
+	}
+	visit(file);
+	return names;
+}
+
 // Every packed module's "#" import must name an imports entry whose every target, for any condition a consumer may set, is packed.
+// A real parse, because a token scan reads a quote inside a regex as a string opener and then reports text in the template literal after it.
 export function missingImportTargets(imports: ImportMap, packed: ReadonlySet<string>, sources: ReadonlyMap<string, string>): string[] {
 	return [...sources].flatMap(([path, source]) =>
-		ts
-			.preProcessFile(source)
-			.importedFiles.filter(({ fileName }) => fileName.startsWith("#"))
-			.flatMap(({ fileName }) => aliasProblems(imports, packed, path, fileName)),
+		moduleNames(path, source)
+			.filter((name) => name.startsWith("#"))
+			.flatMap((name) => aliasProblems(imports, packed, path, name)),
 	);
 }

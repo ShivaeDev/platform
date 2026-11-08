@@ -1,6 +1,5 @@
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { Effect, FileSystem, Order, Schema } from "effect";
+import { Effect, FileSystem, Order, Path, Schema } from "effect";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import { PackageManifest, type Source, type WorkspacePackage } from "#model.ts";
@@ -27,16 +26,17 @@ export const loadConfig = Effect.fn("Changesets.loadConfig")(function* (root: st
 	if (!(yield* fs.exists(path))) {
 		return {} satisfies ChangesetConfig;
 	}
+	function unloadable(cause: unknown) {
+		return new ChangesetError({
+			cause,
+			message: ".changeset/changesets.config.ts: export default defineConfig({ packages, hooks }); hooks must be typed Effect functions.",
+		});
+	}
+	const paths = yield* Path.Path;
+	const url = yield* paths.toFileUrl(path).pipe(Effect.mapError(unloadable));
 	const module: {
 		default: ChangesetConfig;
-	} = yield* Effect.tryPromise({
-		catch: (cause) =>
-			new ChangesetError({
-				cause,
-				message: ".changeset/changesets.config.ts: export default defineConfig({ packages, hooks }); hooks must be typed Effect functions.",
-			}),
-		try: () => import(pathToFileURL(path).href),
-	});
+	} = yield* Effect.tryPromise({ catch: unloadable, try: () => import(url.href) });
 	if (typeof module.default !== "object" || module.default === null) {
 		return yield* new ChangesetError({ message: ".changeset/changesets.config.ts: export a config object with defineConfig." });
 	}
