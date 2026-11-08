@@ -63,7 +63,7 @@
 	},
 	{
 		"dependency": "vitest",
-		"files": ["dist/domEnvironment.config.d.ts"],
+		"files": ["dist/adapters/domEnvironment.config.d.ts"],
 		"name": "native-vitest-dom-environment",
 		"package": "@shivaedev/quality",
 		"reason": "The DOM environment preset is a native Vitest configuration that consumers compose with their runner configuration."

@@ -11,7 +11,7 @@ import process from "node:process";
 import { Effect } from ${JSON.stringify(require.resolve("effect"))};
 import { ChildProcessSpawner } from ${JSON.stringify(require.resolve("effect/process"))};
 import { runBiome } from ${JSON.stringify(new URL("../adapters/biome/run.ts", import.meta.url).href)};
-import { services } from ${JSON.stringify(new URL("../cli/runMain.ts", import.meta.url).href)};
+import { services } from ${JSON.stringify(new URL("../adapters/runMain.ts", import.meta.url).href)};
 await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const held = ChildProcessSpawner.ChildProcessSpawner.of({

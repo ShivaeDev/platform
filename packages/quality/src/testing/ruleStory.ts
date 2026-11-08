@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import type { Finding } from "#rule.ts";
 import { type Run, runQuality } from "#testing/adapters/cli.ts";
 import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";

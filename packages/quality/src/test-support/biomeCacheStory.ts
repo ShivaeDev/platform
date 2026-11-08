@@ -5,7 +5,7 @@ import { Deferred, Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import { crashBiome } from "#test/crashBiome.ts";
 import { isolatedEnvironment } from "#testing/adapters/git.ts";
 import { defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";

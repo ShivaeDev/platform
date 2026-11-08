@@ -1,21 +1,11 @@
-{"path":"packages/quality/src/appTestConfig.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/cli/args.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/cli/migrateExceptions.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/cli/runMain.ts","rule":"effect/boundary","count":1}
-{"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/adapter-imports","count":3}
-{"path":"packages/quality/src/domEnvironment.config.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/exceptions/migrateBiome.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/exceptions/migrateConfig.ts","rule":"effect/boundary","count":5}
-{"path":"packages/quality/src/imports/browserNames.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/imports/browserNames.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/imports/fences/check.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/imports/fences/compilePolicy.ts","rule":"effect/boundary","count":1}
-{"path":"packages/quality/src/imports/fences/discover.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/quality/src/imports/globMatcher.ts","rule":"effect/boundary","count":10}
 {"path":"packages/quality/src/imports/importResolution.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/quality/src/imports/packageName.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/imports/pnpmWorkspacePatterns.ts","rule":"effect/boundary","count":15}
-{"path":"packages/quality/src/manifests/sorted.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/imports/cli.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/rules/imports/fenceCrossings.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/quality/src/rules/imports/generatedFolders.spec.ts","rule":"effect/boundary","count":2}
@@ -23,5 +13,3 @@
 {"path":"packages/quality/src/rules/imports/policyValidation.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/imports/unresolvedImports.spec.ts","rule":"effect/boundary","count":3}
 {"path":"packages/quality/src/rules/manifestsApplication.ts","rule":"effect/boundary","count":1}
-{"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":5}

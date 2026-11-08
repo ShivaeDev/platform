@@ -1,8 +1,8 @@
 import { rmSync } from "node:fs";
 import { ConfigProvider, Console, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { services } from "#adapters/runMain.ts";
 import { lint } from "#cli/lint.ts";
-import { services } from "#cli/runMain.ts";
 import { LineAllowance } from "#test/customServiceRule.ts";
 import { capturing, type Output } from "#testing/adapters/cli.ts";
 import { isolatedEnvironment } from "#testing/adapters/git.ts";

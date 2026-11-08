@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import type { Findings, Rule } from "#rule.ts";
 import { inputsOf } from "#test/inputs.ts";
 import { locationOf } from "#testing/ruleStory.ts";

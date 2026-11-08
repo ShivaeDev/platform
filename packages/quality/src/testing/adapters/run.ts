@@ -1,5 +1,5 @@
 import { Effect, type Scope } from "effect";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import type { RuleServices } from "#rule.ts";
 
 export function run<TValue, TError>(effect: Effect.Effect<TValue, TError, RuleServices | Scope.Scope>): Promise<TValue> {

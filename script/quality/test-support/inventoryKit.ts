@@ -2,7 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { vi } from "vitest";
-import { services } from "@shivaedev/quality/cli/runMain.ts";
+import { services } from "@shivaedev/quality/adapters/runMain.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
 import { git } from "@shivaedev/quality/testing/adapters/git.ts";
 import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
