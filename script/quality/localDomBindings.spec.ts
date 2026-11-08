@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
 import { testsFollow } from "@shivaedev/quality/rules/test-names/follow.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { ordersPackage, pureOrders, unitSpec } from "#quality/test-support/unitFiles.ts";
 
@@ -14,8 +15,10 @@ for (const binding of [
 		`a locally bound document passes in a unit test and its fixture: ${binding}`,
 		[repositoryHas(ordersPackage, pureOrders, unitSpec(binding))],
 		function* ({ check, writes }) {
-			expect(yield* check(storySpecs)).toEqual([]);
-			expect(yield* check(testsFollow)).toEqual([]);
+			yield* outcomes([
+				["story specs", () => check(storySpecs), []],
+				["tests follow", () => check(testsFollow), []],
+			]);
 			yield* writes(
 				{ content: binding, path: "src/test-support/document.ts" },
 				unitSpec('import { body } from "./test-support/document.ts"; export const value = body;'),
@@ -36,11 +39,17 @@ for (const access of ["document.body", "window.location"]) {
 			),
 		],
 		function* ({ check }) {
-			expect(yield* check(storySpecs)).toEqual([
-				{ file: "src/orders.unit.test.ts", line: 1, message: expect.stringContaining("Is a unit test but uses the DOM.") },
-			]);
-			expect(yield* check(testsFollow)).toEqual([
-				{ file: "src/orders.unit.test.ts", message: expect.stringContaining('"orders.unit.test.ts" uses the DOM') },
+			yield* outcomes([
+				[
+					"story specs",
+					() => check(storySpecs),
+					[{ file: "src/orders.unit.test.ts", line: 1, message: expect.stringContaining("Is a unit test but uses the DOM.") }],
+				],
+				[
+					"tests follow",
+					() => check(testsFollow),
+					[{ file: "src/orders.unit.test.ts", message: expect.stringContaining('"orders.unit.test.ts" uses the DOM') }],
+				],
 			]);
 		},
 	);

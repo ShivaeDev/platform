@@ -12,12 +12,22 @@ releasePullRequest.it(
 	function* ({ pushMain, run, git, readGitHub, check }) {
 		yield* pushMain(".changeset/draft.md", PENDING);
 		const main = yield* git("rev-parse", "origin/main");
-		expect(yield* run()).toBe("updated");
-		expect(yield* git("rev-parse", "origin/release/next^", "origin/main")).toBe(`${main}\n${main}`);
-		expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.1"');
-		expect(yield* git("show", "origin/release/next:packages/create-app/package.json")).toContain('"version": "0.9.1"');
-		expect(yield* git("show", "origin/release/next:examples/starter/published-versions.json")).toContain('"@shivaedev/platform": "0.15.1"');
-		expect(yield* git("ls-tree", "--name-only", "origin/release/next:.changeset")).not.toContain("draft.md");
+		yield* outcomes([
+			["run", () => run(), "updated"],
+			["release parent and main", () => git("rev-parse", "origin/release/next^", "origin/main"), `${main}\n${main}`],
+			["platform manifest", () => git("show", "origin/release/next:packages/platform/package.json"), expect.stringContaining('"version": "0.15.1"')],
+			[
+				"create-app manifest",
+				() => git("show", "origin/release/next:packages/create-app/package.json"),
+				expect.stringContaining('"version": "0.9.1"'),
+			],
+			[
+				"starter pins",
+				() => git("show", "origin/release/next:examples/starter/published-versions.json"),
+				expect.stringContaining('"@shivaedev/platform": "0.15.1"'),
+			],
+			["changesets on the release", () => git("ls-tree", "--name-only", "origin/release/next:.changeset"), expect.not.stringContaining("draft.md")],
+		]);
 		yield* check();
 		const received = yield* readGitHub();
 		expect(received.open).toBe(true);
@@ -42,9 +52,12 @@ releasePullRequest.it(
 		const previous = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain(".changeset/another.md", '---\n"@shivaedev/create-app": minor\n---\n\n### Added\n\n- Choose an app name.\n');
 		yield* run();
-		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(previous);
-		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-		expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.1"');
+		const main = yield* git("rev-parse", "origin/main");
+		yield* outcomes([
+			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(previous)],
+			["release parent", () => git("rev-parse", "origin/release/next^"), main],
+			["platform manifest", () => git("show", "origin/release/next:packages/platform/package.json"), expect.stringContaining('"version": "0.15.1"')],
+		]);
 		yield* check();
 		const received = yield* readGitHub();
 		expect(received.requests.filter((request) => request.method === "POST" && request.endpoint.endsWith("/pulls"))).toMatchObject([
@@ -66,8 +79,10 @@ releasePullRequest.it(
 		const before = yield* readGitHub();
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain(".changeset/next.md", PENDING);
-		expect(yield* run()).toBe("held: merge queue");
-		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+		yield* outcomes([
+			["run", () => run(), "held: merge queue"],
+			["release head", () => git("rev-parse", "origin/release/next"), head],
+		]);
 		const after = yield* readGitHub();
 		expect(after.body).toBe(before.body);
 		expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual(["graphql"]);
@@ -75,16 +90,20 @@ releasePullRequest.it(
 );
 
 releasePullRequest.it("merging a release leaves no pending plan and closes a stale open PR", [], function* ({ pushMain, run, git, readGitHub }) {
-	expect(yield* run()).toBe("empty");
-	expect((yield* readGitHub()).created).toBe(0);
+	yield* outcomes([
+		["run", () => run(), "empty"],
+		["created pull requests", () => Effect.map(readGitHub(), (github) => github.created), 0],
+	]);
 	yield* pushMain(".changeset/draft.md", PENDING);
 	yield* run();
 	const head = yield* git("rev-parse", "origin/release/next");
 	yield* git("switch", "main");
 	yield* git("merge", "--ff-only", "release/next");
 	yield* git("push", "origin", "main");
-	expect(yield* run()).toBe("empty");
-	expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+	yield* outcomes([
+		["run", () => run(), "empty"],
+		["release head", () => git("rev-parse", "origin/release/next"), head],
+	]);
 	const received = yield* readGitHub();
 	expect(received.open).toBe(false);
 });

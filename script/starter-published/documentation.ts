@@ -40,7 +40,7 @@ export const checkDocumentation = Effect.fn("Published.checkDocumentation")(func
 	yield* Effect.log(`Checked ${entries.length} documented imports against ${source}.`);
 });
 
-export function importProblems(path: string, entries: readonly DocumentedImport[], versions: Readonly<Record<string, string>>): string[] {
+function importProblems(path: string, entries: readonly DocumentedImport[], versions: Readonly<Record<string, string>>): string[] {
 	const program = ts.createProgram([path], {
 		module: ts.ModuleKind.ESNext,
 		moduleResolution: ts.ModuleResolutionKind.Bundler,

@@ -1,3 +1,6 @@
+import { Effect, FileSystem, Result, Schema } from "effect";
+import { CiFailure } from "#ci/Failure.ts";
+
 export interface Timing {
 	readonly durationMs: number;
 	readonly name: string;
@@ -14,12 +17,18 @@ function record(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function timings(value: unknown): Timing[] {
+function failure(message: string) {
+	return Result.fail(new CiFailure({ message }));
+}
+
+function timings(value: unknown): Result.Result<Timing[], CiFailure> {
 	if (!Array.isArray(value)) {
-		throw new Error("Work timings must be an array");
+		return failure("Work timings must be an array");
 	}
 	const names = new Set<string>();
-	return value.map((item: unknown) => {
+	const items: readonly unknown[] = value;
+	const decoded: Timing[] = [];
+	for (const item of items) {
 		if (
 			!record(item)
 			|| typeof item.name !== "string"
@@ -28,35 +37,44 @@ function timings(value: unknown): Timing[] {
 			|| !Number.isFinite(item.durationMs)
 			|| item.durationMs <= 0
 		) {
-			throw new Error("Invalid work timing");
+			return failure("Invalid work timing");
 		}
 		if (names.has(item.name)) {
-			throw new Error(`Duplicate work timing: ${item.name}`);
+			return failure(`Duplicate work timing: ${item.name}`);
 		}
 		names.add(item.name);
-		return { durationMs: item.durationMs, name: item.name };
-	});
+		decoded.push({ durationMs: item.durationMs, name: item.name });
+	}
+	return Result.succeed(decoded);
 }
 
-export function decodeTimingSnapshot(value: unknown): TimingSnapshot {
+export function decodeTimingSnapshot(value: unknown): Result.Result<TimingSnapshot, CiFailure> {
 	if (!record(value) || typeof value.runId !== "string" || typeof value.sha !== "string") {
-		throw new Error("Invalid work timing snapshot");
+		return failure("Invalid work timing snapshot");
 	}
 	if (
 		value.shardCount !== undefined
 		&& (typeof value.shardCount !== "number" || !Number.isSafeInteger(value.shardCount) || value.shardCount < 1 || value.shardCount > 32)
 	) {
-		throw new Error("Invalid shard count");
+		return failure("Invalid shard count");
 	}
-	return {
-		runId: value.runId,
-		sha: value.sha,
-		timings: timings(value.timings),
-		...(value.shardCount === undefined ? {} : { shardCount: value.shardCount }),
-	};
+	const { runId, sha, shardCount } = value;
+	return Result.map(timings(value.timings), (decoded) => ({
+		runId,
+		sha,
+		timings: decoded,
+		...(shardCount === undefined ? {} : { shardCount }),
+	}));
 }
 
-export function mergeConsumerTimingReports(reports: readonly unknown[], runId: string, sha: string): TimingSnapshot {
+export const readTimingSnapshot = Effect.fn("CI.readTimingSnapshot")(function* (path: string) {
+	const fs = yield* FileSystem.FileSystem;
+	return yield* Effect.fromResult(
+		decodeTimingSnapshot(yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(yield* fs.readFileString(path))),
+	);
+});
+
+export function mergeConsumerTimingReports(reports: readonly unknown[], runId: string, sha: string): Result.Result<TimingSnapshot, CiFailure> {
 	const indices = new Set<number>();
 	const combined: Timing[] = [];
 	for (const report of reports) {
@@ -69,13 +87,17 @@ export function mergeConsumerTimingReports(reports: readonly unknown[], runId: s
 			|| report.shard.index > reports.length
 			|| indices.has(report.shard.index)
 		) {
-			throw new Error("Work timing reports must cover every shard exactly once");
+			return failure("Work timing reports must cover every shard exactly once");
 		}
 		indices.add(report.shard.index);
-		combined.push(...timings(report.timings));
+		const decoded = timings(report.timings);
+		if (Result.isFailure(decoded)) {
+			return Result.fail(decoded.failure);
+		}
+		combined.push(...decoded.success);
 	}
 	if (reports.length === 0 || combined.length === 0) {
-		throw new Error("Work timing reports are empty");
+		return failure("Work timing reports are empty");
 	}
 	return decodeTimingSnapshot({ runId, sha, timings: combined.sort((a, b) => a.name.localeCompare(b.name, "en")) });
 }
@@ -95,20 +117,22 @@ function xmlAttributes(text: string): Record<string, string> {
 	);
 }
 
-export function decodeJunitTimingReport(report: string): Timing[] {
+export function decodeJunitTimingReport(report: string): Result.Result<Timing[], CiFailure> {
 	const suites = [...report.matchAll(/<testsuite\s(?<attributes>[^>]*)>(?<body>[\s\S]*?)<\/testsuite>/gu)];
 	if (suites.length === 0) {
-		throw new Error("Invalid test timing report");
+		return failure("Invalid test timing report");
 	}
-	return suites.map((suite) => {
+	const decoded: Timing[] = [];
+	for (const suite of suites) {
 		const attributes = xmlAttributes(suite.groups?.attributes ?? "");
 		const testcase = /<testcase\s(?<attributes>[^>]*)>/u.exec(suite.groups?.body ?? "");
 		const classname = xmlAttributes(testcase?.groups?.attributes ?? "").classname ?? "";
 		const identity = /^\|(?<project>[^|]+)\| (?<path>.+)$/u.exec(classname);
 		const durationMs = Number(attributes.time) * 1000;
 		if (identity === null || attributes.time === undefined || attributes.time === "" || !Number.isFinite(durationMs) || durationMs < 0) {
-			throw new Error("Invalid test timing");
+			return failure("Invalid test timing");
 		}
-		return { durationMs: Math.max(1, durationMs), name: `${identity.groups?.project}:${identity.groups?.path}` };
-	});
+		decoded.push({ durationMs: Math.max(1, durationMs), name: `${identity.groups?.project}:${identity.groups?.path}` });
+	}
+	return Result.succeed(decoded);
 }

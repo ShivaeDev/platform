@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { it } from "vitest";
+import { expect, it } from "vitest";
 import { releaseHoldReason } from "#release/holdReason.ts";
 
 const pull = { headRefOid: "current-head", mergeQueueEntry: null, state: "OPEN" };
@@ -15,29 +14,27 @@ for (const [name, status, conclusion, expected] of [
 	["approved and queued", "queued", null, "approved CI queued"],
 ] as const) {
 	it(`${name} CI determines whether to hold the release`, () => {
-		assert.equal(releaseHoldReason(pull, { ...currentRun, conclusion, status }), expected);
+		expect(releaseHoldReason(pull, { ...currentRun, conclusion, status })).toBe(expected);
 	});
 }
 
 it("holds a release in the merge queue even if CI was cancelled", () => {
-	assert.equal(
+	expect(
 		releaseHoldReason({ ...pull, mergeQueueEntry: { id: "queue-entry" } }, { ...currentRun, conclusion: "cancelled", status: "completed" }),
-		"merge queue",
-	);
+	).toBe("merge queue");
 });
 
 it("releases a closed PR even if its CI succeeded or it was queued", () => {
-	assert.equal(
+	expect(
 		releaseHoldReason(
 			{ ...pull, mergeQueueEntry: { id: "queue-entry" }, state: "CLOSED" },
 			{ ...currentRun, conclusion: "success", status: "completed" },
 		),
-		undefined,
-	);
+	).toBe(undefined);
 });
 
 it("does not hold for CI on a previous head or for a missing run or PR", () => {
-	assert.equal(releaseHoldReason(pull, { ...currentRun, conclusion: "success", headSha: "previous-head", status: "completed" }), undefined);
-	assert.equal(releaseHoldReason(pull), undefined);
-	assert.equal(releaseHoldReason(undefined), undefined);
+	expect(releaseHoldReason(pull, { ...currentRun, conclusion: "success", headSha: "previous-head", status: "completed" })).toBe(undefined);
+	expect(releaseHoldReason(pull)).toBe(undefined);
+	expect(releaseHoldReason(undefined)).toBe(undefined);
 });

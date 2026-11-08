@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { repository } from "#release/test-support/repository.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
@@ -75,13 +76,17 @@ repository.it(
 	[],
 	function* ({ copy, gitCopy, read, readCopy, writeCopy }) {
 		yield* copy();
-		expect(yield* gitCopy("show", "HEAD:CLAUDE.md")).toBe("AGENTS.md");
-		expect(yield* gitCopy("show", "HEAD:.claude/skills/package-docs")).toBe("../../.agents/skills/package-docs");
+		yield* outcomes([
+			["copied link", () => gitCopy("show", "HEAD:CLAUDE.md"), "AGENTS.md"],
+			["copied skill link", () => gitCopy("show", "HEAD:.claude/skills/package-docs"), "../../.agents/skills/package-docs"],
+		]);
 		yield* writeCopy("CLAUDE.md", "Copied instructions.\n");
 		yield* writeCopy(".claude/skills/package-docs/SKILL.md", "Copied documentation.\n");
-		expect(yield* readCopy("AGENTS.md")).toBe("Copied instructions.\n");
-		expect(yield* read("AGENTS.md")).toBe("Repository instructions.\n");
-		expect(yield* read(".agents/skills/package-docs/SKILL.md")).toBe("Package documentation.\n");
+		yield* outcomes([
+			["copied instructions", () => readCopy("AGENTS.md"), "Copied instructions.\n"],
+			["repository instructions", () => read("AGENTS.md"), "Repository instructions.\n"],
+			["repository documentation", () => read(".agents/skills/package-docs/SKILL.md"), "Package documentation.\n"],
+		]);
 	},
 );
 
@@ -104,11 +109,13 @@ repository.it("applying a release aligns shared catalog entries alongside packag
 	yield* write("examples/starter/pnpm-workspace.copy.yaml", catalog.replace("1.57.0", "1.55.0").replace("24.19.2", "24.19.1"));
 	yield* write("examples/starter/package.json", manifest.replace("pnpm@12.13.0", "pnpm@12.8.1"));
 	yield* apply();
-	expect(yield* read("examples/starter/pnpm-workspace.copy.yaml")).toBe(catalog);
-	expect(yield* read("pnpm-workspace.yaml")).toBe(rootCatalog);
-	expect(yield* read("examples/starter/package.json")).toBe(manifest);
-	expect(yield* read("examples/starter/published-versions.json")).toContain('"@shivaedev/platform": "0.15.1"');
-	expect(yield* check()).toBeUndefined();
+	yield* outcomes([
+		["starter catalog", () => read("examples/starter/pnpm-workspace.copy.yaml"), catalog],
+		["root catalog", () => read("pnpm-workspace.yaml"), rootCatalog],
+		["starter manifest", () => read("examples/starter/package.json"), manifest],
+		["starter pins", () => read("examples/starter/published-versions.json"), expect.stringContaining('"@shivaedev/platform": "0.15.1"')],
+		["check", () => check(), undefined],
+	]);
 });
 
 repository.it("the release check rejects a tampered generated starter-pins input", [], function* ({ write, git, plan, read, apply, check }) {

@@ -1,28 +1,7 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { Schema } from "effect";
-
-const Manifest = Schema.Struct({ name: Schema.String, scripts: Schema.optional(Schema.Record(Schema.String, Schema.String)) });
-const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
+import { packageFolders, vitestConfig } from "#ci/adapters/packageFolders.ts";
 
 export function testPackages(root: string) {
-	return ["packages", "examples"]
-		.flatMap((zone) => (existsSync(join(root, zone)) ? readdirSync(join(root, zone)).map((name) => join(zone, name)) : []))
-		.sort()
-		.flatMap((name) => {
-			const directory = join(root, name);
-			const path = join(directory, "package.json");
-			if (!existsSync(path)) {
-				return [];
-			}
-			const manifest = decode(readFileSync(path, "utf8"));
-			if (manifest.scripts?.test === undefined) {
-				return [];
-			}
-			const configFile = join(directory, "vitest.config.ts");
-			if (!existsSync(configFile)) {
-				throw new Error(`${manifest.name}: add a Vitest config for workspace tests`);
-			}
-			return [{ configFile, directory, name: manifest.name }];
-		});
+	return packageFolders(root)
+		.filter(({ manifest }) => manifest.scripts?.test !== undefined)
+		.map(({ directory, manifest }) => ({ configFile: vitestConfig(manifest.name, directory), directory, name: manifest.name }));
 }

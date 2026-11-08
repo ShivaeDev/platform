@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import ts from "typescript";
 import { browserEntries, dependencyEntry } from "#package-check/browserDependencies.ts";
 import { conditionalTarget, importEntry } from "#package-check/imports.ts";
@@ -15,11 +15,11 @@ function installedRoot(pkg: Package, path: string): string {
 	return path.slice(0, path.lastIndexOf(installed) + installed.length);
 }
 
-function resolved(cwd: string, specifier: string) {
-	return command(cwd, "node", ["--input-type=module", "--eval", `console.log(import.meta.resolve(${JSON.stringify(specifier)}))`]).pipe(
-		Effect.map((url) => fileURLToPath(url.trim())),
-	);
-}
+const resolved = Effect.fn("Packed.resolved")(function* (cwd: string, specifier: string) {
+	const path = yield* Path.Path;
+	const url = yield* command(cwd, "node", ["--input-type=module", "--eval", `console.log(import.meta.resolve(${JSON.stringify(specifier)}))`]);
+	return yield* path.fromFileUrl(new URL(url.trim()));
+});
 
 export const checkBrowserEntries = Effect.fn("Packed.checkBrowserEntries")(function* (
 	root: string,
@@ -30,7 +30,11 @@ export const checkBrowserEntries = Effect.fn("Packed.checkBrowserEntries")(funct
 	const fs = yield* FileSystem.FileSystem;
 	const entries = decode(yield* fs.readFileString(join(root, "script/package-check/browser-entries.json")));
 	const seen = new Set<string>();
-	function followed(owner: Package, path: string, specifier: string): Effect.Effect<readonly [Package, string] | undefined, Error> {
+	function followed(
+		owner: Package,
+		path: string,
+		specifier: string,
+	): Effect.Effect<readonly [Package, string] | undefined, unknown, Path.Path | ChildProcessSpawner.ChildProcessSpawner> {
 		if (specifier.startsWith(".")) {
 			return Effect.succeed([owner, join(dirname(path), specifier)]);
 		}
@@ -48,7 +52,10 @@ export const checkBrowserEntries = Effect.fn("Packed.checkBrowserEntries")(funct
 			? Effect.fail(new Error(`${path}: browser entry imports ${specifier}`))
 			: Effect.map(resolved(installedRoot(owner, path), specifier), (target) => [dependency, target] as const);
 	}
-	function visit(owner: Package, path: string): Effect.Effect<void, unknown, FileSystem.FileSystem> {
+	function visit(
+		owner: Package,
+		path: string,
+	): Effect.Effect<void, unknown, FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner> {
 		return Effect.gen(function* () {
 			if (seen.has(path)) {
 				return;

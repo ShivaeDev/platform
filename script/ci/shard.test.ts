@@ -1,10 +1,10 @@
-import assert from "node:assert/strict";
+import { expect } from "vitest";
 import { planning } from "#ci/test-support/planning.ts";
 
 planning.it("shards accept arbitrary counts and reject malformed or out-of-range selections", [], ({ parseShard }) => {
-	assert.deepEqual(parseShard("3/7"), { count: 7, index: 3 });
+	expect(parseShard("3/7")).toEqual({ count: 7, index: 3 });
 	for (const value of ["0/4", "5/4", "1/0", "-1/4", "1.5/4", "1", "1/4/2", "9007199254740992/9007199254740992"]) {
-		assert.throws(() => parseShard(value));
+		expect(() => parseShard(value)).toThrow();
 	}
 });
 
@@ -17,19 +17,15 @@ planning.it("balancing covers every package once, includes new packages, and is 
 	];
 	for (const count of [1, 2, 4, 8]) {
 		const groups = planShards(packages, count);
-		assert.equal(groups.length, count);
-		assert.deepEqual(
+		expect(groups.length).toBe(count);
+		expect(
 			groups
 				.flat()
 				.map((item) => item.name)
 				.sort((a, b) => a.localeCompare(b, "en")),
-			packages.map((item) => item.name).sort((a, b) => a.localeCompare(b, "en")),
-		);
-		assert.deepEqual(groups, planShards([...packages].reverse(), count));
+		).toEqual(packages.map((item) => item.name).sort((a, b) => a.localeCompare(b, "en")));
+		expect(groups).toEqual(planShards([...packages].reverse(), count));
 	}
 	const groups = planShards(packages, 2);
-	assert.deepEqual(
-		groups.map((group) => group.reduce((sum, item) => sum + item.seconds, 0)),
-		[20, 16],
-	);
+	expect(groups.map((group) => group.reduce((sum, item) => sum + item.seconds, 0))).toEqual([20, 16]);
 });

@@ -1,7 +1,7 @@
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Config, Console, Effect, Schema } from "effect";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { Config, Console, Effect, FileSystem, Schema } from "effect";
 
 const Consumer = Schema.Struct({ timings: Schema.Array(Schema.Struct({ durationMs: Schema.Number, name: Schema.String })) });
 const Tests = Schema.Struct({
@@ -9,11 +9,12 @@ const Tests = Schema.Struct({
 		Schema.Struct({ durationMs: Schema.optional(Schema.Number), endTime: Schema.Number, name: Schema.String, startTime: Schema.Number }),
 	),
 });
-const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Union([Consumer, Tests])));
+const decode = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Union([Consumer, Tests])));
 const program = Effect.gen(function* () {
+	const fs = yield* FileSystem.FileSystem;
 	const path = process.argv[2];
-	if (path !== undefined && existsSync(path)) {
-		const report = decode(readFileSync(path, "utf8"));
+	if (path !== undefined && (yield* fs.exists(path))) {
+		const report = yield* decode(yield* fs.readFileString(path));
 		const timings =
 			"timings" in report
 				? report.timings
@@ -25,9 +26,9 @@ const program = Effect.gen(function* () {
 		yield* Console.log(summary);
 		const destination = yield* Config.String("GITHUB_STEP_SUMMARY").pipe(Config.withDefault(""));
 		if (destination !== "") {
-			appendFileSync(destination, summary);
+			yield* fs.writeFileString(destination, summary, { flag: "a" });
 		}
 	}
 });
 
-NodeRuntime.runMain(program);
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));
