@@ -6,6 +6,7 @@
 ### Added
 
 - `@shivaedev/react`: Add shared notice descriptor types at `@shivaedev/react/noticeTypes.ts`.
+- `@shivaedev/react`: Add the permission boundary's rethrow bridge at `@shivaedev/react/client/adapters/rethrowPermissionBoundaryError.ts`.
 
 ### Breaking
 
