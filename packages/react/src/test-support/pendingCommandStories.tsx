@@ -1,8 +1,12 @@
 import { Deferred, Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { PendingCommandScreen } from "#test/PendingCommandScreen.tsx";
+import { until } from "@shivaedev/test-story/server/until.ts";
+import { PendingCommandScreen, PushedSwitchScreen } from "#test/PendingCommandScreen.tsx";
 import { pendingCommandClient, ToggleRejected } from "#test/pendingCommandClient.ts";
+import { type PushedSwitchClient, pushedSwitchClient } from "#test/pushedSwitchClient.ts";
 import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
@@ -144,5 +148,110 @@ export function firstSucceededSecondToggled() {
 		yield* toggle(1);
 		yield* commandSucceeds(1);
 		yield* toggle(2);
+	});
+}
+
+interface SwitchState {
+	client?: PushedSwitchClient;
+	earlier: string[];
+	observer?: MutationObserver;
+	view?: Rendered;
+}
+
+function switchClient(state: SwitchState) {
+	if (!state.client) {
+		throw new Error("The switch client is not ready");
+	}
+	return state.client;
+}
+
+function switchView(state: SwitchState) {
+	if (!state.view) {
+		throw new Error("The switch screen is not open");
+	}
+	return state.view;
+}
+
+function switchButton(state: SwitchState) {
+	const element = switchView(state).container.querySelector("button");
+	if (!element) {
+		throw new Error("The switch is missing");
+	}
+	return element;
+}
+
+function onOff(pressed: string | null) {
+	return pressed === "true" ? "on" : "off";
+}
+
+function recordEarlier(state: SwitchState, records: readonly MutationRecord[]) {
+	state.earlier.push(...records.map((record) => onOff(record.oldValue)));
+}
+
+function settleSwitch(state: SwitchState, screen: Screen, pending: () => boolean = () => false) {
+	return Effect.suspend(() => settleScreen(switchView(state).container, pending, screen.tell));
+}
+
+function switchCommandSucceeds(state: SwitchState, screen: Screen) {
+	function unanswered() {
+		return switchView(state).container.querySelector("[data-command]")?.getAttribute("data-command") === "Initial";
+	}
+	return screen
+		.act("the switch command succeeds", () => {
+			const { command } = switchClient(state);
+			return Effect.runPromise(Deferred.succeed(command.gate, undefined).pipe(Effect.andThen(Deferred.await(command.finished))));
+		})
+		.pipe(Effect.andThen(settleSwitch(state, screen, unanswered)));
+}
+
+function delivered(state: SwitchState, enabled: boolean) {
+	const pushed = switchClient(state);
+	const { registry } = switchView(state);
+	const signals = querySignals(pushed.query);
+	const before = registry.get(signals).completed;
+	return pushed
+		.push(enabled)
+		.pipe(Effect.andThen(until(AtomRegistry.toStream(registry, signals), ({ completed }) => completed > before, { name: "pushed switch value" })));
+}
+
+function serverPushes(state: SwitchState, screen: Screen, enabled: boolean) {
+	return screen
+		.act(`the server pushes ${enabled ? "on" : "off"}`, () => Effect.runPromise(delivered(state, enabled)))
+		.pipe(Effect.andThen(settleSwitch(state, screen)));
+}
+
+export const pushedSwitch = storyKit(
+	screenKit(
+		"pushed switch screen",
+		(): SwitchState => ({ earlier: [] }),
+		(state, screen) => ({
+			commandSucceeds: () => switchCommandSucceeds(state, screen),
+			serverPushes: (enabled: boolean) => serverPushes(state, screen, enabled),
+			shown: () => Effect.sync(() => onOff(switchButton(state).getAttribute("aria-pressed"))),
+			shownSinceOpening: () =>
+				Effect.sync(() => {
+					recordEarlier(state, state.observer?.takeRecords() ?? []);
+					return [...state.earlier, onOff(switchButton(state).getAttribute("aria-pressed"))];
+				}),
+			switchState: () => Effect.sync(() => (switchButton(state).disabled ? "waiting" : "available")),
+			toggle: () => screen.driver(switchView(state).container).click({ name: "Enabled", role: "button" }),
+		}),
+	),
+);
+
+export function switchShowingPushedOff() {
+	return pushedSwitch.trait("screen", "a switch showing Off from the server's first pushed value", function* ({ screen, state }) {
+		state.client = pushedSwitchClient();
+		state.view = yield* screen.open(<PushedSwitchScreen client={state.client} />);
+		yield* settleSwitch(state, screen, () => switchView(state).container.querySelector("button") === null);
+		const target = switchButton(state);
+		state.observer = yield* Effect.acquireRelease(
+			Effect.sync(() => {
+				const observer = new MutationObserver((records) => recordEarlier(state, records));
+				observer.observe(target, { attributeFilter: ["aria-pressed"], attributeOldValue: true });
+				return observer;
+			}),
+			(observer) => Effect.sync(() => observer.disconnect()),
+		);
 	});
 }
