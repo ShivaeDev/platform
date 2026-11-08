@@ -19,6 +19,26 @@ for (const source of ["native", "browser"] as const) {
 	);
 
 	resumes.it(
+		`a ${source} resume reports a resync in flight until the new values reach the screen`,
+		[liveNotesRenamedWhileAway(source)],
+		function* ({ releaseResync, reported, resumeHoldingResync, shown }) {
+			yield* resumeHoldingResync(source);
+
+			yield* outcomes([
+				["shown", () => shown(), "One / Two"],
+				["reported", () => reported(), { needsResync: "true", pending: "false" }],
+			]);
+
+			yield* releaseResync();
+
+			yield* outcomes([
+				["shown", () => shown(), "Changed while away / Also changed while away"],
+				["reported", () => reported(), { needsResync: "false", pending: "false" }],
+			]);
+		},
+	);
+
+	resumes.it(
 		`a ${source} reconnect after an interrupted stream subscribes again and shows the change it missed`,
 		[liveStreamInterrupted(source)],
 		function* ({ liveReconnect, shown, subscriptions }) {
