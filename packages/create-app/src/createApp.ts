@@ -1,7 +1,7 @@
-import { Buffer } from "node:buffer";
 import { basename, join, resolve } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { SecureRandom } from "effect/crypto";
+import * as Base64Url from "effect/encoding/Base64Url";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { databaseName } from "#appFiles.ts";
 import { CreateAppError } from "#CreateAppError.ts";
@@ -23,14 +23,14 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	if ((yield* fs.exists(target)) && ((yield* fs.stat(target)).type !== "Directory" || (yield* fs.readDirectory(target)).length > 0)) {
 		return yield* new CreateAppError({ message: `Refusing to write into ${folder}: the destination must be an empty folder.` });
 	}
-	const template = appTemplate(yield* readTemplate(templatePath), options.minimal);
+	const template = yield* appTemplate(yield* readTemplate(templatePath), options.minimal);
 	yield* fs.makeDirectory(target, { recursive: true });
 	yield* renderTemplate(target, template, name);
 	yield* writeGeneration(target, { ...(options.minimal ? { minimal: true } : {}), name, version: options.version });
 	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
 	const database = databaseName(name);
 	const random = yield* SecureRandom.SecureRandom;
-	const secret = Buffer.from(yield* random.randomBytes(32)).toString("base64url");
+	const secret = Base64Url.encode(yield* random.randomBytes(32));
 	yield* fs.writeFileString(
 		join(target, ".env.local"),
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${secret}\n`,

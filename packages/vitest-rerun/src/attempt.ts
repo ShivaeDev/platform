@@ -1,12 +1,14 @@
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, Exit, Runtime } from "effect";
+import { Console, Effect, Exit, Path, Runtime } from "effect";
 import { runAttempt } from "#runAttempt.ts";
 import { vitestRunnerLayer } from "#vitest-runner/layer.ts";
 
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
+const modulePath = Path.Path.pipe(Effect.flatMap((path) => path.fromFileUrl(new URL(import.meta.url))));
+
+if (Effect.runSync(modulePath.pipe(Effect.provide(NodePath.layer))) === process.argv[1]) {
 	const [attempt = "1", outputDir = ".", ...vitestArgs] = process.argv.slice(2);
 	NodeRuntime.runMain(
 		runAttempt({ attempt: Number(attempt), outputDir, vitestArgs }).pipe(

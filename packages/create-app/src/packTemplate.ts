@@ -1,8 +1,9 @@
-import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
+import * as Base64 from "effect/encoding/Base64";
 import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migration.ts";
 import { CreateAppError } from "#CreateAppError.ts";
+import { bytesOf, textOf } from "#fileContent.ts";
 import { prepareFile, prepareManifest, type Template, Versions } from "#template.ts";
 
 const appPaths = new Map([
@@ -37,23 +38,22 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 					return yield* new CreateAppError({ message: `Invalid migration filename: ${path}` });
 				}
 				const target = appPaths.get(path) ?? path;
-				const source = Buffer.from(yield* fs.readFile(join(starter, path)));
-				const content = yield* Effect.try({
-					catch: (cause) => new CreateAppError({ message: `Failed to prepare template file ${path}` }, { cause }),
-					try: () => prepareFile(path, source, versions, cataloged),
-				});
-				entries.push({ content: content.toString("base64"), path: target });
+				const source = yield* fs.readFile(join(starter, path));
+				const content = yield* prepareFile(path, source, versions, cataloged).pipe(
+					Effect.mapError((cause) => new CreateAppError({ message: `Failed to prepare template file ${path}` }, { cause })),
+				);
+				entries.push({ content: Base64.encode(content), path: target });
 			}
 		}
 	});
 	yield* visit("");
 	const manifest = entries.find((entry) => entry.path === "package.json");
 	if (manifest !== undefined) {
-		const minimal = yield* Effect.try({
-			catch: (cause) => new CreateAppError({ message: "Failed to prepare minimal template file package.minimal.json" }, { cause }),
-			try: () => prepareManifest(Buffer.from(manifest.content, "base64").toString(), versions, true, cataloged),
-		});
-		entries.push({ content: Buffer.from(minimal).toString("base64"), path: "package.minimal.json" });
+		const minimal = yield* Effect.fromResult(Base64.decode(manifest.content)).pipe(
+			Effect.flatMap((bytes) => prepareManifest(textOf(bytes), versions, true, cataloged)),
+			Effect.mapError((cause) => new CreateAppError({ message: "Failed to prepare minimal template file package.minimal.json" }, { cause })),
+		);
+		entries.push({ content: Base64.encode(bytesOf(minimal)), path: "package.minimal.json" });
 	}
 	yield* fs.writeFileString(output, `${JSON.stringify(entries)}\n`);
 });

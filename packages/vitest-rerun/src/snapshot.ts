@@ -1,5 +1,5 @@
-import { deserialize, serialize } from "node:v8";
 import { Effect, FileSystem, Schema } from "effect";
+import { deserializeSnapshot, serializeSnapshot } from "#adapters/snapshotCodec.ts";
 import type { Task } from "#adapters/tasks.ts";
 import { failWith } from "#error.ts";
 import { FlakyTest } from "#flakyTests.ts";
@@ -58,14 +58,11 @@ export function hasSuiteErrors(task: Task): boolean {
 
 export const saveSnapshot = Effect.fn("VitestRerun.saveSnapshot")(function* (path: string, snapshot: Snapshot) {
 	const fs = yield* FileSystem.FileSystem;
-	yield* fs.writeFile(path, serialize(snapshot));
+	yield* fs.writeFile(path, yield* serializeSnapshot(snapshot));
 });
 
 export const readSnapshot = Effect.fn("VitestRerun.readSnapshot")(function* (path: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const bytes = yield* fs.readFile(path);
-	return yield* Effect.try({ catch: (cause) => cause, try: (): unknown => deserialize(bytes) }).pipe(
-		Effect.flatMap(decodeSnapshot),
-		Effect.mapError(failWith(`Could not decode snapshot ${path}`)),
-	);
+	return yield* deserializeSnapshot(bytes).pipe(Effect.flatMap(decodeSnapshot), Effect.mapError(failWith(`Could not decode snapshot ${path}`)));
 });

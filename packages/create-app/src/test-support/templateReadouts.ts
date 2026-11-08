@@ -40,7 +40,11 @@ export function templateReadouts(engine: Engine) {
 		return readFileSync(join(engine.source.starter, path), "utf8");
 	}
 	return {
-		packedBytes: (path: string) => Effect.sync(() => packed().get(path) ?? "not packed"),
+		packedBytes: (path: string) =>
+			Effect.sync(() => {
+				const bytes = packed().get(path);
+				return bytes === undefined ? "not packed" : new Uint8Array(bytes);
+			}),
 		packedFile: (path: string) => Effect.sync(() => packedText(path)),
 		packedFiles: () => Effect.sync(() => Object.fromEntries([...packed()].map(([path, content]) => [path, content.toString()]))),
 		packedFrameworkPins: (names: readonly string[]) =>

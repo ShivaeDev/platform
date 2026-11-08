@@ -15,7 +15,7 @@ export const restoreStarter = Effect.fn("Published.restoreStarter")(function* (a
 		yield* fs.remove(path.join(app, "src/adoption"), { recursive: true });
 	}
 	yield* command(app, "git", ["rm", "--quiet", "-r", "--", ".", ":!.agents", ":!CLAUDE.md"]);
-	yield* renderTemplate(app, appTemplate(yield* readTemplate(path.join(directory, "package/template.json")), minimal), path.basename(app));
+	yield* renderTemplate(app, yield* appTemplate(yield* readTemplate(path.join(directory, "package/template.json")), minimal), path.basename(app));
 	yield* writeGeneration(app, { ...(minimal ? { minimal: true } : {}), name: path.basename(app), version });
 	const home = path.join(app, "src/client/Home.tsx");
 	const original = yield* fs.readFileString(home);

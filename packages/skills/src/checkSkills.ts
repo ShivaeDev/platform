@@ -17,7 +17,7 @@ const copyProblems = Effect.fn("Skills.copyProblems")(function* (repo: string, m
 	const path = yield* Path.Path;
 	const problems: string[] = [];
 	for (const [name, expected] of Object.entries(manifest.skills)) {
-		const { copy } = skillPaths(path, repo, name);
+		const { copy } = yield* skillPaths(repo, name);
 		const actual = yield* hashSkill(copy).pipe(
 			Effect.map(Option.some),
 			Effect.catchIf(
