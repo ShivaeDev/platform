@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { freshObject } from "#rules/suppressions/freshObject.ts";
+import { freshObject } from "#adapters/freshObject.ts";
 
 function propertyName(node: ts.Expression, checker: ts.TypeChecker): string | undefined {
 	if (ts.isStringLiteralLike(node) || ts.isNumericLiteral(node)) {
