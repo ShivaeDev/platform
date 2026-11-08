@@ -59,15 +59,20 @@ function registryResponse(url: string): Promise<Response> {
 try {
 	const program = defineRailway((ctx, makeProject) =>
 		Effect.gen(function* () {
-			const database = yield* databaseService("Postgres", {
+			const { resources } = yield* databaseService("Postgres", {
 				limits: { cpu: 1, memoryBytes: 536_870_912 },
-				volume: volume("postgres-data"),
+				volume: volume("postgres-volume", {
+					alerts: { usage: { "90": {} } },
+					allowOnlineResize: true,
+					region: "europe-west4",
+					"sizeMB": 5000,
+				}),
 			});
-			return makeProject(ctx.projectName ?? "my-app", { resources: [database] });
+			return makeProject(ctx.projectName ?? "my-app", { resources });
 		}),
 	);
 	const definition = await program(createRailwayContext(), project);
-	process.stdout.write(JSON.stringify({ database: definition.resources?.[0], requests }));
+	process.stdout.write(JSON.stringify({ database: definition.resources?.[0], requests, resources: definition.resources }));
 } catch (error) {
 	const messages: string[] = [];
 	for (let cause = error; cause instanceof Error; cause = cause.cause) {

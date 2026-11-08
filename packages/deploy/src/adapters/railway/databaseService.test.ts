@@ -1,6 +1,24 @@
 import { expect } from "vitest";
 import { changedCmd, changedEntrypoint, postgres, registryUnavailable, singleManifest } from "#test-support/postgresStory.ts";
 
+postgres.it(
+	"the database and its volume are two declared nodes with no attachment, as Railway's config pull writes them",
+	[],
+	({ defineDatabase }) => {
+		const { resources } = defineDatabase();
+
+		expect(resources?.map(({ address }) => address)).toEqual(["database.Postgres", "volume.postgres-volume"]);
+		expect(resources?.[1]).toEqual({
+			address: "volume.postgres-volume",
+			config: { alerts: { usage: { "90": {} } }, allowOnlineResize: true, region: "europe-west4", "sizeMB": 5000 },
+			name: "postgres-volume",
+			type: "volume",
+		});
+		expect(resources?.[0]).not.toHaveProperty("volumeAttachments");
+		expect(resources?.[0]).not.toHaveProperty("volumeMounts");
+	},
+);
+
 for (const given of [[], [singleManifest]]) {
 	postgres.it("a matching image yields the Railway Postgres image", given, ({ defineDatabase }) => {
 		const result = defineDatabase();

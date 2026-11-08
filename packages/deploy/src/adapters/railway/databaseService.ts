@@ -1,22 +1,19 @@
 import { Effect } from "effect";
-import type { DatabaseConfig, VolumeNode } from "railway/iac";
+import type { VolumeNode } from "railway/iac";
 import { checkPostgresImage } from "#adapters/railway/checkPostgresImage.ts";
-import { configurePostgres } from "#adapters/railway/configurePostgres.ts";
-import type { PageCacheTrim } from "#adapters/railway/postgresStartCommand.ts";
+import { configurePostgres, type PostgresConfig } from "#adapters/railway/configurePostgres.ts";
 
-export type DatabaseServiceConfig = DatabaseConfig & {
-	limits: { cpu: number; memoryBytes: number; diskBytes?: number };
+export type DatabaseServiceConfig = PostgresConfig & {
 	volume: VolumeNode;
-	pageCacheTrim?: PageCacheTrim;
 };
 
-export function databaseService(name: string, config: DatabaseServiceConfig) {
+export function databaseService(name: string, { volume, ...config }: DatabaseServiceConfig) {
 	const database = configurePostgres(name, config);
 	return Effect.tryPromise({
 		catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
 		try: async () => {
 			await checkPostgresImage(database.image);
-			return database;
+			return { database, resources: [database, volume] };
 		},
 	});
 }
