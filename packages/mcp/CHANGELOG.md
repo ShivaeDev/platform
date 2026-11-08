@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.12 - 2026-11-08
+
+### Changed
+
+- Update `@shivaedev/access` from 0.6.1 to 0.6.2.
+- Update `@shivaedev/errors` from 0.10.1 to 0.11.0.
+- Update `@shivaedev/identity` from 0.30.6 to 0.31.0.
+
 ## 0.9.11 - 2026-11-08
 
 ### Changed

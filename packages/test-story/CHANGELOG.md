@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.46.0 - 2026-11-08
+
+### Breaking
+
+- Move `@shivaedev/test-story/server/domNavigate.ts` to `@shivaedev/test-story/server/adapters/domNavigate.ts`, `@shivaedev/test-story/server/seed.ts` to `@shivaedev/test-story/server/adapters/seed.ts` and `@shivaedev/test-story/server/start.ts` to `@shivaedev/test-story/server/adapters/start.ts`; update imports to the new paths.
+
 ## 0.45.6 - 2026-11-08
 
 ### Changed

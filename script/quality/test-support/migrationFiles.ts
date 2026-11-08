@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { manifestReader } from "@shivaedev/quality/adapters/manifestReader.ts";
+import { services } from "@shivaedev/quality/adapters/runMain.ts";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
-import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";

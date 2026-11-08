@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer";
+import { bytesOf, textOf } from "#fileContent.ts";
 import { decodeManifest, manifestJson } from "#template.ts";
 
 export function databaseName(name: string) {
@@ -8,20 +8,19 @@ export function databaseName(name: string) {
 		.slice(0, 58);
 }
 
-export function appFile(path: string, content: Buffer, name: string) {
+export function appFile(path: string, content: Uint8Array, name: string) {
 	if (path === "package.json") {
-		return Buffer.from(manifestJson({ ...decodeManifest(content.toString()), name }));
+		return bytesOf(manifestJson({ ...decodeManifest(textOf(content)), name }));
 	}
 	if (path === ".env.example") {
-		return Buffer.from(
-			content
-				.toString()
+		return bytesOf(
+			textOf(content)
 				.replaceAll("starter_dev", `${databaseName(name)}_dev`)
 				.replaceAll("starter_test", `${databaseName(name)}_test`),
 		);
 	}
 	if (["AGENTS.md", "README.md"].includes(path)) {
-		return Buffer.from(content.toString().replaceAll("{{appName}}", name));
+		return bytesOf(textOf(content).replaceAll("{{appName}}", name));
 	}
 	return content;
 }

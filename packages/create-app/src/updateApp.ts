@@ -50,8 +50,8 @@ export const updateApp = Effect.fn("CreateApp.updateApp")(function* (folder: str
 				target,
 				directory,
 				generation.name,
-				appTemplate(previous, generation.minimal),
-				appTemplate(current, generation.minimal),
+				yield* appTemplate(previous, generation.minimal),
+				yield* appTemplate(current, generation.minimal),
 			);
 			if (!patch.empty || patch.conflicts.length > 0) {
 				yield* applyPatch(target, repository, patch);

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.75.0 - 2026-11-08
+
+### Changed
+
+- `appTestConfig` now returns Vitest's `ViteUserConfig` type.
+
+### Fixed
+
+- `effect/service-parameters` accepts an `AtomRegistry` or `AtomRpcClient` parameter of a plain function, which has no Effect environment to yield the handle from, and accepts a tag parameter only handed to `.middleware(tag)` or `Context.pick`. An `Effect.fn` taking a registry and a function that yields a received tag are still reported.
+- `effect/failure-honesty` accepts a blanket `catch` in `test-support/` whose handler derives its value from the caught error, which is how story readouts translate failures into domain words. A handler that ignores its error and the same catch outside `test-support/` are still reported.
+- `suppressions/no-double-cast` treats writes on a freshly built object as construction: `Object.assign(new X(...), ...)`, and `Object.assign` or `Object.defineProperty` on a local `const` initialised with `new X(...)` that nothing has used before the write. Assigning onto a caller's object is still reported.
+
+### Breaking
+
+- Local rules are Effect-native. `RuleInputs.readText` returns an `Effect` of `string | undefined`, failing with `FilesystemFailure`, and a check returns findings or an `Effect` of findings; a check can no longer return a Promise. Migrate `check: async (inputs) => { const text = await inputs.readText(path); ... }` to `check: (inputs) => Effect.gen(function* () { const text = yield* inputs.readText(path); ... })`.
+- `RuleInputs.signal` is removed with Promise checks. An Effect check stops when the run is interrupted; wrap a cancellable Promise API with `Effect.tryPromise({ try: (signal) => ..., catch })`, which receives the abort signal.
+- The helpers that read through `readText` return Effects instead of Promises: `readPackageManifest`, `manifestEntry`, `manifestText`, `loadPackageManifests`, `workspacePackages`, `entryPointsOf`, `rootConfig`, `resolvePackage` and `discoverFences`. Replace `await helper(...)` with `yield* helper(...)`. `decodeBaseline`, `decodeLegacyBaseline`, `decodeWith` and the decoders built on it return their `Decoded` value directly, and `globMatcher` returns a `Result` that fails with `GlobFailure` instead of throwing.
+- Quality's Vitest DOM environment moved under `adapters/`. Replace `@shivaedev/quality/domEnvironment.config.ts` with `@shivaedev/quality/adapters/domEnvironment.config.ts`.
+- Quality's CLI runner bridge moved under `adapters/`. Replace `@shivaedev/quality/cli/runMain.ts` with `@shivaedev/quality/adapters/runMain.ts`.
+
 ## 0.74.3 - 2026-11-08
 
 ### Changed

@@ -1,16 +1,14 @@
 import { basename, join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { sortPackageJson } from "sort-package-json";
 import { ManifestFailure, manifestEntry } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
+import { sortingOf } from "#adapters/manifestSorting.ts";
 import type { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { skillCopies } from "#inventory/skillCopies.ts";
 import { walk } from "#inventory/walk.ts";
 import type { RuleServices } from "#rule.ts";
-
-export type Sorting = { readonly _tag: "Sorted" } | { readonly _tag: "Unsorted"; readonly sorted: string };
 
 export const manifestsIn = Effect.fn("Manifests.manifestsIn")(function* (root: string) {
 	const copies = yield* skillCopies(root);
@@ -20,11 +18,6 @@ export const manifestsIn = Effect.fn("Manifests.manifestsIn")(function* (root: s
 		.map((path) => posix(relative(root, path)))
 		.sort();
 });
-
-export function sortingOf(text: string): Sorting {
-	const sorted = sortPackageJson(text);
-	return sorted === text ? { _tag: "Sorted" } : { _tag: "Unsorted", sorted };
-}
 
 export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 	root: string,

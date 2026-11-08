@@ -22,7 +22,7 @@ const refuseUnlisted = Effect.fn("Skills.refuseUnlisted")(function* (repo: strin
 	const path = yield* Path.Path;
 	const taken: string[] = [];
 	for (const name of names) {
-		const { copy, link } = skillPaths(path, repo, name);
+		const { copy, link } = yield* skillPaths(repo, name);
 		for (const file of [copy, link]) {
 			if (yield* isPresent(file)) {
 				taken.push(path.relative(repo, file));
@@ -38,8 +38,7 @@ const refuseUnlisted = Effect.fn("Skills.refuseUnlisted")(function* (repo: strin
 
 const removeSkill = Effect.fn("Skills.removeSkill")(function* (repo: string, name: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const path = yield* Path.Path;
-	const { copy, link } = skillPaths(path, repo, name);
+	const { copy, link } = yield* skillPaths(repo, name);
 	yield* fs.remove(copy, { force: true, recursive: true });
 	yield* fs.remove(link, { force: true, recursive: true });
 });
@@ -47,7 +46,7 @@ const removeSkill = Effect.fn("Skills.removeSkill")(function* (repo: string, nam
 const copySkill = Effect.fn("Skills.copySkill")(function* (repo: string, installed: Installed, name: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const { copy, link, linkTarget } = skillPaths(path, repo, name);
+	const { copy, link, linkTarget } = yield* skillPaths(repo, name);
 	yield* removeSkill(repo, name);
 	yield* fs.makeDirectory(path.dirname(copy), { recursive: true });
 	yield* fs.copy(path.join(installed.root, "skills", name), copy);

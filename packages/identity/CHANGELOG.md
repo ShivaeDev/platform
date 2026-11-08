@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.31.0 - 2026-11-08
+
+### Changed
+
+- The `authTestDatabase` readouts `roleColumn`, `sessionIpAddresses`, `sessions`, `userRoles` and `users` decode their rows and fail with `SchemaError` when a row does not match.
+
+### Breaking
+
+- Move `@shivaedev/identity/server/better-auth/signInGate.ts` to `@shivaedev/identity/server/better-auth/adapters/signInGate.ts`, `@shivaedev/identity/server/better-auth/revokeUnadmitted.ts` to `@shivaedev/identity/server/better-auth/adapters/revokeUnadmitted.ts` and `@shivaedev/identity/server/better-auth/admittedSessions.ts` to `@shivaedev/identity/server/better-auth/adapters/admittedSessions.ts`; update imports to the new paths.
+
 ## 0.30.6 - 2026-11-08
 
 ### Changed

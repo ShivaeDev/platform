@@ -1,11 +1,10 @@
-import { Buffer } from "node:buffer";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { templateManifest } from "#test/templateManifest.ts";
 import { customTemplate, localArtifacts } from "#test/traits.ts";
 
-const IMAGE = Buffer.from([0, 0xff, 0x80, 0x41]);
+const IMAGE = new Uint8Array([0, 0xff, 0x80, 0x41]);
 
 application.it(
 	"packing leaves out AGENTS.md, CLAUDE.md, README.md and published-versions.json at the template root but keeps them in docs/",

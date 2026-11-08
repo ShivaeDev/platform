@@ -4,8 +4,8 @@ import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber, Queue }
 import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+import { exitCode, services } from "#adapters/runMain.ts";
 import { program } from "#cli/program.ts";
-import { exitCode, services } from "#cli/runMain.ts";
 import { capturing } from "#testing/adapters/cli.ts";
 import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 

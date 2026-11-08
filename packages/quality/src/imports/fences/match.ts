@@ -1,6 +1,7 @@
+import { builtinName } from "#adapters/builtinName.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
 import type { Selector } from "#imports/fences/model.ts";
-import { builtinName, packageNameOf } from "#imports/packageName.ts";
+import { packageNameOf } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 
 export interface PolicyScope {

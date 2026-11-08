@@ -1,4 +1,4 @@
-import type { Path } from "effect";
+import { Effect, Path } from "effect";
 
 export const BIN = "shivaedev-skills";
 export const PACKAGE = "@shivaedev/skills";
@@ -13,8 +13,9 @@ export interface SkillPaths {
 	readonly linkTarget: string;
 }
 
-export function skillPaths(path: Path.Path, repo: string, name: string): SkillPaths {
+export const skillPaths = Effect.fn("Skills.skillPaths")(function* (repo: string, name: string) {
+	const path = yield* Path.Path;
 	const copy = path.join(repo, AGENTS_SKILLS, name);
 	const link = path.join(repo, CLAUDE_SKILLS, name);
-	return { copy, link, linkTarget: path.relative(path.dirname(link), copy) };
-}
+	return { copy, link, linkTarget: path.relative(path.dirname(link), copy) } satisfies SkillPaths;
+});

@@ -1,9 +1,9 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
+import { builtinName } from "#adapters/builtinName.ts";
 import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
-import { builtinName } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { dependencyNames, type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
 import { developmentCode } from "#naming/developmentCode.ts";

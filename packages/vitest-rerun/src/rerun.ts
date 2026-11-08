@@ -1,13 +1,10 @@
 import { join } from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
-import { Console, Effect, FileSystem, Option } from "effect";
+import { Console, Effect, FileSystem, Option, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { nodeInvocation } from "#adapters/nodeInvocation.ts";
 import type { RerunOptions } from "#options.ts";
 import { ATTEMPT_REPORT, attemptPaths, reportPaths } from "#reportPaths.ts";
 import { failedFiles, readSnapshot } from "#snapshot.ts";
-
-const ATTEMPT_MODULE = fileURLToPath(import.meta.resolve("#attempt.ts"));
 
 const removeReports = Effect.fn("VitestRerun.removeReports")(function* (outputDir: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -19,11 +16,16 @@ const removeReports = Effect.fn("VitestRerun.removeReports")(function* (outputDi
 
 const spawnAttempt = Effect.fn("VitestRerun.spawnAttempt")(function* (options: RerunOptions, attempt: number) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const command = ChildProcess.make(
-		process.execPath,
-		[...process.execArgv, ATTEMPT_MODULE, String(attempt), options.outputDir, ...options.vitestArgs],
-		{ cwd: options.cwd, extendEnv: true, stderr: "inherit", stdin: "inherit", stdout: "inherit" },
-	);
+	const path = yield* Path.Path;
+	const attemptModule = yield* path.fromFileUrl(new URL(import.meta.resolve("#attempt.ts"))).pipe(Effect.orDie);
+	const { execArgv, execPath } = yield* nodeInvocation;
+	const command = ChildProcess.make(execPath, [...execArgv, attemptModule, String(attempt), options.outputDir, ...options.vitestArgs], {
+		cwd: options.cwd,
+		extendEnv: true,
+		stderr: "inherit",
+		stdin: "inherit",
+		stdout: "inherit",
+	});
 	return yield* spawner.exitCode(command).pipe(
 		Effect.map((code) => Option.some(Number(code))),
 		Effect.catch((error) => Effect.as(Console.error(`vitest-rerun: attempt ${attempt} ended without an exit code: ${error.message}`), Option.none())),

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/github",
-	"version": "0.17.1",
+	"version": "0.17.2",
 	"description": "Typed GitHub REST requests, conditional reads and resource budgets for Effect applications",
 	"keywords": [
 		"effect"
@@ -59,7 +59,6 @@
 		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-kits": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

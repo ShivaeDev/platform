@@ -2,7 +2,7 @@ import process from "node:process";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { services } from "#cli/runMain.ts";
+import { services } from "#adapters/runMain.ts";
 import { qualityArgs } from "#testing/adapters/cli.ts";
 import { isolatedEnvironment } from "#testing/adapters/git.ts";
 import { defaultTree, linkEffect, removeSeededTrees } from "#testing/adapters/tree.ts";
