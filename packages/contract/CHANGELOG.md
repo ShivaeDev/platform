@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.3 - 2026-11-07
+
+### Changed
+
+- Invalid contract declarations now fail as Effect defects when the server validates them during host startup.
+
 ## 0.43.2 - 2026-11-07
 
 ### Changed
