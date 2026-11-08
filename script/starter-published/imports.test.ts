@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app } from "#starter-published/test-support/app.ts";
 import { documentationFixture } from "#starter-published/test-support/documentationFixture.ts";
 import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
@@ -21,16 +22,20 @@ app.it(
 		),
 	],
 	function* ({ documentation, documentedEntries }) {
-		expect(yield* documentation()).toBeUndefined();
-		expect(yield* documentedEntries()).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ name: "query", typeOnly: false }),
-				expect.objectContaining({ name: "Streaming", typeOnly: true }),
-				expect.objectContaining({ name: "Contract", typeOnly: true }),
-				expect.objectContaining({ specifier: "@shivaedev/contract/keys.ts" }),
-				expect.objectContaining({ name: "resumeSignal", specifier: "@shivaedev/contract/resume.ts" }),
-			]),
-		);
+		yield* outcomes([
+			["documentation", () => documentation(), undefined],
+			[
+				"documented entries",
+				() => documentedEntries(),
+				expect.arrayContaining([
+					expect.objectContaining({ name: "query", typeOnly: false }),
+					expect.objectContaining({ name: "Streaming", typeOnly: true }),
+					expect.objectContaining({ name: "Contract", typeOnly: true }),
+					expect.objectContaining({ specifier: "@shivaedev/contract/keys.ts" }),
+					expect.objectContaining({ name: "resumeSignal", specifier: "@shivaedev/contract/resume.ts" }),
+				]),
+			],
+		]);
 	},
 );
 

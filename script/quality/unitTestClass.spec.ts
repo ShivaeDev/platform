@@ -2,6 +2,7 @@ import { expect } from "vitest";
 import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
 import { testsColocated } from "@shivaedev/quality/rules/test-names/colocated.ts";
 import { testsFollow } from "@shivaedev/quality/rules/test-names/follow.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { orders, ordersPackage, pureOrders, unitSpec } from "#quality/test-support/unitFiles.ts";
 
@@ -237,15 +238,23 @@ ruleKit.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(testsFollow)).toEqual([
-			{
-				file: "src/orders.unit.dom.test.ts",
-				message: expect.stringContaining("is both a unit and a DOM test, but a unit test runs without the DOM."),
-			},
-			{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("orders.unit.test.ts sits beside orders.ts") },
-		]);
-		expect(yield* check(testsColocated)).toEqual([
-			{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("as orders.unit.test.ts beside orders.ts") },
+		yield* outcomes([
+			[
+				"tests follow",
+				() => check(testsFollow),
+				[
+					{
+						file: "src/orders.unit.dom.test.ts",
+						message: expect.stringContaining("is both a unit and a DOM test, but a unit test runs without the DOM."),
+					},
+					{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("orders.unit.test.ts sits beside orders.ts") },
+				],
+			],
+			[
+				"tests colocated",
+				() => check(testsColocated),
+				[{ file: "src/tests/orders.unit.test.ts", message: expect.stringContaining("as orders.unit.test.ts beside orders.ts") }],
+			],
 		]);
 	},
 );

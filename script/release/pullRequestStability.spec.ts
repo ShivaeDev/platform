@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
@@ -8,8 +10,10 @@ releasePullRequest.it("midnight alone leaves the release head and waiting PR unt
 	yield* run("2026-10-17");
 	const head = yield* git("rev-parse", "origin/release/next");
 	const before = yield* readGitHub();
-	expect(yield* run("2026-10-18")).toBe("unchanged");
-	expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+	yield* outcomes([
+		["run", () => run("2026-10-18"), "unchanged"],
+		["release head", () => git("rev-parse", "origin/release/next"), head],
+	]);
 	const after = yield* readGitHub();
 	expect(after.body).toBe(before.body);
 	expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual([
@@ -30,9 +34,12 @@ releasePullRequest.it(
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain("packages/platform/src/index.ts", "export const ready = true;\n");
 		expect(yield* run("2026-10-18")).toBe("updated");
-		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-		expect(yield* git("show", "origin/release/next:packages/platform/src/index.ts")).toBe("export const ready = true;");
+		const main = yield* git("rev-parse", "origin/main");
+		yield* outcomes([
+			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+			["release parent", () => git("rev-parse", "origin/release/next^"), main],
+			["platform source", () => git("show", "origin/release/next:packages/platform/src/index.ts"), "export const ready = true;"],
+		]);
 		yield* check();
 	},
 );
@@ -45,8 +52,10 @@ releasePullRequest.it(
 		yield* run();
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* close();
-		expect(yield* run()).toBe("unchanged");
-		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+		yield* outcomes([
+			["run", () => run(), "unchanged"],
+			["release head", () => git("rev-parse", "origin/release/next"), head],
+		]);
 		const received = yield* readGitHub();
 		expect(received.open).toBe(true);
 		expect(received.requests.filter((request) => request.method === "POST" && request.endpoint.endsWith("/pulls"))).toMatchObject([
@@ -61,9 +70,11 @@ releasePullRequest.it("an edited changeset replaces the applied release notes", 
 	yield* run();
 	const head = yield* git("rev-parse", "origin/release/next");
 	yield* pushMain(".changeset/draft.md", PENDING.replace("Keep a saved draft.", "Restore the latest draft."));
-	expect(yield* run()).toBe("updated");
-	expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-	expect(yield* git("show", "origin/release/next:packages/platform/CHANGELOG.md")).toContain("Restore the latest draft.");
+	yield* outcomes([
+		["run", () => run(), "updated"],
+		["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+		["changelog", () => git("show", "origin/release/next:packages/platform/CHANGELOG.md"), expect.stringContaining("Restore the latest draft.")],
+	]);
 });
 
 releasePullRequest.it("removing a pending changeset removes its notes from the standing release", [], function* ({ pushMain, run, git }) {
@@ -74,8 +85,10 @@ releasePullRequest.it("removing a pending changeset removes its notes from the s
 	yield* git("rm", ".changeset/removed.md");
 	yield* git("commit", "-m", "Withdraw pending fix");
 	yield* git("push", "origin", "main");
-	expect(yield* run()).toBe("updated");
-	expect(yield* git("show", "origin/release/next:packages/platform/CHANGELOG.md")).not.toContain("A withdrawn fix.");
+	yield* outcomes([
+		["run", () => run(), "updated"],
+		["changelog", () => git("show", "origin/release/next:packages/platform/CHANGELOG.md"), expect.not.stringContaining("A withdrawn fix.")],
+	]);
 });
 
 releasePullRequest.it("changed changelog inputs regenerate on current main", [], function* ({ pushMain, run, git, check }) {
@@ -84,9 +97,12 @@ releasePullRequest.it("changed changelog inputs regenerate on current main", [],
 	const head = yield* git("rev-parse", "origin/release/next");
 	yield* pushMain("packages/platform/CHANGELOG.md", "# Changelog\n\n## Earlier history\n\n- Restore a historical entry.\n");
 	expect(yield* run()).toBe("updated");
-	expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-	expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-	expect(yield* git("show", "origin/release/next:packages/platform/CHANGELOG.md")).toContain("Restore a historical entry.");
+	const main = yield* git("rev-parse", "origin/main");
+	yield* outcomes([
+		["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+		["release parent", () => git("rev-parse", "origin/release/next^"), main],
+		["changelog", () => git("show", "origin/release/next:packages/platform/CHANGELOG.md"), expect.stringContaining("Restore a historical entry.")],
+	]);
 	yield* check();
 });
 
@@ -103,16 +119,25 @@ releasePullRequest.it("a conflicting branch regenerates even when the release pl
 	const head = yield* git("rev-parse", "origin/release/next");
 	yield* pushMain("README.md", "Conflicting main documentation.\n");
 	expect(yield* run()).toBe("updated");
-	expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-	expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-	expect(yield* git("show", "origin/release/next:README.md")).toBe("Conflicting main documentation.");
+	const main = yield* git("rev-parse", "origin/main");
+	yield* outcomes([
+		["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+		["release parent", () => git("rev-parse", "origin/release/next^"), main],
+		["readme", () => git("show", "origin/release/next:README.md"), "Conflicting main documentation."],
+	]);
 });
 
 releasePullRequest.it("changed version inputs regenerate the applied release", [], function* ({ pushMain, run, git, readGitHub }) {
 	yield* pushMain(".changeset/draft.md", PENDING);
 	yield* run();
 	yield* pushMain("packages/platform/package.json", '{"name":"@shivaedev/platform","version":"0.16.0"}\n');
-	expect(yield* run()).toBe("updated");
-	expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.16.1"');
-	expect((yield* readGitHub()).body).toContain("| @shivaedev/platform | 0.16.0 | 0.16.1 | patch |");
+	yield* outcomes([
+		["run", () => run(), "updated"],
+		["platform manifest", () => git("show", "origin/release/next:packages/platform/package.json"), expect.stringContaining('"version": "0.16.1"')],
+		[
+			"pull request body",
+			() => Effect.map(readGitHub(), (received) => received.body),
+			expect.stringContaining("| @shivaedev/platform | 0.16.0 | 0.16.1 | patch |"),
+		],
+	]);
 });

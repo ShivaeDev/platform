@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app } from "#starter-published/test-support/app.ts";
 import { failingCi, workerWarning } from "#starter-published/test-support/installerTraits.ts";
 import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
@@ -7,8 +9,10 @@ app.it(
 	"runs the installed app's own CI script with its working directory and PostgreSQL URL",
 	[unpublishedContract],
 	function* ({ run, ciResult, directory, database }) {
-		expect(yield* run()).toBeUndefined();
-		expect(JSON.parse(yield* ciResult())).toEqual({ cwd: directory, database, query: 42 });
+		yield* outcomes([
+			["run", () => run(), undefined],
+			["CI result", () => Effect.map(ciResult(), (text) => JSON.parse(text)), { cwd: directory, database, query: 42 }],
+		]);
 	},
 );
 

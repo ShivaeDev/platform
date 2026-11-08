@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveInventory } from "#package-check/test-support/archiveInventory.ts";
 import { archives } from "#package-check/test-support/archives.ts";
 import { aliasedExport, executableExport, selectedPattern, sharedExport } from "#package-check/test-support/exportTraits.ts";
@@ -20,10 +22,14 @@ for (const [problem, message] of [
 }
 
 archives.it("private addons remain covered by packed consumers before a release is authorized", [privateAddon], function* ({ packages, check }) {
-	expect((yield* packages()).map(({ manifest }) => ({ name: manifest.name, private: manifest.private }))).toEqual([
-		{ name: "@example/addon", private: true },
+	yield* outcomes([
+		[
+			"packages",
+			() => Effect.map(packages(), (list) => list.map(({ manifest }) => ({ name: manifest.name, private: manifest.private }))),
+			[{ name: "@example/addon", private: true }],
+		],
+		["consumer check", () => check(), undefined],
 	]);
-	expect(yield* check()).toBeUndefined();
 });
 
 archives.it("leaves Claude Code plugin folders out of the npm archives", [privateAddon, claudePlugin], function* ({ packages }) {
@@ -31,8 +37,10 @@ archives.it("leaves Claude Code plugin folders out of the npm archives", [privat
 });
 
 archives.it("checks mapped executables without importing them as library entries", [executableExport], function* ({ check, consumerEntries }) {
-	expect(yield* check()).toBeUndefined();
-	expect(yield* consumerEntries()).toEqual([{ blocked: [], exported: [{ json: false, specifier: "board/board.ts" }] }]);
+	yield* outcomes([
+		["consumer check", () => check(), undefined],
+		["consumer entries", () => consumerEntries(), [{ blocked: [], exported: [{ json: false, specifier: "board/board.ts" }] }]],
+	]);
 });
 
 archives.it("keeps exact shared exports out of blocked consumer entries", [sharedExport], function* ({ consumerEntries }) {
@@ -46,8 +54,12 @@ archives.it("checks an exact blocked entry when the defining module has a public
 });
 
 archives.it("enumerates modules and build targets through their selected export pattern", [selectedPattern], function* ({ check, consumerEntries }) {
-	expect(yield* check()).toBeUndefined();
-	expect(yield* consumerEntries()).toEqual([
-		{ blocked: ["board/server/rpc/present.ts"], exported: [{ json: false, specifier: "board/rpc/present.ts" }] },
+	yield* outcomes([
+		["consumer check", () => check(), undefined],
+		[
+			"consumer entries",
+			() => consumerEntries(),
+			[{ blocked: ["board/server/rpc/present.ts"], exported: [{ json: false, specifier: "board/rpc/present.ts" }] }],
+		],
 	]);
 });
