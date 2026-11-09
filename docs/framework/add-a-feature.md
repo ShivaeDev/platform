@@ -36,7 +36,7 @@ In `src/modules/bookmarks/server/Repository.ts`, define `StoredBookmark` with th
 
 In that server module, call `makeRepository(StoredBookmark, { collection: bookmarks, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Import the shared `bookmarks` collection declared in step 5 from `#modules/bookmarks/bookmarks.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description. Give the repository its own service with `defineRepository` from `@shivaedev/sql/defineRepository.ts`, as the [sql guide](../../packages/sql/README.md#share-a-tables-repository-and-domain-reads-between-services) shows, so services list its tag in `requires` and yield it instead of building it in their initializers.
 
-Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/service.ts) does. Selecting only public fields keeps the owner out of the response.
+Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes list operation](../../examples/starter/src/modules/notes/server/list.ts) does. Selecting only public fields keeps the owner out of the response.
 
 ## 4. Declare the service
 

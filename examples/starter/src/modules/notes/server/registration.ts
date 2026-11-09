@@ -5,48 +5,29 @@ import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
-import { NoteReadAccess, Notes } from "#modules/notes/notes.ts";
+import { Notes } from "#modules/notes/notes.ts";
 import { jsonPlaceholderNotes } from "#modules/notes/server/adapters/jsonPlaceholder.ts";
 import { adminRegistration } from "#modules/notes/server/admin/registration.ts";
+import { createNote } from "#modules/notes/server/create.ts";
+import { deleteNote } from "#modules/notes/server/delete.ts";
+import { getNote } from "#modules/notes/server/get.ts";
+import { importNote } from "#modules/notes/server/import.ts";
+import { listNotes } from "#modules/notes/server/list.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesRepository } from "#modules/notes/server/Repository.ts";
-import { notesService } from "#modules/notes/server/service.ts";
+import { updateNote } from "#modules/notes/server/update.ts";
 import { notesWorker } from "#modules/notes/server/worker.ts";
 
 const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
 
 const handlers = Notes.application.toLayer(
 	rpcBoundaryHandlers(Notes.application, boundaryOptions, {
-		"notes.create": (input) =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.createNote(input);
-			}),
-		"notes.delete": (input) =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.deleteNote(input);
-			}),
-		"notes.get": (input) =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.getNote(input.id);
-			}),
-		"notes.import": (input) =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.importNote(input);
-			}),
-		"notes.list": () =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.listNotes();
-			}),
-		"notes.update": (input) =>
-			Effect.gen(function* () {
-				const service = yield* notesService;
-				return yield* service.updateNote(input);
-			}),
+		"notes.create": createNote,
+		"notes.delete": deleteNote,
+		"notes.get": ({ id }) => getNote(id),
+		"notes.import": importNote,
+		"notes.list": listNotes,
+		"notes.update": updateNote,
 	}),
 );
 
@@ -62,10 +43,6 @@ export const notesRegistration = {
 	name: "notes",
 	ports: Layer.mergeAll(jsonPlaceholderNotes, memoryStore, noteProducer),
 	queues: notesWorker.queues,
-	requestServices: Layer.effect(
-		NoteReadAccess,
-		Effect.map(notesService, (service) => service.canReadNote),
-	).pipe(Layer.provideMerge(notesService.layer)),
 	services: NotesRepository.layer,
 	workers: notesWorker.workers,
 } satisfies AppModule;
