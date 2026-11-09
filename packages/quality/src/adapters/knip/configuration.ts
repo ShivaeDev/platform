@@ -9,6 +9,7 @@ import type { ReachableBuilds } from "#adapters/reachableBuilds.ts";
 import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { deliveredDependencies } from "#manifests/deliveredDependencies.ts";
 import type { PackageManifest } from "#PackageManifest.ts";
 import type { RuleInputs } from "#rule.ts";
 
@@ -104,7 +105,10 @@ export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 					...workspaceEntries,
 				],
 				// A bundle leaves its externals as runtime imports, which the bundling package's own dependencies satisfy.
-				ignoreDependencies: externalDependencies(manifest, builds.externals.get(directory === "." ? "" : directory) ?? new Set()),
+				ignoreDependencies: [
+					...externalDependencies(manifest, builds.externals.get(directory === "." ? "" : directory) ?? new Set()),
+					...deliveredDependencies(manifest, sources),
+				],
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles, ...workspaceEntries],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },
