@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Context, Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware } from "effect/rpc";
 import { DeclarationError, declarationError, type Unique } from "#declarationError.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
@@ -103,6 +103,7 @@ export function contract(name: string, operations: Operations): DeclaredGroup {
 }
 
 interface Operations {
+	readonly annotations?: Context.Context<never>;
 	readonly commands?: readonly CommandShape[];
 	readonly keyScope?: "session";
 	readonly queries?: readonly QueryShape[];
@@ -111,7 +112,7 @@ interface Operations {
 }
 
 export function declaredGroup(name: string, operations: Operations): DeclaredGroup {
-	const { queries = [], commands = [], streams = [], keyScope } = operations;
+	const { queries = [], commands = [], streams = [], keyScope, annotations = Context.empty() } = operations;
 	const error = assertValid(name, [...queries, ...commands, ...streams]);
 	const rpcs = [...queries, ...commands, ...streams].map((operation) => {
 		const rpc = Rpc.make(`${name}.${operation.name}`, {
@@ -119,12 +120,12 @@ export function declaredGroup(name: string, operations: Operations): DeclaredGro
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,
-		}).annotateMerge(operationAnnotations(operation, keyScope));
+		}).annotateMerge(Context.merge(operationAnnotations(operation, keyScope), annotations));
 		const guarded = operation.kind === "query" ? rpc.middleware(ReadPolicyGuard) : rpc;
 		return operations.subject === undefined ? guarded : guarded.middleware(subjectMiddleware(`${name}.${operation.name}`, operations.subject));
 	});
 	const application = RpcGroup.make(...rpcs);
-	const changes = changesRpc(name, queries).middleware(ReadPolicyGuard);
+	const changes = changesRpc(name, queries).annotateMerge(annotations).middleware(ReadPolicyGuard);
 	const subjectChanges = operations.subject === undefined ? changes : changes.middleware(subjectMiddleware(`${name}.$changes`, operations.subject));
 	const built = application.add(keyScope === undefined ? subjectChanges : subjectChanges.annotate(KeyScope, keyScope));
 	const group = error === undefined ? built : built.annotate(DeclarationError, error);

@@ -1,4 +1,4 @@
-import type { Effect } from "effect";
+import { Context, type Effect } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
 import type { RequirementRecord } from "@shivaedev/service/ServiceRequirements.ts";
 import { type Contract, declaredGroup } from "#contract.ts";
@@ -9,6 +9,8 @@ import type { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import type { changesRpc } from "#serverMetadata.ts";
 import type { SubjectDeclaration, WithSubject } from "#subject.ts";
 import { type Wire, type WiredAll, wired } from "#wire.ts";
+
+export class DefinedModule extends Context.Service<DefinedModule, string>()("@shivaedev/contract/DefinedModule") {}
 
 export type ModuleOperation = (QueryShape | CommandShape) & { readonly run: (payload: never) => Effect.Effect<unknown, unknown, unknown> };
 
@@ -100,6 +102,7 @@ export function defineModule(definition: {
 }): unknown {
 	const operations = definition.operations.map((operation) => wired(operation, definition.wire?.[operation.name]));
 	const group = declaredGroup(definition.name, {
+		annotations: Context.make(DefinedModule, definition.name),
 		commands: operations.filter((operation) => operation.kind === "command"),
 		queries: operations.filter((operation) => operation.kind === "query"),
 		...(definition.keyScope === undefined ? {} : { keyScope: definition.keyScope }),

@@ -4,6 +4,7 @@ import type { Migrator } from "effect/sql";
 import type { AdminPage } from "@shivaedev/admin/page.ts";
 import type { AdminRegistry, AnyAdminRegistry } from "@shivaedev/admin/registry.ts";
 import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegistrations.ts";
+import { type AnyModule, type ModuleHandlers, moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import type { AppModule, ModuleAdmin, ModuleLayer } from "#AppModule.ts";
 import { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
@@ -15,8 +16,16 @@ type Layers<TModules extends readonly AppModule[], TKey extends "handlers" | "se
 	ModuleField<TModules[number], TKey>,
 	Layer.Any
 >;
+type ServedHandlers<TModule> = TModule extends { readonly module: infer TDefined extends AnyModule } ? ModuleHandlers<TDefined> : never;
+type Groups<TModules extends readonly AppModule[]> = Extract<
+	ModuleField<TModules[number], "group"> | ModuleField<TModules[number], "module">,
+	RpcGroup.Any
+>;
 type Admin<TModules extends readonly AppModule[]> = Extract<ModuleField<TModules[number], "admin">, ModuleAdmin>;
-type Handlers<TModules extends readonly AppModule[]> = Layers<TModules, "handlers"> | Extract<ModuleField<Admin<TModules>, "handlers">, Layer.Any>;
+type Handlers<TModules extends readonly AppModule[]> =
+	| Layers<TModules, "handlers">
+	| ServedHandlers<TModules[number]>
+	| Extract<ModuleField<Admin<TModules>, "handlers">, Layer.Any>;
 type Pages<TModules extends readonly AppModule[]> = Extract<ModuleField<Admin<TModules>, "pages">, readonly AdminPage[]>;
 type Queues<TModules extends readonly AppModule[]> = Extract<ModuleField<TModules[number], "queues">, readonly { readonly name: string }[]>[number];
 type Ports<TModules extends readonly AppModule[]> = Layers<TModules, "ports">;
@@ -39,7 +48,7 @@ export function appModules<const TModules extends readonly AppModule[], R = neve
 		>;
 		readonly queues: readonly Queues<TModules>[];
 		readonly admin: AdminRegistry<readonly Pages<TModules>[number][]>;
-		readonly group: RpcGroup.RpcGroup<RpcGroup.Rpcs<TModules[number]["group"] | ModuleField<Admin<TModules>, "group">>>;
+		readonly group: RpcGroup.RpcGroup<RpcGroup.Rpcs<Groups<TModules> | ModuleField<Admin<TModules>, "group">>>;
 		readonly handlers: Layer.Layer<Layer.Success<Handlers<TModules>>, Layer.Error<Handlers<TModules>>, Layer.Services<Handlers<TModules>>>;
 		readonly requestServices: Layer.Layer<
 			Layer.Success<Layers<TModules, "requestServices">>,
@@ -95,8 +104,16 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 	const ports = Layer.merge(defaults, options?.replacements ?? Layer.empty);
 	return {
 		admin,
-		group: RpcGroup.make().merge(...modules.map((module) => module.group), admin.group),
-		handlers: Layer.mergeAll(admin.handlers, ...modules.map((module) => module.handlers)),
+		group: RpcGroup.make().merge(...modules.map((module) => (module.module === undefined ? module.group : module.module)), admin.group),
+		// The overload types each module's handlers from its own requires; at run time moduleHandlers reads only its operations.
+		handlers: Layer.mergeAll(
+			admin.handlers,
+			...modules.map((module) =>
+				module.module === undefined
+					? module.handlers
+					: moduleHandlers({ "~requires": [], application: module.module.application, declaration: module.module.declaration }),
+			),
+		),
 		migrations: {
 			components: modules.flatMap((module) => module.migrations.components ?? []),
 			loader: Effect.all(modules.map((module) => module.migrations.loader)).pipe(Effect.map((entries) => entries.flat())),

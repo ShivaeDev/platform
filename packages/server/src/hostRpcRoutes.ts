@@ -18,6 +18,7 @@ import { hostVersionLayer } from "#hostVersionLayer.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import type { RequestRequirements } from "#requestServices.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
+import { servedModules } from "#servedModules.ts";
 import { socketRpc } from "#socketRpc.ts";
 import { UnixSocketRequest } from "#UnixSocketRequest.ts";
 
@@ -79,6 +80,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
+			yield* servedModules(options.group);
 			const wire = yield* redactingRpcSerialization(sensitive);
 			const httpWire: typeof wire = {
 				...wire,
