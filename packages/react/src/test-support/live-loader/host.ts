@@ -1,4 +1,5 @@
 import { Deferred, Effect, Layer, Queue, Schema, Stream } from "effect";
+import type { Rpc } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
@@ -7,6 +8,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -28,24 +30,23 @@ export const liveLoaderHost = Effect.fnUntraced(function* () {
 				return Deferred.succeed(started, undefined).pipe(Effect.andThen(Effect.promise(() => response.promise)));
 			}),
 	});
+	const firstResult = Effect.fnUntraced(function* (queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
+		const subscription = { open: true };
+		subscriptions.push(subscription);
+		yield* Effect.addFinalizer(() =>
+			Effect.sync(() => {
+				subscription.open = false;
+			}).pipe(Effect.andThen(Queue.offer(closed, undefined))),
+		);
+		const requested = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+		const first = yield* compareQueries(requested, rerunQuery(Notes.application, options))({ _tag: "Resync" });
+		return Stream.concat(Stream.fromIterable(first), Stream.never);
+	});
 	const changes = changesHandlerLayer(
 		Notes,
 		() =>
 			({ queries }, options) =>
-				Stream.unwrap(
-					Effect.gen(function* () {
-						const subscription = { open: true };
-						subscriptions.push(subscription);
-						yield* Effect.addFinalizer(() =>
-							Effect.sync(() => {
-								subscription.open = false;
-							}).pipe(Effect.andThen(Queue.offer(closed, undefined))),
-						);
-						const requested = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
-						const first = yield* compareQueries(requested, rerunQuery(Notes.application, options))({ _tag: "Resync" });
-						return Stream.concat(Stream.fromIterable(first), Stream.never);
-					}),
-				),
+				Stream.unwrap(firstResult(queries, options)),
 	);
 	const transport = yield* Layer.build(
 		layerMemoryProtocol(Notes).pipe(Layer.provide(Layer.merge(application, changes.pipe(Layer.provide(application))))),
