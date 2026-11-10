@@ -1,4 +1,4 @@
-import { Deferred, Effect, ErrorReporter, Layer, Redacted, Schema } from "effect";
+import { Cause, Deferred, Effect, ErrorReporter, Layer, Logger, Predicate, Redacted, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
@@ -29,7 +29,11 @@ const rename = {
 	payload: { title: Schema.String },
 	success: Schema.Void,
 };
-const Notes = RpcGroup.make(Rpc.make("RenameShopping", rename), Rpc.make("RenameShoppingOrConflict", rename));
+const Notes = RpcGroup.make(
+	Rpc.make("RenameShopping", rename),
+	Rpc.make("RenameShoppingOrConflict", rename),
+	Rpc.make("RenameShoppingDuringMaintenance", rename),
+);
 
 const renameShopping = Effect.fn("NotesTest.renameShopping")(function* (title: string) {
 	const sql = yield* SqlClient.SqlClient;
@@ -42,6 +46,7 @@ const handlers = Notes.toLayer(
 		{ unexpected: (message) => new InternalServerError({ message }) },
 		{
 			RenameShopping: ({ title }) => renameShopping(title),
+			RenameShoppingDuringMaintenance: () => Effect.fail(new ServiceUnavailable({ message: "Notes are read-only during maintenance" })),
 			RenameShoppingOrConflict: ({ title }) =>
 				renameShopping(title).pipe(
 					Effect.catchReason("SqlError", "UniqueViolation", () => Effect.fail(new Conflict({ field: "title", message: "Title is taken" }))),
@@ -55,15 +60,27 @@ export const postgresBoundary = storyKit({
 	*create() {
 		const recording = recordingReporter();
 		const sql = yield* SqlClient.SqlClient;
-		const client = yield* RpcTest.makeClient(Notes).pipe(Effect.provide(handlers.pipe(Layer.provide(ErrorReporter.layer([recording.reporter])))));
+		const warnings: { readonly message: string; readonly failures: readonly string[] }[] = [];
+		const logger = Logger.make(({ cause, logLevel, message }) => {
+			if (logLevel === "Warn") {
+				warnings.push({
+					failures: cause.reasons.flatMap((reason) =>
+						Cause.isFailReason(reason) && Predicate.hasProperty(reason.error, "_tag") ? [String(reason.error._tag)] : [],
+					),
+					message: [message].flat().join(" "),
+				});
+			}
+		});
+		const observed = Layer.mergeAll(ErrorReporter.layer([recording.reporter]), Logger.layer([logger]));
+		const client = yield* RpcTest.makeClient(Notes).pipe(Effect.provide(handlers.pipe(Layer.provide(observed))));
 		const answers: unknown[] = [];
-		return { answers, client, reports: recording.reports, sql };
+		return { answers, client, reports: recording.reports, sql, warnings };
 	},
 	layer: database,
 	name: "RPC boundary on PostgreSQL",
 	runIf: configured,
 	stages: ["rows"],
-	verbs: ({ answers, client, reports }, story) => {
+	verbs: ({ answers, client, reports, warnings }, story) => {
 		function call(request: Effect.Effect<void, unknown>) {
 			return request.pipe(
 				Effect.match({ onFailure: (rejection) => rejection, onSuccess: () => "renamed" }),
@@ -73,10 +90,15 @@ export const postgresBoundary = storyKit({
 		}
 		return {
 			answer: () => Effect.sync(() => answers.at(-1)),
+			loggedWarnings: () => Effect.sync(() => [...warnings]),
 			recordedReports: () => Effect.sync(() => [...reports]),
 			renameShopping: (title: string) => {
 				story.tell(`the client renames Shopping to ${title}`);
 				return call(client.RenameShopping({ title }));
+			},
+			renameShoppingDuringMaintenance: (title: string) => {
+				story.tell(`the client renames Shopping to ${title} while the operation answers its own ServiceUnavailable for maintenance`);
+				return call(client.RenameShoppingDuringMaintenance({ title }));
 			},
 			renameShoppingOrConflict: (title: string) => {
 				story.tell(`the client renames Shopping to ${title} through the RPC that declares a taken title as Conflict`);

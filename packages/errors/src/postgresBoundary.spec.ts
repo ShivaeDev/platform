@@ -38,3 +38,26 @@ postgresBoundary.it("a rename to a taken title answers the Conflict its RPC decl
 
 	expect(yield* answer()).toEqual(new Conflict({ field: "title", message: "Title is taken" }));
 });
+
+postgresBoundary.it(
+	"a rename that hits its lock timeout logs one infrastructure warning naming the SqlError",
+	[shoppingLockedElsewhere()],
+	function* ({ loggedWarnings, renameShopping }) {
+		yield* renameShopping("Groceries");
+
+		expect(yield* loggedWarnings()).toEqual([{ failures: ["SqlError"], message: "RPC infrastructure failure" }]);
+	},
+);
+
+postgresBoundary.it(
+	"a ServiceUnavailable the operation declares and raises itself arrives as itself and logs no infrastructure warning",
+	[],
+	function* ({ answer, loggedWarnings, renameShoppingDuringMaintenance }) {
+		yield* renameShoppingDuringMaintenance("Groceries");
+
+		yield* outcomes([
+			["answer", () => answer(), new ServiceUnavailable({ message: "Notes are read-only during maintenance" })],
+			["warnings", () => loggedWarnings(), []],
+		]);
+	},
+);
