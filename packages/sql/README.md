@@ -23,7 +23,7 @@ const rows = yield* lines.findMany({
 
 The application owns the database schema. For PostgreSQL, `postgresLayer` provides one native pool and the Effect SQL clients that use it. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
-Repository writes announce their table and returned row keys automatically. Every written row keeps its record key, including in bulk writes. Fields marked with `bucket` also announce their old and new bucket keys. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `changes`; this package supplies the SQL boundary and the Reactivity publisher.
+Repository writes announce their table and returned row keys automatically. Every written row keeps its record key, including in bulk writes. Fields marked with `bucket` and tuple buckets declared on the collection also announce their old and new bucket keys. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
@@ -828,7 +828,23 @@ const makeNotes = makeRepository(Note, {
 
 Pass the contract collection as the repository's `collection` option when the model has buckets. Registration fails with `BucketRegistrationError` if the collection is missing, its name differs from `tableName`, or its bucket field names differ from the model's annotated fields. The error names both declarations. Registration also rejects annotated fields whose decoded schemas cannot produce key values, naming them in `invalidFields`, before any write. Use explicit string or number schemas and refinements instead of opaque declarations; nullable and optional wrappers remain supported. Repositories without buckets may omit the collection. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
 
-Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without bucket fields keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
+A bucket can also span an ordered tuple of columns, declared on the collection rather than the model. Here a diary listens per owner and per owner and day:
+
+```ts
+class Entry extends Model.Class<Entry>("Entry")({
+	day: Schema.NullOr(Schema.Number),
+	id: Schema.Number,
+	note: Schema.String,
+	ownerId: bucket(Schema.String),
+}) {}
+
+const entries = collection("entries", Entry.fields.id, { ownerId: Entry.fields.ownerId }, { ownerDay: ["ownerId", "day"] });
+const makeEntries = makeRepository(Entry, { collection: entries, idColumn: "id", spanPrefix: "Entries", tableName: "entries" });
+```
+
+A query of alice's entries for day 1 reads `entries.bucket.ownerDay({ ownerId: "alice", day: 1 })` and reruns only for writes to that owner and day; a write by alice on day 2 or by bob on day 1 leaves it alone. A query of all of alice's entries reads `entries.bucket.ownerId("alice")`. Choose a single-column bucket when readers filter by one column and a tuple bucket when they filter by all of its columns together; a query still names the key it reads. Repository writes announce each tuple from the row's old and new stored values in the same before-commit path as single-column buckets: an insert announces its new tuple, a delete its old one, and an update both when any column of the tuple changed. A tuple with an absent value, such as an entry without a day, announces no key. Each column decodes through its model field's codec, and its columns need no `bucket` annotation. Registration fails with `BucketRegistrationError`, naming the columns as `tuple.column` in `invalidTupleColumns`, when a tuple names a column the model lacks or one that cannot decode to a string, number or absent value. A raw writer records a tuple key through `changes` like any other bucket key.
+
+Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without single-column or tuple buckets keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
 Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates(payload, result, viewer)` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
 
@@ -1000,7 +1016,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/pendingPostgresMigrations.ts`: `pendingPostgresMigrations({ loader, table?, components? })` — Pending ledger migrations as ID and name, and pending schema components as name and detail.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
-- `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names.
+- `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names and invalid tuple columns.
 - `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/test-kits/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 

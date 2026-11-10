@@ -39,6 +39,26 @@ export const bucketRegistration = storyKit({
 					}),
 				);
 			}),
+		registerTuple: (column: "missing" | "flag") =>
+			Effect.gen(function* () {
+				story.tell(`a repository declares an owner-and-${column} tuple bucket over a model with a boolean flag and no missing field`);
+				class Row extends Model.Class<Row>("BucketRegistrationTupleRow")({
+					flag: Schema.Boolean,
+					id: Schema.Number,
+					owner: Schema.String,
+				}) {}
+				engine.result = yield* makeRepository(Row, {
+					collection: collection("bucket_registration", Schema.Number, {}, { ownerTuple: ["owner", column] }),
+					idColumn: "id",
+					spanPrefix: "BucketRegistration",
+					tableName: "bucket_registration",
+				}).pipe(
+					Effect.match({
+						onFailure: (error) => `${error._tag}: ${error.message}`,
+						onSuccess: () => "registered",
+					}),
+				);
+			}),
 		registration: () => Effect.sync(() => engine.result),
 	}),
 });

@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expectTypeOf } from "vitest";
 import { bucket } from "#buckets.ts";
-import { collection } from "#keys.ts";
+import { collection, type Identity } from "#keys.ts";
 
 const notes = collection("notes", Schema.Number, { listId: Schema.Number, userId: Schema.String });
 expectTypeOf(notes.bucket.userId).parameter(0).toEqualTypeOf<string>();
@@ -24,3 +24,14 @@ bucket(Schema.BigIntFromString);
 
 const encodedNotes = collection("notes", Schema.Number, { listId: Schema.NumberFromString, owner: Schema.String.pipe(Schema.brand("Owner")) });
 expectTypeOf(encodedNotes.bucket.listId).parameter(0).toEqualTypeOf<number>();
+
+const entries = collection("entries", Schema.Number, { ownerId: Schema.String }, { ownerDay: ["ownerId", "day"] });
+expectTypeOf(entries.bucket.ownerDay).parameter(0).toEqualTypeOf<{ readonly day: Identity; readonly ownerId: string }>();
+// @ts-expect-error A tuple key needs a value for every column of the tuple.
+entries.bucket.ownerDay({ ownerId: "alice" });
+// @ts-expect-error A tuple column declared as a single-column bucket keeps its schema type.
+entries.bucket.ownerDay({ day: 1, ownerId: 7 });
+// @ts-expect-error A tuple spans at least two columns.
+collection("entries", Schema.Number, {}, { owner: ["ownerId"] });
+// @ts-expect-error A tuple cannot take the name of a single-column bucket.
+collection("entries", Schema.Number, { ownerId: Schema.String }, { ownerId: ["ownerId", "day"] });

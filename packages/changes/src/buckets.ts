@@ -7,12 +7,15 @@ export function bucket<TSchema extends Schema.Top & Schema.ConstraintCodec<Bucke
 	return schema.annotate({ "@shivaedev/changes/bucket": true });
 }
 
+export function decodeBucketValue(schema: Schema.Constraint) {
+	return Schema.decodeUnknownEffect(Schema.make<Schema.Codec<BucketValue, unknown>>(schema.ast));
+}
+
 export function declaredBuckets(fields: Schema.Struct.Fields) {
 	return Object.entries(fields).flatMap(([field, schema]) => {
 		if (Schema.resolveAnnotations(schema)?.["@shivaedev/changes/bucket"] !== true) {
 			return [];
 		}
-		const codec = Schema.make<Schema.Codec<BucketValue, unknown>>(schema.ast);
-		return [{ decode: Schema.decodeUnknownEffect(codec), field, supported: isBucketSchema(schema) }];
+		return [{ decode: decodeBucketValue(schema), field, supported: isBucketSchema(schema) }];
 	});
 }

@@ -120,7 +120,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		yield* validateRepositoryCollection(model.fields, options);
 		const composite = typeof options.idColumn === "object";
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
-		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields);
+		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
 		const crud = {
 			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns }, changes)),
 			deleteBatched: yield* makeBatchedDelete(model, options, changes),
