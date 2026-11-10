@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 
 export const releases = Effect.fn("CreateAppStory.releases")(function* (root: string) {
 	const archives = new Map<string, Uint8Array>();
@@ -22,7 +23,7 @@ export const releases = Effect.fn("CreateAppStory.releases")(function* (root: st
 				[...archives.keys()].map((version) => [
 					version,
 					{
-						dist: { tarball: `http://127.0.0.1:${port}/${version}.tgz` },
+						dist: { tarball: `${origin}/${version}.tgz` },
 						name: "@shivaedev/create-app",
 						version,
 					},
@@ -31,17 +32,9 @@ export const releases = Effect.fn("CreateAppStory.releases")(function* (root: st
 			response.end(JSON.stringify({ name: "@shivaedev/create-app", versions }));
 		}
 	});
-	yield* Effect.acquireRelease(
-		Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))),
-		() => Effect.promise(() => new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))),
-	);
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		throw new Error("The release registry has no TCP address");
-	}
-	const port = address.port;
+	const origin = yield* loopbackServer(server);
 	return {
-		origin: `http://127.0.0.1:${port}`,
+		origin,
 		publish(version: string, template: string) {
 			const directory = join(root, "release");
 			mkdirSync(join(directory, "package"), { recursive: true });
