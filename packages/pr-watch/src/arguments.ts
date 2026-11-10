@@ -1,6 +1,7 @@
 import { Result } from "effect";
 import { type EventKind, eventKinds } from "#events.ts";
 import { type Options, WatchError } from "#model.ts";
+import type { WaitOptions } from "#waitFor.ts";
 
 export interface Input {
 	readonly apiUrl: string;
@@ -41,6 +42,37 @@ export function optionsFor(input: Input) {
 				stateFile: input.stateFile ?? `.pr-watch/${input.repository.replace("/", "-")}.json`,
 			} satisfies Options,
 		};
+	});
+}
+
+export function waitOptionsFor(input: {
+	readonly apiUrl: string;
+	readonly number: number;
+	readonly repository: string;
+	readonly stateFile?: string | undefined;
+	readonly timeout?: number | undefined;
+}) {
+	return Result.gen(function* () {
+		const { options } = yield* optionsFor({
+			apiUrl: input.apiUrl,
+			fleet: false,
+			heartbeat: 0,
+			interval: 60,
+			numbers: [input.number],
+			once: false,
+			repository: input.repository,
+			stateFile: input.stateFile ?? `.pr-watch/${input.repository.replace("/", "-")}-${input.number}.json`,
+		});
+		if (input.timeout !== undefined && !(Number.isFinite(input.timeout) && input.timeout >= 1)) {
+			return yield* invalid("--timeout must be at least one second");
+		}
+		return {
+			apiUrl: options.apiUrl,
+			number: input.number,
+			repository: options.repository,
+			stateFile: options.stateFile,
+			...(input.timeout === undefined ? {} : { timeout: input.timeout * 1000 }),
+		} satisfies WaitOptions;
 	});
 }
 

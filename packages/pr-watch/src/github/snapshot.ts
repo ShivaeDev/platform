@@ -27,16 +27,18 @@ export const snapshot = Effect.fn("GitHub.snapshot")((options: Options, number: 
 		if (open && (pr.mergeable === null || pr.mergeableState === "unknown")) {
 			return undefined;
 		}
-		const failed = open ? yield* checkFailures(options, number, pr.head.sha) : false;
-		if (failed === undefined) {
+		const failedChecks = open ? yield* checkFailures(options, number, pr.head.sha) : [];
+		if (failedChecks === undefined) {
 			return undefined;
 		}
 		return {
 			autoMerge: pr.autoMerge !== null,
 			branch: pr.head.ref,
 			dirty: pr.mergeableState === "dirty",
-			failed,
+			failed: failedChecks.length > 0,
+			...(failedChecks.length > 0 ? { failedChecks } : {}),
 			head: pr.head.sha,
+			mergeableState: pr.mergeableState,
 			merged: pr.merged,
 			number,
 			queued: queued.has(number),

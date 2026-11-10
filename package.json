@@ -16,6 +16,7 @@
 		"hooks": "node --conditions=@shivaedev/source packages/quality/src/cli.ts hooks install",
 		"lint": "pnpm changelog:check && pnpm lint:quality",
 		"lint:quality": "node --conditions=@shivaedev/source packages/quality/src/cli.ts lint && node --conditions=@shivaedev/source packages/quality/src/cli.ts lint --config examples/starter/quality.config.ts",
+		"pr-watch": "node --conditions=@shivaedev/source packages/pr-watch/src/cli.ts",
 		"quality:commit": "pnpm changelog:check && node --conditions=@shivaedev/source packages/quality/src/cli.ts lint --config examples/starter/quality.config.ts",
 		"ready": "pnpm lint && pnpm typecheck",
 		"releases": "node --conditions=@shivaedev/source packages/releases/src/cli.ts",

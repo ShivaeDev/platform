@@ -9,12 +9,14 @@ import { encodeJsonLine, type WatchEvent } from "#outputEvent.ts";
 import packageInfo from "#package.json" with { type: "json" };
 import { watchCommand } from "#program.ts";
 import { requestFailure } from "#requestFailure.ts";
+import { waitCommand } from "#waitCommand.ts";
+import { encodeWaitResult, WaitEnded, type WaitResult } from "#waitResult.ts";
 import { watcherLayer } from "#watcherLayer.ts";
 
 const main = Effect.gen(function* () {
 	const stdio = yield* Stdio.Stdio;
-	function emit(event: WatchEvent) {
-		return Stream.make(encodeJsonLine(event)).pipe(
+	function print(line: string) {
+		return Stream.make(line).pipe(
 			Stream.run(stdio.stdout({ endOnDone: false })),
 			Effect.mapError((cause) => new WatchError({ message: "Output stream failed", reason: "output" }, { cause })),
 		);
@@ -25,10 +27,14 @@ const main = Effect.gen(function* () {
 			Effect.mapError((cause) => new WatchError({ message: "Output stream failed", reason: "output" }, { cause })),
 		);
 	}
-	yield* Command.run(watchCommand(emit, diagnostic).pipe(Command.provide(watcherLayer)), { version: packageInfo.version });
+	const wait = waitCommand((result: WaitResult) => print(encodeWaitResult(result)), diagnostic).pipe(Command.provide(watcherLayer));
+	const watch = watchCommand((event: WatchEvent) => print(encodeJsonLine(event)), diagnostic).pipe(Command.provide(watcherLayer));
+	yield* Command.run(watch.pipe(Command.withSubcommands([wait])), { version: packageInfo.version });
 }).pipe(
 	Effect.tapError((error) =>
-		CliError.isCliError(error) ? Effect.void : Console.error(error instanceof GitHubTokenError ? error.message : requestFailure(error).message),
+		CliError.isCliError(error) || error instanceof WaitEnded
+			? Effect.void
+			: Console.error(error instanceof GitHubTokenError ? error.message : requestFailure(error).message),
 	),
 	Effect.tapCause((cause) => (Cause.hasDies(cause) ? Console.error(Cause.pretty(cause)) : Effect.void)),
 	Effect.provide(NodeServices.layer),

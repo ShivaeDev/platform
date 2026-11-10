@@ -61,6 +61,15 @@ export function failingCheck(number: number, check: Check) {
 export function checksAre(number: number, ...checks: Check[]) {
 	return given(github.checksBecome(number, checks));
 }
+export function requiredCheckRunning(number: number) {
+	return given(github.requiredCheckRuns(number));
+}
+export function optionalCheckFailing(number: number) {
+	return given(github.optionalCheckFails(number));
+}
+export function closed(number: number) {
+	return pr(number, "has closed without merging", github.closes(number));
+}
 export function githubAnswers(read: Read, answer: Answer) {
 	return given(github.answers(read, answer));
 }

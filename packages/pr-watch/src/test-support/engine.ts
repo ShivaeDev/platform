@@ -9,6 +9,7 @@ import { makeOutput } from "#test/makeOutput.ts";
 import { startServer } from "#test/server.ts";
 import { services } from "#test/services.ts";
 import { makeWatchProcess } from "#test/watchProcess.ts";
+import type { WaitResult } from "#waitResult.ts";
 import { Watcher } from "#watcher/service.ts";
 
 export const nativeIo = Layer.mergeAll(
@@ -50,6 +51,7 @@ export const makeEngine = Effect.gen(function* () {
 	const observation: { failure?: unknown } = {};
 	const lines: WatchEvent[] = [];
 	const settings: { heartbeat?: number } = {};
+	const wait: { exit?: number; printed: WaitResult[]; progress: string[] } = { printed: [], progress: [] };
 	return {
 		cli,
 		cliEnvironment,
@@ -66,11 +68,17 @@ export const makeEngine = Effect.gen(function* () {
 		process,
 		roundStart: 0,
 		settings,
+		wait,
 		watcher: Context.get(context, Watcher),
 	};
 });
 
 export type Engine = Effect.Success<typeof makeEngine>;
+
+export function waitArguments(engine: Engine, number: number, extra: readonly string[]) {
+	const { apiUrl, repository, stateFile } = engine.options;
+	return ["--repo", repository, "--state", stateFile, "--api-url", apiUrl, String(number), ...extra];
+}
 
 export function programArguments(engine: Engine, ...extra: readonly string[]) {
 	const { options, settings } = engine;

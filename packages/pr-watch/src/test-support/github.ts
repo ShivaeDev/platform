@@ -40,6 +40,7 @@ function update(number: number, changes: Partial<Pull>) {
 }
 
 const FAILED_CHECK: Check = { conclusion: "failure", status: "completed" };
+const SUCCEEDED_CHECK: Check = { conclusion: "success", status: "completed" };
 
 export const reads = {
 	checks: (number: number): Read => ({ name: `PR ${number}'s check runs`, route: (fake) => checksRoute(fake.pullOf(number).sha) }),
@@ -167,6 +168,11 @@ export const github = {
 			fake.pulls.set(number, pullNumbered(number));
 			fake.open.add(number);
 		}),
+	optionalCheckFails: (number: number) =>
+		change(`PR ${number}'s required check run succeeds and an optional one fails, so GitHub reports it unstable`, (fake) => {
+			fake.checks.set(fake.pullOf(number).sha, [SUCCEEDED_CHECK, { ...FAILED_CHECK, required: false }]);
+			update(number, { mergeableState: "unstable" })(fake);
+		}),
 	optionalStatusBecomes: (number: number, state: string) =>
 		change(`PR ${number}'s optional commit status becomes ${state}`, (fake) => {
 			fake.statuses.set(fake.pullOf(number).sha, { required: false, state });
@@ -193,6 +199,16 @@ export const github = {
 	recovers: (read: Read) =>
 		change(`GitHub answers ${read.name} normally again`, (fake) => {
 			fake.overrides.delete(read.route(fake));
+		}),
+	requiredCheckRuns: (number: number) =>
+		change(`PR ${number}'s required check run is in progress, so GitHub blocks its merge`, (fake) => {
+			fake.checks.set(fake.pullOf(number).sha, [{ conclusion: null, status: "in_progress" }]);
+			update(number, { mergeableState: "blocked" })(fake);
+		}),
+	requiredChecksPass: (number: number) =>
+		change(`PR ${number}'s required check run succeeds, so GitHub reports it clean`, (fake) => {
+			fake.checks.set(fake.pullOf(number).sha, [SUCCEEDED_CHECK]);
+			update(number, { mergeable: true, mergeableState: "clean" })(fake);
 		}),
 	requiredFlagsOnSecondPage: (number: number) =>
 		change(`GitHub returns the required-check flags for PR ${number}'s head on a second page`, (fake) => {
