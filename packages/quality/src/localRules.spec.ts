@@ -1,5 +1,5 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { biomeFormatted, effectInstalled, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
@@ -10,6 +10,41 @@ const NO_CONSOLE_LOG = {
 		'const noLog = defineRule({ id: "local/no-console-log", description: "Log through the logger.",',
 		'  check: ({ sources }) => sources.filter((file) => file.text.includes("console.log")).map((file) => ({ file: file.path, message: "logs to the console." })) });',
 		'export default defineConfig({ local: [noLog], sources: ["src"] });',
+	].join("\n"),
+	path: "quality.config.ts",
+};
+
+const UNTYPED_EXPORTS = {
+	content: [
+		'import { Effect } from "effect";',
+		'import { defineConfig } from "@shivaedev/quality/config.ts";',
+		'import { defineRule } from "@shivaedev/quality/rule.ts";',
+		'const typedExports = defineRule({ id: "local/typed-exports", description: "Exports carry a known type.",',
+		"  check: ({ sources, typeScript }) => Effect.map(typeScript, ({ checker, sourceFile, ts }) => sources.flatMap((file) => {",
+		"    const source = sourceFile(file.path);",
+		"    const module = source === undefined ? undefined : checker.getSymbolAtLocation(source);",
+		"    return (module === undefined ? [] : checker.getExportsOfModule(module))",
+		"      .map((exported) => ({ name: exported.name, type: checker.getTypeOfSymbol(exported) }))",
+		"      .filter(({ type }) => (type.flags & ts.TypeFlags.Any) !== 0)",
+		'      .map(({ name, type }) => ({ file: file.path, message: "exports " + name + " typed as " + checker.typeToString(type) + "." }));',
+		"  })) });",
+		'export default defineConfig({ local: [typedExports], sources: ["src"] });',
+	].join("\n"),
+	path: "quality.config.ts",
+};
+
+const COUNTED_PROGRAMS = {
+	content: [
+		'import { Effect } from "effect";',
+		'import { defineConfig } from "@shivaedev/quality/config.ts";',
+		'import { defineRule } from "@shivaedev/quality/rule.ts";',
+		"const programs = new Set<unknown>();",
+		'const counting = (id: string) => defineRule({ id, description: "Counts the programs it has seen.",',
+		"  check: ({ typeScript }) => Effect.map(typeScript, ({ program }) => {",
+		"    programs.add(program);",
+		'    return [{ file: "src/limit.ts", message: "has seen " + programs.size + " program." }];',
+		"  }) });",
+		'export default defineConfig({ local: [counting("local/first"), counting("local/second")], sources: ["src"] });',
 	].join("\n"),
 	path: "quality.config.ts",
 };
@@ -58,6 +93,64 @@ repositoryStory.it(
 				["absolute", () => stdout(), expect.stringContaining("  src/b.ts  absolute")],
 				["backslashed", () => stdout(), expect.stringContaining("  src/c.ts  backslashed")],
 				["dotted", () => stdout(), expect.stringContaining("  src/a.ts  dotted")],
+			]),
+		);
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality lint runs a local rule that reads exported types from the shared TypeScript program and reports only the export typed as any",
+	[
+		qualityInstalled(),
+		effectInstalled(),
+		repositoryHas(
+			UNTYPED_EXPORTS,
+			{ content: 'export const limit = JSON.parse("3");\n', path: "src/limit.ts" },
+			{ content: 'export const name = "ready";\n', path: "src/name.ts" },
+		),
+		biomeFormatted(),
+	],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				[
+					"untyped export",
+					() => stdout(),
+					expect.stringContaining("error local/typed-exports (1)\n  Exports carry a known type.\n  src/limit.ts  exports limit typed as any."),
+				],
+			]),
+		);
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality lint hands every local rule that asks for the TypeScript program the same one",
+	[
+		qualityInstalled(),
+		effectInstalled(),
+		repositoryHas(COUNTED_PROGRAMS, { content: "export const limit = 3;\n", path: "src/limit.ts" }),
+		biomeFormatted(),
+	],
+	function* ({ runs, stdout }) {
+		yield* runs("lint");
+
+		yield* withMatchers((expect) =>
+			outcomes([
+				[
+					"first rule",
+					() => stdout(),
+					expect.stringContaining("error local/first (1)\n  Counts the programs it has seen.\n  src/limit.ts  has seen 1 program."),
+				],
+				[
+					"second rule",
+					() => stdout(),
+					expect.stringContaining("error local/second (1)\n  Counts the programs it has seen.\n  src/limit.ts  has seen 1 program."),
+				],
 			]),
 		);
 	},

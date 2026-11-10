@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { describeIssue, type StandardSchemaV1 } from "#adapters/standardSchema.ts";
+import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { validOrFail } from "#decoded.ts";
 import type { Configured, Findings, RegisteredRule, RuleContext } from "#rule.ts";
 
@@ -37,7 +38,7 @@ export function configureWith<TInput, TOptions, TServices>(
 			check: (inputs) =>
 				Effect.scoped(
 					Effect.gen(function* () {
-						const context = { ...inputs, options: value };
+						const context = { ...inputs, options: value, typeScript: inputs.typeScript ?? typeScriptProgram(inputs.root, inputs.sources) };
 						const issues = validate?.(context).map((issue) => `rules.${id}.options: ${issue}`) ?? [];
 						yield* validOrFail(
 							inputs.configFile ?? "quality.config.ts",

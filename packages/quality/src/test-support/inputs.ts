@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import { run } from "#testing/adapters/run.ts";
@@ -17,6 +18,7 @@ export function inputsOf(seed: Seed): RuleInputs {
 		readText: (path) => Effect.succeed(seed.texts?.[path]),
 		root: "/virtual",
 		sources,
+		typeScript: typeScriptProgram("/virtual", sources),
 	};
 }
 

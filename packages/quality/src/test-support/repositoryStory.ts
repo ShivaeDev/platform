@@ -7,7 +7,7 @@ import { type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { type SkillsRepository, skillReadouts } from "#test/skillDistribution.ts";
 import { commitAll, git } from "#testing/adapters/git.ts";
 import { formatTree } from "#testing/adapters/qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
+import { DEFAULT_FILES, linkEffect, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 
 interface RepositoryEngine extends SkillsRepository {
 	answer: CliAnswer | undefined;
@@ -68,6 +68,12 @@ export function qualityInstalled() {
 	return repositoryStory.trait("repository", "Quality is installed with its Biome preset and a .gitignore for node_modules", (engine) => {
 		writeAll(engine.root, INSTALLED);
 		linkPackage(engine.root);
+	});
+}
+
+export function effectInstalled() {
+	return repositoryStory.trait("repository", "Effect is installed beside Quality, so the config can import it", (engine) => {
+		linkEffect(engine.root);
 	});
 }
 

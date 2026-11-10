@@ -4,6 +4,7 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { services } from "#adapters/runMain.ts";
+import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";
@@ -23,7 +24,7 @@ export async function scanned(root: string): Promise<RuleInputs> {
 	);
 	const readText: RuleInputs["readText"] = (path) => readOptionalText(join(root, path)).pipe(Effect.provide(NodeFileSystem.layer));
 	setManifestFiles(readText, inventory.manifestFiles);
-	return { files: inventory.files, readText, root, sources: inventory.sources };
+	return { files: inventory.files, readText, root, sources: inventory.sources, typeScript: typeScriptProgram(root, inventory.sources) };
 }
 
 export async function findingsIn<TInput>(rule: Rule<string, TInput>, options: TInput | undefined, root: string): Promise<Findings> {
