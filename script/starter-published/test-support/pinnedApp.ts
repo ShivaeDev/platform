@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
-import { ConfigProvider, Effect, FileSystem } from "effect";
+import { ConfigProvider, Effect, FileSystem, Logger } from "effect";
 import { packTemplate } from "@shivaedev/create-app/packTemplate.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command, writeJson } from "#package-check/io.ts";
@@ -11,6 +11,7 @@ import { runStarter } from "#starter-published/run.ts";
 import { pinRegistry } from "#starter-published/test-support/pinRegistry.ts";
 
 const NAME = "@fixture/local-postgres";
+const UNRELATED = "@fixture/unrelated";
 
 export const pinnedApp = storyKit({
 	after: {
@@ -20,16 +21,19 @@ export const pinnedApp = storyKit({
 			const starter = join(engine.root, "examples/starter");
 			yield* fs.writeFileString(
 				join(starter, "pnpm-workspace.copy.yaml"),
-				`packages: []\nregistry: ${registry}\ncatalog:\n  "${NAME}": ${engine.pin}\n  effect: 4.1.1\n`,
+				`packages: []\nregistry: ${registry}\ncatalog:\n  "${NAME}": ${engine.pin}\n  "${UNRELATED}": 1.0.0\n  effect: 4.1.1\n`,
 			);
-			yield* writeJson(join(starter, "published-versions.json"), { [NAME]: engine.pin });
+			yield* writeJson(join(starter, "published-versions.json"), { [NAME]: engine.pin, [UNRELATED]: "1.0.0" });
 			yield* writeJson(join(engine.pkg.directory, "package.json"), engine.pkg.manifest);
 			yield* command(engine.pkg.directory, "pnpm", ["pack", "--out", engine.pkg.tarball]);
+			yield* writeJson(join(engine.unrelated.directory, "package.json"), { ...engine.unrelated.manifest, description: "built by the pull request" });
+			yield* command(engine.unrelated.directory, "pnpm", ["pack", "--out", engine.unrelated.tarball]);
 			yield* packTemplate(starter, join(engine.generator, "template.json"));
 			const archive = join(engine.root, "create-app.tgz");
 			yield* command(engine.generator, "pnpm", ["pack", "--out", archive]);
 			engine.packages = [
 				engine.pkg,
+				engine.unrelated,
 				{ directory: engine.generator, manifest: { name: "@shivaedev/create-app", version: "1.0.0" }, tarball: archive },
 			];
 			engine.registry = registry;
@@ -41,7 +45,8 @@ export const pinnedApp = storyKit({
 		const starter = join(root, "examples/starter");
 		const generator = join(root, "generator-source");
 		const workspace = join(root, "workspace");
-		for (const directory of [starter, generator, workspace]) {
+		const unrelated = join(root, "workspace-unrelated");
+		for (const directory of [starter, generator, workspace, unrelated]) {
 			yield* fs.makeDirectory(directory, { recursive: true });
 		}
 		yield* fs.symlink(join(process.cwd(), "script"), join(root, "script"));
@@ -61,7 +66,7 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 `,
 		);
 		yield* writeJson(join(starter, "package.json"), {
-			dependencies: { [NAME]: "catalog:", effect: "catalog:" },
+			dependencies: { [NAME]: "catalog:", [UNRELATED]: "catalog:", effect: "catalog:" },
 			devDependencies: {},
 			engines: {},
 			imports: {},
@@ -92,29 +97,67 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 			tarball: join(root, "workspace.tgz"),
 		};
 		const packages: Package[] = [];
-		return { generator, packages, peer: "4.1.1", pin: "1.0.0", pkg, registry: "", root };
+		const logs: unknown[] = [];
+		return {
+			folder: "",
+			generator,
+			logs,
+			packages,
+			peer: "4.1.1",
+			pin: "1.0.0",
+			pkg,
+			registry: "",
+			root,
+			unrelated: { directory: unrelated, manifest: { name: UNRELATED, version: "1.0.0" }, tarball: join(root, "unrelated.tgz") } satisfies Package,
+		};
 	},
 	layer: NodeServices.layer,
 	name: "packed starter against npm pins",
 	stages: ["source"],
 	verbs: (engine, story) => ({
+		archiveInstalls: () =>
+			Effect.sync(() =>
+				engine.logs
+					.flat()
+					.map(String)
+					.filter((line) => line.includes("from the workspace archive")),
+			),
 		check: Effect.fn("PinnedApp.check")(function* () {
 			story.tell("Packed starter generates and installs the app, then runs its CI");
 			return yield* Effect.gen(function* () {
 				const { folder } = yield* generateStarter(engine.root, engine.root, engine.packages);
+				engine.folder = folder;
 				yield* runStarter(join(engine.root, folder), "postgres://localhost/starter-story");
 			}).pipe(
 				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ "npm_config_registry": engine.registry }))),
+				Effect.provide(Logger.layer([Logger.make(({ message }) => engine.logs.push(message))])),
 				Effect.match({ onFailure: (error) => error.message, onSuccess: () => "passed" }),
 			);
+		}),
+		installedUnrelated: Effect.fn("PinnedApp.installedUnrelated")(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const manifest = yield* fs.readFileString(join(engine.root, engine.folder, "node_modules", UNRELATED, "package.json"));
+			return manifest.includes("built by the pull request") ? "the pull request's archive" : "npm";
 		}),
 	}),
 });
 
-export const effectPeerMismatch = pinnedApp.trait("source", "npm requires Effect 4.1.0 while the starter and workspace require 4.1.1", (engine) =>
-	Effect.sync(() => {
-		engine.peer = "4.1.0";
-	}),
+export const effectPeerMismatch = pinnedApp.trait(
+	"source",
+	"npm and the pull request require Effect 4.1.0 while the starter requires 4.1.1",
+	(engine) =>
+		Effect.sync(() => {
+			engine.peer = "4.1.0";
+			engine.pkg = { ...engine.pkg, manifest: { ...engine.pkg.manifest, peerDependencies: { effect: "4.1.0" } } };
+		}),
+);
+export const effectCatalogUpdate = pinnedApp.trait(
+	"source",
+	"the pull request moves the Effect peer and the starter to 4.1.1 while npm still requires 4.1.0",
+	(engine) =>
+		Effect.sync(() => {
+			engine.peer = "4.1.0";
+		}),
 );
 export const unreleasedPin = pinnedApp.trait("source", "the starter pins an unreleased version with compatible declarations and peers", (engine) =>
 	Effect.sync(() => {
