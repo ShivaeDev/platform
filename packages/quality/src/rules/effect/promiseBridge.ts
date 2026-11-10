@@ -28,7 +28,9 @@ export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<st
 			return undefined;
 		}
 		const name = packageNameOf(specifier);
-		return name === "effect" || name.startsWith("@effect/") || name.startsWith("node:") || workspace.has(name) ? undefined : specifier;
+		return name === "effect" || name.startsWith("@effect/") || name.startsWith("@shivaedev/") || name.startsWith("node:") || workspace.has(name)
+			? undefined
+			: specifier;
 	}
 	function bridged(callback: ts.Node): string | undefined {
 		const root = ts.isExpression(callback) && !ts.isFunctionLike(callback) ? rootIdentifier(callback) : undefined;

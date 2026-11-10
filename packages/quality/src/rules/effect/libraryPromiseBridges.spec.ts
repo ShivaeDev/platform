@@ -60,3 +60,23 @@ ruleStory.it(
 	},
 	CLI_TIMEOUT,
 );
+
+ruleStory.it(
+	"effect/boundary accepts a bridge in core code over a binding imported from an installed @shivaedev package",
+	[
+		repositoryHas(
+			{ content: '{"dependencies":{"@shivaedev/test-story":"*"}}', path: "package.json" },
+			{ content: '{"name":"@shivaedev/test-story","types":"visit.d.ts"}', path: "node_modules/@shivaedev/test-story/package.json" },
+			{ content: "export declare function visit(url: string): Promise<string>;", path: "node_modules/@shivaedev/test-story/visit.d.ts" },
+			{
+				content:
+					'import { Effect } from "effect";\nimport { visit } from "@shivaedev/test-story/visit.ts";\nexport const page = Effect.tryPromise(() => visit("/"));',
+				path: "src/work.ts",
+			},
+		),
+	],
+	function* ({ check }) {
+		yield* assertThat(yield* check(effectBoundary), (actual) => actual.toEqual([]));
+	},
+	CLI_TIMEOUT,
+);

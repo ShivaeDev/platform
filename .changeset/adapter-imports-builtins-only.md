@@ -4,7 +4,7 @@
 
 ### Added
 
-- `effect/boundary` reports an `Effect.promise` or `Effect.tryPromise` bridge outside `adapters/` and `test-support/` whose callback calls a binding imported from an outside library. Move that bridge into a module under `adapters/` that returns an Effect.
+- `effect/boundary` reports an `Effect.promise` or `Effect.tryPromise` bridge outside `adapters/` and `test-support/` whose callback calls a binding imported from an outside library: any import other than `effect`, `@effect/*`, `@shivaedev/*`, a workspace package, a relative path, a `#` alias or a Node builtin. Move that bridge into a module under `adapters/` that returns an Effect.
 
 ### Changed
 
