@@ -1,4 +1,6 @@
 import { Effect, Stream } from "effect";
+import type { Key } from "@shivaedev/changes/keys.ts";
+import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
@@ -6,6 +8,45 @@ import { LiveServer } from "#live-server/service.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
+import type { QueryRequest } from "#serverMetadata.ts";
+
+function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>, replaceKeys: (keys: readonly Key[]) => void) {
+	let scopes = subscription.scopes;
+	const recorded = subscription.queries.map((): readonly Key[] => []);
+	const recording = subscription.queries.map((): readonly Key[] => []);
+	function merged() {
+		return scopes.map((declared, index) => [...declared, ...(recorded[index] ?? [])]);
+	}
+	function register() {
+		replaceKeys([...merged(), ...recording].flat());
+	}
+	function recordInto(run: Key[]) {
+		return (keys: readonly Key[]) =>
+			Effect.sync(() => {
+				run.push(...keys);
+				register();
+			});
+	}
+	function keep(index: number, run: readonly Key[]) {
+		return Effect.sync(() => {
+			recorded[index] = run;
+			recording[index] = [];
+		});
+	}
+	function recordingRead(request: QueryRequest) {
+		const index = subscription.queries.indexOf(request);
+		const run: Key[] = [];
+		recording[index] = run;
+		return read(request).pipe(
+			Effect.provideService(ReadRecorder, recordInto(run)),
+			Effect.tap(() => keep(index, run)),
+		);
+	}
+	function replaceScopes(next: readonly (readonly Key[])[]) {
+		scopes = next;
+	}
+	return { merged, recordingRead, register, replaceScopes };
+}
 
 function subscribeQueries<E, R>(
 	subscription: QuerySubscription<E, R>,
@@ -17,18 +58,18 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 		const hints = yield* server.register(subscription.keys);
 		return hints.pipe(
 			Stream.flatMap((registration) => {
-				let scopes = subscription.scopes;
-				let compare = compareQueries(subscription, read);
+				const keys = subscriptionKeys(subscription, read, registration.replaceKeys);
+				let compare = compareQueries(subscription, keys.recordingRead);
 				const next = Effect.fnUntraced(function* (hint: LiveHint) {
 					if (!(yield* subscription.authorized)) {
-						compare = compareQueries(subscription, read, false);
+						compare = compareQueries(subscription, keys.recordingRead, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
-					const updates = yield* compare(hint, scopes);
+					const updates = yield* compare(hint, keys.merged());
 					if (subscription.readScopes !== undefined) {
-						scopes = yield* subscription.readScopes;
-						registration.replaceKeys(scopes.flat());
+						keys.replaceScopes(yield* subscription.readScopes);
 					}
+					keys.register();
 					return updates;
 				});
 				return registration.stream.pipe(

@@ -149,6 +149,21 @@ The SQL binding reads these declarations with `declaredBuckets(model.fields)` an
 
 Query read policies belong to the contract. The query checks its session viewer before its record or bucket scope can become a subscription; a change key grants no read permission. See the [contract query guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#query-policies-record-keys-and-buckets).
 
+### Record what a live read listens on
+
+A read can name the keys it listens on from its own arguments, before it sends its statement. `recordRead(keys)` from `@shivaedev/changes/readRecorder.ts` passes them to the `ReadRecorder` in the current context. A live query subscription from `@shivaedev/contract` provides one around each run of a query and registers every recorded key with the host the moment it is recorded, next to the keys the query declares; outside a live run the default recorder does nothing.
+
+```ts
+import { recordRead } from "@shivaedev/changes/readRecorder.ts";
+
+yield* recordRead([books.bucket.shelf(shelf)]);
+const rows = yield* sql`select title from books where shelf = ${shelf}`;
+```
+
+Record the key before the statement it belongs to, never from the rows a statement returned. A key learned from an earlier statement, like `shelf` here, is recorded before the later statement that reads by it.
+
+Live query handlers read at READ COMMITTED, PostgreSQL's default, which statements and plain Effect SQL transactions keep. Each statement then takes its own snapshot when it starts, after the key recorded before it is registered. A commit to that key either lands before the snapshot, so the statement reads it, or after it, so its notification reaches the registered key and the query runs again. Under REPEATABLE READ or SERIALIZABLE a transaction keeps the snapshot of its first statement, so a commit landing between that statement and a later key's registration can be missed; such handlers keep their keys in the query's declared reads.
+
 ### Group already-autocommitted writes
 
 ```ts
@@ -209,15 +224,16 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module                          | Names                                                                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
-| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
-| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                                   |
-| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                                  |
-| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                                |
-| `@shivaedev/changes/keys.ts`    | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
-| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
+| Module                               | Names                                                                                                                                                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/changes/channel.ts`      | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
+| `@shivaedev/changes/frame.ts`        | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
+| `@shivaedev/changes/capture.ts`      | `makeCapture`, `Capture`                                                                                                                                                   |
+| `@shivaedev/changes/observe.ts`      | `Observation`, `Observer`                                                                                                                                                  |
+| `@shivaedev/changes/publish.ts`      | `Publish`, `PublishFailure`                                                                                                                                                |
+| `@shivaedev/changes/keys.ts`         | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
+| `@shivaedev/changes/buckets.ts`      | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
+| `@shivaedev/changes/readRecorder.ts` | `ReadRecorder`, `recordRead`                                                                                                                                               |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 
