@@ -37,6 +37,8 @@ const runFixtures = {
 	runInfrastructureRejection: 'RejectionsRunNeverRaises<"listsInfrastructure", "QueryReadDenied">',
 	runMissingRejection: 'RunFailsOutsideRejections<"forgetsTitleTaken", "TitleTaken">',
 	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
+	runNestedClassArray: 'SuccessClassNotReturned<"listsPlainNotes", { id: number; title: string; }, Note>',
+	runNestedClassField: 'SuccessClassNotReturned<"createsPlainNote", { id: number; title: string; }, Note>',
 	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
 	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
 	runRejectionClass: 'RejectionClassDiffers<"raisesOtherTitleTaken", "TitleTaken">',
@@ -46,8 +48,17 @@ const runFixtures = {
 } as const;
 
 const moduleFixtures = {
+	moduleMissingFromWire: ["missingFromWire", 'OperationMissingFromWire<"count", "the generated file is stale; run pnpm generate">'],
 	modulePolicyService: ["owned", 'OperationNeedsUndeclaredServices<"owned", NotesRepository>'],
 	moduleRepeatedName: ["lists", 'OperationNameRepeated<"list">'],
+	moduleStaleRejection: [
+		"staleRejection",
+		'WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">',
+	],
+	moduleStaleSuccess: [
+		"staleSuccess",
+		'WireSuccessStale<"list", "the generated file is stale; run pnpm generate", readonly Note[], readonly { readonly id: number; readonly title: string; }[]>',
+	],
 	moduleUndeclaredRejection: ["creates", 'OperationFailsOutsideItsRejections<"create", "TitleTaken">'],
 	moduleUndeclaredService: ["imports", 'OperationNeedsUndeclaredServices<"importTitle", NoteSource>'],
 } as const;
@@ -118,3 +129,16 @@ for (const [fixture, [module, problem]] of Object.entries(moduleFixtures)) {
 		COMPILER_TIMEOUT,
 	);
 }
+
+compilerStory.it(
+	"tsc rejects a generated client that differs from its server module on the client's assertion, naming the operation and pnpm generate",
+	[],
+	function* ({ compileInvalid }) {
+		const diagnostics = yield* compileInvalid("clientDiffersFromModule");
+
+		expect(diagnostics.split("\n")[0]).toContain(
+			`is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'`,
+		);
+	},
+	COMPILER_TIMEOUT,
+);

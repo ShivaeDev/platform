@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import { defineModule } from "#defineModule.ts";
 import { query } from "#operation.ts";
 import { SessionUser } from "#test/runNotes.ts";
@@ -8,6 +9,7 @@ const reading = {
 		const { id } = yield* SessionUser;
 		return id;
 	},
+	success: Schema.String,
 };
 
 defineModule({

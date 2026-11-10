@@ -1,4 +1,4 @@
-import type { Effect, Schema } from "effect";
+import type { Effect, Option, Schema } from "effect";
 import type { InfrastructureFailure } from "@shivaedev/errors/infrastructure.ts";
 import type { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
@@ -75,18 +75,52 @@ type ReadonlyArrays<T> = T extends readonly (infer TItem)[]
 			? { readonly [TKey in keyof T]: ReadonlyArrays<T[TKey]> }
 			: T;
 
-type SuccessProblem<TName extends string, TSuccess, TReturn> =
-	TSuccess extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
+type Fields<TFields, TReturn, TName extends string> = {
+	readonly [TKey in keyof TFields]: ClassesNotReturned<TName, TFields[TKey], TKey extends keyof TReturn ? TReturn[TKey] : never>;
+}[keyof TFields];
+
+type Elements<TElements extends readonly unknown[], TReturn, TName extends string> = {
+	readonly [TIndex in keyof TElements]: ClassesNotReturned<TName, TElements[TIndex], TIndex extends keyof TReturn ? TReturn[TIndex] : never>;
+}[number];
+
+type Members<TMembers extends readonly unknown[], TReturn, TName extends string> = {
+	readonly [TIndex in keyof TMembers]: TMembers[TIndex] extends Schema.Top
+		? ClassesNotReturned<TName, TMembers[TIndex], Extract<TReturn, TMembers[TIndex]["Type"]>>
+		: never;
+}[number];
+
+// Shapes agree, so TypeScript cannot tell a plain object from a class instance; each position that holds a class must
+// carry exactly that class, or encoding it fails.
+type ClassesNotReturned<TName extends string, TSchema, TReturn> =
+	TSchema extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
 		? Identical<TClass, TReturn> extends true
 			? never
 			: SuccessClassNotReturned<TName, TReturn, TClass>
-		: TSuccess extends Schema.Top
-			? Same<TSuccess["Type"], TReturn> extends true
-				? never
-				: Same<ReadonlyArrays<TSuccess["Type"]>, ReadonlyArrays<TReturn>> extends true
-					? ArrayMutabilityDiffers<TName, "return a readonly array, or declare Schema.mutable for a mutable one">
-					: SuccessDiffersFromRun<TName, TReturn, TSuccess["Type"]>
-			: never;
+		: TSchema extends Schema.$Array<infer TItem> | Schema.NonEmptyArray<infer TItem>
+			? ClassesNotReturned<TName, TItem, TReturn extends readonly (infer TReturned)[] ? TReturned : never>
+			: TSchema extends Schema.mutable<infer TInner> | Schema.optionalKey<infer TInner>
+				? ClassesNotReturned<TName, TInner, Exclude<TReturn, undefined>>
+				: TSchema extends Schema.Struct<infer TFields>
+					? Fields<TFields, TReturn, TName>
+					: TSchema extends Schema.Tuple<infer TElements>
+						? Elements<TElements, TReturn, TName>
+						: TSchema extends Schema.Union<infer TMembers>
+							? Members<TMembers, TReturn, TName>
+							: TSchema extends Schema.$Record<infer _TKey, infer TValue>
+								? ClassesNotReturned<TName, TValue, TReturn[keyof TReturn]>
+								: TSchema extends Schema.Option<infer TValue>
+									? ClassesNotReturned<TName, TValue, TReturn extends Option.Option<infer TReturned> ? TReturned : never>
+									: never;
+
+export type SuccessProblem<TName extends string, TSuccess, TReturn> = TSuccess extends Schema.Top
+	? Same<TSuccess["Type"], TReturn> extends true
+		? ClassesNotReturned<TName, TSuccess, TReturn>
+		: TSuccess extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
+			? SuccessClassNotReturned<TName, TReturn, TClass>
+			: Same<ReadonlyArrays<TSuccess["Type"]>, ReadonlyArrays<TReturn>> extends true
+				? ArrayMutabilityDiffers<TName, "return a readonly array, or declare Schema.mutable for a mutable one">
+				: SuccessDiffersFromRun<TName, TReturn, TSuccess["Type"]>
+	: never;
 
 type Declared<TSpecs> = TSpecs extends ClassRejections ? keyof TSpecs & string : never;
 type AutomaticTags = keyof Automatic;
@@ -99,7 +133,7 @@ type DifferentClasses<TSpecs, E> = {
 		: never;
 }[Declared<TSpecs>];
 
-type RejectionProblem<TName extends string, TSpecs, E> = TSpecs extends undefined
+export type RejectionProblem<TName extends string, TSpecs, E> = TSpecs extends undefined
 	? never
 	: [Extract<Declared<TSpecs>, AutomaticTags>] extends [never]
 		? [Exclude<Tags<Raised<E>>, Declared<TSpecs>>] extends [never]
