@@ -2,7 +2,7 @@ import type { Effect } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
 import type { RequirementRecord } from "@shivaedev/service/ServiceRequirements.ts";
 import { type Contract, contract } from "#contract.ts";
-import type { Allowed, NameProof } from "#ModuleProof.ts";
+import type { Allowed, NameProof } from "#moduleProof.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import type { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
@@ -47,7 +47,10 @@ export type Module<
 	>,
 	readonly [],
 	TScope
-> & { readonly requires: TRequirements };
+> & {
+	// The compiler checks the list and nothing reads it at run time, so, like Rpc's ~requires, it exists only in the type.
+	readonly "~requires": TRequirements;
+};
 
 export interface ModuleDefinition<
 	TName extends string,
@@ -80,7 +83,6 @@ export function defineModule(definition: {
 	readonly middleware?: RpcMiddleware.AnyService;
 	readonly name: string;
 	readonly operations: readonly ModuleOperation[];
-	readonly requires: RequirementRecord;
 	readonly subject?: SubjectDeclaration;
 }): unknown {
 	const group = contract(definition.name, {
@@ -89,5 +91,5 @@ export function defineModule(definition: {
 		...(definition.keyScope === undefined ? {} : { keyScope: definition.keyScope }),
 		...(definition.subject === undefined ? {} : { subject: definition.subject }),
 	});
-	return Object.assign(definition.middleware === undefined ? group : group.middleware(definition.middleware), { requires: definition.requires });
+	return definition.middleware === undefined ? group : group.middleware(definition.middleware);
 }

@@ -39,7 +39,7 @@ const runFixtures = {
 	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
 	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
 	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
-	runRejectionClass: 'RejectionClassDiffers<"raisesSharedNotFound", "NotFound">',
+	runRejectionClass: 'RejectionClassDiffers<"raisesOtherTitleTaken", "TitleTaken">',
 	runReturnsAny: 'RunReturnsAny<"parsesDraft", "decode the value with a schema, or give run\'s return a type">',
 	runSuccessClass: 'SuccessClassNotReturned<"returnsPlainNote", { id: number; title: string; }, Note>',
 	runSuccessDiffers: 'SuccessDiffersFromRun<"leaksRow", StoredNote, { readonly id: number; readonly title: string; }>',

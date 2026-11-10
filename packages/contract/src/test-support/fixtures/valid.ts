@@ -128,7 +128,9 @@ export const RunEveryNote = query("everyNote", {
 	},
 });
 
-export class SessionGuard extends RpcMiddleware.Service<SessionGuard, { provides: RunNotes.SessionUser }>()("fixture/SessionGuard") {}
+export class SessionGuard extends RpcMiddleware.Service<SessionGuard, { provides: RunNotes.SessionUser }>()(
+	"@shivaedev/contract/test/SessionGuard",
+) {}
 export const SessionNotes = defineModule({
 	middleware: SessionGuard,
 	name: "sessionNotes",

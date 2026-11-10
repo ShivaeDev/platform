@@ -65,7 +65,6 @@ export interface RunReturnsAny<TOperation extends string, TFix extends string> {
 
 type Tags<E> = E extends { readonly _tag: infer TTag extends string } ? TTag : never;
 type Same<TLeft, TRight> = [TLeft] extends [TRight] ? ([TRight] extends [TLeft] ? true : false) : false;
-// Mutual assignability lets a class and a plain object of its shape pass, which encode differently; identity does not.
 type Identical<TLeft, TRight> = (<T>() => T extends TLeft ? 1 : 2) extends <T>() => T extends TRight ? 1 : 2 ? true : false;
 type IsAny<T> = 0 extends 1 & T ? true : false;
 type ReadonlyArrays<T> = T extends readonly (infer TItem)[]
@@ -126,7 +125,6 @@ export interface Pending {
 
 type IsPending<TReturn> = [TReturn] extends [never] ? false : [TReturn] extends [Pending] ? true : false;
 
-// Any is assignable to Pending, so it is told apart first; otherwise it would switch every check off.
 export type RunCheck<TName extends string, TSuccess, TSpecs, TReturn, E> =
 	IsAny<TReturn> extends true
 		? { readonly operationProblem: RunReturnsAny<TName, "decode the value with a schema, or give run's return a type"> }

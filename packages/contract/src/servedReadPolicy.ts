@@ -2,7 +2,7 @@ import { Context, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { QueryReadPolicy } from "#readPolicy.ts";
 
-export class ServedReadPolicy extends Context.Service<ServedReadPolicy, QueryReadPolicy<unknown, unknown, unknown>>()(
+export class ServedReadPolicy extends Context.Service<ServedReadPolicy, { readonly check: QueryReadPolicy<unknown, unknown, unknown> }>()(
 	"@shivaedev/contract/ServedReadPolicy",
 ) {}
 
@@ -10,7 +10,7 @@ export class ServedReadPolicy extends Context.Service<ServedReadPolicy, QueryRea
 export function servedReadPolicy(rpc: Rpc.Any) {
 	return Effect.map(Effect.context<never>(), (request) =>
 		Option.flatMap(Context.getOption(request, Context.Service<Rpc.Handler<string>>(rpc.key)), (handler) =>
-			Context.getOption(handler.context, ServedReadPolicy),
+			Option.map(Context.getOption(handler.context, ServedReadPolicy), ({ check }) => check),
 		),
 	);
 }

@@ -72,13 +72,10 @@ export const moduleEngine = Effect.gen(function* () {
 		appHost({
 			config: { port: 0 },
 			group: Notes,
-			handlers: Layer.merge(
-				moduleHandlers(Notes).pipe(Layer.provide([Layer.succeed(NotesStore, store), Layer.succeed(Tracer.Tracer, tracer)])),
-				caller,
-			),
+			handlers: Layer.merge(moduleHandlers(Notes).pipe(Layer.provide(Layer.succeed(NotesStore, store))), caller),
 			policy: "loopback",
 			services: liveServerLayer.pipe(Layer.provideMerge(Layer.succeed(Reactivity.Reactivity, reactivity))),
-		}),
+		}).pipe(Layer.provide(Layer.succeed(Tracer.Tracer, tracer))),
 	);
 	const server = Context.get(services, HttpServer.HttpServer);
 	if (!NetAddress.isInetAddress(server.address)) {

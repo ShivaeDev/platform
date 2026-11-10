@@ -1,5 +1,5 @@
-import { Context, Effect, Layer, Option } from "effect";
-import { Rpc } from "effect/rpc";
+import { Effect, Layer, type Schema } from "effect";
+import { Rpc, RpcGroup, RpcSchema } from "effect/rpc";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { Declared } from "#contract.ts";
@@ -39,12 +39,11 @@ function servedPolicy(rpc: Rpc.AnyWithProps, query: QueryShape): QueryReadPolicy
 	return (payload, viewer) => boundary(Effect.suspend(() => query.readPolicy(payload, viewer)));
 }
 
-// RpcGroup.toLayerHandler cannot type-check a handler against an erased Rpc, whose `any` success schema selects the stream
-// branch of Rpc.ResultFrom, so the entry is built the way toLayerHandler builds it, capturing the Layer's context.
-function handlerLayer(rpc: Rpc.Any, handler: Runnable) {
-	return Layer.effectContext(
-		Effect.map(Effect.context<never>(), (context) => Context.makeUnsafe<Rpc.Handler<string>>(new Map([[rpc.key, { context, handler }]]))),
-	);
+type EffectRpc = Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>;
+
+// An erased Rpc's `any` success schema selects the stream branch of Rpc.ResultFrom, which an Effect handler cannot satisfy.
+function isEffectRpc(rpc: Rpc.Any | undefined): rpc is EffectRpc {
+	return Rpc.isRpc(rpc) && !RpcSchema.isStreamSchema(rpc.successSchema);
 }
 
 export function servedHandlers(
@@ -53,13 +52,15 @@ export function servedHandlers(
 ): Layer.Layer<Rpc.Handler<string>, never, unknown> {
 	const layers = [...declaration.queries, ...declaration.commands].map((operation): Layer.Layer<Rpc.Handler<string>, never, unknown> => {
 		const tag = `${declaration.name}.${operation.name}`;
-		const rpc = Option.fromNullishOr(application.requests.get(tag)).pipe(Option.filter(Rpc.isRpc));
+		const rpc = application.requests.get(tag);
 		const run = runOf(operation);
-		if (Option.isNone(rpc) || run === undefined) {
+		if (!isEffectRpc(rpc) || run === undefined) {
 			return Layer.effectContext(Effect.die(new Error(`Module ${declaration.name} cannot serve ${tag}: it has no RPC or no run`)));
 		}
-		const handler = handlerLayer(rpc.value, served(rpc.value, operation, run, `${spanOwner(declaration.name)}.${operation.name}`));
-		return operation.kind === "query" ? handler.pipe(Layer.provide(Layer.succeed(ServedReadPolicy, servedPolicy(rpc.value, operation)))) : handler;
+		const handler = RpcGroup.make(rpc).toLayerHandler(tag, served(rpc, operation, run, `${spanOwner(declaration.name)}.${operation.name}`));
+		return operation.kind === "query"
+			? handler.pipe(Layer.provide(Layer.succeed(ServedReadPolicy, { check: servedPolicy(rpc, operation) })))
+			: handler;
 	});
 	return Layer.mergeAll(Layer.empty, ...layers);
 }

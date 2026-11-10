@@ -6,15 +6,15 @@ import type { Declared } from "#contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 
 export interface AnyModule {
+	readonly "~requires": RequirementRecord;
 	readonly application: { readonly requests: ReadonlyMap<string, Rpc.Any> };
 	readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
-	readonly requires: RequirementRecord;
 }
 
 export type ModuleHandlers<TModule extends AnyModule> = Layer.Layer<
 	Rpc.ToHandler<RpcGroup.Rpcs<TModule["application"]>>,
 	never,
-	RequirementsOf<TModule["requires"]>
+	RequirementsOf<TModule["~requires"]>
 >;
 
 export function moduleHandlers<TModule extends AnyModule>(module: TModule): ModuleHandlers<TModule>;
