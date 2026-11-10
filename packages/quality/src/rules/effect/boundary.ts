@@ -66,7 +66,7 @@ const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: Rul
 				findings.push({
 					file: file.path,
 					line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). Move a bridge to an outside library into an adapters/ folder, returning Effect values.`,
+					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, bridge it in an adapters/ folder that returns Effect values.`,
 				});
 			}
 			ts.forEachChild(node, visit);
@@ -101,7 +101,7 @@ export const effectBoundary = defineRule({
 			);
 		}),
 	description:
-		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge what a library forces in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });

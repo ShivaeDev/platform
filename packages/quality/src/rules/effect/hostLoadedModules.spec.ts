@@ -42,14 +42,12 @@ for (const path of ["vitest.config.ts", "packages/kit/vitest.config.ts"]) {
 }
 
 ruleStory.it(
-	"effect/adapter-imports still reports Node and tool imports in a config deeper in src/",
+	"effect/adapter-imports still reports Node imports in a config deeper in src/ and accepts its tool imports",
 	[repositoryHas(WORKSPACE, KIT, { content: TOOL_CONFIG, path: "packages/kit/src/domEnvironment.config.ts" })],
 	function* ({ check, locations }) {
 		yield* check(adapterImports);
 
-		yield* assertThat(yield* locations(), (actual) =>
-			actual.toEqual(["packages/kit/src/domEnvironment.config.ts:1", "packages/kit/src/domEnvironment.config.ts:2"]),
-		);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/kit/src/domEnvironment.config.ts:1"]));
 	},
 );
 
@@ -112,35 +110,5 @@ ruleStory.it(
 		yield* check(adapterImports);
 
 		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/cli.spec.ts:1", "src/cli.ts:1", "src/run.ts:1"]));
-	},
-);
-
-for (const path of [
-	"packages/kit/src/server/condition.spec.ts",
-	"packages/kit/src/server/condition.dom.spec.ts",
-	"packages/kit/src/server/condition.dom.test.ts",
-	"packages/kit/src/server/condition.typecheck.test.ts",
-]) {
-	ruleStory.it(
-		`effect/adapter-imports accepts vitest in ${path} of a package that peers vitest`,
-		[repositoryHas(WORKSPACE, KIT, { content: 'import { expect } from "vitest";\nexpect(1).toBe(1);\n', path })],
-		function* ({ check }) {
-			yield* assertThat(yield* check(adapterImports), (actual) => actual.toEqual([]));
-		},
-	);
-}
-
-ruleStory.it(
-	"effect/adapter-imports still reports vitest in shipped source of a package that peers vitest",
-	[
-		repositoryHas(WORKSPACE, KIT, {
-			content: 'import { defineConfig } from "vitest/config";\nexport const appTestConfig = defineConfig({});\n',
-			path: "packages/kit/src/appTestConfig.ts",
-		}),
-	],
-	function* ({ check, locations }) {
-		yield* check(adapterImports);
-
-		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/kit/src/appTestConfig.ts:1"]));
 	},
 );

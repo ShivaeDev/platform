@@ -9,7 +9,7 @@ export const SERVICE_DECLARATION =
 	'import { Context, Effect } from "effect"; export interface StoreShape { readonly read: () => Effect.Effect<string> } export class Store extends Context.Service<Store, StoreShape>()("Store") {}';
 
 const BOUNDARY_GUIDANCE =
-	"Model the work with Effect; fail with a tagged error (or Effect.die for a defect). Move a bridge to an outside library into an adapters/ folder, returning Effect values.";
+	"Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, bridge it in an adapters/ folder that returns Effect values.";
 
 const SERVICE_GUIDANCE =
 	"Read services from Effect's environment instead of passing them; return an Effect or Stream with requirements. Service implementation methods and Layer constructors are accepted; only test-support/ folders are exempt, not adapters/.";

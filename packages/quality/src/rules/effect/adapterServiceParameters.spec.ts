@@ -8,13 +8,15 @@ import { serviceKitFiles, serviceKitResolves } from "#test/serviceKitFiles.ts";
 
 const repository = ruleCases.repository(effectResolves());
 
-ruleCases.it(
-	"service parameters accepts a foreign server constructed and passed inside an adapter",
-	[repository.has(...adapterServiceFiles)],
-	function* ({ check }) {
-		expect(yield* check(serviceParameters)).toEqual([]);
-	},
-);
+for (const path of ["apps/desktop/script/adapters/renderer-tooling.ts", "apps/desktop/script/renderer-tooling.ts"]) {
+	ruleCases.it(
+		`service parameters accepts a foreign server constructed and passed in ${path}`,
+		[repository.has(...adapterServiceFiles.map((file) => (file.path.endsWith("renderer-tooling.ts") ? { ...file, path } : file)))],
+		function* ({ check }) {
+			expect(yield* check(serviceParameters)).toEqual([]);
+		},
+	);
+}
 
 ruleCases.it(
 	"service parameters follows construction through a local foreign acquisition helper",
