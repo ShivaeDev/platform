@@ -1,0 +1,12 @@
+# @shivaedev/build
+
+You are changing the package that owns an application's build setup. Its first job is the generator: an operation is written as `payload` and `*run`, types are erased, and the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. The generator reads `run`'s types through the type checker and writes them, with the browser's contract, into one file per defined module. Nobody reviews that file, so it must be right by construction: what the type says and what the browser receives are exactly the same.
+
+When goals conflict, lean in this order:
+1. **Exact or refused.** Every wire form has a schema whose `Type` is exactly the TypeScript type and a round-trip test that its values survive Effect's JSON codec. A type without one is refused with a message that names the operation, the type, its path and what to write instead. Never emit a looser schema, and never add a leniency the maintainer has not decided.
+2. **By declaration, not by shape.** The type system compares classes by shape; the generator does not. A rejection is the class `run` raises, imported from where it is declared, and a class instance travels as its class while a same-shaped interface travels as a struct.
+3. **Copied as written.** Payloads, `reads`, `invalidates` and the module's middleware, subject and key scope are the application's own code with their own imports. Refuse what the generated file cannot import rather than rewriting it.
+4. **Cheap to run again.** A project generates before it reads the files, so an unchanged run must build no program, write nothing and take no heavy lock. The cache key covers every input that can change the output.
+5. **Effect at the core, the compiler at the edge.** TypeScript's API and anything that throws stay in `adapters/`; the core decides from plain facts.
+
+Usage is in [README.md](./README.md). Contract owns the operation, module and wire types and the compiler checks that keep a generated file current; follow the [root guidance](../../AGENTS.md) for the neighbouring packages' jobs.
