@@ -127,6 +127,30 @@ export const RunEveryNote = query("everyNote", {
 		return id;
 	},
 });
+export class RevisionAuthor extends Schema.Class<RevisionAuthor>("RevisionAuthor")({ name: Schema.String }) {}
+const Revision = Schema.Struct({ at: Schema.Number, label: Schema.optionalKey(Schema.String) });
+const Moved = Schema.Struct({ kind: Schema.Literal("moved"), note: Schema.optionalKey(Schema.String) });
+const Renamed = Schema.Struct({ kind: Schema.Literal("renamed"), note: Schema.optionalKey(Schema.String) });
+interface Revision {
+	readonly at: number;
+	readonly label?: string;
+}
+export const RunHistory = query("history", {
+	reads: () => [],
+	*run() {
+		const { id } = yield* RunNotes.SessionUser;
+		const revision: Revision = { at: 1, label: id };
+		const revisions: readonly Revision[] = [revision];
+		const change: { readonly kind: "moved" | "renamed"; readonly note?: string } = { kind: "renamed" };
+		return { author: new RevisionAuthor({ name: id }), change, latest: Option.some(revision), revisions };
+	},
+	success: Schema.Struct({
+		author: RevisionAuthor,
+		change: Schema.Union([Moved, Renamed]),
+		latest: Schema.Option(Revision),
+		revisions: Schema.Array(Revision),
+	}),
+});
 
 export class SessionGuard extends RpcMiddleware.Service<SessionGuard, { provides: RunNotes.SessionUser }>()(
 	"@shivaedev/contract/test/SessionGuard",

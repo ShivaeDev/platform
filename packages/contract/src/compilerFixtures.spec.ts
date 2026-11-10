@@ -33,7 +33,13 @@ const invalidFixtures = {
 } as const;
 
 const runFixtures = {
+	runAddedOptional: 'SuccessDiffersFromRun<"returnsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInArray: 'SuccessDiffersFromRun<"listsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInOption: 'SuccessDiffersFromRun<"latestPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInUnion: 'SuccessDiffersFromRun<"findsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAutomaticRejection: 'RejectionAutomatic<"listsAutomatic", "ServiceUnavailable">',
+	runDroppedOptional:
+		'SuccessDiffersFromRun<"neverPins", { id: number; title: string; }, { readonly id: number; readonly pinned?: boolean | undefined; readonly title: string; }>',
 	runInfrastructureRejection: 'RejectionsRunNeverRaises<"listsInfrastructure", "QueryReadDenied">',
 	runMissingRejection: 'RunFailsOutsideRejections<"forgetsTitleTaken", "TitleTaken">',
 	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
@@ -51,6 +57,10 @@ const moduleFixtures = {
 	moduleMissingFromWire: ["missingFromWire", 'OperationMissingFromWire<"count", "the generated file is stale; run pnpm generate">'],
 	modulePolicyService: ["owned", 'OperationNeedsUndeclaredServices<"owned", NotesRepository>'],
 	moduleRepeatedName: ["lists", 'OperationNameRepeated<"list">'],
+	moduleStaleOptional: [
+		"staleOptional",
+		'WireSuccessStale<"latest", "the generated file is stale; run pnpm generate", PinnableNote, { readonly id: number; readonly title: string; }>',
+	],
 	moduleStaleRejection: [
 		"staleRejection",
 		'WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">',

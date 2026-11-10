@@ -28,16 +28,16 @@ type ReadonlyArrays<T> = T extends readonly (infer TItem)[]
 			: T;
 
 type Fields<TName extends string, TFields, TReturn> = {
-	readonly [TKey in keyof TFields]: ClassesNotReturned<TName, TFields[TKey], TKey extends keyof TReturn ? TReturn[TKey] : never>;
+	readonly [TKey in keyof TFields]: NotEncodedAsReturned<TName, TFields[TKey], TKey extends keyof TReturn ? TReturn[TKey] : never>;
 }[keyof TFields];
 
 type Elements<TName extends string, TElements extends readonly unknown[], TReturn> = {
-	readonly [TIndex in keyof TElements]: ClassesNotReturned<TName, TElements[TIndex], TIndex extends keyof TReturn ? TReturn[TIndex] : never>;
+	readonly [TIndex in keyof TElements]: NotEncodedAsReturned<TName, TElements[TIndex], TIndex extends keyof TReturn ? TReturn[TIndex] : never>;
 }[number];
 
 type Members<TName extends string, TMembers extends readonly unknown[], TReturn> = {
 	readonly [TIndex in keyof TMembers]: TMembers[TIndex] extends Schema.Top
-		? ClassesNotReturned<TName, TMembers[TIndex], Extract<TReturn, TMembers[TIndex]["Type"]>>
+		? NotEncodedAsReturned<TName, TMembers[TIndex], Extract<TReturn, TMembers[TIndex]["Type"]>>
 		: never;
 }[number];
 
@@ -45,27 +45,37 @@ type InCollection<TName extends string, TSchema, TReturn> =
 	TSchema extends Schema.Union<infer TMembers>
 		? Members<TName, TMembers, TReturn>
 		: TSchema extends Schema.$Record<infer _TKey, infer TValue>
-			? ClassesNotReturned<TName, TValue, TReturn[keyof TReturn]>
+			? NotEncodedAsReturned<TName, TValue, TReturn[keyof TReturn]>
 			: TSchema extends Schema.Option<infer TValue>
-				? ClassesNotReturned<TName, TValue, TReturn extends Option.Option<infer TReturned> ? TReturned : never>
+				? NotEncodedAsReturned<TName, TValue, TReturn extends Option.Option<infer TReturned> ? TReturned : never>
 				: never;
+
+type KeysOf<T> = T extends unknown ? keyof T : never;
+
+// Mutual assignability lets an optional property exist on one side only, and a Struct encodes only the keys it declares.
+// A union member that no return member extends alone, as when the returned discriminant is itself a union, has no keys to compare.
+type KeysDiffer<TName extends string, TType, TReturn> = [TReturn] extends [never]
+	? never
+	: Same<keyof TType, KeysOf<TReturn>> extends true
+		? never
+		: SuccessDiffersFromRun<TName, TReturn, TType>;
 
 type InComposite<TName extends string, TSchema, TReturn> =
 	TSchema extends Schema.Struct<infer TFields>
-		? Fields<TName, TFields, TReturn>
+		? Fields<TName, TFields, TReturn> | KeysDiffer<TName, Schema.Struct<TFields>["Type"], TReturn>
 		: TSchema extends Schema.Tuple<infer TElements>
 			? Elements<TName, TElements, TReturn>
 			: InCollection<TName, TSchema, TReturn>;
 
 type InContainer<TName extends string, TSchema, TReturn> = TSchema extends Schema.$Array<infer TItem> | Schema.NonEmptyArray<infer TItem>
-	? ClassesNotReturned<TName, TItem, TReturn extends readonly (infer TReturned)[] ? TReturned : never>
+	? NotEncodedAsReturned<TName, TItem, TReturn extends readonly (infer TReturned)[] ? TReturned : never>
 	: TSchema extends Schema.mutable<infer TInner> | Schema.optionalKey<infer TInner>
-		? ClassesNotReturned<TName, TInner, Exclude<TReturn, undefined>>
+		? NotEncodedAsReturned<TName, TInner, Exclude<TReturn, undefined>>
 		: InComposite<TName, TSchema, TReturn>;
 
-// Shapes agree, so TypeScript cannot tell a plain object from a class instance; each position that holds a class must
-// carry exactly that class, or encoding it fails.
-type ClassesNotReturned<TName extends string, TSchema, TReturn> =
+// Shapes agree, yet encoding still depends on what each position holds: a class position must carry exactly that class,
+// or encoding it fails, and a struct position must carry exactly its keys, or a key is lost on the wire.
+type NotEncodedAsReturned<TName extends string, TSchema, TReturn> =
 	TSchema extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
 		? Identical<TClass, TReturn> extends true
 			? never
@@ -74,7 +84,7 @@ type ClassesNotReturned<TName extends string, TSchema, TReturn> =
 
 export type SuccessProblem<TName extends string, TSuccess, TReturn> = TSuccess extends Schema.Top
 	? Same<TSuccess["Type"], TReturn> extends true
-		? ClassesNotReturned<TName, TSuccess, TReturn>
+		? NotEncodedAsReturned<TName, TSuccess, TReturn>
 		: TSuccess extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
 			? SuccessClassNotReturned<TName, TReturn, TClass>
 			: Same<ReadonlyArrays<TSuccess["Type"]>, ReadonlyArrays<TReturn>> extends true
