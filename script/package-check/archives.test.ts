@@ -3,7 +3,13 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveInventory } from "#package-check/test-support/archiveInventory.ts";
 import { archives } from "#package-check/test-support/archives.ts";
-import { aliasedExport, executableExport, selectedPattern, sharedExport } from "#package-check/test-support/exportTraits.ts";
+import {
+	aliasedExport,
+	executableExport,
+	publishedExecutableExport,
+	selectedPattern,
+	sharedExport,
+} from "#package-check/test-support/exportTraits.ts";
 import { claudePlugin, privateAddon } from "#package-check/test-support/privateAddon.ts";
 
 archives.it("accepts shared archives from this commit with their packed checksums", [privateAddon], function* ({ verify }) {
@@ -42,6 +48,17 @@ archives.it("checks mapped executables without importing them as library entries
 		["consumer entries", () => consumerEntries(), [{ blocked: [], exported: [{ json: false, specifier: "board/board.ts" }] }]],
 	]);
 });
+
+archives.it(
+	"checks the published executable without importing it when the workspace bin runs a source launcher",
+	[publishedExecutableExport],
+	function* ({ check, consumerEntries }) {
+		yield* outcomes([
+			["consumer check", () => check(), undefined],
+			["consumer entries", () => consumerEntries(), [{ blocked: [], exported: [{ json: false, specifier: "board/board.ts" }] }]],
+		]);
+	},
+);
 
 archives.it("keeps exact shared exports out of blocked consumer entries", [sharedExport], function* ({ consumerEntries }) {
 	expect(yield* consumerEntries()).toEqual([

@@ -38,6 +38,27 @@ export const executableExport = exportTraits(
 	},
 );
 
+export const publishedExecutableExport = exportTraits(
+	"a workspace bin runs a source launcher and publishConfig packs the executable that shares an export pattern",
+	{
+		bin: { board: "./bin/source.ts" },
+		exports: {
+			"./*.ts": { "@shivaedev/source": "./src/server/*.ts", import: "./dist/server/*.js" },
+		},
+		files: ["dist", "src"],
+		name: "board",
+		publishConfig: { bin: { board: "./dist/server/cli.js" } },
+		version: "1.0.0",
+	},
+	{
+		"bin/source.ts": 'import "#cli.ts";',
+		"dist/server/board.js": "export {};",
+		"dist/server/cli.js": "process.exit(1);",
+		"src/server/board.ts": "export {};",
+		"src/server/cli.ts": "export {};",
+	},
+);
+
 export const sharedExport = exportTraits(
 	"an exact shared export sits beneath a blocked folder pattern",
 	{
