@@ -5,10 +5,10 @@ import { cachedOutput, recordOutput } from "#cache.ts";
 import { emit } from "#emit.ts";
 import { readIfPresent, writeAtomically } from "#files.ts";
 import { inputKey } from "#inputs.ts";
-import { settleOrphans } from "#orphans.ts";
 import { plan } from "#plan.ts";
 import { moduleFiles, openProject } from "#project.ts";
 import { GenerateFailed, type GenerateReport, type ModuleOutcome, problemOf } from "#report.ts";
+import { settleOrphans } from "#settleOrphans.ts";
 
 export interface GenerateOptions {
 	// Writes nothing and fails when a generated file is missing or differs from what generate would write.

@@ -20,7 +20,6 @@ export interface DeclaredClass {
 
 export type Literal = string | number | boolean;
 
-// Each is the name of the Schema member whose Type it is exactly, such as Schema.DateTimeUtc.
 export type Primitive = "BigInt" | "Boolean" | "Date" | "DateTimeUtc" | "Null" | "Number" | "String" | "Undefined" | "Void";
 
 export interface Field {

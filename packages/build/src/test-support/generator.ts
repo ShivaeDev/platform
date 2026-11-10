@@ -55,7 +55,6 @@ const importedFrom = Effect.fn("BuildStory.importedFrom")(function* (engine: Gen
 	return imported;
 });
 
-// The success schema the notes module's generated file gives an operation, as the server and the browser import it.
 const notesSuccess = Effect.fn("BuildStory.notesSuccess")(function* (engine: GeneratorEngine, operation: string) {
 	const generated = yield* importedFrom(engine, NOTES_WIRE);
 	const wire = Predicate.hasProperty(generated, "notesWire") ? generated.notesWire : undefined;

@@ -5,15 +5,13 @@ import { moduleCalls } from "#adapters/moduleCalls.ts";
 import { moduleFacts } from "#adapters/moduleFacts.ts";
 import { BuildFailure } from "#BuildFailure.ts";
 
-export const typeScriptVersion = ts.version;
-
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.
 	readonly chain: readonly string[];
-	// The project's declaration files, which every program reads beside the modules' own imports.
 	readonly declarations: readonly string[];
 	readonly files: readonly string[];
 	readonly options: ts.CompilerOptions;
+	readonly typeScriptVersion: string;
 }
 
 function diagnosticText(diagnostics: readonly ts.Diagnostic[]): string {
@@ -38,6 +36,7 @@ export const readConfig = Effect.fn("Build.readConfig")(function* (tsconfig: str
 		declarations: parsed.config.fileNames.filter((file) => file.endsWith(".d.ts")),
 		files: parsed.config.fileNames,
 		options: parsed.config.options,
+		typeScriptVersion: ts.version,
 	};
 	return config;
 });

@@ -15,7 +15,6 @@ export interface GenerateReport {
 	readonly programBuilt: boolean;
 }
 
-// Under --check, a file that generate would write or remove.
 export function problemOf({ module, output, status }: ModuleOutcome): string | undefined {
 	switch (status) {
 		case "missing":
