@@ -1,34 +1,61 @@
 import { Effect, Option, type Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
-import { collectionInvalidationKeys, compositeId, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
+import { declaredBuckets, decodeBucketValue } from "@shivaedev/changes/buckets.ts";
+import { collectionInvalidationKeys, compositeId, type Identity, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
 
-export const repositoryChanges = Effect.fnUntraced(function* (table: string, columns: readonly string[], fields: Schema.Struct.Fields = {}) {
+export const repositoryChanges = Effect.fnUntraced(function* (
+	table: string,
+	columns: readonly string[],
+	fields: Schema.Struct.Fields = {},
+	tuples: Readonly<Record<string, readonly string[]>> = {},
+) {
 	const sql = yield* SqlClient.SqlClient;
-	const buckets = declaredBuckets(fields);
+	const declared = [
+		...declaredBuckets(fields).map(({ field }) => ({ columns: [field], field, tuple: false })),
+		...Object.entries(tuples).map(([field, tupleColumns]) => ({ columns: tupleColumns, field, tuple: true })),
+	];
+	const columnParts = new Map(
+		[...new Set(declared.flatMap((bucket) => bucket.columns))].flatMap((column, index) => {
+			const schema = fields[column];
+			return schema === undefined ? [] : [[column, { column, decode: decodeBucketValue(schema), old: `shivaeOldBucket${index}` }] as const];
+		}),
+	);
+	const buckets = declared.map((bucket) => ({ ...bucket, parts: bucket.columns.flatMap((column) => columnParts.get(column) ?? []) }));
+	const bucketValue = Effect.fnUntraced(function* (
+		row: Readonly<Record<string, unknown>>,
+		{ parts, tuple }: (typeof buckets)[number],
+		side: "column" | "old",
+	) {
+		const values: Identity[] = [];
+		for (const part of parts) {
+			const stored = row[part[side]];
+			const decoded = stored === null || stored === undefined ? undefined : yield* part.decode(stored);
+			if (decoded === null || decoded === undefined) {
+				return undefined;
+			}
+			values.push(decoded);
+		}
+		return tuple ? compositeId(values) : values[0];
+	});
 	const bucketKeys = Effect.fnUntraced(function* (row: Readonly<Record<string, unknown>>) {
 		const keys: Key[] = [];
-		for (const [index, { field, decode }] of buckets.entries()) {
-			for (const value of [row[field], row[`shivaeOldBucket${index}`]]) {
-				if (value === null || value === undefined) {
-					continue;
+		for (const bucket of buckets) {
+			for (const side of ["column", "old"] as const) {
+				const value = yield* bucketValue(row, bucket, side);
+				if (value !== undefined) {
+					keys.push({ _tag: "Bucket", collection: table, field: bucket.field, value });
 				}
-				const decoded = yield* decode(value);
-				if (decoded === null || decoded === undefined) {
-					continue;
-				}
-				keys.push({ _tag: "Bucket", collection: table, field, value: decoded });
 			}
 		}
 		return invalidationKeys(keys);
 	});
 	function returning(base = sql`*`) {
-		return sql.csv([base, ...buckets.map(({ field }, index) => sql`old.${sql(field)} as ${sql(`shivaeOldBucket${index}`)}`)]);
+		return sql.csv([base, ...[...columnParts.values()].map(({ column, old }) => sql`old.${sql(column)} as ${sql(old)}`)]);
 	}
 	const initial = yield* Effect.serviceOption(Reactivity.Reactivity);
 	const fallback = Option.isSome(initial) ? initial.value : yield* Reactivity.make;

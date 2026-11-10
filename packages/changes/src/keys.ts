@@ -67,26 +67,47 @@ export const Key = Schema.Union([
 ]);
 
 type BucketFields = Readonly<Record<string, Schema.Top & { readonly Type: Identity }>>;
-export interface Collection<TName extends string, TId extends Identity, TFields extends BucketFields = Record<never, never>> {
-	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => BucketKey<TName> };
+type BucketTuples = Readonly<Record<string, readonly [string, string, ...string[]]>>;
+type TupleValues<TFields extends BucketFields, TColumns extends readonly string[]> = {
+	readonly [TColumn in TColumns[number]]: TColumn extends keyof TFields ? TFields[TColumn]["Type"] : Identity;
+};
+export interface Collection<
+	TName extends string,
+	TId extends Identity,
+	TFields extends BucketFields = Record<never, never>,
+	TTuples extends BucketTuples = Record<never, never>,
+> {
+	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => BucketKey<TName> } & {
+		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => BucketKey<TName>;
+	};
 	readonly item: (id: TId) => ItemKey<TName>;
 	readonly list: ListKey<TName>;
 	readonly name: TName;
+	readonly tuples: TTuples;
 }
 
 export function collection<
 	const TName extends string,
 	TId extends Schema.Top & { readonly Type: Identity },
 	const TFields extends BucketFields = Record<never, never>,
->(name: TName, _id: TId, fields?: TFields): Collection<TName, TId["Type"], TFields>;
-export function collection(name: string, _id: Schema.Top, fields: BucketFields = {}) {
+	const TTuples extends BucketTuples & { readonly [TField in keyof TFields]?: never } = Record<never, never>,
+>(name: TName, _id: TId, fields?: TFields, tuples?: TTuples): Collection<TName, TId["Type"], TFields, TTuples>;
+export function collection(name: string, _id: Schema.Top, fields: BucketFields = {}, tuples: BucketTuples = {}) {
+	function bucket(field: string, value: Identity): BucketKey {
+		return { _tag: "Bucket", collection: name, field, value };
+	}
 	return {
-		bucket: Object.fromEntries(
-			Object.keys(fields).map((field) => [field, (value: Identity): BucketKey => ({ _tag: "Bucket", collection: name, field, value })]),
-		),
+		bucket: Object.fromEntries([
+			...Object.keys(fields).map((field) => [field, (value: Identity) => bucket(field, value)]),
+			...Object.entries(tuples).map(([field, columns]) => [
+				field,
+				(values: Readonly<Record<string, Identity>>) => bucket(field, compositeId(columns.map((column) => values[column]))),
+			]),
+		]),
 		item: (id: Identity): ItemKey => ({ _tag: "Item", collection: name, id }),
 		list: { _tag: "List", collection: name },
 		name,
+		tuples,
 	};
 }
 

@@ -13,6 +13,20 @@ for (const kind of ["boolean", "bigint", "date", "object", "mixed union", "unkno
 	});
 }
 
+for (const column of ["missing", "flag"] as const) {
+	bucketRegistration.it(
+		`registration refuses a tuple bucket over the ${column} column before any write`,
+		[],
+		function* ({ registerTuple, registration }) {
+			yield* registerTuple(column);
+
+			expect(yield* registration()).toBe(
+				`BucketRegistrationError: Bucket registration for bucket_registration: tuple columns ["ownerTuple.${column}"] must be model fields that decode to strings, numbers or absent values`,
+			);
+		},
+	);
+}
+
 bucketSubscribers.it(
 	"a committed write refreshes query results for text-stored numeric zero and string buckets",
 	[],

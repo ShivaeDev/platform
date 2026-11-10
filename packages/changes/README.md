@@ -126,6 +126,15 @@ const invalidations = invalidationKeys(keys);
 
 Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes when the writer names it; SQL repositories derive those names from model fields marked with `bucket`. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. Use `collectionInvalidationKeys(name)` to refresh all list, item and bucket readers of a collection when a bulk operation cannot name individual rows. Item and bucket dependencies include a collection wildcard for these refreshes; ordinary item and bucket invalidations remain precise. Server keys are shared across sessions; each subscriber’s read policy controls delivery. The channel can buffer these keys until commit just like any other change vocabulary.
 
+A bucket can also span an ordered tuple of columns. Declare it in a fourth argument by name, list its columns in order, and build its key from one value per column:
+
+```ts
+const entries = collection("entries", Schema.Number, { ownerId: Schema.String }, { ownerDay: ["ownerId", "day"] });
+const keys = [entries.bucket.ownerId("alice"), entries.bucket.ownerDay({ ownerId: "alice", day: 1 })];
+```
+
+Use a single-column bucket when readers filter by that one column, and a tuple bucket when they filter by several at once: a reader of alice's entries for day 1 listens on `ownerDay` and stays quiet when alice writes on day 2 or bob writes on day 1, while a reader of all of alice's entries listens on `ownerId`. A tuple key is an ordinary bucket key whose field is the tuple's name and whose value is `compositeId` of the values in declared column order, so readers, writers and subscriptions handle it exactly like any other bucket. A tuple spans at least two columns and cannot reuse the name of a single-column bucket. A column that is also a single-column bucket keeps its declared value type; any other column takes a string or number.
+
 For composite SQL identities, use `compositeId(values)` with stored key values in the repository's `idColumn` order, then pass the resulting string to `collection(name, Schema.String).item(id)`. It encodes the values as a JSON array, with bigint components represented as decimal strings. Repository writes use the same encoder, so the subscriber and writer identify the same record. `recordKey(collection, id)` builds a raw record dependency for native Reactivity; typed item keys use it too.
 
 `bucket(schema)` from `@shivaedev/changes/buckets.ts` declares a model field as a write bucket without changing its schema type or variants:
@@ -136,7 +145,7 @@ import { bucket } from "@shivaedev/changes/buckets.ts";
 const listId = bucket(Schema.NumberFromString);
 ```
 
-The SQL binding reads these declarations with `declaredBuckets(model.fields)` and decodes old and new stored values into the same identity values queries use. Bucket schemas decode to strings, numbers, null or undefined and require no services. Collection declarations reject other value types at compile time. `isBucketSchema(schema)` from `keys.ts` checks the decoded schema shape; `declaredBuckets` exposes that result as `supported` for each field. Absent values contribute no key. See the [SQL guide](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md#transactions-and-invalidation) for repository writes and PostgreSQL requirements.
+The SQL binding reads these declarations with `declaredBuckets(model.fields)` and decodes old and new stored values into the same identity values queries use. Bucket schemas decode to strings, numbers, null or undefined and require no services. Collection declarations reject other value types at compile time. `isBucketSchema(schema)` from `keys.ts` checks the decoded schema shape; `declaredBuckets` exposes that result as `supported` for each field. `decodeBucketValue(schema)` is the decoder `declaredBuckets` uses, which the SQL binding also applies to each column of a tuple bucket. Absent values contribute no key, and a tuple with any absent value contributes none. See the [SQL guide](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md#transactions-and-invalidation) for repository writes and PostgreSQL requirements.
 
 Query read policies belong to the contract. The query checks its session viewer before its record or bucket scope can become a subscription; a change key grants no read permission. See the [contract query guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#query-policies-record-keys-and-buckets).
 
@@ -208,7 +217,7 @@ Import from the module that defines the name; the package has no root entry.
 | `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                                  |
 | `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                                |
 | `@shivaedev/changes/keys.ts`    | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
-| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                                                                |
+| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 
