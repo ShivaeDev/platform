@@ -342,6 +342,27 @@ Point story requests at `proxy.url`. The proxy listens on IPv4 and IPv6 loopback
 
 Set `localAddress` to choose the source socket address of the proxy's connection to the host. The upstream must accept that address family; for a hostname, the proxy resolves the matching family. Use `127.0.0.1` or `::1` for portable loopback stories. An unavailable local address fails acquisition with a message naming it. The proxy returns 502 if it cannot connect to the host. Both listeners close with the story's Scope.
 
+#### Dropping and pausing a live client's WebSocket
+
+Stories about reconnects, resumes and live updates need a real WebSocket RPC server whose sockets the story controls. Use `rpcSocketHost` from `@shivaedev/test-story/server/rpcSocketHost.ts` in the kit's scoped `create` hook with the RPC group and a Layer of its handlers, plus any RPC middleware the group declares:
+
+```ts
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
+
+const host = yield* rpcSocketHost(Counter, Counter.toLayer(handlers));
+const client = makeClient(Counter, { url: host.url });
+```
+
+The host serves the group over WebSocket with NDJSON serialization at `host.url`, an allocated IPv4 loopback port with the `/rpc` path. State the handlers read, such as a stored title, stays in the kit. Its controls are Effects for verbs:
+
+- `drop` destroys every open socket, as a lost connection does.
+- `pause` stops reading from every open socket, so the client's frames, pings included, get no answer while the connection looks open. Sockets opened later are read normally.
+- `hold` makes every later WebSocket handshake wait. `held` completes for each handshake that reaches the hold, in arrival order, so a verb can wait until the client tries to reconnect. `accept` releases held handshakes and answers later ones again.
+- `refuse` answers later handshakes with 503 until `accept` or a later `hold`.
+- `handshakes` reads how many handshakes reached the host, and `nextHandshake` completes for each handshake in arrival order, whether it was answered, held or refused.
+
+`hold` followed by `drop` keeps a client reconnecting until the story accepts it, and `refuse` followed by `drop` shows the client an unreachable server. Closing the story's Scope destroys open sockets, which also ends handshakes still held, and closes the server.
+
 #### Reading OTLP exports
 
 Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Build the application's tracing layer with `receiver.tracerLayer(options?)`, providing native OTLP serialization and an HTTP client:
@@ -1117,6 +1138,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/httpVisitor.ts`                    | `httpVisitor(upstream, options?)`, `HttpVisitorOptions`, `VisitorRequest`                                                                                                                                                                                                                                                                                                           |
 | `server/forwardingProxy.ts`                | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
 | `server/otlpReceiver.ts`                   | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`, `OtlpTracerOptions`                                                                                                                                                                                                                                                                                      |
+| `server/rpcSocketHost.ts`                  | `rpcSocketHost(group, handlers)`                                                                                                                                                                                                                                                                                                                                                    |
 
 ### Install and limits
 

@@ -1,18 +1,35 @@
-import { Clock, Effect, type Fiber, Layer, Queue } from "effect";
+import { Clock, Effect, type Fiber, Layer, Queue, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
 import { SocketClock } from "#SocketClock.ts";
 import { Counter } from "#test/commands/Counter.ts";
-import { openHost } from "#test/commands/openHost.ts";
 import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 
 export const commandEngine = Effect.gen(function* () {
-	const host = yield* openHost;
+	const counter = { holdResponse: false, value: 0 };
+	const executed = yield* Queue.unbounded<number>();
+	const host = yield* rpcSocketHost(
+		Counter,
+		Counter.toLayer({
+			"counter.$changes": () => Stream.never,
+			"counter.add": ({ amount }) =>
+				Effect.gen(function* () {
+					counter.value += amount;
+					yield* Queue.offer(executed, counter.value);
+					if (counter.holdResponse) {
+						yield* Effect.never;
+					}
+					return counter.value;
+				}),
+			"counter.value": () => Effect.succeed(counter.value),
+		}),
+	);
 	const runtime = yield* storyRuntime;
 	runtime.addGlobalLayer(Layer.succeed(SocketClock, yield* Clock.Clock));
 	const events = yield* Queue.unbounded<string>();
@@ -55,5 +72,5 @@ export const commandEngine = Effect.gen(function* () {
 		}
 		return state.connection;
 	}
-	return { browser, connect, connection, events, host, native, registry, state };
+	return { browser, connect, connection, counter, events, executed, host, native, registry, state };
 });
