@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { workspacePnpm } from "#test/tools.ts";
+import { workspacePnpm } from "#test/workspacePnpm.ts";
 
 export function updateTypecheck(starter: string) {
 	const compiler = fileURLToPath(new URL("../../node_modules/typescript/bin/tsc", import.meta.url));

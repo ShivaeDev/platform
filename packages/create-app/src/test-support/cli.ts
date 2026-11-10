@@ -7,7 +7,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { isolatedGitCommand } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { setupInstaller } from "#test/setupInstaller.ts";
 import { hoistedPieces, starterModules } from "#test/starterModules.ts";
-import { workspacePnpm } from "#test/tools.ts";
+import { workspacePnpm } from "#test/workspacePnpm.ts";
 
 export function appFolder(
 	root: string,
