@@ -51,6 +51,7 @@ export const completionStory = storyKit({
 				({ subscription }) => subscription === "open" || subscription === "refused",
 				{ name: "answered subscription" },
 			),
+		waiting: () => Effect.sync(() => engine.registry.get(engine.view).waiting),
 	}),
 });
 
