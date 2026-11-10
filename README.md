@@ -14,6 +14,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 - [`@shivaedev/changes`](./packages/changes): Commit-bound change channels that publish recorded changes only after their transaction commits.
 - [`@shivaedev/sql`](./packages/sql): Rows described once with an Effect model for writes, filters and decoded reads, through small repositories over native Effect SQL, transactions and migrations.
 - [`@shivaedev/contract`](./packages/contract): Query, command and stream declarations with typed rejections and refresh dependencies, compiled to native Effect RPC and bound to native AtomRpc queries.
+- [`@shivaedev/build`](./packages/build): An application's build setup: the generator that writes each defined module's wire and browser contract from its operations' `run` types.
 - [`@shivaedev/form`](./packages/form): Schema-based forms that keep input values, decoded submissions and fresh server data together, with optional React bindings.
 - [`@shivaedev/react`](./packages/react): Readable state for native Effect atom queries and actions, editors that join a record to its form, and session-owned client state.
 - [`@shivaedev/jobs`](./packages/jobs): Schema-defined PostgreSQL jobs and scoped pg-boss workers on the application's Effect services.

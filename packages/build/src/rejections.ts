@@ -1,0 +1,43 @@
+import type { DeclaredClass, Failure } from "#facts.ts";
+import { byText } from "#order.ts";
+
+// Never rejections: the wire adds the automatic two to every operation, and the others are infrastructure or policy outcomes.
+const NOT_REJECTIONS: ReadonlySet<string> = new Set([
+	"@shivaedev/contract QueryReadDenied",
+	"@shivaedev/errors InternalServerError",
+	"@shivaedev/errors ServiceUnavailable",
+	"effect SchemaError",
+]);
+
+export interface Rejection {
+	readonly declared: DeclaredClass;
+	readonly tag: string;
+}
+
+export function isRejection(packageName: string | undefined, declared: DeclaredClass): boolean {
+	return !NOT_REJECTIONS.has(`${packageName ?? ""} ${declared.className}`);
+}
+
+export function rejectionsOf(label: string, failures: readonly Failure[], packageOf: (file: string) => string | undefined) {
+	const refusals: string[] = [];
+	const byTag = new Map<string, Rejection>();
+	for (const failure of failures) {
+		if (failure.kind === "untagged") {
+			refusals.push(`${label}: run fails with ${failure.text}, which has no _tag; fail with an exported tagged error class instead`);
+		} else if (failure.kind === "unexported") {
+			refusals.push(
+				`${label}: run fails with ${failure.text} (${failure.tag}), which is not an exported class; export its class so the browser can decode it`,
+			);
+		} else if (failure.kind === "class" && isRejection(packageOf(failure.declared.file), failure.declared)) {
+			const known = byTag.get(failure.tag);
+			if (known !== undefined && (known.declared.file !== failure.declared.file || known.declared.className !== failure.declared.className)) {
+				refusals.push(
+					`${label}: run fails with two classes tagged ${failure.tag}, from ${known.declared.file} and ${failure.declared.file}; raise one of them`,
+				);
+			}
+			byTag.set(failure.tag, failure);
+		}
+	}
+	const rejections = [...byTag.values()].sort((left, right) => byText(left.tag, right.tag));
+	return { refusals, rejections };
+}

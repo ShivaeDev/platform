@@ -1,0 +1,78 @@
+{
+	"name": "@shivaedev/build",
+	"version": "0.0.0",
+	"private": true,
+	"description": "An application's build setup: the generated wire and browser contract of each defined module",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/build#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/build"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"@shivaedev/source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"#package.json": "./package.json"
+	},
+	"exports": {
+		"./*.ts": {
+			"@shivaedev/source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"shivaedev-build": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
+		"CHANGELOG.md",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/heavy-lock": "workspace:*",
+		"typescript": "catalog:compiler-api"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"@typescript/native": "catalog:",
+		"effect": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}
