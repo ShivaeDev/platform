@@ -19,8 +19,7 @@ function listenerLogs(engine: ProcessEngine, name: string) {
 		if (typeof message !== "string" || !listenerMessages.includes(message)) {
 			return [];
 		}
-		const streams = response.annotations.streamCount;
-		return [`${response.level}: ${message}${streams === undefined ? "" : ` (${String(streams)} streams)`}`];
+		return [`${response.level}: ${message}`];
 	});
 }
 
@@ -98,14 +97,18 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 			}),
 		terminateBackends: () =>
 			Effect.gen(function* () {
-				tell("PostgreSQL terminates every other backend in the story database; once both servers recover, a commits after failover");
+				tell(
+					"PostgreSQL terminates every other backend in the story database; both servers recover and every client catches up with the stored order",
+				);
 				mark();
 				yield* engine.sql`select pg_terminate_backend(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()`;
-				yield* Effect.promise(async () => {
-					await Promise.all([recovered("first"), recovered("second")]);
-					await save("a", "after failover");
-					await changedSinceMark("a", "b", "another");
-				});
+				yield* Effect.promise(() => Promise.all([recovered("first"), recovered("second")]));
+				const [stored] = yield* engine.sql<{
+					readonly name: string;
+				}>`select name from ${engine.sql(engine.configuration.table)} where id = 1`;
+				yield* Effect.promise(() =>
+					Promise.all([...engine.clients.values()].map((remote) => remote.results.when((items) => items.at(-1)?.name === stored?.name))),
+				);
 			}),
 	};
 }
