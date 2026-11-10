@@ -4,6 +4,7 @@ import { withPolicyContext } from "#adapters/withPolicyContext.ts";
 import type { QueryShape } from "#operation.ts";
 import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { servedReadPolicy } from "#servedReadPolicy.ts";
 import { QueryDefinition } from "#serverMetadata.ts";
 
 export interface Viewer {
@@ -14,14 +15,23 @@ export type QueryReadPolicy<TPayload, E = never, R = never> = (payload: TPayload
 export const CurrentViewer = Context.Reference<Option.Option<Viewer>>("@shivaedev/contract/CurrentViewer", { defaultValue: Option.none });
 export const signedIn: QueryReadPolicy<unknown> = (_payload, viewer) => Effect.succeed(Option.isSome(viewer));
 
-export const checkQuery = Effect.fnUntraced(function* <E, R>(query: QueryShape<E, R>, payload: unknown, viewer: Option.Option<Viewer>) {
-	if (query.readPolicy === undefined) {
+export function checkQuery<E, R>(query: QueryShape<E, R>, payload: unknown, viewer: Option.Option<Viewer>) {
+	return checkPolicy(query, query.readPolicy, payload, viewer);
+}
+
+export const checkPolicy = Effect.fnUntraced(function* <E, R>(
+	query: QueryShape,
+	policy: QueryReadPolicy<unknown, E, R> | undefined,
+	payload: unknown,
+	viewer: Option.Option<Viewer>,
+) {
+	if (policy === undefined) {
 		return yield* new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before reading it or subscribing` });
 	}
-	if (query.readsCollections !== undefined && !isPermissionReadPolicy(query.readPolicy)) {
+	if (query.readsCollections !== undefined && !isPermissionReadPolicy(policy)) {
 		return yield* new QueryReadDenied({ message: `Collection reads require a permission policy on query ${query.name}` });
 	}
-	if (!(yield* query.readPolicy(payload, viewer))) {
+	if (!(yield* policy(payload, viewer))) {
 		return yield* new QueryReadDenied({ message: `Read not allowed for query ${query.name}` });
 	}
 });
@@ -48,7 +58,7 @@ export function authorizeReads(
 ) {
 	return Effect.fnUntraced(function* () {
 		const definition = Context.getOption(request.rpc.annotations, QueryDefinition);
-		if (Option.isSome(definition)) {
+		if (Option.isSome(definition) && Option.isNone(yield* servedReadPolicy(request.rpc))) {
 			yield* withPolicyContext(request.rpc, checkQuery(definition.value.definition, request.payload, viewer));
 		}
 		return yield* Effect.provideService(effect, CurrentViewer, viewer);

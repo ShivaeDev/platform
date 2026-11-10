@@ -4,15 +4,18 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, type RpcMiddleware, RpcSerialization } from "effect/rpc";
+import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import type { SqlError } from "effect/sql/SqlError";
-import type { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
+import { defineModule } from "#defineModule.ts";
+import type { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { permissionReadPolicy } from "#permissionReadPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import * as ModuleNotes from "#test/moduleNotes.ts";
 import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "#test/notes.ts";
 import * as RunNotes from "#test/runNotes.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
@@ -124,3 +127,37 @@ export const RunEveryNote = query("everyNote", {
 		return id;
 	},
 });
+
+export class SessionGuard extends RpcMiddleware.Service<SessionGuard, { provides: RunNotes.SessionUser }>()("fixture/SessionGuard") {}
+export const SessionNotes = defineModule({
+	middleware: SessionGuard,
+	name: "sessionNotes",
+	operations: [
+		command("rename", {
+			payload: { id: Schema.Number, title: Schema.String },
+			rejections: { NotFound },
+			*run({ id, title }) {
+				const repository = yield* RunNotes.NotesRepository;
+				const { id: userId } = yield* RunNotes.SessionUser;
+				const note = yield* repository.findOne(id, userId);
+				return Option.isSome(note) ? title : yield* new NotFound({ message: "Note not found" });
+			},
+			success: Schema.String,
+		}),
+	],
+	requires: [RunNotes.NotesRepository],
+});
+type Requirements<TLayer> = TLayer extends Layer.Layer<infer _A, infer _E, infer R> ? R : never;
+type SessionNotesNeeds = Requirements<ReturnType<typeof moduleHandlers<typeof SessionNotes>>>;
+export const sessionNotesNeedRequires: [SessionNotesNeeds, RunNotes.NotesRepository] extends [RunNotes.NotesRepository, SessionNotesNeeds]
+	? true
+	: false = true;
+type ModuleNotesNeeds = Requirements<ReturnType<typeof moduleHandlers<typeof ModuleNotes.Notes>>>;
+export const moduleNotesNeedRequires: [ModuleNotesNeeds, ModuleNotes.NotesStore] extends [ModuleNotes.NotesStore, ModuleNotesNeeds] ? true : false =
+	true;
+export class ModuleClient extends AtomRpc.Service<ModuleClient>()("fixture/ModuleClient", {
+	group: ModuleNotes.Notes,
+	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
+}) {}
+export const moduleApi = bind(ModuleNotes.Notes, ModuleClient);
+export const moduleList: Atom.Atom<AsyncResult.AsyncResult<readonly (typeof ModuleNotes.Note.Type)[], unknown>> = moduleApi.list.query();

@@ -39,7 +39,17 @@ const runFixtures = {
 	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
 	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
 	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
+	runRejectionClass: 'RejectionClassDiffers<"raisesSharedNotFound", "NotFound">',
+	runReturnsAny: 'RunReturnsAny<"parsesDraft", "decode the value with a schema, or give run\'s return a type">',
+	runSuccessClass: 'SuccessClassNotReturned<"returnsPlainNote", { id: number; title: string; }, Note>',
 	runSuccessDiffers: 'SuccessDiffersFromRun<"leaksRow", StoredNote, { readonly id: number; readonly title: string; }>',
+} as const;
+
+const moduleFixtures = {
+	modulePolicyService: ["owned", 'OperationNeedsUndeclaredServices<"owned", NotesRepository>'],
+	moduleRepeatedName: ["lists", 'OperationNameRepeated<"list">'],
+	moduleUndeclaredRejection: ["creates", 'OperationFailsOutsideItsRejections<"create", "TitleTaken">'],
+	moduleUndeclaredService: ["imports", 'OperationNeedsUndeclaredServices<"importTitle", NoteSource>'],
 } as const;
 
 compilerStory.it(
@@ -82,6 +92,28 @@ for (const [fixture, problem] of Object.entries(runFixtures)) {
 				["first line", () => Effect.succeed(diagnostics.split("\n")[0]), expect.stringContaining("No overload matches this call.")],
 				["named problem", () => Effect.succeed(diagnostics), expect.stringContaining(`operationProblem: ${problem}`)],
 			]);
+		},
+		COMPILER_TIMEOUT,
+	);
+}
+
+compilerStory.it(
+	"a module defined from operations written as payload and run compiles, and its handlers require exactly its requires",
+	[],
+	function* ({ compileValidModule }) {
+		expect(yield* compileValidModule()).toBe('compiled cleanly, declaring Module<"sessionNotes"');
+	},
+	COMPILER_TIMEOUT,
+);
+
+for (const [fixture, [module, problem]] of Object.entries(moduleFixtures)) {
+	compilerStory.it(
+		`tsc rejects the ${fixture} fixture on the module's name with the problem ${problem} on the first line`,
+		[],
+		function* ({ compileInvalid }) {
+			const diagnostics = yield* compileInvalid(fixture);
+
+			expect(diagnostics.split("\n")[0]).toContain(`Type '"${module}"' is not assignable to type '"${module}" & NoInfer<${problem}>'`);
 		},
 		COMPILER_TIMEOUT,
 	);
