@@ -18,6 +18,8 @@ export interface DeclaredClass {
 	readonly file: string;
 }
 
+export type Literal = string | number | boolean;
+
 export type Primitive = "BigInt" | "Boolean" | "Date" | "DateTimeUtc" | "Null" | "Number" | "String" | "Undefined" | "Void";
 
 export interface Field {
@@ -29,7 +31,7 @@ export interface Field {
 
 export type WireForm =
 	| { readonly form: "primitive"; readonly primitive: Primitive }
-	| { readonly form: "literals"; readonly values: readonly (string | number)[] }
+	| { readonly form: "literals"; readonly values: readonly Literal[] }
 	| { readonly form: "array"; readonly item: WireForm; readonly mutable: boolean }
 	| { readonly form: "tuple"; readonly elements: readonly WireForm[]; readonly mutable: boolean }
 	| { readonly form: "struct"; readonly fields: readonly Field[] }
@@ -41,7 +43,7 @@ export type WireForm =
 
 export type Failure =
 	| { readonly kind: "retryable" }
-	| { readonly kind: "class"; readonly declared: DeclaredClass; readonly tag: string }
+	| { readonly kind: "class"; readonly declared: DeclaredClass; readonly schema: boolean; readonly tag: string }
 	| { readonly kind: "unexported"; readonly tag: string; readonly text: string }
 	| { readonly kind: "untagged"; readonly text: string };
 

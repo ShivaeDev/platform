@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { declaredIn, literalOf, type TypeReading } from "#adapters/typeReading.ts";
 import { byText } from "#byText.ts";
-import type { WireForm } from "#facts.ts";
+import type { Literal, WireForm } from "#facts.ts";
 
 type Read = (type: ts.Type, path: string) => WireForm | undefined;
 
@@ -11,20 +11,22 @@ function discriminant(reading: TypeReading, members: readonly ts.Type[]): string
 	return candidates.sort().find((name) => {
 		const values = members.map((member) => {
 			const property = member.getProperty(name);
-			return property === undefined || property.flags & ts.SymbolFlags.Optional ? undefined : literalOf(reading.checker.getTypeOfSymbol(property));
+			return property === undefined || property.flags & ts.SymbolFlags.Optional
+				? undefined
+				: literalOf(reading.checker, reading.checker.getTypeOfSymbol(property));
 		});
 		return values.every((value) => value !== undefined) && new Set(values).size === values.length;
 	});
 }
 
-function byValue(left: string | number, right: string | number): number {
+function byValue(left: Literal, right: Literal): number {
 	return byText(String(left), String(right));
 }
 
 function discriminated(reading: TypeReading, members: readonly ts.Type[], tag: string, path: string, read: Read): WireForm | undefined {
 	function tagOf(member: ts.Type) {
 		const property = member.getProperty(tag);
-		return (property === undefined ? undefined : literalOf(reading.checker.getTypeOfSymbol(property))) ?? "";
+		return (property === undefined ? undefined : literalOf(reading.checker, reading.checker.getTypeOfSymbol(property))) ?? "";
 	}
 	const forms = [...members]
 		.sort((left, right) => byValue(tagOf(left), tagOf(right)))
@@ -60,7 +62,7 @@ function withoutNull(reading: TypeReading, type: ts.Type, all: readonly ts.Type[
 	if (members.some((member) => member.flags & ts.TypeFlags.Undefined)) {
 		return reading.refuse(type, path, "return null instead of undefined, or make the property optional");
 	}
-	const values = members.map(literalOf);
+	const values = members.map((member) => literalOf(reading.checker, member));
 	if (values.every((value) => value !== undefined)) {
 		return { form: "literals", values: values.sort(byValue) };
 	}
@@ -71,7 +73,7 @@ function withoutNull(reading: TypeReading, type: ts.Type, all: readonly ts.Type[
 	if (tag !== undefined) {
 		return discriminated(reading, members, tag, path, read);
 	}
-	return reading.refuse(type, path, "return string or number literals, or objects told apart by one literal field such as _tag");
+	return reading.refuse(type, path, "return string, number or boolean literals, or objects told apart by one literal field such as _tag");
 }
 
 // The members are the union's own, or an optional property's without the undefined its optionality adds.

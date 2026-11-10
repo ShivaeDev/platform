@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { DeclaredClass } from "#facts.ts";
+import type { DeclaredClass, Literal } from "#facts.ts";
 
 export interface TypeReading {
 	readonly checker: ts.TypeChecker;
@@ -55,6 +55,9 @@ export function typeArguments(checker: ts.TypeChecker, type: ts.Type): readonly 
 	return isReference(type) ? checker.getTypeArguments(type) : [];
 }
 
-export function literalOf(type: ts.Type): string | number | undefined {
+export function literalOf(checker: ts.TypeChecker, type: ts.Type): Literal | undefined {
+	if (type.flags & ts.TypeFlags.BooleanLiteral) {
+		return checker.typeToString(type) === "true";
+	}
 	return type.isStringLiteral() || type.isNumberLiteral() ? type.value : undefined;
 }

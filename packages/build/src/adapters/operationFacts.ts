@@ -2,7 +2,7 @@ import ts from "typescript";
 import { copiedCode } from "#adapters/copiedCode.ts";
 import { failuresOf } from "#adapters/failuresOf.ts";
 import { initializerOf, propertyOf } from "#adapters/moduleCalls.ts";
-import { literalOf, type TypeReading, typeArguments } from "#adapters/typeReading.ts";
+import { type TypeReading, typeArguments } from "#adapters/typeReading.ts";
 import { wireForm } from "#adapters/wireForm.ts";
 import type { CodePart, OperationFacts } from "#facts.ts";
 
@@ -28,9 +28,10 @@ function effectArguments(checker: ts.TypeChecker, owner: ts.Type, property: stri
 	return signature === undefined ? [] : typeArguments(checker, signature.getReturnType());
 }
 
-function textOf(checker: ts.TypeChecker, owner: ts.Type, property: string): string | number | undefined {
+function textOf(checker: ts.TypeChecker, owner: ts.Type, property: string): string | undefined {
 	const symbol = owner.getProperty(property);
-	return symbol === undefined ? undefined : literalOf(checker.getTypeOfSymbol(symbol));
+	const value = symbol === undefined ? undefined : checker.getTypeOfSymbol(symbol);
+	return value?.isStringLiteral() === true ? value.value : undefined;
 }
 
 // Without run's types the operation did not compile; a run returning any is the common cause, and gets its own message.
@@ -54,7 +55,7 @@ export function operationFacts(context: OperationReading, element: ts.Expression
 		return undefined;
 	}
 	const type = reading.checker.getTypeAtLocation(found.declaration);
-	const name = String(textOf(reading.checker, type, "name") ?? element.getText());
+	const name = textOf(reading.checker, type, "name") ?? element.getText();
 	const kind = textOf(reading.checker, type, "kind") === "command" ? "command" : "query";
 	const label = `${context.moduleName}.${name}`;
 	const [success, runError] = effectArguments(reading.checker, type, "run", found.declaration);

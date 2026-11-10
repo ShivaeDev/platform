@@ -8,8 +8,10 @@ import { BuildFailure } from "#BuildFailure.ts";
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.
 	readonly chain: readonly string[];
+	readonly declarations: readonly string[];
 	readonly files: readonly string[];
 	readonly options: ts.CompilerOptions;
+	readonly typeScriptVersion: string;
 }
 
 function diagnosticText(diagnostics: readonly ts.Diagnostic[]): string {
@@ -31,8 +33,10 @@ export const readConfig = Effect.fn("Build.readConfig")(function* (tsconfig: str
 	}
 	const config: ProjectConfig = {
 		chain: [tsconfig, ...(parsed.source.extendedSourceFiles ?? [])],
+		declarations: parsed.config.fileNames.filter((file) => file.endsWith(".d.ts")),
 		files: parsed.config.fileNames,
 		options: parsed.config.options,
+		typeScriptVersion: ts.version,
 	};
 	return config;
 });
@@ -53,8 +57,7 @@ export const resolvedImports = Effect.fn("Build.resolvedImports")(function* (con
 // Building the program is the expensive part of a run: every module of the project shares one.
 export const deriveModules = Effect.fn("Build.deriveModules")(function* (config: ProjectConfig, modules: readonly string[]) {
 	return yield* Effect.sync(() => {
-		const declarations = config.files.filter((file) => file.endsWith(".d.ts"));
-		const program = ts.createProgram({ options: { ...config.options, noEmit: true }, rootNames: [...modules, ...declarations] });
+		const program = ts.createProgram({ options: { ...config.options, noEmit: true }, rootNames: [...modules, ...config.declarations] });
 		return modules.map((module) => moduleFacts(program, module));
 	});
 });

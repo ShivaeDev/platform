@@ -7,7 +7,8 @@ import { readIfPresent, writeAtomically } from "#files.ts";
 import { inputKey } from "#inputs.ts";
 import { plan } from "#plan.ts";
 import { moduleFiles, openProject } from "#project.ts";
-import { GenerateFailed, type GenerateReport, type ModuleOutcome } from "#report.ts";
+import { GenerateFailed, type GenerateReport, type ModuleOutcome, problemOf } from "#report.ts";
+import { settleOrphans } from "#settleOrphans.ts";
 
 export interface GenerateOptions {
 	// Writes nothing and fails when a generated file is missing or differs from what generate would write.
@@ -72,10 +73,10 @@ export const generate = Effect.fn("Build.generate")(function* (directory: string
 		}
 		outcomes.push({ ...relative, status });
 	}
+	outcomes.push(...(yield* settleOrphans(project, options.check)));
 	const report: GenerateReport = { modules: outcomes, programBuilt: pending.length > 0 };
-	const stale = outcomes.filter(({ status }) => status === "missing" || status === "stale");
-	if (refusals.length > 0 || stale.length > 0) {
-		const lines = stale.map(({ output, status }) => `${output} is ${status}; run \`pnpm generate\``);
+	const lines = outcomes.flatMap((outcome) => problemOf(outcome) ?? []);
+	if (refusals.length > 0 || lines.length > 0) {
 		const problems = [...refusals, ...lines].map((problem) => problem.replaceAll(`${project.root}${path.sep}`, ""));
 		return yield* new GenerateFailed({ problems, report });
 	}

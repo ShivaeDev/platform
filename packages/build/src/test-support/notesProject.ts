@@ -1,5 +1,5 @@
-// An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class and a
-// query whose policy reads the store. Paths are relative to the project; the kit writes package.json and tsconfig.json.
+// An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class, a
+// query whose policy reads the store and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
 export const NOTES_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/notes/archive.ts": `import { Schema } from "effect";
 
@@ -124,13 +124,15 @@ import { NotesStore } from "#modules/notes/store.ts";
 
 type Event = { readonly kind: "created"; readonly id: number } | { readonly kind: "deleted"; readonly id: number; readonly at: Date };
 
+type Check = { readonly ok: true; readonly count: number } | { readonly ok: false; readonly reason: string };
+
 interface NoteStats {
 	readonly count: number;
 	readonly bytes: bigint;
 	readonly words: Record<string, number>;
 	readonly frozenWords: { readonly [word: string]: number };
 	readonly status: "draft" | "published";
-	readonly level: 1 | 2 | 3;
+	readonly level: NoteLevel;
 	readonly checkedAt: DateTime.Utc;
 	readonly latest: string | null;
 	readonly range: readonly [number, number];
@@ -138,7 +140,11 @@ interface NoteStats {
 	readonly ids: number[];
 	readonly events: readonly Event[];
 	readonly nothing: null;
+	readonly unset: undefined;
 	readonly busy: boolean;
+	readonly confirmed: true;
+	readonly archived: false;
+	readonly check: Check;
 	readonly flag?: boolean;
 	readonly review?: "open" | "closed";
 	readonly reviewedAt?: Date | null;
@@ -152,9 +158,12 @@ export const Stats = query("stats", {
 			return yield* new ServiceUnavailable({ message: "Too many notes to count" });
 		}
 		const stats: NoteStats = {
+			archived: false,
 			busy: rows.length > 9,
 			bytes: 0n,
+			check: { count: 0, ok: true },
 			checkedAt: DateTime.makeUnsafe(0),
+			confirmed: true,
 			count: rows.length,
 			events: [],
 			frozenWords: {},
@@ -165,6 +174,7 @@ export const Stats = query("stats", {
 			pair: ["a", 1],
 			range: [0, rows.length],
 			status: "draft",
+			unset: undefined,
 			words: {},
 		};
 		return stats;
@@ -223,5 +233,7 @@ export const Summary = query("summary", {
 		return view(id, rows.find((row) => row.id === id)?.title ?? "");
 	},
 });
+`,
+	"src/types/noteLevel.d.ts": `type NoteLevel = 1 | 2 | 3;
 `,
 };

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { classForm, objectForm } from "#adapters/objectForm.ts";
-import { declaredIn, isLibraryType, isReference, type TypeReading, typeArguments } from "#adapters/typeReading.ts";
+import { declaredIn, isLibraryType, isReference, literalOf, type TypeReading, typeArguments } from "#adapters/typeReading.ts";
 import { unionForm } from "#adapters/unionForm.ts";
 import type { Primitive, WireForm } from "#facts.ts";
 
@@ -19,7 +19,6 @@ const UNMAPPED: readonly (readonly [ts.TypeFlags, string])[] = [
 	[ts.TypeFlags.Unknown, "decode the value with a schema, or give it a type"],
 	[ts.TypeFlags.Never, "return a value, or nothing"],
 	[ts.TypeFlags.EnumLike, "return string or number literals instead of an enum"],
-	[ts.TypeFlags.BooleanLiteral, "return boolean"],
 	[ts.TypeFlags.TemplateLiteral | ts.TypeFlags.StringMapping, "return string"],
 	[ts.TypeFlags.ESSymbolLike, "return a string instead of a symbol"],
 	[ts.TypeFlags.TypeParameter | ts.TypeFlags.Index | ts.TypeFlags.IndexedAccess | ts.TypeFlags.Conditional, "give run's return a concrete type"],
@@ -82,8 +81,9 @@ export function wireForm(reading: TypeReading, type: ts.Type, path: string, seen
 	if (unmapped !== undefined) {
 		return reading.refuse(type, path, unmapped[1]);
 	}
-	if (type.isStringLiteral() || type.isNumberLiteral()) {
-		return { form: "literals", values: [type.value] };
+	const literal = literalOf(reading.checker, type);
+	if (literal !== undefined) {
+		return { form: "literals", values: [literal] };
 	}
 	if (type.isUnion()) {
 		return unionForm(reading, type, type.types, path, (member, memberPath) => wireForm(reading, member, memberPath, within));

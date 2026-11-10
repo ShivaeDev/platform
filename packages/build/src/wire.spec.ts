@@ -76,12 +76,14 @@ const STATS = [
 	'status: Schema.Literals(["draft", "published"]), level: Schema.Literals([1, 2, 3]), checkedAt: Schema.DateTimeUtc, latest: Schema.NullOr(Schema.String)',
 	"range: Schema.Tuple([Schema.Number, Schema.Number]), pair: Schema.mutable(Schema.Tuple([Schema.String, Schema.Number])), ids: Schema.mutable(Schema.Array(Schema.Number))",
 	'events: Schema.Array(Schema.Union([Schema.Struct({ kind: Schema.Literal("created"), id: Schema.Number }), Schema.Struct({ kind: Schema.Literal("deleted"), id: Schema.Number, at: Schema.Date })]))',
-	'nothing: Schema.Null, busy: Schema.Boolean, flag: Schema.optionalKey(Schema.Boolean), review: Schema.optionalKey(Schema.Literals(["closed", "open"]))',
+	"nothing: Schema.Null, unset: Schema.Undefined, busy: Schema.Boolean, confirmed: Schema.Literal(true), archived: Schema.Literal(false)",
+	"check: Schema.Union([Schema.Struct({ ok: Schema.Literal(false), reason: Schema.String }), Schema.Struct({ ok: Schema.Literal(true), count: Schema.Number })])",
+	'flag: Schema.optionalKey(Schema.Boolean), review: Schema.optionalKey(Schema.Literals(["closed", "open"]))',
 	"reviewedAt: Schema.optionalKey(Schema.NullOr(Schema.Date)) })",
 ].join(", ");
 
 generator.it(
-	"stats travels as the schema of exactly its declared type: readonly and mutable records, tuples and arrays as written, literal unions, a discriminated union and optional properties",
+	"stats travels as the schema of exactly its declared type: readonly and mutable records, tuples and arrays as written, literal unions, true and false, unions discriminated by a string and by a boolean, and optional properties",
 	[notesProject()],
 	function* ({ generatedFile, generates }) {
 		yield* generates();
