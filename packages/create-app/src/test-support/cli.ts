@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
@@ -7,6 +6,7 @@ import { Config, Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { setupInstaller } from "#test/setupInstaller.ts";
 import { hoistedPieces, starterModules } from "#test/starterModules.ts";
+import { isolatedGit, workspacePnpm } from "#test/tools.ts";
 
 export function appFolder(
 	root: string,
@@ -37,7 +37,7 @@ export function appFolder(
 		{ mode: 0o755 },
 	);
 	if (realSetup || linkedPackageScripts) {
-		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
+		const pnpm = workspacePnpm();
 		const modules = starterModules();
 		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
 		const skills = fileURLToPath(new URL("../../../skills/src/cli.ts", import.meta.url));
@@ -91,8 +91,7 @@ export function runCli(root: string, cli: string, gitAvailable: boolean, args: r
 						"GIT_COMMITTER_EMAIL",
 						`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
 						"NODE_OPTIONS=",
-						"GIT_CONFIG_NOSYSTEM=1",
-						"GIT_CONFIG_GLOBAL=/dev/null",
+						...isolatedGit,
 						...environment,
 						process.execPath,
 						"--conditions=@shivaedev/source",

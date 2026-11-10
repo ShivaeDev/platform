@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
+import { gitIn } from "#test/tools.ts";
 
 const decodeManifest = Schema.decodeUnknownSync(
 	Schema.fromJsonString(
@@ -15,10 +15,6 @@ const decodeRecord = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Recor
 
 function lines(text: string) {
 	return text.split("\n").filter((line) => line !== "");
-}
-
-export function gitIn(folder: string, args: readonly string[]) {
-	return spawnSync("git", args, { cwd: folder, encoding: "utf8" });
 }
 
 export function commitsIn(folder: string) {
