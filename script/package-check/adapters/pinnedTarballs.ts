@@ -44,7 +44,7 @@ export const pinnedTarballs = Effect.fn("Packed.pinnedTarballs")(function* (
 	});
 	const archives = new Map(packages.map((pkg) => [pkg.manifest.name, pkg]));
 	const generator = archives.get(GENERATOR)?.manifest;
-	// A commit that releases create-app publishes it with pins npm already serves; changesets still pending there wait for the release after it.
+	// A commit that releases create-app leaves the still-pending changesets out of that release, so the create-app it publishes must not rely on them.
 	const followsPlan = generator !== undefined && (yield* publishedVersion(generator)) !== undefined;
 	if (generator !== undefined && !followsPlan) {
 		yield* Effect.log(

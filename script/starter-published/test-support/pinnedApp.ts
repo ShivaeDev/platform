@@ -97,8 +97,10 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 			tarball: join(root, "workspace.tgz"),
 		};
 		const packages: Package[] = [];
+		const environment: Record<string, string> = {};
 		const logs: unknown[] = [];
 		return {
+			environment,
 			folder: "",
 			generator,
 			logs,
@@ -122,7 +124,8 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 				engine.folder = folder;
 				yield* runStarter(join(engine.root, folder), "postgres://localhost/starter-story");
 			}).pipe(
-				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ "npm_config_registry": engine.registry }))),
+				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ "npm_config_registry": engine.registry }), { asPrimary: true })),
+				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown(engine.environment), { asPrimary: true })),
 				Effect.provide(Logger.layer([Logger.make(({ message }) => engine.logs.push(message))])),
 				Effect.match({ onFailure: (error) => error.message, onSuccess: () => "passed" }),
 			);
@@ -173,3 +176,11 @@ export const pendingChangeset = pinnedApp.trait("source", `.changeset/adapter-po
 		`---\n"${NAME}": minor\n---\n\n### Added\n\n- \`assertLocalDatabase\` accepts the allowed ports.\n`,
 	);
 });
+export const hostileRegistryEnvironment = pinnedApp.trait(
+	"source",
+	"the environment sets npm_config_registry to a registry that refuses every connection",
+	(engine) =>
+		Effect.sync(() => {
+			engine.environment = { "npm_config_registry": "http://127.0.0.1:9" };
+		}),
+);

@@ -1,10 +1,25 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { effectCatalogUpdate, effectPeerMismatch, pendingChangeset, pinnedApp, unreleasedPin } from "#starter-published/test-support/pinnedApp.ts";
+import {
+	effectCatalogUpdate,
+	effectPeerMismatch,
+	hostileRegistryEnvironment,
+	pendingChangeset,
+	pinnedApp,
+	unreleasedPin,
+} from "#starter-published/test-support/pinnedApp.ts";
 
 pinnedApp.it("Packed starter rejects tooling incompatible with its published pin even when the workspace accepts it", [], function* ({ check }) {
 	expect(yield* check()).toContain("Expected 2 arguments, but got 3");
 });
+
+pinnedApp.it(
+	"Packed starter looks pins up in its fixture registry when the environment names another registry",
+	[hostileRegistryEnvironment],
+	function* ({ check }) {
+		expect(yield* check()).toContain("Expected 2 arguments, but got 3");
+	},
+);
 
 pinnedApp.it(
 	"Packed starter rejects npm Effect peers that differ from the starter when the pull request declares the same peers",
