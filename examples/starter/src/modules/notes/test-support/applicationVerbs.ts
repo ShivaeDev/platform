@@ -120,9 +120,13 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		noteReadsLoseTheDatabase: Effect.fn("AppStory.noteReadsLoseTheDatabase")(function* () {
 			story.tell("PostgreSQL loses its connection for note reads while sessions stay readable");
 			const sql = yield* SqlClient.SqlClient;
-			yield* sql`alter table notes rename to available_notes`;
-			yield* sql`create function unavailable_notes() returns setof available_notes language plpgsql as $$begin raise exception 'connection lost' using errcode = '08006'; end$$`;
-			yield* sql`create view notes as select * from unavailable_notes()`;
+			yield* sql.withTransaction(
+				Effect.gen(function* () {
+					yield* sql`alter table notes rename to available_notes`;
+					yield* sql`create function unavailable_notes() returns setof available_notes language plpgsql as $$begin raise exception 'connection lost' using errcode = '08006'; end$$`;
+					yield* sql`create view notes as select * from unavailable_notes()`;
+				}),
+			);
 		}),
 		notesOf: (name: string) => account(engine, name).notes,
 		queueRefusesNextWordCount: Effect.fn("AppStory.queueRefusesNextWordCount")(function* () {

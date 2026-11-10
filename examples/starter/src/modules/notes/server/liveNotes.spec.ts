@@ -43,8 +43,6 @@ app.it(
 		expect(yield* aliceNote.nextNote()).toEqual(note);
 		yield* noteReadsLoseTheDatabase();
 
-		yield* aliceNote.refresh();
-
-		expect(yield* aliceNote.nextNote()).toBe("service unavailable: Could not reach the notes database");
+		expect(yield* aliceNote.refresh()).toBe("service unavailable: Could not reach the notes database");
 	},
 );
