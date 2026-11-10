@@ -7,7 +7,7 @@ import type { QueryUpdate, SubscriptionEvent } from "#queryUpdate.ts";
 
 export function queryDelivery<A, E>(decode: (value: unknown) => A, paused: Atom.Atom<boolean>, signals: Atom.Writable<QuerySignals>) {
 	const updates = Atom.make(0);
-	const pushed = Atom.make<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial());
+	const pushed = Atom.make<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial(true));
 	const deliver = Effect.fnUntraced(function* (update: QueryUpdate): Effect.fn.Return<SubscriptionEvent, never, AtomRegistry.AtomRegistry> {
 		const registry = yield* AtomRegistry.AtomRegistry;
 		registry.update(updates, (current) => current + 1);

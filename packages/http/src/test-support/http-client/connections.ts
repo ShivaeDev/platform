@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { Effect } from "effect";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 
 export type Reply = "status" | "length" | "chunked" | "schema" | "invalid" | "ok";
 
@@ -25,20 +26,6 @@ export const connections = Effect.gen(function* () {
 			}
 		}
 	});
-	yield* Effect.acquireRelease(
-		Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))),
-		() =>
-			Effect.promise(
-				() =>
-					new Promise<void>((resolve, reject) => {
-						server.close((error) => (error ? reject(error) : resolve()));
-						server.closeAllConnections();
-					}),
-			),
-	);
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		return yield* Effect.die("Expected a loopback TCP server");
-	}
-	return { closed, ports, url: `http://127.0.0.1:${address.port}` };
+	const url = yield* loopbackServer(server);
+	return { closed, ports, url };
 });

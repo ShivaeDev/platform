@@ -6,7 +6,7 @@ import type { Options } from "#model.ts";
 import type { WatchEvent } from "#outputEvent.ts";
 import { makeIo } from "#test/io.ts";
 import { makeOutput } from "#test/makeOutput.ts";
-import { startServer } from "#test/server.ts";
+import { fakeGitHub } from "#test/server.ts";
 import { services } from "#test/services.ts";
 import { makeWatchProcess } from "#test/watchProcess.ts";
 import type { WaitResult } from "#waitResult.ts";
@@ -25,10 +25,7 @@ export interface CliRun {
 
 export const makeEngine = Effect.gen(function* () {
 	const clock = yield* Clock.Clock;
-	const github = yield* Effect.acquireRelease(
-		Effect.promise(() => startServer(() => clock.currentTimeMillisUnsafe())),
-		(server) => Effect.promise(server.close),
-	);
+	const github = yield* fakeGitHub;
 	const io = yield* makeIo;
 	const layer = services.pipe(
 		Layer.provide(io.layer),

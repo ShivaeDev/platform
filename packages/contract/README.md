@@ -431,7 +431,7 @@ The server coalesces changes per subscription: one rerun can be in flight and on
 
 The `paused` atom at `api[LiveConnection]` suppresses applying pushed values to the screen while continuing to observe the stream. Its `status.pending` count saturates at 256. Unpausing reopens the subscription for a current authorized result and resets that count. Bindings on one client runtime share pause state.
 
-An explicit query refresh reopens its subscription, retaining its current value with `waiting: true` until the fresh result arrives. Retryable connection failures retain the current query value during reconnection. Declared query failures and read denials still reach the query's error channel.
+A live query's result stays a native initial result with `waiting: true` from mount until its subscription delivers the first result. An explicit query refresh reopens its subscription, retaining its current value with `waiting: true` until the fresh result arrives. Retryable connection failures retain the current query value during reconnection. Declared query failures and read denials still reach the query's error channel.
 
 Visible browser `online` and `visibilitychange` events reopen active subscriptions for current values. Supply an optional native `resume` source on `makeClient` or `bind` for application or network lifecycle events; it registers a callback and returns its cleanup function. `resumeWindow` selects an embedded browser window. Disposing the registry releases the source, query subscriptions and socket resources.
 
