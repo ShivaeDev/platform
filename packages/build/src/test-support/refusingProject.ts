@@ -16,9 +16,11 @@ export const refusedKeys = collection("refused", Schema.Number);
 	"src/modules/refused/operations.ts": `import { Effect, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { refusedKeys } from "./keys.ts";
-import { Counter, shared } from "#modules/refused/shared.ts";
+import { Busy, Counter, Level, noteId, shared, type Tree } from "#modules/refused/shared.ts";
 
 class Hidden extends Schema.TaggedError<Hidden>()("Hidden", { message: Schema.String }) {}
+
+class Secret extends Schema.Class<Secret>("Secret")({ code: Schema.String }) {}
 
 const Draft = Schema.Struct({ title: Schema.String });
 
@@ -82,6 +84,61 @@ export const ReturnsPlainClass = query("returnsPlainClass", {
 	},
 });
 
+export const ReturnsEnum = query("returnsEnum", {
+	reads: () => [shared.list],
+	*run() {
+		const level: Level = yield* Effect.succeed(Level.High);
+		return { level };
+	},
+});
+
+export const ReturnsBrand = query("returnsBrand", {
+	reads: () => [shared.list],
+	*run() {
+		return noteId(yield* Effect.succeed(1));
+	},
+});
+
+export const ReturnsRecursive = query("returnsRecursive", {
+	reads: () => [shared.list],
+	*run() {
+		const tree: Tree = yield* Effect.succeed({ children: [] });
+		return tree;
+	},
+});
+
+export const ReturnsTupleRest = query("returnsTupleRest", {
+	reads: () => [shared.list],
+	*run() {
+		const row: readonly [string, ...number[]] = yield* Effect.succeed(["total", 1, 2] as const);
+		return row;
+	},
+});
+
+export const ReturnsNumberKeys = query("returnsNumberKeys", {
+	reads: () => [shared.list],
+	*run() {
+		const titles: Record<number, string> = yield* Effect.succeed({});
+		return titles;
+	},
+});
+
+export const ReturnsUnexportedClass = query("returnsUnexportedClass", {
+	reads: () => [shared.list],
+	*run() {
+		yield* Effect.void;
+		return new Secret({ code: "x" });
+	},
+});
+
+export const FailsDataTagged = query("failsDataTagged", {
+	reads: () => [shared.list],
+	*run() {
+		yield* new Busy({ message: "busy" });
+		return 1;
+	},
+});
+
 export const FailsUntagged = query("failsUntagged", {
 	reads: () => [shared.list],
 	*run() {
@@ -115,17 +172,24 @@ export const RelativeReads = query("relativeReads", {
 `,
 	"src/modules/refused/refused.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import {
+	FailsDataTagged,
 	FailsUnexported,
 	FailsUntagged,
 	LocalPayload,
 	RelativeReads,
 	ReturnsAny,
+	ReturnsBrand,
+	ReturnsEnum,
 	ReturnsLooseOptional,
 	ReturnsMap,
 	ReturnsNullOrUndefined,
+	ReturnsNumberKeys,
 	ReturnsPlainClass,
+	ReturnsRecursive,
 	ReturnsStringOrNumber,
+	ReturnsTupleRest,
 	ReturnsUndefinedProperty,
+	ReturnsUnexportedClass,
 } from "#modules/refused/operations.ts";
 
 export const Refused = defineModule({
@@ -138,18 +202,40 @@ export const Refused = defineModule({
 		ReturnsNullOrUndefined,
 		ReturnsAny,
 		ReturnsPlainClass,
+		ReturnsEnum,
+		ReturnsBrand,
+		ReturnsRecursive,
+		ReturnsTupleRest,
+		ReturnsNumberKeys,
+		ReturnsUnexportedClass,
 		FailsUntagged,
 		FailsUnexported,
+		FailsDataTagged,
 		LocalPayload,
 		RelativeReads,
 	],
 	requires: [],
 });
 `,
-	"src/modules/refused/shared.ts": `import { Schema } from "effect";
+	"src/modules/refused/shared.ts": `import { Brand, Data, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 
 export const shared = collection("shared", Schema.Number);
+
+export enum Level {
+	Low,
+	High,
+}
+
+export type NoteId = number & Brand.Brand<"NoteId">;
+
+export const noteId = Brand.nominal<NoteId>();
+
+export interface Tree {
+	readonly children: readonly Tree[];
+}
+
+export class Busy extends Data.TaggedError("Busy")<{ readonly message: string }> {}
 
 export class Counter {
 	readonly count: number;

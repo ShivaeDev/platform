@@ -6,7 +6,9 @@ import type { GenerateReport, ModuleStatus } from "#report.ts";
 const WORDS: Readonly<Record<ModuleStatus, string>> = {
 	current: "current",
 	missing: "missing",
+	orphaned: "orphaned, its module is gone",
 	refused: "refused",
+	removed: "removed, its module is gone",
 	stale: "stale",
 	unchanged: "unchanged, from the cache",
 	written: "written",
@@ -33,7 +35,7 @@ export const generateCommand = Command.make("generate", { check: Flag.Boolean("c
 	}),
 ).pipe(
 	Command.withDescription(
-		"Write src/generated/<module>.ts for every defineModule call of the project in the current directory; --check writes nothing and fails on a missing or stale file",
+		"Write src/generated/<module>.ts for every defineModule call of the project in the current directory and remove each generated file whose module is gone; --check writes nothing and fails on a missing, stale or orphaned file",
 	),
 );
 

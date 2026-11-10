@@ -1,7 +1,6 @@
 import { Effect, FileSystem, Option, Path } from "effect";
 import { Digest } from "effect/crypto";
-import ts from "typescript";
-import { type ProjectConfig, resolvedImports } from "#adapters/typeScript.ts";
+import { type ProjectConfig, resolvedImports, typeScriptVersion } from "#adapters/typeScript.ts";
 import { byText } from "#byText.ts";
 import packageInfo from "#package.json" with { type: "json" };
 
@@ -43,7 +42,7 @@ export const generatorFingerprint = Effect.fn("Build.generatorFingerprint")(func
 			return info.type === "File" ? `${file}\u0000${yield* fs.readFileString(full)}` : "";
 		}),
 	);
-	const versions = `@shivaedev/build ${packageInfo.version}, typescript ${ts.version}`;
+	const versions = `@shivaedev/build ${packageInfo.version}, typescript ${typeScriptVersion}`;
 	return yield* digest.digestHex(Digest.sha256, new TextEncoder().encode([versions, ...texts].join("\u0001")));
 });
 
@@ -69,7 +68,9 @@ export const inputKey = Effect.fn("Build.inputKey")(function* (project: Project,
 	const digest = yield* Digest.Digest;
 	const graph = yield* importGraph(project, module);
 	const lockfile = yield* lockfileOf(project.root);
-	const chain = yield* Effect.forEach(project.config.chain, (file) => Effect.map(fs.readFileString(file), (text) => [file, text] as const));
+	const chain = yield* Effect.forEach([...project.config.chain, ...project.config.declarations], (file) =>
+		Effect.map(fs.readFileString(file), (text) => [file, text] as const),
+	);
 	const lock = Option.isSome(lockfile) ? [[lockfile.value, yield* fs.readFileString(lockfile.value)] as const] : [];
 	const entries = [...graph, ...chain, ...lock].map(([file, text]) => `${path.relative(project.root, file)}\u0000${text}`).sort(byText);
 	return yield* digest.digestHex(Digest.sha256, new TextEncoder().encode([project.generator, ...entries].join("\u0001")));

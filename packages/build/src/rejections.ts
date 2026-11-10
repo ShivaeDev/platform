@@ -18,17 +18,31 @@ export function isRejection(packageName: string | undefined, declared: DeclaredC
 	return !NOT_REJECTIONS.has(`${packageName ?? ""} ${declared.className}`);
 }
 
+function refusalOf(label: string, failure: Failure): string | undefined {
+	switch (failure.kind) {
+		case "untagged":
+			return `${label}: run fails with ${failure.text}, which has no _tag; fail with an exported tagged error class instead`;
+		case "unexported":
+			return `${label}: run fails with ${failure.text} (${failure.tag}), which is not an exported class; export its class so the browser can decode it`;
+		case "class":
+			return failure.schema
+				? undefined
+				: `${label}: run fails with ${failure.declared.className} (${failure.tag}), which is not a Schema class, so the browser cannot decode it; declare it as a Schema tagged error, such as class ${failure.declared.className} extends Schema.TaggedError<${failure.declared.className}>()("${failure.tag}", { ... })`;
+		case "retryable":
+			return undefined;
+	}
+}
+
 export function rejectionsOf(label: string, failures: readonly Failure[], packageOf: (file: string) => string | undefined) {
 	const refusals: string[] = [];
 	const byTag = new Map<string, Rejection>();
 	for (const failure of failures) {
-		if (failure.kind === "untagged") {
-			refusals.push(`${label}: run fails with ${failure.text}, which has no _tag; fail with an exported tagged error class instead`);
-		} else if (failure.kind === "unexported") {
-			refusals.push(
-				`${label}: run fails with ${failure.text} (${failure.tag}), which is not an exported class; export its class so the browser can decode it`,
-			);
-		} else if (failure.kind === "class" && isRejection(packageOf(failure.declared.file), failure.declared)) {
+		const rejection = failure.kind !== "class" || isRejection(packageOf(failure.declared.file), failure.declared);
+		const refusal = rejection ? refusalOf(label, failure) : undefined;
+		if (refusal !== undefined) {
+			refusals.push(refusal);
+		}
+		if (failure.kind === "class" && rejection) {
 			const known = byTag.get(failure.tag);
 			if (known !== undefined && (known.declared.file !== failure.declared.file || known.declared.className !== failure.declared.className)) {
 				refusals.push(

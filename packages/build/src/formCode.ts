@@ -1,18 +1,5 @@
 import { type Code, code, type ImportRef, joined, SCHEMA } from "#code.ts";
-import type { Field, Primitive, WireForm } from "#facts.ts";
-
-// The one place each TypeScript type meets the schema whose Type it is exactly; the round-trip tests cover each entry.
-export const PRIMITIVE_SCHEMAS = {
-	BigInt: "BigInt",
-	Boolean: "Boolean",
-	Date: "Date",
-	DateTimeUtc: "DateTimeUtc",
-	Null: "Null",
-	Number: "Number",
-	String: "String",
-	Undefined: "Undefined",
-	Void: "Void",
-} as const satisfies Record<Primitive, string>;
+import type { Field, WireForm } from "#facts.ts";
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/u;
 
@@ -37,7 +24,7 @@ export function formCode(form: WireForm, classRef: (form: Extract<WireForm, { fo
 	}
 	switch (form.form) {
 		case "primitive":
-			return schema(PRIMITIVE_SCHEMAS[form.primitive]);
+			return schema(form.primitive);
 		case "literals":
 			return form.values.length === 1
 				? schema("Literal", JSON.stringify(form.values[0]))

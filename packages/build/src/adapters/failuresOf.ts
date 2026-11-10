@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { declaredClass, type TypeReading } from "#adapters/typeReading.ts";
+import { declaredClass, isSchemaClass, type TypeReading } from "#adapters/typeReading.ts";
 import type { Failure } from "#facts.ts";
 
 function failureOf(reading: TypeReading, member: ts.Type): Failure | undefined {
@@ -19,7 +19,10 @@ function failureOf(reading: TypeReading, member: ts.Type): Failure | undefined {
 	const parts = member.isIntersection() ? member.types : [member];
 	const symbol = parts.map((part) => part.getSymbol()).find((candidate) => candidate !== undefined && candidate.flags & ts.SymbolFlags.Class);
 	const declared = symbol === undefined ? undefined : declaredClass(reading, symbol);
-	return declared?.exportName === undefined ? { kind: "unexported", tag: tag.value, text } : { declared, kind: "class", tag: tag.value };
+	if (symbol === undefined || declared?.exportName === undefined) {
+		return { kind: "unexported", tag: tag.value, text };
+	}
+	return { declared, kind: "class", schema: isSchemaClass(reading, symbol), tag: tag.value };
 }
 
 // A rejection is the class run raises, so each failure keeps the declaration it came from, never just its shape.
