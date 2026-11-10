@@ -84,6 +84,6 @@ export function makeRecordRead(model: Model.Any, options: { readonly tableName: 
 	}
 	return (where = {}) =>
 		Effect.gen(function* () {
-			yield* recordRead((yield* rowKeys(where)) ?? bucketKeys(where) ?? [keys.list]);
+			yield* recordRead((yield* rowKeys(where)) ?? bucketKeys(where) ?? [keys.list], { inferred: true });
 		});
 }

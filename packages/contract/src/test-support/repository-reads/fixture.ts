@@ -41,7 +41,6 @@ const titlesOn = Effect.fnUntraced(function* (shelf: number) {
 const Book = query("book", {
 	payload: { id: Schema.Number },
 	readPolicy: signedIn,
-	reads: () => [],
 	*run({ id }) {
 		const { books: rows } = yield* Library;
 		return (yield* Effect.orDie(rows.findById(id))).title;
@@ -51,7 +50,6 @@ const Book = query("book", {
 const RereadBook = query("rereadBook", {
 	payload: { id: Schema.Number, times: Schema.Number },
 	readPolicy: signedIn,
-	reads: () => [],
 	*run({ id, times }) {
 		const { books: rows } = yield* Library;
 		const reads = yield* Effect.orDie(Effect.forEach(Array.from({ length: times }), () => rows.findById(id)));
@@ -62,15 +60,24 @@ const RereadBook = query("rereadBook", {
 const Shelf = query("shelf", {
 	payload: { shelf: Schema.Number },
 	readPolicy: signedIn,
-	reads: () => [],
 	*run({ shelf }) {
 		return yield* titlesOn(shelf);
 	},
 	success: Titles,
 });
+const DeclaredShelf = query("declaredShelf", {
+	payload: { shelf: Schema.Number },
+	readPolicy: signedIn,
+	reads: ({ shelf }) => [books.bucket.shelf(shelf)],
+	*run({ shelf }) {
+		const { books: rows } = yield* Library;
+		const all = yield* Effect.orDie(rows.findMany(byId));
+		return all.filter((book) => book.shelf === shelf).map(({ title }) => title);
+	},
+	success: Titles,
+});
 const Catalog = query("catalog", {
 	readPolicy: signedIn,
-	reads: () => [],
 	*run() {
 		const { books: rows } = yield* Library;
 		return (yield* Effect.orDie(rows.findMany(byId))).map(({ title }) => title);
@@ -79,7 +86,6 @@ const Catalog = query("catalog", {
 });
 const Reader = query("reader", {
 	readPolicy: signedIn,
-	reads: () => [],
 	*run() {
 		const { readers } = yield* Library;
 		return (yield* Effect.orDie(readers.findById(readerOf(yield* CurrentViewer)))).shelf;
@@ -90,7 +96,6 @@ const ReaderShelf = query("readerShelf", {
 	payload: { shelf: Schema.Number },
 	readPolicy: (_payload, viewer) =>
 		Effect.flatMap(Library, ({ readers }) => Effect.map(readers.findOne({ where: { name: readerOf(viewer) } }), Option.isSome)).pipe(Effect.orDie),
-	reads: () => [],
 	*run({ shelf }) {
 		return yield* titlesOn(shelf);
 	},
@@ -114,7 +119,7 @@ const Move = command("move", {
 export const Libraries = defineModule({
 	middleware: LibraryViewer,
 	name: "library",
-	operations: [Book, RereadBook, Shelf, Catalog, Reader, ReaderShelf, Retitle, Move],
+	operations: [Book, RereadBook, Shelf, DeclaredShelf, Catalog, Reader, ReaderShelf, Retitle, Move],
 	requires: [Library],
 });
 
@@ -122,6 +127,7 @@ export const handlers = {
 	"hand-written handlers": Libraries.application.toLayer({
 		"library.book": Book.run,
 		"library.catalog": Catalog.run,
+		"library.declaredShelf": DeclaredShelf.run,
 		"library.move": Move.run,
 		"library.reader": Reader.run,
 		"library.readerShelf": ReaderShelf.run,

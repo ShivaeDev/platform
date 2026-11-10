@@ -20,7 +20,7 @@ export type QueryDeclaration<
 	R,
 > = Declaration<TPayload, TSuccess, TSpecs> &
 	CollectionReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R> & {
-		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
+		readonly reads?: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly serverReads?: QueryServerReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
 	};
 

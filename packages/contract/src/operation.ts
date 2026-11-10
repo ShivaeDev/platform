@@ -33,6 +33,8 @@ export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
 	readonly serverReads?: Bivariant<QueryServerReads<unknown, E, R>>;
+	// Set when the query declares no keys, so its live subscription listens on what its repository reads infer.
+	readonly undeclaredReads?: true;
 }
 
 export interface StreamShape extends OperationShape {
@@ -104,9 +106,12 @@ export function query(name: string, declaration: LooseQuery): QueryShape {
 	return {
 		...operation("query", name, withAutomatic(declaration)),
 		readPolicy: declaration.readPolicy ?? signedIn,
-		reads: (payload, viewer) => [...declaration.reads(payload, viewer), ...collections],
+		reads: (payload, viewer) => [...(declaration.reads?.(payload, viewer) ?? []), ...collections],
 		readsCollections: declaration.readsCollections,
 		...(declaration.serverReads === undefined ? {} : { serverReads: declaration.serverReads }),
+		...(declaration.reads === undefined && declaration.serverReads === undefined && declaration.readsCollections === undefined
+			? { undeclaredReads: true }
+			: {}),
 		...runOf(declaration),
 	};
 }

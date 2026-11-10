@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { repositoryReadsStory, watching } from "#test/repositoryReadsStory.ts";
 
 repositoryReadsStory.it(
-	"a query reading a book by id, with no declared reads, reruns for a write to that book and not for a write to another book",
+	"a query reading a book by id, without declared reads, reruns for a write to that book and not for a write to another book",
 	[watching(["book 1", "the catalog"])],
 	function* ({ retitle, untilDeliveries }) {
 		yield* retitle(2, "Persuasion");
@@ -17,7 +17,7 @@ repositoryReadsStory.it(
 );
 
 repositoryReadsStory.it(
-	"a query listing a shelf by its bucket, with no declared reads, reruns for a write on that shelf and not for a write on another shelf",
+	"a query listing a shelf by its bucket, without declared reads, reruns for a write on that shelf and not for a write on another shelf",
 	[watching(["shelf 1", "the catalog"])],
 	function* ({ retitle, untilDeliveries }) {
 		yield* retitle(3, "Odyssey");
@@ -31,12 +31,33 @@ repositoryReadsStory.it(
 );
 
 repositoryReadsStory.it(
-	"a query listing every book without a filter, with no declared reads, reruns for a write to any book",
+	"a query listing every book without a filter, without declared reads, reruns for a write to any book",
 	[watching(["the catalog"])],
 	function* ({ retitle, untilDeliveries }) {
 		yield* retitle(3, "Odyssey");
 
 		expect(yield* untilDeliveries(2)).toEqual(["the catalog: Dune | Emma | Ulysses", "the catalog: Dune | Emma | Odyssey"]);
+	},
+);
+
+repositoryReadsStory.it(
+	"a query that declares its shelf's bucket listens only on that key, though its handler reads every book, so a write on another shelf does not rerun it",
+	[watching(["shelf 1 declaring its bucket and filtering every book in code", "the catalog"])],
+	function* ({ retitle, untilDeliveries }) {
+		yield* retitle(3, "Odyssey");
+
+		expect(yield* untilDeliveries(3)).toEqual([
+			"shelf 1 declaring its bucket and filtering every book in code: Dune | Emma",
+			"the catalog: Dune | Emma | Ulysses",
+			"the catalog: Dune | Emma | Odyssey",
+		]);
+
+		yield* retitle(2, "Persuasion");
+
+		expect((yield* untilDeliveries(5)).slice(3)).toEqual([
+			"shelf 1 declaring its bucket and filtering every book in code: Dune | Persuasion",
+			"the catalog: Dune | Persuasion | Odyssey",
+		]);
 	},
 );
 

@@ -863,7 +863,7 @@ For the generic ownership mechanism, read [commit-bound changes](https://github.
 
 ### Live reads listen on what they filter by
 
-A live query built from repository reads can declare `reads: () => []`. `findById`, `findOne`, `findMany`, `select`, `count`, `aggregate` and `latestPerGroup` name the key their arguments pin with `recordRead` from `@shivaedev/changes/readRecorder.ts` before they send their statement, and the live subscription listens on it. The key is the same string the table's repository writes announce:
+A live query that declares no keys listens on what its repository reads pin. `findById`, `findOne`, `findMany`, `select`, `count`, `aggregate` and `latestPerGroup` name that key from their arguments with `recordRead(keys, { inferred: true })` from `@shivaedev/changes/readRecorder.ts` before they send their statement. A query that declares keys in `reads`, `serverReads` or `readsCollections` listens on them exactly as declared, and these inferred keys are ignored. The key is the same string the table's repository writes announce:
 
 - When the filter pins every id column by equality or `in`, the read listens on each row it names. A composite id is keyed by its encoded values, the way writes key the row.
 - Otherwise, when it pins a `bucket` column by equality or `in`, the read listens on that bucket's keys. When it pins several buckets, it listens on the one pinned to the fewest values.

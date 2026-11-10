@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
+import { ReadRecorder, type RecordReadOptions } from "@shivaedev/changes/readRecorder.ts";
 import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
@@ -31,9 +31,12 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 		registered = new Set(current.keys());
 		replaceKeys([...current.values()]);
 	}
-	function recordInto(run: Map<string, Key>) {
-		return (keys: readonly Key[]) =>
+	function recordInto(run: Map<string, Key>, declared: boolean) {
+		return (keys: readonly Key[], { inferred = false }: RecordReadOptions) =>
 			Effect.sync(() => {
+				if (inferred && declared) {
+					return;
+				}
 				let unregistered = false;
 				for (const key of keys) {
 					const id = identity(key);
@@ -56,7 +59,7 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 		const run = new Map<string, Key>();
 		recording[index] = run;
 		return read(request).pipe(
-			Effect.provideService(ReadRecorder, recordInto(run)),
+			Effect.provideService(ReadRecorder, recordInto(run, request.query.undeclaredReads !== true)),
 			Effect.tap(() => keep(index, run)),
 		);
 	}
