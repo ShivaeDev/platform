@@ -105,3 +105,21 @@ completionStory.it(
 		]);
 	},
 );
+
+completionStory.it(
+	"a pushed query waits until its subscription delivers the held first answer",
+	[held],
+	function* ({ open, releaseAnswer, requestFinished, requestReceived, shown, waiting }) {
+		open("pushed");
+		yield* requestReceived();
+		expect(yield* waiting()).toBe(true);
+
+		yield* releaseAnswer();
+		yield* requestFinished();
+
+		yield* outcomes([
+			["waiting", () => waiting(), false],
+			["shown value", () => shown(), "First"],
+		]);
+	},
+);

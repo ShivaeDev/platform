@@ -123,7 +123,7 @@ export function automaticQuery<A, E>({
 				start();
 				return get.once(source);
 			}
-			return AsyncResult.initial();
+			return AsyncResult.initial(true);
 		},
 		(refresh) => {
 			refresh(ready);
