@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
-import type { ReleasePlan, Source, WorkspacePackage } from "@shivaedev/releases/model.ts";
-import { type Declarations, declarationChanges, declarationFields } from "#lib/declarationChanges.ts";
+import type { ReleasePlan, WorkspacePackage } from "@shivaedev/releases/model.ts";
+import { type Declarations, declarationChanges, declarationDriftChangeset, declarationFields } from "#lib/declarationChanges.ts";
 import { scanCatalog } from "#quality/catalog.ts";
 import { publishedManifest } from "#release/adapters/publishedManifest.ts";
 
@@ -52,11 +52,5 @@ export const declarationDriftInput = Effect.fn("Release.declarationDriftInput")(
 		}),
 		{ concurrency: 8 },
 	);
-	const names = drift.flat().sort();
-	return names.length === 0
-		? undefined
-		: ({
-				name: "release-declared-dependencies.md",
-				text: `---\n${names.map((name) => `"${name}": patch`).join("\n")}\n---\n\n### Changed\n\n${names.map((name) => `- \`${name}\`: Align published dependency requirements with the workspace.`).join("\n")}\n`,
-			} satisfies Source);
+	return declarationDriftChangeset(drift.flat());
 });

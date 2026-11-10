@@ -43,9 +43,9 @@ export const pinnedApp = storyKit({
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "packed-starter-pins-" });
 		const starter = join(root, "examples/starter");
-		const generator = join(root, "generator-source");
-		const workspace = join(root, "workspace");
-		const unrelated = join(root, "workspace-unrelated");
+		const generator = join(root, "packages/create-app");
+		const workspace = join(root, "packages/local-postgres");
+		const unrelated = join(root, "packages/unrelated");
 		for (const directory of [starter, generator, workspace, unrelated]) {
 			yield* fs.makeDirectory(directory, { recursive: true });
 		}
@@ -97,8 +97,10 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 			tarball: join(root, "workspace.tgz"),
 		};
 		const packages: Package[] = [];
+		const environment: Record<string, string> = {};
 		const logs: unknown[] = [];
 		return {
+			environment,
 			folder: "",
 			generator,
 			logs,
@@ -115,13 +117,6 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 	name: "packed starter against npm pins",
 	stages: ["source"],
 	verbs: (engine, story) => ({
-		archiveInstalls: () =>
-			Effect.sync(() =>
-				engine.logs
-					.flat()
-					.map(String)
-					.filter((line) => line.includes("from the workspace archive")),
-			),
 		check: Effect.fn("PinnedApp.check")(function* () {
 			story.tell("Packed starter generates and installs the app, then runs its CI");
 			return yield* Effect.gen(function* () {
@@ -129,7 +124,8 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 				engine.folder = folder;
 				yield* runStarter(join(engine.root, folder), "postgres://localhost/starter-story");
 			}).pipe(
-				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ "npm_config_registry": engine.registry }))),
+				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown({ "npm_config_registry": engine.registry }), { asPrimary: true })),
+				Effect.provide(ConfigProvider.layerAdd(ConfigProvider.fromUnknown(engine.environment), { asPrimary: true })),
 				Effect.provide(Logger.layer([Logger.make(({ message }) => engine.logs.push(message))])),
 				Effect.match({ onFailure: (error) => error.message, onSuccess: () => "passed" }),
 			);
@@ -139,6 +135,13 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 			const manifest = yield* fs.readFileString(join(engine.root, engine.folder, "node_modules", UNRELATED, "package.json"));
 			return manifest.includes("built by the pull request") ? "the pull request's archive" : "npm";
 		}),
+		recordedSources: () =>
+			Effect.sync(() =>
+				engine.logs
+					.flat()
+					.map(String)
+					.filter((line) => /^Installing \S+ from /u.test(line)),
+			),
 	}),
 });
 
@@ -164,4 +167,20 @@ export const unreleasedPin = pinnedApp.trait("source", "the starter pins an unre
 		engine.pin = "1.1.0";
 		engine.pkg = { ...engine.pkg, manifest: { ...engine.pkg.manifest, version: "1.1.0" } };
 	}),
+);
+export const pendingChangeset = pinnedApp.trait("source", `.changeset/adapter-ports.md releases ${NAME} as a minor`, function* ({ root }) {
+	const fs = yield* FileSystem.FileSystem;
+	yield* fs.makeDirectory(join(root, ".changeset"));
+	yield* fs.writeFileString(
+		join(root, ".changeset/adapter-ports.md"),
+		`---\n"${NAME}": minor\n---\n\n### Added\n\n- \`assertLocalDatabase\` accepts the allowed ports.\n`,
+	);
+});
+export const hostileRegistryEnvironment = pinnedApp.trait(
+	"source",
+	"the environment sets npm_config_registry to a registry that refuses every connection",
+	(engine) =>
+		Effect.sync(() => {
+			engine.environment = { "npm_config_registry": "http://127.0.0.1:9" };
+		}),
 );
