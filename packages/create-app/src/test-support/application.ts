@@ -15,7 +15,6 @@ import { generatedReadouts } from "#test/generatedReadouts.ts";
 import { moduleChecks } from "#test/moduleChecks.ts";
 import { railwayReadouts } from "#test/railwayReadouts.ts";
 import { resourceActions } from "#test/resourceActions.ts";
-import { runAdminStories } from "#test/runAdminStories.ts";
 import { skillActions } from "#test/skillActions.ts";
 import { templateReadouts } from "#test/templateReadouts.ts";
 
@@ -51,7 +50,6 @@ export const application = storyKit({
 			...appReadouts(target),
 			...railwayReadouts(target),
 			...resourceActions(engine, story),
-			...moduleChecks(target, engine.source.starter, story),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),
 			...skillActions(target, story),
@@ -99,18 +97,13 @@ export const application = storyKit({
 					return result;
 				}),
 			ready: () => script("the app runs pnpm ready against workspace packages", () => readyAgainstWorkspace(target(), engine.source.starter)),
-			runAdminStories: () =>
-				script("the app runs its asset and admin stories against workspace sources", () => runAdminStories(target(), engine.source.starter)),
 			runDatabaseProbe: () =>
 				script("the app runs a test that records its environment and both databases", () => {
 					installDatabaseProbe(target());
 					return appScript(target(), "test", ["--config", "environment.config.ts"]);
 				}),
-			runFoundationAdminStories: () =>
-				script("the app runs its asset and foundation admin stories against workspace sources", () =>
-					runAdminStories(target(), engine.source.starter, true),
-				),
 			scriptResult: () => Effect.sync(() => engine.scripts.at(-1) ?? "the app ran no script"),
+			typecheck: moduleChecks(target, engine.source.starter, story).typecheck,
 			version: () => {
 				story.tell("create-app --version");
 				return createAppIn(engine, ["--version"]).pipe(Effect.map(() => engine.printed.trim()));
