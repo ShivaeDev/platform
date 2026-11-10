@@ -46,7 +46,6 @@ export const writeFiles = Effect.fn("BuildStory.writeFiles")(function* (root: st
 	}
 });
 
-// The files under a folder of the project by their path in it, without the installed packages, which are links into this repository.
 const filesUnder = Effect.fn("BuildStory.filesUnder")(function* (
 	root: string,
 	directory: string,
@@ -108,7 +107,6 @@ export const typeCheck = Effect.fn("BuildStory.typeCheck")(function* (root: stri
 	return code === 0 && output === "" ? "compiles cleanly" : output;
 });
 
-// The command line run from source, as a workspace package calls it before any build.
 export const fromSource = Effect.fn("BuildStory.fromSource")(function* (root: string, lock: string, args: readonly string[]) {
 	const { code, stderr, stdout } = yield* runIn(root, lock, process.execPath, ["--conditions=@shivaedev/source", `${PACKAGE}src/cli.ts`, ...args]);
 	return { code, printed: stdout.split("\n"), problems: stderr.split("\n") };
