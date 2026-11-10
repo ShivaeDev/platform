@@ -42,8 +42,9 @@ definedModulesHost.it(
 	"a host given the defined notes module with a test fake through replacedModuleHandlers starts and answers alice from the fake",
 	[replacedNotes],
 	function* ({ readNote, startup }) {
-		expect(yield* startup()).toBe("started");
-
-		expect(yield* readNote(1)).toBe("Fake note");
+		yield* outcomes([
+			["startup", () => startup(), "started"],
+			["alice reads note 1", () => readNote(1), "Fake note"],
+		]);
 	},
 );

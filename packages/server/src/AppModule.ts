@@ -25,4 +25,7 @@ export type AppModule =
 			readonly handlers: ModuleLayer;
 			readonly module?: never;
 	  })
-	| (ModuleParts & { readonly group?: never; readonly handlers?: never; readonly module: AnyModule & RpcGroup.Any });
+	| (ModuleParts & { readonly group?: never; readonly handlers?: never; readonly module: RegisteredModule });
+
+// A module's requires list exists only in its type, and appModules reads it from the registration's own type.
+export type RegisteredModule = RpcGroup.Any & Pick<AnyModule, "application" | "declaration"> & { readonly "~requires": unknown };

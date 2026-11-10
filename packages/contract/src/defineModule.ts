@@ -9,7 +9,6 @@ import type { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import type { changesRpc } from "#serverMetadata.ts";
 import type { SubjectDeclaration, WithSubject } from "#subject.ts";
 
-// The host refuses a module query whose handler moduleHandlers did not build, so every RPC of a module names it.
 export class DefinedModule extends Context.Service<DefinedModule, string>()("@shivaedev/contract/DefinedModule") {}
 
 export type ModuleOperation = (QueryShape | CommandShape) & { readonly run: (payload: never) => Effect.Effect<unknown, unknown, unknown> };

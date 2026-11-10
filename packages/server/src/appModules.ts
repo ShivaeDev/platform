@@ -105,9 +105,14 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 	return {
 		admin,
 		group: RpcGroup.make().merge(...modules.map((module) => (module.module === undefined ? module.group : module.module)), admin.group),
+		// The overload types each module's handlers from its own requires; at run time moduleHandlers reads only its operations.
 		handlers: Layer.mergeAll(
 			admin.handlers,
-			...modules.map((module) => (module.module === undefined ? module.handlers : moduleHandlers(module.module))),
+			...modules.map((module) =>
+				module.module === undefined
+					? module.handlers
+					: moduleHandlers({ "~requires": [], application: module.module.application, declaration: module.module.declaration }),
+			),
 		),
 		migrations: {
 			components: modules.flatMap((module) => module.migrations.components ?? []),
