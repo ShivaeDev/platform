@@ -36,7 +36,10 @@ const runFixtures = {
 	runAddedOptional: 'SuccessDiffersFromRun<"returnsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInArray: 'SuccessDiffersFromRun<"listsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInOption: 'SuccessDiffersFromRun<"latestPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInOptionalField: 'SuccessDiffersFromRun<"featuresPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInUnion: 'SuccessDiffersFromRun<"findsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInUnionDiscriminant:
+		'SuccessDiffersFromRun<"changesWithExtra", { readonly extra?: number | undefined; readonly kind: "moved" | "renamed"; readonly note?: string | undefined; }, { readonly kind: "moved"; readonly note?: string | undefined; } | { readonly kind: "renamed"; readonly note?: string | undefined; }>',
 	runAutomaticRejection: 'RejectionAutomatic<"listsAutomatic", "ServiceUnavailable">',
 	runDroppedOptional:
 		'SuccessDiffersFromRun<"neverPins", { id: number; title: string; }, { readonly id: number; readonly pinned?: boolean | undefined; readonly title: string; }>',
@@ -46,6 +49,7 @@ const runFixtures = {
 	runNestedClassArray: 'SuccessClassNotReturned<"listsPlainNotes", { id: number; title: string; }, Note>',
 	runNestedClassField: 'SuccessClassNotReturned<"createsPlainNote", { id: number; title: string; }, Note>',
 	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
+	runOptionalFieldClass: 'SuccessClassNotReturned<"featuresPlainNote", { id: number; title: string; }, Note>',
 	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
 	runRejectionClass: 'RejectionClassDiffers<"raisesOtherTitleTaken", "TitleTaken">',
 	runReturnsAny: 'RunReturnsAny<"parsesDraft", "decode the value with a schema, or give run\'s return a type">',
