@@ -1,6 +1,6 @@
-import { once } from "node:events";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Effect, Queue } from "effect";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 
 function sessionProperties(session: string, type: string, properties: Readonly<Record<string, unknown>>) {
 	let field: string | undefined;
@@ -84,24 +84,7 @@ export const scriptedPeer = Effect.gen(function* () {
 		}
 		reply(address, request.method, data, response);
 	});
-	yield* Effect.acquireRelease(
-		Effect.promise(async () => {
-			server.listen(0, "127.0.0.1");
-			await once(server, "listening");
-		}),
-		() =>
-			Effect.promise(async () => {
-				for (const stream of streams) {
-					stream.end();
-				}
-				server.closeAllConnections();
-				await new Promise<void>((resolve) => server.close(() => resolve()));
-			}),
-	);
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		return yield* Effect.die("peer has no TCP address");
-	}
+	const origin = yield* loopbackServer(server);
 	return {
 		closeEvents: () =>
 			Effect.sync(() => {
@@ -122,6 +105,6 @@ export const scriptedPeer = Effect.gen(function* () {
 			promptResponse = mode;
 		},
 		request: Queue.take(requests),
-		url: `http://127.0.0.1:${address.port}`,
+		url: origin,
 	};
 });

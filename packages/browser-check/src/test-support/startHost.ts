@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Effect } from "effect";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 
 export interface SignIn {
 	readonly email: string;
@@ -28,15 +29,8 @@ export const startHost = Effect.gen(function* () {
 		response.setHeader("content-type", "text/html");
 		response.end(pageContent(request));
 	});
-	yield* Effect.acquireRelease(
-		Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))),
-		() => Effect.promise(() => new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())))),
-	);
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		throw new Error("Expected TCP host");
-	}
-	return { signIns, url: `http://127.0.0.1:${address.port}`, visits };
+	const url = yield* loopbackServer(server);
+	return { signIns, url, visits };
 });
 
 function pageContent(request: IncomingMessage) {

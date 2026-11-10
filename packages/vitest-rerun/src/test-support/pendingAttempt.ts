@@ -1,30 +1,16 @@
 import { createServer } from "node:http";
 import { Deferred, Effect, Fiber } from "effect";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { perAttempt } from "#test/specFiles.ts";
 import { runProgram, type Suite, writeFile } from "#test/suite.ts";
 
 export const holdRerun = Effect.fn("VitestRerunSuite.holdRerun")(function* (suite: Suite) {
-	const server = yield* Effect.acquireRelease(
-		Effect.sync(() =>
-			createServer((_request, response) => {
-				response.end();
-				Effect.runSync(Deferred.succeed(suite.attemptPending, undefined));
-			}),
-		),
-		(opened) =>
-			Effect.promise(
-				() =>
-					new Promise<void>((resolve, reject) => {
-						opened.closeAllConnections();
-						opened.close((error) => (error === undefined ? resolve() : reject(error)));
-					}),
-			),
+	const url = yield* loopbackServer(
+		createServer((_request, response) => {
+			response.end();
+			Effect.runSync(Deferred.succeed(suite.attemptPending, undefined));
+		}),
 	);
-	yield* Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)));
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		throw new Error("The pending attempt needs a TCP address");
-	}
 	writeFile(
 		suite,
 		"pending.spec.ts",
@@ -33,7 +19,7 @@ it('waits in its rerun', async () => {
 	if (attempt === 1) {
 		throw new Error('The first attempt fails');
 	}
-	await fetch('http://127.0.0.1:${address.port}');
+	await fetch('${url}');
 	await new Promise(() => {});
 });
 `),
