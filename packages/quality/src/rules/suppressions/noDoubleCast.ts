@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
@@ -75,7 +76,7 @@ function typedCast(node: ts.Node, checker: ts.TypeChecker): string | undefined {
 	return readonlyWrite(node, checker);
 }
 
-function typedCasts(inputs: RuleInputs): readonly Finding[] {
+const typedCasts = Effect.fn("NoDoubleCast.typedCasts")(function* (inputs: RuleInputs) {
 	const sources = inputs.sources.filter((file) => {
 		const source = parse(file);
 		return !/(?:^|\/)(?:adapters|test-support)\//u.test(file.path) && source !== undefined && typedNodes(source).length > 0;
@@ -83,7 +84,7 @@ function typedCasts(inputs: RuleInputs): readonly Finding[] {
 	if (sources.length === 0) {
 		return [];
 	}
-	const program = effectProgram({ ...inputs, sources });
+	const program = yield* effectProgram({ ...inputs, sources });
 	const checker = program.getTypeChecker();
 	return sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
@@ -96,10 +97,10 @@ function typedCasts(inputs: RuleInputs): readonly Finding[] {
 						: [{ file: file.path, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, message }];
 				});
 	});
-}
+});
 
 export const noDoubleCast = defineRule({
-	check: (inputs) => [...inputs.sources.flatMap(doubleCasts), ...typedCasts(inputs)],
+	check: (inputs) => Effect.map(typedCasts(inputs), (typed) => [...inputs.sources.flatMap(doubleCasts), ...typed]),
 	description:
 		"Decode unknown values with Schema.decodeUnknownEffect and SQL rows with SqlSchema. Check declared overload returns and preserve Context service types and readonly native fields; writes on an object just built with new, before anything else can see it, are construction. Reports double casts everywhere and hidden casts outside adapters/ and test-support/.",
 	id: "suppressions/no-double-cast",

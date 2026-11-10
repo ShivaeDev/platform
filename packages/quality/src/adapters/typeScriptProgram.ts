@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { SourceFile, TypeScriptProgram } from "#rule.ts";
 
@@ -13,7 +14,7 @@ const OPTIONS: ts.CompilerOptions = {
 	types: [],
 };
 
-function compile(root: string, sources: readonly SourceFile[]): TypeScriptProgram {
+const compile = Effect.fn("TypeScriptProgram.compile")(function* (root: string, sources: readonly SourceFile[]) {
 	const texts = new Map(sources.map((source) => [join(root, source.path), source.text]));
 	const projectOf = projectsFor(root);
 	const host = ts.createCompilerHost(OPTIONS);
@@ -24,14 +25,20 @@ function compile(root: string, sources: readonly SourceFile[]): TypeScriptProgra
 			const project = projectOf(from);
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});
+	const declarations = yield* DeclarationFiles;
+	host.getSourceFile = yield* declarations.reader(host, OPTIONS);
 	const program = ts.createProgram([...texts.keys()], OPTIONS, host);
-	return { checker: program.getTypeChecker(), program, sourceFile: (path) => program.getSourceFile(join(root, path)), ts };
-}
+	const compiled: TypeScriptProgram = {
+		checker: program.getTypeChecker(),
+		program,
+		sourceFile: (path) => program.getSourceFile(join(root, path)),
+		ts,
+	};
+	return compiled;
+});
 
-export function typeScriptProgram(root: string, sources: readonly SourceFile[]): Effect.Effect<TypeScriptProgram> {
-	let compiled: TypeScriptProgram | undefined;
-	return Effect.sync(() => {
-		compiled ??= compile(root, sources);
-		return compiled;
-	});
-}
+// Rules receive the program as an Effect without requirements, so it keeps the declaration files of the run that scanned the sources.
+export const typeScriptProgram = Effect.fn("TypeScriptProgram.typeScriptProgram")(function* (root: string, sources: readonly SourceFile[]) {
+	const declarations = yield* DeclarationFiles;
+	return yield* Effect.cached(compile(root, sources).pipe(Effect.provideService(DeclarationFiles, declarations)));
+});

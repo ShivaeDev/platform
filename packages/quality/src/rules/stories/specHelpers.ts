@@ -10,11 +10,13 @@ const MESSAGE =
 
 export const specHelpers = defineRule({
 	check: (inputs) =>
-		Effect.map(storySources(inputs), (stories) =>
-			specReaderSources(stories).flatMap(({ source, readCall }) =>
-				topLevelHelpers(source)
-					.filter((node) => !pureReader(node, readCall))
-					.map((node) => findingAt(source, node, MESSAGE)),
+		Effect.flatMap(storySources(inputs), (stories) =>
+			Effect.map(specReaderSources(stories), (readers) =>
+				readers.flatMap(({ source, readCall }) =>
+					topLevelHelpers(source)
+						.filter((node) => !pureReader(node, readCall))
+						.map((node) => findingAt(source, node, MESSAGE)),
+				),
 			),
 		),
 	description: "Specs state expectations and may keep pure matchers and readers; story-kit traits and verbs in test-support own setup and actions.",
