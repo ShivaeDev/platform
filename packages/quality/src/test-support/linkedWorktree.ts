@@ -1,4 +1,4 @@
-import { chmodSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Effect, Schema } from "effect";
 import { checkoutStory } from "#test/checkoutStory.ts";
@@ -131,5 +131,39 @@ export function stages(...files: readonly SeedFile[]) {
 export function inCloudSession() {
 	return checkoutStory.trait("checkout", "the author commits in a Claude Code cloud session, where CLAUDE_CODE_REMOTE is true", (engine) => {
 		engine.environment = { "CLAUDE_CODE_REMOTE": "true" };
+	});
+}
+
+export function deletes(path: string) {
+	return checkoutStory.trait("checkout", `the author deletes ${path} without staging the deletion`, (engine) => rmSync(join(engine.root, path)));
+}
+
+export function makesExecutable(path: string) {
+	return checkoutStory.trait("checkout", `the author makes ${path} executable without staging the mode change`, (engine) => {
+		chmodSync(join(engine.root, path), 0o755);
+	});
+}
+
+export function stagesLink(path: string, target: string) {
+	return checkoutStory.trait("checkout", `the author links ${path} to ${target} and stages the link`, (engine) => {
+		symlinkSync(target, join(engine.root, path));
+		git(engine.root, "add", "--", path);
+	});
+}
+
+export function relinks(path: string, target: string) {
+	return checkoutStory.trait("checkout", `the author points the link ${path} at ${target} without staging it`, (engine) => {
+		rmSync(join(engine.root, path));
+		symlinkSync(target, join(engine.root, path));
+	});
+}
+
+export function checkoutFails(path: string) {
+	return checkoutStory.trait("checkout", `Git's required smudge filter for ${path} fails, so writing its staged content to disk fails`, (engine) => {
+		const repository = builtRepository(engine);
+		git(repository.root, "config", "filter.broken.clean", "cat");
+		git(repository.root, "config", "filter.broken.smudge", "false");
+		git(repository.root, "config", "filter.broken.required", "true");
+		writes(repository.root, ".git/info/attributes", `/${join(repository.folder, path)} filter=broken\n`);
 	});
 }

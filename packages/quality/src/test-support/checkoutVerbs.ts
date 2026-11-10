@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { answerOf, type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
+import { heldCheck } from "#test/heldCheck.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
 import { git, isolatedEnvironment } from "#testing/adapters/git.ts";
 import { hookPath } from "#testing/adapters/hookPath.ts";
@@ -65,6 +66,19 @@ function textIn(folder: string, path: string): string | undefined {
 	return existsSync(join(folder, path)) ? readFileSync(join(folder, path), "utf8") : undefined;
 }
 
+const RECOVERY = "If the hook stops first, run";
+
+function recoveryCommands(stdout: string): readonly string[] {
+	const lines = stdout.split("\n");
+	const notice = lines.findIndex((line) => line.includes(RECOVERY));
+	if (notice === -1) {
+		throw new Error("The check printed no recovery commands");
+	}
+	const following = lines.slice(notice + 1);
+	const end = following.findIndex((line) => !line.startsWith("  "));
+	return (end === -1 ? following : following.slice(0, end)).map((line) => line.trim());
+}
+
 export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => void) {
 	function commitFrom(folder: string, message: string): CommitAnswer {
 		const run = commits(folder, message, engine.environment);
@@ -73,6 +87,22 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 	}
 	return {
 		...cliVerbs(engine, tell),
+		commitCheckKilledWhileBiomeRuns: () =>
+			Effect.gen(function* () {
+				tell("the commit check is killed while Biome checks the staged content");
+				engine.answer = answerOf(yield* heldCheck(engine.root, (hook) => hook.kill("SIGKILL")));
+			}),
+		commitCheckWhileFolderReplaces: (path: string) =>
+			Effect.gen(function* () {
+				tell(`the commit check runs, and while Biome checks the staged content a folder takes the place of ${path}`);
+				const run = yield* heldCheck(engine.root, (hook) => {
+					rmSync(join(engine.root, path));
+					mkdirSync(join(engine.root, path));
+					writeFileSync(join(engine.root, path, "kept.txt"), "kept\n");
+					hook.send("continue");
+				});
+				engine.answer = answerOf(run);
+			}),
 		commitErrors: () => Effect.sync(() => committed(engine).stderr),
 		commitErrorsAfter: (line: string) =>
 			Effect.sync(() => {
@@ -103,6 +133,8 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 		hookFile: () => Effect.sync(() => hookPath(builtRepository(engine).root)),
 		hookLines: () => Effect.sync(() => linesOf(hookText(builtRepository(engine)) ?? "")),
 		hookScript: () => Effect.sync(() => hookText(builtRepository(engine))),
+		linkTarget: (path: string) => Effect.sync(() => readlinkSync(join(engine.root, path))),
+		mode: (path: string) => Effect.sync(() => (statSync(join(engine.root, path)).mode & 0o777).toString(8)),
 		reads: (path: string) => Effect.sync(() => textIn(engine.root, path)),
 		readsIn: (worktree: string, path: string) => Effect.sync(() => textIn(folderOf(engine, worktree), path)),
 		reported: () => Effect.sync(() => linesOf(engine.answer?.stdout ?? "").filter((line) => line.startsWith("quality: "))),
@@ -125,6 +157,16 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 				});
 				engine.answer = answerOf({ status: run.status, stderr: run.stderr, stdout: run.stdout });
 				return engine.answer;
+			}),
+		runsPrintedRecovery: () =>
+			Effect.sync(() => {
+				tell("the author runs the commands the check printed to get the working copies back");
+				for (const command of recoveryCommands(engine.answer?.stdout ?? "")) {
+					const run = spawnSync("sh", ["-c", command], { cwd: engine.root, encoding: "utf8", env: isolatedEnvironment(engine.root) });
+					if (run.status !== 0) {
+						throw new Error(`${command} exited ${String(run.status)}: ${run.stderr}`);
+					}
+				}
 			}),
 		scriptLog: () => Effect.sync(() => linesOf(checksLog(engine.root))),
 	};

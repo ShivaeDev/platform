@@ -1,5 +1,5 @@
 import * as NodePath from "@effect/platform-node/NodePath";
-import { Console, Effect, FileSystem, Path } from "effect";
+import { Console, Effect, Path } from "effect";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { biomeReport } from "#biome/report.ts";
 import type { ResolvedConfig } from "#config/load.ts";
@@ -9,7 +9,7 @@ import type { Violation } from "#engine/violation.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
-import { orWhenAbsent } from "#inventory/filesystem.ts";
+import { withStagedContent } from "#hooks/withStagedContent.ts";
 import { type ReportContext, renderFindings } from "#report/render.ts";
 import { failingFindings } from "#rules/biome.ts";
 
@@ -22,41 +22,6 @@ function pathsOf(output: string): readonly string[] {
 function failed(error: { readonly message: string }): SetupFailure {
 	return new SetupFailure({ cause: error, message: error.message });
 }
-
-const workingCopies = Effect.fn("Hooks.workingCopies")(function* (root: string, paths: readonly string[]) {
-	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
-
-	const fs = yield* FileSystem.FileSystem;
-	return yield* Effect.forEach(paths, (path) =>
-		Effect.map(orWhenAbsent<Uint8Array | undefined>(join(root, path), fs.readFile(join(root, path)), undefined), (bytes) => ({
-			bytes,
-			path: join(root, path),
-		})),
-	).pipe(Effect.mapError(failed));
-});
-
-const restore = Effect.fn("Hooks.restore")(function* (copies: readonly { readonly bytes: Uint8Array | undefined; readonly path: string }[]) {
-	const fs = yield* FileSystem.FileSystem;
-	yield* Effect.forEach(copies, ({ bytes, path }) => (bytes === undefined ? fs.remove(path, { force: true }) : fs.writeFile(path, bytes))).pipe(
-		Effect.mapError(failed),
-	);
-});
-
-// Biome reads files only from disk, so a file edited again after staging shows Biome its staged content until the check ends.
-const withStagedContent = Effect.fn("Hooks.withStagedContent")(function* <TValue, TError, TRequirements>(
-	root: string,
-	edited: readonly string[],
-	check: Effect.Effect<TValue, TError, TRequirements>,
-) {
-	if (edited.length === 0) {
-		return yield* check;
-	}
-	return yield* Effect.acquireUseRelease(
-		Effect.tap(workingCopies(root, edited), () => gitOrFail(root, ["--literal-pathspecs", "checkout-index", "--force", "--", ...edited])),
-		() => check,
-		(copies) => restore(copies),
-	);
-});
 
 export const stagedCheck = Effect.fn("Hooks.stagedCheck")(function* (config: ResolvedConfig) {
 	const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
