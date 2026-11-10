@@ -3,9 +3,8 @@ import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { services } from "#adapters/runMain.ts";
-import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
+import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
 import { linesOf } from "#inventory/linesOf.ts";
-import { effectProgram } from "#rules/effect/program.ts";
 
 interface DeclarationEngine {
 	readonly programs: Map<string, ts.Program>;
@@ -46,9 +45,7 @@ export const declarationStory = storyKit({
 	verbs: (engine, story) => ({
 		compile: Effect.fn("DeclarationStory.compile")(function* (name: string, text: string) {
 			story.tell(`a rule compiles ${name} with src/main.ts: ${text}`);
-			const sources = [{ lines: linesOf(text), path: "src/main.ts", text }];
-			const inputs = { files: ["src/main.ts"], readText: () => Effect.succeed(undefined), root: engine.root, sources };
-			engine.programs.set(name, yield* effectProgram({ ...inputs, typeScript: yield* typeScriptProgram(engine.root, sources) }));
+			engine.programs.set(name, (yield* sourcesProgram(engine.root, [{ lines: linesOf(text), path: "src/main.ts", text }])).program);
 		}),
 		compileTargeting: Effect.fn("DeclarationStory.compileTargeting")(function* (name: string, target: ts.ScriptTarget) {
 			story.tell(`a program targeting ${ts.ScriptTarget[target]} reads ${LABELS} as ${name}`);

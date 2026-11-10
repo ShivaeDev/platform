@@ -14,9 +14,12 @@ const OPTIONS: ts.CompilerOptions = {
 	types: [],
 };
 
-const compile = Effect.fn("TypeScriptProgram.compile")(function* (root: string, sources: readonly SourceFile[]) {
-	const texts = new Map(sources.map((source) => [join(root, source.path), source.text]));
-	const projectOf = projectsFor(root);
+const compile = Effect.fn("TypeScriptProgram.compile")(function* (
+	root: string,
+	files: readonly string[],
+	texts: ReadonlyMap<string, string>,
+	projectOf: ReturnType<typeof projectsFor>,
+) {
 	const host = ts.createCompilerHost(OPTIONS);
 	const read = host.readFile;
 	host.readFile = (path) => texts.get(path) ?? read(path);
@@ -27,7 +30,7 @@ const compile = Effect.fn("TypeScriptProgram.compile")(function* (root: string, 
 		});
 	const declarations = yield* DeclarationFiles;
 	host.getSourceFile = yield* declarations.reader(host, OPTIONS);
-	const program = ts.createProgram([...texts.keys()], OPTIONS, host);
+	const program = ts.createProgram([...files], OPTIONS, host);
 	const compiled: TypeScriptProgram = {
 		checker: program.getTypeChecker(),
 		program,
@@ -37,8 +40,22 @@ const compile = Effect.fn("TypeScriptProgram.compile")(function* (root: string, 
 	return compiled;
 });
 
+// Programs built with the same projects share their parsed tsconfigs and module resolutions.
+export const sourcesProgram = Effect.fn("TypeScriptProgram.sourcesProgram")(function* (
+	root: string,
+	sources: readonly SourceFile[],
+	projectOf = projectsFor(root),
+) {
+	const texts = new Map(sources.map((source) => [join(root, source.path), source.text]));
+	return yield* compile(root, [...texts.keys()], texts, projectOf);
+});
+
+export const filesProgram = Effect.fn("TypeScriptProgram.filesProgram")(function* (root: string, files: readonly string[]) {
+	return yield* compile(root, files, new Map(), projectsFor(root));
+});
+
 // Rules receive the program as an Effect without requirements, so it keeps the declaration files of the run that scanned the sources.
 export const typeScriptProgram = Effect.fn("TypeScriptProgram.typeScriptProgram")(function* (root: string, sources: readonly SourceFile[]) {
 	const declarations = yield* DeclarationFiles;
-	return yield* Effect.cached(compile(root, sources).pipe(Effect.provideService(DeclarationFiles, declarations)));
+	return yield* Effect.cached(sourcesProgram(root, sources).pipe(Effect.provideService(DeclarationFiles, declarations)));
 });
