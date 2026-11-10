@@ -73,7 +73,7 @@ export const generate = Effect.fn("Build.generate")(function* (directory: string
 		}
 		outcomes.push({ ...relative, status });
 	}
-	outcomes.push(...(yield* settleOrphans(project, new Set(files.map(({ output }) => output)), options.check)));
+	outcomes.push(...(yield* settleOrphans(project, options.check)));
 	const report: GenerateReport = { modules: outcomes, programBuilt: pending.length > 0 };
 	const lines = outcomes.flatMap((outcome) => problemOf(outcome) ?? []);
 	if (refusals.length > 0 || lines.length > 0) {

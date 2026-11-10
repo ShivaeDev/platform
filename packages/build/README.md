@@ -41,7 +41,7 @@ shivaedev-build generate
 shivaedev-build generate --check
 ```
 
-`generate` writes each file that is missing or differs, and reports every module as `written`, `current` (derived again and equal to the file) or `unchanged, from the cache`. A generated file whose module is gone, because the module file was renamed or deleted, is removed and reported as `removed`; a file under `src/generated` that the generator did not write is left alone. `--check` writes nothing and exits 1 listing each missing, stale or orphaned file with "run `pnpm generate`". A refusal exits 1 with its message, and the refused module's file is not written. For the same inputs the output is byte for byte the same.
+`generate` writes each file that is missing or differs, and reports every module as `written`, `current` (derived again and equal to the file) or `unchanged, from the cache`. A generated file whose first line names a module file that is gone or no longer defines a module, because it was renamed or deleted, is removed and reported as `removed`; a file under `src/generated` that the generator did not write is left alone. `--check` writes nothing and exits 1 listing each missing, stale or orphaned file with "run `pnpm generate`". A refusal exits 1 with its message, and the refused module's file is not written. For the same inputs the output is byte for byte the same.
 
 A workspace package can run the generator from source before anything is built:
 

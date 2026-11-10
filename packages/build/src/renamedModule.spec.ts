@@ -1,5 +1,6 @@
+import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { generatedOnce, generator, notesProject, ownFileInGenerated } from "#test/generator.ts";
+import { generatedFileAt, generatedOnce, generator, notesProject, ownFileInGenerated } from "#test/generator.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
 const NOTEBOOK = "src/generated/modules/notes/notebook.ts";
@@ -29,5 +30,15 @@ generator.it(
 			["the old file", () => generatedFile(NOTES), "missing"],
 			["the application's own file", () => generatedFile(ROUTES), ROUTES_TEXT],
 		]);
+	},
+);
+
+// On a case-insensitive file system both spellings name one file, as after a folder renamed by case alone; on a
+// case-sensitive one they are two files. Either way the module its header names still exists, so nothing is removed.
+generator.it(
+	"generate removes no file whose header names a module that still exists, even under a folder spelled in another case",
+	[notesProject(), generatedFileAt("src/generated/modules/Notes/notes.ts", "src/modules/notes/notes.ts")],
+	function* ({ generates }) {
+		expect(yield* generates()).toEqual({ files: { [NOTES]: "written" }, problems: [], programBuilt: true, result: "succeeded" });
 	},
 );
