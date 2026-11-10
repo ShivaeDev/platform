@@ -3,7 +3,6 @@ import type { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import type { loaderHost } from "#test/loaderHost.ts";
 import { settleScreen } from "#test/settleScreen.ts";
@@ -16,7 +15,6 @@ export interface RouteHost {
 }
 
 export interface Engine<THost extends RouteHost = Host> {
-	readonly activity?: ClientActivity;
 	readonly host: THost;
 	readonly loaded: PromiseWithResolvers<void>;
 	readonly mount: PromiseWithResolvers<void>;
@@ -44,5 +42,5 @@ export function opened(engine: Engine<RouteHost>) {
 
 export function settle(engine: Engine<RouteHost>, tell: (line: string) => void) {
 	const { pending, view } = opened(engine);
-	return settleScreen(view.container, pending, tell, engine.activity);
+	return settleScreen(view.container, pending, tell);
 }

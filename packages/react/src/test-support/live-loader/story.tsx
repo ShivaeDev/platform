@@ -20,7 +20,6 @@ export const liveLoader = storyKit({
 	*create() {
 		const host = yield* liveLoaderHost();
 		const engine: Engine<LiveHost> = {
-			activity: host.activity,
 			host,
 			loaded: Promise.withResolvers<void>(),
 			mount: Promise.withResolvers<void>(),
