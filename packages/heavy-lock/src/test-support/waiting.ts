@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { cli } from "#test/cli.ts";
 import { commands } from "#test/cliCommands.ts";
 import { lockStory } from "#test/kit.ts";
@@ -21,6 +21,25 @@ export function gitUnavailable() {
 	});
 }
 
+function repositoryOn(cwd: string, branch: string, detached: boolean) {
+	const steps = [
+		["init", "--quiet", "--initial-branch", branch],
+		...(detached
+			? [
+					["-c", "user.name=Story", "-c", "user.email=story@example.com", "commit", "--allow-empty", "-m", "fixture"],
+					["checkout", "--detach"],
+				]
+			: []),
+	];
+	for (const args of steps) {
+		const result = isolatedGit(cwd, args);
+		if (result.status !== 0) {
+			return Effect.die(new Error(`git ${args.join(" ")} failed: ${result.stderr}`));
+		}
+	}
+	return Effect.void;
+}
+
 export function heldByAnotherProcess(branch?: string, detached = false) {
 	return lockStory.trait(
 		"holder",
@@ -30,15 +49,7 @@ export function heldByAnotherProcess(branch?: string, detached = false) {
 				const cwd = join(engine.directory, "repository");
 				mkdirSync(cwd);
 				if (branch !== undefined) {
-					execFileSync("git", ["init", "--initial-branch", branch, cwd], { stdio: "ignore" });
-					if (detached) {
-						execFileSync(
-							"git",
-							["-C", cwd, "-c", "user.name=Story", "-c", "user.email=story@example.com", "commit", "--allow-empty", "-m", "fixture"],
-							{ stdio: "ignore" },
-						);
-						execFileSync("git", ["-C", cwd, "checkout", "--detach"], { stdio: "ignore" });
-					}
+					yield* repositoryOn(cwd, branch, detached);
 				}
 				engine.cliOptions.cwd = cwd;
 				yield* cli(engine, () => undefined).starts("holder", commands.holdsUntilReleased);

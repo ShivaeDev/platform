@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { databaseName } from "#appFiles.ts";
 import { commitsIn } from "#test/appReadouts.ts";
 import type { Engine } from "#test/generate.ts";
-import { gitIn } from "#test/tools.ts";
 
 const HOOK_MARK = "Installed by @shivaedev/quality";
 const Observations = Schema.decodeUnknownSync(
@@ -74,7 +74,7 @@ export function generatedReadouts(engine: Engine, target: () => string) {
 			),
 		enclosingCommits: () => Effect.sync(() => commitsIn(engine.root)),
 		enclosingHook: () => Effect.sync(() => hookAt(join(engine.root, ".git/hooks/pre-commit"))),
-		enclosingStaged: () => Effect.sync(() => lines(gitIn(engine.root, ["diff", "--cached", "--name-only"]).stdout)),
+		enclosingStaged: () => Effect.sync(() => lines(isolatedGit(engine.root, ["diff", "--cached", "--name-only"]).stdout)),
 		environmentSetting: (key: string) =>
 			Effect.sync(() => new RegExp(`^${key}=(?<value>.*)$`, "mu").exec(readFileSync(at(".env.local"), "utf8"))?.groups?.value ?? "unset"),
 		fileMode: (path: string) => Effect.sync(() => (statSync(at(path)).mode & 0o777).toString(8)),

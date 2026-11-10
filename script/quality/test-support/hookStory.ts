@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, constants, existsSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { qualityArgs } from "@shivaedev/quality/testing/adapters/cli.ts";
-import { ISOLATED_ENV } from "@shivaedev/quality/testing/adapters/git.ts";
+import { isolatedEnvironment } from "@shivaedev/quality/testing/adapters/git.ts";
 import { hookPath } from "@shivaedev/quality/testing/adapters/hookPath.ts";
 import { checksLog, hookMode, hookRepository, logs, withScripts, writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
 import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
@@ -18,7 +18,8 @@ export const hookStory = storyKit({
 	name: "quality hooks",
 	stages: ["git"],
 	verbs: (repository, story) => {
-		const env = { ...ISOLATED_ENV, "GIT_CONFIG_GLOBAL": join(repository.global, "gitconfig") };
+		const globalConfig = join(repository.global, "gitconfig");
+		const env = { ...isolatedEnvironment(repository.root), "GIT_CONFIG_GLOBAL": globalConfig };
 		function run(command: string, args: readonly string[], cwd = repository.root) {
 			story.tell(`${command} ${args.join(" ")}`);
 			const result = spawnSync(command, [...args], { cwd, encoding: "utf8", env, timeout: 30_000 });
@@ -56,7 +57,7 @@ export const hookStory = storyKit({
 				},
 			},
 			recorded: {
-				globalConfig: () => readFileSync(env.GIT_CONFIG_GLOBAL, "utf8"),
+				globalConfig: () => readFileSync(globalConfig, "utf8"),
 				globalLog: () => checksLog(repository.root),
 				hookLog: (name: string) =>
 					existsSync(join(repository.root, `${name}.log`)) ? readFileSync(join(repository.root, `${name}.log`), "utf8") : "",
@@ -89,7 +90,7 @@ export function globalHook(exit = 0, executable = true, path?: string) {
 		const result = spawnSync("git", ["config", "--global", "core.hooksPath", directory], {
 			cwd: repository.root,
 			encoding: "utf8",
-			env: { ...ISOLATED_ENV, "GIT_CONFIG_GLOBAL": join(repository.global, "gitconfig") },
+			env: { ...isolatedEnvironment(repository.root), "GIT_CONFIG_GLOBAL": join(repository.global, "gitconfig") },
 		});
 		if (result.status !== 0) {
 			throw new Error(result.stderr);

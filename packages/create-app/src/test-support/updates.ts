@@ -2,6 +2,7 @@ import { cpSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { cliAnswer } from "#test/answers.ts";
 import { appReadouts } from "#test/appReadouts.ts";
@@ -9,7 +10,6 @@ import { appFolder, runCli } from "#test/cli.ts";
 import { createEngine } from "#test/createEngine.ts";
 import { releases } from "#test/releases.ts";
 import { templateSource } from "#test/templateSource.ts";
-import { gitIn } from "#test/tools.ts";
 import { updateProcesses, updateTypecheck } from "#test/updateProcesses.ts";
 
 const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
@@ -67,7 +67,7 @@ export const updates = storyKit({
 		exitCode: () => Effect.sync(() => engine.processes.result.status),
 		printedMentions: (text: string) => Effect.sync(() => engine.processes.result.stdout.includes(text)),
 		repositoryFile: (path: string) => Effect.sync(() => readFileSync(join(engine.root, path), "utf8")),
-		stagedRepositoryFile: (path: string) => Effect.sync(() => gitIn(engine.root, ["show", `:${path}`]).stdout),
+		stagedRepositoryFile: (path: string) => Effect.sync(() => isolatedGit(engine.root, ["show", `:${path}`]).stdout),
 		starterFile: (path: string) => Effect.sync(() => readFileSync(join(engine.source.starter, path), "utf8")),
 		update: () => {
 			story.tell("my-app runs create-app update");

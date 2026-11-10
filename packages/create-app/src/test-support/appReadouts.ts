@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
-import { gitIn } from "#test/tools.ts";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 
 const decodeManifest = Schema.decodeUnknownSync(
 	Schema.fromJsonString(
@@ -18,10 +18,10 @@ function lines(text: string) {
 }
 
 export function commitsIn(folder: string) {
-	if (gitIn(folder, ["rev-parse", "--verify", "HEAD"]).status !== 0) {
+	if (isolatedGit(folder, ["rev-parse", "--verify", "HEAD"]).status !== 0) {
 		return [];
 	}
-	return lines(gitIn(folder, ["log", "--format=%an <%ae>: %s"]).stdout);
+	return lines(isolatedGit(folder, ["log", "--format=%an <%ae>: %s"]).stdout);
 }
 
 export function appReadouts(target: () => string) {
@@ -34,7 +34,7 @@ export function appReadouts(target: () => string) {
 	}
 	return {
 		commits: () => Effect.sync(() => (ownRepository() ? commitsIn(target()) : "no repository of its own")),
-		conflictedFiles: () => Effect.sync(() => lines(gitIn(target(), ["diff", "--name-only", "--diff-filter=U"]).stdout)),
+		conflictedFiles: () => Effect.sync(() => lines(isolatedGit(target(), ["diff", "--name-only", "--diff-filter=U"]).stdout)),
 		dependsOn: (name: string) => Effect.sync(() => name in decodeManifest(read("package.json")).dependencies),
 		exists: (path: string) => Effect.sync(() => existsSync(join(target(), path))),
 		file: (path: string) => Effect.sync(() => read(path)),
@@ -44,17 +44,17 @@ export function appReadouts(target: () => string) {
 		generationRecord: () => Effect.sync(() => decodeRecord(read(".create-app.json"))),
 		gitState: (path: string) =>
 			Effect.sync(() => {
-				if (gitIn(target(), ["ls-files", "--error-unmatch", "--", path]).status === 0) {
+				if (isolatedGit(target(), ["ls-files", "--error-unmatch", "--", path]).status === 0) {
 					return "tracked";
 				}
-				if (gitIn(target(), ["check-ignore", "--quiet", "--", path]).status === 0) {
+				if (isolatedGit(target(), ["check-ignore", "--quiet", "--", path]).status === 0) {
 					return "ignored";
 				}
 				return existsSync(join(target(), path)) ? "untracked" : "missing";
 			}),
 		manifestFields: () => Effect.sync(() => Object.keys(decodeRecord(read("package.json")))),
 		packageName: () => Effect.sync(() => decodeManifest(read("package.json")).name),
-		uncommittedChanges: () => Effect.sync(() => lines(gitIn(target(), ["status", "--porcelain"]).stdout)),
+		uncommittedChanges: () => Effect.sync(() => lines(isolatedGit(target(), ["status", "--porcelain"]).stdout)),
 		wordsIn: (path: string, words: readonly string[]) =>
 			Effect.sync(() => words.filter((word) => read(path).toLowerCase().includes(word.toLowerCase()))),
 	};

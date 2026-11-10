@@ -5,7 +5,7 @@ import { format } from "node:util";
 import { Config, ConfigProvider, Console, Effect, Option } from "effect";
 import { exitCode, explained, services } from "#adapters/runMain.ts";
 import { program } from "#cli/program.ts";
-import { ISOLATED_ENV, isolatedEnvironment } from "#testing/adapters/git.ts";
+import { isolatedEnvironment, qualityGitEnvironment } from "#testing/adapters/git.ts";
 
 export interface Run {
 	readonly status: number | null;
@@ -24,10 +24,7 @@ export function qualityArgs(args: readonly string[]): string[] {
 	return [...OPTIONS, CLI, ...args];
 }
 
-const ISOLATED: readonly (readonly [string, string | undefined])[] = [
-	...["CLAUDE_CODE_REMOTE", "GIT_COMMON_DIR", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"].map((name) => [name, undefined] as const),
-	...Object.entries(ISOLATED_ENV),
-];
+const ISOLATED: readonly (readonly [string, string | undefined])[] = [["CLAUDE_CODE_REMOTE", undefined], ...Object.entries(qualityGitEnvironment)];
 
 async function isolateGit(): Promise<() => void> {
 	const { vi } = await import("vitest");

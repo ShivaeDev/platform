@@ -1,6 +1,5 @@
-import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { ISOLATED_ENV } from "@shivaedev/quality/testing/adapters/git.ts";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { hookStory } from "#quality/test-support/hookStory.ts";
 
 export const RECORDING_COMMIT_MESSAGE = '#!/bin/sh\nprintf "%s\\n" "$@" >> commit-msg.log\ncat "$1" >> commit-msg.log\n';
@@ -18,7 +17,7 @@ export const chainingPreCommit = [
 
 export function pushDestination() {
 	return hookStory.trait("git", "a local push destination exists", (repository) => {
-		const result = spawnSync("git", ["init", "--bare", join(repository.global, "remote.git")], { encoding: "utf8", env: ISOLATED_ENV });
+		const result = isolatedGit(repository.global, ["init", "--bare", join(repository.global, "remote.git")]);
 		if (result.status !== 0) {
 			throw new Error(result.stderr);
 		}

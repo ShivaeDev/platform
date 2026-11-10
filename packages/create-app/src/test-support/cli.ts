@@ -4,9 +4,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Config, Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { isolatedGitCommand } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { setupInstaller } from "#test/setupInstaller.ts";
 import { hoistedPieces, starterModules } from "#test/starterModules.ts";
-import { isolatedGit, workspacePnpm } from "#test/tools.ts";
+import { workspacePnpm } from "#test/workspacePnpm.ts";
 
 export function appFolder(
 	root: string,
@@ -77,30 +78,17 @@ export function runCli(root: string, cli: string, gitAvailable: boolean, args: r
 	return Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-			const child = yield* spawner.spawn(
-				ChildProcess.make(
-					"env",
-					[
-						"-u",
-						"GIT_AUTHOR_NAME",
-						"-u",
-						"GIT_AUTHOR_EMAIL",
-						"-u",
-						"GIT_COMMITTER_NAME",
-						"-u",
-						"GIT_COMMITTER_EMAIL",
-						`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
-						"NODE_OPTIONS=",
-						...isolatedGit,
-						...environment,
-						process.execPath,
-						"--conditions=@shivaedev/source",
-						cli,
-						...args,
-					],
-					{ cwd },
-				),
-			);
+			const [command, ...rest] = isolatedGitCommand([
+				"env",
+				`PATH=${gitAvailable ? `${bin}:${path}` : bin}`,
+				"NODE_OPTIONS=",
+				...environment,
+				process.execPath,
+				"--conditions=@shivaedev/source",
+				cli,
+				...args,
+			]);
+			const child = yield* spawner.spawn(ChildProcess.make(command, rest, { cwd }));
 			const [stdout, stderr, status] = yield* Effect.all(
 				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 				{ concurrency: "unbounded" },
