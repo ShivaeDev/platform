@@ -59,7 +59,6 @@ const SERVER_LAYOUT: readonly SeedFile[] = [
 	},
 ];
 
-// Git tracks every file but the generated one, which its .gitignore leaves out.
 export const generatedServerImport = [
 	importRepositoryHas(...SERVER_LAYOUT),
 	gitTracks(...SERVER_LAYOUT.flatMap((file) => (file.path === GENERATED_NOTES ? [] : [file.path]))),

@@ -77,7 +77,7 @@ const build = Effect.fn("Imports.build")(function* (inputs: RuleInputs) {
 });
 
 type Graph = ReturnType<typeof build>;
-const graphs = new WeakMap<readonly SourceFile[], Effect.Effect<ImportGraph, Effect.Error<Graph>>>();
+const graphs = new WeakMap<readonly SourceFile[], Effect.Effect<ImportGraph, Effect.Error<Graph>, Effect.Services<Graph>>>();
 
 // Import rules run on one scan, so they share the graph built from its sources.
 export const importGraph = Effect.fn("Imports.importGraph")(function* (inputs: RuleInputs) {
@@ -90,7 +90,6 @@ export const importGraph = Effect.fn("Imports.importGraph")(function* (inputs: R
 	return yield* graph;
 });
 
-// Sources without a module have no import graph, so they reach no ignored module.
 export const ignoredModules = Effect.fn("Imports.ignoredModules")(function* (inputs: RuleInputs) {
 	return inputs.sources.some((file) => MODULE.test(file.path)) ? (yield* importGraph(inputs)).ignoredModules : [];
 });

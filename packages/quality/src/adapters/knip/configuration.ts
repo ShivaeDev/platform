@@ -81,7 +81,6 @@ export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 		const configs = sources.filter(isToolConfig);
 		// Migration runners load these files from their directory, so no import reaches them.
 		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
-		// Tool-owned and git-ignored files are never reported, but their imports count as uses.
 		const followed = unchecked
 			.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory)
 			.map((file) => posix.relative(directory, file));
