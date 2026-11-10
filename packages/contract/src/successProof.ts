@@ -92,14 +92,16 @@ type InComposite<TName extends string, TSchema, TReturn> =
 			? Elements<TName, TElements, TReturn>
 			: InCollection<TName, TSchema, TReturn>;
 
-// mutable and optionalKey stay separate checks: matched as one union pattern, an optionalKey field never reached its inner schema.
+// Each wrapper is its own check: matched as one union pattern, an optionalKey field never reached its inner schema.
 type InContainer<TName extends string, TSchema, TReturn> = TSchema extends Schema.$Array<infer TItem> | Schema.NonEmptyArray<infer TItem>
 	? NotEncodedAsReturned<TName, TItem, TReturn extends readonly (infer TReturned)[] ? TReturned : never>
 	: TSchema extends Schema.mutable<infer TInner>
 		? NotEncodedAsReturned<TName, TInner, TReturn>
-		: TSchema extends Schema.optionalKey<infer TInner>
-			? NotEncodedAsReturned<TName, TInner, Exclude<TReturn, undefined>>
-			: InComposite<TName, TSchema, TReturn>;
+		: TSchema extends Schema.mutableKey<infer TInner>
+			? NotEncodedAsReturned<TName, TInner, TReturn>
+			: TSchema extends Schema.optionalKey<infer TInner>
+				? NotEncodedAsReturned<TName, TInner, Exclude<TReturn, undefined>>
+				: InComposite<TName, TSchema, TReturn>;
 
 // Shapes agree, yet encoding still depends on what each position holds: a class position must carry exactly that class,
 // or encoding it fails, and a struct position must carry exactly its keys, or a key is lost on the wire.

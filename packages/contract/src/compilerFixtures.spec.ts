@@ -35,6 +35,7 @@ const invalidFixtures = {
 const runFixtures = {
 	runAddedOptional: 'SuccessDiffersFromRun<"returnsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInArray: 'SuccessDiffersFromRun<"listsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
+	runAddedOptionalInMutableField: 'SuccessDiffersFromRun<"holdsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInOption: 'SuccessDiffersFromRun<"latestPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInOptionalField: 'SuccessDiffersFromRun<"featuresPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
 	runAddedOptionalInUnion: 'SuccessDiffersFromRun<"findsPinnable", PinnableNote, { readonly id: number; readonly title: string; }>',
