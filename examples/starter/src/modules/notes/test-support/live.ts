@@ -1,5 +1,5 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { Effect, Queue, Schema, Stream } from "effect";
+import { Effect, Equal, Queue, Schema, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
@@ -36,8 +36,26 @@ export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address:
 	const query = client.api.get.query({ id });
 	const settled = settledQueries(query).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	const results = yield* settled;
+	const nextAnswer = answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit));
+	let seen: Effect.Success<typeof nextAnswer> | undefined;
+	const remember = Effect.tap(nextAnswer, (answer) =>
+		Effect.sync(() => {
+			seen = answer;
+		}),
+	);
 	return {
-		nextNote: () => answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit)),
+		// A rerun for an earlier change can still answer after a command returns, so only a differing answer carries the command's change.
+		changedNote: () =>
+			Effect.gen(function* () {
+				const before = seen;
+				while (true) {
+					const answer = yield* remember;
+					if (!Equal.equals(answer, before)) {
+						return answer;
+					}
+				}
+			}),
+		nextNote: () => remember,
 		refresh: () =>
 			Effect.sync(() => registry.refresh(query)).pipe(
 				Effect.andThen(settled),

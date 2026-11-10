@@ -31,7 +31,7 @@ app.it("alice's open note refreshes after she edits its title", [signedIn("alice
 
 	const edited = yield* notesOf("alice").edit(note, "Changed title");
 
-	expect(yield* aliceNote.nextNote()).toEqual(edited);
+	expect(yield* aliceNote.changedNote()).toEqual(edited);
 });
 
 app.it(
