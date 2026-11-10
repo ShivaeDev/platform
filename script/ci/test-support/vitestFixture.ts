@@ -13,8 +13,9 @@ export async function vitestFixture() {
 	const vitest = await VitestNode.createVitest({
 		config: false,
 		projects: [
-			{ root, test: { include: ["*.test.ts"], name: "fixture:unit" } },
-			{ root, test: { include: ["shared.test.ts"], name: "fixture:dom" } },
+			{ root, test: { exclude: ["heavy.test.ts"], include: ["*.test.ts"], maxWorkers: 5, name: "fixture:unit" } },
+			{ root, test: { include: ["shared.test.ts"], maxWorkers: 5, name: "fixture:dom" } },
+			{ root, test: { include: ["heavy.test.ts"], maxWorkers: 1, name: "fixture:heavy", sequence: { groupOrder: 1 } } },
 		],
 		root,
 	});
