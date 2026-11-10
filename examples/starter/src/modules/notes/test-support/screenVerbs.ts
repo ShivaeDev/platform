@@ -4,6 +4,7 @@ import { act } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import type { Screen } from "#modules/notes/test-support/screenState.ts";
 import { settleQuery } from "#modules/notes/test-support/settleQuery.ts";
 import { screenView } from "#test-support/screenState.ts";
@@ -58,6 +59,7 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				tell(`the worker finishes counting ${count} words while the server read is held`);
 				await act(() => engine.client.finishNote(1, count));
 			}),
+		submitNewNote: () => afterNextHint(screenActions(engine, tell).submit()),
 		visitNotes: () =>
 			Effect.promise(async () => {
 				tell("visit the notes list");
