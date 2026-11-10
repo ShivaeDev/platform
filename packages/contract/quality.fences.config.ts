@@ -11,6 +11,7 @@ export default [
 			anything.except(
 				files(
 					"packages/changes/src/keys.ts",
+					"packages/changes/src/readRecorder.ts",
 					"packages/errors/src/boundary.ts",
 					"packages/errors/src/infrastructure.ts",
 					"packages/errors/src/redact.ts",
