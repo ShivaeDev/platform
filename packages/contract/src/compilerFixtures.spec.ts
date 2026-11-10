@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { compilerStory } from "#test/compilerStory.ts";
 
 const COMPILER_TIMEOUT = 60_000;
@@ -22,10 +24,22 @@ const invalidFixtures = {
 	readPolicyServices: "Database",
 	readsPayload: "Property 'slug' does not exist on type '{ readonly id: number; }'",
 	rejectionTag: "must have that _tag",
+	runCollectionsPolicy: "Property 'readPolicy' is missing",
+	runInvalidatesResult: "Property 'id' does not exist on type 'ResultNeedsDeclaredSuccess'",
 	undeclaredRejection: "Type 'Other' is not assignable to type 'NoteMissing | QueryReadDenied'",
 	unknownReject: "Property 'Other' does not exist",
 	wrongPayload: "Type 'string' is not assignable to type 'number'",
 	zeroRejections: "Property 'members' does not exist on type 'Never'",
+} as const;
+
+const runFixtures = {
+	runAutomaticRejection: 'RejectionAutomatic<"listsAutomatic", "ServiceUnavailable">',
+	runInfrastructureRejection: 'RejectionsRunNeverRaises<"listsInfrastructure", "QueryReadDenied">',
+	runMissingRejection: 'RunFailsOutsideRejections<"forgetsTitleTaken", "TitleTaken">',
+	runMutableArray: 'ArrayMutabilityDiffers<"titles", "return a readonly array, or declare Schema.mutable for a mutable one">',
+	runNeverRaised: 'RejectionsRunNeverRaises<"listsTooMuch", "NoteMissing">',
+	runPolicyRejection: 'RunFailsOutsideRejections<"forgetsPolicyFailure", "NotFound">',
+	runSuccessDiffers: 'SuccessDiffersFromRun<"leaksRow", StoredNote, { readonly id: number; readonly title: string; }>',
 } as const;
 
 compilerStory.it(
@@ -43,6 +57,31 @@ for (const [fixture, diagnostic] of Object.entries(invalidFixtures)) {
 		[],
 		function* ({ compileInvalid }) {
 			expect(yield* compileInvalid(fixture)).toContain(diagnostic);
+		},
+		COMPILER_TIMEOUT,
+	);
+}
+
+compilerStory.it(
+	"operations written as payload and run compile with run's types and fit a contract",
+	[],
+	function* ({ compileValidRuns }) {
+		expect(yield* compileValidRuns()).toBe('compiled cleanly, declaring Contract<"runNotes"');
+	},
+	COMPILER_TIMEOUT,
+);
+
+for (const [fixture, problem] of Object.entries(runFixtures)) {
+	compilerStory.it(
+		`tsc rejects the invalid ${fixture} fixture with no matching overload and the problem ${problem}`,
+		[],
+		function* ({ compileInvalid }) {
+			const diagnostics = yield* compileInvalid(fixture);
+
+			yield* outcomes([
+				["first line", () => Effect.succeed(diagnostics.split("\n")[0]), expect.stringContaining("No overload matches this call.")],
+				["named problem", () => Effect.succeed(diagnostics), expect.stringContaining(`operationProblem: ${problem}`)],
+			]);
 		},
 		COMPILER_TIMEOUT,
 	);

@@ -90,6 +90,52 @@ Operation names must differ within a contract, including across queries, command
 
 The native RPC mapping types `OperationRpc` and `Tag` are exported from `@shivaedev/contract/operationRpc.ts`.
 
+### An operation written as its payload and run
+
+An operation can also be written as its business logic: a `payload` schema and a generator `*run`, with no `Effect.gen` wrapper. Its success, rejections, services and the read policy's failures are inferred from `run`:
+
+```ts
+import { Effect, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { NotesRepository, SessionUser } from "./services.ts";
+
+export const NoteFields = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty({ message: "Enter a title" })) });
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
+const notes = collection("notes", Schema.Number);
+
+export const Create = command("create", {
+	invalidates: () => [notes.list],
+	payload: NoteFields,
+	*run({ title }) {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		if (title === "reserved") {
+			return yield* new TitleTaken({ field: "title", message: "That title is reserved" });
+		}
+		return yield* repository.insert(title, userId).pipe(Effect.map(({ id }) => ({ id, title })));
+	},
+});
+
+export const List = query("list", {
+	reads: () => [notes.list],
+	*run() {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		return yield* repository.findMany(userId);
+	},
+});
+```
+
+`Create.run` is an Effect-returning function, so another operation composes it with `yield* Create.run({ title })`, and `Create`'s services and failures join that operation's types. A query without `readPolicy` gets `signedIn`, at run time and in its type; it still declares `reads`, and may declare `serverReads` and `readsCollections` (which need a `permissionReadPolicy`). A command without `invalidates` announces no keys of its own. A payload-free operation omits `payload` and gets `Schema.Void`.
+
+`success` and `rejections` are optional. A declared one must equal what `run` infers, checked on the declaration object, and each mismatch is a compile error that names the operation and the problem: `SuccessDiffersFromRun` when the declared success's type and `run`'s return type are not mutually assignable; `ArrayMutabilityDiffers` when they differ only in array mutability, because `Schema.Array` decodes a readonly array (return one, or declare `Schema.mutable`); `RunFailsOutsideRejections` when `run` or the read policy can fail with a tag that `rejections` misses; `RejectionsRunNeverRaises` for a listed tag nothing raises; `RejectionAutomatic` for a listed `InternalServerError` or `ServiceUnavailable`. Rejections are exported classes keyed by their `_tag`. A failure that states `isRetryable` (such as `SqlError`), `SchemaError` and `QueryReadDenied` are never rejections. While the declaration forms above are still accepted, such an error starts with "No overload matches this call" and its last line names the problem.
+
+Every operation written this way carries `InternalServerError` and `ServiceUnavailable` in its type and its rejection set, and cannot list them. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. An omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's schemas. Because object keys are sorted, `invalidates` is checked before `run`, so its result parameter is typed only when `success` is declared.
+
+A field failure is an exported tagged class built from the payload's fields with `fieldRejection`, as `TitleTaken` above. `run` raises it with `yield* new TitleTaken({ field, message })`, and `@shivaedev/form`'s `rejecting` places its message on that field.
+
 ### Whose account a request acts on
 
 Set `subject` on a contract to a browser-safe declaration from `@shivaedev/identity/subject.ts`: `selfSubject` selects the session account; `accountSubject({ permission, refusal, deny })` permits another account only with the permission's `any` grant. The declaration applies to the application RPCs and their changes stream. Native middleware carries its typed failures and supplies the branded `Subject` service to handlers and the application services they call. Business payloads need no owner id.
@@ -654,7 +700,7 @@ Import the module that defines the name; the package has no root entry.
 
 | Module                     | Functions and schemas                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `operation.ts`             | `query(name, { payload?, success?, rejections?, readPolicy, reads, serverReads? })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`.                                                                                                                                                                                                                             |
+| `operation.ts`             | `query(name, { payload?, success?, rejections?, readPolicy, reads, serverReads? })`; `command(name, { payload?, success?, rejections?, invalidates })`; `query(name, { payload?, *run, readPolicy?, reads, serverReads?, readsCollections?, success?, rejections? })` and `command(name, { payload?, *run, invalidates?, success?, rejections? })` with an Effect-returning `run`; `stream(name, { payload?, success, rejections?, reads })`.  |
 | `contract.ts`              | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                                                               |
 | `rejection.ts`             | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                                             |
 | `bind.ts`                  | `bind(contract, atomRpcService, { registry?, live?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live?, resume?, resumeWindow? })`, which builds the shared WebSocket client and binds it. |

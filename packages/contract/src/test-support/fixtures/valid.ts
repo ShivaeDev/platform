@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema, Stream } from "effect";
+import { Context, Effect, Layer, Option, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
@@ -6,11 +6,15 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, type RpcMiddleware, RpcSerialization } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import type { SqlError } from "effect/sql/SqlError";
+import type { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
+import { permissionReadPolicy } from "#permissionReadPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "#test/notes.ts";
+import * as RunNotes from "#test/runNotes.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
@@ -78,5 +82,45 @@ export const SubjectNotes = contract("subjectNotes", {
 		middleware: Effect.succeed<RpcMiddleware.RpcMiddleware<FixtureAccount, never, never>>((effect) =>
 			Effect.provideService(effect, FixtureAccount, { id: "alice" }),
 		),
+	},
+});
+
+type Services = RunNotes.NotesRepository | RunNotes.SessionUser;
+export const createRun: Effect.Effect<RunNotes.Note, RunNotes.TitleTaken | SqlError, Services> = RunNotes.Create.run({ title: "Groceries" });
+export const importRun: Effect.Effect<RunNotes.Note, RunNotes.TitleTaken | SqlError, Services | RunNotes.NoteSource> = RunNotes.Import.run({
+	id: 1,
+});
+export const getRun: Effect.Effect<RunNotes.Note, NotFound | SqlError, Services> = RunNotes.Get.run({ id: 1 });
+export const getPolicy: Effect.Effect<boolean, NotFound | SqlError, RunNotes.NotesRepository> = RunNotes.Get.readPolicy({ id: 1 }, Option.none());
+export const listRun: Effect.Effect<readonly RunNotes.Note[], SqlError, Services> = RunNotes.List.run();
+type Automatic = "InternalServerError" | "ServiceUnavailable";
+type CreateTags = keyof typeof RunNotes.Create.rejections;
+export const automaticTags: [CreateTags, Automatic] extends [Automatic, CreateTags] ? true : false = true;
+export const RunContract = contract("runNotes", { commands: [RunNotes.Create, RunNotes.Import], queries: [RunNotes.Get, RunNotes.List] });
+export const RunCreateAnnounced = command("createAnnounced", {
+	invalidates: (_fields, note) => [RunNotes.runNotes.item(note.id)],
+	payload: RunNotes.NoteFields,
+	*run({ title }) {
+		const { id: userId } = yield* RunNotes.SessionUser;
+		return { id: 1, title, userId };
+	},
+	success: Schema.Struct({ id: Schema.Number, title: Schema.String, userId: Schema.String }),
+});
+export const RunDerived = query("derived", {
+	payload: { scope: Schema.String },
+	reads: () => [],
+	*run({ scope }) {
+		const { id } = yield* RunNotes.SessionUser;
+		return `${id}: ${scope}`;
+	},
+	serverReads: ({ scope }) => Effect.succeed([RunNotes.runNotes.item(scope.length)]),
+});
+export const RunEveryNote = query("everyNote", {
+	readPolicy: permissionReadPolicy({ name: "notes.read" }, (_permission, viewer) => Effect.succeed(Option.isSome(viewer))),
+	reads: () => [],
+	readsCollections: [{ name: "runNotes" }],
+	*run() {
+		const { id } = yield* RunNotes.SessionUser;
+		return id;
 	},
 });

@@ -82,9 +82,9 @@ const Derived = query("derived", {
 const DerivedReads = contract("derivedReads", { queries: [Derived] });
 const derivedHandlers = DerivedReads.application.toLayer({ "derivedReads.derived": () => Effect.void });
 expectTypeOf<Layer.Services<typeof derivedHandlers>>().toEqualTypeOf<Database>();
+// @ts-expect-error Server read-key failures must be declared rejections.
 query("undeclaredKeys", {
 	readPolicy: () => Effect.succeed(true),
 	reads: () => [],
-	// @ts-expect-error Server read-key failures must be declared rejections.
 	serverReads: () => Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
 });

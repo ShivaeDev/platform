@@ -785,6 +785,9 @@ importers:
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
@@ -798,9 +801,6 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)(vitest@5.1.0)
-      '@shivaedev/errors':
-        specifier: workspace:*
-        version: link:../errors
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity
@@ -1043,6 +1043,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)(vitest@5.1.0)
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

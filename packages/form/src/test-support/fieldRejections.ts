@@ -1,5 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { command } from "@shivaedev/contract/operation.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rejecting } from "#fieldRejection.ts";
 import { formStories } from "#test/formStories.ts";
@@ -58,4 +60,21 @@ export const unavailableProfiles = formStories(() => Profile, {
 				}),
 			),
 	}),
+});
+
+const Account = Schema.Struct({ email: Schema.String, name: Schema.String });
+
+export class NameTaken extends Schema.TaggedError<NameTaken>()("NameTaken", fieldRejection(Account, ["name"])) {}
+
+const Rename = command("rename", {
+	payload: Account,
+	*run({ name }) {
+		return yield* new NameTaken({ field: "name", message: `${name} is already used` });
+	},
+});
+
+export const commandRejectedAccounts = formStories(() => Account, {
+	config: () => ({ initialValues: { email: "ada@example.com", name: "Ada" }, onSubmit: rejecting(Account, Rename.run, undefined), runtime }),
+	support: () => undefined,
+	verbs: () => ({}),
 });
