@@ -7,6 +7,7 @@ import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
 import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
 import { effectProgram } from "#rules/effect/program.ts";
+import { promiseBridge } from "#rules/effect/promiseBridge.ts";
 import { promiseParameter } from "#rules/effect/promiseParameter.ts";
 import { parse } from "#rules/parse.ts";
 
@@ -52,21 +53,22 @@ function construct(node: ts.Node): string | undefined {
 	return ts.isThrowStatement(node) ? "throw statement" : asyncConstruct(node);
 }
 
-const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: RuleInputs) {
+const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: RuleInputs, workspace: ReadonlySet<string>) {
 	const program = yield* effectProgram(inputs, false);
 	const checker = program.getTypeChecker();
 	const call = boundaryCalls(checker);
+	const bridge = promiseBridge(checker, workspace);
 	return inputs.sources.flatMap((file) => {
 		const source = parse(file) === undefined ? undefined : program.getSourceFile(join(inputs.root, file.path));
 		const findings: Finding[] = [];
 		const entryPoint = source !== undefined && boundaryEntryPoint(file.path, source, checker);
 		function visit(node: ts.Node): void {
-			const name = construct(node) ?? call(node, entryPoint) ?? promiseParameter(checker, node);
+			const name = construct(node) ?? call(node, entryPoint) ?? bridge(node) ?? promiseParameter(checker, node);
 			if (name !== undefined && source !== undefined) {
 				findings.push({
 					file: file.path,
 					line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, bridge it in an adapters/ folder that returns Effect values.`,
+					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). When a library forces it, move that code into a module under adapters/ that returns an Effect.`,
 				});
 			}
 			ts.forEachChild(node, visit);
@@ -81,6 +83,7 @@ const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: Rul
 export const effectBoundary = defineRule({
 	check: (inputs) =>
 		Effect.flatMap(workspacePackages(inputs), (packages) => {
+			const workspace = new Set(packages.map((owner) => owner.name));
 			const groups = new Map<string, RuleInputs["sources"][number][]>();
 			for (const source of inputs.sources) {
 				if (
@@ -96,12 +99,12 @@ export const effectBoundary = defineRule({
 				groups.set(group, sources);
 			}
 			return Effect.map(
-				Effect.forEach(groups.values(), (sources) => checkBoundary({ ...inputs, sources })),
+				Effect.forEach(groups.values(), (sources) => checkBoundary({ ...inputs, sources }, workspace)),
 				(found) => found.flat(),
 			);
 		}),
 	description:
-		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge what a library forces in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, Effect.promise or Effect.tryPromise bridges to an imported outside library, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; move what a library forces into a module under adapters/ that returns an Effect. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });
