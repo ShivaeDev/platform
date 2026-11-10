@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect, FileSystem, Path, Stream } from "effect";
+import { Effect, FileSystem, Path, type PlatformError, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const PACKAGE = fileURLToPath(new URL("../..", import.meta.url));
@@ -44,6 +44,46 @@ export const writeFiles = Effect.fn("BuildStory.writeFiles")(function* (root: st
 		yield* fs.makeDirectory(path.dirname(path.join(root, file)), { recursive: true });
 		yield* fs.writeFileString(path.join(root, file), text);
 	}
+});
+
+// The files under a folder of the project by their path in it, without the installed packages, which are links into this repository.
+const filesUnder = Effect.fn("BuildStory.filesUnder")(function* (
+	root: string,
+	directory: string,
+): Effect.fn.Return<readonly (readonly [string, string])[], PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const full = path.join(root, directory);
+	if (!(yield* fs.exists(full))) {
+		return [];
+	}
+	const entries = (yield* fs.readDirectory(full)).filter((entry) => entry !== "node_modules").sort();
+	const found = yield* Effect.forEach(entries, (entry) =>
+		Effect.flatMap(fs.stat(path.join(full, entry)), (info) =>
+			info.type === "Directory"
+				? filesUnder(root, path.join(directory, entry))
+				: Effect.map(fs.readFileString(path.join(full, entry)), (text) => [[path.join(directory, entry), text] as const]),
+		),
+	);
+	return found.flat();
+});
+
+const generatedFor = new Map<string, Readonly<Record<string, string>>>();
+
+// What generate writes depends only on the project's files, not on its folder, and Vitest loads this module once per spec file:
+// the first story of a file that needs a project generated pays for the program, and later stories copy what it wrote.
+export const generatedOncePerFile = Effect.fn("BuildStory.generatedOncePerFile")(function* <E, R>(
+	root: string,
+	generate: Effect.Effect<unknown, E, R>,
+) {
+	const key = JSON.stringify(yield* filesUnder(root, ""));
+	const known = generatedFor.get(key);
+	if (known !== undefined) {
+		return yield* writeFiles(root, known);
+	}
+	yield* generate;
+	const written = [...(yield* filesUnder(root, "src/generated")), ...(yield* filesUnder(root, "node_modules/.cache/@shivaedev/build"))];
+	generatedFor.set(key, Object.fromEntries(written));
 });
 
 const runIn = Effect.fn("BuildStory.runIn")(function* (root: string, lock: string, executable: string, args: readonly string[]) {
