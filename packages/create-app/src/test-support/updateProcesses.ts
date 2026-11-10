@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { workspacePnpm } from "#test/tools.ts";
 
 export function updateTypecheck(starter: string) {
 	const compiler = fileURLToPath(new URL("../../node_modules/typescript/bin/tsc", import.meta.url));
@@ -12,7 +12,7 @@ export function updateTypecheck(starter: string) {
 
 // Installation is external; the app's typecheck script runs with the real compiler.
 export function updateProcesses(root: string, installationError: string) {
-	const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
+	const pnpm = workspacePnpm();
 	writeFileSync(
 		join(root, "bin/pnpm"),
 		`#!/usr/bin/env node

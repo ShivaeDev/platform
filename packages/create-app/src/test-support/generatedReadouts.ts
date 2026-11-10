@@ -3,8 +3,9 @@ import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, stat
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
 import { databaseName } from "#appFiles.ts";
-import { commitsIn, gitIn } from "#test/appReadouts.ts";
+import { commitsIn } from "#test/appReadouts.ts";
 import type { Engine } from "#test/generate.ts";
+import { gitIn } from "#test/tools.ts";
 
 const HOOK_MARK = "Installed by @shivaedev/quality";
 const Observations = Schema.decodeUnknownSync(
