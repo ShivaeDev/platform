@@ -79,7 +79,6 @@ export type RunQueryDeclaration<
 		readonly serverReads?: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => TReads;
 	} & NoInfer<RunCheck<TName, TSuccess, TSpecs, TReturn, ErrorOf<TYielded> | TPolicyError | ErrorOf<TReads>>>;
 
-// The conditional resolves to ServedQuery itself, so hovers and errors show it rather than this alias.
 export type ServedQueryOf<
 	TName extends string,
 	TPayload extends Schema.Top | Schema.Struct.Fields,

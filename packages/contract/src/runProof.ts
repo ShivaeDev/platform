@@ -8,7 +8,6 @@ export type RunBody<TPayload, TYielded, A> = (payload: TPayload) => Generator<TY
 
 export type ErrorOf<TYielded> = [TYielded] extends [never] ? never : [TYielded] extends [Effect.Effect<unknown, infer E, unknown>] ? E : never;
 export type ServicesOf<TYielded> = [TYielded] extends [never] ? never : [TYielded] extends [Effect.Effect<unknown, unknown, infer R>] ? R : never;
-// A conditional resolves to the Effect type itself, so hovers and errors show run's Effect rather than this alias.
 export type RunEffect<TYielded, A> = [A] extends [unknown] ? Effect.Effect<A, ErrorOf<TYielded>, ServicesOf<TYielded>> : never;
 
 export interface ClassRejections {

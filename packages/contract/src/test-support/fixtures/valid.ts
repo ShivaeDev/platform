@@ -7,7 +7,7 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, type RpcMiddleware, RpcSerialization } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import type { SqlError } from "effect/sql/SqlError";
-import type { InternalServerError, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
@@ -93,7 +93,9 @@ export const importRun: Effect.Effect<RunNotes.Note, RunNotes.TitleTaken | SqlEr
 export const getRun: Effect.Effect<RunNotes.Note, NotFound | SqlError, Services> = RunNotes.Get.run({ id: 1 });
 export const getPolicy: Effect.Effect<boolean, NotFound | SqlError, RunNotes.NotesRepository> = RunNotes.Get.readPolicy({ id: 1 }, Option.none());
 export const listRun: Effect.Effect<readonly RunNotes.Note[], SqlError, Services> = RunNotes.List.run();
-export const automaticRejections: Schema.Union<readonly (typeof InternalServerError | typeof ServiceUnavailable)[]> = RunNotes.Create.error;
+type Automatic = "InternalServerError" | "ServiceUnavailable";
+type CreateTags = keyof typeof RunNotes.Create.rejections;
+export const automaticTags: [CreateTags, Automatic] extends [Automatic, CreateTags] ? true : false = true;
 export const RunContract = contract("runNotes", { commands: [RunNotes.Create, RunNotes.Import], queries: [RunNotes.Get, RunNotes.List] });
 export const RunCreateAnnounced = command("createAnnounced", {
 	invalidates: (_fields, note) => [RunNotes.runNotes.item(note.id)],
