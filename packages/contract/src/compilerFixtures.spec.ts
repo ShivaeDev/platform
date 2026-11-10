@@ -134,7 +134,7 @@ compilerStory.it(
 	"tsc rejects a generated client that differs from its server module on the client's assertion, naming the operation and pnpm generate",
 	[],
 	function* ({ compileInvalid }) {
-		const diagnostics = yield* compileInvalid("clientDiffersFromModule");
+		const diagnostics = yield* compileInvalid("staleNotes");
 
 		expect(diagnostics.split("\n")[0]).toContain(
 			`is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'`,

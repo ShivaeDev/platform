@@ -25,7 +25,6 @@ type WithMiddleware<TRpcs extends Rpc.Any, TMiddleware extends RpcMiddleware.Any
 	? TRpcs
 	: Rpc.AddMiddleware<TRpcs, TMiddleware>;
 
-// The browser's contract of a module is built by the same type from its client operations, so the two compare per RPC.
 export type ModuleContract<
 	TName extends string,
 	TOperations extends readonly (QueryShape | CommandShape)[],

@@ -1,7 +1,8 @@
 // Stands in for the file `pnpm generate` writes for wireNotes.ts: the module's wire and the browser's contract.
 import { Schema } from "effect";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { type ClientMatchesModule, clientContract } from "#clientContract.ts";
+import { clientContract } from "#clientContract.ts";
+import type { ClientMatchesModule } from "#clientMatchesModule.ts";
 import type { WireNotes as WireNotesModule } from "#test/wireNotes.ts";
 import { NoteFields, TitleTaken, WireCaller, wireNotes } from "#test/wireNotesModel.ts";
 

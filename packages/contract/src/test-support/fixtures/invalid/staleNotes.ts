@@ -1,5 +1,6 @@
 import { Schema } from "effect";
-import { type ClientMatchesModule, clientContract } from "#clientContract.ts";
+import { clientContract } from "#clientContract.ts";
+import type { ClientMatchesModule } from "#clientMatchesModule.ts";
 import type { WireNotes } from "#test/wireNotes.ts";
 import { wireNotesWire } from "#test/wireNotesClient.ts";
 import { WireCaller, wireNotes } from "#test/wireNotesModel.ts";

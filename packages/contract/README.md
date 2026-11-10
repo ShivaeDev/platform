@@ -266,7 +266,8 @@ The generated file exports the wire, the browser's contract built by `clientCont
 ```ts
 import { Schema } from "effect";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { type ClientMatchesModule, clientContract } from "@shivaedev/contract/clientContract.ts";
+import { clientContract } from "@shivaedev/contract/clientContract.ts";
+import type { ClientMatchesModule } from "@shivaedev/contract/clientMatchesModule.ts";
 import type { Notes as NotesModule } from "#modules/notes/notes.ts";
 import { Caller, NoteFields, notes, TitleTaken } from "#modules/notes/model.ts";
 
@@ -295,7 +296,7 @@ The compiler compares the wire with `run` on every type check, exactly as it com
 
 ```
 src/test-support/fixtures/invalid/moduleStaleRejection.ts(9,2): error TS2322: Type '"staleRejection"' is not assignable to type '"staleRejection" & NoInfer<WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">>'.
-src/test-support/fixtures/invalid/clientDiffersFromModule.ts(16,14): error TS2322: Type 'boolean' is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'.
+src/test-support/fixtures/invalid/staleNotes.ts(17,14): error TS2322: Type 'boolean' is not assignable to type 'ClientDiffersFromModule<"create", "the generated file is stale; run pnpm generate">'.
 ```
 
 ### Whose account a request acts on
@@ -866,7 +867,8 @@ Import the module that defines the name; the package has no root entry.
 | `contract.ts`              | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                                                               |
 | `defineModule.ts`          | `defineModule({ name, operations, requires, middleware?, subject?, keyScope?, wire? })`, returning the module's contract.                                                                                                                                                                                                                                                                                                                      |
 | `moduleHandlers.ts`        | `moduleHandlers(module)`, the module's handler Layer, requiring exactly its `requires`.                                                                                                                                                                                                                                                                                                                                                        |
-| `clientContract.ts`        | `clientContract({ name, wire, payloads?, queries?, commands?, middleware?, subject?, keyScope? })`, the browser's contract of a module that generated files build; `ClientMatchesModule<Client, Module>`.                                                                                                                                                                                                                                      |
+| `clientContract.ts`        | `clientContract({ name, wire, payloads?, queries?, commands?, middleware?, subject?, keyScope? })`, the browser's contract of a module that generated files build.                                                                                                                                                                                                                                                                             |
+| `clientMatchesModule.ts`   | `ClientMatchesModule<Client, Module>`, `true` when the browser's contract and the server module have the same RPCs, else `ClientDiffersFromModule`.                                                                                                                                                                                                                                                                                            |
 | `rejection.ts`             | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                                             |
 | `bind.ts`                  | `bind(contract, atomRpcService, { registry?, live?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live?, resume?, resumeWindow? })`, which builds the shared WebSocket client and binds it. |
 | `clientKeys.ts`            | `KeyContext`, `clientReadKeys`, `clientInvalidationKeys`: registry-local cache keys for custom clients.                                                                                                                                                                                                                                                                                                                                        |

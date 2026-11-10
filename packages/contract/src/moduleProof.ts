@@ -6,8 +6,9 @@ import type { Duplicated } from "#declarationError.ts";
 import type { OperationShape } from "#operation.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
 import type { RejectedBy, RejectionSpecs } from "#rejection.ts";
-import type { Raised, RejectionProblem, SuccessProblem } from "#runProof.ts";
+import type { Raised, RejectionProblem } from "#runProof.ts";
 import type { SubjectDeclaration, SubjectProvides } from "#subject.ts";
+import type { SuccessProblem } from "#successProof.ts";
 import type { WireEntry, WireEntryOf } from "#wire.ts";
 
 export interface OperationNeedsUndeclaredServices<TOperation extends string, TMissing> {

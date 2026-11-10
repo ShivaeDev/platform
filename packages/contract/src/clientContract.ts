@@ -1,5 +1,5 @@
 import type { Option, Schema } from "effect";
-import type { RpcGroup, RpcMiddleware } from "effect/rpc";
+import type { RpcMiddleware } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { declaredGroup } from "#contract.ts";
 import type { ModuleContract } from "#defineModule.ts";
@@ -126,26 +126,3 @@ export function clientContract(definition: {
 	});
 	return definition.middleware?.key === undefined ? group : group.middleware(definition.middleware);
 }
-
-type Rpcs<TGroup> = TGroup extends RpcGroup.RpcGroup<infer TRpcs> ? TRpcs : never;
-type Same<TLeft, TRight> = [TLeft] extends [TRight] ? ([TRight] extends [TLeft] ? true : false) : false;
-type OperationOf<TTag> = TTag extends `${string}.${infer TOperation}` ? TOperation : TTag;
-
-type Differing<TClient, TModule> = {
-	readonly [TTag in Rpcs<TClient>["_tag"] | Rpcs<TModule>["_tag"]]: Same<
-		Extract<Rpcs<TClient>, { readonly _tag: TTag }>,
-		Extract<Rpcs<TModule>, { readonly _tag: TTag }>
-	> extends true
-		? never
-		: OperationOf<TTag>;
-}[Rpcs<TClient>["_tag"] | Rpcs<TModule>["_tag"]];
-
-export interface ClientDiffersFromModule<TOperations, TFix extends string> {
-	readonly fix: TFix;
-	readonly operations: TOperations;
-}
-
-// A generated file ends with `export const matches: ClientMatchesModule<typeof Client, typeof Module> = true;`.
-export type ClientMatchesModule<TClient, TModule> = [Differing<TClient, TModule>] extends [never]
-	? true
-	: ClientDiffersFromModule<Differing<TClient, TModule>, "the generated file is stale; run pnpm generate">;
