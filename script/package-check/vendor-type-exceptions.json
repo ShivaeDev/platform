@@ -23,6 +23,7 @@
 			"dist/imports/extract.d.ts",
 			"dist/imports/specifiers.d.ts",
 			"dist/naming/ownExports.d.ts",
+			"dist/rule.d.ts",
 			"dist/rules/effect/boundaryCalls.d.ts",
 			"dist/rules/effect/boundaryReference.d.ts",
 			"dist/rules/effect/failureFindings.d.ts",
@@ -59,7 +60,7 @@
 		],
 		"name": "native-typescript-rule-analysis",
 		"package": "@shivaedev/quality",
-		"reason": "Quality rule helpers consume native TypeScript nodes, symbols and checkers so custom analysis composes with the compiler without a second AST model."
+		"reason": "Quality rule inputs and helpers expose native TypeScript programs, nodes, symbols and checkers so custom analysis composes with the compiler without a second AST model."
 	},
 	{
 		"dependency": "react",

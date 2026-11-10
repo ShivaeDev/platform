@@ -1,7 +1,9 @@
 import { Effect, Schema } from "effect";
+import type ts from "typescript";
+import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { defineConfig, type QualityConfig } from "#config.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
-import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext, type RuleInputs } from "#rule.ts";
+import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext, type RuleInputs, type TypeScriptProgram } from "#rule.ts";
 import { customServiceRule, type LineAllowance } from "#test/customServiceRule.ts";
 
 const numeric = defineRule({
@@ -128,6 +130,44 @@ export const promiseReader: RuleInputs = {
 	readText: () => Promise.resolve(undefined),
 	root: ".",
 	sources: [],
+	typeScript: typeScriptProgram(".", []),
+};
+
+export const typed = defineRule({
+	check: ({ sources, typeScript }) =>
+		Effect.map(typeScript, ({ checker, sourceFile }) =>
+			sources.flatMap((file) => {
+				const source = sourceFile(file.path);
+				const module = source === undefined ? undefined : checker.getSymbolAtLocation(source);
+				return (module === undefined ? [] : checker.getExportsOfModule(module)).map((exported) => ({
+					file: file.path,
+					message: checker.typeToString(checker.getTypeOfSymbol(exported)),
+				}));
+			}),
+		),
+	description: "Reads exported types through the shared program.",
+	id: "local/typed",
+});
+
+export function typeScriptType(inputs: RuleInputs) {
+	const shared: Effect.Effect<TypeScriptProgram> = inputs.typeScript;
+	const compiled = Effect.map(inputs.typeScript, (typeScript): ts.Program => typeScript.program);
+	const source = Effect.map(inputs.typeScript, ({ sourceFile }): ts.SourceFile | undefined => sourceFile("src/a.ts"));
+	// @ts-expect-error The program is an Effect, so a rule yields it before reading the checker.
+	const checker: ts.TypeChecker = inputs.typeScript.checker;
+	return [shared, compiled, source, checker];
+}
+
+// @ts-expect-error Every rule receives the program, so rule inputs require it.
+export const withoutProgram: RuleInputs = { files: [], readText: () => Effect.succeed(undefined), root: ".", sources: [] };
+
+export const promiseProgram: RuleInputs = {
+	files: [],
+	readText: () => Effect.succeed(undefined),
+	root: ".",
+	sources: [],
+	// @ts-expect-error A supplied program is an Effect, not a Promise.
+	typeScript: Promise.resolve(undefined),
 };
 
 export const invalidEffect = defineRule({

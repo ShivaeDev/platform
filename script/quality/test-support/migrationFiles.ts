@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { manifestReader } from "@shivaedev/quality/adapters/manifestReader.ts";
 import { services } from "@shivaedev/quality/adapters/runMain.ts";
+import { typeScriptProgram } from "@shivaedev/quality/adapters/typeScriptProgram.ts";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
@@ -27,7 +28,12 @@ export const migrationFiles = storyKit({
 			const inventory = yield* collectInventory(engine.root, config);
 			engine.violations = yield* runRules(
 				config.active.filter((rule) => rule.id.startsWith("files/")),
-				{ ...inventory, readText: yield* manifestReader(engine.root), root: engine.root },
+				{
+					...inventory,
+					readText: yield* manifestReader(engine.root),
+					root: engine.root,
+					typeScript: typeScriptProgram(engine.root, inventory.sources),
+				},
 			);
 		}),
 		defaultExports: () => engine.defaultExports,

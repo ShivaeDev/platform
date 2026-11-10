@@ -2,6 +2,7 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
+import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { type BaselineFile, readBaseline, readInput } from "#engine/baselineFile.ts";
 import { runRules } from "#engine/runRules.ts";
@@ -45,6 +46,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		readText,
 		root: config.root,
 		sources: inventory.sources,
+		typeScript: typeScriptProgram(config.root, inventory.sources),
 	};
 	const violations = yield* runRules(config.active, inputs);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));

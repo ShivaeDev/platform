@@ -1,5 +1,6 @@
 import type { Effect, FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
+import type ts from "typescript";
 import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
 import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
@@ -23,6 +24,12 @@ export interface SourceFile {
 	readonly text: string;
 }
 
+export interface TypeScriptProgram {
+	readonly checker: ts.TypeChecker;
+	readonly program: ts.Program;
+	readonly sourceFile: (path: string) => ts.SourceFile | undefined;
+}
+
 export interface RuleInputs {
 	readonly configFile?: string;
 	readonly entries?: readonly string[];
@@ -32,6 +39,7 @@ export interface RuleInputs {
 	readonly readText: (path: string) => Effect.Effect<string | undefined, FilesystemFailure>;
 	readonly root: string;
 	readonly sources: readonly SourceFile[];
+	readonly typeScript: Effect.Effect<TypeScriptProgram>;
 }
 
 export interface RuleContext<TOptions> extends RuleInputs {
@@ -40,7 +48,9 @@ export interface RuleContext<TOptions> extends RuleInputs {
 
 export type RuleServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
 
-export type RuleCheck<TServices = RuleServices> = (inputs: RuleInputs) => Effect.Effect<Findings, unknown, TServices>;
+export type RuleCheck<TServices = RuleServices> = (
+	inputs: Omit<RuleInputs, "typeScript"> & Partial<Pick<RuleInputs, "typeScript">>,
+) => Effect.Effect<Findings, unknown, TServices>;
 
 export type Configured<TServices = RuleServices> =
 	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
