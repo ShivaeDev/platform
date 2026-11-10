@@ -43,7 +43,7 @@ const adapterBridgeFindings = Effect.fn("Adapters.adapterBridgeFindings")(functi
 	}
 	const packages = yield* workspacePackages(inputs);
 	const entries = entryModules(remaining());
-	const program = effectProgram({ ...inputs, sources: remaining() });
+	const program = yield* effectProgram({ ...inputs, sources: remaining() });
 	for (const file of remaining()) {
 		const source = program.getSourceFile(join(inputs.root, file.path));
 		const directory = packageOf(packages, file.path)?.directory ?? ".";

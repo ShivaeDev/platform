@@ -63,8 +63,8 @@ function changedBodies(checker: ts.TypeChecker, call: ts.CallExpression): readon
 		: [];
 }
 
-function findingsIn(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs);
+const findingsIn = Effect.fn("NativeTransactions.findingsIn")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs);
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
@@ -88,10 +88,10 @@ function findingsIn(inputs: RuleInputs): readonly Finding[] {
 			];
 		});
 	});
-}
+});
 
 export const nativeTransactionFindings = Effect.fn("NativeTransactions.nativeTransactionFindings")((inputs: RuleInputs) =>
-	Effect.sync(() => {
+	Effect.gen(function* () {
 		const groups = new Map<string, RuleInputs["sources"][number][]>();
 		for (const source of inputs.sources) {
 			const syntax = source.text.includes("withTransaction") ? parse(source) : undefined;
@@ -103,6 +103,6 @@ export const nativeTransactionFindings = Effect.fn("NativeTransactions.nativeTra
 			sources.push(source);
 			groups.set(group, sources);
 		}
-		return [...groups.values()].flatMap((sources) => findingsIn({ ...inputs, sources }));
+		return (yield* Effect.forEach(groups.values(), (sources) => findingsIn({ ...inputs, sources }))).flat();
 	}),
 );

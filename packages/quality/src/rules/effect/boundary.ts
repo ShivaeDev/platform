@@ -54,8 +54,8 @@ function construct(node: ts.Node): string | undefined {
 	return ts.isThrowStatement(node) ? "throw statement" : asyncConstruct(node);
 }
 
-function checkBoundary(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs, false);
+const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs, false);
 	const checker = program.getTypeChecker();
 	const call = boundaryCalls(checker);
 	return inputs.sources.flatMap((file) => {
@@ -78,7 +78,7 @@ function checkBoundary(inputs: RuleInputs): readonly Finding[] {
 		}
 		return findings;
 	});
-}
+});
 
 export const boundaryFindings = Effect.fn("Boundary.boundaryFindings")(function* (inputs: RuleInputs) {
 	const packages = yield* workspacePackages(inputs);
@@ -92,7 +92,8 @@ export const boundaryFindings = Effect.fn("Boundary.boundaryFindings")(function*
 		sources.push(source);
 		groups.set(group, sources);
 	}
-	return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
+	const found = yield* Effect.forEach(groups.values(), (sources) => checkBoundary({ ...inputs, sources }));
+	return found.flat();
 });
 
 export const effectBoundary = defineRule({

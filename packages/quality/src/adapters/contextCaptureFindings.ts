@@ -27,12 +27,12 @@ function reprovides(checker: ts.TypeChecker, call: ts.CallExpression): boolean {
 }
 
 export const capturedContexts = Effect.fn("ContextCapture.capturedContexts")((inputs: RuleInputs) =>
-	Effect.sync(() => {
+	Effect.gen(function* () {
 		const sources = inputs.sources.filter((file) => PROVIDERS.some((name) => file.text.includes(name)));
 		if (sources.length === 0) {
 			return [];
 		}
-		const program = effectProgram({ ...inputs, sources });
+		const program = yield* effectProgram({ ...inputs, sources });
 		const checker = program.getTypeChecker();
 		return sources.flatMap((file): readonly Finding[] => {
 			const source = program.getSourceFile(join(inputs.root, file.path));

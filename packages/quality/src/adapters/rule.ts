@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { validOrFail } from "#decoded.ts";
 import type { Configured, Findings, RegisteredRule, RuleContext } from "#rule.ts";
@@ -38,7 +39,11 @@ export function configureWith<TInput, TOptions, TServices>(
 			check: (inputs) =>
 				Effect.scoped(
 					Effect.gen(function* () {
-						const context = { ...inputs, options: value, typeScript: inputs.typeScript ?? typeScriptProgram(inputs.root, inputs.sources) };
+						const context = {
+							...inputs,
+							options: value,
+							typeScript: inputs.typeScript ?? (yield* typeScriptProgram(inputs.root, inputs.sources).pipe(Effect.provide(DeclarationFiles.layer))),
+						};
 						const issues = validate?.(context).map((issue) => `rules.${id}.options: ${issue}`) ?? [];
 						yield* validOrFail(
 							inputs.configFile ?? "quality.config.ts",

@@ -1,6 +1,7 @@
-import type { Effect, FileSystem } from "effect";
+import type { Context, Effect, FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type ts from "typescript";
+import type { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
@@ -47,7 +48,7 @@ export interface RuleContext<TOptions> extends RuleInputs {
 	readonly options: TOptions;
 }
 
-export type RuleServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
+export type RuleServices = ChildProcessSpawner.ChildProcessSpawner | Context.Service.Identifier<typeof DeclarationFiles> | FileSystem.FileSystem;
 
 export type RuleCheck<TServices = RuleServices> = (
 	inputs: Omit<RuleInputs, "typeScript"> & Partial<Pick<RuleInputs, "typeScript">>,

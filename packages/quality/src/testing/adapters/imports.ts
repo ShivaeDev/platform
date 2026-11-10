@@ -2,6 +2,7 @@ import { mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { services } from "#adapters/runMain.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { collectInventory } from "#inventory/collect.ts";
@@ -24,7 +25,8 @@ export async function scanned(root: string): Promise<RuleInputs> {
 	);
 	const readText: RuleInputs["readText"] = (path) => readOptionalText(join(root, path)).pipe(Effect.provide(NodeFileSystem.layer));
 	setManifestFiles(readText, inventory.manifestFiles);
-	return { files: inventory.files, readText, root, sources: inventory.sources, typeScript: typeScriptProgram(root, inventory.sources) };
+	const typeScript = await Effect.runPromise(typeScriptProgram(root, inventory.sources).pipe(Effect.provide(DeclarationFiles.layer)));
+	return { files: inventory.files, readText, root, sources: inventory.sources, typeScript };
 }
 
 export async function findingsIn<TInput>(rule: Rule<string, TInput>, options: TInput | undefined, root: string): Promise<Findings> {

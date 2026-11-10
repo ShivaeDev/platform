@@ -22,7 +22,7 @@ export const serviceParameters = defineRule({
 			files.push(source);
 			groups.set(group, files);
 		}
-		const programs = effectPrograms(inputs);
+		const programs = yield* effectPrograms(inputs);
 		const findings: Finding[] = [];
 		for (const files of groups.values()) {
 			const program = programs.create(files);

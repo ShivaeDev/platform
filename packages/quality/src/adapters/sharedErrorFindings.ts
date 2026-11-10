@@ -70,7 +70,7 @@ export const sharedErrorFindings = Effect.fn("SharedErrorClasses.sharedErrorFind
 	if (modules.length === 0) {
 		return [];
 	}
-	const program = effectProgram(
+	const program = yield* effectProgram(
 		{ ...inputs, sources },
 		true,
 		modules.map(({ file }) => file),
