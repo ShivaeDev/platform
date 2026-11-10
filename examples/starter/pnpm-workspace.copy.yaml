@@ -18,7 +18,7 @@ allowBuilds:
   msgpackr-extract: true
 
 catalog:
-  lucide-react: 1.66.0
+  lucide-react: 1.67.0
   "cn": 0.5.2
   "@base-ui/react": 1.9.0
   "@tanstack/react-table": 9.3.1
