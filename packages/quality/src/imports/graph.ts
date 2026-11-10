@@ -1,5 +1,6 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import { ImportCompiler } from "#adapters/import-compiler/service.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
@@ -77,7 +78,7 @@ const build = Effect.fn("Imports.build")(function* (inputs: RuleInputs) {
 });
 
 type Graph = ReturnType<typeof build>;
-const graphs = new WeakMap<readonly SourceFile[], Effect.Effect<ImportGraph, Effect.Error<Graph>, Effect.Services<Graph>>>();
+const graphs = new WeakMap<readonly SourceFile[], Effect.Effect<ImportGraph, Effect.Error<Graph>, ChildProcessSpawner.ChildProcessSpawner>>();
 
 // Import rules run on one scan, so they share the graph built from its sources.
 export const importGraph = Effect.fn("Imports.importGraph")(function* (inputs: RuleInputs) {
