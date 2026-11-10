@@ -358,10 +358,10 @@ The host serves the group over WebSocket with NDJSON serialization at `host.url`
 - `drop` destroys every open socket, as a lost connection does.
 - `pause` stops reading from every open socket, so the client's frames, pings included, get no answer while the connection looks open. Sockets opened later are read normally.
 - `hold` makes every later WebSocket handshake wait. `held` completes for each handshake that reaches the hold, in arrival order, so a verb can wait until the client tries to reconnect. `accept` releases held handshakes and answers later ones again.
-- `refuse` answers later handshakes with 503 until `accept`.
+- `refuse` answers later handshakes with 503 until `accept` or a later `hold`.
 - `handshakes` reads how many handshakes reached the host, and `nextHandshake` completes for each handshake in arrival order, whether it was answered, held or refused.
 
-`hold` followed by `drop` keeps a client reconnecting until the story accepts it, and `refuse` followed by `drop` shows the client an unreachable server. Closing the story's Scope destroys open sockets, releases held handshakes and closes the server.
+`hold` followed by `drop` keeps a client reconnecting until the story accepts it, and `refuse` followed by `drop` shows the client an unreachable server. Closing the story's Scope destroys open sockets, which also ends handshakes still held, and closes the server.
 
 #### Reading OTLP exports
 

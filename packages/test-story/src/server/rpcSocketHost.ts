@@ -46,7 +46,7 @@ export const rpcSocketHost = Effect.fnUntraced(function* <TRpcs extends Rpc.Any,
 			Layer.provideMerge(NodeHttpServer.layer(() => sockets.server, { host: "127.0.0.1", port: 0 })),
 		),
 	);
-	yield* Effect.addFinalizer(() => Effect.sync(sockets.destroy).pipe(Effect.andThen(accept)));
+	yield* Effect.addFinalizer(() => Effect.sync(sockets.destroy));
 	return {
 		accept,
 		drop: Effect.sync(sockets.destroy),
@@ -54,6 +54,7 @@ export const rpcSocketHost = Effect.fnUntraced(function* <TRpcs extends Rpc.Any,
 		held: Queue.take(held),
 		hold: Effect.gen(function* () {
 			const release = yield* Deferred.make<void>();
+			yield* Ref.set(refusing, false);
 			yield* Ref.update(holding, (current) => current ?? release);
 		}),
 		nextHandshake: Queue.take(arrived),
