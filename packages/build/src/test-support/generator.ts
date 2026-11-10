@@ -33,11 +33,16 @@ function outcomeOf(report: GenerateReport, failed: GenerateFailed | undefined): 
 	};
 }
 
+// Only the story's lock file, so the lock is taken even on CI, where a set CI variable skips it.
+function onlyTheStoryLock(engine: GeneratorEngine) {
+	return Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": engine.lock } }));
+}
+
 function run(engine: GeneratorEngine, check: boolean) {
 	return generate(engine.root, { check }).pipe(
 		Effect.map((report) => outcomeOf(report, undefined)),
 		Effect.catchTag("GenerateFailed", (failed) => Effect.succeed(outcomeOf(failed.report, failed))),
-		Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": engine.lock } })),
+		onlyTheStoryLock(engine),
 	);
 }
 
@@ -114,7 +119,7 @@ export const generator = storyKit({
 		}),
 		waitsForTheHeavyLock: () => {
 			story.tell("generate waits a second to try the heavy lock again");
-			return untilTimer("1 second", { timeout: "20 seconds" });
+			return untilTimer("1 second");
 		},
 	}),
 });
@@ -137,7 +142,10 @@ export function heavyLockHeldElsewhere() {
 	return generator.trait("lock", "another heavy run holds the heavy lock", function* (engine) {
 		const scope = yield* Scope.make();
 		yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
-		yield* acquireHeavyLock({ command: "another heavy run", lockPath: engine.lock }).pipe(Effect.provideService(Scope.Scope, scope));
+		yield* acquireHeavyLock({ command: "another heavy run", lockPath: engine.lock }).pipe(
+			Effect.provideService(Scope.Scope, scope),
+			onlyTheStoryLock(engine),
+		);
 		engine.otherHold = Option.some(scope);
 	});
 }
