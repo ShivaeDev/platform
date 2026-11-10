@@ -1,6 +1,7 @@
 ---
 "@shivaedev/sql": minor
 "@shivaedev/contract": patch
+"@shivaedev/server": patch
 ---
 
 ### Added
@@ -10,4 +11,5 @@
 ### Changed
 
 - `@shivaedev/contract`: A live subscription registers a recorded key only when it is not registered yet, so a handler that reads the same row many times registers its key once.
-- `@shivaedev/contract`: Reads made by a query's read policy record no keys, so a write to a row only the policy reads does not rerun the query.
+- `@shivaedev/contract`: Reads made by a module query's read policy record no keys, so a write to a row only the policy reads does not rerun the query.
+- `@shivaedev/server`: Reads made by a query's read policy during a live rerun record no keys, for queries served by hand-written handlers too.

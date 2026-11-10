@@ -1,6 +1,5 @@
 import { Context, Effect, Option, type Stream, type Types } from "effect";
 import type { Rpc } from "effect/rpc";
-import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { withPolicyContext } from "#adapters/withPolicyContext.ts";
 import type { QueryShape } from "#operation.ts";
 import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
@@ -32,8 +31,7 @@ export const checkPolicy = Effect.fnUntraced(function* <E, R>(
 	if (query.readsCollections !== undefined && !isPermissionReadPolicy(policy)) {
 		return yield* new QueryReadDenied({ message: `Collection reads require a permission policy on query ${query.name}` });
 	}
-	// Permission changes refresh nothing live, so the reads that decide access add no keys to the query.
-	if (!(yield* policy(payload, viewer).pipe(Effect.provideService(ReadRecorder, ReadRecorder.defaultValue())))) {
+	if (!(yield* policy(payload, viewer))) {
 		return yield* new QueryReadDenied({ message: `Read not allowed for query ${query.name}` });
 	}
 });

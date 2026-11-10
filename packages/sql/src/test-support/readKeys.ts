@@ -1,5 +1,6 @@
-import { Effect } from "effect";
+import { type Cause, Effect, type Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import * as Statement from "effect/sql/Statement";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
@@ -25,7 +26,18 @@ const engine = Effect.gen(function* () {
 	return { buckets: yield* bucketRows, ledger: yield* compositeLedger, owned: yield* setupOwnedRows, sql: yield* SqlClient.SqlClient };
 });
 
-function observed<A, E, R>(read: Effect.Effect<A, E, R>) {
+type Reading = Effect.Effect<void, SqlError | Schema.SchemaError | Cause.NoSuchElementError>;
+
+export type Read =
+	| { readonly call: "findById"; readonly id: number }
+	| { readonly call: "aggregate" | "count" | "findOne" | "select"; readonly where: FindManyFilter<typeof BucketRow> }
+	| { readonly call: "findMany"; readonly where?: FindManyFilter<typeof BucketRow> }
+	| { readonly call: "latestPerGroup"; readonly where: RepositoryListFilter<typeof BucketRow> }
+	| { readonly call: "findLedgerEntry"; readonly account: string; readonly sequence: bigint }
+	| { readonly call: "findOwnedRow"; readonly id: number; readonly ownerId: number }
+	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> };
+
+function observed(read: Reading) {
 	return Effect.suspend(() => {
 		const log: string[] = [];
 		return read.pipe(
@@ -47,51 +59,61 @@ function observed<A, E, R>(read: Effect.Effect<A, E, R>) {
 	});
 }
 
+function perform({ buckets: { rows }, ledger, owned, sql }: Effect.Success<typeof engine>, read: Read): Reading {
+	switch (read.call) {
+		case "aggregate":
+			return Effect.asVoid(rows.aggregate({ aggregates: { rows: { count: "*" } }, groupBy: ["owner"], where: read.where }));
+		case "count":
+			return Effect.asVoid(rows.count({ where: read.where }));
+		case "findById":
+			return Effect.asVoid(rows.findById(read.id));
+		case "findLedgerEntry":
+			return Effect.asVoid(ledger.entries.findById({ account: read.account, sequence: read.sequence }));
+		case "findMany":
+			return Effect.asVoid(rows.findMany(read.where === undefined ? {} : { where: read.where }));
+		case "findOne":
+			return Effect.asVoid(rows.findOne({ where: read.where }));
+		case "findOwnedRow":
+			return Effect.asVoid(owned.rows.findById({ id: read.id, ownerId: read.ownerId }));
+		case "findOwnedRows":
+			return Effect.asVoid(owned.rows.findMany({ where: read.where }));
+		case "latestPerGroup":
+			return Effect.asVoid(
+				rows.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["listId"], where: read.where }),
+			);
+		case "select":
+			return Effect.asVoid(Effect.flatMap(rows.select({ where: read.where }).statement, (statement) => sql`${statement}`));
+	}
+}
+
 export const readKeys = storyKit({
 	...onPostgres,
 	create: () => engine,
 	name: "keys that PostgreSQL repository reads record",
 	stages: [],
-	verbs: ({ buckets: { rows }, ledger, owned, sql }, story) => ({
-		aggregate: (where: FindManyFilter<typeof BucketRow>) => {
-			story.tell(`aggregate counts rows per owner where ${JSON.stringify(where)}`);
-			return observed(rows.aggregate({ aggregates: { rows: { count: "*" } }, groupBy: ["owner"], where }));
-		},
-		count: (where: FindManyFilter<typeof BucketRow>) => {
-			story.tell(`count reads where ${JSON.stringify(where)}`);
-			return observed(rows.count({ where }));
-		},
-		findById: (id: number) => {
-			story.tell(`findById reads row ${id}`);
-			return observed(rows.findById(id));
-		},
-		findLedgerEntry: (account: string, sequence: bigint) => {
-			story.tell(`findById reads the ${account} ledger entry at sequence ${sequence}`);
-			return observed(ledger.entries.findById({ account, sequence }));
-		},
-		findMany: (where?: FindManyFilter<typeof BucketRow>) => {
-			story.tell(where === undefined ? "findMany reads without a filter" : `findMany reads where ${JSON.stringify(where)}`);
-			return observed(rows.findMany(where === undefined ? {} : { where }));
-		},
-		findOne: (where: FindManyFilter<typeof BucketRow>) => {
-			story.tell(`findOne reads where ${JSON.stringify(where)}`);
-			return observed(rows.findOne({ where }));
-		},
-		findOwnedRow: (id: number, ownerId: number) => {
-			story.tell(`findById reads owned row ${id} of owner ${ownerId}, both stored as text`);
-			return observed(owned.rows.findById({ id, ownerId }));
-		},
-		findOwnedRows: (where: FindManyFilter<typeof OwnedRow>) => {
-			story.tell(`findMany reads owned rows where ${JSON.stringify(where)}`);
-			return observed(owned.rows.findMany({ where }));
-		},
-		latestPerGroup: (where: RepositoryListFilter<typeof BucketRow>) => {
-			story.tell(`latestPerGroup reads the newest row per list where ${JSON.stringify(where)}`);
-			return observed(rows.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["listId"], where }));
-		},
-		select: (where: FindManyFilter<typeof BucketRow>) => {
-			story.tell(`select builds a statement where ${JSON.stringify(where)}, which the caller runs`);
-			return observed(Effect.flatMap(rows.select({ where }).statement, (statement) => sql`${statement}`));
+	verbs: (current, story) => ({
+		read: (read: Read) => {
+			story.tell(`${read.call} reads ${described(read)}`);
+			return observed(perform(current, read));
 		},
 	}),
 });
+
+function described(read: Read) {
+	switch (read.call) {
+		case "findById":
+			return `row ${read.id}`;
+		case "findLedgerEntry":
+			return `the ${read.account} ledger entry at sequence ${read.sequence}, a composite id with a bigint`;
+		case "findOwnedRow":
+			return `owned row ${read.id} of owner ${read.ownerId}, a composite id stored as text`;
+		case "aggregate":
+		case "count":
+		case "findMany":
+		case "findOne":
+		case "findOwnedRows":
+		case "latestPerGroup":
+		case "select":
+			return read.where === undefined ? "without a filter" : `where ${JSON.stringify(read.where)}`;
+	}
+}

@@ -119,8 +119,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 ): Effect.Effect<unknown, BucketRegistrationError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		yield* validateRepositoryCollection(model.fields, options);
-		const composite = typeof options.idColumn === "object";
-		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
+		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
 		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
 		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName });
 		const crud = {

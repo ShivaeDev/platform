@@ -35,7 +35,8 @@ export function makeRecordRead(model: Model.Any, options: { readonly tableName: 
 		if (field === undefined || value === undefined || value === null) {
 			return undefined;
 		}
-		if (Schema.is(field)(value)) {
+		const acceptsValue: (input: unknown) => boolean = Schema.is(field);
+		if (acceptsValue(value)) {
 			return [value];
 		}
 		return typeof value === "object" && "in" in value && Array.isArray(value.in)

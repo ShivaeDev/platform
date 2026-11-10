@@ -7,16 +7,17 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
-import { contract } from "#contract.ts";
+import { defineModule } from "#defineModule.ts";
+import { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer, signedIn, type Viewer } from "#readPolicy.ts";
 
-export class Book extends Model.Class<Book>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
-export class Reader extends Model.Class<Reader>("LibraryReader")({ name: Schema.String, shelf: Schema.Number }) {}
+export class StoredBook extends Model.Class<StoredBook>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
+export class StoredReader extends Model.Class<StoredReader>("LibraryReader")({ name: Schema.String, shelf: Schema.Number }) {}
 export const books = collection("library_books", Schema.Number, { shelf: Schema.Number });
 
-export const makeBooks = makeRepository(Book, { collection: books, idColumn: "id", spanPrefix: "LibraryBooks", tableName: "library_books" });
-export const makeReaders = makeRepository(Reader, { idColumn: "name", spanPrefix: "LibraryReaders", tableName: "library_readers" });
+export const makeBooks = makeRepository(StoredBook, { collection: books, idColumn: "id", spanPrefix: "LibraryBooks", tableName: "library_books" });
+export const makeReaders = makeRepository(StoredReader, { idColumn: "name", spanPrefix: "LibraryReaders", tableName: "library_readers" });
 
 export class Library extends Context.Service<
 	Library,
@@ -28,31 +29,109 @@ function readerOf(viewer: Option.Option<Viewer>) {
 	return Option.match(viewer, { onNone: () => "", onSome: ({ id }) => id });
 }
 
-const Titles = Schema.Array(Schema.String);
-const shelf = { shelf: Schema.Number };
+const Titles = Schema.mutable(Schema.Array(Schema.String));
+const byId = { orderBy: { direction: "asc", field: "id" } } as const;
 
-export const Libraries = contract("library", {
-	commands: [
-		command("retitle", { payload: { id: Schema.Number, title: Schema.String } }),
-		command("move", { payload: { reader: Schema.String, shelf: Schema.Number } }),
-	],
-	queries: [
-		query("book", { payload: { id: Schema.Number }, readPolicy: signedIn, reads: () => [], success: Schema.String }),
-		query("rereadBook", { payload: { id: Schema.Number, times: Schema.Number }, readPolicy: signedIn, reads: () => [], success: Schema.String }),
-		query("shelf", { payload: shelf, readPolicy: signedIn, reads: () => [], success: Titles }),
-		query("catalog", { readPolicy: signedIn, reads: () => [], success: Titles }),
-		query("reader", { readPolicy: signedIn, reads: () => [], success: Schema.Number }),
-		query("readerShelf", {
-			payload: shelf,
-			readPolicy: (_payload, viewer) =>
-				Effect.flatMap(Library, ({ readers }) => Effect.map(readers.findOne({ where: { name: readerOf(viewer) } }), Option.isSome)).pipe(
-					Effect.orDie,
-				),
-			reads: () => [],
-			success: Titles,
-		}),
-	],
-}).middleware(LibraryViewer);
+const titlesOn = Effect.fnUntraced(function* (shelf: number) {
+	const { books: rows } = yield* Library;
+	const found = yield* Effect.orDie(rows.findMany({ ...byId, where: { shelf } }));
+	return found.map(({ title }) => title);
+});
+
+const Book = query("book", {
+	payload: { id: Schema.Number },
+	readPolicy: signedIn,
+	reads: () => [],
+	*run({ id }) {
+		const { books: rows } = yield* Library;
+		return (yield* Effect.orDie(rows.findById(id))).title;
+	},
+	success: Schema.String,
+});
+const RereadBook = query("rereadBook", {
+	payload: { id: Schema.Number, times: Schema.Number },
+	readPolicy: signedIn,
+	reads: () => [],
+	*run({ id, times }) {
+		const { books: rows } = yield* Library;
+		const reads = yield* Effect.orDie(Effect.forEach(Array.from({ length: times }), () => rows.findById(id)));
+		return reads.at(-1)?.title ?? "";
+	},
+	success: Schema.String,
+});
+const Shelf = query("shelf", {
+	payload: { shelf: Schema.Number },
+	readPolicy: signedIn,
+	reads: () => [],
+	*run({ shelf }) {
+		return yield* titlesOn(shelf);
+	},
+	success: Titles,
+});
+const Catalog = query("catalog", {
+	readPolicy: signedIn,
+	reads: () => [],
+	*run() {
+		const { books: rows } = yield* Library;
+		return (yield* Effect.orDie(rows.findMany(byId))).map(({ title }) => title);
+	},
+	success: Titles,
+});
+const Reader = query("reader", {
+	readPolicy: signedIn,
+	reads: () => [],
+	*run() {
+		const { readers } = yield* Library;
+		return (yield* Effect.orDie(readers.findById(readerOf(yield* CurrentViewer)))).shelf;
+	},
+	success: Schema.Number,
+});
+const ReaderShelf = query("readerShelf", {
+	payload: { shelf: Schema.Number },
+	readPolicy: (_payload, viewer) =>
+		Effect.flatMap(Library, ({ readers }) => Effect.map(readers.findOne({ where: { name: readerOf(viewer) } }), Option.isSome)).pipe(Effect.orDie),
+	reads: () => [],
+	*run({ shelf }) {
+		return yield* titlesOn(shelf);
+	},
+	success: Titles,
+});
+const Retitle = command("retitle", {
+	payload: { id: Schema.Number, title: Schema.String },
+	*run({ id, title }) {
+		const { books: rows } = yield* Library;
+		yield* Effect.orDie(rows.updateVoid({ id, title }, { columns: ["title"] }));
+	},
+});
+const Move = command("move", {
+	payload: { reader: Schema.String, shelf: Schema.Number },
+	*run({ reader, shelf }) {
+		const { readers } = yield* Library;
+		yield* Effect.orDie(readers.updateVoid({ name: reader, shelf }));
+	},
+});
+
+export const Libraries = defineModule({
+	middleware: LibraryViewer,
+	name: "library",
+	operations: [Book, RereadBook, Shelf, Catalog, Reader, ReaderShelf, Retitle, Move],
+	requires: [Library],
+});
+
+export const handlers = {
+	"hand-written handlers": Libraries.application.toLayer({
+		"library.book": Book.run,
+		"library.catalog": Catalog.run,
+		"library.move": Move.run,
+		"library.reader": Reader.run,
+		"library.readerShelf": ReaderShelf.run,
+		"library.rereadBook": RereadBook.run,
+		"library.retitle": Retitle.run,
+		"library.shelf": Shelf.run,
+	}),
+	"module handlers": moduleHandlers(Libraries),
+};
+export type Handlers = keyof typeof handlers;
 
 export const migrations = {
 	loader: Migrator.fromRecord({
@@ -70,36 +149,3 @@ const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 
 export { configured };
 export const database = makePostgresTestLayer({ migrations, url: Redacted.make(url ?? "postgresql://integration-tests-disabled") });
-
-const byId = { orderBy: { direction: "asc", field: "id" } } as const;
-
-export const handlers = Libraries.application.toLayer(
-	Effect.gen(function* () {
-		const { books: bookRows, readers } = yield* Library;
-		function shelfTitles({ shelf: pinned }: { readonly shelf: number }) {
-			return bookRows.findMany({ ...byId, where: { shelf: pinned } }).pipe(
-				Effect.map((rows) => rows.map(({ title }) => title)),
-				Effect.orDie,
-			);
-		}
-		return {
-			"library.book": ({ id }) => Effect.map(bookRows.findById(id), ({ title }) => title).pipe(Effect.orDie),
-			"library.catalog": () =>
-				bookRows.findMany(byId).pipe(
-					Effect.map((rows) => rows.map(({ title }) => title)),
-					Effect.orDie,
-				),
-			"library.move": ({ reader, shelf: next }) => readers.updateVoid({ name: reader, shelf: next }).pipe(Effect.orDie),
-			"library.reader": () =>
-				Effect.flatMap(CurrentViewer, (viewer) => Effect.map(readers.findById(readerOf(viewer)), (reader) => reader.shelf)).pipe(Effect.orDie),
-			"library.readerShelf": shelfTitles,
-			"library.rereadBook": ({ id, times }) =>
-				Effect.forEach(Array.from({ length: times }), () => bookRows.findById(id)).pipe(
-					Effect.map((reads) => reads.at(-1)?.title ?? ""),
-					Effect.orDie,
-				),
-			"library.retitle": ({ id, title }) => bookRows.updateVoid({ id, title }, { columns: ["title"] }).pipe(Effect.orDie),
-			"library.shelf": shelfTitles,
-		};
-	}),
-);

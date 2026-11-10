@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { engine, type View, type Watched } from "#test/repository-reads/engine.ts";
-import { configured, database } from "#test/repository-reads/fixture.ts";
+import { configured, database, type Handlers } from "#test/repository-reads/fixture.ts";
 
 function shown(value: unknown): string {
 	return Array.isArray(value) ? value.map(String).join(" | ") : String(value);
@@ -38,7 +38,7 @@ export const repositoryReadsStory = storyKit({
 				story.tell(`alice moves to shelf ${shelf}`);
 				return current.client("library.move", { reader: "alice", shelf });
 			},
-			registrationsOfBook: (id: number) => Effect.sync(() => current.registrations.filter((keys) => keys.includes(`library_books:${id}`)).length),
+			registrationsOfBook: (id: number) => Effect.sync(() => current.registrations.filter((keys) => keys.includes(`library_books:${id}`))),
 			retitle: (id: number, title: string) => {
 				story.tell(`a writer retitles book ${id} as ${title}`);
 				return current.client("library.retitle", { id, title });
@@ -53,13 +53,13 @@ export const repositoryReadsStory = storyKit({
 	},
 });
 
-export function watching(...views: readonly View[]) {
+export function watching(views: readonly View[], style: Handlers = "module handlers") {
 	return repositoryReadsStory.trait(
 		"view",
-		`alice watches ${views.join(" and ")} in one subscription, which delivered their first results`,
+		`alice watches ${views.join(" and ")} in one subscription served by ${style}, which delivered their first results`,
 		(current) =>
 			Effect.gen(function* () {
-				const updates = yield* current.watch(views);
+				const updates = yield* current.watch(views, style);
 				yield* until(SubscriptionRef.changes(updates), (all) => all.length >= views.length, { name: "first results" });
 			}),
 	);

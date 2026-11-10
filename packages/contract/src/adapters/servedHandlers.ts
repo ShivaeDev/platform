@@ -1,5 +1,6 @@
 import { Effect, Layer, type Schema } from "effect";
 import { Rpc, RpcGroup, RpcSchema } from "effect/rpc";
+import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { Declared } from "#contract.ts";
@@ -27,7 +28,10 @@ function served(rpc: Rpc.AnyWithProps, operation: QueryShape | CommandShape, run
 	return (payload: unknown) =>
 		Effect.gen(function* () {
 			if (operation.kind === "query") {
-				yield* checkPolicy(operation, operation.readPolicy, payload, yield* CurrentViewer);
+				// Permission changes refresh nothing live, so the policy's reads record no keys.
+				yield* checkPolicy(operation, operation.readPolicy, payload, yield* CurrentViewer).pipe(
+					Effect.provideService(ReadRecorder, ReadRecorder.defaultValue()),
+				);
 			}
 			return yield* run(payload);
 		}).pipe(Effect.withSpan(span), boundary);
