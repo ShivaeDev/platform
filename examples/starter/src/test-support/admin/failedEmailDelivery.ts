@@ -1,4 +1,4 @@
-import { Layer } from "effect";
+import { ConfigProvider, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -26,6 +26,6 @@ export const failedEmailDelivery = foundationAdmin.trait("worker", "the email pr
 			databaseUrl: database.url,
 			poolSizes: testPoolSizes,
 			replacements: Layer.merge(Layer.succeed(JobsClientFactory, engine.workerTesting.clientFactory), mail.mailerLayer),
-		}),
+		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
 	);
 });

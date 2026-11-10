@@ -127,6 +127,12 @@ application.it(
 	},
 );
 
+application.it("the generated app's Git ignores the local trace store in .platform/", [], function* ({ createApp, gitState }) {
+	yield* createApp("demo");
+
+	expect(yield* gitState(".platform/traces.db")).toBe("ignored");
+});
+
 application.it("the generated app's Git ignores browser-check screenshots in .browser-check/", [], function* ({ createApp, gitState }) {
 	yield* createApp("demo");
 

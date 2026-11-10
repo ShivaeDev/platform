@@ -1,5 +1,5 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
+import { ConfigProvider, DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -165,7 +165,7 @@ export const adminHost = storyKit({
 						databaseUrl: database.url,
 						poolSizes: testPoolSizes,
 						replacements: Layer.succeed(JobsClientFactory, jobs.clientFactory),
-					}),
+					}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
 					scope,
 				);
 				yield* jobs.waitForIdle;
