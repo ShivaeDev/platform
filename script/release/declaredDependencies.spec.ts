@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { awaitingPublication, effectPackages } from "#release/test-support/effectPackages.ts";
+import { exactPeerCatalog, exactPeerPackages } from "#release/test-support/exactPeerPackages.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 releasePullRequest.it(
@@ -32,7 +33,7 @@ releasePullRequest.it(
 			[
 				"framework release notes",
 				() => git("show", "origin/release/next:packages/form/CHANGELOG.md"),
-				expect.stringContaining("### Changed\n\n- Align published Effect requirements with the workspace catalog."),
+				expect.stringContaining("### Changed\n\n- Align published dependency requirements with the workspace."),
 			],
 			[
 				"starter pins",
@@ -52,5 +53,20 @@ releasePullRequest.it(
 		yield* run();
 
 		expect((yield* readGitHub()).created).toBe(0);
+	},
+);
+
+releasePullRequest.it(
+	"a catalog update of exact vitest and better-auth peers releases each package that declares them and leaves the others alone",
+	[exactPeerPackages],
+	function* ({ pushMain, run, check }) {
+		yield* pushMain("pnpm-workspace.yaml", exactPeerCatalog("5.1.0", "1.7.15"));
+
+		yield* run();
+
+		expect(yield* check().pipe(Effect.map((plan) => plan.releases.map(({ name, bump }) => [name, bump])))).toEqual([
+			["@shivaedev/identity", "patch"],
+			["@shivaedev/test-story", "patch"],
+		]);
 	},
 );
