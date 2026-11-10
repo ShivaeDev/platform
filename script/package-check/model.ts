@@ -1,8 +1,9 @@
 import { Schema } from "effect";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
+const Bin = Schema.Union([Schema.String, Versions]);
 export const Manifest = Schema.Struct({
-	bin: Schema.optional(Schema.Union([Schema.String, Versions])),
+	bin: Schema.optional(Bin),
 	dependencies: Schema.optional(Versions),
 	devDependencies: Schema.optional(Versions),
 	exports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
@@ -13,6 +14,7 @@ export const Manifest = Schema.Struct({
 	peerDependencies: Schema.optional(Versions),
 	peerDependenciesMeta: Schema.optional(Schema.Record(Schema.String, Schema.Struct({ optional: Schema.optional(Schema.Boolean) }))),
 	private: Schema.optional(Schema.Boolean),
+	publishConfig: Schema.optional(Schema.Struct({ bin: Schema.optional(Bin) })),
 	types: Schema.optional(Schema.String),
 	version: Schema.String,
 });
@@ -28,8 +30,10 @@ export const dependencyKeys = ["dependencies", "devDependencies", "optionalDepen
 export function effectPackage(name: string): boolean {
 	return name === "effect" || name.startsWith("@effect/");
 }
+// pnpm packs publishConfig.bin in place of bin, so the published executables are judged by it.
 export function bins(manifest: Manifest): Readonly<Record<string, string>> {
-	return typeof manifest.bin === "string" ? { [manifest.name.split("/").at(-1) ?? manifest.name]: manifest.bin } : (manifest.bin ?? {});
+	const bin = manifest.publishConfig?.bin ?? manifest.bin;
+	return typeof bin === "string" ? { [manifest.name.split("/").at(-1) ?? manifest.name]: bin } : (bin ?? {});
 }
 export function targets(value: unknown): string[] {
 	if (typeof value === "string") {
