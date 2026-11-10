@@ -72,9 +72,11 @@ export const inputKey = Effect.fn("Build.inputKey")(function* (project: Project,
 		Effect.map(fs.readFileString(file), (text) => [file, text] as const),
 	);
 	const lock = Option.isSome(lockfile) ? [[lockfile.value, yield* fs.readFileString(lockfile.value)] as const] : [];
-	const entries = [...graph, ...chain, ...lock].map(([file, text]) => `${path.relative(project.root, file)}\u0000${text}`).sort(byText);
-	return yield* digest.digestHex(
+	const inputs = [...graph, ...chain, ...lock];
+	const entries = inputs.map(([file, text]) => `${path.relative(project.root, file)}\u0000${text}`).sort(byText);
+	const key = yield* digest.digestHex(
 		Digest.sha256,
 		new TextEncoder().encode([project.generator, `typescript ${project.config.typeScriptVersion}`, ...entries].join("\u0001")),
 	);
+	return { files: inputs.map(([file]) => file), key };
 });

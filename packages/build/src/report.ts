@@ -11,6 +11,7 @@ export interface ModuleOutcome {
 }
 
 export interface GenerateReport {
+	readonly inputs: readonly string[];
 	readonly modules: readonly ModuleOutcome[];
 	readonly programBuilt: boolean;
 }
