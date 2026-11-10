@@ -5,14 +5,16 @@ import { notesApplication, notesTest, refusedModule, vite } from "#test/vite.ts"
 const NOTES = "src/generated/modules/notes/notes.ts";
 
 vite.it(
-	"vitest's global setup generates the notes wire before the test file that imports it loads",
+	"two vitest runs that start at once each generate the notes wire before the test file that imports it loads, both pass and leave every generated file up to date",
 	[notesApplication(), notesTest()],
-	function* ({ generatedFile, runsVitest }) {
+	function* ({ generatedFile, runsVitestTwiceAtOnce, upToDate }) {
 		expect(yield* generatedFile(NOTES)).toBe("missing");
+		const passed = { ran: { "the generated notes wire lists the module's operations": "passed" } };
 
-		const run = yield* runsVitest();
-
-		expect(run).toEqual({ ran: { "the generated notes wire lists the module's operations": "passed" } });
+		yield* outcomes([
+			["the two runs", () => runsVitestTwiceAtOnce(), [passed, passed]],
+			["generate --check", () => upToDate(), "every generated file is up to date"],
+		]);
 	},
 );
 
@@ -28,18 +30,5 @@ vite.it(
 			),
 			ran: {},
 		});
-	},
-);
-
-vite.it(
-	"two vitest runs that start at once both pass and leave every generated file up to date",
-	[notesApplication(), notesTest()],
-	function* ({ runsVitestTwiceAtOnce, upToDate }) {
-		const passed = { ran: { "the generated notes wire lists the module's operations": "passed" } };
-
-		yield* outcomes([
-			["the two runs", () => runsVitestTwiceAtOnce(), [passed, passed]],
-			["generate --check", () => upToDate(), "every generated file is up to date"],
-		]);
 	},
 );
