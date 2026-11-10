@@ -16,7 +16,7 @@ const TRAILING_SLASHES = /\/+$/u;
 
 const NODE_MODULES = "node_modules";
 
-const PLACEHOLDERS = new Set([".gitkeep", ".keep"]);
+const PLACEHOLDERS = new Set([".gitkeep", ".keep", "README.md"]);
 
 const withIgnoreFileIn = Effect.fn("Imports.withIgnoreFileIn")(function* (reader: Reader, scope: IgnoreScope, directory: string) {
 	const contents = yield* reader.readText(posix.join(directory, IGNORE_FILE));

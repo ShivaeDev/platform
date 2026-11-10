@@ -10,6 +10,7 @@ import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { knipReport } from "#adapters/knip/report.ts";
 import { sourceConfig } from "#adapters/knip/sourceConfig.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { ignoredModules } from "#imports/graph.ts";
 import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
 import type { RuleInputs } from "#rule.ts";
@@ -26,7 +27,7 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 	if ((yield* readPackageManifest(inputs.readText, "package.json")) === undefined) {
 		return [];
 	}
-	const files = yield* toolOwnedFiles(inputs.root);
+	const files = [...(yield* toolOwnedFiles(inputs.root)), ...(yield* ignoredModules(inputs))];
 	const builds = yield* programmaticBuilds(inputs);
 	const declared = declaredEntries(inputs);
 	const configuration = yield* knipConfiguration(inputs, files, builds, declared);

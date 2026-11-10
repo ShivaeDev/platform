@@ -3,10 +3,10 @@ import { Effect, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { run } from "#git/command.ts";
 
-const listedPaths = Effect.fn("Inventory.listedPaths")(function* (directory: string, options: readonly string[], path = ".") {
+const listedPaths = Effect.fn("Inventory.listedPaths")(function* (directory: string, options: readonly string[], paths: readonly string[] = ["."]) {
 	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
-	const result = yield* run(directory, ["ls-files", "-z", ...options, "--", path]);
+	const result = yield* run(directory, ["ls-files", "-z", ...options, "--", ...paths]);
 	if (result.code !== 0) {
 		if (result.stderr.includes("not a git repository")) {
 			return undefined;
@@ -20,7 +20,7 @@ const listedPaths = Effect.fn("Inventory.listedPaths")(function* (directory: str
 });
 
 export const trackedPaths = Effect.fn("Inventory.trackedPaths")(function* (directory: string, path = ".") {
-	return (yield* listedPaths(directory, [], path)) ?? [];
+	return (yield* listedPaths(directory, [], [path])) ?? [];
 });
 
 export const ignoredTrackedPaths = Effect.fn("Inventory.ignoredTrackedPaths")(function* (directory: string) {
@@ -32,4 +32,11 @@ export const ignoredPaths = Effect.fn("Inventory.ignoredPaths")(function* (direc
 
 	const paths = yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard", "--directory"]);
 	return paths?.map((path) => resolve(path));
+});
+
+export const ignoredAmong = Effect.fn("Inventory.ignoredAmong")(function* (directory: string, paths: readonly string[]) {
+	if (paths.length === 0) {
+		return [];
+	}
+	return (yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard"], paths)) ?? [];
 });
