@@ -9,6 +9,7 @@ export const pinRegistry = Effect.fn("StarterStory.pinRegistry")(function* (root
 		{ name: "@fixture/local-postgres", peerDependencies: { effect: peer }, types: "index.d.ts", version: "1.0.0" },
 		{ description: "published on npm", name: "@fixture/unrelated", version: "1.0.0" },
 		{ name: "effect", version: "4.1.1" },
+		{ name: "@shivaedev/create-app", version: "1.0.0" },
 	];
 	const archives: Record<string, Uint8Array> = {};
 	for (const [index, manifest] of manifests.entries()) {

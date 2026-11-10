@@ -90,9 +90,7 @@ const runBin = Effect.fn("Packed.runBin")(function* (
 	if (scenario.packedInstall) {
 		const fs = yield* FileSystem.FileSystem;
 		const pins = decodeVersions(yield* fs.readFileString(join(root, "examples/starter/published-versions.json")));
-		const tarballs = yield* pinnedTarballs(packages, pins, {
-			preferWorkspace: ["@shivaedev/deploy"],
-		}).pipe(Effect.provide(FetchHttpClient.layer));
+		const tarballs = yield* pinnedTarballs(root, packages, pins).pipe(Effect.provide(FetchHttpClient.layer));
 		env = { ...env, "PATH": yield* packedInstaller(root, consumer, tarballs) };
 	}
 	const environment = Object.entries(env ?? {});
