@@ -109,7 +109,7 @@ const publication = yield* CommandPublication;
 yield* publication.publish(["notes:1"]);
 ```
 
-Both `publish` and `recover` have `CommandPublicationError` in their typed failure channel; its `cause` preserves the Effect cause. A failed announcement does not undo a committed write. The command boundary handles publication failure separately from the write and can run `publication.recover`. The PostgreSQL binding resynchronizes local streams and broadcasts Resync to other hosts; identity's command wrapper keeps the committed result even when publication or recovery fails.
+Both `publish` and `recover` have `CommandPublicationError` in their typed failure channel; its `cause` preserves the Effect cause. A failed announcement does not undo a committed write. The command boundary handles publication failure separately from the write and can run `publication.recover`. The PostgreSQL binding resynchronizes local streams and broadcasts Resync to other hosts; the server's command publication in `@shivaedev/server` keeps the committed result even when publication or recovery fails, as its [command publication stories](https://github.com/ShivaeDev/platform/blob/main/packages/server/src/commandPublication.spec.ts) show.
 
 ### Record keys and buckets
 
