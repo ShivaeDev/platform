@@ -9,7 +9,15 @@ export default [
 		.from(browserCode)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts", "packages/errors/src/infrastructure.ts", "packages/errors/src/taxonomy.ts"),
+				files(
+					"packages/changes/src/keys.ts",
+					"packages/errors/src/boundary.ts",
+					"packages/errors/src/infrastructure.ts",
+					"packages/errors/src/redact.ts",
+					"packages/errors/src/redactCause.ts",
+					"packages/errors/src/sensitive.ts",
+					"packages/errors/src/taxonomy.ts",
+				),
 				browserCode,
 				packages("types", "service"),
 				modules("effect"),
