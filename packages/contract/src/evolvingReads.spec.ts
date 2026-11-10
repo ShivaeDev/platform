@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { evolvingReadsStory, watchingTimeline } from "#test/evolvingReadsStory.ts";
+import { evolvingReadsStory, watchingTimeline, watchingTimelineAndRecords } from "#test/evolvingReadsStory.ts";
 
 for (const delivery of ["timeline", "pushed"] as const) {
 	evolvingReadsStory.it(
@@ -54,6 +54,41 @@ evolvingReadsStory.it(
 		yield* edit(1, "Changed");
 
 		expect(yield* subscriptionEnd()).toBe("failed with unavailable");
+	},
+);
+
+evolvingReadsStory.it(
+	"a failed timeline rerun reaches the timeline as its declared rejection while the record list on the same client keeps updating",
+	[watchingTimelineAndRecords],
+	function* ({ edit, listsUnavailable, recordsShow, refreshed, timelineShows, untilRecordsShow }) {
+		expect(yield* timelineShows()).toBe("First, Second");
+		yield* listsUnavailable();
+
+		yield* edit(1, "Changed");
+
+		yield* untilRecordsShow("Changed");
+		yield* refreshed();
+		yield* outcomes([
+			["timeline", () => timelineShows(), "failed with unavailable"],
+			["record list", () => recordsShow(), "Changed, Second, Private"],
+		]);
+	},
+);
+
+evolvingReadsStory.it(
+	"an explicit refresh replaces a failed timeline rerun with current data once the lists are readable again",
+	[watchingTimelineAndRecords],
+	function* ({ edit, listsReturn, listsUnavailable, refresh, refreshed, timelineShows }) {
+		yield* listsUnavailable();
+		yield* edit(1, "Changed");
+		yield* refreshed();
+		expect(yield* timelineShows()).toBe("failed with unavailable");
+		yield* listsReturn();
+
+		refresh();
+
+		yield* refreshed();
+		expect(yield* timelineShows()).toBe("Changed, Second");
 	},
 );
 

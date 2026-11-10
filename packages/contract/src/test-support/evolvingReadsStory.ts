@@ -1,11 +1,13 @@
 import { Effect, Fiber, Match, SubscriptionRef } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
-import { answered } from "#test/answers.ts";
+import { answered, shown } from "#test/answers.ts";
 import { records } from "#test/derivedReadsContract.ts";
 import { configured, derivedDatabase } from "#test/derivedReadsData.ts";
 import type { Delivery } from "#test/evolvingReadsContract.ts";
@@ -27,7 +29,8 @@ export const evolvingReadsStory = storyKit({
 	*create() {
 		const engine = yield* evolvingReadsEngine;
 		const marked: { mark: Mark | undefined } = { mark: undefined };
-		return { ...engine, ...marked, view: engine.api.timeline.query({ scope: "alice" }) };
+		const recordList: Atom.Atom<AsyncResult.AsyncResult<readonly string[], unknown>> = engine.api.barrier.query();
+		return { ...engine, ...marked, recordList, view: engine.api.timeline.query({ scope: "alice" }) };
 	},
 	inspect: ({ registrations }) => ({ registrations: [...registrations] }),
 	layer: derivedDatabase,
@@ -46,6 +49,7 @@ export const evolvingReadsStory = storyKit({
 		delivered: () => Effect.map(SubscriptionRef.get(engine.updates), (all) => all.flatMap(renderDelivery)),
 		edit: (id: number, body: string) => {
 			story.tell(`a writer commits record ${id} as ${body}`);
+			engine.mark = markQuery(engine.registry, engine.view);
 			return engine.rpc("evolving.edit", { body, id });
 		},
 		failDiscovery: () => {
@@ -61,10 +65,25 @@ export const evolvingReadsStory = storyKit({
 			story.tell(`alice leaves list ${id}`);
 			return engine.rpc("evolving.leave", { id, scope: "alice" });
 		},
+		listsReturn: () => {
+			story.tell("the lists table is readable again");
+			return engine.sql`alter table lists_unavailable rename to lists`;
+		},
+		listsUnavailable: () => {
+			story.tell("the server can no longer read the lists table");
+			return engine.sql`alter table lists rename to lists_unavailable`;
+		},
+		recordsShow: () => Effect.sync(() => shown(engine.registry.get(engine.recordList), (rows) => rows.join(", "))),
+		refresh: () => {
+			story.tell("alice refreshes her timeline");
+			engine.mark = markQuery(engine.registry, engine.view);
+			engine.registry.refresh(engine.view);
+		},
 		refreshed: () => reRead(engine.registry, engine.view, engine.mark),
 		registered: (id: number) => Effect.sync(() => (engine.registrations.get(readKeys([records.bucket.listId(id)])[0]) ?? 0) > 0),
 		shown: () => Effect.flatMap(settled(engine.registry, engine.view), () => AtomRegistry.getResult(engine.registry, engine.view)),
 		subscriptionEnd: () => answered(Fiber.join(engine.finished), () => "completed"),
+		timelineShows: () => Effect.sync(() => shown(engine.registry.get(engine.view), (rows) => rows.join(", "))),
 		untilBarrier: (body: string) =>
 			until(
 				SubscriptionRef.changes(engine.updates),
@@ -72,6 +91,8 @@ export const evolvingReadsStory = storyKit({
 					all.some((update) => update._tag === "Result" && update.query === "barrier" && Array.isArray(update.value) && update.value.includes(body)),
 				{ name: `socket barrier sees ${body}` },
 			),
+		untilRecordsShow: (body: string) =>
+			until(AtomRegistry.toStreamResult(engine.registry, engine.recordList), (rows) => rows.includes(body), { name: `record list shows ${body}` }),
 		untilShown: (body: string) =>
 			until(AtomRegistry.toStreamResult(engine.registry, engine.view), (rows) => rows.includes(body), { name: `timeline shows ${body}` }),
 		untilTimeline: (rows: readonly string[]) =>
@@ -90,6 +111,17 @@ export const evolvingReadsStory = storyKit({
 			),
 	}),
 });
+
+export const watchingTimelineAndRecords = evolvingReadsStory.trait(
+	"view",
+	"alice opens her timeline and the record list on one client",
+	function* (engine) {
+		engine.registry.mount(engine.view);
+		engine.registry.mount(engine.recordList);
+		yield* settled(engine.registry, engine.view);
+		yield* settled(engine.registry, engine.recordList);
+	},
+);
 
 export function watchingTimeline(delivery: Delivery) {
 	return evolvingReadsStory.trait("view", `alice opens her ${delivery} timeline`, function* (engine) {
