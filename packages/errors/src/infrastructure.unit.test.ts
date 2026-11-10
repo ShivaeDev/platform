@@ -1,11 +1,22 @@
-import { Result, Schema } from "effect";
-import { LockTimeoutError, SqlError, UniqueViolation } from "effect/sql/SqlError";
+import { Data, Result, Schema } from "effect";
 import { expect, it } from "vitest";
 import { infrastructureRejection } from "#infrastructure.ts";
 import { ServiceUnavailable } from "#taxonomy.ts";
 
+class LostConnection extends Data.TaggedError("LostConnection")<{ readonly message: string }> {
+	get isRetryable(): boolean {
+		return true;
+	}
+}
+
+class DuplicateTitle extends Data.TaggedError("DuplicateTitle")<{ readonly message: string }> {
+	get isRetryable(): boolean {
+		return false;
+	}
+}
+
 it("a retryable failure becomes ServiceUnavailable that keeps the failure as its cause off the wire", () => {
-	const failure = new SqlError({ reason: new LockTimeoutError({ cause: new Error("lock timeout") }) });
+	const failure = new LostConnection({ message: "connection reset" });
 
 	const rejection = infrastructureRejection(failure);
 
@@ -14,10 +25,8 @@ it("a retryable failure becomes ServiceUnavailable that keeps the failure as its
 	expect(JSON.parse(JSON.stringify(rejection))).toEqual({ _tag: "ServiceUnavailable", message: "The service is unavailable. Try again later." });
 });
 
-it("a unique violation, which states it is not retryable, has no infrastructure rejection", () => {
-	const failure = new SqlError({ reason: new UniqueViolation({ cause: new Error("duplicate key"), constraint: "notes_title_key" }) });
-
-	expect(infrastructureRejection(failure)).toBeUndefined();
+it("a failure that states it is not retryable has no infrastructure rejection", () => {
+	expect(infrastructureRejection(new DuplicateTitle({ message: "duplicate key" }))).toBeUndefined();
 });
 
 it("a schema failure has no infrastructure rejection", () => {
