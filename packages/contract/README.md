@@ -136,7 +136,7 @@ TypeScript compares classes by shape, so two cases still compile: a rejection cl
 
 Every operation written this way carries `InternalServerError` and `ServiceUnavailable` in its type and its rejection set, and cannot list them. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. Because object keys are sorted, `invalidates` is checked before `run`, so its result parameter is typed only when `success` is declared.
 
-Two limits meet you while writing these operations. On its own, an omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's RPC schemas; a module's generated wire supplies both (below), and an operation served through `contract()` declares them. Biome's `useYield` refuses a `*run` that yields nothing, so a `run` that needs no service still yields an Effect.
+Two limits meet you while writing these operations. On its own, an omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's RPC schemas; a module's wire supplies both (below), and an operation served through `contract()` declares them. Biome's `useYield` refuses a `*run` that yields nothing, so a `run` that needs no service still yields an Effect.
 
 A field failure is an exported tagged class built from the payload's fields with `fieldRejection`, as `TitleTaken` above. `run` raises it with `yield* new TitleTaken({ field, message })`, and `@shivaedev/form`'s `rejecting` places its message on that field.
 
@@ -226,7 +226,7 @@ export const Notes = defineModule({
 });
 ```
 
-Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, optionally `middleware`, `subject` and `keyScope` as `contract` does, and its generated `wire` (below). It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
+Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, optionally `middleware`, `subject` and `keyScope` as `contract` does, and its `wire` (below). It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
 
 ```
 src/test-support/fixtures/invalid/moduleUndeclaredService.ts(24,2): error TS2322: Type '"imports"' is not assignable to type '"imports" & NoInfer<OperationNeedsUndeclaredServices<"importTitle", NoteSource>>'.
@@ -245,9 +245,9 @@ export const NotesHandlers = moduleHandlers(Notes).pipe(Layer.provide(NotesStore
 
 Each operation runs in a span named after the module and the operation, such as `Notes.create`. A query's read policy is checked inside its handler before `run`, with the module's services, so a policy reads a repository directly, as `Get` does above; a live subscription to the query checks the same policy. Failures pass the RPC boundary from `@shivaedev/errors`: a declared rejection reaches the client as itself, an undeclared failure that states `isRetryable` answers `ServiceUnavailable`, and anything else answers `InternalServerError`, for the policy of a live subscription too. A command without `invalidates` publishes only the keys its writes announce.
 
-#### The generated wire and the browser's contract
+#### The wire and the browser's contract
 
-Types are erased, so the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. A generate step (`pnpm generate`) writes them from each module's `run` types into one file per module under `src/generated/`, which stays out of Git; an application does not write that file. The module file passes its wire, and every operation without its own `success` or `rejections` is served with the wire's:
+Types are erased, so the success schema and rejection classes the server encodes with and the browser decodes with must exist as values. A generator will write them from each module's `run` types into one file per module under `src/generated/`, which stays out of Git. It does not ship yet and no `generate` script exists, so until it does an application writes the wire by hand, or its operations declare `success` and `rejections` and the module passes no wire. The module file passes its wire, and every operation that has a wire entry is served with that entry's success and rejections, plus `InternalServerError` and `ServiceUnavailable`, even when the operation declares its own; an operation without an entry is served with what it declares:
 
 ```ts
 import { notesWire } from "#generated/modules/notes/notes.ts";
@@ -261,7 +261,7 @@ export const Notes = defineModule({
 });
 ```
 
-The generated file exports the wire, the browser's contract built by `clientContract` from the wire, the copied payloads, `reads` and `invalidates`, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
+The file the generator will write exports the wire, the browser's contract built by `clientContract` from the wire, the copied payloads, `reads` and `invalidates`, and the module's name, middleware, subject and key scope, and it ends with a type-level assertion that the browser's contract and the server module have the same RPCs:
 
 ```ts
 import { Schema } from "effect";
@@ -290,9 +290,9 @@ export const Notes = clientContract({
 export const notesMatchModule: ClientMatchesModule<typeof Notes, typeof NotesModule> = true;
 ```
 
-The browser imports `Notes` from the generated file and binds it like any contract; it carries no `run`, read policy or service, and its import graph reaches no server code. A command's `invalidates` and a query's `reads` work in the browser exactly as on a contract written by hand. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
+`clientContract` requires a wire entry for every query and command it declares. The browser imports `Notes` from that file and binds it like any contract; it carries no `run`, read policy or service, and its import graph reaches no server code. A command's `invalidates` and a query's `reads` work in the browser exactly as on a contract written by hand. Over RPC's JSON serialization, a `Schema.Date` field arrives as a `Date` equal to the one `run` returned, and a rejection the wire lists arrives as its class. Neither the browser's contract nor an operation without a read policy can be served: `contract()` requires one on every query, and a host refuses a query without one at start-up.
 
-The compiler compares the wire with `run` on every type check, exactly as it compares a declared `success` and `rejections`, and a stale file is an error on the module's `name` line that names the operation, one problem per operation: `WireSuccessStale` when the wire's success differs from what `run` returns, `WireRejectionsStale` when its rejection tags or classes differ from what `run` and a query's read policy raise, other than infrastructure failures, and `OperationMissingFromWire` when an operation declares no success, returns something, and has no wire entry. The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ:
+The compiler compares the wire with `run` on every type check, exactly as it compares a declared `success` and `rejections`, and a stale file is an error on the module's `name` line that names the operation, one problem per operation: `WireSuccessStale` when the wire's success differs from what `run` returns, `WireRejectionsStale` when its rejection tags or classes differ from what `run` and a query's read policy raise, other than infrastructure failures, and `OperationMissingFromWire` when an operation declares no success, returns something, and has no wire entry. The browser's assertion fails with `ClientDiffersFromModule`, naming the operations whose RPCs differ. `ClientMatchesModule` compares the operations' payloads, successes and rejections; a stale copy of a query's `reads`, a command's `invalidates` or the key scope in the generated file still compiles, and the generator is what keeps those current:
 
 ```
 src/test-support/fixtures/invalid/moduleStaleRejection.ts(9,2): error TS2322: Type '"staleRejection"' is not assignable to type '"staleRejection" & NoInfer<WireRejectionsStale<"create", "the generated file is stale; run pnpm generate", "TitleTaken" | "Unauthorized", "Unauthorized">>'.
