@@ -1,8 +1,8 @@
-import { Deferred, Effect, Exit, Fiber, Queue } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Queue, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import type { Body, Step } from "#test/body.ts";
-import { attempt, outcomeOf } from "#test/outcome.ts";
+import { attempt, failureOf, outcomeOf } from "#test/outcome.ts";
 import { onSqlError, Rejected, type TransactionEngine } from "#test/transactionEngine.ts";
 import { type InvalidationKeys, invalidateOnCommit, transact } from "#transact.ts";
 
@@ -95,6 +95,25 @@ export function transactionVerbs(engine: TransactionEngine, tell: (line: string)
 				yield* Effect.raceFirst(Deferred.await(ran), Effect.asVoid(Fiber.await(fiber)));
 				yield* Fiber.interrupt(fiber);
 				return ended(yield* Fiber.await(fiber));
+			}),
+		inUnmappedTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
+			Effect.suspend(() => {
+				tell("the main client begins a transaction that maps no SqlError");
+				let raised: unknown;
+				const watched = Effect.tapError(Effect.gen(body), (error) =>
+					Effect.sync(() => {
+						raised = error;
+					}),
+				);
+				return Effect.map(Effect.exit(transact(watched).pipe(onClient(main))), (exit) => {
+					const failure = Exit.isFailure(exit) ? Cause.findError(exit.cause) : undefined;
+					if (failure !== undefined && Result.isSuccess(failure) && failure.success === raised) {
+						const ending = `failed with the body's own failure, ${failureOf(raised)}`;
+						engine.endings.push(ending);
+						return ending;
+					}
+					return ended(exit);
+				});
 			}),
 		loggedErrors: () =>
 			Effect.sync(() =>

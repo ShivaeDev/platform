@@ -78,9 +78,7 @@ export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngin
 		},
 		nestedTransactionFails: (value: string, place: string) => {
 			story.tell(`a nested transaction in ${place} writes "${value}" and fails`);
-			return inPlace(engine, place, transact(Effect.andThen(writeItem(value), Effect.fail("rejected")), { onSqlError: (error) => error })).pipe(
-				Effect.ignore,
-			);
+			return inPlace(engine, place, transact(Effect.andThen(writeItem(value), Effect.fail("rejected")))).pipe(Effect.ignore);
 		},
 		openIsolatedBlock: (name: string) => {
 			story.tell(`${name} opens its clone`);

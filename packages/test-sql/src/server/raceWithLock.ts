@@ -59,9 +59,7 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 					within: timeout,
 				});
 			});
-			const holder = yield* (
-				options.release === "commit" ? transact(Effect.scoped(hold), { onSqlError: (error) => error }) : withTestTransaction(hold)
-			).pipe(Effect.forkScoped);
+			const holder = yield* (options.release === "commit" ? transact(Effect.scoped(hold)) : withTestTransaction(hold)).pipe(Effect.forkScoped);
 			const race = yield* Effect.raceFirst(Deferred.await(ready), Fiber.join(holder).pipe(Effect.andThen(Effect.never))).pipe(
 				Effect.timeout(timeout),
 			);

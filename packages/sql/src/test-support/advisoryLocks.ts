@@ -32,7 +32,7 @@ function ending(exit: Exit.Exit<unknown, unknown>) {
 }
 
 function inTransaction<E, R>(effect: Effect.Effect<void, E, R>) {
-	return transact(effect, { onSqlError: (error) => error });
+	return transact(effect);
 }
 
 function backendPid(sql: SqlClient.SqlClient) {

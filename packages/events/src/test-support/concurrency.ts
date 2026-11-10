@@ -51,7 +51,6 @@ export const holdEarlyCommit = Effect.fnUntraced(function* (engine: NoteEngine) 
 			yield* Deferred.succeed(appended, undefined);
 			yield* Deferred.await(release);
 		}),
-		{ onSqlError: (error) => error },
 	).pipe(Effect.forkScoped);
 	yield* Effect.raceFirst(Deferred.await(appended), Fiber.join(writer).pipe(Effect.andThen(Effect.never))).pipe(Effect.timeout("5 seconds"));
 	return () => Deferred.succeed(release, undefined).pipe(Effect.andThen(Fiber.join(writer)));

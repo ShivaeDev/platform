@@ -30,7 +30,6 @@ export function orderedDaysRace({ order, parentTable, sql }: OrderedDaysEngine, 
 							yield* Deferred.succeed(started, row?.pid ?? -1);
 							yield* order.reorder(1, [2, 1, 3]);
 						}),
-						{ onSqlError: (error) => error },
 					),
 				);
 				contenderPid = yield* Deferred.await(started);
@@ -46,7 +45,6 @@ export function orderedDaysRace({ order, parentTable, sql }: OrderedDaysEngine, 
 							yield* Deferred.succeed(entered, undefined);
 							yield* Deferred.await(release);
 						}),
-						{ onSqlError: (error) => error },
 					),
 				);
 				yield* Effect.raceFirst(

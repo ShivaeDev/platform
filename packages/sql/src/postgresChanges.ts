@@ -59,7 +59,7 @@ export function postgresChanges(options: PostgresChangesOptions) {
 			const publication: CommandPublisher = {
 				publish: (keys) =>
 					invalidateOnCommit(keys).pipe(
-						transact({ onSqlError: (error) => error }),
+						transact(),
 						Effect.provideService(SqlClient.SqlClient, options.client),
 						Effect.catchCause((cause) => Effect.fail(new CommandPublicationError({ cause }))),
 					),

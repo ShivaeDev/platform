@@ -258,7 +258,7 @@ const settleAndLoad = Effect.gen(function* () {
 	const plates = yield* Plates;
 	yield* lifecycle.settlePot(1);
 	return yield* plates.loadPot(1);
-}).pipe(transact({ onSqlError: (error) => error }), Effect.provide(application));
+}).pipe(transact(), Effect.provide(application));
 ```
 
 `database` is the application's `postgresLayer`. `Layer.provideMerge` also keeps its SQL and Reactivity services available to the outer `transact`.
@@ -773,26 +773,17 @@ The lock is held until the transaction commits, including when called inside `tr
 ### Transactions and invalidation
 
 ```ts
-import { Data } from "effect";
 import { transact } from "@shivaedev/sql/transact.ts";
-
-class StorageUnavailable extends Data.TaggedError("StorageUnavailable")<{
-	readonly reason: string;
-}> {}
 
 const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 	Effect.gen(function* () {
 		const lines = yield* makeInvoiceLines;
 		const saved = yield* lines.update(input);
 		return saved;
-	}).pipe(
-		transact({
-			onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
-		}),
-	);
+	}).pipe(transact());
 ```
 
-`transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+`transact` wraps native `sql.withTransaction` and keeps the body's typed failures and service requirements. Without options, a `SqlError` from the body or the `COMMIT` stays in the error channel unchanged. Pass `transact({ onSqlError })` to map every `SqlError` instead, for example with [`mapSqlError`](#errors-and-storage-limits) to turn named constraints into domain errors. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
 
 Arrays also accept typed keys from `collection`: a list key refreshes list subscribers, an item key refreshes that item and its list, and a bucket key refreshes that bucket. Subscribers register these keys through `readKeys` from `@shivaedev/changes/keys.ts`. Typed keys may share an array with raw Reactivity keys; raw keys keep their native identity.
 
@@ -808,7 +799,7 @@ const moved = changes({
 yield* Effect.gen(function* () {
   yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
   yield* moved.record();
-}).pipe(transact({ onSqlError: (error) => error }));
+}).pipe(transact());
 ```
 
 Use `moved.record({ publication: "local" })` to refresh local readers after commit without cross-process publication. `invalidateOnCommit(keys, { publication: "local" })` accepts the same typed option. The default is `"shared"`. Local and shared keys can coexist in one transaction; a key recorded both ways publishes once. Rollback discards both kinds. The option applies to that recording, so other writers in the transaction can still publish shared keys.
@@ -842,7 +833,7 @@ Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies ol
 Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates(payload, result, viewer)` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
 
 The transaction rules follow the database owner:
-- A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails through `onSqlError` and also announces nothing.
+- A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails with its `SqlError`, mapped by `onSqlError` when one is given, and also announces nothing.
 - A nested `transact` on the same client uses a native savepoint. Its successful keys join the outer set; a rolled-back savepoint's keys are discarded.
 - A transaction on a second client commits independently. Its keys publish when that client commits, even if the enclosing client's transaction later rolls back.
 - Keys belong to the `SqlClient` in the recording Effect's context. Entering another client's transaction does not move an existing client's keys. Re-entering a still-open transaction on the original client joins its own savepoint.
@@ -865,14 +856,10 @@ const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) =>
 	Effect.gen(function* () {
 		yield* advisoryXactLock("jobs:invoice-import");
 		yield* saveInvoiceLine(input);
-	}).pipe(
-		transact({
-			onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
-		}),
-	);
+	}).pipe(transact());
 ```
 
-`advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact` mapper.
+`advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact`'s `onSqlError` when it has one.
 
 ### Bounded, resumable PostgreSQL backfills
 
@@ -1002,7 +989,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.
 - `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.
 - `@shivaedev/sql/mapSqlError.ts`: `mapSqlError({ constraints, fallback })` — Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`.
-- `@shivaedev/sql/transact.ts`: `transact(effect, options)` or `effect.pipe(transact(options))` — Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`.
+- `@shivaedev/sql/transact.ts`: `transact(effect, options?)` or `effect.pipe(transact(options?))` — Optional `onSqlError` mapper; without it `SqlError` stays in the error channel; requires `SqlClient` and `Reactivity`.
 - `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys, options?)` — Records keys for its client, or invalidates immediately outside a transaction.
 - `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
 - `@shivaedev/sql/migration.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.

@@ -30,7 +30,7 @@ export function consumerTransaction(owner: "native" | "transact") {
 			'import { transact } from "@shivaedev/sql/transact.ts";',
 			'class Row extends Model.Class<Row>("Row")({ id: Schema.Number }) {}',
 			'export const save = Effect.gen(function* () { const sql = yield* SqlClient.SqlClient; const rows = yield* makeRepository(Row, { idColumn: "id", spanPrefix: "Rows", tableName: "rows" });',
-			owner === "native" ? `yield* sql.withTransaction(${body});` : `yield* transact(${body}, { onSqlError: (error) => error });`,
+			owner === "native" ? `yield* sql.withTransaction(${body});` : `yield* transact(${body});`,
 			"});",
 		].join("\n"),
 		path: "src/save.ts",

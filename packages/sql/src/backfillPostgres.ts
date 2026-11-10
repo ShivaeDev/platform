@@ -38,7 +38,7 @@ export const backfillPostgres = Effect.fn("Sql.backfillPostgres")(function* <TRo
 				yield* options.saveProgress(last, progress);
 			}
 			return rows.length;
-		}).pipe(transact({ onSqlError: (error) => error }));
+		}).pipe(transact());
 		processed += count;
 		if (count === 0) {
 			return processed;

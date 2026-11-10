@@ -93,6 +93,42 @@ for (const transactions of transactionKits) {
 	);
 
 	transactions.it(
+		"a transaction without onSqlError fails with its body's own SqlError, keeps no order and announces nothing",
+		[watching(transactions, "orders", "orders:1")],
+		function* ({ announce, announced, inUnmappedTransaction, orders, saveOrder }) {
+			const ending = yield* inUnmappedTransaction(function* () {
+				yield* saveOrder(1);
+				yield* announce({ orders: [1] });
+				yield* saveOrder(1);
+			});
+
+			expect(ending).toMatch(/^failed with the body's own failure, a (?<violation>unique|constraint) violation/u);
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["stored orders", () => orders(), []],
+			]);
+		},
+	);
+
+	transactions.it(
+		"a transaction without onSqlError whose deferred foreign key fails at COMMIT fails with that SqlError, keeps no order and announces nothing",
+		[watching(transactions, "orders", "orders:1")],
+		function* ({ announce, announced, inUnmappedTransaction, orders, saveOrder, writeNoteForMissingOrder }) {
+			const ending = yield* inUnmappedTransaction(function* () {
+				yield* saveOrder(1);
+				yield* writeNoteForMissingOrder();
+				yield* announce({ orders: [1] });
+			});
+
+			expect(ending).toMatch(/^failed with a constraint violation/u);
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["stored orders", () => orders(), []],
+			]);
+		},
+	);
+
+	transactions.it(
 		"a transaction begun inside a native sql.withTransaction dies, because transact does not own the outer transaction",
 		[],
 		function* ({ inNativeTransaction, inTransaction, saveOrder }) {

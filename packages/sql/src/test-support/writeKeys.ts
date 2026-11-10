@@ -29,7 +29,7 @@ export const writeKeys = storyKit({
 		invalidateEntry: (id: string) =>
 			Effect.suspend(() => {
 				story.tell(`a transaction manually invalidates ledger entry ${id}`);
-				return invalidateOnCommit({ [ledger.tableName]: [id] }).pipe(transact({ onSqlError: (error) => error }));
+				return invalidateOnCommit({ [ledger.tableName]: [id] }).pipe(transact());
 			}),
 		publishedKeys: () => Effect.map(capture.attempted, (batches) => [...new Set(batches.flat())]),
 		refreshed: () => [...refreshed],

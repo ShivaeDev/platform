@@ -26,7 +26,7 @@ For an Effect that fails with `SqlError`, including generic `Effect<A, SqlError,
 const saved = sql.withTransaction(save).pipe(Effect.mapError(onSqlError));
 ```
 
-`transact` also retains non-SQL typed failures from the operation. Prefer it for repository writes that announce changes. Do not expose raw driver errors to users or classify every database error as a field rejection.
+`transact`'s `onSqlError` is optional. Without it, a `SqlError` from the body or the `COMMIT` stays in the error channel unchanged; pass the mapper only where an operation turns named constraints into domain errors. `transact` also retains non-SQL typed failures from the operation. Prefer it for repository writes that announce changes. Do not expose raw driver errors to users or classify every database error as a field rejection.
 
 Place recovery outside the transaction so a rejected write rolls back all prior writes in that operation. PostgreSQL marks a transaction failed after a statement error; catching that error inside the transaction does not restore the database transaction. A deliberate nested transaction/savepoint is a separate choice.
 

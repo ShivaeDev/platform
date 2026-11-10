@@ -45,7 +45,7 @@ export const sharedRepositories = storyKit({
 			story.tell("the application's repository Layer scope closes");
 			return Scope.close(scope, Exit.void);
 		},
-		inTransaction: <A, E, R>(body: Effect.Effect<A, E, R>) => transact(body, { onSqlError: (error) => error }),
+		inTransaction: <A, E, R>(body: Effect.Effect<A, E, R>) => transact(body),
 		loadPot: () => plates.loadPot(1),
 		repositoryBuilds: () => Effect.sync(() => initialized.length),
 		repositoryIsShared: () => Effect.sync(() => initialized.length === 1 && initialized[0] === pots),
@@ -56,7 +56,7 @@ export const sharedRepositories = storyKit({
 		storedPot: () => sql`select amount, pending from ${sql(tableName)} where id = 1`,
 		tableExists: () =>
 			Effect.map(sql<{ readonly present: boolean }>`select to_regclass(${tableName}) is not null as present`, ([row]) => row?.present),
-		transactionEnding: <A, E, R>(body: Effect.Effect<A, E, R>) => endingOf(transact(body, { onSqlError: (error) => error })),
+		transactionEnding: <A, E, R>(body: Effect.Effect<A, E, R>) => endingOf(transact(body)),
 	}),
 });
 

@@ -120,7 +120,7 @@ function partialVerbs({ records: outcomes, rows, unmatched }: PartialEngine, tel
 
 export const partialTargets = storyKit({
 	...onPostgres,
-	around: <A, E, R>(effect: Effect.Effect<A, E, R>) => onPostgres.around(transact(Effect.scoped(effect), { onSqlError: (error) => error })),
+	around: <A, E, R>(effect: Effect.Effect<A, E, R>) => onPostgres.around(transact(Effect.scoped(effect))),
 	create: partialEngine,
 	name: "PostgreSQL partial conflict targets",
 	stages: ["plan", "rows"],

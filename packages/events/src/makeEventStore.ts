@@ -24,7 +24,6 @@ export const makeEventStore = Effect.fn("Events.makeEventStore")(function* <A, E
 					yield* sql`select version from events_streams where store = ${options.name} and stream = ${stream} for update`;
 					yield* projectStream(options, stream);
 				}),
-				{ onSqlError: (error) => error },
 			);
 		}
 	});
@@ -39,7 +38,6 @@ export const makeEventStore = Effect.fn("Events.makeEventStore")(function* <A, E
 				yield* projectStream(options, stream);
 			}
 		}),
-		{ onSqlError: (error) => error },
 	);
 	return {
 		append: (command: Append<A>) => append(options, command),

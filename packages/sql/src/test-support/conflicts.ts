@@ -88,7 +88,7 @@ function conflictVerbs({ accounts, readings, records: log, sql, tables }: Confli
 		inFailingTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
 			Effect.suspend(() => {
 				tell("a transaction begins, and fails once its body has run");
-				return record(endingOf(transact(Effect.andThen(Effect.gen(body), Effect.fail("cancelled")), { onSqlError: (error) => error })));
+				return record(endingOf(transact(Effect.andThen(Effect.gen(body), Effect.fail("cancelled")))));
 			}),
 		insertAccountOrIgnore: (externalKey: string, input: AccountInput) =>
 			Effect.suspend(() => {

@@ -43,6 +43,5 @@ export const append = Effect.fn("Events.append")(function* <A, E, TUpcastError>(
 			}
 			return version;
 		}),
-		{ onSqlError: (error) => error },
 	);
 });

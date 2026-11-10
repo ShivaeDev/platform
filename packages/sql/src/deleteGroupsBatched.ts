@@ -35,7 +35,6 @@ export const deleteGroupsBatched = Effect.fn("Sql.deleteGroupsBatched")(function
 				}
 				return { count, done: candidates.length === 0 };
 			}),
-			{ onSqlError: (error) => error },
 		),
 	).pipe(Effect.scoped);
 });
