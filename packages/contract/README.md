@@ -130,11 +130,120 @@ export const List = query("list", {
 
 `Create.run` is an Effect-returning function, so another operation composes it with `yield* Create.run({ title })`, and `Create`'s services and failures join that operation's types. A query without `readPolicy` gets `signedIn`, at run time and in its type; it still declares `reads`, and may declare `serverReads` and `readsCollections` (which need a `permissionReadPolicy`). A command without `invalidates` announces no keys of its own. A payload-free operation omits `payload` and gets `Schema.Void`.
 
-`success` and `rejections` are optional. A declared one must equal what `run` infers, checked on the declaration object, and each mismatch is a compile error that names the operation and the problem: `SuccessDiffersFromRun` when the declared success's type and `run`'s return type are not mutually assignable; `ArrayMutabilityDiffers` when they differ only in array mutability, because `Schema.Array` decodes a readonly array (return one, or declare `Schema.mutable`); `RunFailsOutsideRejections` when `run` or the read policy can fail with a tag that `rejections` misses; `RejectionsRunNeverRaises` for a listed tag nothing raises; `RejectionAutomatic` for a listed `InternalServerError` or `ServiceUnavailable`. Rejections are exported classes keyed by their `_tag`. A failure that states `isRetryable` (such as `SqlError`), `SchemaError` and `QueryReadDenied` are never rejections. While the declaration forms above are still accepted, such an error starts with "No overload matches this call" and its last line names the problem.
+`success` and `rejections` are optional. A declared one must equal what `run` infers, checked on the declaration object, and each mismatch is a compile error that names the operation and the problem: `RunReturnsAny` when `run` returns `any`, such as the result of `JSON.parse`, which would otherwise pass every check (decode the value with a schema, or type it); `SuccessDiffersFromRun` when the declared success's type and `run`'s return type are not mutually assignable; `SuccessClassNotReturned` when the success is a `Schema.Class` and `run` returns something other than that class, such as an object literal of its fields, which fails to encode; `ArrayMutabilityDiffers` when they differ only in array mutability, because `Schema.Array` decodes a readonly array (return one, or declare `Schema.mutable`); `RunFailsOutsideRejections` when `run` or the read policy can fail with a tag that `rejections` misses; `RejectionsRunNeverRaises` for a listed tag nothing raises; `RejectionClassDiffers` when a listed class and the class `run` raises under the same tag differ in shape, such as a local `NotFound` with other fields than the shared one; `RejectionAutomatic` for a listed `InternalServerError` or `ServiceUnavailable`. Rejections are exported classes keyed by their `_tag`. A failure that states `isRetryable` (such as `SqlError`), `SchemaError` and `QueryReadDenied` are never rejections. While the declaration forms above are still accepted, such an error starts with "No overload matches this call" and its last line names the problem.
 
-Every operation written this way carries `InternalServerError` and `ServiceUnavailable` in its type and its rejection set, and cannot list them. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. An omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's schemas. Because object keys are sorted, `invalidates` is checked before `run`, so its result parameter is typed only when `success` is declared.
+TypeScript compares classes by shape, so two cases still compile: a rejection class whose twin of the same shape is what `run` raises, and a helper typed to return a readonly interface of the same shape where the success is a `Schema.Class`. Neither is silent at run time: the twin is not the declared class, so the boundary answers `InternalServerError` and reports it, and the plain object fails to encode. The generator that derives `success` and `rejections` from `run` will resolve both by declaration.
+
+Every operation written this way carries `InternalServerError` and `ServiceUnavailable` in its type and its rejection set, and cannot list them. Nothing adds `Conflict`: an operation that answers a constraint violation as a domain failure maps it by constraint name in `run`, and inference carries the result. Because object keys are sorted, `invalidates` is checked before `run`, so its result parameter is typed only when `success` is declared.
+
+Two limits meet you while writing these operations. Until the module wire generates them, an omitted success is `Schema.Void` and omitted rejections leave only the automatic two in the operation's RPC schemas, so declare `success` and `rejections` on every operation served through `contract()` or `defineModule`; a module refuses an operation whose `run` raises an undeclared rejection. Biome's `useYield` refuses a `*run` that yields nothing, so a `run` that needs no service still yields an Effect.
 
 A field failure is an exported tagged class built from the payload's fields with `fieldRejection`, as `TitleTaken` above. `run` raises it with `yield* new TitleTaken({ field, message })`, and `@shivaedev/form`'s `rejecting` places its message on that field.
+
+### A module defined from its operations
+
+A module lists its operations once, with the services they may use, and serves them without hand-written handlers:
+
+```ts
+import { Effect, Option, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { Caller, NotesStore, type StoredNote } from "./services.ts";
+
+const notes = collection("notes", Schema.Number);
+export const NoteFields = Schema.Struct({ title: Schema.String });
+export const Note = Schema.Struct({ id: Schema.Number, title: Schema.String });
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
+
+const signedInUser = Effect.flatMap(CurrentViewer, (viewer) =>
+	Option.match(viewer, {
+		onNone: () => Effect.fail(new Unauthorized({ message: "Sign in first" })),
+		onSome: ({ id }) => Effect.succeed(id),
+	}),
+);
+
+function toNotes(stored: readonly StoredNote[]): readonly (typeof Note.Type)[] {
+	return stored.map(({ id, title }) => ({ id, title }));
+}
+
+export const Create = command("create", {
+	payload: NoteFields,
+	rejections: { TitleTaken, Unauthorized },
+	*run({ title }) {
+		const store = yield* NotesStore;
+		const owner = yield* signedInUser;
+		const owned = yield* store.owned(owner);
+		if (owned.some((note) => note.title === title)) {
+			return yield* new TitleTaken({ field: "title", message: "You already have a note with that title" });
+		}
+		const { id } = yield* store.insert(title, owner);
+		return { id, title };
+	},
+	success: Note,
+});
+
+export const Get = query("get", {
+	payload: { id: Schema.Number },
+	readPolicy: ({ id }, viewer) =>
+		Effect.gen(function* () {
+			if (Option.isNone(viewer)) {
+				return false;
+			}
+			const note = yield* (yield* NotesStore).find(id);
+			return Option.exists(note, ({ owner }) => owner === viewer.value.id);
+		}),
+	reads: ({ id }) => [notes.item(id)],
+	rejections: { NotFound },
+	*run({ id }) {
+		const note = yield* (yield* NotesStore).find(id);
+		if (Option.isNone(note)) {
+			return yield* new NotFound({ message: "Note not found" });
+		}
+		return { id: note.value.id, title: note.value.title };
+	},
+	success: Note,
+});
+
+export const List = query("list", {
+	reads: () => [notes.list],
+	rejections: { Unauthorized },
+	*run() {
+		const store = yield* NotesStore;
+		return toNotes(yield* store.owned(yield* signedInUser));
+	},
+	success: Schema.Array(Note),
+});
+
+export const Notes = defineModule({
+	middleware: Caller,
+	name: "notes",
+	operations: [List, Get, Create],
+	requires: [NotesStore],
+});
+```
+
+Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
+
+```
+src/test-support/fixtures/invalid/moduleUndeclaredService.ts(21,2): error TS2322: Type '"imports"' is not assignable to type '"imports" & NoInfer<OperationNeedsUndeclaredServices<"importTitle", NoteSource>>'.
+```
+
+`moduleHandlers(Notes)` builds the module's handler Layer from its operations, and the Layer requires exactly the services in `requires`:
+
+```ts
+import { Layer } from "effect";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { Notes } from "./notes.ts";
+import { NotesStoreLive } from "./store.ts";
+
+export const NotesHandlers = moduleHandlers(Notes).pipe(Layer.provide(NotesStoreLive));
+```
+
+Each operation runs in a span named after the module and the operation, such as `Notes.create`. A query's read policy is checked inside its handler before `run`, with the module's services, so a policy reads a repository directly, as `Get` does above; a live subscription to the query checks the same policy. Failures pass the RPC boundary from `@shivaedev/errors`: a declared rejection reaches the client as itself, an undeclared failure that states `isRetryable` answers `ServiceUnavailable`, and anything else answers `InternalServerError`, for the policy of a live subscription too. A command without `invalidates` publishes only the keys its writes announce.
 
 ### Whose account a request acts on
 

@@ -4,7 +4,7 @@ import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
 
 export const DeclarationError = Context.Reference<string | undefined>("@shivaedev/contract/DeclarationError", { defaultValue: () => undefined });
 
-type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
+export type Duplicated<TOperations extends readonly OperationShape[], TSeen extends string = never> = TOperations extends readonly [
 	infer THead extends OperationShape,
 	...infer TTail extends readonly OperationShape[],
 ]

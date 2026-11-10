@@ -41,6 +41,11 @@ export const compilerStory = storyKit({
 				story.tell("tsc compiles the valid contract, binding and handlers to declarations");
 				return declares(engine, 'Rpc<"notes.rename"');
 			}),
+		compileValidModule: () =>
+			Effect.sync(() => {
+				story.tell("tsc compiles a module defined from operations written as payload and run, and the requirements of its handlers");
+				return declares(engine, 'Module<"sessionNotes"');
+			}),
 		compileValidRuns: () =>
 			Effect.sync(() => {
 				story.tell("tsc compiles the operations written as payload and run, their run types and their contract to declarations");

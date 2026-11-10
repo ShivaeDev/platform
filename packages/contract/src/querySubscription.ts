@@ -1,10 +1,11 @@
-import { Context, Effect, type Option } from "effect";
+import { Context, Effect, Option } from "effect";
 import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { withPolicyContext } from "#adapters/withPolicyContext.ts";
 import { queryReadKeys } from "#queryReadKeys.ts";
-import { checkQuery, type PolicyChannels, type Viewer } from "#readPolicy.ts";
+import { checkPolicy, type PolicyChannels, type Viewer } from "#readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { servedReadPolicy } from "#servedReadPolicy.ts";
 import { ChangesQueries, type QueryReference, type QueryRequest } from "#serverMetadata.ts";
 
 export type QueryRerun<E = unknown, R = never> = (request: QueryRequest) => Effect.Effect<unknown, E, R>;
@@ -35,12 +36,13 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 			queries,
 			Effect.fnUntraced(function* ({ query, payload }) {
 				const policyRpc = Rpc.make(`${prefix}${query.name}`);
+				const policy = Option.getOrUndefined(yield* servedReadPolicy(policyRpc)) ?? query.readPolicy;
 				return {
-					check: withPolicyContext(policyRpc, checkQuery(query, payload, viewer)),
+					check: withPolicyContext(policyRpc, checkPolicy(query, policy, payload, viewer)),
 					keys: withPolicyContext(policyRpc, queryReadKeys(query, payload, viewer)),
 					permitted: withPolicyContext(
 						policyRpc,
-						Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)),
+						Effect.suspend(() => policy?.(payload, viewer) ?? Effect.succeed(false)),
 					),
 				};
 			}),
