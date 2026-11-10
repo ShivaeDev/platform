@@ -34,10 +34,15 @@ export const watchedList = Effect.fn("AppStory.watchedList")(function* (address:
 export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address: RpcAddress, cookie: string, id: number) {
 	const { client, registry } = yield* liveClient(address, cookie);
 	const query = client.api.get.query({ id });
-	const results = yield* settledQueries(query).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
+	const settled = settledQueries(query).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
+	const results = yield* settled;
 	return {
 		nextNote: () => answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit)),
-		refresh: () => Effect.sync(() => registry.refresh(query)),
+		refresh: () =>
+			Effect.sync(() => registry.refresh(query)).pipe(
+				Effect.andThen(settled),
+				Effect.flatMap((refreshed) => answerWithReason(Effect.flatMap(refreshed.next, AsyncResult.toExit))),
+			),
 	};
 });
 
