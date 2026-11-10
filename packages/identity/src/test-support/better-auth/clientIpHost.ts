@@ -2,8 +2,8 @@ import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { ConfigProvider, Effect, Layer } from "effect";
-import { HttpRouter, HttpServer } from "effect/http";
+import { ConfigProvider, Effect, Layer, Option } from "effect";
+import { Headers, HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
@@ -23,7 +23,7 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 	const context = yield* Effect.gen(function* () {
 		const mounted = yield* betterAuthMount(options);
 		return yield* Layer.build(
-			HttpRouter.serve(mounted.routes).pipe(
+			HttpRouter.serve(Layer.merge(mounted.routes, storyPeer)).pipe(
 				Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
 				Layer.provide(recorded.layer),
 			),
@@ -35,3 +35,21 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 	}
 	return { baseUrl: `http://127.0.0.1:${server.address.port}`, pool, spans: recorded.spans };
 });
+
+export const STORY_PEER_HEADER = "x-story-peer";
+
+// A second client address needs no second loopback address, which macOS lacks without an alias.
+const storyPeer = HttpRouter.middleware(
+	(effect) =>
+		Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) => {
+			const peer = request.headers[STORY_PEER_HEADER];
+			return peer === undefined
+				? effect
+				: Effect.provideService(
+						effect,
+						HttpServerRequest.HttpServerRequest,
+						request.modify({ headers: Headers.remove(request.headers, STORY_PEER_HEADER), remoteAddress: Option.some(peer) }),
+					);
+		}),
+	{ global: true },
+);

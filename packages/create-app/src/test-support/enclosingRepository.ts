@@ -1,7 +1,7 @@
 import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { gitIn } from "#test/appReadouts.ts";
+import { gitIn } from "#test/tools.ts";
 import { updates } from "#test/updates.ts";
 
 export const enclosingRepository = updates.trait(
@@ -22,13 +22,13 @@ export const enclosingRepository = updates.trait(
 				["add", "--all"],
 				["-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Commit the enclosing repository"],
 			]) {
-				const result = gitIn(engine.root, args);
+				const result = gitIn(engine.root, args, engine.environment);
 				if (result.status !== 0) {
 					throw new Error(result.stderr);
 				}
 			}
 			writeFileSync(join(engine.root, "upgrade.txt"), "staged sibling\n");
-			const staged = gitIn(engine.root, ["add", "--", "upgrade.txt"]);
+			const staged = gitIn(engine.root, ["add", "--", "upgrade.txt"], engine.environment);
 			if (staged.status !== 0) {
 				throw new Error(staged.stderr);
 			}
