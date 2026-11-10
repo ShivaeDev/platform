@@ -1,11 +1,11 @@
 import { Effect, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createElement, useRef } from "react";
+import { numberInput } from "#adapters/numberInput.ts";
 import { useSubmit } from "#adapters/react.ts";
 import { useList } from "#adapters/useList.ts";
 import * as Field from "#field.ts";
 import { form } from "#form.ts";
-import { numberInput } from "#numberInput.ts";
 
 export function makeQuickAmounts() {
 	return form(

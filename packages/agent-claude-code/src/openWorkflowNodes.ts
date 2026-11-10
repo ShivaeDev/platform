@@ -1,8 +1,8 @@
 import type { RunEvent } from "@shivaedev/agent/events.ts";
-import { type WorkflowAgentRef, workflowRunRef } from "#mirrorKeys.ts";
+import { type WorkflowAgentRef, workflowRunRef } from "#adapters/mirrorKeys.ts";
+import { claudeRaw } from "#adapters/rawPayload.ts";
+import type { WorkflowIdentities, WorkflowIdentity } from "#adapters/workflowIdentity.ts";
 import type { Origin } from "#protocol.ts";
-import { claudeRaw } from "#rawPayload.ts";
-import type { WorkflowIdentities, WorkflowIdentity } from "#workflowIdentity.ts";
 
 interface NodeState {
 	named: boolean;

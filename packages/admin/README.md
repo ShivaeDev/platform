@@ -189,7 +189,7 @@ The default `jobsPage` declares no commands, and its bound client has no retry o
 Bind the page contract to the application's AtomRpc client and pass `JobsPage.queues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
-import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 
 const jobs = bind(JobsPage.contract, Client);
 
@@ -245,7 +245,7 @@ Each user stores one role string accepted by `AppAccess.Role`. Each role declare
 Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in `src/client/entry.css`:
 
 ```tsx
-import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
+import { UsersView } from "@shivaedev/admin/client/adapters/UsersView.ts";
 
 const users = bind(UsersPage.contract, Client);
 const changeRole = Client.runtime.fn(users.changeRole.run);
@@ -266,7 +266,7 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
 
 ```tsx
-import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
+import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";
 
 const sessions = bind(SessionsPage.contract, Client);
 

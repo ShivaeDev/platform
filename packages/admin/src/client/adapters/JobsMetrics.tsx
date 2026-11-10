@@ -1,5 +1,5 @@
 import type { QueryState } from "@shivaedev/react/client/resultState.ts";
-import { JobsQueryPanel } from "#client/JobsQueryPanel.tsx";
+import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
 import type { JobsHealth } from "#jobs/schemas.ts";
 
 export function JobsMetrics({ values }: { readonly values: Readonly<Record<string, number>> }) {

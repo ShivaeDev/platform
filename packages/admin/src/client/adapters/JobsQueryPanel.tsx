@@ -1,7 +1,7 @@
 import { Cause, Option, Predicate } from "effect";
 import type { ReactNode } from "react";
 import type { QueryState } from "@shivaedev/react/client/resultState.ts";
-import { JobButton } from "#client/JobButton.tsx";
+import { JobButton } from "#client/adapters/JobButton.tsx";
 
 export function JobsQueryPanel<A, E>({ state, children }: { readonly state: QueryState<A, E>; readonly children: (value: A) => ReactNode }) {
 	const denied = Option.exists(Option.flatMap(state.cause, Cause.findErrorOption), (error) => Predicate.isTagged(error, "Forbidden"));

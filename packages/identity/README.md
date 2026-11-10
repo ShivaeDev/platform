@@ -85,7 +85,7 @@ To capture browser defaults, enable `{ accountPreferences: true }` in `betterAut
 
 ```ts
 import { createAuthClient } from "better-auth/client";
-import { preferencesClient } from "@shivaedev/identity/server/better-auth/preferencesClient.ts";
+import { preferencesClient } from "@shivaedev/identity/server/better-auth/adapters/preferencesClient.ts";
 
 export const auth = createAuthClient({ plugins: [preferencesClient()] });
 ```
@@ -673,7 +673,7 @@ An application moving from Prisma can keep Prisma in charge of its auth tables w
 
 ```ts
 import { Effect } from "effect";
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 
@@ -704,7 +704,7 @@ Start with a disposable PostgreSQL database containing only your previously ship
 
 ```ts
 import { FileSystem } from "effect";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
 
 const fs = yield* FileSystem.FileSystem;
 const source = yield* generateBetterAuthMigration({ emailAndPassword: { enabled: true } });
@@ -730,7 +730,7 @@ If an application-authored numbered migration calls `auth.api`, create its adapt
 After applying all numbered migrations in an isolated story database, check them against the current options:
 
 ```ts
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
 
 yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
 ```
@@ -748,7 +748,7 @@ Identity declares `user.additionalFields.role` when the mount has `roles` and `d
 
 ```ts
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
 
 const migrationSource = yield* generateBetterAuthMigration(authOptions, { defaultRole: "member" });
 

@@ -1,8 +1,8 @@
 import type { SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
-import { agentFileRef } from "#mirrorKeys.ts";
+import { agentFileRef } from "#adapters/mirrorKeys.ts";
+import { claudeRaw } from "#adapters/rawPayload.ts";
 import type { Origin } from "#protocol.ts";
-import { claudeRaw } from "#rawPayload.ts";
 export interface AdoptedAgent {
 	readonly agentId: string;
 	readonly messages: readonly SessionMessage[];

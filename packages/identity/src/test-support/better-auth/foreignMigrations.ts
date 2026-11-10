@@ -5,9 +5,9 @@ import { HttpRouter } from "effect/http";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { assertBetterAuthSchema } from "#server/better-auth/assertSchema.ts";
 import {
 	foreignAuthSchema,
 	removeForeignAuthColumn,

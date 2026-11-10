@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
-import { JobButton } from "#client/JobButton.tsx";
+import { JobButton } from "#client/adapters/JobButton.tsx";
 import type { RunScheduleNow } from "#client/jobsTypes.ts";
 
 export function RunScheduleControl({ queue, run }: { readonly queue: string; readonly run: RunScheduleNow }) {

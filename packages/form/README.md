@@ -313,7 +313,7 @@ Without a selector for an array, handler errors fall back to index paths. They r
 
 ```tsx
 import * as Field from "@shivaedev/form/field.ts";
-import { numberInput } from "@shivaedev/form/numberInput.ts";
+import { numberInput } from "@shivaedev/form/adapters/numberInput.ts";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 
 const numbers = form(Schema.Struct({ amount: Field.number({ optional: true, min: 0, max: 100, integer: true }) }), {
@@ -391,17 +391,17 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module                                | Application-facing exports                                                                |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `@shivaedev/form/form.ts`             | `form(schema, config)`                                                                    |
-| `@shivaedev/form/shape.ts`            | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
-| `@shivaedev/form/fieldRejection.ts`   | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
-| `@shivaedev/form/adapters/react.ts`   | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
-| `@shivaedev/form/draftSession.ts`     | `draftSession(id)`                                                                        |
-| `@shivaedev/form/field.ts`            | `number`, `list`, `NumberOptions`, `ListOptions`                                          |
-| `@shivaedev/form/numberInput.ts`      | `numberInput`                                                                             |
-| `@shivaedev/form/adapters/useList.ts` | `useList`                                                                                 |
-| `@shivaedev/form/emptyAsNull.ts`      | `emptyAsNull`                                                                             |
+| Module                                    | Application-facing exports                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`                 | `form(schema, config)`                                                                    |
+| `@shivaedev/form/shape.ts`                | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
+| `@shivaedev/form/fieldRejection.ts`       | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
+| `@shivaedev/form/adapters/react.ts`       | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
+| `@shivaedev/form/draftSession.ts`         | `draftSession(id)`                                                                        |
+| `@shivaedev/form/field.ts`                | `number`, `list`, `NumberOptions`, `ListOptions`                                          |
+| `@shivaedev/form/adapters/numberInput.ts` | `numberInput`                                                                             |
+| `@shivaedev/form/adapters/useList.ts`     | `useList`                                                                                 |
+| `@shivaedev/form/emptyAsNull.ts`          | `emptyAsNull`                                                                             |
 
 `form` takes a `Schema.Struct` and this configuration:
 

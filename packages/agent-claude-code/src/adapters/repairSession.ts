@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { BackendUnavailable } from "@shivaedev/agent/failures.ts";
-import { ClaudeProvider } from "#ClaudeProvider.ts";
-import type { Repair } from "#workflowAdoption.ts";
+import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
+import type { Repair } from "#adapters/workflowAdoption.ts";
 
 export const repairSession = Effect.fn("ClaudeCode.repairSession")(function* (sessionId: string, cwd: string) {
 	const peer = yield* ClaudeProvider;

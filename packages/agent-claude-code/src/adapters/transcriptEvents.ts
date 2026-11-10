@@ -1,8 +1,8 @@
 import type { SessionMessage, SessionStoreEntry } from "@anthropic-ai/claude-agent-sdk";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
+import { claudeRaw } from "#adapters/rawPayload.ts";
 import { blockEvent, contentBlocks } from "#blocks.ts";
 import type { Origin } from "#protocol.ts";
-import { claudeRaw } from "#rawPayload.ts";
 
 const ROLES = { assistant: "agent", user: "user" } as const;
 function roleOf(type: string): "agent" | "user" | undefined {

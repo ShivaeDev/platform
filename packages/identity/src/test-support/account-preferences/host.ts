@@ -16,8 +16,8 @@ import { accountPreferencesStore } from "#server/account-preferences/store.ts";
 import { accountPreferencesHandlers } from "#server/accountPreferencesHandlers.ts";
 import { accountPreferencesMigration } from "#server/accountPreferencesMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { selfSubject } from "#subject.ts";
 

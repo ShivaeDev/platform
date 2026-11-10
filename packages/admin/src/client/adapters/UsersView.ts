@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
 import type { UserListInput } from "@shivaedev/identity/users.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { UsersTable } from "#client/UsersTable.tsx";
+import { UsersTable } from "#client/adapters/UsersTable.tsx";
 import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import type { UsersList } from "#users/page.ts";
 

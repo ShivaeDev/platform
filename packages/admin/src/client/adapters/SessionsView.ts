@@ -5,9 +5,9 @@ import { createElement, useState } from "react";
 import type { SessionList, SessionListInput, SignedInSession } from "@shivaedev/identity/sessions.ts";
 import type { AtomServices } from "@shivaedev/react/AtomServices.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { SessionConfirmation } from "#client/SessionConfirmation.tsx";
-import { SessionListView } from "#client/SessionListView.tsx";
-import { SessionPagination } from "#client/SessionPagination.tsx";
+import { SessionConfirmation } from "#client/adapters/SessionConfirmation.tsx";
+import { SessionListView } from "#client/adapters/SessionListView.tsx";
+import { SessionPagination } from "#client/adapters/SessionPagination.tsx";
 
 export interface SessionsViewProps<R, E> {
 	readonly currentSessionId: string | undefined;

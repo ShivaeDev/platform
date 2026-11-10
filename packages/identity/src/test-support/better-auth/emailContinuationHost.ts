@@ -7,9 +7,9 @@ import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { postgresMigration } from "@shivaedev/rate-limit/postgresMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 
 export const emailContinuationHost = Effect.fnUntraced(function* () {
 	yield* postgresMigration;

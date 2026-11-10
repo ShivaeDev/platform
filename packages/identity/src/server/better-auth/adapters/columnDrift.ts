@@ -3,8 +3,8 @@ import { getSchema } from "better-auth/db";
 import { matchType } from "better-auth/db/migration";
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import type { StoredRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { tables } from "#server/better-auth/adapters/tables.ts";
-import type { StoredRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 
 const Column = Schema.Struct({
 	column: Schema.String,

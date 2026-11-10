@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect } from "effect";
 import { authMigrationSql, betterAuthMigrationPlan } from "#server/better-auth/adapters/migrationPlan.ts";
-import type { StoredRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
+import type { StoredRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 
 export const generateBetterAuthMigration = Effect.fn("Identity.generateBetterAuthMigration")(function* (
 	options: Omit<BetterAuthOptions, "database">,

@@ -1,13 +1,13 @@
 import type { SDKMessage, SessionKey, SessionStoreEntry } from "@anthropic-ai/claude-agent-sdk";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
-import { agentFileRef, subagentRef, workflowAgentRef } from "#mirrorKeys.ts";
-import { openSessionMapping } from "#openSessionMapping.ts";
+import { agentFileRef, subagentRef, workflowAgentRef } from "#adapters/mirrorKeys.ts";
+import { openSessionMapping } from "#adapters/openSessionMapping.ts";
+import { claudeRaw } from "#adapters/rawPayload.ts";
+import { transcriptEvents } from "#adapters/transcriptEvents.ts";
+import { adoptedEvents, censusGap, type Repair } from "#adapters/workflowAdoption.ts";
+import { openWorkflowIdentities } from "#adapters/workflowIdentity.ts";
 import { openWorkflowNodes } from "#openWorkflowNodes.ts";
 import type { Origin } from "#protocol.ts";
-import { claudeRaw } from "#rawPayload.ts";
-import { transcriptEvents } from "#transcriptEvents.ts";
-import { adoptedEvents, censusGap, type Repair } from "#workflowAdoption.ts";
-import { openWorkflowIdentities } from "#workflowIdentity.ts";
 export interface MirrorWrite {
 	readonly entries: readonly SessionStoreEntry[];
 	readonly key: SessionKey;

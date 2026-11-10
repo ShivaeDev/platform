@@ -5,8 +5,8 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 
 export const ReadDocuments = permission("documents.read");

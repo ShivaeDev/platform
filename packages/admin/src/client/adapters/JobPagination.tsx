@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { JobButton } from "#client/JobButton.tsx";
+import { JobButton } from "#client/adapters/JobButton.tsx";
 
 export function JobPagination({
 	cursors,

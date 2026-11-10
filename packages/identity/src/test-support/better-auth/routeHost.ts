@@ -6,8 +6,8 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { TestRoles } from "#test/auth/permissions.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";

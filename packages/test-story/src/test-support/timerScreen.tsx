@@ -2,7 +2,7 @@ import { Clock, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { screenPending } from "@shivaedev/react/screenPending.ts";
+import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { expectNoReactWarnings } from "#client/adapters/react.ts";
 import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";

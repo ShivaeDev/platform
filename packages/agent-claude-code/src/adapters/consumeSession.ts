@@ -2,8 +2,8 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { Cause, Queue } from "effect";
 import { BackendUnavailable } from "@shivaedev/agent/failures.ts";
 import type { InputQueue } from "#adapters/InputQueue.ts";
-import type { Delivery } from "#sessionLanes.ts";
-import type { Repair } from "#workflowAdoption.ts";
+import type { Delivery } from "#adapters/sessionLanes.ts";
+import type { Repair } from "#adapters/workflowAdoption.ts";
 
 export async function consumeSession(
 	live: AsyncIterable<SDKMessage>,

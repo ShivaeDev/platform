@@ -1,4 +1,4 @@
-import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
+import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";
 import { useSignOut } from "@shivaedev/react/client/adapters/useSignOut.ts";
 import type { AuthActions } from "#client/adapters/auth.ts";
 import type { FoundationClient } from "#client/admin/foundation.ts";

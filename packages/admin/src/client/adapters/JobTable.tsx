@@ -1,7 +1,7 @@
 import { Predicate } from "effect";
 import type { ReactNode } from "react";
 import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
-import { JobButton } from "#client/JobButton.tsx";
+import { JobButton } from "#client/adapters/JobButton.tsx";
 import type { AdminJob } from "#client/jobsTypes.ts";
 
 interface JobTableProps {

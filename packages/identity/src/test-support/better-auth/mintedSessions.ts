@@ -7,8 +7,8 @@ import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { accountRoleSeed } from "#server/better-auth/adapters/accountRoleSeed.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";

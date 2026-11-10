@@ -14,6 +14,7 @@ import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import { mountedSessions } from "#server/better-auth/adapters/mountedSessions.ts";
+import { mountSettings } from "#server/better-auth/adapters/mountSettings.ts";
 import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
 import { providerOnlyOptions } from "#server/better-auth/adapters/providerOnlyOptions.ts";
 import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
@@ -21,13 +22,12 @@ import { revokeUnadmitted } from "#server/better-auth/adapters/revokeUnadmitted.
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/adapters/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
+import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
 import type { BetterAuthEmails } from "#server/better-auth/emails.ts";
 import { AuthRouteHandler, mountRoutes } from "#server/better-auth/mountRoutes.ts";
-import { mountSettings } from "#server/better-auth/mountSettings.ts";
 import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.ts";
 import { authRouteHandler } from "#server/better-auth/routeHandler.ts";
-import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 import { UndeclaredDefaultRole } from "#server/better-auth/UndeclaredDefaultRole.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 

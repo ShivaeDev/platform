@@ -1,8 +1,8 @@
 import { testUtils } from "better-auth/plugins";
 import { DateTime, Effect } from "effect";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";

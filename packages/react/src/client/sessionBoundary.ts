@@ -8,9 +8,9 @@ import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.t
 import { DraftSessionContext } from "@shivaedev/form/adapters/react.ts";
 import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
+import { SessionSignOut } from "#client/adapters/SessionSignOut.ts";
 import { useSessionRetry } from "#client/adapters/useSessionRetry.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
-import { SessionSignOut } from "#client/SessionSignOut.ts";
 import { SignOutRegistryContext } from "#client/SignOutRegistryContext.ts";
 import { useDraftOwner } from "#client/useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {

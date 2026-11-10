@@ -3,8 +3,8 @@ import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { tables } from "#server/better-auth/adapters/tables.ts";
-import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
 
 export const betterAuthMigrationPlan = Effect.fn("Identity.betterAuthMigrationPlan")(function* (
 	options: Omit<BetterAuthOptions, "database">,

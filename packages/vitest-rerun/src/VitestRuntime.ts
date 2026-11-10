@@ -1,7 +1,7 @@
 import { Context, type Effect, type FileSystem, type PlatformError, type Schema, type Scope } from "effect";
+import type { Files, SnapshotSummary } from "#adapters/tasks.ts";
 import type { VitestRerunError } from "#error.ts";
 import type { Snapshot } from "#snapshot.ts";
-import type { Files, SnapshotSummary } from "#tasks.ts";
 
 export interface Selection {
 	readonly fileId: string;

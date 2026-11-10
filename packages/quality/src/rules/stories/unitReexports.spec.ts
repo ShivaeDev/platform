@@ -1,8 +1,8 @@
+import { PURE_REPAIR } from "#adapters/units/runtime.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, unitSpec } from "#test/unitFiles.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
-import { PURE_REPAIR } from "#units/runtime.ts";
 
 ruleStory.it(
 	"tests/story-specs traces named runner re-exports to the terminal value instead of stopping at an alias binding",

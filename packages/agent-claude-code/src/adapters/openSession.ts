@@ -4,15 +4,15 @@ import type { EffortLevel, SessionStore } from "@anthropic-ai/claude-agent-sdk";
 import { type Cause, Effect, Queue, type Scope, Stream } from "effect";
 import { BackendUnavailable } from "@shivaedev/agent/failures.ts";
 import type { Input, StartRequest } from "@shivaedev/agent/run.ts";
+import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
 import { consumeSession } from "#adapters/consumeSession.ts";
 import { InputQueue } from "#adapters/InputQueue.ts";
 import { makeToolServer } from "#adapters/makeToolServer.ts";
 import { repairSession } from "#adapters/repairSession.ts";
-import { ClaudeProvider } from "#ClaudeProvider.ts";
+import { type Delivery, openSessionLanes } from "#adapters/sessionLanes.ts";
+import { sessionOptions } from "#adapters/sessionOptions.ts";
 import type { ClaudeOptions } from "#options.ts";
 import type { SessionConnection } from "#SessionConnection.ts";
-import { type Delivery, openSessionLanes } from "#sessionLanes.ts";
-import { sessionOptions } from "#sessionOptions.ts";
 
 function unavailable(error: unknown) {
 	return new BackendUnavailable({ backend: "claude-code", message: String(error) });

@@ -1,7 +1,7 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { RunEvent } from "@shivaedev/agent/events.ts";
+import { type Ending, endedEvent, notifiedEnding, reportedEnding, updatedEnding } from "#adapters/subsessionEndings.ts";
 import type { RawPayload } from "#protocol.ts";
-import { type Ending, endedEvent, notifiedEnding, reportedEnding, updatedEnding } from "#subsessionEndings.ts";
 
 const LOCAL_AGENT = "local_agent";
 type SystemMessage = Extract<

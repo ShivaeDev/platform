@@ -1,6 +1,6 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { DateTime, Effect } from "effect";
-import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { foundation } from "#admin/foundation.ts";
