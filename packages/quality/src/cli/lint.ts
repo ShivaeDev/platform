@@ -3,15 +3,20 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, Path } from "effect";
 import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { looseStagedEntries } from "#baseline/looseStagedEntries.ts";
-import { evaluate, passes } from "#engine/evaluate.ts";
+import { evaluate, type Outcome, passes } from "#engine/evaluate.ts";
 import { openSession } from "#engine/session.ts";
 import { keyOf } from "#engine/violation.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
-import { render } from "#report/render.ts";
+import { type ReportContext, render } from "#report/render.ts";
 import type { RuleServices } from "#rule.ts";
 
-export const lint = Effect.fn("Cli.lint")(
-	function* (cwd: string, config: string | undefined, staged = false): Effect.fn.Return<void, SetupFailure | GateFailed, RuleServices> {
+export interface LintResult {
+	readonly context: ReportContext;
+	readonly outcome: Outcome;
+}
+
+export const reportLint = Effect.fn("Cli.reportLint")(
+	function* (cwd: string, config: string | undefined, staged: boolean): Effect.fn.Return<LintResult, SetupFailure, RuleServices> {
 		const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
 		const session = yield* openSession(cwd, config);
@@ -24,18 +29,14 @@ export const lint = Effect.fn("Cli.lint")(
 			staleBaseline: [...evaluated.staleBaseline, ...loose],
 			staleRegistry: [...evaluated.staleRegistry, ...session.staleRegistry],
 		};
-		yield* Console.log(
-			render(outcome, {
-				baseline: session.config.baseline,
-				checked: session.inventory.sources.length,
-				descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
-				registry:
-					session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
-			}),
-		);
-		if (!passes(outcome)) {
-			return yield* new GateFailed();
-		}
+		const context = {
+			baseline: session.config.baseline,
+			checked: session.inventory.sources.length,
+			descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
+			registry: session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
+		};
+		yield* Console.log(render(outcome, context));
+		return { context, outcome };
 	},
 	(effect) =>
 		withHeavyLock(effect, { command: "quality lint" }).pipe(
@@ -44,3 +45,10 @@ export const lint = Effect.fn("Cli.lint")(
 			Effect.provide(NodePath.layer),
 		),
 );
+
+export const lint = Effect.fn("Cli.lint")(function* (cwd: string, config: string | undefined) {
+	const { outcome } = yield* reportLint(cwd, config, false);
+	if (!passes(outcome)) {
+		return yield* new GateFailed();
+	}
+});

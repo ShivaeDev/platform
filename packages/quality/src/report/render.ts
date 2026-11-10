@@ -41,7 +41,7 @@ function ruleSections(violations: readonly Violation[], context: ReportContext, 
 	);
 }
 
-function failures(outcome: Outcome): string {
+export function failures(outcome: Outcome): string {
 	const stale = outcome.staleBaseline.length + outcome.staleRegistry.length;
 	return [
 		...(outcome.errors.length > 0 ? [plural(outcome.errors.length, "error")] : []),
