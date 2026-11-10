@@ -135,45 +135,39 @@ const FULL_STATS = {
 
 const LISTED = { createdAt: new Date(MILLISECONDS), id: 1, pinned: true, tags: ["b", "a", "b"], title: "Plan" };
 
-for (const [label, operation, sent] of [
-	["stats without its optional keys", "stats", BARE_STATS],
-	["stats with every optional key", "stats", FULL_STATS],
-	["an empty list", "list", []],
-	["a list of notes without and with a summary", "list", [LISTED, { ...LISTED, summary: "" }]],
-	["no note from get", "get", Option.none()],
-	["the summary struct", "summary", { id: 1, title: "Plan" }],
-	["nothing from remove", "remove", undefined],
-] as const) {
-	generator.it(
-		`${label} arrives through the generated wire equal to what run returned, with the same classes`,
-		[notesProject(), generatedOnce()],
-		function* ({ receives }) {
-			expect(yield* receives(operation, sent)).toStrictEqual(sent);
-		},
-	);
-}
-
 generator.it(
-	"a NoteCard from create, and one inside get's Option, arrive through the generated wire as equal NoteCard instances",
+	"each value run returns arrives through the generated wire equal to what run returned and of the same class, except a count of -0, which arrives as 0 because JSON has no -0, and an event at an invalid Date, which cannot be encoded",
 	[notesProject(), generatedOnce()],
 	function* ({ noteCard, receives }) {
 		const card = yield* noteCard(1, "Plan");
+		const sent = [
+			["stats without its optional keys", "stats", BARE_STATS],
+			["stats with every optional key", "stats", FULL_STATS],
+			["an empty list", "list", []],
+			["a list of notes without and with a summary", "list", [LISTED, { ...LISTED, summary: "" }]],
+			["no note from get", "get", Option.none()],
+			["the summary struct", "summary", { id: 1, title: "Plan" }],
+			["nothing from remove", "remove", undefined],
+			["a NoteCard from create", "create", card],
+			["a NoteCard inside get's Option", "get", Option.some(card)],
+		] as const;
+		const received: Record<string, unknown> = {};
+		for (const [label, operation, value] of sent) {
+			received[label] = yield* receives(operation, value);
+		}
+		received["a count of -0"] = yield* receives("stats", { ...BARE_STATS, count: -0 });
+		received["an event at an invalid Date"] = yield* receives("stats", {
+			...BARE_STATS,
+			events: [{ at: new Date(Number.NaN), id: 2, kind: "deleted" }],
+		});
 
-		expect([yield* receives("create", card), yield* receives("get", Option.some(card))]).toStrictEqual([card, Option.some(card)]);
+		expect(received).toStrictEqual({
+			...Object.fromEntries(sent.map(([label, , value]) => [label, value])),
+			"a count of -0": { ...BARE_STATS, count: 0 },
+			"an event at an invalid Date": "cannot be encoded",
+		});
 	},
 );
-
-generator.it(
-	"a count of -0 arrives through the generated wire as 0, because JSON has no -0",
-	[notesProject(), generatedOnce()],
-	function* ({ receives }) {
-		expect(yield* receives("stats", { ...BARE_STATS, count: -0 })).toStrictEqual({ ...BARE_STATS, count: 0 });
-	},
-);
-
-generator.it("an event at an invalid Date cannot be encoded by the generated wire", [notesProject(), generatedOnce()], function* ({ receives }) {
-	expect(yield* receives("stats", { ...BARE_STATS, events: [{ at: new Date(Number.NaN), id: 2, kind: "deleted" }] })).toBe("cannot be encoded");
-});
 
 const REFUSED = "src/generated/modules/refused/refused.ts";
 const OPERATIONS = "src/modules/refused/operations.ts";
