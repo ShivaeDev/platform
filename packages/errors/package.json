@@ -52,6 +52,8 @@
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",

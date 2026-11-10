@@ -420,7 +420,7 @@ export const enqueueEmail = (userId: number) =>
 
 Provide `Jobs` through the application's existing runtime. `enqueue` takes the decoded payload, so passing a string `userId` is a type error. It encodes the number to a string before calling pg-boss. The result type is `Option.Option<string>`: a job identifier becomes `Some`, and a `null` send result becomes `None`.
 
-`PgBossPayloadError` names a payload boundary failure; malformed durable input is rejected before the worker's domain code runs.
+`PgBossPayloadError` names a payload boundary failure; malformed durable input is rejected before the worker's domain code runs. `PgBossError` and `PgBossPayloadError` state `isRetryable` as `false`, which makes them `InfrastructureFailure`s from `@shivaedev/errors` that no operation declares; an RPC boundary answers them with its unexpected rejection.
 
 ### Trace jobs
 

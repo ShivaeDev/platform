@@ -70,6 +70,12 @@ export const Handlers = Api.toLayer({
 
 `storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. Before masking an unexpected failure, the boundary reports its diagnostic-redacted cause through Effect's registered `ErrorReporter`s at `Error` severity. Request tracing logs that masked failure at ERROR with its redacted stack, while declared rejections stay at INFO. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
 
+### Infrastructure failures
+
+A failure that states `isRetryable`, as Effect's `SqlError` does, comes from infrastructure: no operation declares it, and the boundary answers it. `infrastructure.ts` exports `InfrastructureFailure`, which is such a failure or Schema's `SchemaError`, and `infrastructureRejection(failure)`, which returns a `ServiceUnavailable` for a failure whose `isRetryable` is `true`, with the failure on its non-enumerable `cause`, and `undefined` for any other value. `SqlError` is retryable for connection loss, deadlocks, serialization failures, lock timeouts and statement timeouts; unique and constraint violations are not, and nothing turns them into `Conflict`: name the violation in the operation and fail with its declared rejection.
+
+`rpcBoundary` applies this to failures the RPC does not declare. When the RPC's error schema holds `ServiceUnavailable`, a retryable failure answers it without an unexpected report; any other undeclared failure, retryable ones included when `ServiceUnavailable` is not declared, answers the unexpected rejection and is reported. A declared failure passes through unchanged, whether it states `isRetryable` or not.
+
 Apply boundary options to an entire handler registration with `rpcBoundaryHandlers(group, options, handlers)`:
 
 ```ts

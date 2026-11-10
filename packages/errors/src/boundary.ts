@@ -1,4 +1,5 @@
 import { Cause, Context, Effect, ErrorReporter, Predicate, Schema } from "effect";
+import { infrastructureRejection } from "#infrastructure.ts";
 import { redactDiagnosticCause } from "#redactCause.ts";
 import { isSensitiveKey, redactText } from "#sensitive.ts";
 
@@ -39,16 +40,25 @@ function reportUnexpected(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 		),
 	);
 }
+function declaredAnswer<E>(failure: unknown, declared: (value: unknown) => value is E): E | undefined {
+	if (declared(failure)) {
+		return failure;
+	}
+	const rejection = infrastructureRejection(failure);
+	return declared(rejection) ? rejection : undefined;
+}
 function declaredCause<E>(cause: Cause.Cause<unknown>, declared: (value: unknown) => value is E): Cause.Cause<E> | undefined {
 	const reasons: Cause.Reason<E>[] = [];
 	for (const reason of cause.reasons) {
 		if (Cause.isInterruptReason(reason)) {
 			reasons.push(reason);
-		} else if (Cause.isFailReason(reason) && declared(reason.error)) {
-			reasons.push(Cause.makeFailReason(reason.error).annotate(Context.makeUnsafe(reason.annotations)));
-		} else {
+			continue;
+		}
+		const answer = Cause.isFailReason(reason) ? declaredAnswer(reason.error, declared) : undefined;
+		if (answer === undefined) {
 			return undefined;
 		}
+		reasons.push(Cause.makeFailReason(answer).annotate(Context.makeUnsafe(reason.annotations)));
 	}
 	return Cause.fromReasons(reasons);
 }

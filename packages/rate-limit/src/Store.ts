@@ -1,7 +1,11 @@
 import { Context, Data, type Effect } from "effect";
 import type { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 
-export class StoreError extends Data.TaggedError("RateLimitStoreError")<{ readonly cause: unknown }> {}
+export class StoreError extends Data.TaggedError("RateLimitStoreError")<{ readonly cause: unknown }> {
+	get isRetryable(): boolean {
+		return true;
+	}
+}
 
 export interface WindowRequest {
 	readonly key: string;
