@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { attempt, refusal } from "#test/attempt.ts";
+import { attempt } from "#test/attempt.ts";
 import { screenApp } from "#test/screenApp.ts";
 
 screenApp.it("refuses to settle at once without a pending signal while a request is held", [], function* ({ holdNews, text, withoutPending }) {
@@ -13,11 +13,5 @@ screenApp.it("refuses to settle at once without a pending signal while a request
 			"failed with MissingScreenPending: Cannot settle the screen without a completion signal.",
 			"help: Supply pending, activity or transport that stays busy until the resulting screen work is ready to render.",
 		].join("\n"),
-	);
-});
-
-screenApp.it("requires client activity before waiting for a live hint", [], function* ({ withoutPending }) {
-	expect(yield* refusal(withoutPending.nextLiveHint())).toBe(
-		"failed with MissingClientActivity: Cannot wait for a live hint without client activity.",
 	);
 });

@@ -37,7 +37,7 @@ export function isClientSettled(state: ClientActivityState): boolean {
 
 export function activityScreenSignal(activity: ClientActivity, settled = isClientSettled) {
 	function screenState(state: ClientActivityState) {
-		return { connectionStatus: state.connectionStatus, hints: state.liveHints, pending: !settled(state) };
+		return { connectionStatus: state.connectionStatus, pending: !settled(state) };
 	}
 	return Object.assign(Stream.map(activity, screenState), { current: Effect.map(activity.current, screenState) });
 }

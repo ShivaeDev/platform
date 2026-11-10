@@ -6,13 +6,11 @@ import { directScreenAct, type ScreenAct, screenAct, screenPerform } from "#serv
 import { screenElements } from "#server/adapters/screenElements.ts";
 import type { LiveAnswerSignal } from "#server/LiveAnswerSignal.ts";
 import { nextLiveAnswer } from "#server/nextLiveAnswer.ts";
-import { nextScreenHint } from "#server/nextScreenHint.ts";
 import { screenInteractions } from "#server/screenInteractions.ts";
 import { screenReadouts } from "#server/screenReadouts.ts";
 import type { ScreenSignal } from "#server/screenSignal.ts";
 import { screenWaits } from "#server/screenWaits.ts";
 import { targetName } from "#server/targetName.ts";
-import type { SignalNotReceived } from "#server/until.ts";
 import type { ScreenClock } from "#server/watchedClock.ts";
 
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
@@ -34,27 +32,19 @@ export class MissingScreenPending extends Data.TaggedError("MissingScreenPending
 		"Cannot settle the screen without a completion signal.\nhelp: Supply pending, activity or transport that stays busy until the resulting screen work is ready to render.";
 }
 
-export class MissingClientActivity extends Data.TaggedError("MissingClientActivity") {
-	override readonly message =
-		"Cannot wait for a live hint without client activity.\nhelp: Supply activity or pending: a ScreenSignal with current pending work and a hint sequence.";
-}
-
-export type ScreenDriver<E = never, THintError = MissingClientActivity | SignalNotReceived> = Omit<
-	ReturnType<typeof makeScreenActions>,
-	"settle" | "nextLiveHint"
-> & {
-	nextLiveHint: () => Effect.Effect<void, THintError>;
+export type ScreenDriver<E = never> = Omit<ReturnType<typeof makeScreenActions>, "settle"> & {
 	settle: (options?: { readonly timeoutMs?: number }) => Effect.Effect<void, E>;
-	dialog: (target: ScreenTarget) => ScreenDriver<E, THintError>;
-	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E, THintError>;
+	dialog: (target: ScreenTarget) => ScreenDriver<E>;
+	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E>;
 };
 
 export function screenDriver(
-	options: ScreenDriverOptions & ({ readonly pending: ScreenSignal } | { readonly activity: ScreenSignal }),
-): ScreenDriver<never, SignalNotReceived>;
-export function screenDriver(
 	options: ScreenDriverOptions &
-		({ readonly pending: (() => boolean) | Stream.Stream<boolean> } | { readonly transport: NonNullable<ScreenDriverOptions["transport"]> }),
+		(
+			| { readonly pending: NonNullable<ScreenDriverOptions["pending"]> }
+			| { readonly activity: ScreenSignal }
+			| { readonly transport: NonNullable<ScreenDriverOptions["transport"]> }
+		),
 ): ScreenDriver;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending>;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending> {
@@ -105,13 +95,6 @@ function makeScreenActions(options: ScreenDriverOptions, dialogs: boolean) {
 				element.click();
 			}),
 		enter: (selector: ScreenTarget, value: string) => perform(`enter a value in ${targetName(selector)}`, () => elements.enter(selector, value)),
-		nextLiveHint: () => {
-			const signal = activity ?? pending;
-			if (signal === undefined || typeof signal === "function" || !("current" in signal)) {
-				return Effect.fail(new MissingClientActivity());
-			}
-			return withLive(Effect.sync(() => tell("wait for the next live hint")).pipe(Effect.andThen(screenAct(act, nextScreenHint(signal)))));
-		},
 		select: (selector: ScreenTarget, value: string) =>
 			perform(`select ${JSON.stringify(value)} in ${targetName(selector)}`, () => elements.select(selector, value)),
 		settle: (settings?: { readonly timeoutMs?: number }) =>

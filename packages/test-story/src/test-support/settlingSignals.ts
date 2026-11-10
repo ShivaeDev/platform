@@ -22,7 +22,7 @@ export const settlingSignals = Effect.fn("Story.settlingSignals")(function* (
 		);
 	}
 	function screenState(busy: boolean) {
-		return { hints: 0, pending: busy };
+		return { pending: busy };
 	}
 	return {
 		activity: record(activity),

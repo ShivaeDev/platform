@@ -2,56 +2,57 @@ import { type Cause, Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "#server/screenDriver.ts";
-import type { ScreenSignalState } from "#server/screenSignal.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 expectNoReactWarnings();
 
-export const hintScreen = storyKit({
+export const answerScreen = storyKit({
 	clock: "test",
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-		const updates = yield* Queue.unbounded<ScreenSignalState, Cause.Done>();
+		const updates = yield* Queue.unbounded<number, Cause.Done>();
 		const listening = yield* Deferred.make<void>();
-		let current: ScreenSignalState = { hints: 0, pending: false };
-		const pending = Object.assign(Stream.unwrap(Deferred.succeed(listening, undefined).pipe(Effect.as(Stream.fromQueue(updates)))), {
+		let current = 0;
+		const answers = {
+			answered: Stream.unwrap(Deferred.succeed(listening, undefined).pipe(Effect.as(Stream.fromQueue(updates)))),
 			current: Effect.sync(() => current),
-		});
+			name: "the page",
+		};
 		const view = yield* Effect.acquireRelease(
 			Effect.promise(() => render(createElement("main"))),
 			(mounted) => Effect.promise(mounted.unmount),
 		);
 		return {
-			deliverHint: () => {
-				current = { ...current, hints: current.hints + 1 };
+			answers,
+			deliverAnswer: () => {
+				current += 1;
 				return Queue.offer(updates, current);
 			},
 			listening,
-			pending,
 			updates,
 			view,
 		};
 	},
-	name: "live hint screen",
+	name: "live answer screen",
 	stages: [],
-	verbs: ({ deliverHint, listening, pending, updates, view }, story) => {
-		const driver = screenDriver({ act, pending, root: view.container, tell: story.tell });
+	verbs: ({ answers, deliverAnswer, listening, updates, view }, story) => {
+		const driver = screenDriver({ act, root: view.container, tell: story.tell });
 		return {
-			deliverHint: () => {
-				story.tell("the client receives a live hint");
-				return deliverHint();
+			deliverAnswer: () => {
+				story.tell("the page receives a live answer");
+				return deliverAnswer();
 			},
-			endActivity: () => {
-				story.tell("the client activity stream ends");
+			endAnswers: () => {
+				story.tell("the page's answers end");
 				return Queue.end(updates);
 			},
-			reportIdle: () => {
-				story.tell("the client reports idle without a new hint");
-				return pending.current.pipe(Effect.flatMap((state) => Queue.offer(updates, state)));
+			repeatAnswerCount: () => {
+				story.tell("the page reports its answer count again without a new answer");
+				return answers.current.pipe(Effect.flatMap((count) => Queue.offer(updates, count)));
 			},
 			startWaiting: () =>
 				Effect.gen(function* () {
-					const fiber = yield* driver.nextLiveHint().pipe(
+					const fiber = yield* driver.withLiveAnswer(answers, Effect.void).pipe(
 						Effect.as("received"),
 						Effect.catchTag("SignalNotReceived", (error) => Effect.succeed(error.message)),
 						Effect.forkScoped({ startImmediately: true }),

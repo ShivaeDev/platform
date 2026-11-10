@@ -2,10 +2,7 @@ import type { Effect } from "effect";
 import type { ScreenDriver } from "#server/screenDriver.ts";
 import type { drivenClock } from "#test/drivenClock.ts";
 
-export function drivenScreen<E, THintError>(
-	clock: Effect.Success<typeof drivenClock>,
-	driver: ScreenDriver<E, THintError>,
-): ScreenDriver<E, THintError> {
+export function drivenScreen<E>(clock: Effect.Success<typeof drivenClock>, driver: ScreenDriver<E>): ScreenDriver<E> {
 	return {
 		...driver,
 		dialog: (target) => drivenScreen(clock, driver.dialog(target)),
