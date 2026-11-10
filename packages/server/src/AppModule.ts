@@ -18,7 +18,7 @@ interface ModuleParts {
 	readonly workers?: ModuleLayer;
 }
 
-// Hand-written handlers would serve a defined module's queries without the policy its generated handlers check.
+// "~requires" exists only on a defined module, so this branch refuses one and it registers as `module:` instead.
 export type AppModule =
 	| (ModuleParts & {
 			readonly group: RpcGroup.Any & { readonly "~requires"?: never };

@@ -80,7 +80,7 @@ it("a defined module's generated handlers require exactly the services it declar
 
 it("a defined module never registers as a group with hand-written handlers", () => {
 	expectTypeOf({
-		// @ts-expect-error A defined module registers as `module:`, because hand-written handlers would replace its generated read policy checks.
+		// @ts-expect-error A defined module registers as `module:`, so the host serves its queries only through its generated handlers.
 		group: Notes,
 		handlers: Layer.empty,
 		migrations: { loader: Migrator.fromRecord({}) },

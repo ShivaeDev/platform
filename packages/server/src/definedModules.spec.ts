@@ -39,12 +39,13 @@ definedModulesHost.it(
 );
 
 definedModulesHost.it(
-	"a host given the defined notes module with a test fake through replacedModuleHandlers starts and answers alice from the fake",
+	"a host given the defined notes module with a test fake through replacedModuleHandlers starts, answers alice from the fake and still refuses a visitor by the read policy",
 	[replacedNotes],
 	function* ({ readNote, startup }) {
 		yield* outcomes([
 			["startup", () => startup(), "started"],
 			["alice reads note 1", () => readNote(1), "Fake note"],
+			["a visitor reads note 1", () => readNote(1, "a visitor"), "failed with query read denied"],
 		]);
 	},
 );
