@@ -2,11 +2,11 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, type SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
-import type { AppModule } from "#AppModule.ts";
+import type { AppModule, RegisteredModule } from "#AppModule.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
-import { Notes, notesModule } from "#test/defined-modules/features.ts";
+import { draftsModule, Notes, notesModule } from "#test/defined-modules/features.ts";
 import { workerHost } from "#workerHost.ts";
 
 class Port extends Context.Service<Port, string>()("@shivaedev/server/test/modules/Port") {}
@@ -76,6 +76,22 @@ const definedModules = appModules([notesModule]);
 
 it("a defined module's generated handlers require exactly the services it declares", () => {
 	expectTypeOf<Layer.Services<Effect.Success<typeof definedModules>["handlers"]>>().toEqualTypeOf<SqlClient.SqlClient>();
+});
+
+const annotated: AppModule = notesModule;
+function registration(): AppModule {
+	return notesModule;
+}
+const registeredNotes: RegisteredModule = Notes;
+const widenedModule = { ...notesModule, module: registeredNotes } satisfies AppModule;
+
+it("a defined module's registration whose type lost the module's requires does not compile", () => {
+	// @ts-expect-error The annotation drops Notes' requires, so its generated handlers would claim to need nothing.
+	expectTypeOf(appModules([draftsModule, annotated])).not.toBeAny();
+	// @ts-expect-error The helper's return type drops Notes' requires, so its generated handlers would claim to need nothing.
+	expectTypeOf(appModules([registration()])).not.toBeAny();
+	// @ts-expect-error RegisteredModule drops Notes' requires, so its generated handlers would claim to need nothing.
+	expectTypeOf(appModules([widenedModule])).not.toBeAny();
 });
 
 it("a defined module never registers as a group with hand-written handlers", () => {

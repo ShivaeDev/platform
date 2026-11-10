@@ -17,6 +17,16 @@ type Layers<TModules extends readonly AppModule[], TKey extends "handlers" | "se
 	Layer.Any
 >;
 type ServedHandlers<TModule> = TModule extends { readonly module: infer TDefined extends AnyModule } ? ModuleHandlers<TDefined> : never;
+// A registration typed as AppModule has lost its module's requires, so ServedHandlers would serve it as requiring nothing.
+// Only a tuple is checked: inference sees the bare constraint, and a check that refuses it breaks inference of every registration list.
+type WidenedModule<TModule> = TModule extends { readonly module: infer TDefined } ? (TDefined extends AnyModule ? never : TModule) : never;
+type ExactModules<TModules extends readonly AppModule[]> = number extends TModules["length"]
+	? unknown
+	: {
+			readonly [TKey in keyof TModules]: [WidenedModule<TModules[TKey]>] extends [never]
+				? unknown
+				: { readonly "Declare a defined module's registration with satisfies AppModule so its type keeps the module's requires": never };
+		};
 type Groups<TModules extends readonly AppModule[]> = Extract<
 	ModuleField<TModules[number], "group"> | ModuleField<TModules[number], "module">,
 	RpcGroup.Any
@@ -37,7 +47,9 @@ type Components<T> = T extends readonly (infer TComponent extends SchemaComponen
 type ModuleComponents<TModules extends AppModule> = Components<ModuleField<TModules["migrations"], "components">>;
 
 export function appModules<const TModules extends readonly AppModule[], R = never, E = never, TRequirements = never>(
-	modules: TModules & GlobalServices<Layer.Services<Services<NoInfer<TModules>>>, Layer.Success<RequestServices<NoInfer<TModules>>>>,
+	modules: TModules &
+		GlobalServices<Layer.Services<Services<NoInfer<TModules>>>, Layer.Success<RequestServices<NoInfer<TModules>>>> &
+		ExactModules<NoInfer<TModules>>,
 	options?: { readonly replacements?: Layer.Layer<R, E, TRequirements> },
 ): Effect.Effect<
 	{
