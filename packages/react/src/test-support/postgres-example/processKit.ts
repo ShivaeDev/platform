@@ -23,7 +23,7 @@ export const processes = storyKit({
 	}),
 	name: "order processes",
 	runIf: hasPostgres,
-	stages: ["cluster"],
+	stages: ["cluster", "orders"],
 	verbs: (engine, story) => ({ ...processVerbs(engine, story.tell), ...privateVerbs(engine, story.tell) }),
 });
 export function twoServersAndWorker() {
@@ -53,6 +53,12 @@ export function privateSaveCommitted() {
 		for (const name of ["writer", "reader"]) {
 			engine.marks.set(name, engine.privateClients.get(name)?.delivered.items.length ?? 0);
 		}
+	});
+}
+
+export function renamedWithoutNotice(name: string) {
+	return processes.trait("orders", `PostgreSQL holds the order renamed ${name} without a change notification to either server`, function* (engine) {
+		yield* engine.sql`update ${engine.sql(engine.configuration.table)} set name = ${name} where id = 1`;
 	});
 }
 

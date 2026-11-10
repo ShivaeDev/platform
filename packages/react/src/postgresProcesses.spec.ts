@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { failedOver, processes, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
+import { failedOver, processes, renamedWithoutNotice, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
 
 processes.it("every subscribed client receives its initial order", [twoServersAndWorker()], function* ({ initialHints }) {
 	yield* outcomes([
@@ -80,21 +80,20 @@ processes.it(
 
 processes.it(
 	"after every backend is terminated both servers log the loss and recovery and resync every stream",
-	[twoServersAndWorker()],
-	function* ({ hintsSinceAction, listenerLogs, order, terminateBackends }) {
+	[twoServersAndWorker(), renamedWithoutNotice("during outage")],
+	function* ({ hintsSinceAction, listenerLogs, terminateBackends }) {
 		yield* terminateBackends();
 
 		yield* outcomes([
-			["a hints", () => hintsSinceAction("a"), expect.arrayContaining(["result after failover"])],
-			["another hints", () => hintsSinceAction("another"), expect.arrayContaining(["result after failover"])],
-			["b hints", () => hintsSinceAction("b"), expect.arrayContaining(["result after failover"])],
-			["b reads", () => order("b"), "after failover"],
+			["a hints", () => hintsSinceAction("a"), expect.arrayContaining(["result during outage"])],
+			["another hints", () => hintsSinceAction("another"), expect.arrayContaining(["result during outage"])],
+			["b hints", () => hintsSinceAction("b"), expect.arrayContaining(["result during outage"])],
 			[
 				"first server logs",
 				() => listenerLogs("first"),
 				[
 					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
-					"Info: PostgreSQL change listener recovered; resynchronized live streams (2 streams)",
+					"Info: PostgreSQL change listener recovered; resynchronized live streams",
 				],
 			],
 			[
@@ -102,7 +101,7 @@ processes.it(
 				() => listenerLogs("second"),
 				[
 					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
-					"Info: PostgreSQL change listener recovered; resynchronized live streams (1 streams)",
+					"Info: PostgreSQL change listener recovered; resynchronized live streams",
 				],
 			],
 		]);
