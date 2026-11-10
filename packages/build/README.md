@@ -1,6 +1,6 @@
 # @shivaedev/build
 
-An application's build setup. Its generator reads each defined module's `run` types and writes the wire the server encodes with and the browser decodes with, so an operation is written once, as its business logic, and the browser receives exactly what the type says.
+An application's build setup. Its generator reads each defined module's `run` types and writes the wire the server encodes with and the browser decodes with, so an operation is written once, as its business logic, and the browser receives exactly what the type says. Its Vite plugin and Vitest setup run the generator wherever the files are read, and a build whose browser bundle reaches server code fails.
 
 ## Why you want this
 
@@ -28,7 +28,7 @@ src/generated/modules/notes/notes.ts: written
 
 ### How to think about it
 
-`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. There is no list of modules to keep. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. No package or starter script runs it yet.
+`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. There is no list of modules to keep. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. Inside Vite and Vitest the plugin and the global setup run it; the command line covers everything else, such as a type check.
 
 The generator never guesses. Each type `run` returns maps to the one schema whose `Type` is exactly that type, or the run stops with a refusal that says what to write instead. The compiler then checks the generated wire against `run` on every type check, through [`@shivaedev/contract`'s module checks](https://github.com/ShivaeDev/platform/tree/main/packages/contract#the-wire-and-the-browsers-contract), so a file that went stale is usually a compile error on the module that names the operation, including a success type that gains or loses an optional property at any struct position the check walks. One change is not: an optional property that only one side has on a `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, still type-checks and is dropped on the wire or never sent. `generate --check` is the guard against it.
 
@@ -48,6 +48,47 @@ A workspace package can run the generator from source before anything is built:
 ```sh
 node --conditions=@shivaedev/source packages/build/src/cli.ts generate
 ```
+
+### Generate inside Vite and Vitest
+
+The dev server, the build and the tests read the generated files through Vite, so the plugin and the global setup generate before they do:
+
+```ts
+import { buildPlugin } from "@shivaedev/build/adapters/vitePlugin.ts";
+
+export default {
+	plugins: [buildPlugin({ serverOnly: ["pg-boss"] })],
+	test: { globalSetup: ["@shivaedev/build/adapters/vitestSetup.ts"] },
+};
+```
+
+`buildPlugin` generates when `vite build` or the dev server starts, in the folder Vite runs in. A refusal stops the build, or keeps the dev server from starting, with the generator's message. While the dev server runs, a change to a file that went into any module's last run, such as an operation's `run`, generates again: each rewritten file's importers are invalidated in Vite's module graph and the browser reloads. A refusal then prints the generator's message in the terminal and shows it in the browser's error overlay, and the module's last file stays in place until the next run succeeds.
+
+The global setup generates once before Vitest loads any test file, and a refusal stops the run before a test starts. Runs that start at once, such as two Vitest processes on one project, each generate and leave the files correct, because every file is written whole through a rename.
+
+### Server code in the browser bundle
+
+With a generated client the browser never needs a module or its operations, so the plugin fails a client build whose module graph holds server code. It reads the bundler's module graph, from each client entry, and stops at the nearest module that is:
+
+- a module file, one that imports `defineModule` from `@shivaedev/contract`;
+- an operation file, one that imports `query` or `command` from `@shivaedev/contract`;
+- a file under a `server/` folder;
+- a Node builtin;
+- `effect/sql`, imported from outside Effect (Effect's own index re-exports modules that import it, which do not count);
+- part of a package listed in `serverOnly`.
+
+The build fails with the import chain from the client entry to that module:
+
+```text
+Server code reached the browser bundle: src/modules/notes/notes.ts is a module file: it calls defineModule. The import chain from the client entry:
+  index.html
+  → src/client.ts
+  → src/screens/notes.ts
+  → src/modules/notes/notes.ts
+The browser reaches a defined module through its generated client in src/generated and imports no server code.
+```
+
+The browser imports `Notes` from `#generated/modules/notes/notes.ts` instead.
 
 ### The generated file
 
@@ -126,6 +167,7 @@ A run that builds a program takes the machine-wide [heavy lock](https://github.c
 ### Limits
 
 - The package is private while its npm setup is pending, and no package of this repository runs it yet.
+- The plugin and the global setup take Vite's and Vitest's root as the project folder, the one that holds `tsconfig.json`.
 - It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement between the two shows as a compile error on the module.
 - An invalid `Date` cannot be encoded, so the caller gets `InternalServerError`.
 - A module file must lie under `src`, define exactly one module and export it as a const.

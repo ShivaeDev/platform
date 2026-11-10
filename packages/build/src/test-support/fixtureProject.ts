@@ -13,6 +13,7 @@ const LINKED: readonly (readonly [string, string])[] = [
 	["@shivaedev/contract", createRequire(import.meta.url).resolve("@shivaedev/contract/package.json")],
 	["@shivaedev/errors", createRequire(import.meta.url).resolve("@shivaedev/errors/package.json")],
 	["@shivaedev/quality", createRequire(import.meta.url).resolve("@shivaedev/quality/package.json")],
+	["vitest", createRequire(import.meta.url).resolve("vitest/package.json")],
 ];
 
 const MANIFEST = { imports: { "#*": "./src/*" }, name: "fixture-app", private: true, type: "module" };
@@ -71,4 +72,28 @@ export const typeCheck = Effect.fn("BuildStory.typeCheck")(function* (root: stri
 export const fromSource = Effect.fn("BuildStory.fromSource")(function* (root: string, lock: string, args: readonly string[]) {
 	const { code, stderr, stdout } = yield* runIn(root, lock, process.execPath, ["--conditions=@shivaedev/source", `${PACKAGE}src/cli.ts`, ...args]);
 	return { code, printed: stdout.split("\n"), problems: stderr.split("\n") };
+});
+
+interface VitestReport {
+	readonly testResults?: readonly { readonly assertionResults: readonly { readonly status: string; readonly title: string }[] }[];
+}
+
+// The vitest command line, with the JSON reporter so the story reads which tests ran rather than parsing the console.
+export const vitestRun = Effect.fn("BuildStory.vitestRun")(function* (root: string, lock: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const vitest = path.join(path.dirname(createRequire(import.meta.url).resolve("vitest/package.json")), "vitest.mjs");
+	const output = path.join(yield* fs.makeTempDirectoryScoped({ prefix: "vitest-report-" }), "report.json");
+	const { code, stderr, stdout } = yield* runIn(root, lock, process.execPath, [
+		"--conditions=@shivaedev/source",
+		vitest,
+		"run",
+		"--reporter=json",
+		`--outputFile=${output}`,
+	]);
+	const report: VitestReport = (yield* fs.exists(output)) ? JSON.parse(yield* fs.readFileString(output)) : {};
+	const ran = Object.fromEntries(
+		(report.testResults ?? []).flatMap(({ assertionResults }) => assertionResults.map(({ status, title }) => [title, status])),
+	);
+	return code === 0 ? { ran } : { failed: `${stdout}\n${stderr}`.trim(), ran };
 });
