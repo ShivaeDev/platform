@@ -25,7 +25,7 @@ export function qualityArgs(args: readonly string[]): string[] {
 }
 
 const ISOLATED: readonly (readonly [string, string | undefined])[] = [
-	...["GIT_COMMON_DIR", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"].map((name) => [name, undefined] as const),
+	...["CLAUDE_CODE_REMOTE", "GIT_COMMON_DIR", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"].map((name) => [name, undefined] as const),
 	...Object.entries(ISOLATED_ENV),
 ];
 

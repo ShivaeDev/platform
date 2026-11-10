@@ -64,12 +64,20 @@ function movedDebt(outcome: Outcome): readonly string[] {
 	return passes(outcome) ? [] : ["For moved files, carry their existing debt with `quality baseline prune --against <base>`."];
 }
 
+function regressionsOf(outcome: Outcome): ReadonlyMap<string, Regression> {
+	return new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
+}
+
 export function render(outcome: Outcome, context: ReportContext): string {
-	const regressions = new Map(outcome.regressions.map((regression) => [keyOf(regression.entry.rule, regression.entry.file), regression]));
 	return [
-		...ruleSections(outcome.errors, context, regressions),
+		...ruleSections(outcome.errors, context, regressionsOf(outcome)),
 		...staleSections(outcome, context),
 		summary(outcome, context),
 		...movedDebt(outcome),
 	].join("\n\n");
+}
+
+// A check of some files cannot judge baseline entries or moved debt, so it reports only the findings it made.
+export function renderFindings(outcome: Outcome, context: ReportContext): string {
+	return [...ruleSections(outcome.errors, context, regressionsOf(outcome)), summary(outcome, context)].join("\n\n");
 }

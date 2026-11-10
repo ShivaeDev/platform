@@ -31,6 +31,7 @@ const ConfigInput = Schema.Struct({
 	extensions: Schema.optionalKey(Schema.Array(Schema.String)),
 	local: Schema.optionalKey(Schema.Array(LocalRule)),
 	nonEffectFolders: Schema.optionalKey(NonEffectFolders),
+	preCommit: Schema.optionalKey(Schema.Literals(["full", "staged"])),
 	registry: Schema.optionalKey(Schema.String),
 	rules: Schema.optionalKey(Schema.Record(Schema.String, Setting)),
 	sources: Schema.optionalKey(Schema.Array(Schema.String)),

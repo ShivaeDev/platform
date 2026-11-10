@@ -23,6 +23,14 @@ function findingOf(diagnostic: Diagnostic): Finding {
 	};
 }
 
+export const failingFindings = Effect.fn("Biome.failingFindings")(function* (
+	inputs: Pick<RuleInputs, "readText">,
+	diagnostics: readonly Diagnostic[],
+) {
+	const failing = diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity));
+	return (yield* withoutEntryPointImports(inputs, failing)).map(findingOf);
+});
+
 const presetFinding = Effect.fn("Biome.presetFinding")(function* (inputs: Pick<RuleInputs, "readText">) {
 	const { extendsPreset, path } = yield* rootConfig(inputs.readText);
 	return extendsPreset ? [] : [{ file: path, message: `Extend "${PRESET}" from the root Biome config.`, subject: "preset" }];
@@ -34,8 +42,7 @@ const bridge = defineRule({
 			const [preset, report] = yield* Effect.all([presetFinding({ readText }), biomeReport(root, ["check"], exceptions, ["."], nonEffectFolders)], {
 				concurrency: "unbounded",
 			});
-			const failing = report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity));
-			return [...preset, ...(yield* withoutEntryPointImports({ readText }, failing)).map(findingOf)];
+			return [...preset, ...(yield* failingFindings({ readText }, report.diagnostics))];
 		}),
 	description:
 		"Biome's lint, format and assist findings under the shared preset, except undeclared-dependency findings for a piece that an application's entry point brings. `quality fix` applies Biome's lint fixes, unsafe ones included, its assist actions and formatting.",
