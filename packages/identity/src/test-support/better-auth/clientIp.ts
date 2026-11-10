@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { clientIpHost } from "#test/better-auth/clientIpHost.ts";
+import { clientIpHost, STORY_PEER_HEADER } from "#test/better-auth/clientIpHost.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
 
@@ -47,8 +47,8 @@ export const clientIp = storyKit({
 				);
 			},
 			signIn: (headers: Record<string, string>, peer?: string) => {
-				story.tell(`Alice signs in over HTTP with ${JSON.stringify(headers)}`);
-				return emailRequest(baseUrl, "sign-in", headers, peer);
+				story.tell(`Alice signs in over HTTP with ${JSON.stringify(headers)}${peer === undefined ? "" : ` from peer ${peer}`}`);
+				return emailRequest(baseUrl, "sign-in", peer === undefined ? headers : { ...headers, [STORY_PEER_HEADER]: peer });
 			},
 			signUp: () => {
 				story.tell("Alice registers an email and password over HTTP without signing in");
@@ -73,11 +73,11 @@ export const noProxy = clientIp.trait("configured", "no trusted proxy is configu
 	engine.env = env;
 });
 
-function emailRequest(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {
-	return emailResponse(baseUrl, path, headers, localAddress).pipe(Effect.map((response) => response.status));
+function emailRequest(baseUrl: string, path: string, headers: Record<string, string>) {
+	return emailResponse(baseUrl, path, headers).pipe(Effect.map((response) => response.status));
 }
 
-function emailResponse(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {
+function emailResponse(baseUrl: string, path: string, headers: Record<string, string>) {
 	return Effect.promise(
 		() =>
 			new Promise<{ status: number; cookies: readonly string[] }>((resolve, reject) => {
@@ -85,7 +85,7 @@ function emailResponse(baseUrl: string, path: string, headers: Record<string, st
 					`${baseUrl}/api/auth/${path}/email`,
 					{
 						headers: { "content-type": "application/json", origin: baseUrl, ...headers },
-						localAddress,
+						localAddress: "127.0.0.1",
 						method: "POST",
 					},
 					(response) => {
