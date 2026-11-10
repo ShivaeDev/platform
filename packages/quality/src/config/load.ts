@@ -4,6 +4,7 @@ import { readConfig } from "#adapters/readConfig.ts";
 import { type ConfigInput, decodeConfig } from "#config/decode.ts";
 import { DEFAULT_EXTENSIONS } from "#config/defaultExtensions.ts";
 import { type ResolvedRules, resolveRules } from "#config/resolve.ts";
+import type { PreCommit } from "#config.ts";
 import { validOrFail } from "#decoded.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { SetupFailure } from "#failure.ts";
@@ -18,6 +19,7 @@ export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly exceptions: readonly ExceptionDeclaration[];
 	readonly file: string;
 	readonly nonEffectFolders: readonly string[];
+	readonly preCommit: PreCommit;
 	readonly registry: string;
 	readonly root: string;
 }
@@ -40,6 +42,7 @@ function resolved(root: string, file: string, config: ConfigInput, rules: Resolv
 		extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 		file,
 		nonEffectFolders: config.nonEffectFolders ?? [],
+		preCommit: config.preCommit ?? "full",
 		registry: config.registry ?? "quality/registry.json",
 		root,
 		sources: config.sources ?? ["."],

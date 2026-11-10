@@ -4,6 +4,8 @@ import type { builtInRules } from "#rules/builtIn.ts";
 
 export type Level = "error";
 
+export type PreCommit = "full" | "staged";
+
 export type RuleSetting<TInput> = "error" | { readonly level?: "error"; readonly options?: TInput };
 
 type InputOf<TCandidate> = TCandidate extends Rule<string, infer TInput, unknown> ? TInput : unknown;
@@ -21,6 +23,7 @@ export interface QualityConfig<TLocal extends readonly RegisteredRule<unknown>[]
 	readonly extensions?: readonly string[];
 	readonly local?: TLocal;
 	readonly nonEffectFolders?: readonly string[];
+	readonly preCommit?: PreCommit;
 	readonly registry?: string;
 	readonly rules?: RuleSettings<readonly [...BuiltInRules, ...TLocal]>;
 	readonly sources?: readonly string[];

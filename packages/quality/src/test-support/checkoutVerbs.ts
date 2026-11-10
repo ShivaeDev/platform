@@ -18,12 +18,14 @@ export interface CommitAnswer {
 export interface CheckoutLayout {
 	configless: boolean;
 	folder: string;
+	preCommit: "staged" | undefined;
 	scripts: Readonly<Record<string, string>>;
 }
 
 export interface CheckoutEngine {
 	answer: CliAnswer | undefined;
 	commit: CommitAnswer | undefined;
+	environment: Readonly<Record<string, string>>;
 	readonly layout: CheckoutLayout;
 	ownQuality: string | undefined;
 	repository: HookRepository | undefined;
@@ -65,7 +67,7 @@ function textIn(folder: string, path: string): string | undefined {
 
 export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => void) {
 	function commitFrom(folder: string, message: string): CommitAnswer {
-		const run = commits(folder, message);
+		const run = commits(folder, message, engine.environment);
 		engine.commit = { outcome: run.status === 0 ? "committed" : "rejected", stderr: run.stderr };
 		return engine.commit;
 	}

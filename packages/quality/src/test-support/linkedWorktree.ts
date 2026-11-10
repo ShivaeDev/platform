@@ -4,6 +4,7 @@ import { Effect, Schema } from "effect";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import { builtRepository } from "#test/checkoutVerbs.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
+import { git } from "#testing/adapters/git.ts";
 import { withBareWorktree, withQualityAt, withScripts, withWorktree, writes } from "#testing/adapters/hookRepository.ts";
 import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
 
@@ -111,5 +112,24 @@ export function hookInstalled() {
 		if (run.status !== 0) {
 			return yield* Effect.die(new Error(`quality hooks install failed: ${run.stderr}`));
 		}
+	});
+}
+
+export function stagedPreCommit() {
+	return checkoutStory.trait("repository", 'quality.config.ts sets preCommit: "staged"', (engine) => {
+		engine.layout.preCommit = "staged";
+	});
+}
+
+export function stages(...files: readonly SeedFile[]) {
+	return checkoutStory.trait("checkout", `the author writes and stages ${pathsOf(files)}`, (engine) => {
+		writeAll(engine.root, files);
+		git(engine.root, "add", "--", ...files.map((file) => file.path));
+	});
+}
+
+export function inCloudSession() {
+	return checkoutStory.trait("checkout", "the author commits in a Claude Code cloud session, where CLAUDE_CODE_REMOTE is true", (engine) => {
+		engine.environment = { "CLAUDE_CODE_REMOTE": "true" };
 	});
 }

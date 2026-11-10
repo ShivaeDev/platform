@@ -40,6 +40,7 @@ export default defineConfig({
 		unreadable,
 		workspaceSection,
 	],
+	preCommit: "staged",
 	rules: {
 		"boundaries/auth-sql": {
 			options: {

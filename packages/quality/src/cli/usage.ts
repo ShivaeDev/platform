@@ -34,6 +34,7 @@ hooks install     Install the git pre-commit hook, shared by every worktree, tha
 hooks uninstall   Remove quality's pre-commit hook. Keeps a hook that is not quality's.
 hooks status      Check that git's effective hooks path runs Quality's pre-commit hook and report global chaining.
 hooks pre-commit  Check lint and staged baseline counts, then package.json scripts typecheck and quality:commit when present.
+                  With preCommit: "staged" outside a Claude Code cloud session, run only Biome on the staged content of staged files.
 
 --config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.

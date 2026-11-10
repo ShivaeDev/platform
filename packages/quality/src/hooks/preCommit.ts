@@ -1,5 +1,5 @@
 import * as NodePath from "@effect/platform-node/NodePath";
-import { Console, Effect, Path } from "effect";
+import { Config, Console, Effect, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
@@ -7,6 +7,7 @@ import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { passes } from "#engine/evaluate.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
+import { stagedCheck } from "#hooks/stagedCheck.ts";
 import { recap } from "#report/recap.ts";
 
 const COMMIT_AGAIN =
@@ -43,8 +44,21 @@ const runScript = Effect.fnUntraced(
 	Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run a pre-commit script: ${error.message}` })),
 );
 
+const inCloudSession = Config.String("CLAUDE_CODE_REMOTE").pipe(
+	Config.withDefault(""),
+	Config.map((value) => value === "true"),
+);
+
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {
 	const config = yield* loadConfig(cwd, path);
+	const cloud = yield* inCloudSession.pipe(Effect.mapError((cause) => new SetupFailure({ cause, message: "cannot read CLAUDE_CODE_REMOTE." })));
+	if (config.preCommit === "staged" && !cloud) {
+		if (!(yield* stagedCheck(config))) {
+			yield* Console.error(`quality: pre-commit failed: Biome on the staged files.\n${COMMIT_AGAIN}`);
+			return yield* new GateFailed();
+		}
+		return;
+	}
 	const { manager, scripts } = yield* commitScripts(config.root);
 	const { context, outcome } = yield* reportLint(cwd, path, true);
 	const linted = passes(outcome);

@@ -18,6 +18,7 @@ export interface HookSetup {
 	readonly configless?: boolean;
 	readonly files?: readonly SeedFile[];
 	readonly folder?: string;
+	readonly preCommit?: "staged" | undefined;
 	readonly scripts?: Readonly<Record<string, string>>;
 }
 
@@ -44,10 +45,13 @@ const CLEAN: SeedFile = { content: "export function full(): number {\n\treturn 1
 
 const BIN = `#!/bin/sh\nexec node ${shellWords(qualityArgs([]))} "$@"\n`;
 
-const CONFIG: SeedFile = {
-	content: 'export default { rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
-	path: "quality.config.ts",
-};
+function config(preCommit: "staged" | undefined): SeedFile {
+	const mode = preCommit === undefined ? "" : ` preCommit: "${preCommit}",`;
+	return {
+		content: `export default {${mode} rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n`,
+		path: "quality.config.ts",
+	};
+}
 
 export function writes(root: string, path: string, content: string): void {
 	mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -68,6 +72,7 @@ export function hookRepository({
 	configless = false,
 	files = configless ? DEFAULT_FILES : [CLEAN],
 	folder = "",
+	preCommit,
 	scripts = {},
 }: HookSetup = {}): HookRepository {
 	const root = seedTree(
@@ -75,7 +80,7 @@ export function hookRepository({
 			...(configless
 				? []
 				: [
-						CONFIG,
+						config(preCommit),
 						{ content: "node_modules/\n", path: ".gitignore" },
 						{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 					]),
@@ -120,11 +125,11 @@ export function withWorktree(repository: HookRepository, name: string, at?: stri
 	return root;
 }
 
-export function commits(cwd: string, message: string): Run {
+export function commits(cwd: string, message: string, environment: Readonly<Record<string, string>> = {}): Run {
 	const result = spawnSync("git", ["commit", "--quiet", "--allow-empty", "--message", message], {
 		cwd,
 		encoding: "utf8",
-		env: isolatedEnvironment(cwd),
+		env: { ...isolatedEnvironment(cwd), ...environment },
 	});
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }

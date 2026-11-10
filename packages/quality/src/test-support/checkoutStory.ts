@@ -9,7 +9,8 @@ function emptyCheckout(): CheckoutEngine {
 	return {
 		answer: undefined,
 		commit: undefined,
-		layout: { configless: false, folder: "", scripts: {} },
+		environment: {},
+		layout: { configless: false, folder: "", preCommit: undefined, scripts: {} },
 		ownQuality: undefined,
 		repository: undefined,
 		root: "",
