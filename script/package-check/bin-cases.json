@@ -85,6 +85,13 @@
 		"git": true,
 		"output": "@packed/demo: 0.1.0 -> 0.2.0 (minor)"
 	},
+	"shivaedev-build": {
+		"args": ["generate", "--check"],
+		"checkVersion": true,
+		"expectedFiles": {},
+		"files": {},
+		"output": "No file of the project calls defineModule."
+	},
 	"shivaedev-skills": {
 		"args": ["sync"],
 		"checkVersion": true,
