@@ -614,12 +614,12 @@ export const hasChangelog = defineRule({
 
 export const noAnyExports = defineRule({
 	check: ({ sources, typeScript }) =>
-		Effect.map(typeScript, ({ checker, sourceFile }) =>
+		Effect.map(typeScript, ({ checker, sourceFile, ts }) =>
 			sources.flatMap((file) => {
 				const source = sourceFile(file.path);
 				const module = source === undefined ? undefined : checker.getSymbolAtLocation(source);
 				return (module === undefined ? [] : checker.getExportsOfModule(module))
-					.filter((exported) => checker.typeToString(checker.getTypeOfSymbol(exported)) === "any")
+					.filter((exported) => (checker.getTypeOfSymbol(exported).flags & ts.TypeFlags.Any) !== 0)
 					.map((exported) => ({ file: file.path, message: `exports ${exported.name} typed as any.`, subject: exported.name }));
 			}),
 		),
@@ -628,7 +628,7 @@ export const noAnyExports = defineRule({
 });
 ```
 
-Register them with `defineConfig({ local: [noLog, hasChangelog, noAnyExports] })`. A check receives `root`, checked paths in `files`, source files in `sources`, `readText(path)`, `typeScript` and decoded `options`, and returns findings or an Effect of findings. `readText` is an Effect that succeeds with `undefined` for a missing file. `typeScript` is an Effect of a TypeScript `program` and its `checker` over the scanned sources, with `sourceFile(path)` looking up a source by its repository path. Every rule in a run that yields it receives the same program, built at most once and only when a rule asks for it. The program is `strict`, allows JavaScript, preserves JSX, targets ESNext with its default library, skips library checks and loads no ambient `types`; imports resolve through each file's nearest `tsconfig.json`, so types from installed packages are their real declarations. TypeScript 6.0.3 can throw "Debug Failure. No error for last overload signature" when asked for the type of a destructured callback parameter whose call takes types from an installed package; the run then stops with the rule's id and the compiler's stack. For options, provide a [Standard Schema](https://standardschema.dev) validator; an absent options object is validated as `{}`, so defaults belong in the schema, and a rule without a schema refuses options. A finding's optional `subject` distinguishes exceptions within a rule and file. A limit rule reports its amount over the limit as `count` and the limit as `threshold`; the baseline stores the count. Set `registrable: false` when a rule must never be excused by a config exception.
+Register them with `defineConfig({ local: [noLog, hasChangelog, noAnyExports] })`. A check receives `root`, checked paths in `files`, source files in `sources`, `readText(path)`, `typeScript` and decoded `options`, and returns findings or an Effect of findings. `readText` is an Effect that succeeds with `undefined` for a missing file. `typeScript` is an Effect of a TypeScript `program` and its `checker` over the scanned sources, with `sourceFile(path)` looking up a source by its repository path and `ts`, the TypeScript module that built the program. A rule reads syntax kinds, flags and type guards from that `ts` and does not import its own `typescript`, whose version can differ. Every rule in a run that yields it receives the same program, built at most once and only when a rule asks for it. The program is `strict`, allows JavaScript, preserves JSX, targets ESNext with its default library, skips library checks and loads no ambient `types`; imports resolve through each file's nearest `tsconfig.json`, so types from installed packages are their real declarations. TypeScript 6.0.3 can throw "Debug Failure. No error for last overload signature" when asked for the type of a destructured callback parameter whose call takes types from an installed package; the run then stops with the rule's id and the compiler's stack. For options, provide a [Standard Schema](https://standardschema.dev) validator; an absent options object is validated as `{}`, so defaults belong in the schema, and a rule without a schema refuses options. A finding's optional `subject` distinguishes exceptions within a rule and file. A limit rule reports its amount over the limit as `count` and the limit as `threshold`; the baseline stores the count. Set `registrable: false` when a rule must never be excused by a config exception.
 
 #### Command line
 

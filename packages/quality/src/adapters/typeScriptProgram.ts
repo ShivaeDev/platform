@@ -25,7 +25,7 @@ function compile(root: string, sources: readonly SourceFile[]): TypeScriptProgra
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});
 	const program = ts.createProgram([...texts.keys()], OPTIONS, host);
-	return { checker: program.getTypeChecker(), program, sourceFile: (path) => program.getSourceFile(join(root, path)) };
+	return { checker: program.getTypeChecker(), program, sourceFile: (path) => program.getSourceFile(join(root, path)), ts };
 }
 
 export function typeScriptProgram(root: string, sources: readonly SourceFile[]): Effect.Effect<TypeScriptProgram> {

@@ -153,9 +153,11 @@ export function typeScriptType(inputs: RuleInputs) {
 	const shared: Effect.Effect<TypeScriptProgram> = inputs.typeScript;
 	const compiled = Effect.map(inputs.typeScript, (typeScript): ts.Program => typeScript.program);
 	const source = Effect.map(inputs.typeScript, ({ sourceFile }): ts.SourceFile | undefined => sourceFile("src/a.ts"));
+	const module = Effect.map(inputs.typeScript, (typeScript): typeof ts => typeScript.ts);
+	const anyFlag = Effect.map(inputs.typeScript, (typeScript): ts.TypeFlags => typeScript.ts.TypeFlags.Any);
 	// @ts-expect-error The program is an Effect, so a rule yields it before reading the checker.
 	const checker: ts.TypeChecker = inputs.typeScript.checker;
-	return [shared, compiled, source, checker];
+	return [shared, compiled, source, module, anyFlag, checker];
 }
 
 // @ts-expect-error Every rule receives the program, so rule inputs require it.

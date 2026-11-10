@@ -28,6 +28,7 @@ export interface TypeScriptProgram {
 	readonly checker: ts.TypeChecker;
 	readonly program: ts.Program;
 	readonly sourceFile: (path: string) => ts.SourceFile | undefined;
+	readonly ts: typeof ts;
 }
 
 export interface RuleInputs {
