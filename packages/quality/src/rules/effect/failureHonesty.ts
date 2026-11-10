@@ -1,11 +1,12 @@
 import { join } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { failureFindings } from "#rules/effect/failureFindings.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 
-function checkFailures(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs, false);
+const checkFailures = Effect.fn("FailureHonesty.checkFailures")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs, false);
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
@@ -32,7 +33,7 @@ function checkFailures(inputs: RuleInputs): readonly Finding[] {
 		}
 		return findings;
 	});
-}
+});
 
 export const failureHonesty = defineRule({
 	check: (inputs) => {
@@ -51,7 +52,10 @@ export const failureHonesty = defineRule({
 			sources.push(source);
 			groups.set(group, sources);
 		}
-		return [...groups.values()].flatMap((sources) => checkFailures({ ...inputs, sources }));
+		return Effect.map(
+			Effect.forEach(groups.values(), (sources) => checkFailures({ ...inputs, sources })),
+			(found) => found.flat(),
+		);
 	},
 	description:
 		"Keep failures typed and observable: no forked forever/orDie loops, retry({ while }) without times or a pacing Schedule, blanket catch-to-success, or FileSystem option/orElseSucceed. Catch a named reason, use a Schedule that paces retries or model an explicit unavailable state. In test-support/, a blanket catch whose handler derives its value from the caught error is a readout translation and is accepted. No config exceptions or inline suppressions; baseline existing debt.",

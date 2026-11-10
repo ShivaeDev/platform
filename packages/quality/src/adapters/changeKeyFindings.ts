@@ -52,8 +52,8 @@ function hasCandidates(file: SourceFile): boolean {
 	return nodesWhere(source, (node) => candidate(node, aliases)).length > 0;
 }
 
-function findingsIn(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs);
+const findingsIn = Effect.fn("ChangeKeys.findingsIn")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs);
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
@@ -77,10 +77,10 @@ function findingsIn(inputs: RuleInputs): readonly Finding[] {
 					}));
 		});
 	});
-}
+});
 
 export const changeKeyFindings = Effect.fn("ChangeKeys.changeKeyFindings")((inputs: RuleInputs) =>
-	Effect.sync(() => {
+	Effect.gen(function* () {
 		const groups = new Map<string, RuleInputs["sources"][number][]>();
 		for (const source of inputs.sources) {
 			if (!hasCandidates(source)) {
@@ -91,6 +91,6 @@ export const changeKeyFindings = Effect.fn("ChangeKeys.changeKeyFindings")((inpu
 			sources.push(source);
 			groups.set(group, sources);
 		}
-		return [...groups.values()].flatMap((sources) => findingsIn({ ...inputs, sources }));
+		return (yield* Effect.forEach(groups.values(), (sources) => findingsIn({ ...inputs, sources }))).flat();
 	}),
 );

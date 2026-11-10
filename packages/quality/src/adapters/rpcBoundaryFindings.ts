@@ -31,8 +31,8 @@ function handlerBuilder(declaration: ts.Declaration | undefined): boolean {
 	);
 }
 
-function checkSources(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs);
+const checkSources = Effect.fn("RpcBoundary.checkSources")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs);
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));
@@ -61,7 +61,7 @@ function checkSources(inputs: RuleInputs): readonly Finding[] {
 					];
 		});
 	});
-}
+});
 
 export const rpcBoundaryFindings = Effect.fn("RpcBoundary.rpcBoundaryFindings")(function* (inputs: RuleInputs) {
 	const candidates = new Set(inputs.sources.filter((source) => source.text.includes("rpcBoundary")).map((source) => source.path));
@@ -82,7 +82,7 @@ export const rpcBoundaryFindings = Effect.fn("RpcBoundary.rpcBoundaryFindings")(
 			candidates.add(importer);
 		}
 	}
-	return yield* Effect.sync(() => {
+	return yield* Effect.gen(function* () {
 		const groups = new Map<string, RuleInputs["sources"][number][]>();
 		for (const source of inputs.sources) {
 			if (isTestSupport(source.path) || !/\.[cm]?[jt]sx?$/u.test(source.path) || !candidates.has(source.path)) {
@@ -93,6 +93,6 @@ export const rpcBoundaryFindings = Effect.fn("RpcBoundary.rpcBoundaryFindings")(
 			sources.push(source);
 			groups.set(group, sources);
 		}
-		return [...groups.values()].flatMap((sources) => checkSources({ ...inputs, sources }));
+		return (yield* Effect.forEach(groups.values(), (sources) => checkSources({ ...inputs, sources }))).flat();
 	});
 });

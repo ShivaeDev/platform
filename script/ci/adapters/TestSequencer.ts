@@ -2,7 +2,7 @@ import { relative, resolve } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect, FileSystem, Result } from "effect";
 import { BaseSequencer, type TestSpecification } from "vitest/node";
-import { balancedShards } from "#ci/shard.ts";
+import { testShards } from "#ci/shard.ts";
 import { durationEstimates, readTimingSnapshot } from "#ci/timings.ts";
 
 export class TestSequencer extends BaseSequencer {
@@ -25,12 +25,10 @@ export class TestSequencer extends BaseSequencer {
 			return files;
 		}
 		const estimates = await this.estimates();
-		const shards = balancedShards(
-			files,
-			shard.count,
-			(file) => this.name(file),
-			(file) => estimates[this.name(file)] ?? 1000,
-		);
+		const shards = testShards(files, shard.count, estimates, (file) => ({
+			name: this.name(file),
+			workers: file.project.config.maxWorkers,
+		}));
 		return Result.getOrThrow(shards)[shard.index - 1] ?? [];
 	}
 

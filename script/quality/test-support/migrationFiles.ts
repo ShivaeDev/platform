@@ -32,7 +32,7 @@ export const migrationFiles = storyKit({
 					...inventory,
 					readText: yield* manifestReader(engine.root),
 					root: engine.root,
-					typeScript: typeScriptProgram(engine.root, inventory.sources),
+					typeScript: yield* typeScriptProgram(engine.root, inventory.sources),
 				},
 			);
 		}),

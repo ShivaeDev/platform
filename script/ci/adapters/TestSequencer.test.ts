@@ -13,7 +13,7 @@ for (const measured of [false, true]) {
 						runId: "42",
 						sha: "main-sha",
 						timings: [
-							{ durationMs: 20_000, name: "fixture:unit:heavy.test.ts" },
+							{ durationMs: 20_000, name: "fixture:heavy:heavy.test.ts" },
 							{ durationMs: 15_000, name: "fixture:dom:shared.test.ts" },
 							{ durationMs: 5000, name: "fixture:unit:shared.test.ts" },
 						],
@@ -22,7 +22,7 @@ for (const measured of [false, true]) {
 				const names = yield* testNames();
 				expect(names).toEqual([
 					"fixture:dom:shared.test.ts",
-					"fixture:unit:heavy.test.ts",
+					"fixture:heavy:heavy.test.ts",
 					"fixture:unit:new.test.ts",
 					"fixture:unit:shared.test.ts",
 					"fixture:unit:small.test.ts",
@@ -36,8 +36,8 @@ for (const measured of [false, true]) {
 				expect(groups.flat().sort()).toEqual(names);
 				if (measured && count === 2) {
 					expect(groups).toEqual([
-						["fixture:unit:heavy.test.ts", "fixture:unit:new.test.ts"],
-						["fixture:dom:shared.test.ts", "fixture:unit:shared.test.ts", "fixture:unit:small.test.ts"],
+						["fixture:heavy:heavy.test.ts"],
+						["fixture:dom:shared.test.ts", "fixture:unit:shared.test.ts", "fixture:unit:new.test.ts", "fixture:unit:small.test.ts"],
 					]);
 				}
 			},

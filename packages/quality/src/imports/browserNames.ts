@@ -1,6 +1,7 @@
 import { dirname, join } from "node:path";
-import { Effect, type FileSystem } from "effect";
+import { type Context, Effect, type FileSystem } from "effect";
 import ts from "typescript";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { type FilesystemFailure, readRequiredText } from "#inventory/filesystem.ts";
 
 const portable = new Set([
@@ -67,8 +68,7 @@ const portable = new Set([
 	"structuredClone",
 ]);
 
-function namesInDom(path: string, text: string): readonly string[] {
-	const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
+function namesInDom(source: ts.SourceFile): readonly string[] {
 	return source.statements.flatMap((statement) => {
 		if (ts.isVariableStatement(statement)) {
 			return statement.declarationList.declarations.flatMap(({ name }) => (ts.isIdentifier(name) ? [name.text] : []));
@@ -80,9 +80,11 @@ function namesInDom(path: string, text: string): readonly string[] {
 export const browserNames = Effect.fn("Imports.browserNames")(function* (): Effect.fn.Return<
 	ReadonlySet<string>,
 	FilesystemFailure,
-	FileSystem.FileSystem
+	Context.Service.Identifier<typeof DeclarationFiles> | FileSystem.FileSystem
 > {
 	const path = join(dirname(ts.getDefaultLibFilePath({})), "lib.dom.d.ts");
 	const text = yield* readRequiredText(path);
-	return new Set(namesInDom(path, text).filter((name) => !portable.has(name)));
+	const declarations = yield* DeclarationFiles;
+	const source = yield* declarations.parse(path, text, { target: ts.ScriptTarget.Latest });
+	return new Set(namesInDom(source).filter((name) => !portable.has(name)));
 });

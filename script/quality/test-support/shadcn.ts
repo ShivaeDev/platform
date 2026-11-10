@@ -35,7 +35,7 @@ export const shadcn = storyKit({
 					...inventory,
 					readText: () => Effect.succeed(undefined),
 					root: engine.root,
-					typeScript: typeScriptProgram(engine.root, inventory.sources),
+					typeScript: yield* typeScriptProgram(engine.root, inventory.sources),
 				},
 			);
 		}),

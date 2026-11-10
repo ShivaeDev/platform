@@ -1,7 +1,7 @@
 import { Effect, Result } from "effect";
 import { mainShardPlan } from "#ci/mainShardPlan.ts";
 import { mergeConsumerTimings } from "#ci/mergeConsumerTimings.ts";
-import { balancedShards, parseShard } from "#ci/shard.ts";
+import { balancedShards } from "#ci/shard.ts";
 import { consumerShardMs, jobDurations, shardTargetMs, wallTimeShardCount } from "#ci/shardCount.ts";
 import { mergeTimingArtifacts } from "#ci/test-support/mergeTimingArtifacts.ts";
 import type { Workspace } from "#ci/test-support/workspace.ts";
@@ -26,7 +26,6 @@ export function verbs(engine: Workspace) {
 			Effect.runSync(mergeConsumerTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs })),
 		mergeReports: (reports: readonly unknown[]) => Result.getOrThrow(mergeConsumerTimingReports(reports, "42", "main-sha")),
 		mergeTimingArtifacts: () => mergeTimingArtifacts(engine),
-		parseShard: (value: string) => Result.getOrThrow(parseShard(value)),
 		planMain: () => {
 			if (engine.githubLayer === undefined) {
 				throw new Error("Declare measuredQueue before planning snapshots");
@@ -45,15 +44,6 @@ export function verbs(engine: Workspace) {
 			);
 		},
 		planningLogs: () => engine.logs.flat().join("\n"),
-		planShards: (items: readonly { name: string; seconds: number }[], count: number) =>
-			Result.getOrThrow(
-				balancedShards(
-					items,
-					count,
-					(item) => item.name,
-					(item) => item.seconds,
-				),
-			),
 		readCoverage: (file: string) => Effect.sync(() => workspaceCoverage(file)),
 		readEstimates: durationEstimates,
 		readJobResponse: (value: unknown, name: RegExp, count: number) => Result.getOrThrow(jobDurations(value, name, count)),

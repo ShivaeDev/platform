@@ -46,7 +46,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		readText,
 		root: config.root,
 		sources: inventory.sources,
-		typeScript: typeScriptProgram(config.root, inventory.sources),
+		typeScript: yield* typeScriptProgram(config.root, inventory.sources),
 	};
 	const violations = yield* runRules(config.active, inputs);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
