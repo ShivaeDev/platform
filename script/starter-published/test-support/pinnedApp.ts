@@ -74,8 +74,8 @@ NodeRuntime.runMain(createApp(process.argv[2], new URL("./template.json", import
 			packageManager: "pnpm@12.17.0",
 			private: true,
 			scripts: {
-				ci: "pnpm peers check && pnpm run typecheck",
 				format: "node -e ''",
+				ready: "pnpm peers check && pnpm run typecheck",
 				setup: "pnpm install",
 				typecheck: `${join(process.cwd(), "node_modules/.bin/tsc")} --noEmit`,
 			},
@@ -184,3 +184,9 @@ export const hostileRegistryEnvironment = pinnedApp.trait(
 			engine.environment = { "npm_config_registry": "http://127.0.0.1:9" };
 		}),
 );
+export const starterDebt = pinnedApp.trait("source", "the starter's quality-baseline.jsonl records one Quality finding", function* ({ root }) {
+	yield* (yield* FileSystem.FileSystem).writeFileString(
+		join(root, "examples/starter/quality-baseline.jsonl"),
+		'{"path":"tooling.ts","rule":"structure/max-lines","count":1}\n',
+	);
+});

@@ -7,6 +7,7 @@ import { command, writeJson } from "#package-check/io.ts";
 import { checkDocumentation, readDocumentation } from "#starter-published/documentation.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { runStarter } from "#starter-published/run.ts";
+import { checkUpgraded } from "#starter-published/upgrade.ts";
 
 const versions = { "@shivaedev/contract": "0.1.0" };
 
@@ -34,10 +35,11 @@ export const app = storyKit({
 		yield* writeJson(join(directory, "package.json"), {
 			dependencies: { "@shivaedev/contract": "0.1.0" },
 			private: true,
-			scripts: { ci: "node ci.js", setup: "pnpm install" },
+			scripts: { build: "node build.js", ready: "node ci.js", setup: "pnpm install" },
 			type: "module",
 		});
 		yield* fs.writeFileString(join(directory, "pnpm-workspace.yaml"), "packages: []\n");
+		yield* fs.writeFileString(join(directory, "build.js"), "");
 		yield* fs.writeFileString(
 			join(directory, "ci.js"),
 			'import { writeFileSync } from "node:fs";\nimport { query } from "@shivaedev/contract/operation.ts";\nwriteFileSync("ci-result.json", JSON.stringify({ cwd: process.cwd(), database: process.env.TEST_DATABASE_URL, query }));\n',
@@ -49,6 +51,10 @@ export const app = storyKit({
 	name: "published starter check over a packed installer",
 	stages: ["source"],
 	verbs: (engine) => ({
+		checkUpgraded: () =>
+			checkUpgraded(engine.directory, engine.root, engine.database).pipe(
+				Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined }),
+			),
 		ciResult: () => Effect.flatMap(FileSystem.FileSystem, (fs) => fs.readFileString(join(engine.directory, "ci-result.json"))),
 		database: engine.database,
 		directory: engine.directory,

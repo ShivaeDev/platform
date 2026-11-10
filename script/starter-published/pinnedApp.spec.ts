@@ -6,6 +6,7 @@ import {
 	hostileRegistryEnvironment,
 	pendingChangeset,
 	pinnedApp,
+	starterDebt,
 	unreleasedPin,
 } from "#starter-published/test-support/pinnedApp.ts";
 
@@ -70,3 +71,7 @@ pinnedApp.it(
 		]);
 	},
 );
+
+pinnedApp.it("Packed starter rejects a generated app that starts with recorded Quality debt", [starterDebt], function* ({ check }) {
+	expect(yield* check()).toContain("Generated starter records Quality debt in quality-baseline.jsonl");
+});

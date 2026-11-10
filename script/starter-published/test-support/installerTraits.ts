@@ -9,7 +9,7 @@ export const existingOverrides = app.trait("source", "the workspace has a stale 
 	);
 });
 
-export const failingCi = app.trait("source", "the generated app's CI script fails", function* ({ directory }) {
+export const failingCi = app.trait("source", "the generated app's ready script fails", function* ({ directory }) {
 	yield* (yield* FileSystem.FileSystem).writeFileString(join(directory, "ci.js"), "process.exit(1);\n");
 });
 
@@ -21,3 +21,7 @@ export function workerWarning(stream: "stdout" | "stderr") {
 		);
 	});
 }
+
+export const failingBuild = app.trait("source", "the generated app's build script fails", function* ({ directory }) {
+	yield* (yield* FileSystem.FileSystem).writeFileString(join(directory, "build.js"), "process.exit(1);\n");
+});

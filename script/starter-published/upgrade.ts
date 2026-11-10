@@ -8,6 +8,30 @@ const decodeReport = Schema.decodeUnknownSync(
 	Schema.fromJsonString(Schema.Struct({ numPassedTests: Schema.Number, numPendingTests: Schema.Number, numTotalTests: Schema.Number })),
 );
 
+export const checkUpgraded = Effect.fn("Published.checkUpgraded")(function* (app: string, directory: string, database: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	yield* Effect.log(yield* phase("upgraded build", command(app, "pnpm", ["run", "build"])));
+	yield* Effect.log(
+		yield* command(app, "env", [
+			`TEST_DATABASE_URL=${database}`,
+			"pnpm",
+			"run",
+			"test",
+			"src/server/authMigrations.spec.ts",
+			"src/server/browserReports.spec.ts",
+			"--reporter=default",
+			"--reporter=json",
+			`--outputFile=${path.join(directory, "upgrade-stories.json")}`,
+		]),
+	);
+	const report = decodeReport(yield* fs.readFileString(path.join(directory, "upgrade-stories.json")));
+	yield* requireThat(
+		report.numTotalTests > 0 && report.numPendingTests === 0 && report.numPassedTests === report.numTotalTests,
+		"The upgraded app's PostgreSQL and HTTP stories must pass without skips.",
+	);
+});
+
 export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 	root: string,
 	temporary: string,
@@ -31,22 +55,5 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 		"The upgrade did not restore the current generation record.",
 	);
 	yield* requireThat((yield* fs.readFileString(home)).includes("Our customized app"), "The upgrade lost the committed home-page customization.");
-	yield* Effect.log(
-		yield* command(app, "env", [
-			`TEST_DATABASE_URL=${database}`,
-			"pnpm",
-			"run",
-			"test",
-			"src/server/authMigrations.spec.ts",
-			"src/server/browserReports.spec.ts",
-			"--reporter=default",
-			"--reporter=json",
-			`--outputFile=${paths.join(directory, "upgrade-stories.json")}`,
-		]),
-	);
-	const report = decodeReport(yield* fs.readFileString(paths.join(directory, "upgrade-stories.json")));
-	yield* requireThat(
-		report.numTotalTests > 0 && report.numPendingTests === 0 && report.numPassedTests === report.numTotalTests,
-		"The upgraded app's PostgreSQL and HTTP stories must pass without skips.",
-	);
+	yield* checkUpgraded(app, directory, database);
 });
