@@ -72,6 +72,11 @@ export function checkoutVerbs(engine: CheckoutEngine, tell: (line: string) => vo
 	return {
 		...cliVerbs(engine, tell),
 		commitErrors: () => Effect.sync(() => committed(engine).stderr),
+		commitErrorsAfter: (line: string) =>
+			Effect.sync(() => {
+				const lines = linesOf(committed(engine).stderr);
+				return lines.slice(lines.lastIndexOf(line) + 1);
+			}),
 		commitOutcome: () => Effect.sync(() => committed(engine).outcome),
 		commits: (message: string) =>
 			Effect.sync(() => {

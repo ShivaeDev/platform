@@ -17,6 +17,12 @@ import { logs } from "#testing/adapters/hookRepository.ts";
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
 const LINT_PASSED = "quality: passed. 1 source file checked.";
+const LINT_FAILED = [
+	"quality lint failed with 6 errors:",
+	"  error biome/plugin (4): src/full.ts",
+	"  error files/named-after-export (1): src/full.ts",
+	"  error structure/max-lines (1): src/full.ts",
+].join("\n");
 const TOO_LONG = { content: "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n", path: "src/full.ts" };
 
 checkoutStory.it(
@@ -94,7 +100,7 @@ checkoutStory.it(
 );
 
 checkoutStory.it(
-	"quality hooks pre-commit runs every check after one fails and names each failed check before saying how to go on",
+	"quality hooks pre-commit runs every check after one fails, then repeats the lint findings and names each failed check before saying how to go on",
 	[packageScripts({ "quality:commit": `${logs("still ran")}; exit 4`, "typecheck": "exit 3" }), projectHas(TOO_LONG)],
 	function* ({ outcome, runs, scriptLog, stderr }) {
 		yield* runs("hooks", "pre-commit");
@@ -103,7 +109,7 @@ checkoutStory.it(
 			[
 				"error",
 				() => stderr(),
-				`quality: pre-commit failed: quality lint, \`npm run typecheck\` (exit code 3), \`npm run quality:commit\` (exit code 4).\n${COMMIT_AGAIN}\n`,
+				`${LINT_FAILED}\nquality: pre-commit failed: quality lint, \`npm run typecheck\` (exit code 3), \`npm run quality:commit\` (exit code 4).\n${COMMIT_AGAIN}\n`,
 			],
 			["exit", () => outcome(), "rejected"],
 			["script log", () => scriptLog(), ["still ran"]],
@@ -126,6 +132,24 @@ checkoutStory.it(
 				["verdict", () => commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
 			]),
 		);
+	},
+	CLI_TIMEOUT,
+);
+
+checkoutStory.it(
+	"the pre-commit hook ends a failed commit with the lint findings and the failed check, after the output of the scripts that passed",
+	[packageScripts({ "quality:commit": "echo starter gate passed", "typecheck": "echo typechecked" }), projectHas(TOO_LONG), hookInstalled()],
+	function* ({ commitErrorsAfter, commitOutcome, commits }) {
+		yield* commits("Too long");
+
+		yield* outcomes([
+			["commit", () => commitOutcome(), "rejected"],
+			[
+				"after the scripts",
+				() => commitErrorsAfter("starter gate passed"),
+				[...LINT_FAILED.split("\n"), "quality: pre-commit failed: quality lint.", COMMIT_AGAIN],
+			],
+		]);
 	},
 	CLI_TIMEOUT,
 );

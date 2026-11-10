@@ -3,9 +3,11 @@ import { Console, Effect, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
-import { lint } from "#cli/lint.ts";
+import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
+import { passes } from "#engine/evaluate.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
+import { recap } from "#report/recap.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
@@ -44,10 +46,8 @@ const runScript = Effect.fnUntraced(
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {
 	const config = yield* loadConfig(cwd, path);
 	const { manager, scripts } = yield* commitScripts(config.root);
-	const linted = yield* lint(cwd, path, true).pipe(
-		Effect.as(true),
-		Effect.catchTag("GateFailed", () => Effect.succeed(false)),
-	);
+	const { context, outcome } = yield* reportLint(cwd, path, true);
+	const linted = passes(outcome);
 	const failed = linted ? [] : ["quality lint"];
 	for (const script of scripts) {
 		const command = `${manager} run ${script}`;
@@ -58,7 +58,8 @@ export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: st
 		}
 	}
 	if (failed.length > 0) {
-		yield* Console.error(`quality: pre-commit failed: ${failed.join(", ")}.\n${COMMIT_AGAIN}`);
+		const findings = linted ? [] : [recap(outcome, context)];
+		yield* Console.error([...findings, `quality: pre-commit failed: ${failed.join(", ")}.`, COMMIT_AGAIN].join("\n"));
 		return yield* new GateFailed();
 	}
 });

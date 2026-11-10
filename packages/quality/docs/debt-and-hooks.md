@@ -69,9 +69,11 @@ Export an object or `defineConfig({ ... })` without spreads for automatic editin
 
 Scripts run from the config's folder, or the current directory when there is no config. Without a manifest or either script, the hook runs lint alone. An invalid manifest stops the run. Baseline tightening is an explicit command; the hook does not change or stage debt records.
 
-After a reported lint failure or a nonzero command exit, later commands still run, so one attempt shows their results too. A config, setup or process-launch failure stops the run. `lint` and the commands check the files on disk, not only what is staged. When checks report failures, the hook blocks the commit and ends with the checks that failed and what to do next:
+After a reported lint failure or a nonzero command exit, later commands still run, so one attempt shows their results too. A config, setup or process-launch failure stops the run. `lint` and the commands check the files on disk, not only what is staged. When checks report failures, the hook blocks the commit and ends with the checks that failed and what to do next. A failed lint is repeated there, after the output of the scripts, with each rule's count and its first three files, and the files of stale baseline or registry entries:
 
 ```text
+quality lint failed with 2 errors:
+  error structure/max-lines (2): src/notes.ts, src/server.ts
 quality: pre-commit failed: quality lint, `pnpm run typecheck` (exit code 2).
 help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.
 ```
