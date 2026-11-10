@@ -10,7 +10,10 @@ Use `bucket` from `@shivaedev/changes/buckets.ts` on fields that group rows for 
 import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
+
+const notes = collection("notes", Schema.Number, { userId: Schema.String });
 
 class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -19,11 +22,14 @@ class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 }) {}
 
 const makeNotesRepository = makeRepository(StoredNote, {
+	collection: notes,
 	idColumn: "id",
 	spanPrefix: "Notes",
 	tableName: "notes",
 });
 ```
+
+A model with `bucket` fields needs `collection`: its name must equal `tableName` and its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, as the [registration stories](../../packages/contract/src/bucketRegistration.spec.ts) show.
 
 Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. Commands over these repositories use `invalidates: () => []`; do not repeat record or bucket keys there or call an invalidation helper at write sites. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
 
@@ -31,7 +37,7 @@ Use `transact` from `@shivaedev/sql/transact.ts` for an enclosing transaction, i
 
 ### Raw SQL writers
 
-Only raw-SQL writers declare write keys manually. Use `changes` from `@shivaedev/sql/changes.ts` to name the affected records and buckets once, then call its `record()` method inside the same `transact` as the SQL write. For a title change scoped to a known owner, using the `notes` collection declared below:
+Only raw-SQL writers declare write keys manually. Use `changes` from `@shivaedev/sql/changes.ts` to name the affected records and buckets once, then call its `record()` method inside the same `transact` as the SQL write. For a title change scoped to a known owner, using the `notes` collection declared above:
 
 ```ts
 import { changes } from "@shivaedev/sql/changes.ts";
@@ -84,13 +90,13 @@ Pausing through `api[LiveConnection].paused` keeps consuming updates while holdi
 
 ## PostgreSQL delivery and pool configuration
 
-The application host connects repository commits to PostgreSQL NOTIFY and shares native Reactivity with the socket's live server. Configure `maxConnections` through sql's `postgresLayer(url, options)` or the host's existing `config.maxConnections`. The default is 10 connections, unchanged from native `PgPool`. The listener reserves one connection when it shares that pool; queries and transactions share the remaining budget. A separate `config.listenDatabaseUrl` can provide a direct or session-mode listener connection. Both URLs must reach the same database.
+The application host connects repository commits to PostgreSQL NOTIFY and shares native Reactivity with the socket's live server. Configure `maxConnections` through sql's `postgresLayer(url, options)` or the host's existing `config.maxConnections`. The default is 10 connections, unchanged from native `PgPool`. The listener reserves one connection when it shares that pool; queries and transactions share the remaining budget, as the [host pool stories](../../packages/server/src/appHostPool.spec.ts) show by filling the pool with one fewer transaction than `maxConnections`. A separate `config.listenDatabaseUrl` can provide a direct or session-mode listener connection. Both URLs must reach the same database.
 
 LISTEN requires a session connection. Startup waits for its own heartbeat; after startup, connection loss and recovery request server reconciliation. NOTIFY is a wake-up signal, not a durable log. Raw SQL writers must record their keys inside `transact`; rollback discards both writes and notifications. Payloads contain keys rather than row values, and oversized keys fail before commit.
 
 ## Session revalidation and cost
 
-Authenticated streams on one WebSocket share the next event-loop batch's session lookup and its in-flight result. The next batch performs a fresh lookup; there is no session TTL cache. Different sockets and providers share no session result. Subscription policies and query handlers run independently.
+Authenticated streams on one WebSocket that recheck the session together share one in-flight session lookup. A later recheck performs a fresh lookup; no session result is cached between rechecks. Different sockets share no session lookup. The [shared revalidation stories](../../packages/identity/src/server/sharedRevalidation.spec.ts) show one lookup serving four streams on a socket and a sign-out reaching all of them at the next check. Subscription policies and query handlers run independently.
 
 For one shared-bucket commit across S sockets and N subscriptions, the PostgreSQL cost story measures S session lookups, 2N read-policy checks and N query reruns. Each subscriber checks policy during subscription revalidation and again through the authorized query runner. There are no client read requests after delivery.
 
