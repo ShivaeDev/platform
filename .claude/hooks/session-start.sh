@@ -8,6 +8,17 @@ set -euo pipefail
 
 [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || exit 0
 
+# A stalled network must fail the step, not hold the session start for the hook's whole timeout.
+curlOptions=(-fsSL --connect-timeout 15 --max-time 300 --retry 3 --retry-delay 2)
+waitForPostgres() {
+  for _ in $(seq 120); do
+    pg_isready -q -h 127.0.0.1 -p "$port" && return 0
+    sleep 0.5
+  done
+  echo "session-start: PostgreSQL did not accept connections within 60 seconds" >&2
+  return 1
+}
+
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$root"
 fresh=false
@@ -16,7 +27,7 @@ fresh=false
 want="$(tr -d 'v \n' <.node-version)"
 case "$(uname -m)" in aarch64 | arm64) arch=arm64 ;; *) arch=x64 ;; esac
 if [ "$(printf '%s' "$want" | tr -cd . | wc -c)" -lt 2 ]; then
-  want="$(curl -fsSL https://nodejs.org/dist/index.json | python3 -I -c '
+  want="$(curl "${curlOptions[@]}" https://nodejs.org/dist/index.json | python3 -I -c '
 import json, sys
 prefix = "v" + sys.argv[1] + "."
 print(next(r["version"] for r in json.load(sys.stdin) if (r["version"] + ".").startswith(prefix) or r["version"] == "v" + sys.argv[1])[1:])
@@ -25,15 +36,24 @@ fi
 nodeHome="/opt/node-$want"
 if [ ! -x "$nodeHome/bin/node" ]; then
   tmp="$(mktemp -d)"
-  curl -fsSL "https://nodejs.org/dist/v$want/node-v$want-linux-$arch.tar.xz" | tar -xJ -C "$tmp"
+  archive="node-v$want-linux-$arch.tar.xz"
+  curl "${curlOptions[@]}" -o "$tmp/$archive" "https://nodejs.org/dist/v$want/$archive"
+  curl "${curlOptions[@]}" -o "$tmp/SHASUMS256.txt" "https://nodejs.org/dist/v$want/SHASUMS256.txt"
+  (cd "$tmp" && grep " $archive\$" SHASUMS256.txt | sha256sum --check --status)
+  tar -xJf "$tmp/$archive" -C "$tmp"
   rm -rf "$nodeHome"
   mv "$tmp/node-v$want-linux-$arch" "$nodeHome"
-  rmdir "$tmp"
+  rm -rf "$tmp"
 fi
 export PATH="$nodeHome/bin:$PATH"
+# Written here, not at the end, so a later failure still leaves the session on the pinned Node.
+pathLine="export PATH=\"$nodeHome/bin:\$PATH\""
+if [ -n "${CLAUDE_ENV_FILE:-}" ] && ! grep -qxF "$pathLine" "$CLAUDE_ENV_FILE" 2>/dev/null; then
+  echo "$pathLine" >>"$CLAUDE_ENV_FILE"
+fi
 if ! command -v pnpm >/dev/null; then
   # Node 25 and newer ship no corepack, so install the pnpm that package.json pins.
-  npm install -g "pnpm@$(sed -n 's/.*"packageManager": "pnpm@\([^+"]*\).*/\1/p' package.json)"
+  timeout 300 npm install -g "pnpm@$(sed -n 's/.*"packageManager": "pnpm@\([^+"]*\).*/\1/p' package.json)"
 fi
 
 # --- PostgreSQL: the major and minor of the pinned image, served on the port local setup expects ---
@@ -49,17 +69,26 @@ fi
 if [ ! -x "/usr/lib/postgresql/$major/bin/postgres" ]; then
   if [ ! -f /etc/apt/sources.list.d/pgdg.list ]; then
     install -d /etc/apt/keyrings
-    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /etc/apt/keyrings/pgdg.asc
+    command -v gpg >/dev/null || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y -qq gnupg
+    curl "${curlOptions[@]}" -o /tmp/pgdg.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    # The published PGDG signing key; refuse any other key.
+    if ! gpg --show-keys --with-colons /tmp/pgdg.asc | grep -q '^fpr:::::::::B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8:'; then
+      echo "session-start: the PGDG key does not have the expected fingerprint" >&2
+      rm -f /tmp/pgdg.asc
+      exit 1
+    fi
+    mv /tmp/pgdg.asc /etc/apt/keyrings/pgdg.asc
     echo "deb [signed-by=/etc/apt/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" >/etc/apt/sources.list.d/pgdg.list
   fi
-  apt-get update -qq
+  aptOptions=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+  timeout 300 apt-get "${aptOptions[@]}" update -qq
   # The pinned release when PGDG still serves it, otherwise the newest release of the same major version.
   exact="$(apt-cache madison "postgresql-$major" | awk -v prefix="$tag-" 'index($3, prefix) == 1 { print $3; exit }')"
   if [ -n "$exact" ]; then
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "postgresql-$major=$exact" "postgresql-client-$major=$exact"
+    DEBIAN_FRONTEND=noninteractive timeout 400 apt-get "${aptOptions[@]}" install -y -qq "postgresql-$major=$exact" "postgresql-client-$major=$exact"
   else
     echo "session-start: PostgreSQL $tag is gone from PGDG; installing the newest $major.x, which local setup may refuse" >&2
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "postgresql-$major"
+    DEBIAN_FRONTEND=noninteractive timeout 400 apt-get "${aptOptions[@]}" install -y -qq "postgresql-$major"
   fi
 fi
 if ! pg_lsclusters --no-header | awk -v major="$major" -v port="$port" '$1 == major && $3 == port { found = 1 } END { exit !found }'; then
@@ -67,12 +96,12 @@ if ! pg_lsclusters --no-header | awk -v major="$major" -v port="$port" '$1 == ma
   pg_createcluster "$major" main --port "$port" --locale C.UTF-8 --encoding UTF8
   printf "listen_addresses = '127.0.0.1'\nmax_connections = 300\nssl = off\n" >>"/etc/postgresql/$major/main/postgresql.conf"
   pg_ctlcluster "$major" main start
-  until pg_isready -q -h 127.0.0.1 -p "$port"; do sleep 0.5; done
+  waitForPostgres
   su postgres -c "psql -p $port -qc \"ALTER USER postgres PASSWORD '$password'\""
   fresh=true
 fi
 pg_ctlcluster "$major" main status >/dev/null 2>&1 || pg_ctlcluster "$major" main start
-until pg_isready -q -h 127.0.0.1 -p "$port"; do sleep 0.5; done
+waitForPostgres
 
 # --- Dependencies, the pre-commit hook and the databases, only when an input of theirs has changed ---
 hashes=node_modules/.session-start.sha256
@@ -81,9 +110,4 @@ if [ "$fresh" = true ] || [ ! -f .git/hooks/pre-commit ] || ! sha256sum --check 
   rm -f "$hashes"
   ./script/update
   sha256sum "${inputs[@]}" >"$hashes"
-fi
-
-# --- Every session: the Node chosen above ---
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo "export PATH=\"$nodeHome/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
 fi
