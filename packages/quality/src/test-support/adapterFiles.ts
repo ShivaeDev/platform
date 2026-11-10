@@ -7,7 +7,10 @@ function copy(name: string): string {
 
 export const adapterFiles = {
 	authOptions: copy("authOptions"),
+	clientConnection: copy("clientConnection"),
+	clientErrorReporter: copy("clientErrorReporter"),
 	clientId: copy("clientId"),
+	defineScript: copy("defineScript"),
 	draftPersistence: copy("draftPersistence"),
 	ignorePatterns: copy("ignorePatterns"),
 	importCompilerDepartures: copy("importCompilerDepartures"),
@@ -17,6 +20,8 @@ export const adapterFiles = {
 	numberInput: copy("numberInput"),
 	rawPayload: copy("rawPayload"),
 	rethrowQueryDefect: copy("rethrowQueryDefect"),
+	screenDialogs: copy("screenDialogs"),
 	sessionRecheck: copy("sessionRecheck"),
+	traceDiagnostics: copy("traceDiagnostics"),
 	withPolicyContext: copy("withPolicyContext"),
 };

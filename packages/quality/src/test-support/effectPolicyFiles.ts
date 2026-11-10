@@ -27,9 +27,10 @@ export function serviceModule(path: string, ...lines: readonly string[]): SeedFi
 }
 
 // The service rule builds a TypeScript program, which needs effect's own types to recognise a service.
-export function effectResolves() {
-	return ruleStory.trait("repository", "effect and vitest resolve from node_modules", (engine) => {
-		for (const name of ["effect", "vitest"]) {
+export function effectResolves(...more: readonly string[]) {
+	const names = ["effect", "vitest", ...more];
+	return ruleStory.trait("repository", `${names.join(", ")} resolve from node_modules`, (engine) => {
+		for (const name of names) {
 			const link = join(engine.root, "node_modules", name);
 			mkdirSync(dirname(link), { recursive: true });
 			symlinkSync(dirname(createRequire(import.meta.url).resolve(`${name}/package.json`)), link, "dir");

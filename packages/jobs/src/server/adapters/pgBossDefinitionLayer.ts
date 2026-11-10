@@ -1,9 +1,9 @@
 import { type Context, Effect, Exit, Layer, Scope } from "effect";
+import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
 import { logClientError } from "#server/adapters/clientErrors.ts";
 import { makeService } from "#server/adapters/makeService.ts";
 import { registrationName } from "#server/adapters/register.ts";
 import { registerReleasedJobs } from "#server/adapters/registerReleasedJobs.ts";
-import { clientErrorReporter } from "#server/clientErrorReporter.ts";
 import { clientErrorSubscription } from "#server/clientErrorSubscription.ts";
 import type { JobRegistration, RegistrationRequirements } from "#server/definition.ts";
 import type { PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";

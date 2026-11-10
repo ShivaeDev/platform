@@ -13,7 +13,7 @@ import { entryModules } from "#rules/effect/boundaryReference.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 
 const MESSAGE =
-	"Uses nothing only an adapter may use: no outside library or Node builtin value, host global, unsafe clock read, async, throw or Promise, Effect.run*, captured context or export that mentions an outside library's type. This is core code under the Effect rules; move it out of adapters/.";
+	"Uses nothing only an adapter may use: no outside library or Node builtin value, host global, DOM call, unsafe clock read, async, throw or Promise, Effect runner, captured context or export that mentions an outside library's type. This is core code under the Effect rules; move it out of adapters/.";
 
 function vendor(module: string): boolean {
 	return !(module.startsWith("node:") || module === "effect" || module.startsWith("@effect/") || module.startsWith("@shivaedev/"));
@@ -64,7 +64,7 @@ const adapterBridgeFindings = Effect.fn("Adapters.adapterBridgeFindings")(functi
 export const adapterBridges = defineRule({
 	check: adapterBridgeFindings,
 	description:
-		"A production file in a folder named adapters/ uses something only an adapter may use: a value of an outside library, peer, optional dependency or node:* builtin (imported, called or constructed), a host global such as window, fetch, timers or crypto, a synchronous currentTimeMillisUnsafe clock read, async, await, try, throw, a Promise value or Promise-typed parameter, Effect.run*, a captured context (Effect.provideContext, runPromiseWith, runForkWith, Effect.provide with a Context), or an exported declaration whose declared or inferred type mentions a type an outside library declares, even through a type-only import. What core code may import and a type-only import that never reaches an export do not count. A service folder with one such file stays whole, since its operations sit beside service.ts. Move a file that bridges nothing out of adapters/ into core, where the Effect rules apply.",
+		"A production file in a folder named adapters/ uses something only an adapter may use: a value of an outside library, peer, optional dependency or node:* builtin (imported, called or constructed), a host global such as window, fetch, timers or crypto, a call on a DOM node, document, window or observer, a synchronous currentTime*Unsafe clock read, async, await, try, throw, a Promise value or Promise-typed parameter, an Effect runner (Effect.run*, runMain, ManagedRuntime, FiberSet, FiberMap or FiberHandle makeRuntime), a captured context (Effect.provideContext, runPromiseWith, runForkWith, Effect.provide with a Context), or an exported declaration whose declared or inferred type mentions a type an outside library declares, even through a type-only import. What core code may import and a type-only import that never reaches an export do not count. A service folder with one such file stays whole, since its operations sit beside service.ts. Move a file that bridges nothing out of adapters/ into core, where the Effect rules apply.",
 	id: "effect/adapter-bridges",
 	registrable: false,
 });

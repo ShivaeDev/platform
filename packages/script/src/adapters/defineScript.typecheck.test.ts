@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Argument, Flag } from "effect/cli";
 import { expectTypeOf } from "vitest";
-import { defineScript } from "#defineScript.ts";
+import { defineScript } from "#adapters/defineScript.ts";
 
 defineScript({
 	args: {

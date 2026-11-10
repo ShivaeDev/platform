@@ -25,6 +25,16 @@ ruleStory.it(
 );
 
 ruleStory.it(
+	"effect/adapter-bridges reports an adapter that only builds URLs, since URL and URLSearchParams are data classes and not the DOM",
+	[effectResolves(), repositoryHas(MANIFEST, { content: adapterFiles.clientConnection, path: "src/adapters/clientConnection.ts" })],
+	function* ({ check }) {
+		const findings = yield* check(adapterBridges);
+
+		expect(findings).toEqual([{ file: "src/adapters/clientConnection.ts", message: expect.stringContaining(REPAIR) }]);
+	},
+);
+
+ruleStory.it(
 	"effect/adapter-bridges reports an adapter whose outside library type never leaves the file",
 	[
 		effectResolves(),
@@ -109,6 +119,25 @@ for (const [use, content] of [
 	["a captured context", adapterFiles.withPolicyContext],
 	["a host global", adapterFiles.clientId],
 	["an unsafe clock read", adapterFiles.draftPersistence],
+	["an unsafe nanosecond clock read", adapterFiles.traceDiagnostics],
+	["a DOM call on a value the default library types", adapterFiles.screenDialogs],
+	["a process runner", adapterFiles.defineScript],
+	["a runner handed to code that is not Effect", adapterFiles.clientErrorReporter],
+	[
+		"a managed runtime",
+		'import { Effect, Layer, ManagedRuntime } from "effect";\nconst runtime = ManagedRuntime.make(Layer.empty);\nexport function start(): void {\n\truntime.runFork(Effect.void);\n}\n',
+	],
+	...(["FiberHandle", "FiberMap"] as const).map(
+		(module) =>
+			[
+				`a runner from ${module}.makeRuntime`,
+				`import { Effect, ${module} } from "effect";\nexport const starter = Effect.gen(function* () {\n\tconst run = yield* ${module}.makeRuntime<never>();\n\treturn run;\n});\n`,
+			] as const,
+	),
+	[
+		"a run-main factory",
+		'import { Runtime } from "effect";\nexport const runMain = Runtime.makeRunMain(({ fiber }) => {\n\tfiber.currentDispatcher.flush();\n});\n',
+	],
 	["a Promise value", "const ready = Promise.withResolvers<void>();\nexport function release(): void {\n\tready.resolve();\n}\n"],
 	[
 		"a method of a value its outside library typed",
@@ -118,7 +147,7 @@ for (const [use, content] of [
 	ruleStory.it(
 		`effect/adapter-bridges accepts an adapter that uses ${use}`,
 		[
-			effectResolves(),
+			effectResolves("@effect/platform-node"),
 			repositoryHas(
 				MANIFEST,
 				...outsideLibrary("outside-http", 'export interface IncomingMessage { once(event: "close", listener: () => void): this; }\n'),

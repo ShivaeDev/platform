@@ -9,7 +9,7 @@ A small script should not need its own runtime and lifecycle wiring.
 ```ts
 import { Config, Effect } from "effect";
 import { Argument } from "effect/cli";
-import { defineScript } from "@shivaedev/script/defineScript.ts";
+import { defineScript } from "@shivaedev/script/adapters/defineScript.ts";
 
 defineScript({
 	args: { name: Argument.String("name") },
@@ -30,7 +30,7 @@ Use native `Config` inside the effect to read environment variables and native `
 ```ts
 import { Config, Effect, FileSystem } from "effect";
 import { Argument, Flag } from "effect/cli";
-import { defineScript } from "@shivaedev/script/defineScript.ts";
+import { defineScript } from "@shivaedev/script/adapters/defineScript.ts";
 
 defineScript({
 	args: {

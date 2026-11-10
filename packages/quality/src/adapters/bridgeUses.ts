@@ -58,8 +58,38 @@ function promiseValue(type: ts.Type): boolean {
 	return present.length > 0 && present.every(promise);
 }
 
+const DOM_LIBRARY = /(?:^|\/)lib\.(?:dom|webworker)[\w.]*\.d\.ts$/u;
+const DOM_OWNERS =
+	/^(?:Node|ParentNode|ChildNode|Element|HTML\w*|SVG\w*|Document\w*|ShadowRoot|Window\w*|EventTarget|Storage|History|Location|Navigator\w*|Selection|Range|CSSStyleDeclaration|DOMTokenList|\w+Observer)$/u;
+
+function domMember(declaration: ts.Declaration): boolean {
+	const owner = declaration.parent;
+	return (
+		DOM_LIBRARY.test(declaration.getSourceFile().fileName.replaceAll("\\", "/"))
+		&& (ts.isInterfaceDeclaration(owner) || ts.isClassDeclaration(owner))
+		&& DOM_OWNERS.test(owner.name?.text ?? "")
+	);
+}
+
+// Each pair names an Effect module and the members that run an Effect from outside, or hand a runner to code that is not Effect.
+const RUNNERS: readonly (readonly [RegExp, RegExp])[] = [
+	[/\/Effect\.(?:d\.)?ts$/u, /^run[A-Z]/u],
+	[/\/(?:Runtime|NodeRuntime|BunRuntime)\.(?:d\.)?ts$/u, /^(?:runMain|makeRunMain)$/u],
+	[/\/(?:FiberSet|FiberMap|FiberHandle)\.(?:d\.)?ts$/u, /^makeRuntime/u],
+	[/\/ManagedRuntime\.(?:d\.)?ts$/u, /^(?:make|run[A-Z])/u],
+];
+
 function unsafeClockRead(node: ts.Node): boolean {
-	return ts.isPropertyAccessExpression(node) && node.name.text === "currentTimeMillisUnsafe";
+	return ts.isPropertyAccessExpression(node) && /^currentTime\w*Unsafe$/u.test(node.name.text);
+}
+
+function calleeName(node: ts.CallExpression | ts.NewExpression): ts.Node {
+	return ts.isPropertyAccessExpression(node.expression) ? node.expression.name : node.expression;
+}
+
+function effectModule(fileName: string): boolean {
+	const module = declaredModule(fileName);
+	return module === "effect" || module?.startsWith("@effect/") === true;
 }
 
 export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: (module: string) => boolean): boolean {
@@ -74,9 +104,24 @@ export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: 
 		);
 	}
 	function outsideCall(node: ts.CallExpression | ts.NewExpression): boolean {
-		const file = checker.getResolvedSignature(node)?.getDeclaration()?.getSourceFile();
-		const module = file === undefined || program.isSourceFileDefaultLibrary(file) ? undefined : declaredModule(file.fileName);
+		const declaration = checker.getResolvedSignature(node)?.getDeclaration();
+		const file = declaration?.getSourceFile();
+		if (declaration !== undefined && file !== undefined && program.isSourceFileDefaultLibrary(file)) {
+			return domMember(declaration);
+		}
+		const module = file === undefined ? undefined : declaredModule(file.fileName);
 		return module !== undefined && outside(module);
+	}
+	function runner(node: ts.CallExpression | ts.NewExpression): boolean {
+		const symbol = checker.getSymbolAtLocation(calleeName(node));
+		const target = symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+		const file = target?.declarations?.[0]?.getSourceFile().fileName.replaceAll("\\", "/");
+		return (
+			target !== undefined
+			&& file !== undefined
+			&& effectModule(file)
+			&& RUNNERS.some(([module, member]) => module.test(file) && member.test(target.name))
+		);
 	}
 	function promiseResult(node: ts.SignatureDeclaration): boolean {
 		const signature = checker.getSignatureFromDeclaration(node);
@@ -87,7 +132,7 @@ export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: 
 			return true;
 		}
 		if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
-			return promiseValue(checker.getTypeAtLocation(node)) || outsideCall(node);
+			return promiseValue(checker.getTypeAtLocation(node)) || outsideCall(node) || runner(node);
 		}
 		return ts.isFunctionLike(node) && promiseResult(node);
 	}
