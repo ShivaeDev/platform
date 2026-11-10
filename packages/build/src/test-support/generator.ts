@@ -114,7 +114,7 @@ export const generator = storyKit({
 		}),
 		waitsForTheHeavyLock: () => {
 			story.tell("generate waits a second to try the heavy lock again");
-			return untilTimer("1 second");
+			return untilTimer("1 second", { timeout: "20 seconds" });
 		},
 	}),
 });

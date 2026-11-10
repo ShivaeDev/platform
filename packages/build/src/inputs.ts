@@ -1,7 +1,8 @@
 import { Effect, FileSystem, Option, Path } from "effect";
 import { Digest } from "effect/crypto";
-import { type ProjectConfig, resolvedImports, typeScriptVersion } from "#adapters/typeScript.ts";
-import { byText } from "#order.ts";
+import ts from "typescript";
+import { type ProjectConfig, resolvedImports } from "#adapters/typeScript.ts";
+import { byText } from "#byText.ts";
 import packageInfo from "#package.json" with { type: "json" };
 
 const LOCKFILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lock"];
@@ -42,7 +43,7 @@ export const generatorFingerprint = Effect.fn("Build.generatorFingerprint")(func
 			return info.type === "File" ? `${file}\u0000${yield* fs.readFileString(full)}` : "";
 		}),
 	);
-	const versions = `@shivaedev/build ${packageInfo.version}, typescript ${typeScriptVersion}`;
+	const versions = `@shivaedev/build ${packageInfo.version}, typescript ${ts.version}`;
 	return yield* digest.digestHex(Digest.sha256, new TextEncoder().encode([versions, ...texts].join("\u0001")));
 });
 
@@ -62,7 +63,6 @@ const importGraph = Effect.fn("Build.importGraph")(function* (project: Project, 
 	return seen;
 });
 
-// Everything the module's generated file depends on; equal keys mean the file would come out byte for byte the same.
 export const inputKey = Effect.fn("Build.inputKey")(function* (project: Project, module: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;

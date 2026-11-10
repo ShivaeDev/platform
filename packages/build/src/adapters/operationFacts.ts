@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { copiedCode } from "#adapters/copiedCode.ts";
-import { failuresOf } from "#adapters/failures.ts";
+import { failuresOf } from "#adapters/failuresOf.ts";
 import { initializerOf, propertyOf } from "#adapters/moduleCalls.ts";
 import { literalOf, type TypeReading, typeArguments } from "#adapters/typeReading.ts";
 import { wireForm } from "#adapters/wireForm.ts";

@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { generatedOnce, generator, notesProject } from "#test/generator.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
@@ -28,7 +29,9 @@ generator.it(
 		const written = yield* generatedFile(NOTES);
 		yield* removesTheGeneratedFile(NOTES);
 
-		expect(yield* generates()).toEqual({ files: { [NOTES]: "written" }, problems: [], programBuilt: false, result: "succeeded" });
-		expect(yield* generatedFile(NOTES)).toBe(written);
+		yield* outcomes([
+			["generate", () => generates(), { files: { [NOTES]: "written" }, problems: [], programBuilt: false, result: "succeeded" }],
+			["the generated file", () => generatedFile(NOTES), written],
+		]);
 	},
 );

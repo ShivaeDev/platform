@@ -1,12 +1,12 @@
 import { Effect, Option, Path } from "effect";
+import { byText } from "#byText.ts";
 import { code, type ImportRef } from "#code.ts";
 import type { PlannedModule, PlannedOperation } from "#emit.ts";
 import type { CodePart, DeclaredClass, ModuleFacts, OperationFacts, WireForm } from "#facts.ts";
-import { byText } from "#order.ts";
+import { formCode } from "#formCode.ts";
 import { packageScopeOf } from "#packageScope.ts";
 import { rejectionsOf } from "#rejections.ts";
 import { specifierFor } from "#specifiers.ts";
-import { formCode } from "#wireForms.ts";
 
 export interface Placement {
 	readonly output: string;

@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { moduleCalls } from "#adapters/moduleCalls.ts";
 import { moduleFacts } from "#adapters/moduleFacts.ts";
-import { BuildFailure } from "#errors.ts";
+import { BuildFailure } from "#BuildFailure.ts";
 
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.
@@ -36,8 +36,6 @@ export const readConfig = Effect.fn("Build.readConfig")(function* (tsconfig: str
 	};
 	return config;
 });
-
-export const typeScriptVersion = ts.version;
 
 export function definesModule(file: string, text: string): boolean {
 	return text.includes("defineModule") && moduleCalls(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)).length > 0;

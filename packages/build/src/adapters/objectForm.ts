@@ -1,6 +1,6 @@
 import ts from "typescript";
+import { isReadonlyProperty } from "#adapters/isReadonlyProperty.ts";
 import { declaredClass, isSchemaClass, type TypeReading } from "#adapters/typeReading.ts";
-import { isReadonlyProperty } from "#adapters/typeScriptInternals.ts";
 import type { Field, WireForm } from "#facts.ts";
 
 type Read = (type: ts.Type, path: string) => WireForm | undefined;

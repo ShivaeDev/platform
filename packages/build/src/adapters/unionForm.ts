@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { declaredIn, literalOf, type TypeReading } from "#adapters/typeReading.ts";
+import { byText } from "#byText.ts";
 import type { WireForm } from "#facts.ts";
-import { byText } from "#order.ts";
 
 type Read = (type: ts.Type, path: string) => WireForm | undefined;
 

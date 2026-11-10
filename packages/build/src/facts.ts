@@ -2,7 +2,6 @@
 
 export interface ImportFact {
 	readonly local: string;
-	// The imported name: an export name, "default" or "*".
 	readonly name: string;
 	readonly specifier: string;
 	// The file the import resolves to, so a specifier written in another package can be rewritten for the project.

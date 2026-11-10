@@ -9,14 +9,14 @@ const decodeRecord = Schema.decodeUnknownOption(CacheJson);
 
 const encodeRecord = Schema.encodeEffect(CacheJson);
 
-function recordPath(path: Path.Path, root: string, module: string): string {
+const recordPath = Effect.fn("Build.recordPath")(function* (root: string, module: string) {
+	const path = yield* Path.Path;
 	return path.join(root, "node_modules", ".cache", "@shivaedev", "build", `${path.relative(root, module)}.json`);
-}
+});
 
 // The output of the last run whose inputs had this key; another key, or an unreadable record, means the module must be derived.
 export const cachedOutput = Effect.fn("Build.cachedOutput")(function* (root: string, module: string, key: string) {
-	const path = yield* Path.Path;
-	const text = yield* readIfPresent(recordPath(path, root, module));
+	const text = yield* readIfPresent(yield* recordPath(root, module));
 	return Option.filter(
 		Option.flatMap(text, (json) => decodeRecord(json)),
 		(record) => record.key === key,
@@ -24,6 +24,5 @@ export const cachedOutput = Effect.fn("Build.cachedOutput")(function* (root: str
 });
 
 export const recordOutput = Effect.fn("Build.recordOutput")(function* (root: string, module: string, key: string, content: string) {
-	const path = yield* Path.Path;
-	yield* writeAtomically(recordPath(path, root, module), yield* encodeRecord({ content, key }));
+	yield* writeAtomically(yield* recordPath(root, module), yield* encodeRecord({ content, key }));
 });

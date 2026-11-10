@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Path, Stream } from "effect";
@@ -6,7 +7,13 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 const PACKAGE = fileURLToPath(new URL("../..", import.meta.url));
 
 // The packages a fixture project imports, linked from this package's own install so they resolve as an application's do.
-const LINKED = ["effect", "@shivaedev/changes", "@shivaedev/contract", "@shivaedev/errors", "@shivaedev/quality"];
+const LINKED: readonly (readonly [string, string])[] = [
+	["effect", createRequire(import.meta.url).resolve("effect/package.json")],
+	["@shivaedev/changes", createRequire(import.meta.url).resolve("@shivaedev/changes/package.json")],
+	["@shivaedev/contract", createRequire(import.meta.url).resolve("@shivaedev/contract/package.json")],
+	["@shivaedev/errors", createRequire(import.meta.url).resolve("@shivaedev/errors/package.json")],
+	["@shivaedev/quality", createRequire(import.meta.url).resolve("@shivaedev/quality/package.json")],
+];
 
 const MANIFEST = { imports: { "#*": "./src/*" }, name: "fixture-app", private: true, type: "module" };
 
@@ -22,9 +29,9 @@ export const emptyProject = Effect.fn("BuildStory.emptyProject")(function* () {
 	const root = yield* fs.realPath(yield* fs.makeTempDirectoryScoped({ prefix: "build-story-" }));
 	yield* fs.writeFileString(path.join(root, "package.json"), `${JSON.stringify(MANIFEST, undefined, "\t")}\n`);
 	yield* fs.writeFileString(path.join(root, "tsconfig.json"), `${JSON.stringify(TSCONFIG, undefined, "\t")}\n`);
-	for (const name of LINKED) {
+	for (const [name, manifest] of LINKED) {
 		yield* fs.makeDirectory(path.dirname(path.join(root, "node_modules", name)), { recursive: true });
-		yield* fs.symlink(path.join(PACKAGE, "node_modules", name), path.join(root, "node_modules", name));
+		yield* fs.symlink(path.dirname(manifest), path.join(root, "node_modules", name));
 	}
 	return root;
 });
@@ -48,7 +55,6 @@ const runIn = Effect.fn("BuildStory.runIn")(function* (root: string, lock: strin
 	return { code: Number(code), stderr: stderr.trim(), stdout: stdout.trim() };
 }, Effect.scoped);
 
-// The repository's TypeScript 7 compiler, as the application's type check runs it.
 export const typeCheck = Effect.fn("BuildStory.typeCheck")(function* (root: string, lock: string) {
 	const { code, stderr, stdout } = yield* runIn(root, lock, `${PACKAGE}node_modules/.bin/tsc`, [
 		"--noEmit",

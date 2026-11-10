@@ -1,5 +1,5 @@
+import { byText } from "#byText.ts";
 import type { Code, ImportRef } from "#code.ts";
-import { byText } from "#order.ts";
 
 function keyOf(ref: ImportRef): string {
 	return `${ref.specifier}\u0000${ref.name}`;

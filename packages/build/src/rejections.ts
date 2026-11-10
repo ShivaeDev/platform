@@ -1,5 +1,5 @@
+import { byText } from "#byText.ts";
 import type { DeclaredClass, Failure } from "#facts.ts";
-import { byText } from "#order.ts";
 
 // Never rejections: the wire adds the automatic two to every operation, and the others are infrastructure or policy outcomes.
 const NOT_REJECTIONS: ReadonlySet<string> = new Set([
