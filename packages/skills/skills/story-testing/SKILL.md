@@ -107,6 +107,8 @@ Stories and kits never wait on real time: real sleeps, wall-clock polling, `Date
 
 For contract clients, wire `activityScreenSignal(clientActivity(client))` from `@shivaedev/contract/clientActivity.ts` into the screen driver's `activity` option. Screen stories settle on commands in flight and each mounted query's first result. Contract supplies the query/command split; never list queries by name as settling exceptions. An open live query that has delivered is normal screen state, including while it awaits a later refresh. To wait for its next change, start `nextLiveHint()` before the outside write, then settle through the refresh with `activityScreenSignal(activity, isClientIdle)`. Use `findText()` when the expectation is a particular changed value.
 
+A command settles on its receipt, and the server's rerun reaches a live query later as a push that `settle()` does not wait for. When a screen action's result reaches the screen only through a live query, such as a new note in a live list, the kit verb wraps the action in the screen driver's `withLiveAnswer(liveAnswers(registry, name, query), action)`, with `liveAnswers` from `@shivaedev/contract/liveAnswers.ts`, which returns once that query has answered after the action. Settle after it as usual.
+
 Screen settling also observes the whole document, so portalled sheets and dialogs settle without extra kit setup.
 
 A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.

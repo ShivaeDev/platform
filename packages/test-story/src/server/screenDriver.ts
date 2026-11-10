@@ -4,6 +4,8 @@ import type * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { directScreenAct, type ScreenAct, screenAct, screenPerform } from "#server/adapters/screenAct.ts";
 import { screenElements } from "#server/adapters/screenElements.ts";
+import type { LiveAnswerSignal } from "#server/LiveAnswerSignal.ts";
+import { nextLiveAnswer } from "#server/nextLiveAnswer.ts";
 import { nextScreenHint } from "#server/nextScreenHint.ts";
 import { screenInteractions } from "#server/screenInteractions.ts";
 import { screenReadouts } from "#server/screenReadouts.ts";
@@ -115,5 +117,13 @@ function makeScreenActions(options: ScreenDriverOptions, dialogs: boolean) {
 		settle: (settings?: { readonly timeoutMs?: number }) =>
 			pending === undefined && activity === undefined && transport === undefined ? Effect.fail(new MissingScreenPending()) : waits.settle(settings),
 		submit: (selector: ScreenTarget = "form") => perform(`submit ${targetName(selector)}`, () => elements.form(selector).requestSubmit()),
+		withLiveAnswer: <A, E, R>(answers: LiveAnswerSignal, action: Effect.Effect<A, E, R>, settings: { readonly timeoutMs?: number } = {}) =>
+			Effect.gen(function* () {
+				const before = yield* answers.current;
+				const result = yield* action;
+				tell(`wait for a live answer to ${answers.name}`);
+				yield* withLive(screenAct(act, nextLiveAnswer(answers, before, settings.timeoutMs ?? timeoutMs)));
+				return result;
+			}),
 	};
 }
