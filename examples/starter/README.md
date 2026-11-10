@@ -18,7 +18,7 @@ To remove the example, delete `src/modules/notes` and its imports and entries in
 
 Client modules declare optional `menu` and `overlays` arrays of React nodes and a `footer` React node beside `routes` in `src/client/Module.ts`. The shared route shell renders menu entries in its Main navigation, then route content, overlays and footer content. Each slot follows the registration order in `src/client/modules.ts`, preserving array order within a module. A module without slots keeps its route output without adding navigation or footer elements.
 
-Client code imports rendering libraries such as Lucide, Base UI, TanStack Router and the `cn` styling helper directly. Integrations that perform I/O or manage external state stay in `adapters/`; the Better Auth client bridge lives in `src/client/adapters/auth.ts`. The starter and generated apps start with an empty Quality baseline.
+Client code imports outside libraries such as Lucide, Base UI, TanStack Router and the `cn` styling helper directly, and so does server code; `adapters/` holds only what Quality forbids elsewhere because a library requires it. The Better Auth client bridge lives in `src/client/adapters/auth.ts`. The starter and generated apps start with an empty Quality baseline.
 
 ## Create or run it
 

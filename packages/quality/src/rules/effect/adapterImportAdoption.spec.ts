@@ -4,14 +4,14 @@ import { biomeFormatted, committed, qualityInstalled, repositoryHas, repositoryS
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
-	"adoption records outside imports in one row per file and tightening removes repaired import debt",
+	"adoption records Node builtin imports in one row per file and tightening removes repaired import debt",
 	[qualityInstalled(), repositoryHas({ content: 'import "node:fs";\nimport "node:os";\n', path: "src/work.ts" }), biomeFormatted(), committed()],
 	function* ({ outcome, reads, runs, stdout, writes }) {
 		yield* runs("lint");
 
 		yield* outcomes([
 			["gate", () => outcome(), "rejected"],
-			["import finding", () => stdout(), expect.stringContaining('src/work.ts:1  Imports outside library "node:fs"')],
+			["import finding", () => stdout(), expect.stringContaining('src/work.ts:1  Imports Node builtin "node:fs"')],
 		]);
 
 		yield* runs("baseline", "write", "--rule", "effect/adapter-imports");

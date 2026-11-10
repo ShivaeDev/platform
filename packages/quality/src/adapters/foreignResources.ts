@@ -47,10 +47,6 @@ function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewEx
 export function foreignResources(checker: ts.TypeChecker, sources: readonly ts.SourceFile[]) {
 	const originates = parameterOrigins(checker, sources);
 	return (parameter: ts.ParameterDeclaration): boolean => {
-		const source = parameter.getSourceFile();
-		if (!/(?:^|\/)adapters\//u.test(source.fileName)) {
-			return false;
-		}
 		const type = checker.getTypeAtLocation(parameter);
 		if (!(type.getSymbol()?.declarations ?? []).some(foreignDeclaration) || type.getProperty("~effect/Context/Service") !== undefined) {
 			return false;

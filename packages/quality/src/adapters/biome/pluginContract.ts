@@ -14,11 +14,8 @@ function pluginType(node: ts.TypeNode | undefined, { checker }: Syntax): boolean
 	});
 }
 
-export function pluginContract({ source, checker }: Syntax): boolean {
-	if (!/(?:^|\/)adapters\//u.test(source.fileName)) {
-		return false;
-	}
-	const syntax = { checker, source };
+export function pluginContract(syntax: Syntax): boolean {
+	const { checker, source } = syntax;
 	function contract(node: ts.Expression): boolean {
 		if (ts.isSatisfiesExpression(node) || ts.isAsExpression(node)) {
 			return pluginType(node.type, syntax);
