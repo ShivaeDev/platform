@@ -75,7 +75,7 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage.
 
-Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files, which the default run skips. For example, after local setup:
+Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. The `quality` and `shivaedev-skills` bins run their sources too: in the workspace each `bin` points at a `bin/source.ts` launcher, and `publishConfig.bin` packs the published bin at `dist/cli.js`. Add `--project slow` for `*.slow.test.ts` files, which the default run skips. For example, after local setup:
 
 ```sh
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/repositoryCrud.spec.ts
