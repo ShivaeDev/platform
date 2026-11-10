@@ -6,10 +6,6 @@ import { notesApplication, refusedModule, vite } from "#test/vite.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
 
-function listSuccess(text: string) {
-	return successOf(text, "list");
-}
-
 vite.it(
 	"in the dev server, a new field on list's return type rewrites the generated client, invalidates the page script that imports it and reloads the browser",
 	[notesApplication()],
@@ -21,8 +17,12 @@ vite.it(
 		yield* edits("src/modules/notes/list.ts", "readonly createdAt: Date;", "readonly createdAt: Date;\n\treadonly archived: boolean;");
 
 		yield* outcomes([
-			["the browser", () => browserReceives(), "full reload"],
-			["list's generated success", () => Effect.map(generatedFile(NOTES), listSuccess), expect.stringContaining("archived: Schema.Boolean")],
+			["the browser", () => browserReceives(), { reloadAfter: "src/modules/notes/list.ts" }],
+			[
+				"list's generated success",
+				() => Effect.map(generatedFile(NOTES), (text) => successOf(text, "list")),
+				expect.stringContaining("archived: Schema.Boolean"),
+			],
 			["src/client.ts in Vite's module graph", () => moduleGraphEntry("src/client.ts"), "invalidated"],
 		]);
 	},

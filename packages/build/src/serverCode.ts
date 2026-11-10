@@ -6,13 +6,11 @@ export interface BundleModule {
 	readonly imports: readonly string[];
 }
 
-// The client build's module graph as the bundler resolved it, keyed by module id.
 export interface BundleGraph {
 	readonly entries: readonly string[];
 	readonly modules: ReadonlyMap<string, BundleModule>;
 }
 
-// Ids of the modules that mark server code, resolved from the application root the way its own imports resolve.
 export interface ServerMarkers {
 	readonly defineModule: Option.Option<string>;
 	readonly operation: Option.Option<string>;

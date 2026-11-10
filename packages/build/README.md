@@ -58,7 +58,7 @@ import { buildPlugin } from "@shivaedev/build/adapters/vitePlugin.ts";
 
 export default {
 	plugins: [buildPlugin({ serverOnly: ["pg-boss"] })],
-	test: { globalSetup: ["@shivaedev/build/adapters/vitestSetup.ts"] },
+	test: { globalSetup: ["@shivaedev/build/adapters/vitest/setup.ts"] },
 };
 ```
 
@@ -70,8 +70,8 @@ The global setup generates once before Vitest loads any test file, and a refusal
 
 With a generated client the browser never needs a module or its operations, so the plugin fails a client build whose module graph holds server code. It reads the bundler's module graph, from each client entry, and stops at the nearest module that is:
 
-- a module file, one that imports `defineModule` from `@shivaedev/contract`;
-- an operation file, one that imports `query` or `command` from `@shivaedev/contract`;
+- a module file, one that imports `defineModule` from `@shivaedev/contract/defineModule.ts`;
+- an operation file, one that imports `query` or `command` from `@shivaedev/contract/operation.ts`;
 - a file under a `server/` folder;
 - a Node builtin;
 - `effect/sql`, imported from outside Effect (Effect's own index re-exports modules that import it, which do not count);

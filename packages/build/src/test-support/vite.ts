@@ -1,15 +1,17 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, FileSystem, Option, Path, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, vitestRun, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
-import { NOTES_PAGE, NOTES_TEST, SCREEN_IMPORTING_THE_MODULE, SERVER_CODE_PAGES } from "#test/viteProject.ts";
+import { VITE_PROJECT } from "#test/viteProject.ts";
 import { type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
 
 interface ViteEngine {
 	devServer: Option.Option<DevServer>;
+	readonly edited: Set<string>;
 	readonly lock: string;
 	readonly root: string;
 }
@@ -22,7 +24,7 @@ export const vite = storyKit({
 	*create() {
 		const root = yield* emptyProject();
 		const path = yield* Path.Path;
-		const engine: ViteEngine = { devServer: Option.none(), lock: path.join(root, "heavy-process.lock"), root };
+		const engine: ViteEngine = { devServer: Option.none(), edited: new Set(), lock: path.join(root, "heavy-process.lock"), root };
 		return engine;
 	},
 	inspect: ({ root }) => ({ root }),
@@ -37,9 +39,20 @@ export const vite = storyKit({
 				yield* Effect.promise(() => fetch(`${url}${file}`).then((response) => response.text()));
 			}
 		}),
+		// macOS reports the fixture's own writes from just before the watcher started, and Vite reloads the page for them; those
+		// reloads answer no edit of the story, so the browser's next answer to an edit is the first reload one caused.
 		browserReceives: Effect.fn("BuildStory.browserReceives")(function* () {
 			const { browser } = yield* runningDevServer(engine);
-			return yield* Queue.take(browser);
+			const path = yield* Path.Path;
+			for (;;) {
+				const message = yield* Queue.take(browser);
+				if ("overlay" in message) {
+					return message;
+				}
+				if (engine.edited.has(message.reloadAfter)) {
+					return { reloadAfter: path.relative(engine.root, message.reloadAfter) };
+				}
+			}
 		}),
 		builds: (...serverOnly: readonly string[]) => {
 			story.tell(
@@ -57,7 +70,8 @@ export const vite = storyKit({
 			if (!text.includes(from)) {
 				return yield* Effect.die(new Error(`${file} does not contain ${from}`));
 			}
-			yield* fs.writeFileString(path.join(engine.root, file), text.replace(from, to));
+			engine.edited.add(path.join(engine.root, file));
+			yield* writeAtomically(path.join(engine.root, file), text.replace(from, to));
 		}),
 		generatedFile: Effect.fn("BuildStory.generatedFile")(function* (file: string) {
 			const fs = yield* FileSystem.FileSystem;
@@ -65,7 +79,6 @@ export const vite = storyKit({
 			const full = path.join(engine.root, file);
 			return (yield* fs.exists(full)) ? yield* fs.readFileString(full) : "missing";
 		}),
-		// Whether the next request for the module transforms it again, as Vite's module graph records it.
 		moduleGraphEntry: Effect.fn("BuildStory.moduleGraphEntry")(function* (file: string) {
 			const { server } = yield* runningDevServer(engine);
 			const path = yield* Path.Path;
@@ -107,22 +120,24 @@ export const vite = storyKit({
 
 export function notesApplication() {
 	return vite.trait("project", "the project has the notes module and a page whose script imports its generated client", (engine) =>
-		writeFiles(engine.root, { ...NOTES_PROJECT, ...NOTES_PAGE }),
+		writeFiles(engine.root, { ...NOTES_PROJECT, ...VITE_PROJECT.notesPage }),
 	);
 }
 
 export function screenImportingTheModule() {
 	return vite.trait("page", "the page's notes screen imports the notes module instead of its generated client", (engine) =>
-		writeFiles(engine.root, SCREEN_IMPORTING_THE_MODULE),
+		writeFiles(engine.root, VITE_PROJECT.screenImportingTheModule),
 	);
 }
 
-export function pageImporting(kind: keyof typeof SERVER_CODE_PAGES) {
-	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, SERVER_CODE_PAGES[kind]));
+export function pageImporting(kind: keyof typeof VITE_PROJECT.serverCodePages) {
+	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, VITE_PROJECT.serverCodePages[kind]));
 }
 
 export function notesTest() {
-	return vite.trait("page", "the project has a test file that imports the generated notes wire", (engine) => writeFiles(engine.root, NOTES_TEST));
+	return vite.trait("page", "the project has a test file that imports the generated notes wire", (engine) =>
+		writeFiles(engine.root, VITE_PROJECT.notesTest),
+	);
 }
 
 export function refusedModule() {

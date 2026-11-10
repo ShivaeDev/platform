@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
 
-// The browser side of the notes project: a page whose script imports the generated client, as an application's does.
-export const NOTES_PAGE: Readonly<Record<string, string>> = {
+// The browser side of the notes project, as an application writes it, and the variants that reach server code instead.
+
+const NOTES_PAGE: Readonly<Record<string, string>> = {
 	"index.html": `<!doctype html>
 <html>
 	<body>
@@ -15,8 +16,7 @@ console.log(Notes);
 `,
 };
 
-// A screen that reaches the notes module itself instead of its generated client.
-export const SCREEN_IMPORTING_THE_MODULE: Readonly<Record<string, string>> = {
+const SCREEN_IMPORTING_THE_MODULE: Readonly<Record<string, string>> = {
 	"src/client.ts": `import { notesScreen } from "#screens/notes.ts";
 
 console.log(notesScreen);
@@ -27,8 +27,7 @@ export const notesScreen = { module: Notes };
 `,
 };
 
-// Pages whose script reaches one kind of server code directly, each with the file the chain ends at.
-export const SERVER_CODE_PAGES = {
+const SERVER_CODE_PAGES = {
 	"a file under a server folder": {
 		"src/client.ts": `import { sessionCookie } from "#server/session.ts";
 
@@ -69,9 +68,8 @@ console.log(SqlClient);
 
 const CONDITIONS = JSON.stringify(["@shivaedev/source", "node", "development|production"]);
 
-// A test file that reads the generated wire the moment it loads, and the Vitest config that sets the generator up. The
-// global setup runs from this package's sources, which Vitest's own environment resolves only with the source condition.
-export const NOTES_TEST: Readonly<Record<string, string>> = {
+// The global setup runs from this package's sources, which Vitest's own environment resolves only with the source condition.
+const NOTES_TEST: Readonly<Record<string, string>> = {
 	"src/notes.test.ts": `import { expect, test } from "vitest";
 import { notesWire } from "#generated/modules/notes/notes.ts";
 
@@ -82,7 +80,14 @@ test("the generated notes wire lists the module's operations", () => {
 	"vitest.config.mjs": `export default {
 	environments: { __vitest__: { resolve: { conditions: ${CONDITIONS} } } },
 	ssr: { resolve: { conditions: ${CONDITIONS} } },
-	test: { globalSetup: [${JSON.stringify(fileURLToPath(new URL("../adapters/vitestSetup.ts", import.meta.url)))}], include: ["src/**/*.test.ts"] },
+	test: { globalSetup: [${JSON.stringify(fileURLToPath(new URL("../adapters/vitest/setup.ts", import.meta.url)))}], include: ["src/**/*.test.ts"] },
 };
 `,
+};
+
+export const VITE_PROJECT = {
+	notesPage: NOTES_PAGE,
+	notesTest: NOTES_TEST,
+	screenImportingTheModule: SCREEN_IMPORTING_THE_MODULE,
+	serverCodePages: SERVER_CODE_PAGES,
 };

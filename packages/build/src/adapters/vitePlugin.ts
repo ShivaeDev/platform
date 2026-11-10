@@ -7,7 +7,6 @@ import { type GenerateRound, type WatchedGeneration, watchedGeneration } from "#
 import { type BundleGraph, type BundleModule, type ServerMarkers, serverCodeIn } from "#serverCode.ts";
 
 export interface BuildPluginOptions {
-	// Packages whose code must never reach the browser bundle, such as a job queue or a database driver.
 	readonly serverOnly?: readonly string[];
 }
 
@@ -141,8 +140,6 @@ function bundleCheck(serverOnly: readonly string[]): Plugin {
 	};
 }
 
-// Generates each defined module's files when a build or the dev server starts and again when the dev server sees one of
-// their inputs change, and fails a client build whose module graph holds server code.
 export function buildPlugin(options: BuildPluginOptions = {}): Plugin[] {
 	return [generateFiles(), bundleCheck(options.serverOnly ?? [])];
 }

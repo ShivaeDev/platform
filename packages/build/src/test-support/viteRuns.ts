@@ -2,8 +2,8 @@ import { Effect, Queue } from "effect";
 import { build, createServer, type InlineConfig, type Logger, type ViteDevServer } from "vite";
 import { buildPlugin } from "#adapters/vitePlugin.ts";
 
-// What reaches the browser over Vite's HMR socket, in the words a developer sees.
-export type BrowserMessage = "full reload" | { readonly overlay: string } | { readonly update: readonly string[] };
+// What reaches the browser over Vite's HMR socket: a page reload and the file whose change caused it, or the error overlay.
+export type BrowserMessage = { readonly overlay: string } | { readonly reloadAfter: string };
 
 function ignore() {
 	return undefined;
@@ -39,7 +39,6 @@ function configFor(root: string, terminal: string[], serverOnly: readonly string
 	};
 }
 
-// Vite's own failure, as the message it prints.
 function attempt<A>(start: () => Promise<A>) {
 	return Effect.tryPromise({ catch: (cause) => ({ failed: cause instanceof Error ? cause.message : String(cause) }), try: start });
 }
@@ -53,14 +52,11 @@ export const viteBuild = Effect.fn("BuildStory.viteBuild")(function* (root: stri
 });
 
 function messageOf(data: unknown): BrowserMessage | undefined {
-	const payload: { type?: string; err?: { message?: string }; updates?: { path: string }[] } = JSON.parse(String(data));
+	const payload: { type?: string; err?: { message?: string }; triggeredBy?: string } = JSON.parse(String(data));
 	if (payload.type === "full-reload") {
-		return "full reload";
+		return { reloadAfter: payload.triggeredBy ?? "" };
 	}
-	if (payload.type === "error") {
-		return { overlay: payload.err?.message ?? "" };
-	}
-	return payload.type === "update" ? { update: (payload.updates ?? []).map((update) => update.path) } : undefined;
+	return payload.type === "error" ? { overlay: payload.err?.message ?? "" } : undefined;
 }
 
 export interface DevServer {
@@ -70,7 +66,6 @@ export interface DevServer {
 	readonly url: string;
 }
 
-// A dev server on a free port with a connected browser socket; closed with the story's scope.
 export const viteDevServer = Effect.fn("BuildStory.viteDevServer")(function* (root: string) {
 	const terminal: string[] = [];
 	const server = yield* Effect.acquireRelease(

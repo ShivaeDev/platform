@@ -10,7 +10,9 @@ vite.it(
 	function* ({ generatedFile, runsVitest }) {
 		expect(yield* generatedFile(NOTES)).toBe("missing");
 
-		expect(yield* runsVitest()).toEqual({ ran: { "the generated notes wire lists the module's operations": "passed" } });
+		const run = yield* runsVitest();
+
+		expect(run).toEqual({ ran: { "the generated notes wire lists the module's operations": "passed" } });
 	},
 );
 

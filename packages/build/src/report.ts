@@ -11,7 +11,6 @@ export interface ModuleOutcome {
 }
 
 export interface GenerateReport {
-	// Every file whose content went into a module's cache key, absolute, so a watcher knows which edits call for a new run.
 	readonly inputs: readonly string[];
 	readonly modules: readonly ModuleOutcome[];
 	readonly programBuilt: boolean;

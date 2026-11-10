@@ -78,7 +78,6 @@ interface VitestReport {
 	readonly testResults?: readonly { readonly assertionResults: readonly { readonly status: string; readonly title: string }[] }[];
 }
 
-// The vitest command line, with the JSON reporter so the story reads which tests ran rather than parsing the console.
 export const vitestRun = Effect.fn("BuildStory.vitestRun")(function* (root: string, lock: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
