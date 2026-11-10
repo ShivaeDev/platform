@@ -6,15 +6,15 @@ import { loadQuery } from "#adapters/loadQuery.ts";
 import { screenPending } from "#adapters/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { type Engine, sessionRegistry } from "#test/loaderScreenState.ts";
+import { type Engine, type RouteHost, sessionRegistry } from "#test/loaderScreenState.ts";
 import { NoteShell } from "#test/NoteShell.tsx";
 import { SessionRegistry } from "#test/SessionRegistry.tsx";
 
-function remember(engine: Engine, registry: AtomRegistry.AtomRegistry) {
+function remember(engine: Engine<RouteHost>, registry: AtomRegistry.AtomRegistry) {
 	engine.registry = registry;
 }
 
-export const loaderRoute = Effect.fn("LoaderScreen.loaderRoute")(function* (engine: Engine) {
+export const loaderRoute = Effect.fn("LoaderScreen.loaderRoute")(function* (engine: Engine<RouteHost>) {
 	const { host } = engine;
 	engine.view = yield* Effect.acquireRelease(
 		Effect.promise(() => render(null)),
@@ -65,5 +65,8 @@ export const loaderRoute = Effect.fn("LoaderScreen.loaderRoute")(function* (engi
 			</SessionBoundary>,
 		),
 	);
-	engine.pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry(engine)));
+	engine.pending =
+		engine.activity === undefined
+			? yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry(engine)))
+			: () => router.state.isLoading;
 });

@@ -6,7 +6,7 @@ for (const source of ["screen", "loader"] as const) {
 	recentQueries.it(
 		`${source}: returning within five minutes shows stale data immediately, then the subscription's fresh result`,
 		[signedIn],
-		function* ({ answer, leave, open, pass, reads, shown, startLoader, untilRetained }) {
+		function* ({ answer, handOverWindowPasses, leave, open, pass, reads, shown, startLoader, untilRetained }) {
 			if (source === "screen") {
 				yield* open();
 			} else {
@@ -15,6 +15,8 @@ for (const source of ["screen", "loader"] as const) {
 			yield* answer("Alice's original note");
 			if (source === "screen") {
 				yield* leave();
+			} else {
+				yield* handOverWindowPasses();
 			}
 			yield* untilRetained();
 			yield* pass("4 minutes");

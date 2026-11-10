@@ -7,6 +7,7 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { storyRuntime } from "#test/storyRuntime.ts";
 
 const notes = { _tag: "List", collection: "loaderNotes" } as const;
 const Get = query("get", { readPolicy: () => Effect.succeed(true), reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
@@ -42,6 +43,7 @@ export const loaderHost = Effect.fnUntraced(function* () {
 	const { api, Client } = makeRpcClient(Notes, {
 		live: false,
 		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
+		runtime: yield* storyRuntime,
 		url,
 	});
 	const atom = api.get.query();

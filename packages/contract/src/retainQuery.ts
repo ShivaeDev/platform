@@ -5,6 +5,12 @@ import { retainedQueries } from "#adapters/retainedQueries.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import { wrapAtom } from "#wrapAtom.ts";
 
+const runtimes = new WeakMap<Atom.Atom<unknown>, Atom.AtomRuntime<unknown, unknown>>();
+
+export function queryRuntime(query: Atom.Atom<unknown>): Atom.AtomRuntime<unknown, unknown> | undefined {
+	return runtimes.get(query);
+}
+
 export function retainQuery<A, E>(runtime: Atom.AtomRuntime<unknown, unknown>, atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) {
 	const snapshot = Atom.make<Option.Option<AsyncResult.Success<A, E>>>(Option.none()).pipe(Atom.setIdleTTL(0));
 	const signals = querySignals(atom);
@@ -32,5 +38,6 @@ export function retainQuery<A, E>(runtime: Atom.AtomRuntime<unknown, unknown>, a
 		return display(atom.read(context));
 	}).pipe(Atom.setIdleTTL(0));
 	shareQuerySignals(retained, atom);
+	runtimes.set(retained, runtime);
 	return retained;
 }

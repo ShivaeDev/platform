@@ -23,15 +23,15 @@ export async function loadQuery<A, E>(
 			await recheckUnauthorized(registry, result.failure);
 			throw result.failure;
 		}
+		handoff.handOver();
 		return result.success;
 	} catch (error) {
+		handoff.release();
 		if (signal.aborted) {
 			const canceled = new Error("Query loading canceled", { cause: error });
 			canceled.name = "AbortError";
 			throw canceled;
 		}
 		throw error;
-	} finally {
-		handoff.complete();
 	}
 }
