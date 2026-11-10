@@ -115,6 +115,10 @@ export function generatedReadouts(engine: Engine, target: () => string) {
 				const moved = spawnSync("sh", ["-c", `${cd}\npwd`], { cwd: engine.root, encoding: "utf8" });
 				return moved.status === 0 ? relative(realpathSync(engine.root), moved.stdout.trim()) : `cd failed: ${moved.stderr.trim()}`;
 			}),
+		qualityCalls: () =>
+			Effect.sync(() =>
+				existsSync(at(".git/quality-calls.log")) ? lines(readFileSync(at(".git/quality-calls.log"), "utf8")) : "Quality was never called",
+			),
 		qualityGateSaw: () =>
 			Effect.sync(() =>
 				existsSync(at(".git/initial-gate.json"))
