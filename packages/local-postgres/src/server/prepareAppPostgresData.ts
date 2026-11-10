@@ -1,8 +1,8 @@
 import { Effect, FileSystem, Path } from "effect";
 import { AppPostgresVersionMismatch } from "#server/AppPostgresVersionMismatch.ts";
-import { runCommand } from "#server/adapters/runCommand.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
 import { PostgresBinaries } from "#server/PostgresBinaries.ts";
+import { runCommand } from "#server/runCommand.ts";
 
 export const prepareAppPostgresData = Effect.fn("LocalPostgres.prepareAppPostgresData")(function* (dataDirectory: string) {
 	const binaries = yield* PostgresBinaries;

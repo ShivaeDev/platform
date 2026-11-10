@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
+import { manifestFiles, readPackageManifest } from "#manifestInventory.ts";
 import { SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { PackageManifest } from "#PackageManifest.ts";

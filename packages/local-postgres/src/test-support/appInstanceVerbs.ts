@@ -1,8 +1,8 @@
 import { Config, Effect, Exit, FileSystem, Path, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { vi } from "vitest";
-import { hostPostgresBinaries } from "#server/adapters/hostPostgresBinaries.ts";
 import { appPostgres } from "#server/appPostgres.ts";
+import { hostPostgresBinaries } from "#server/hostPostgresBinaries.ts";
 import { migrateAppPostgres } from "#server/migrateAppPostgres.ts";
 import { PostgresBinaries } from "#server/PostgresBinaries.ts";
 import { type AppInstanceEngine, appInstance, appSql } from "#test/appInstanceEngine.ts";

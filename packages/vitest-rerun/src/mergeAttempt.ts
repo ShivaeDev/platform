@@ -1,10 +1,10 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
-import type { Files, Task } from "#adapters/tasks.ts";
 import { VitestRerunError } from "#error.ts";
 import { type FlakyTest, failureMessage, testcases } from "#flakyTests.ts";
 import { junitClassname } from "#junitClassname.ts";
 import { type FailureHistory, type Snapshot, tests } from "#snapshot.ts";
+import type { Files, Task } from "#tasks.ts";
 
 type File = Files[number];
 

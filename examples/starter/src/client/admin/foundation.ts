@@ -1,5 +1,5 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { RetryJob } from "@shivaedev/admin/client/adapters/jobsTypes.ts";
+import type { RetryJob } from "@shivaedev/admin/client/jobsTypes.ts";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";

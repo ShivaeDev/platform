@@ -1,6 +1,6 @@
 import type { SDKMessage, SDKUserMessage, SessionMessage } from "@anthropic-ai/claude-agent-sdk";
 import { type Cause, Effect, Queue, Stream } from "effect";
-import type { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
+import type { ClaudeProvider } from "#ClaudeProvider.ts";
 import { init, NATIVE_SESSION } from "#test/frames.ts";
 export const scriptedPeer = Effect.gen(function* () {
 	const frames = yield* Queue.unbounded<SDKMessage, Cause.Done | Error>();

@@ -1,8 +1,8 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { globMatcher } from "#imports/globMatcher.ts";
 import { pnpmWorkspacePatterns } from "#imports/pnpmWorkspacePatterns.ts";
+import { manifestFiles, readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export interface WorkspacePackage {

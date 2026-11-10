@@ -1,7 +1,5 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path } from "effect";
-import { setManifestFiles } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { type BaselineFile, readBaseline, readInput } from "#engine/baselineFile.ts";
@@ -12,6 +10,8 @@ import type { RegistryEntry, StaleRegistryEntry } from "#exceptions/registry.ts"
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
+import { setManifestFiles } from "#manifestInventory.ts";
+import { manifestReader } from "#manifestReader.ts";
 import type { RuleServices } from "#rule.ts";
 
 export interface Session {

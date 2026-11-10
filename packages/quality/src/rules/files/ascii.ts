@@ -1,5 +1,5 @@
 import { Effect, type FileSystem, Schema } from "effect";
-import { asciiFindings } from "#adapters/asciiFindings.ts";
+import { asciiFindings } from "#asciiFindings.ts";
 import { defineRule } from "#rule.ts";
 
 const ForbiddenCharacter = Schema.Struct({

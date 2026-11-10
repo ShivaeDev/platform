@@ -5,13 +5,13 @@ import { pathToFileURL } from "node:url";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { declaredEntries, knipConfiguration } from "#adapters/knip/configuration.ts";
-import { entryPointFindings } from "#adapters/knip/entryPointFindings.ts";
-import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { knipReport } from "#adapters/knip/report.ts";
-import { sourceConfig } from "#adapters/knip/sourceConfig.ts";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
+import { entryPointFindings } from "#knip/entryPointFindings.ts";
+import { KNIP_ISSUES } from "#knip/findings.ts";
+import { sourceConfig } from "#knip/sourceConfig.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 const API = createRequire(import.meta.url).resolve("knip");

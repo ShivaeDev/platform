@@ -7,11 +7,11 @@ import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import type { AtomServices } from "#AtomServices.ts";
-import { useSubmissionCallbacks } from "#client/adapters/useSubmissionCallbacks.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
 import { type QueryOptions, type QueryState, useQuery } from "#client/resultState.ts";
 import { type SaveState, useSaveState } from "#client/saveState.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
+import { useSubmissionCallbacks } from "#client/useSubmissionCallbacks.ts";
 import { loadedQuery } from "#loadedQuery.ts";
 import { type SubmissionConfig, submission } from "#submission.ts";
 export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError> = {

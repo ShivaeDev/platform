@@ -57,11 +57,11 @@ export default defineConfig({
 			options: {
 				edge: [
 					{
-						glob: "script/package-check/adapters/pinnedTarballs.ts",
+						glob: "script/package-check/pinnedTarballs.ts",
 						reason: "The npm adapter selects unpublished release archives from registry responses.",
 					},
 					{
-						glob: "packages/discord/src/adapters/restStatus.ts",
+						glob: "packages/discord/src/restStatus.ts",
 						reason: "Discord's REST adapter classifies provider rate limits before reading their retry delay.",
 					},
 					{ glob: "packages/github/src/status.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },

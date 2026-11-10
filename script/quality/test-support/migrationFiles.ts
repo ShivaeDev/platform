@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { manifestReader } from "@shivaedev/quality/adapters/manifestReader.ts";
 import { services } from "@shivaedev/quality/adapters/runMain.ts";
 import { typeScriptProgram } from "@shivaedev/quality/adapters/typeScriptProgram.ts";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
@@ -7,6 +6,7 @@ import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
+import { manifestReader } from "@shivaedev/quality/manifestReader.ts";
 import { linkPackage, type SeedFile, seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 

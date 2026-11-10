@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
-import { catalogEntries } from "@shivaedev/quality/adapters/catalogEntries.ts";
+import { catalogEntries } from "@shivaedev/quality/catalogEntries.ts";
 import { decodeTemplate } from "#template.ts";
 import type { Engine } from "#test/generate.ts";
 

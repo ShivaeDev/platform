@@ -8,10 +8,10 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
-import { storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
-import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
+import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
+import { storedRoleOptions } from "#server/better-auth/storedRoleOptions.ts";
+import { betterAuthUserDirectory } from "#server/better-auth/userDirectory.ts";
 import { UserDirectory } from "#server/UserDirectory.ts";
 import { roleKeys, userKeys } from "#users.ts";
 

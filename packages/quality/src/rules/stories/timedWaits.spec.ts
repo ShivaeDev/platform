@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { inStory } from "#testing/adapters/storySpecFiles.ts";
+import { inStory } from "#testing/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 

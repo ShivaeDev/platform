@@ -2,8 +2,8 @@ import { createServer } from "node:http";
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Config, type Duration, Effect, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
-import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { unixHttpServer } from "#adapters/unixHttpServer.ts";
+import { hostHttpServices } from "#hostHttpServices.ts";
 
 export function nodeHttpServer(
 	host: string,

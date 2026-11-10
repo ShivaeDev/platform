@@ -1,9 +1,9 @@
 import { Layer } from "effect";
 import { appTokens } from "#adapters/appTokens.ts";
-import { githubClientsLayer } from "#adapters/githubClientsLayer.ts";
 import { GitHubApp } from "#app/service.ts";
 import type { AppCredentials } from "#appJwt.ts";
 import { GitHubAppCredentials } from "#GitHubAppCredentials.ts";
+import { githubClientsLayer } from "#githubClientsLayer.ts";
 
 export interface InstallationScope {
 	readonly permissions?: Readonly<Record<string, "read" | "write" | "admin">>;

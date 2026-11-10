@@ -5,7 +5,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import { RpcTest } from "effect/rpc";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { adminPermissionGuard } from "@shivaedev/admin/client/adapters/adminPermissionGuard.ts";
+import { adminPermissionGuard } from "@shivaedev/admin/client/adminPermissionGuard.ts";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";

@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import type { OriginPolicy } from "#server/origin.ts";
+import { trustedOrigins } from "#server/trustedOrigins.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { makeApp } from "#test/rpc/api.ts";
 import { createProvider, mintSession, ORIGIN } from "#test/rpc/harness.ts";

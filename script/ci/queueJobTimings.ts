@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { read } from "@shivaedev/github/read.ts";
-import { finalJobTiming, JobTiming } from "#ci/adapters/jobTiming.ts";
+import { finalJobTiming, JobTiming } from "#ci/jobTiming.ts";
 
 export const QueueJobs = Schema.Struct({ jobs: Schema.Array(JobTiming) });
 

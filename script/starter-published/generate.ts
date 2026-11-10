@@ -1,10 +1,10 @@
 import { join, resolve } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { packedWorkspace } from "#adapters/packedWorkspace.ts";
-import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
 import { command, writeJson } from "#package-check/io.ts";
 import { decodeVersions, type Package } from "#package-check/model.ts";
+import { pinnedTarballs } from "#package-check/pinnedTarballs.ts";
+import { packedWorkspace } from "#packedWorkspace.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { withTarballOverrides } from "#withTarballOverrides.ts";
 

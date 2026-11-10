@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { CodexEngine } from "#adapters/engine.ts";
+import { CodexEngine } from "#engine.ts";
 
 export const census = Effect.fn("Codex.census")(function* (rootThreadId: string) {
 	const engine = yield* CodexEngine;

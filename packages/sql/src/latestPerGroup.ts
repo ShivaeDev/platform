@@ -3,11 +3,11 @@ import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { Fragment } from "effect/sql/Statement";
 import { groupColumns } from "#adapters/groupColumns.ts";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import { pinnedGroups } from "#pinnedGroups.ts";
 import type { LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import { tupleUnnest } from "#tupleUnnest.ts";
 
 function groupMasks(input: readonly (readonly unknown[])[]) {

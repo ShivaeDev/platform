@@ -1,13 +1,13 @@
 import { basename, join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { ManifestFailure, manifestEntry } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { sortingOf } from "#adapters/manifestSorting.ts";
 import type { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { skillCopies } from "#inventory/skillCopies.ts";
 import { walk } from "#inventory/walk.ts";
+import { ManifestFailure, manifestEntry } from "#manifestInventory.ts";
+import { manifestReader } from "#manifestReader.ts";
 import type { RuleServices } from "#rule.ts";
 
 export const manifestsIn = Effect.fn("Manifests.manifestsIn")(function* (root: string) {

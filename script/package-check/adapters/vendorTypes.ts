@@ -1,6 +1,7 @@
 import { isBuiltin } from "node:module";
 import { posix } from "node:path";
 import ts from "typescript";
+import { inAdapters } from "@shivaedev/quality/naming/inAdapters.ts";
 import { exportTargets } from "#package-check/exports.ts";
 import { conditionalTarget, importEntry } from "#package-check/imports.ts";
 import { effectPackage, type Manifest } from "#package-check/model.ts";
@@ -88,7 +89,7 @@ export function vendorTypes(manifest: Manifest, sources: ReadonlyMap<string, str
 			}
 			const { dependency } = target;
 			if (
-				!file.split("/").includes("adapters")
+				!inAdapters(file)
 				&& outsidePackage(dependency, manifest.name, development)
 				&& !findings.some((finding) => finding.file === file && finding.dependency === dependency)
 			) {

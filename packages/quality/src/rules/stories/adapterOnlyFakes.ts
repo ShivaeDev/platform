@@ -4,12 +4,14 @@ import { fakeApi, fakeReferences } from "#adapters/imports/fakeReferences.ts";
 import { type FakeModule, fakeTargets } from "#adapters/imports/fakeTargets.ts";
 import { storyProgram } from "#adapters/storyProgram.ts";
 import { importGraph } from "#imports/graph.ts";
+import { inAdapters } from "#naming/inAdapters.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { fakeReplacements } from "#rules/stories/fakeReplacements.ts";
 
+// effect/adapter-bridges keeps every adapters/ file a bridge to an outside system, so faking one fakes that system.
 function internal(path: string): boolean {
-	return !path.split("/").includes("adapters");
+	return !inAdapters(path);
 }
 
 function message(target: string): string {

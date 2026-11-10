@@ -1,12 +1,12 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, Path } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { passes } from "#engine/evaluate.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
+import { manifestReader } from "#manifestReader.ts";
 import { recap } from "#report/recap.ts";
 
 const COMMIT_AGAIN =

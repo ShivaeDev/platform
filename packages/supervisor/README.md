@@ -34,7 +34,7 @@ The process adapter uses Effect's `ChildProcessSpawner`. Supply its implementati
 ```ts
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
-import { spawn } from "@shivaedev/supervisor/adapters/spawn.ts";
+import { spawn } from "@shivaedev/supervisor/spawn.ts";
 import { jsonReadiness } from "@shivaedev/supervisor/readiness.ts";
 import { supervise } from "@shivaedev/supervisor/supervisor.ts";
 
@@ -77,7 +77,7 @@ Import names from their defining modules:
 
 - `supervisor.ts`: `supervise`, `SupervisorOptions`, `ProcessState`.
 - `Process.ts`: the `Process` port for another scoped process adapter.
-- `adapters/spawn.ts`: `spawn`, `SpawnOptions`, `Output`.
+- `spawn.ts`: `spawn`, `SpawnOptions`, `Output`.
 - `readiness.ts`: `jsonReadiness`, `withoutReadiness`, `ReadinessMissing`.
 - `ReadinessTimeout.ts` and `ProcessExited.ts`: typed startup failures.
 

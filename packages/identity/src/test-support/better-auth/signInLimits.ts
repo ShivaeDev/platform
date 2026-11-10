@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
-import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { postgresMigration } from "@shivaedev/rate-limit/postgresMigration.ts";
+import { postgresStore } from "@shivaedev/rate-limit/postgresStore.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";

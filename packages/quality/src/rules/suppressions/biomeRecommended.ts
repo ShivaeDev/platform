@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { presetConfig } from "#adapters/biome/presetConfig.ts";
+import { presetConfig } from "#biome/presetConfig.ts";
 import { recommendedRules } from "#biome/recommendedRules.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs, type RuleServices } from "#rule.ts";
 import { type Json, member, textOf } from "#rules/suppressions/biome/json.ts";

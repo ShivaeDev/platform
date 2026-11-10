@@ -3,7 +3,6 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
-import { withClientProtocol } from "#adapters/withClientProtocol.ts";
 import { clientActivities, makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
@@ -12,6 +11,7 @@ import { commandConnections } from "#connectionReadiness.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
 import { socketProtocol } from "#socketProtocol.ts";
+import { withClientProtocol } from "#withClientProtocol.ts";
 
 declare const window: ResumeWindow | undefined;
 

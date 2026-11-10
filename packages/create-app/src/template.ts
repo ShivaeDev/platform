@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import * as Base64 from "effect/encoding/Base64";
-import { frameworkCatalog, frameworkDependencies } from "#adapters/frameworkCatalog.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { bytesOf, textOf } from "#fileContent.ts";
+import { frameworkCatalog, frameworkDependencies } from "#frameworkCatalog.ts";
 
 export const Versions = Schema.Record(Schema.String, Schema.String);
 export const Template = Schema.Array(Schema.Struct({ content: Schema.String, path: Schema.String }));

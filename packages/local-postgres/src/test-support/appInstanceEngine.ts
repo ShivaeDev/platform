@@ -1,7 +1,7 @@
 import { Effect, FileSystem, Path, type Scope } from "effect";
-import { runCommand } from "#server/adapters/runCommand.ts";
 import type { AppPostgresInstance } from "#server/appPostgres.ts";
 import { PostgresBinaries } from "#server/PostgresBinaries.ts";
+import { runCommand } from "#server/runCommand.ts";
 
 export interface AppInstanceEngine {
 	readonly dataDirectory: string;

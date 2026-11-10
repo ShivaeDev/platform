@@ -2,10 +2,10 @@ import { type Cause, Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import { type ChildOrderError, orderedChildStatements } from "#orderedChildStatements.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import type { IdColumn, VersionColumn } from "#versionedRepository.ts";
 
 type Column<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof TModel["insert"]["Type"], string>;

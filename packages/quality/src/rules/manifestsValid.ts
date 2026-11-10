@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { loadPackageManifests, manifestFiles } from "#adapters/manifestInventory.ts";
+import { loadPackageManifests, manifestFiles } from "#manifestInventory.ts";
 import { defineRule } from "#rule.ts";
 
 export const manifestsValid = defineRule({

@@ -8,11 +8,11 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { postgresMigration } from "@shivaedev/rate-limit/postgresMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwords.ts";
 

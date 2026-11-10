@@ -1,14 +1,14 @@
 import { Effect, Path } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { testComposition } from "#imports/testComposition.ts";
 import { packageOf } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { developmentCode } from "#naming/developmentCode.ts";
 import { packageTests } from "#naming/packageTests.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
+import { scriptPaths } from "#scriptPaths.ts";
 
 export const testCode = Effect.fn("Tests.testCode")(function* (inputs: RuleInputs) {
 	const posix = yield* Path.Path.pipe(Effect.provide(Path.layer));

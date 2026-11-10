@@ -1,6 +1,6 @@
 import { Effect, Redacted } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineSeed } from "@shivaedev/identity/server/better-auth/adapters/defineSeed.ts";
+import { defineSeed } from "@shivaedev/identity/server/better-auth/defineSeed.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";

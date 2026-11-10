@@ -10,11 +10,11 @@ import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
-import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
+import { trustedOrigins } from "#server/trustedOrigins.ts";
 import { Api, diagnostic, handlers } from "#test/native-sessions/api.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";

@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { redactText } from "@shivaedev/errors/sensitive.ts";
 import { checkStatus } from "@shivaedev/http/checkStatus.ts";
-import { boundedOtlpResponse } from "#adapters/boundedOtlpResponse.ts";
+import { boundedOtlpResponse } from "#boundedOtlpResponse.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {

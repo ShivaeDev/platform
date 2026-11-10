@@ -2,11 +2,11 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { Comparisons, FindManyFilter } from "#repositoryFilter.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import type { UpsertAssignment } from "#upsertColumns.ts";
 import { makeUpsertDecoder, type UpsertRow, upsertReturning } from "#upsertResult.ts";
 

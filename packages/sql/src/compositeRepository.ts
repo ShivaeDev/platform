@@ -3,13 +3,13 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { BatchedDelete } from "#batchedDelete.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryListFilter } from "#repositoryFilter.ts";
 import type { Update, UpdateVoid } from "#repositoryUpdate.ts";
 import { repositoryWrites } from "#repositoryWrites.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
 export type CompositeKey<TModel extends Model.Any> = readonly [IdColumn<TModel>, IdColumn<TModel>, ...IdColumn<TModel>[]];

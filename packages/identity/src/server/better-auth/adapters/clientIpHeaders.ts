@@ -2,7 +2,7 @@ import { getIP } from "better-auth/api";
 import { Effect, Option } from "effect";
 import { HttpServerRequest } from "effect/http";
 import { trustedProxyPeer } from "#server/adapters/local.ts";
-import { trustedProxyRanges } from "#server/adapters/trustedProxyRanges.ts";
+import { trustedProxyRanges } from "#server/trustedProxyRanges.ts";
 
 export const PEER_IP_HEADER = "x-platform-client-ip";
 

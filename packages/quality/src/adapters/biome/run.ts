@@ -3,7 +3,7 @@ import { relative } from "node:path";
 import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
+import { withExceptionConfig } from "#biome/withExceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { skillCopies } from "#inventory/skillCopies.ts";

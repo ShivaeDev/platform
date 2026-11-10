@@ -1,8 +1,8 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { Diagnostic } from "#biome/report.ts";
 import { isTooling } from "#imports/isTooling.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { entryPointsOf, isApplication, provider } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";

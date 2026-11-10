@@ -4,7 +4,6 @@ import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
 import { groupColumns } from "#adapters/groupColumns.ts";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { Aggregate } from "#aggregateQuery.ts";
 import { latestPerGroup as makeLatestPerGroup } from "#latestPerGroup.ts";
 import { makeAggregate } from "#makeAggregate.ts";
@@ -12,6 +11,7 @@ import { makeQueryClauses } from "#makeQueryClauses.ts";
 import type { FindMany, FindOne, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;

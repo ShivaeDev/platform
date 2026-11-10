@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, Redacted, Schema } from "effect";
-import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { postgresStore } from "@shivaedev/rate-limit/postgresStore.ts";
 import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import type { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";

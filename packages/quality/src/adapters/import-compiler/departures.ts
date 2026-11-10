@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { analysisFailure } from "#adapters/imports/analysisFailure.ts";
 import { departures as findDepartures } from "#adapters/imports/departures.ts";
+import { analysisFailure } from "#imports/analysisFailure.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";
 

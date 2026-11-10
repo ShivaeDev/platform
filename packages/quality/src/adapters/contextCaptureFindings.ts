@@ -3,6 +3,8 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { composedContext } from "#adapters/composedContext.ts";
 import { effectApi } from "#adapters/serviceModelSyntax.ts";
+import { inAdapters } from "#naming/inAdapters.ts";
+import { isTestSupport } from "#naming/testName.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 
@@ -24,11 +26,9 @@ function reprovides(checker: ts.TypeChecker, call: ts.CallExpression): boolean {
 	return environment !== undefined && context(checker.getTypeAtLocation(environment));
 }
 
-export const contextCaptureFindings = Effect.fn("ContextCapture.contextCaptureFindings")((inputs: RuleInputs) =>
+export const capturedContexts = Effect.fn("ContextCapture.capturedContexts")((inputs: RuleInputs) =>
 	Effect.sync(() => {
-		const sources = inputs.sources.filter(
-			(file) => !/(?:^|\/)(?:adapters|test-support)\//u.test(file.path) && PROVIDERS.some((name) => file.text.includes(name)),
-		);
+		const sources = inputs.sources.filter((file) => PROVIDERS.some((name) => file.text.includes(name)));
 		if (sources.length === 0) {
 			return [];
 		}
@@ -57,4 +57,10 @@ export const contextCaptureFindings = Effect.fn("ContextCapture.contextCaptureFi
 			return findings;
 		});
 	}),
+);
+
+// Capturing a context hands an Effect environment to a non-Effect caller such as a callback or a framework hook, which is
+// the bridging adapters/ exists for; effect/adapter-bridges counts it as an adapter's use.
+export const contextCaptureFindings = Effect.fn("ContextCapture.contextCaptureFindings")((inputs: RuleInputs) =>
+	capturedContexts({ ...inputs, sources: inputs.sources.filter((file) => !(inAdapters(file.path) || isTestSupport(file.path))) }),
 );

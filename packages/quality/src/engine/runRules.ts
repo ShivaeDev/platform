@@ -1,11 +1,11 @@
 import { basename, isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
-import { ManifestFailure } from "#adapters/manifestInventory.ts";
 import { inNonEffectFolder } from "#config/nonEffectFolders.ts";
 import type { ActiveLevel, Violation } from "#engine/violation.ts";
 import { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
+import { ManifestFailure } from "#manifestInventory.ts";
 import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 
 export interface ActiveRule {

@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
-import type { ManifestReadFailure } from "#adapters/manifestInventory.ts";
+import type { ManifestReadFailure } from "#manifestInventory.ts";
 import type { RuleInputs, SourceFile } from "#rule.ts";
 import { type PackageImports, packageImports } from "#rules/files/packageImports.ts";
 import { parse } from "#rules/parse.ts";

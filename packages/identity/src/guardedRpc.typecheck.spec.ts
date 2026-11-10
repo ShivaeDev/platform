@@ -15,10 +15,10 @@ import {
 import { Identity, OptionalIdentity, RequestId } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
-import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
+import { trustedOrigins } from "#server/trustedOrigins.ts";
 
 const Guarded = RpcGroup.make(Rpc.make("Mine", { error: NotFound, success: Schema.String }))
 	.middleware(Authenticated)

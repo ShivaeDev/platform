@@ -6,7 +6,7 @@ import { type Agent, Backend } from "@shivaedev/agent/backend.ts";
 import type { Transcript } from "@shivaedev/agent/events.ts";
 import type { Receipt } from "@shivaedev/agent/run.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { ClaudeProvider } from "#adapters/ClaudeProvider.ts";
+import { ClaudeProvider } from "#ClaudeProvider.ts";
 import { makeClaudeBackend } from "#claudeCode.ts";
 import type { ClaudeOptions } from "#options.ts";
 import { stamp } from "#test/frames.ts";

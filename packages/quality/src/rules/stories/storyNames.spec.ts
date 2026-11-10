@@ -7,7 +7,7 @@ import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
-import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
+import { inStory, kitFiles } from "#testing/storySpecFiles.ts";
 
 const STORY = [
 	'import { Effect, Exit } from "effect"; import { MAX_ORDERS } from "./limits.ts"; function place() {}',

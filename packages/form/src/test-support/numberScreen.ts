@@ -4,10 +4,10 @@ import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { numberInput } from "#adapters/numberInput.ts";
 import { useField, useSubmit } from "#adapters/react.ts";
 import * as Field from "#field.ts";
 import { form } from "#form.ts";
+import { numberInput } from "#numberInput.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

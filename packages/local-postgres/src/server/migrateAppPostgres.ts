@@ -1,7 +1,7 @@
 import { Clock, Effect, FileSystem, Path } from "effect";
-import { runCommand } from "#server/adapters/runCommand.ts";
 import type { AppPostgresInstance } from "#server/appPostgres.ts";
 import { PostgresBinaries } from "#server/PostgresBinaries.ts";
+import { runCommand } from "#server/runCommand.ts";
 
 export const backupAppPostgres = Effect.fn("LocalPostgres.backupAppPostgres")(function* (instance: AppPostgresInstance) {
 	const fs = yield* FileSystem.FileSystem;

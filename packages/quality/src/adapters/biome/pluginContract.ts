@@ -15,9 +15,6 @@ function pluginType(node: ts.TypeNode | undefined, { checker }: Syntax): boolean
 }
 
 export function pluginContract({ source, checker }: Syntax): boolean {
-	if (!/(?:^|\/)adapters\//u.test(source.fileName)) {
-		return false;
-	}
 	const syntax = { checker, source };
 	function contract(node: ts.Expression): boolean {
 		if (ts.isSatisfiesExpression(node) || ts.isAsExpression(node)) {

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { manifestEntry, manifestFiles } from "#adapters/manifestInventory.ts";
+import { manifestEntry, manifestFiles } from "#manifestInventory.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { itemsOf, type Json, member, parseJsonc } from "#rules/suppressions/biome/json.ts";
 

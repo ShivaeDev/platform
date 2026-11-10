@@ -7,11 +7,11 @@ import { useContext, useEffect, useState } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
 import { type ActionOptions, useActionSource } from "#client/actionCompletion.ts";
-import { useActionResult } from "#client/adapters/useActionResult.ts";
 import { usePermissionFailure } from "#client/adapters/usePermissionFailure.ts";
-import { useQueryNotice } from "#client/adapters/useQueryNotice.ts";
 import type { NoticeDescriptor } from "#client/notices.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
+import { useActionResult } from "#client/useActionResult.ts";
+import { useQueryNotice } from "#client/useQueryNotice.ts";
 
 export interface ResultState<A, E> {
 	readonly cause: Option.Option<Cause.Cause<E>>;

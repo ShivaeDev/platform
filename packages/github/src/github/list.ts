@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { bindGitHubContext } from "#adapters/bindGitHubContext.ts";
-import { pagination } from "#adapters/pagination.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
+import { pagination } from "#pagination.ts";
 import { requests } from "#requests.ts";
 
 export function list(state: GitHubState) {

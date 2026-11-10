@@ -1,12 +1,12 @@
 import { Effect, Option, Schema } from "effect";
 import type { RunEvent as AgentEvent } from "@shivaedev/agent/events.ts";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
-import { rawOf } from "#adapters/mapping.ts";
-import { SessionResponse } from "#adapters/protocol.ts";
-import { CONSTRAINED_AGENT, wireName } from "#adapters/wireName.ts";
 import { opencodeFailure } from "#failure.ts";
+import { rawOf } from "#mapping.ts";
 import type { OpenSessionOptions } from "#options.ts";
 import { Provider } from "#Provider.ts";
+import { SessionResponse } from "#protocol.ts";
+import { CONSTRAINED_AGENT, wireName } from "#wireName.ts";
 
 const decodeSession = Schema.decodeUnknownOption(SessionResponse);
 export interface PromptSettings {

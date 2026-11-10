@@ -1,9 +1,9 @@
 import { Effect, Layer } from "effect";
 import { Backend, type ConfiguredBackend } from "@shivaedev/agent/backend.ts";
 import { listPiModels } from "#adapters/listPiModels.ts";
-import { textOf } from "#adapters/textOf.ts";
 import { makeOperations } from "#makeOperations.ts";
 import type { PiOptions } from "#PiOptions.ts";
+import { textOf } from "#textOf.ts";
 
 export function pi(options: PiOptions = {}): Layer.Layer<Backend> {
 	return Layer.effect(

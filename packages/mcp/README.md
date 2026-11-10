@@ -99,7 +99,7 @@ import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthMcp, mcpProvider } from "@shivaedev/mcp/adapters/betterAuth.ts";
 import { mcpRoutes } from "@shivaedev/mcp/routes.ts";
@@ -152,7 +152,7 @@ The edge adapter verifies access-token signatures, issuer, endpoint audience, `m
 
 ### Diagnose token refusals
 
-`betterAuthMcp` returns `authenticate(token)` alongside its route and session Layers. It verifies the token and resolves its current OAuth grant. A successful authentication returns `Option.some({ user })`; a refused grant returns `Option.none()`. Missing or malformed `iss`, `aud`, `sub`, `client_id` or `scope` claims fail with `InvalidTokenClaim` from `@shivaedev/mcp/adapters/InvalidTokenClaim.ts`. The failure names `claim`, and the adapter logs a warning with that name. Claims and token values stay out of this diagnostic. Blank subjects and client identifiers are invalid too.
+`betterAuthMcp` returns `authenticate(token)` alongside its route and session Layers. It verifies the token and resolves its current OAuth grant. A successful authentication returns `Option.some({ user })`; a refused grant returns `Option.none()`. Missing or malformed `iss`, `aud`, `sub`, `client_id` or `scope` claims fail with `InvalidTokenClaim` from `@shivaedev/mcp/InvalidTokenClaim.ts`. The failure names `claim`, and the adapter logs a warning with that name. Claims and token values stay out of this diagnostic. Blank subjects and client identifiers are invalid too.
 
 Use `authenticate` in application stories to distinguish invalid claims from refused grants. HTTP sessions translate `InvalidTokenClaim` into the ordinary `401` resource challenge. A token with an invalid signature still receives that challenge; verification infrastructure failures remain `AuthUnavailable` and answer `503`.
 

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ChildProcess } from "effect/process";
-import { runCommand } from "#server/adapters/runCommand.ts";
+import { runCommand } from "#server/runCommand.ts";
 import { containerReady } from "#test/containerReady.ts";
 import { postgres } from "#test/postgres.ts";
 

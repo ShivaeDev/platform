@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { lessThan } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
+import { lessThan } from "@shivaedev/test-story/server/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { hostClock } from "#test/hostClock.ts";
 

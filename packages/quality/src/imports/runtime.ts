@@ -1,9 +1,9 @@
 import { join, posix } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { classifyRuntime } from "#imports/classifyRuntime.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 import { orWhenAbsent } from "#inventory/filesystem.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export type Runtime = "client" | "server" | "shared";

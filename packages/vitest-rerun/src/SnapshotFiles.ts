@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import type { Files } from "#adapters/tasks.ts";
+import type { Files } from "#tasks.ts";
 
 const Result = Schema.Struct({
 	duration: Schema.optional(Schema.Number),

@@ -1,5 +1,5 @@
-import { inStory, kitFiles } from "#testing/adapters/storySpecFiles.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
+import { inStory, kitFiles } from "#testing/storySpecFiles.ts";
 
 export const generatorEntries: SeedFile = {
 	content: [

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { manifestFiles, manifestText } from "#adapters/manifestInventory.ts";
 import { sortingOf } from "#adapters/manifestSorting.ts";
+import { manifestFiles, manifestText } from "#manifestInventory.ts";
 import { defineRule } from "#rule.ts";
 
 export const manifestsSorted = defineRule({

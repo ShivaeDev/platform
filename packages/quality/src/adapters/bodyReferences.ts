@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { type BodyReference, dataFactory, serviceFactory } from "#adapters/bodyReference.ts";
+import { type BodyReference, dataFactory, serviceFactory } from "#bodyReference.ts";
 import { importFrom } from "#rules/stories/importOrigin.ts";
 import { memberName } from "#rules/stories/syntax.ts";
 

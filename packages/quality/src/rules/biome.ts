@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { PRESET, rootConfig } from "#adapters/biome/rootConfig.ts";
 import { biomeReport, type Diagnostic, FAILING } from "#biome/report.ts";
+import { PRESET, rootConfig } from "#biome/rootConfig.ts";
 import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
 

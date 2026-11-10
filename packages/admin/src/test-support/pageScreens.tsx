@@ -3,7 +3,7 @@ import { hasPermission } from "@shivaedev/access/permission.ts";
 import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
+import { matchAdminRoute } from "#matchAdminRoute.ts";
 import { workspaceServer } from "#test/pageHost.ts";
 import { WorkspaceScreen } from "#test/WorkspaceScreen.tsx";
 import { WorkspaceAccess, type WorkspaceRole, workspaceRegistration } from "#test/workspaces.ts";

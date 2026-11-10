@@ -1,5 +1,5 @@
 import { type DatabaseConfig, postgres } from "railway/iac";
-import { type PageCacheTrim, postgresStartCommand } from "#adapters/railway/postgresStartCommand.ts";
+import { type PageCacheTrim, postgresStartCommand } from "#railway/postgresStartCommand.ts";
 
 export type PostgresConfig = DatabaseConfig & {
 	limits: { cpu: number; memoryBytes: number; diskBytes?: number };

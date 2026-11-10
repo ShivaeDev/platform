@@ -1,10 +1,10 @@
 import { Effect, Option } from "effect";
 import { Headers, HttpServerRequest } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import type { TrustedOriginsOptions } from "#server/origin.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { resolveSession } from "#server/session.ts";
+import { trustedOrigins } from "#server/trustedOrigins.ts";
 
 export const originPolicy = storyKit({
 	create: (): { options: TrustedOriginsOptions } => ({ options: { allow: [], missing: "reject", sameOrigin: { trustedProxy: "10.0.0.2" } } }),

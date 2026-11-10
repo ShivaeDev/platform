@@ -1,17 +1,17 @@
 import { globSync, statSync } from "node:fs";
 import { join, posix } from "node:path";
 import { Effect } from "effect";
-import { isToolConfig } from "#adapters/isToolConfig.ts";
-import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { mockEntries } from "#adapters/knip/mockEntries.ts";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import type { ReachableBuilds } from "#adapters/reachableBuilds.ts";
-import { scriptPaths } from "#adapters/scriptPaths.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { isToolConfig } from "#isToolConfig.ts";
+import { KNIP_ISSUES } from "#knip/findings.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { deliveredDependencies } from "#manifests/deliveredDependencies.ts";
 import type { PackageManifest } from "#PackageManifest.ts";
+import type { ReachableBuilds } from "#reachableBuilds.ts";
 import type { RuleInputs } from "#rule.ts";
+import { scriptPaths } from "#scriptPaths.ts";
 
 const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}", "src/test-support/**", "*.config.{ts,mts,cts,js,mjs,cjs}"];
 

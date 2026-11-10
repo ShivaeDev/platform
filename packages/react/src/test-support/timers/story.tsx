@@ -6,7 +6,7 @@ import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
-import { screenPending } from "#adapters/screenPending.ts";
+import { screenPending } from "#screenPending.ts";
 import { Screen } from "#test/Screen.ts";
 import { View } from "#test/timers/View.tsx";
 

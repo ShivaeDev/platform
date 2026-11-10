@@ -1,7 +1,7 @@
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
-import { inStory } from "#testing/adapters/storySpecFiles.ts";
+import { inStory } from "#testing/storySpecFiles.ts";
 
 const MATCHER = `function correlated(spans: readonly { traceId: string; parentId?: string }[], traceId: string) {
 	return spans.filter((span) => span.traceId === traceId).map((span) => span.parentId);

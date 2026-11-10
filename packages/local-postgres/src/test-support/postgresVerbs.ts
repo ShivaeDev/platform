@@ -1,8 +1,8 @@
 import { ConfigProvider, Effect } from "effect";
-import { docker } from "#server/adapters/docker.ts";
-import { startContainer } from "#server/adapters/localContainer.ts";
+import { docker } from "#server/docker.ts";
 import { dockerEnvironment } from "#server/dockerEnvironment.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
+import { startContainer } from "#server/localContainer.ts";
 import { PostgresCommandError } from "#server/PostgresCommandError.ts";
 import { type Credentials, connectionAs, passwordsShownIn, ROLE_PASSWORD } from "#test/credentials.ts";
 import { databaseUrl, type PostgresEngine, SERVER, usingCli } from "#test/postgresEngine.ts";

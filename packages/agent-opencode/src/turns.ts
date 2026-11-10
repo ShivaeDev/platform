@@ -1,6 +1,6 @@
 import { Deferred, Effect, Ref, Semaphore } from "effect";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
-import type { SessionFrame } from "#adapters/sessionFrames.ts";
+import type { SessionFrame } from "#sessionFrames.ts";
 import type { TurnRequests } from "#turnRequests.ts";
 import {
 	closed,

@@ -1,6 +1,6 @@
 import { createRootRouteWithContext } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { adminPermissionGuard } from "@shivaedev/admin/client/adapters/adminPermissionGuard.ts";
+import { adminPermissionGuard } from "@shivaedev/admin/client/adminPermissionGuard.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import type { AdminNavigation } from "#client/AdminNavigation.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";

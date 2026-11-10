@@ -1,0 +1,17 @@
+import { Effect } from "effect";
+import type ts from "typescript";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { graph } from "#adapters/import-compiler/graph.ts";
+import { browserChecker } from "#adapters/import-compiler/browserChecker.ts";
+import { departures } from "#adapters/import-compiler/departures.ts";
+
+export const ImportCompiler = defineService({
+	id: "@shivaedev/quality/ImportCompiler",
+	initialize: Effect.void,
+	methods: () => ({
+		browserChecker: browserChecker satisfies (source: ts.SourceFile) => Effect.Effect<ts.TypeChecker>,
+		departures,
+		graph,
+	}),
+	requires: [],
+});

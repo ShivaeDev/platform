@@ -2,7 +2,7 @@ import { Effect, FileSystem, Path } from "effect";
 import type { ReleasePlan, Source, WorkspacePackage } from "@shivaedev/releases/model.ts";
 import { type Declarations, declarationChanges, declarationFields } from "#lib/declarationChanges.ts";
 import { scanCatalog } from "#quality/catalog.ts";
-import { publishedManifest } from "#release/adapters/publishedManifest.ts";
+import { publishedManifest } from "#release/publishedManifest.ts";
 
 const CATALOG = "catalog:";
 const WORKSPACE = "workspace:";

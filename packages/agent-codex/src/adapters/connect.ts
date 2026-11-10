@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { type BackendFailure, BackendUnavailable, ProtocolFailure, UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { LineProcess } from "#adapters/process.ts";
-import type { RpcNotification } from "#adapters/rpc.ts";
-import { Envelope, rejected } from "#adapters/rpcProtocol.ts";
+import type { RpcNotification } from "#rpc.ts";
+import { Envelope, rejected } from "#rpcProtocol.ts";
 
 interface Pending {
 	readonly complete: (effect: Effect.Effect<unknown, BackendFailure>) => void;

@@ -30,7 +30,7 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
-Use `useConnectionStatus(client)` from `@shivaedev/react/client/adapters/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
+Use `useConnectionStatus(client)` from `@shivaedev/react/client/useConnectionStatus.ts` with the client returned by contract's `makeClient`. It returns one `"live" | "reconnecting" | "waiting-for-connection"` value across mounted queries from every binding on that client's `Client` service. Live subscription status changes debounce for 300 ms on the client runtime's Clock. A bound command held for reconnection reports `"waiting-for-connection"` immediately, so the application can show Reconnecting while keeping the action pending. Contract holds unsent commands for up to 10 seconds and returns a typed `RpcClientError` on timeout; commands already sent are never replayed. The default socket probes Ping/Pong on browser or native resume and reconnects after 2.5 seconds without a Pong. A query refusal is separate from connectivity. Visible browser `online` and `visibilitychange` signals interrupt the live retry delay and reconnect immediately with a fresh backoff schedule.
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and the default shared WebSocket client; the application needs no subscribe handler or `live()` call. The process holding the socket reloads the session and runs the read policy and handler for each subscriber independently. It stores one encoded-result hash per subscribed query in memory and pushes changed values; equal reads acknowledge completion without replacing the screen. Each subscription has at most one rerun in flight and one pending, merging further changes while busy. Other subscriptions run independently in parallel. Backlog overflow and PostgreSQL listener recovery trigger a server `Resync`: the server reruns queries itself, and the client sends no follow-up reads. Query results stay in their native registry; RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
@@ -572,11 +572,11 @@ A typed `Unauthorized` failure asks the session owner to recheck once per failed
 
 #### Remove with a version-guarded Undo
 
-Use `useUndoableChange` from `@shivaedev/react/client/adapters/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Supply the bound command's `run`, its native `runtime`, and the application's `deployUpdate` as `update`:
+Use `useUndoableChange` from `@shivaedev/react/client/useUndoableChange.ts` when a versioned command also performs its inverse. Its payload includes `expectedVersion: number`, and its success includes `version: number`. Supply the bound command's `run`, its native `runtime`, and the application's `deployUpdate` as `update`:
 
 ```tsx
 import { Option } from "effect";
-import { useUndoableChange } from "@shivaedev/react/client/adapters/useUndoableChange.ts";
+import { useUndoableChange } from "@shivaedev/react/client/useUndoableChange.ts";
 
 function RemoveNote({ note }: { readonly note: { id: string; version: number } }) {
 	const change = useUndoableChange({ ...api.change, runtime: NotesClient.runtime, update }, { describe: (saved) => `Removed ${saved.id}` });
@@ -1061,7 +1061,7 @@ const [createdAt] = useState(now);
 const stamp = () => ({ id: newId(), at: now() });
 ```
 
-These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded `SecureRandom`. The hooks use native atom suspense while the runtime builds. `useNewId` reads `SecureRandom` from `effect/crypto`, whose UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto` from `@shivaedev/react/client/adapters/crypto.ts`, which merges Effect's Web Crypto `SecureRandom` and `Digest` Layers. Provide that Layer to an application's runtime when it needs browser crypto.
+These lines belong inside a component; `client` is the application's atom client. Stories pass a runtime containing their test Clock and seeded `SecureRandom`. The hooks use native atom suspense while the runtime builds. `useNewId` reads `SecureRandom` from `effect/crypto`, whose UUID generation must be synchronous. Without a runtime, they use a shared native runtime with Effect's default Clock and `clientCrypto` from `@shivaedev/react/client/crypto.ts`, which merges Effect's Web Crypto `SecureRandom` and `Digest` Layers. Provide that Layer to an application's runtime when it needs browser crypto.
 
 `usePromiseAction(() => promise, options?)` from `@shivaedev/react/client/adapters/usePromiseAction.ts` returns the same state as `useAction`, with `dispatch()` taking no input. It runs the callback on dispatch, keeps its atom across rerenders and calls the latest committed callback. A promise rejection or synchronous throw becomes `Cause.UnknownError` by default. Supply `catch` to map the unknown cause into an application's typed failure:
 
@@ -1099,7 +1099,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
-import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
+import { screenPending } from "@shivaedev/react/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -1214,7 +1214,7 @@ screenStories.it("shows the route failure", [], async () => {
 
 Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/adapters/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
-A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/adapters/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
+A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
 
 ```ts
 const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));

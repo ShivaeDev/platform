@@ -3,6 +3,7 @@ import { foreignCallbackParameter, foreignDeclaration } from "#adapters/foreignC
 import { parameterOrigins } from "#adapters/parameterOrigins.ts";
 import { serviceProperty } from "#adapters/serviceAssemblySyntax.ts";
 import { effectApi, resolvedValue } from "#adapters/serviceModelSyntax.ts";
+import { inAdapters } from "#naming/inAdapters.ts";
 import { returnValues } from "#rules/stories/returnValues.ts";
 
 function constructed(checker: ts.TypeChecker, node: ts.Node, seen = new Set<ts.Node>()): boolean {
@@ -47,8 +48,9 @@ function acquisition(checker: ts.TypeChecker, node: ts.CallExpression | ts.NewEx
 export function foreignResources(checker: ts.TypeChecker, sources: readonly ts.SourceFile[]) {
 	const originates = parameterOrigins(checker, sources);
 	return (parameter: ts.ParameterDeclaration): boolean => {
-		const source = parameter.getSourceFile();
-		if (!/(?:^|\/)adapters\//u.test(source.fileName)) {
+		// A resource an outside library constructed is held only where that library is bridged; effect/adapter-bridges keeps
+		// every adapters/ file such a bridge.
+		if (!inAdapters(parameter.getSourceFile().fileName)) {
 			return false;
 		}
 		const type = checker.getTypeAtLocation(parameter);

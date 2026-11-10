@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { effectPrograms } from "#rules/effect/program.ts";
 import { serviceCatalog } from "#rules/effect/serviceCatalog.ts";

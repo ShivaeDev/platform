@@ -2,11 +2,11 @@ import { mkdirSync, symlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
-import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { services } from "#adapters/runMain.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
+import { setManifestFiles } from "#manifestInventory.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";
 import { run } from "#testing/adapters/run.ts";
 

@@ -1,6 +1,6 @@
 import { Config, Console, Effect, FileSystem, Schema } from "effect";
 import { Argument, Flag } from "effect/cli";
-import { defineScript } from "#adapters/defineScript.ts";
+import { defineScript } from "#defineScript.ts";
 
 class RequestedFailure extends Schema.TaggedError<RequestedFailure>()("RequestedFailure", { message: Schema.String }) {}
 

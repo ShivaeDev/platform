@@ -1,7 +1,7 @@
 import { Random } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { LiveDispatcher } from "#adapters/LiveDispatcher.ts";
+import { LiveDispatcher } from "#LiveDispatcher.ts";
 import { initialize } from "#live-server/initialize.ts";
 import { register } from "#live-server/register.ts";
 import { resync } from "#live-server/resync.ts";

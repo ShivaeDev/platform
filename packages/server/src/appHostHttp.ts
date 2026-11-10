@@ -1,13 +1,13 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
-import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { browserErrorRoute } from "#browserErrorRoute.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
 import { hostAssets } from "#hostAssets.ts";
+import { hostHttpServices } from "#hostHttpServices.ts";
 import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
 import { hostRpcRoutes } from "#hostRpcRoutes.ts";
 import { hostSensitiveKeys } from "#hostSensitiveKeys.ts";

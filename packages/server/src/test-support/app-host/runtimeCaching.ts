@@ -1,7 +1,7 @@
 import { Layer } from "effect";
 import { HttpServer } from "effect/http";
 import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
-import type { PlatformRuntime } from "#adapters/platformRuntime.ts";
+import type { PlatformRuntime } from "#platformRuntime.ts";
 import { ping } from "#test/app-host/ping.ts";
 import { RuntimeValue, runtimeLayer } from "#test/app-host/runtimeLayer.ts";
 import type { HostState } from "#test/app-host/state.ts";

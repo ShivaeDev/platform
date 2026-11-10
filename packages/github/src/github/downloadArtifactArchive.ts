@@ -5,13 +5,13 @@ import { readBoundedBody } from "@shivaedev/http/body.ts";
 import type { RemoteStatusError } from "@shivaedev/http/errors.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import type { ArtifactArchiveOptions } from "#ArtifactArchiveOptions.ts";
-import { manualRedirects } from "#adapters/manualRedirects.ts";
-import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { extractArtifactArchive } from "#artifactExtraction.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { GitHubArtifactError, GitHubArtifactTooLarge, GitHubTransportError } from "#errors.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
+import { manualRedirects } from "#manualRedirects.ts";
+import { resolveApiUrl } from "#resolveApiUrl.ts";
 
 function downloadFailure(path: string, cause: HttpClientError.HttpClientError | RemoteStatusError) {
 	return cause._tag === "HttpClientError"

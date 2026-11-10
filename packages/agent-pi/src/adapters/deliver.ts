@@ -1,7 +1,7 @@
 import type { AgentSession, PromptOptions } from "@earendil-works/pi-coding-agent";
 import { Effect } from "effect";
 import type { BackendFailure } from "@shivaedev/agent/failures.ts";
-import { protocolFailure, rejected } from "#adapters/failure.ts";
+import { protocolFailure, rejected } from "#failure.ts";
 
 type PromptDisposition = Parameters<NonNullable<PromptOptions["preflightResult"]>>[0];
 

@@ -4,7 +4,7 @@ import { SecureRandom } from "effect/crypto";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useCallback } from "react";
-import { handlerRuntime } from "#client/adapters/handlerRuntime.ts";
+import { handlerRuntime } from "#client/handlerRuntime.ts";
 
 export function useNewId(
 	runtime: Atom.Atom<AsyncResult.AsyncResult<Context.Context<SecureRandom.SecureRandom>, unknown>> = handlerRuntime,

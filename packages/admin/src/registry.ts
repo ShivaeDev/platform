@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { RpcGroup } from "effect/rpc";
-import { validateAdminRoutes } from "#adapters/validateAdminRoutes.ts";
 import type { AdminPage } from "#page.ts";
+import { validateAdminRoutes } from "#validateAdminRoutes.ts";
 
 export interface AdminRegistry<TPages extends readonly AdminPage[]> {
 	readonly group: RpcGroup.RpcGroup<RpcGroup.Rpcs<TPages[number]["contract"]>>;

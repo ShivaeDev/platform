@@ -21,26 +21,26 @@ for (const flags of ["--config test/setup.ts --reporter test/report.ts", '--conf
 }
 
 biomeStory.it(
-	"Biome accepts a foreign host's typed adapter plugin default beside an ordinary adapter default",
+	"Biome accepts a foreign host's typed plugin default beside an ordinary default in any folder",
 	[
 		presetInstalled(),
 		repositoryHas(
 			{
 				content: 'import type { Plugin } from "@editor/plugin";\nconst plugin: Plugin = async () => ({});\nexport default plugin;\n',
-				path: "src/adapters/editor.ts",
+				path: "src/plugins/editor.ts",
 			},
-			{ content: "export default {};\n", path: "src/adapters/ordinary.ts" },
+			{ content: "export default {};\n", path: "src/plugins/ordinary.ts" },
 			{
 				content: 'import type { Plugin } from "./plugin.ts";\nconst ordinary: Plugin = async () => ({});\nexport default ordinary;\n',
-				path: "src/adapters/local.ts",
+				path: "src/plugins/local.ts",
 			},
-			{ content: "export type Plugin = () => Promise<object>;\n", path: "src/adapters/plugin.ts" },
+			{ content: "export type Plugin = () => Promise<object>;\n", path: "src/plugins/plugin.ts" },
 		),
 	],
 	function* ({ checks, reported }) {
 		yield* checks();
 		yield* assertThat(yield* reported("lint/style/noDefaultExport"), (actual) =>
-			actual.toEqual(["src/adapters/local.ts:3", "src/adapters/ordinary.ts:1"]),
+			actual.toEqual(["src/plugins/local.ts:3", "src/plugins/ordinary.ts:1"]),
 		);
 	},
 );

@@ -165,7 +165,7 @@ To let a separate frontend call HTTP RPC with the user's session cookie, declare
 
 ```ts
 import { Layer } from "effect";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
 const browserOrigins = ["https://app.example.com", "https://www.example.com"];

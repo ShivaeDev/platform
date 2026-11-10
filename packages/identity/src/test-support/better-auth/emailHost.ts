@@ -1,13 +1,13 @@
 import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Deferred, type Duration, Effect, Exit, Layer, Scope } from "effect";
-import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { postgresStore } from "@shivaedev/rate-limit/postgresStore.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
+import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { recorder } from "#test/rpc/harness.ts";
 
 export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input, messages: AuthEmail[] = [], windows?: BetterAuthEmails["windows"]) {

@@ -1,4 +1,4 @@
-import { agentLinkFindings } from "#adapters/agentLinkFindings.ts";
+import { agentLinkFindings } from "#agentLinkFindings.ts";
 import { defineRule } from "#rule.ts";
 
 export const agentLinks = defineRule({

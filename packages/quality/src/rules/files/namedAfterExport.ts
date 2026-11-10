@@ -1,12 +1,12 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
-import { isToolConfig } from "#adapters/isToolConfig.ts";
 import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
 import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
+import { isToolConfig } from "#isToolConfig.ts";
 import { knownDataExports } from "#naming/adapters/plainData.ts";
 import { constantModule } from "#naming/constantModule.ts";
 import { exportFits } from "#naming/exportFits.ts";

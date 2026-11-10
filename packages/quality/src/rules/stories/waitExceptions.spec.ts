@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
-import { inStory } from "#testing/adapters/storySpecFiles.ts";
+import { inStory } from "#testing/storySpecFiles.ts";
 
 repositoryStory.it(
 	"quality lint reports a real-time wait even when its story has a config exception",

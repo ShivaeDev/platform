@@ -79,13 +79,13 @@ Pass `subject: delegated` to the contract. A delegated request selects the accou
 
 `AccountPreferences` from `@shivaedev/identity/accountPreferences.ts` exposes authenticated `get`, `set` and `capture` operations for the caller's timezone, locale and units (`metric` or `imperial`). `set` replaces all three values. `capture` only creates a missing record, preserving saved preferences on subsequent sign-ins. An account without a record reads `UTC`, `en` and `metric`. The contract uses `selfSubject`, so a caller cannot select another account with a transport header.
 
-Apply `accountPreferencesMigration` from `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts` as a numbered migration through `migratePostgres`. Provide `accountPreferencesStore` from `@shivaedev/identity/server/account-preferences/store.ts` with the application's `SqlClient`, merge `AccountPreferences` into the RPC group, and install `accountPreferencesHandlers` from `@shivaedev/identity/server/accountPreferencesHandlers.ts`. The host supplies subject middleware as for other subject contracts. The composed `accountPreferencesStore` Layer supplies the repository service internally, so callers provide only the application SQL Layer. Store operations yield `AccountPreferenceRows` and accept a target account id; handlers obtain that authorized target from `Subject`.
+Apply `accountPreferencesMigration` from `@shivaedev/identity/server/accountPreferencesMigration.ts` as a numbered migration through `migratePostgres`. Provide `accountPreferencesStore` from `@shivaedev/identity/server/account-preferences/store.ts` with the application's `SqlClient`, merge `AccountPreferences` into the RPC group, and install `accountPreferencesHandlers` from `@shivaedev/identity/server/accountPreferencesHandlers.ts`. The host supplies subject middleware as for other subject contracts. The composed `accountPreferencesStore` Layer supplies the repository service internally, so callers provide only the application SQL Layer. Store operations yield `AccountPreferenceRows` and accept a target account id; handlers obtain that authorized target from `Subject`.
 
 To capture browser defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the optional Better Auth client plugin:
 
 ```ts
 import { createAuthClient } from "better-auth/client";
-import { preferencesClient } from "@shivaedev/identity/server/better-auth/adapters/preferencesClient.ts";
+import { preferencesClient } from "@shivaedev/identity/server/better-auth/preferencesClient.ts";
 
 export const auth = createAuthClient({ plugins: [preferencesClient()] });
 ```
@@ -121,7 +121,7 @@ Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, pe
 import { Layer } from "effect";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { auth } from "./auth.ts";
 
 export const sessions = Layer.succeed(SessionPolicy, {
@@ -153,7 +153,7 @@ The application's `auth` owns its storage and session configuration. A null look
 
 ### Local owners and machine callers
 
-`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/adapters/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect's `SecureRandom` and `Digest` services from `effect/crypto`:
+`localOwner` supplies a single configured person for a loopback application. Apply `machineTokenMigration` from `@shivaedev/identity/server/machineTokenMigration.ts` through the application's numbered PostgreSQL migrations, then create the provider with the application's `SqlClient` and Effect's `SecureRandom` and `Digest` services from `effect/crypto`:
 
 ```ts
 import { Layer, Redacted } from "effect";
@@ -230,7 +230,7 @@ Run this Effect in the host's scope; the application SQL Layer manages its conne
 
 The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting. With it unset, `baseURL.allowedHosts` defaults to `["127.0.0.1:*", "localhost:*"]` over HTTP and `trustedOrigins` defaults to `["http://127.0.0.1:*", "http://localhost:*"]`, accepting both loopback names on any port through a development proxy. Explicit `baseURL` (including `baseURL.allowedHosts`) and `trustedOrigins` options each replace their corresponding default; their lists are not merged. RPC Origin policy remains an application choice.
 
-`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Buckets belong to the host-provided `Store` from `@shivaedev/rate-limit/Store.ts`. Better Auth chooses the rules and client-IP keys; the mount prefixes keys with `identity:auth:` and always uses that Store, overriding Better Auth's `storage` and `customStorage` options. Memory budgets are shared by mounts using the same store and reset when a new host builds a fresh memory store. PostgreSQL budgets are shared across hosts using the same database; include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migrations and provide `postgresStore` from `@shivaedev/rate-limit/adapters/postgresStore.ts`. Both stores start each window at the first admitted request; refused attempts leave the window unchanged. A refusal returns HTTP 429 with the remaining time rounded up to whole seconds in `X-Retry-After`; a store failure returns HTTP 503.
+`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Buckets belong to the host-provided `Store` from `@shivaedev/rate-limit/Store.ts`. Better Auth chooses the rules and client-IP keys; the mount prefixes keys with `identity:auth:` and always uses that Store, overriding Better Auth's `storage` and `customStorage` options. Memory budgets are shared by mounts using the same store and reset when a new host builds a fresh memory store. PostgreSQL budgets are shared across hosts using the same database; include `postgresMigration` from `@shivaedev/rate-limit/postgresMigration.ts` in the application's numbered migrations and provide `postgresStore` from `@shivaedev/rate-limit/postgresStore.ts`. Both stores start each window at the first admitted request; refused attempts leave the window unchanged. A refusal returns HTTP 429 with the remaining time rounded up to whole seconds in `X-Retry-After`; a store failure returns HTTP 503.
 
 The mount also requires the current account password on `/change-email`. Use `changeEmail` from `@shivaedev/identity/client/adapters/changeEmail.ts` with the application's Better Auth client. The browser-safe adapter returns an input-to-Effect function whose `ChangeEmailInput` requires `newEmail` and `password` and accepts an optional `callbackURL`. It maps refusals through `authCall` to typed auth failures, including `INVALID_PASSWORD`.
 
@@ -316,7 +316,7 @@ import { Effect, Redacted } from "effect";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineSeed } from "@shivaedev/identity/server/better-auth/adapters/defineSeed.ts";
+import { defineSeed } from "@shivaedev/identity/server/better-auth/defineSeed.ts";
 
 const roles = roleSet(role("member", []));
 const seed = defineSeed({
@@ -336,7 +336,7 @@ For provisioning outside a seed, provide `betterAuthUserProvisioning(auth)` from
 
 ### User directory
 
-Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. Setting `authOptions.user.modelName` to `"users"` directs directory reads to that table, including the admin Users view and its pagination. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
+Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/userDirectory.ts` with the application's SQL Layer. Setting `authOptions.user.modelName` to `"users"` directs directory reads to that table, including the admin Users view and its pagination. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
 
 ```ts
 import { UserDirectory } from "@shivaedev/identity/server/UserDirectory.ts";
@@ -466,7 +466,7 @@ import { Effect, Layer } from "effect";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 
 const authentication = Effect.gen(function* () {
 	const database = yield* betterAuthDatabase();
@@ -530,7 +530,7 @@ The same module exports `loopbackOnly(effect)` for local page routes, reading `H
 
 `trustedProxyPeer(trustedProxy?)` compiles the guard's proxy address list into an `(address: string) => boolean` predicate. Use it with the transport's remote address when another route needs the same proxy trust decision. It supports the same IP addresses, CIDR ranges and IPv4-mapped IPv6 peers as `appHost`; absent or malformed configuration matches no peer. It does not read forwarded headers.
 
-`trustedProxyRanges(trustedProxy?)` from `@shivaedev/identity/server/adapters/trustedProxyRanges.ts` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
+`trustedProxyRanges(trustedProxy?)` from `@shivaedev/identity/server/trustedProxyRanges.ts` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
 Declare expected refusals with the shared tagged error schemas from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme). They work with native RPC without authentication middleware.
 
@@ -673,7 +673,7 @@ An application moving from Prisma can keep Prisma in charge of its auth tables w
 
 ```ts
 import { Effect } from "effect";
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 
@@ -704,7 +704,7 @@ Start with a disposable PostgreSQL database containing only your previously ship
 
 ```ts
 import { FileSystem } from "effect";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
 
 const fs = yield* FileSystem.FileSystem;
 const source = yield* generateBetterAuthMigration({ emailAndPassword: { enabled: true } });
@@ -730,7 +730,7 @@ If an application-authored numbered migration calls `auth.api`, create its adapt
 After applying all numbered migrations in an isolated story database, check them against the current options:
 
 ```ts
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
 
 yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
 ```
@@ -748,7 +748,7 @@ Identity declares `user.additionalFields.role` when the mount has `roles` and `d
 
 ```ts
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
 
 const migrationSource = yield* generateBetterAuthMigration(authOptions, { defaultRole: "member" });
 
@@ -1011,7 +1011,7 @@ const mounted = yield* betterAuthMount(options, {
 
 The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
 
-Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input and remains the default for every kind. The optional `windows` map overrides that duration by `AuthEmail["_tag"]`; omitted kinds still use `window`, or one minute when it is absent. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
+Auth emails reserve one delivery attempt per account id and message kind for one minute by default in PostgreSQL. Provide the application's PostgreSQL Layer (`SqlClient` and `Reactivity`) to the mount. Include `postgresMigration` from `@shivaedev/rate-limit/postgresMigration.ts` in the application's numbered migration loader before enabling `emails`. `window` accepts an Effect Duration input and remains the default for every kind. The optional `windows` map overrides that duration by `AuthEmail["_tag"]`; omitted kinds still use `window`, or one minute when it is absent. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses database time and survives mount rebuilds and process restarts. Mounts sharing a database share the reservation, regardless of the `Store` supplied for request rate limits. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
 
 ### Sweep expired sessions in a worker
 
@@ -1033,9 +1033,9 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/adapters/permissionRoute.ts`              | `permissionRoute`: HTTP route guards.                                                                                                                                                                                                                                                      |
 | `server/session.ts`                               | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                                                                |
 | `server/adapters/betterAuthSessions.ts`           | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                                                       |
-| `server/adapters/trustedOrigins.ts`               | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                                                           |
+| `server/trustedOrigins.ts`                        | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                                                           |
 | `server/adapters/local.ts`                        | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                                                              |
-| `server/adapters/trustedProxyRanges.ts`           | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                                                              |
+| `server/trustedProxyRanges.ts`                    | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                                                              |
 | `server/adapters/proxyRanges.ts`                  | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                                                       |
 | `server/transportHeaders.ts`                      | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                                           |
 | `server/tracing.ts`                               | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                                       |

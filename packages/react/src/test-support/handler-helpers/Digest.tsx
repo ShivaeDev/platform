@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { Digest as Digests } from "effect/crypto";
 import * as Atom from "effect/reactivity/Atom";
-import { clientCrypto } from "#client/adapters/crypto.ts";
+import { clientCrypto } from "#client/crypto.ts";
 import { useAction } from "#client/resultState.ts";
 
 const digest = Atom.runtime(clientCrypto).fn<void>()(() =>

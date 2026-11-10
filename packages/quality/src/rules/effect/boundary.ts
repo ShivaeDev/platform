@@ -3,6 +3,8 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { inAdapters } from "#naming/inAdapters.ts";
+import { isTestSupport } from "#naming/testName.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
 import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
@@ -78,25 +80,24 @@ function checkBoundary(inputs: RuleInputs): readonly Finding[] {
 	});
 }
 
+export const boundaryFindings = Effect.fn("Boundary.boundaryFindings")(function* (inputs: RuleInputs) {
+	const packages = yield* workspacePackages(inputs);
+	const groups = new Map<string, RuleInputs["sources"][number][]>();
+	for (const source of inputs.sources) {
+		if (!/\.[cm]?[jt]sx?$/u.test(source.path) || isPackageRootConfig(packageOf(packages, source.path)?.directory ?? ".", source.path)) {
+			continue;
+		}
+		const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
+		const sources = groups.get(group) ?? [];
+		sources.push(source);
+		groups.set(group, sources);
+	}
+	return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
+});
+
 export const effectBoundary = defineRule({
 	check: (inputs) =>
-		Effect.map(workspacePackages(inputs), (packages) => {
-			const groups = new Map<string, RuleInputs["sources"][number][]>();
-			for (const source of inputs.sources) {
-				if (
-					/(?:^|\/)(?:adapters|test-support)\//u.test(source.path)
-					|| !/\.[cm]?[jt]sx?$/u.test(source.path)
-					|| isPackageRootConfig(packageOf(packages, source.path)?.directory ?? ".", source.path)
-				) {
-					continue;
-				}
-				const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
-				const sources = groups.get(group) ?? [];
-				sources.push(source);
-				groups.set(group, sources);
-			}
-			return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
-		}),
+		boundaryFindings({ ...inputs, sources: inputs.sources.filter((source) => !(inAdapters(source.path) || isTestSupport(source.path))) }),
 	description:
 		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",

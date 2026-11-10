@@ -4,7 +4,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
-import { machineTokenMigration } from "#server/adapters/machineTokenMigration.ts";
+import { machineTokenMigration } from "#server/machineTokenMigration.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";
 import { httpClient, socketClient } from "#test/local-owner/clients.ts";
 import { ownerHost, REVALIDATION_INTERVAL } from "#test/local-owner/host.ts";

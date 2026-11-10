@@ -1,4 +1,4 @@
-import { repositoryPathFindings } from "#adapters/repositoryPathFindings.ts";
+import { repositoryPathFindings } from "#repositoryPathFindings.ts";
 import { defineRule } from "#rule.ts";
 
 export const repositoryPaths = defineRule({

@@ -1,6 +1,6 @@
 import { Cause, type Effect, Option } from "effect";
-import { useConnectionStatus } from "#client/adapters/useConnectionStatus.ts";
 import { useAction } from "#client/resultState.ts";
+import { useConnectionStatus } from "#client/useConnectionStatus.ts";
 import type { connect } from "#test/socket-clock/connect.ts";
 
 type Client = Effect.Success<ReturnType<typeof connect>>;

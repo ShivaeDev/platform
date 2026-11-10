@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { atLeast } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
+import { atLeast } from "@shivaedev/test-story/server/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { liveRegion, withoutTestClock } from "#test/liveRegion.ts";
 

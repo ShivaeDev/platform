@@ -2,12 +2,12 @@ import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient, type SqlModel } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { PrimaryKey, Repository } from "#compositeRepository.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { Column, Columns, Selected, UpdateInput } from "#repositoryUpdate.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import { type VersionedOptions, versionedStatements } from "#versionedStatements.ts";
 
 export type IdColumn<TModel extends Model.Any> = keyof TModel["Type"] & keyof TModel["update"]["Type"] & keyof TModel["fields"];

@@ -1,12 +1,12 @@
 import { Config, ConfigProvider, Context, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
-import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { localTracing } from "#localTracing.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingTracer } from "#redactingTracer.ts";
 import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
+import { traceDiagnostics } from "#traceDiagnostics.ts";
 
 const endpointUrl = Schema.URL.check(Schema.makeFilter((url) => url.protocol === "http:" || url.protocol === "https:"));
 

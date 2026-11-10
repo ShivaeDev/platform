@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { inAdapters } from "#naming/inAdapters.ts";
 import { boundaryReference } from "#rules/effect/boundaryReference.ts";
 
 function synchronousIo(reference: string): boolean {
@@ -77,7 +78,7 @@ export function boundaryCalls(checker: ts.TypeChecker) {
 	}
 	function guard(call: ts.CallExpression): boolean {
 		const body = functionBody(checker, call.expression);
-		return body !== undefined && !/(?:^|\/)adapters\//u.test(body.getSourceFile().fileName) && throws(body);
+		return body !== undefined && !inAdapters(body.getSourceFile().fileName) && throws(body);
 	}
 	function unsafeSync(call: ts.CallExpression): boolean {
 		const callback = call.arguments[0];

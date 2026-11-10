@@ -1,4 +1,4 @@
-import { outsideImportFindings } from "#adapters/outsideImportFindings.ts";
+import { outsideImportFindings } from "#outsideImportFindings.ts";
 import { defineRule } from "#rule.ts";
 
 export const adapterImports = defineRule({

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 const PREREQUISITES = new Set(["@shivaedev/test-story", "@shivaedev/test", "@shivaedev/types"]);

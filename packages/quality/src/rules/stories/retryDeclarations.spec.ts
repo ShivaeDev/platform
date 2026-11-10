@@ -2,7 +2,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
-import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
+import { kitFiles, spec } from "#testing/storySpecFiles.ts";
 
 for (const registration of [
 	'it("works", { retry: 2 }, () => {});',

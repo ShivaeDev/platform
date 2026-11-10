@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { queueTestingOrigin } from "#adapters/queueTestingOrigin.ts";
 import { storyProgram } from "#adapters/storyProgram.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { RuleInputs } from "#rule.ts";
 import { nodesWhere } from "#rules/stories/syntax.ts";

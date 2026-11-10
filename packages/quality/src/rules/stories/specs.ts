@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import ts from "typescript";
-import { runtime } from "#adapters/units/runtime.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { testName } from "#naming/testName.ts";
@@ -8,6 +7,7 @@ import { defineRule } from "#rule.ts";
 import { storyOrigins } from "#rules/stories/origins.ts";
 import { storyPrerequisites } from "#rules/stories/prerequisites.ts";
 import { unitTests } from "#rules/stories/unitTests.ts";
+import { runtime } from "#units/runtime.ts";
 
 function namesTest(node: ts.Expression): boolean {
 	if (ts.isIdentifier(node)) {

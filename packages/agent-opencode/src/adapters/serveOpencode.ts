@@ -1,9 +1,9 @@
 import { pathToFileURL } from "node:url";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { listeningUrl } from "#adapters/listeningUrl.ts";
-import { CONSTRAINED_AGENT, TOOL_SERVER_NAME } from "#adapters/wireName.ts";
 import { unavailable } from "#failure.ts";
+import { listeningUrl } from "#listeningUrl.ts";
+import { CONSTRAINED_AGENT, TOOL_SERVER_NAME } from "#wireName.ts";
 
 const LOOPBACK = "127.0.0.1";
 interface ServeOptions {

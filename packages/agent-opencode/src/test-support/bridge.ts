@@ -63,7 +63,7 @@ export const bridge = storyKit({
 			if (pluginUrl === undefined) {
 				return yield* Effect.die("provider received no caller plugin");
 			}
-			const { default: plugin }: typeof import("#adapters/opencodePlugin.config.ts") = yield* Effect.promise(() => import(pluginUrl));
+			const { default: plugin }: typeof import("#opencodePlugin.config.ts") = yield* Effect.promise(() => import(pluginUrl));
 			const hooks = yield* Effect.sync(() => plugin());
 			const scopes = new Map<string, Scope.Closeable>();
 			const client = new Client({ name: "scripted-opencode", version: "1" });

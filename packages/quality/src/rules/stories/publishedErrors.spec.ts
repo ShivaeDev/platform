@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { storyEngine } from "#rules/stories/engine.ts";
 import { publishedErrorFiles, publishedErrorStory } from "#test/publishedErrorFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
+import { kitFiles } from "#testing/storySpecFiles.ts";
 
 for (const [imports, errorClass] of [
 	['import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";', "ServiceUnavailable"],

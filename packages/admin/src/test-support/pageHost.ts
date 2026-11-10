@@ -7,7 +7,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { adminPermissionGuard } from "#client/adapters/adminPermissionGuard.ts";
+import { adminPermissionGuard } from "#client/adminPermissionGuard.ts";
 import { adminDocuments } from "#server/adminDocuments.ts";
 import { answered } from "#test/answers.ts";
 import { WorkspaceAccess, type WorkspaceRole, Workspaces, workspaceRegistration } from "#test/workspaces.ts";

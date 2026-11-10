@@ -1,5 +1,7 @@
 import { join } from "node:path";
 import ts from "typescript";
+import { inAdapters } from "#naming/inAdapters.ts";
+import { isTestSupport } from "#naming/testName.ts";
 import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { effectProgram } from "#rules/effect/program.ts";
 import { parse } from "#rules/parse.ts";
@@ -27,9 +29,11 @@ function bridgeOf(node: Assertion): string | undefined {
 	return isAssertion(inner) ? BRIDGES.get(inner.type.kind) : undefined;
 }
 
+// Adapters write into outside objects and process-wide state whose declared types cannot follow them: happy-dom's readonly
+// Document.defaultView in test-story's DOM environment and server's development runtime cache shared across module instances.
 function castsIn(path: string, source: ts.SourceFile): readonly Finding[] {
 	const findings: Finding[] = [];
-	const hidden = !/(?:^|\/)(?:adapters|test-support)\//u.test(path);
+	const hidden = !(inAdapters(path) || isTestSupport(path));
 	function visit(node: ts.Node): void {
 		const bridge = isAssertion(node) ? bridgeOf(node) : undefined;
 		const implicit = hidden ? hiddenCast(node) : undefined;
@@ -78,7 +82,7 @@ function typedCast(node: ts.Node, checker: ts.TypeChecker): string | undefined {
 function typedCasts(inputs: RuleInputs): readonly Finding[] {
 	const sources = inputs.sources.filter((file) => {
 		const source = parse(file);
-		return !/(?:^|\/)(?:adapters|test-support)\//u.test(file.path) && source !== undefined && typedNodes(source).length > 0;
+		return !(inAdapters(file.path) || isTestSupport(file.path)) && source !== undefined && typedNodes(source).length > 0;
 	});
 	if (sources.length === 0) {
 		return [];

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { atLeast, lessThan } from "#server/adapters/outcomeMatchers.ts";
+import { atLeast, lessThan } from "#server/outcomeMatchers.ts";
 import { outcomes } from "#server/outcomes.ts";
 import { defaultBudgets, hiddenLoading, loading, loadingScreen, missingSave, stuckLoading } from "#test/loadingScreen.tsx";
 

@@ -3,7 +3,7 @@ import { namedValues } from "@shivaedev/quality/rules/stories/namedValues.ts";
 import { noExpect } from "@shivaedev/quality/rules/stories/noExpect.ts";
 import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
 import { specHelpers } from "@shivaedev/quality/rules/stories/specHelpers.ts";
-import { inStory } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
+import { inStory } from "@shivaedev/quality/testing/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 
 ruleKit.it(

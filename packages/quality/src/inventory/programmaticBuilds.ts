@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { reachableBuilds } from "#adapters/reachableBuilds.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
 import { isTestCode } from "#naming/testName.ts";
+import { reachableBuilds } from "#reachableBuilds.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export const programmaticBuilds = Effect.fn("Inventory.programmaticBuilds")(function* (inputs: RuleInputs) {
