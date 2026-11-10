@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { screenPending } from "#adapters/screenPending.ts";
 import { liveLoaderHost } from "#test/live-loader/host.ts";
-import { LiveNote } from "#test/live-screen/LiveNote.tsx";
+import { Note } from "#test/live-screen/Note.tsx";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 
@@ -35,5 +35,5 @@ export const liveNoteAwaitingFirstAnswer = liveScreen.trait(
 	"screen",
 	"the screen shows a live note query whose subscription has asked the server for its first answer",
 	({ host, screen, view }) =>
-		screen.act("open the live note screen", () => view.render(<LiveNote atom={host.atom} />)).pipe(Effect.andThen(host.started)),
+		screen.act("open the live note screen", () => view.render(<Note atom={host.atom} />)).pipe(Effect.andThen(host.started)),
 );
