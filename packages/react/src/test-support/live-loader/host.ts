@@ -1,7 +1,6 @@
 import { Deferred, Effect, Layer, Queue, Schema, Stream } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
-import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { compareQueries } from "@shivaedev/contract/compareQueries.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
@@ -57,7 +56,6 @@ export const liveLoaderHost = Effect.fnUntraced(function* () {
 	);
 	const client = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://live-loader-notes" });
 	return {
-		activity: clientActivity(client),
 		atom: client.api.get.query(),
 		calls,
 		closed: Queue.take(closed),
