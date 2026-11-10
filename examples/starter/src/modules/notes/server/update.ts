@@ -7,7 +7,7 @@ import { getNote } from "#modules/notes/server/get.ts";
 import { NotesRepository } from "#modules/notes/server/Repository.ts";
 import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
-export const updateNote = Effect.fn("NotesService.updateNote")(
+export const updateNote = Effect.fn("Notes.updateNote")(
 	function* (input: typeof Update.payload.Type) {
 		const repository = yield* NotesRepository;
 		const row = yield* getNote(input.id);

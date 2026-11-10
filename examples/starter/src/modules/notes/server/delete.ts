@@ -5,7 +5,7 @@ import { getNote } from "#modules/notes/server/get.ts";
 import { NotesRepository } from "#modules/notes/server/Repository.ts";
 import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
-export const deleteNote = Effect.fn("NotesService.deleteNote")(
+export const deleteNote = Effect.fn("Notes.deleteNote")(
 	function* (input: typeof Delete.payload.Type) {
 		const repository = yield* NotesRepository;
 		yield* getNote(input.id);

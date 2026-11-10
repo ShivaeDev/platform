@@ -5,7 +5,7 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { Create, type Note, NoteReadAccess, Notes, notes, Update } from "#modules/notes/notes.ts";
+import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";
 import { notesClientHost } from "#modules/notes/test-support/clientHost.ts";
 
 export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
@@ -107,11 +107,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				return saved;
 			}),
 	});
-	const client = yield* notesClientHost(
-		handlers.pipe(Layer.provide(Layer.succeed(NoteReadAccess, () => Effect.succeed(true)))),
-		authentication,
-		Layer.succeed(Reactivity.Reactivity, reactivity),
-	);
+	const client = yield* notesClientHost(handlers, authentication, Layer.succeed(Reactivity.Reactivity, reactivity));
 	function finishNote(id: number, wordCount: number) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];

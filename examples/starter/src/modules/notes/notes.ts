@@ -1,4 +1,4 @@
-import { Context, Effect, Option, Schema } from "effect";
+import { Option, Schema } from "effect";
 import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -8,23 +8,21 @@ import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, InternalServerError, NotFound, ServiceUnavailable, TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
-export class Note extends Model.Class<Note>("Note")({
+export const noteFields = {
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	title: Schema.Trim.check(Schema.isNonEmpty({ message: "Enter a title" })),
 	version: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	wordCount: Schema.NullOr(Schema.Number),
-}) {}
+};
+export class Note extends Model.Class<Note>("Note")(noteFields) {}
 export const NoteFields = Schema.Struct({ title: Note.fields.title });
 export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version: Note.fields.version });
 const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
-export class NoteReadAccess extends Context.Service<NoteReadAccess, (id: number) => Effect.Effect<boolean, NotFound | ServiceUnavailable>>()(
-	"app/NoteReadAccess",
-) {}
 const Get = query("get", {
 	payload: NoteId,
-	readPolicy: ({ id }, viewer) => (Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id))),
+	readPolicy: signedIn,
 	reads: ({ id }) => [notes.item(id)],
 	rejections: { InternalServerError, NotFound, ServiceUnavailable },
 	success: Note.json,

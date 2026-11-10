@@ -48,18 +48,3 @@ app.it(
 		expect(yield* aliceNote.nextNote()).toBe("service unavailable: Could not reach the notes database");
 	},
 );
-
-app.it(
-	"alice's open note reports unavailable access when its stored title cannot be decoded",
-	[signedIn("alice")],
-	function* ({ noteTitleBecomesUnreadable, notesOf, watchesNote }) {
-		const note = yield* notesOf("alice").create("Alice's note");
-		const aliceNote = yield* watchesNote("alice", note);
-		expect(yield* aliceNote.nextNote()).toEqual(note);
-		yield* noteTitleBecomesUnreadable(note);
-
-		yield* aliceNote.refresh();
-
-		expect(yield* aliceNote.nextNote()).toBe("service unavailable: Could not check note access");
-	},
-);

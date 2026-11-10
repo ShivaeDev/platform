@@ -7,7 +7,7 @@ import { enqueueNote } from "#modules/notes/server/enqueue.ts";
 import { NotesRepository } from "#modules/notes/server/Repository.ts";
 import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
-export const createNote = Effect.fn("NotesService.createNote")(function* ({ title }: typeof Create.payload.Type) {
+export const createNote = Effect.fn("Notes.createNote")(function* ({ title }: typeof Create.payload.Type) {
 	const repository = yield* NotesRepository;
 	const { id: userId } = yield* SessionUser;
 	yield* rateLimit({ key: `notes.create:${userId}`, per: 10, window: "1 minute" });

@@ -10,16 +10,9 @@ The authenticated route loaders and screens share the same native query registry
 
 The `/notes/$noteId` route parses a numeric ID and loads `notes.get` through `loadQuery`. Its form uses `useEditor`: a live refresh keeps edited fields, a rejected save keeps the input, and a successful save applies the returned title. Updates and deletes send the version the client read. A stale version returns Platform's `Conflict` without changing the row; refresh and review the retained draft before saving again. Another account receives `NotFound` for an individual note. The word-count worker uses the same versioned notes repository and recalculates the count after an edit. The request runtime registers queue definitions through `NoteJobs.layer`, which creates queues and dead-letter queues without starting a worker. Create, import and edit enqueue within their write transaction; an enqueue failure rejects the request and rolls back the note write.
 
-The notes service declares `NotesRepository`, defined with `defineRepository`, and `SessionUser` in `requires`. Each operation is a traced `Effect.fn` export beside `server/service.ts` and yields its dependencies. The module registers the service in `requestServices` and the repository in `services`; the host builds the service for each authenticated execution. Handlers pass only operation inputs. Single writes, including deletion and the worker’s count update, commit without `transact`; note writes that enqueue work keep their transaction.
+Each notes operation is a traced `Effect.fn` export in its own file under `server/` and yields its dependencies: `NotesRepository`, defined with `defineRepository`, `SessionUser` and the module's ports. The handlers in `server/registration.ts` name those operations directly, and the host provides the caller and the registered Layers to each execution. The module owns no state, so it declares no service. Single writes, including deletion and the worker’s count update, commit without `transact`; note writes that enqueue work keep their transaction.
 
-The list query uses contract’s built-in `signedIn` read policy. The item query refuses a signed-out viewer with `false` (`QueryReadDenied` when evaluated without authentication middleware), and delegates signed-in access to `NoteReadAccess`. Its server implementation reads by both item ID and owner, failing with `NotFound({ message: "Note not found" })` for another viewer’s item and a nonexistent item alike:
-
-```ts
-readPolicy: ({ id }, viewer) =>
-	Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id)),
-```
-
-`NotFound` is declared in the query’s `rejections`, so this private-item answer also applies to live reads and subscriptions. Returning `false` instead would disclose denial as `QueryReadDenied`; use that case only when the viewer may know the item exists.
+Both queries use contract’s built-in `signedIn` read policy. The item operation reads by item ID and owner, so it fails with `NotFound({ message: "Note not found" })` for another viewer’s item and a nonexistent item alike. `NotFound` is declared in the query’s `rejections`, so this private-item answer also applies to live reads and subscriptions. A policy that returns `false` discloses denial as `QueryReadDenied`; use that only when the viewer may know the item exists.
 
 To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/foundation.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its own queues and workers; both application processes compose the same module list.
 
