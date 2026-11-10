@@ -15,7 +15,7 @@ export const consumerPatterns: readonly SeedFile[] = [
 	},
 	{
 		content:
-			'import { Effect } from "effect";\nimport { columns } from "#client/adapters/columns.ts";\nimport { route } from "#client/adapters/route.ts";\n\nEffect.runSync(Effect.succeed({ columns: columns(), route }));',
+			'import { Effect } from "effect";\nimport { columns } from "#client/columns.ts";\nimport { route } from "#client/route.ts";\n\nEffect.runSync(Effect.succeed({ columns: columns(), route }));',
 		path: "src/client/entry.tsx",
 	},
 	{
@@ -26,12 +26,12 @@ export const consumerPatterns: readonly SeedFile[] = [
 	{
 		content:
 			'import { createRoute } from "@tanstack/react-router";\nimport { goHome, missing } from "#client/adapters/navigation.ts";\nexport const route = createRoute({ beforeLoad: () => { goHome(); }, loader: () => { missing(); } });',
-		path: "src/client/adapters/route.ts",
+		path: "src/client/route.ts",
 	},
 	{
 		content:
 			'import { createColumnHelper } from "@tanstack/react-table";\n\ninterface Feature { readonly title: string; }\nexport function columns() { return createColumnHelper<Feature>(); }',
-		path: "src/client/adapters/columns.ts",
+		path: "src/client/columns.ts",
 	},
 ];
 
