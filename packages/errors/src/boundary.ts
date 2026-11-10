@@ -1,4 +1,5 @@
 import { Cause, Context, Effect, ErrorReporter, Predicate, Schema } from "effect";
+import { infrastructureRejection } from "#infrastructure.ts";
 import { redactDiagnosticCause } from "#redactCause.ts";
 import { isSensitiveKey, redactText } from "#sensitive.ts";
 
@@ -39,18 +40,28 @@ function reportUnexpected(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 		),
 	);
 }
-function declaredCause<E>(cause: Cause.Cause<unknown>, declared: (value: unknown) => value is E): Cause.Cause<E> | undefined {
+function declaredCause<E>(cause: Cause.Cause<unknown>, declared: (value: unknown) => value is E) {
 	const reasons: Cause.Reason<E>[] = [];
+	const infrastructure: Cause.Reason<unknown>[] = [];
 	for (const reason of cause.reasons) {
 		if (Cause.isInterruptReason(reason)) {
 			reasons.push(reason);
-		} else if (Cause.isFailReason(reason) && declared(reason.error)) {
-			reasons.push(Cause.makeFailReason(reason.error).annotate(Context.makeUnsafe(reason.annotations)));
-		} else {
+			continue;
+		}
+		if (!Cause.isFailReason(reason)) {
 			return undefined;
 		}
+		const rejection = declared(reason.error) ? undefined : infrastructureRejection(reason.error);
+		const answer = rejection ?? reason.error;
+		if (!declared(answer)) {
+			return undefined;
+		}
+		if (rejection !== undefined) {
+			infrastructure.push(reason);
+		}
+		reasons.push(Cause.makeFailReason(answer).annotate(Context.makeUnsafe(reason.annotations)));
 	}
-	return Cause.fromReasons(reasons);
+	return { cause: Cause.fromReasons(reasons), infrastructure };
 }
 export interface RpcBoundaryOptions<E> {
 	readonly message?: string;
@@ -65,7 +76,12 @@ export function rpcBoundary<TSchema extends Schema.Constraint>(schema: TSchema, 
 			}
 			const expected = declaredCause(cause, declared);
 			if (expected !== undefined) {
-				return Effect.failCause(expected);
+				// Retryable failures are not bugs, so they skip the error reporter, but an operator still needs to see them.
+				const warned =
+					expected.infrastructure.length === 0
+						? Effect.void
+						: Effect.logWarning("RPC infrastructure failure", redactDiagnosticCause(Cause.fromReasons(expected.infrastructure)));
+				return warned.pipe(Effect.andThen(Effect.failCause(expected.cause)));
 			}
 			const rejection = options.unexpected(redactText(options.message ?? "Internal server error", isSensitiveKey));
 			Object.defineProperties(rejection, {

@@ -1,8 +1,8 @@
-import { Cause, Context, Deferred, Effect, ErrorReporter, type Exit, Fiber } from "effect";
+import { Cause, Context, Deferred, Effect, ErrorReporter, type Exit, Fiber, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { rpcBoundary } from "#boundary.ts";
 import { redactingErrorReporter } from "#redactCause.ts";
-import { InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
+import { Conflict, InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
 import { observe, Rejection, RequestDetails, recordingReporter } from "#test/errorObservations.ts";
 
 interface Pending {
@@ -14,12 +14,17 @@ export const errors = storyKit({
 	create: () => {
 		const recording = recordingReporter();
 		const request: {
+			boundary: (operation: Effect.Effect<string, unknown>) => Effect.Effect<string, unknown>;
 			last: Exit.Exit<string, unknown> | undefined;
 			pending: Pending | undefined;
 			releaseFault: unknown;
-		} = { last: undefined, pending: undefined, releaseFault: undefined };
-		return {
+		} = {
 			boundary: rpcBoundary(Rejection, { unexpected: (message) => new InternalServerError({ message }) }),
+			last: undefined,
+			pending: undefined,
+			releaseFault: undefined,
+		};
+		return {
 			...request,
 			...recording,
 		};
@@ -110,5 +115,23 @@ export function releaseFails(fault: unknown) {
 export function unavailableFallback(message: string) {
 	return errors.trait("configuration", "unexpected failures use the service unavailable fallback", (state) => {
 		state.boundary = rpcBoundary(Rejection, { message, unexpected: (text) => new ServiceUnavailable({ message: text }) });
+	});
+}
+
+export class StorageBusy extends Schema.TaggedError<StorageBusy>()("StorageBusy", { message: Schema.String }) {
+	get isRetryable(): boolean {
+		return true;
+	}
+}
+
+export function declaresStorageBusy() {
+	return errors.trait("configuration", "the RPC declares StorageBusy, a failure that states it is retryable", (state) => {
+		state.boundary = rpcBoundary(Schema.Union([Rejection, StorageBusy]), { unexpected: (message) => new InternalServerError({ message }) });
+	});
+}
+
+export function declaresNoServiceUnavailable() {
+	return errors.trait("configuration", "the RPC declares Conflict and InternalServerError but not ServiceUnavailable", (state) => {
+		state.boundary = rpcBoundary(Schema.Union([Conflict, InternalServerError]), { unexpected: (message) => new InternalServerError({ message }) });
 	});
 }

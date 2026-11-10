@@ -2,7 +2,7 @@ import { ErrorReporter } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
-import { errors, releaseFails, unavailableFallback } from "#test/errors.ts";
+import { declaresNoServiceUnavailable, declaresStorageBusy, errors, releaseFails, StorageBusy, unavailableFallback } from "#test/errors.ts";
 
 class SourceFault extends Error {
 	override readonly [ErrorReporter.attributes] = { requestId: "request-1" };
@@ -34,6 +34,27 @@ errors.it(
 		yield* outcomes([
 			["cancellation", () => cancelled(), true],
 			["unexpected reports", () => recordedReports(), []],
+		]);
+	},
+);
+
+errors.it("a declared failure that states it is retryable keeps its identity", [declaresStorageBusy()], function* ({ answer, fault }) {
+	const busy = new StorageBusy({ message: "Storage is busy" });
+
+	yield* fault("failure", busy);
+
+	expect(yield* answer()).toBe(busy);
+});
+
+errors.it(
+	"a retryable failure answers the internal rejection and is reported when the RPC does not declare ServiceUnavailable",
+	[declaresNoServiceUnavailable()],
+	function* ({ answer, fault, recordedReports }) {
+		yield* fault("failure", new StorageBusy({ message: "Storage is busy" }));
+
+		yield* outcomes([
+			["answer", () => answer(), expect.any(InternalServerError)],
+			["unexpected reports", () => recordedReports(), [{ failures: [expect.objectContaining({ message: "Storage is busy" })] }]],
 		]);
 	},
 );

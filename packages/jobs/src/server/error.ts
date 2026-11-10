@@ -44,6 +44,10 @@ export class PgBossError extends Data.TaggedError("PgBossError")<{
 		const detail = this.operation === "settle" ? failureOutput(Cause.fail(original)) : undefined;
 		return `pg-boss ${this.operation}${target} failed: ${detail === undefined ? originalKind(original) : `${detail._tag}: ${detail.message}`}`;
 	}
+
+	get isRetryable(): boolean {
+		return false;
+	}
 }
 
 function originalKind(original: unknown): string {
@@ -85,7 +89,11 @@ export class PgBossPayloadError extends Data.TaggedError("PgBossPayloadError")<{
 	readonly direction: "decode" | "encode";
 	readonly queue: string;
 	readonly original: Redacted.Redacted<unknown>;
-}> {}
+}> {
+	get isRetryable(): boolean {
+		return false;
+	}
+}
 
 export function toPgBossError(operation: PgBossOperation, error: unknown, queue?: string): PgBossError {
 	return new PgBossError({

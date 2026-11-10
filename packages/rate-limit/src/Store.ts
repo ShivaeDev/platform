@@ -1,7 +1,12 @@
-import { Context, Data, type Effect } from "effect";
+import { Context, Data, type Effect, Predicate } from "effect";
 import type { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 
-export class StoreError extends Data.TaggedError("RateLimitStoreError")<{ readonly cause: unknown }> {}
+export class StoreError extends Data.TaggedError("RateLimitStoreError")<{ readonly cause: unknown }> {
+	// A cause that cannot say whether a retry helps is treated as an unreachable store.
+	get isRetryable(): boolean {
+		return Predicate.hasProperty(this.cause, "isRetryable") ? this.cause.isRetryable === true : true;
+	}
+}
 
 export interface WindowRequest {
 	readonly key: string;
