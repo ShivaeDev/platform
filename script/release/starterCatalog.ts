@@ -9,12 +9,14 @@ const readDrift = Effect.fn("Release.readDrift")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const workspace = scanCatalog(yield* fs.readFileString(join(root, "pnpm-workspace.yaml")));
 	const versions = new Map(
-		workspace.entries.filter((entry) => entry.section === "catalog" && !entry.namedCatalog).map((entry) => [entry.name, entry.value]),
+		workspace.entries.filter((entry) => entry.section === "catalog" && entry.catalog === "default").map((entry) => [entry.name, entry.value]),
 	);
 	const text = yield* fs.readFileString(join(root, STARTER_PATH));
 	const drift = scanCatalog(text).entries.flatMap((entry) => {
 		const expected = versions.get(entry.name);
-		return entry.section === "catalog" && !entry.namedCatalog && expected !== undefined && entry.value !== expected ? [{ ...entry, expected }] : [];
+		return entry.section === "catalog" && entry.catalog === "default" && expected !== undefined && entry.value !== expected
+			? [{ ...entry, expected }]
+			: [];
 	});
 	return { drift, text };
 });

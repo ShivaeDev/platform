@@ -4,7 +4,7 @@ import { checkReleaseCoverage } from "@shivaedev/releases/checkReleaseCoverage.t
 import { computePlan } from "@shivaedev/releases/planner.ts";
 import { readHistory } from "@shivaedev/releases/readHistory.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
-import { frameworkVersionsInput } from "#release/frameworkVersionsInput.ts";
+import { declarationDriftInput } from "#release/declarationDriftInput.ts";
 import { starterPinsInput } from "#release/starterPinsInput.ts";
 import config from "#release-config";
 
@@ -22,9 +22,9 @@ export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 			before.packages.some((old) => old.manifest.name === pkg.manifest.name && old.manifest.version !== pkg.manifest.version),
 		)
 	) {
-		const frameworkInput = yield* frameworkVersionsInput(root, before.packages, initial);
-		if (frameworkInput !== undefined) {
-			before = { ...before, changesets: [...before.changesets, frameworkInput] };
+		const driftInput = yield* declarationDriftInput(root, before.packages, initial);
+		if (driftInput !== undefined) {
+			before = { ...before, changesets: [...before.changesets, driftInput] };
 		}
 	}
 	const plan = yield* planDiff(before, after);
