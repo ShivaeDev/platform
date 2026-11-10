@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { failureFindings } from "#rules/effect/failureFindings.ts";
-import { effectProgram } from "#rules/effect/program.ts";
+import { workspaceProgram } from "#rules/effect/workspaceProgram.ts";
 
 const checkFailures = Effect.fn("FailureHonesty.checkFailures")(function* (inputs: RuleInputs) {
-	const program = yield* effectProgram(inputs, false);
+	const program = yield* workspaceProgram(inputs);
 	const checker = program.getTypeChecker();
 	return inputs.sources.flatMap((file) => {
 		const source = program.getSourceFile(join(inputs.root, file.path));

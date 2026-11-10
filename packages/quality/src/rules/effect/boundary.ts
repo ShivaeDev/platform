@@ -6,9 +6,9 @@ import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
 import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
-import { effectProgram } from "#rules/effect/program.ts";
 import { promiseBridge } from "#rules/effect/promiseBridge.ts";
 import { promiseParameter } from "#rules/effect/promiseParameter.ts";
+import { workspaceProgram } from "#rules/effect/workspaceProgram.ts";
 import { parse } from "#rules/parse.ts";
 
 function asyncConstruct(node: ts.Node): string | undefined {
@@ -54,7 +54,7 @@ function construct(node: ts.Node): string | undefined {
 }
 
 const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: RuleInputs, workspace: ReadonlySet<string>) {
-	const program = yield* effectProgram(inputs, false);
+	const program = yield* workspaceProgram(inputs);
 	const checker = program.getTypeChecker();
 	const call = boundaryCalls(checker);
 	const bridge = promiseBridge(checker, workspace);

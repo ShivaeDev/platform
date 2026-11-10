@@ -1,10 +1,8 @@
-import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { changeKeyApi } from "#adapters/changeKeyApi.ts";
 import { changeKeyLiterals } from "#adapters/changeKeyLiterals.ts";
-import type { Finding, RuleInputs, SourceFile } from "#rule.ts";
-import { effectProgram } from "#rules/effect/program.ts";
+import type { Finding, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { importBindings } from "#rules/stories/importBindings.ts";
 import { memberName, nodesWhere, unwrapped } from "#rules/stories/syntax.ts";
@@ -52,11 +50,9 @@ function hasCandidates(file: SourceFile): boolean {
 	return nodesWhere(source, (node) => candidate(node, aliases)).length > 0;
 }
 
-const findingsIn = Effect.fn("ChangeKeys.findingsIn")(function* (inputs: RuleInputs) {
-	const program = yield* effectProgram(inputs);
-	const checker = program.getTypeChecker();
-	return inputs.sources.flatMap((file) => {
-		const source = program.getSourceFile(join(inputs.root, file.path));
+function findingsIn(sources: readonly SourceFile[], { checker, sourceFile }: TypeScriptProgram): readonly Finding[] {
+	return sources.flatMap((file) => {
+		const source = sourceFile(file.path);
 		if (source === undefined) {
 			return [];
 		}
@@ -77,20 +73,8 @@ const findingsIn = Effect.fn("ChangeKeys.findingsIn")(function* (inputs: RuleInp
 					}));
 		});
 	});
-});
+}
 
-export const changeKeyFindings = Effect.fn("ChangeKeys.changeKeyFindings")((inputs: RuleInputs) =>
-	Effect.gen(function* () {
-		const groups = new Map<string, RuleInputs["sources"][number][]>();
-		for (const source of inputs.sources) {
-			if (!hasCandidates(source)) {
-				continue;
-			}
-			const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
-			const sources = groups.get(group) ?? [];
-			sources.push(source);
-			groups.set(group, sources);
-		}
-		return (yield* Effect.forEach(groups.values(), (sources) => findingsIn({ ...inputs, sources }))).flat();
-	}),
-);
+export function changeKeyCheck() {
+	return Effect.succeed({ checks: hasCandidates, findings: findingsIn });
+}

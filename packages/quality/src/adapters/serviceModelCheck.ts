@@ -1,22 +1,23 @@
-import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
 import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
 import { serviceOperationProblems } from "#adapters/serviceOperationProblems.ts";
 import { serviceStateProblems } from "#adapters/serviceStateProblems.ts";
-import type { Finding, RuleInputs } from "#rule.ts";
-import { effectProgram } from "#rules/effect/program.ts";
+import type { Finding, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { serviceCatalog } from "#rules/effect/serviceCatalog.ts";
 import { parse } from "#rules/parse.ts";
 
-const checkServices = Effect.fn("ServiceModel.checkServices")(function* (inputs: RuleInputs) {
-	const program = yield* effectProgram(inputs);
-	const checker = program.getTypeChecker();
+function definesServices(file: SourceFile): boolean {
+	const source = parse(file);
+	return source !== undefined && directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0;
+}
+
+function checkServices(sources: readonly SourceFile[], { checker, program, sourceFile }: TypeScriptProgram): readonly Finding[] {
 	const services = serviceCatalog(program, checker, [], true);
 	const found: Finding[] = [];
-	for (const file of inputs.sources) {
-		const source = program.getSourceFile(join(inputs.root, file.path));
+	for (const file of sources) {
+		const source = sourceFile(file.path);
 		if (source === undefined) {
 			continue;
 		}
@@ -32,21 +33,8 @@ const checkServices = Effect.fn("ServiceModel.checkServices")(function* (inputs:
 		}
 	}
 	return found;
-});
+}
 
-export const serviceModelFindings = Effect.fn("ServiceModel.serviceModelFindings")((inputs: RuleInputs) =>
-	Effect.gen(function* () {
-		const groups = new Map<string, RuleInputs["sources"][number][]>();
-		for (const file of inputs.sources) {
-			const source = parse(file);
-			if (source === undefined || directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length === 0) {
-				continue;
-			}
-			const group = /^(?:packages|examples)\/[^/]+/u.exec(file.path)?.[0] ?? ".";
-			const sources = groups.get(group) ?? [];
-			sources.push(file);
-			groups.set(group, sources);
-		}
-		return (yield* Effect.forEach(groups.values(), (sources) => checkServices({ ...inputs, sources }))).flat();
-	}),
-);
+export function serviceModelCheck() {
+	return Effect.succeed({ checks: definesServices, findings: checkServices });
+}

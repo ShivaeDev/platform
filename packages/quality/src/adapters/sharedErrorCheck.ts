@@ -1,13 +1,18 @@
-import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { type SharedErrorModule, sharedErrorModules } from "#adapters/sharedErrorModules.ts";
-import type { Finding, RuleInputs } from "#rule.ts";
-import { effectProgram } from "#rules/effect/program.ts";
+import { filesProgram } from "#adapters/typeScriptProgram.ts";
+import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 
 interface SharedError {
+	readonly declaration: string | undefined;
 	readonly repair: string;
-	readonly symbol: ts.Symbol;
+}
+
+// The shared classes come from their own program, so a scanned class is the shared one when it is declared at the same place.
+function declarationOf(symbol: ts.Symbol): string | undefined {
+	const declaration = symbol.valueDeclaration;
+	return declaration === undefined ? undefined : `${declaration.getSourceFile().fileName}:${declaration.pos}`;
 }
 
 function errorTag(checker: ts.TypeChecker, symbol: ts.Symbol): string | undefined {
@@ -24,7 +29,7 @@ function errorTag(checker: ts.TypeChecker, symbol: ts.Symbol): string | undefine
 	return literal.isStringLiteral() ? literal.value : undefined;
 }
 
-function sharedCatalog(program: ts.Program, checker: ts.TypeChecker, modules: readonly SharedErrorModule[]): ReadonlyMap<string, SharedError> {
+function sharedCatalog({ checker, program }: TypeScriptProgram, modules: readonly SharedErrorModule[]): ReadonlyMap<string, SharedError> {
 	const catalog = new Map<string, SharedError>();
 	for (const { file, specifier } of modules) {
 		const source = program.getSourceFile(file);
@@ -33,7 +38,7 @@ function sharedCatalog(program: ts.Program, checker: ts.TypeChecker, modules: re
 			const symbol = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
 			const tag = errorTag(checker, symbol);
 			if (tag !== undefined) {
-				catalog.set(tag, { repair: `Import ${exported.name} from "${specifier}" and use that class instead.`, symbol });
+				catalog.set(tag, { declaration: declarationOf(symbol), repair: `Import ${exported.name} from "${specifier}" and use that class instead.` });
 			}
 		}
 	}
@@ -47,7 +52,7 @@ function classFindings(source: ts.SourceFile, file: string, checker: ts.TypeChec
 			const symbol = checker.getTypeAtLocation(node).symbol;
 			const tag = symbol === undefined ? undefined : errorTag(checker, symbol);
 			const shared = tag === undefined ? undefined : catalog.get(tag);
-			if (shared !== undefined && symbol !== shared.symbol) {
+			if (shared !== undefined && symbol !== undefined && declarationOf(symbol) !== shared.declaration) {
 				findings.push({
 					file,
 					line: source.getLineAndCharacterOfPosition(node.getStart()).line + 1,
@@ -61,24 +66,29 @@ function classFindings(source: ts.SourceFile, file: string, checker: ts.TypeChec
 	return findings;
 }
 
-export const sharedErrorFindings = Effect.fn("SharedErrorClasses.sharedErrorFindings")(function* (inputs: RuleInputs) {
-	const sources = inputs.sources.filter((source) => /\.[cm]?[jt]sx?$/u.test(source.path) && /\bclass\b/u.test(source.text));
-	if (sources.length === 0) {
-		return [];
-	}
-	const modules = yield* sharedErrorModules({ ...inputs, sources });
-	if (modules.length === 0) {
-		return [];
-	}
-	const program = yield* effectProgram(
-		{ ...inputs, sources },
-		true,
-		modules.map(({ file }) => file),
-	);
-	const checker = program.getTypeChecker();
-	const catalog = sharedCatalog(program, checker, modules);
-	return sources.flatMap((file) => {
-		const source = program.getSourceFile(join(inputs.root, file.path));
-		return source === undefined ? [] : classFindings(source, file.path, checker, catalog);
-	});
+function declaresClasses(source: SourceFile): boolean {
+	return /\.[cm]?[jt]sx?$/u.test(source.path) && /\bclass\b/u.test(source.text);
+}
+
+export const sharedErrorCheck = Effect.fn("SharedErrorClasses.sharedErrorCheck")(function* (inputs: RuleInputs) {
+	const sources = inputs.sources.filter(declaresClasses);
+	const modules = sources.length === 0 ? [] : yield* sharedErrorModules({ ...inputs, sources });
+	const catalog =
+		modules.length === 0
+			? new Map<string, SharedError>()
+			: sharedCatalog(
+					yield* filesProgram(
+						inputs.root,
+						modules.map(({ file }) => file),
+					),
+					modules,
+				);
+	return {
+		checks: (source: SourceFile) => catalog.size > 0 && declaresClasses(source),
+		findings: (files: readonly SourceFile[], { checker, sourceFile }: TypeScriptProgram) =>
+			files.flatMap((file) => {
+				const source = sourceFile(file.path);
+				return source === undefined ? [] : classFindings(source, file.path, checker, catalog);
+			}),
+	};
 });

@@ -1,10 +1,8 @@
-import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { isTestSupport } from "#naming/testName.ts";
-import type { Finding, RuleInputs } from "#rule.ts";
-import { effectProgram } from "#rules/effect/program.ts";
+import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
 import { nodesWhere } from "#rules/stories/syntax.ts";
 
 function boundaryName(declaration: ts.Declaration | undefined): string | undefined {
@@ -31,11 +29,9 @@ function handlerBuilder(declaration: ts.Declaration | undefined): boolean {
 	);
 }
 
-const checkSources = Effect.fn("RpcBoundary.checkSources")(function* (inputs: RuleInputs) {
-	const program = yield* effectProgram(inputs);
-	const checker = program.getTypeChecker();
-	return inputs.sources.flatMap((file) => {
-		const source = program.getSourceFile(join(inputs.root, file.path));
+function checkSources(sources: readonly SourceFile[], { checker, sourceFile }: TypeScriptProgram): readonly Finding[] {
+	return sources.flatMap((file) => {
+		const source = sourceFile(file.path);
 		if (source === undefined) {
 			return [];
 		}
@@ -61,16 +57,13 @@ const checkSources = Effect.fn("RpcBoundary.checkSources")(function* (inputs: Ru
 					];
 		});
 	});
-});
+}
 
-export const rpcBoundaryFindings = Effect.fn("RpcBoundary.rpcBoundaryFindings")(function* (inputs: RuleInputs) {
+export const rpcBoundaryCheck = Effect.fn("RpcBoundary.rpcBoundaryCheck")(function* (inputs: RuleInputs) {
 	const candidates = new Set(inputs.sources.filter((source) => source.text.includes("rpcBoundary")).map((source) => source.path));
-	if (candidates.size === 0) {
-		return [];
-	}
-	const graph = yield* importGraph(inputs);
+	const graph = candidates.size === 0 ? undefined : yield* importGraph(inputs);
 	const importers = new Map<string, string[]>();
-	for (const edge of graph.edges) {
+	for (const edge of graph?.edges ?? []) {
 		if (edge.to.kind === "file" && !edge.type) {
 			const paths = importers.get(edge.to.path) ?? [];
 			paths.push(edge.from);
@@ -82,17 +75,8 @@ export const rpcBoundaryFindings = Effect.fn("RpcBoundary.rpcBoundaryFindings")(
 			candidates.add(importer);
 		}
 	}
-	return yield* Effect.gen(function* () {
-		const groups = new Map<string, RuleInputs["sources"][number][]>();
-		for (const source of inputs.sources) {
-			if (isTestSupport(source.path) || !/\.[cm]?[jt]sx?$/u.test(source.path) || !candidates.has(source.path)) {
-				continue;
-			}
-			const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
-			const sources = groups.get(group) ?? [];
-			sources.push(source);
-			groups.set(group, sources);
-		}
-		return (yield* Effect.forEach(groups.values(), (sources) => checkSources({ ...inputs, sources }))).flat();
-	});
+	return {
+		checks: (source: SourceFile) => !isTestSupport(source.path) && /\.[cm]?[jt]sx?$/u.test(source.path) && candidates.has(source.path),
+		findings: checkSources,
+	};
 });
