@@ -77,8 +77,6 @@ type InCollection<TName extends string, TSchema, TReturn> =
 
 type KeysOf<T> = T extends unknown ? keyof T : never;
 
-// Mutual assignability lets an optional property exist on one side only, and a Struct encodes only the keys it declares.
-// A union member that no returned member extends alone has nothing to compare here; Unmatched compares that return.
 type KeysDiffer<TName extends string, TType, TReturn> = [TReturn] extends [never]
 	? never
 	: Same<KeysOf<TType>, KeysOf<TReturn>> extends true
@@ -92,7 +90,6 @@ type InComposite<TName extends string, TSchema, TReturn> =
 			? Elements<TName, TElements, TReturn>
 			: InCollection<TName, TSchema, TReturn>;
 
-// Each wrapper is its own check: matched as one union pattern, an optionalKey field never reached its inner schema.
 type InContainer<TName extends string, TSchema, TReturn> = TSchema extends Schema.$Array<infer TItem> | Schema.NonEmptyArray<infer TItem>
 	? NotEncodedAsReturned<TName, TItem, TReturn extends readonly (infer TReturned)[] ? TReturned : never>
 	: TSchema extends Schema.mutable<infer TInner>
@@ -103,8 +100,8 @@ type InContainer<TName extends string, TSchema, TReturn> = TSchema extends Schem
 				? NotEncodedAsReturned<TName, TInner, Exclude<TReturn, undefined>>
 				: InComposite<TName, TSchema, TReturn>;
 
-// Shapes agree, yet encoding still depends on what each position holds: a class position must carry exactly that class,
-// or encoding it fails, and a struct position must carry exactly its keys, or a key is lost on the wire.
+// Mutual assignability passed, yet encoding still depends on what each position holds: a class position must carry exactly
+// that class, or encoding it fails, and a struct position exactly its keys, since an optional key may sit on one side only.
 type NotEncodedAsReturned<TName extends string, TSchema, TReturn> =
 	TSchema extends Schema.Class<infer TClass, infer _TStruct, infer _TInherited>
 		? Identical<TClass, TReturn> extends true
