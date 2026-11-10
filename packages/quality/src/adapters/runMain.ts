@@ -4,8 +4,8 @@ import * as NodeChildProcessSpawner from "@effect/platform-node/NodeChildProcess
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Cause, Console, Effect, Exit, type FileSystem, Layer, Runtime } from "effect";
-import type { ChildProcessSpawner } from "effect/process";
+import { Cause, Console, Effect, Exit, Layer, Runtime } from "effect";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { SetupFailure } from "#failure.ts";
 
 const INTERRUPTED = 130;
@@ -46,7 +46,10 @@ export function quietOnClosedPipe(stream: EventEmitter): void {
 	});
 }
 
-export const services = NodeChildProcessSpawner.layer.pipe(Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)));
+export const services = NodeChildProcessSpawner.layer.pipe(
+	Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+	Layer.merge(DeclarationFiles.layer),
+);
 
 export function explained<TValue, TError, TRequirements>(
 	program: Effect.Effect<TValue, TError, TRequirements>,
@@ -54,9 +57,7 @@ export function explained<TValue, TError, TRequirements>(
 	return Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
 }
 
-export function runMain<TValue, TError>(
-	program: Effect.Effect<TValue, TError, FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner>,
-): void {
+export function runMain<TValue, TError>(program: Effect.Effect<TValue, TError, Layer.Success<typeof services>>): void {
 	quietOnClosedPipe(process.stdout);
 	quietOnClosedPipe(process.stderr);
 	NodeRuntime.runMain(Effect.provide(explained(program), services), { disableErrorReporting: true, teardown });

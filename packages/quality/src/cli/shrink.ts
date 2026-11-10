@@ -1,10 +1,11 @@
-import { Console, Effect, type FileSystem } from "effect";
+import { Console, Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type { Scope } from "#baseline/update.ts";
 import { shrinkBaseline } from "#cli/baseline.ts";
 import type { SetupFailure } from "#failure.ts";
 import { resolveBase } from "#git/base.ts";
 import { changesSince } from "#git/history.ts";
+import type { RuleServices } from "#rule.ts";
 
 function followedMoves(root: string, against: string | undefined): Effect.Effect<Scope, SetupFailure, ChildProcessSpawner.ChildProcessSpawner> {
 	return resolveBase(root, against).pipe(
@@ -17,18 +18,10 @@ function followedMoves(root: string, against: string | undefined): Effect.Effect
 	);
 }
 
-export function pruneBaseline(
-	cwd: string,
-	config: string | undefined,
-	against: string | undefined,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner> {
+export function pruneBaseline(cwd: string, config: string | undefined, against: string | undefined): Effect.Effect<void, SetupFailure, RuleServices> {
 	return shrinkBaseline(cwd, config, (session) => followedMoves(session.config.root, against));
 }
 
-export function tightenBaseline(
-	cwd: string,
-	config: string | undefined,
-	staged: boolean,
-): Effect.Effect<void, SetupFailure, FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner> {
+export function tightenBaseline(cwd: string, config: string | undefined, staged: boolean): Effect.Effect<void, SetupFailure, RuleServices> {
 	return shrinkBaseline(cwd, config, (session) => changesSince(session.config.root, staged ? ["--cached"] : ["HEAD"]));
 }

@@ -1,13 +1,23 @@
 import { join, relative, sep } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
-export function effectProgram(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []): ts.Program {
-	return effectPrograms(inputs, externalTypes, roots).create(inputs.sources);
-}
+export const effectProgram = Effect.fn("EffectProgram.effectProgram")(function* (
+	inputs: RuleInputs,
+	externalTypes = true,
+	roots: readonly string[] = [],
+) {
+	return (yield* effectPrograms(inputs, externalTypes, roots)).create(inputs.sources);
+});
 
-export function effectPrograms(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []) {
+export const effectPrograms = Effect.fn("EffectProgram.effectPrograms")(function* (
+	inputs: RuleInputs,
+	externalTypes = true,
+	roots: readonly string[] = [],
+) {
 	const projectOf = projectsFor(inputs.root);
 	const options: ts.CompilerOptions = {
 		allowJs: true,
@@ -30,7 +40,8 @@ export function effectPrograms(inputs: RuleInputs, externalTypes = true, roots: 
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});
 	const sourceFiles = new Map<string, ts.SourceFile>();
-	const readSource = host.getSourceFile;
+	const declarations = yield* DeclarationFiles;
+	const readSource = yield* declarations.reader(host, options);
 	host.getSourceFile = (file, languageVersion, onError, shouldCreateNewSourceFile) => {
 		const previous = sourceFiles.get(file);
 		if (previous !== undefined && !shouldCreateNewSourceFile) {
@@ -54,4 +65,4 @@ export function effectPrograms(inputs: RuleInputs, externalTypes = true, roots: 
 			}
 		},
 	};
-}
+});

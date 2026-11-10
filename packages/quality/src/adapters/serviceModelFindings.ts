@@ -10,8 +10,8 @@ import { effectProgram } from "#rules/effect/program.ts";
 import { serviceCatalog } from "#rules/effect/serviceCatalog.ts";
 import { parse } from "#rules/parse.ts";
 
-function checkServices(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs);
+const checkServices = Effect.fn("ServiceModel.checkServices")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs);
 	const checker = program.getTypeChecker();
 	const services = serviceCatalog(program, checker, [], true);
 	const found: Finding[] = [];
@@ -32,10 +32,10 @@ function checkServices(inputs: RuleInputs): readonly Finding[] {
 		}
 	}
 	return found;
-}
+});
 
 export const serviceModelFindings = Effect.fn("ServiceModel.serviceModelFindings")((inputs: RuleInputs) =>
-	Effect.sync(() => {
+	Effect.gen(function* () {
 		const groups = new Map<string, RuleInputs["sources"][number][]>();
 		for (const file of inputs.sources) {
 			const source = parse(file);
@@ -47,6 +47,6 @@ export const serviceModelFindings = Effect.fn("ServiceModel.serviceModelFindings
 			sources.push(file);
 			groups.set(group, sources);
 		}
-		return [...groups.values()].flatMap((sources) => checkServices({ ...inputs, sources }));
+		return (yield* Effect.forEach(groups.values(), (sources) => checkServices({ ...inputs, sources }))).flat();
 	}),
 );

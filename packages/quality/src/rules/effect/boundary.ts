@@ -52,8 +52,8 @@ function construct(node: ts.Node): string | undefined {
 	return ts.isThrowStatement(node) ? "throw statement" : asyncConstruct(node);
 }
 
-function checkBoundary(inputs: RuleInputs): readonly Finding[] {
-	const program = effectProgram(inputs, false);
+const checkBoundary = Effect.fn("Boundary.checkBoundary")(function* (inputs: RuleInputs) {
+	const program = yield* effectProgram(inputs, false);
 	const checker = program.getTypeChecker();
 	const call = boundaryCalls(checker);
 	return inputs.sources.flatMap((file) => {
@@ -76,11 +76,11 @@ function checkBoundary(inputs: RuleInputs): readonly Finding[] {
 		}
 		return findings;
 	});
-}
+});
 
 export const effectBoundary = defineRule({
 	check: (inputs) =>
-		Effect.map(workspacePackages(inputs), (packages) => {
+		Effect.flatMap(workspacePackages(inputs), (packages) => {
 			const groups = new Map<string, RuleInputs["sources"][number][]>();
 			for (const source of inputs.sources) {
 				if (
@@ -95,7 +95,10 @@ export const effectBoundary = defineRule({
 				sources.push(source);
 				groups.set(group, sources);
 			}
-			return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
+			return Effect.map(
+				Effect.forEach(groups.values(), (sources) => checkBoundary({ ...inputs, sources })),
+				(found) => found.flat(),
+			);
 		}),
 	description:
 		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",

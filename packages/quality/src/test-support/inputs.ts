@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
@@ -18,7 +19,7 @@ export function inputsOf(seed: Seed): RuleInputs {
 		readText: (path) => Effect.succeed(seed.texts?.[path]),
 		root: "/virtual",
 		sources,
-		typeScript: typeScriptProgram("/virtual", sources),
+		typeScript: Effect.runSync(typeScriptProgram("/virtual", sources).pipe(Effect.provide(DeclarationFiles.layer))),
 	};
 }
 
