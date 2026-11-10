@@ -1,13 +1,16 @@
-import type { Effect } from "effect";
+import { Context, type Effect } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
 import type { RequirementRecord } from "@shivaedev/service/ServiceRequirements.ts";
-import { type Contract, contract } from "#contract.ts";
+import { type Contract, contract, withDeclaration } from "#contract.ts";
 import type { Allowed, NameProof } from "#moduleProof.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import type { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import type { changesRpc } from "#serverMetadata.ts";
 import type { SubjectDeclaration, WithSubject } from "#subject.ts";
+
+// The host refuses a module query whose handler moduleHandlers did not build, so every RPC of a module names it.
+export class DefinedModule extends Context.Service<DefinedModule, string>()("@shivaedev/contract/DefinedModule") {}
 
 export type ModuleOperation = (QueryShape | CommandShape) & { readonly run: (payload: never) => Effect.Effect<unknown, unknown, unknown> };
 
@@ -85,11 +88,16 @@ export function defineModule(definition: {
 	readonly operations: readonly ModuleOperation[];
 	readonly subject?: SubjectDeclaration;
 }): unknown {
-	const group = contract(definition.name, {
+	const declared = contract(definition.name, {
 		commands: definition.operations.filter((operation) => operation.kind === "command"),
 		queries: definition.operations.filter((operation) => operation.kind === "query"),
 		...(definition.keyScope === undefined ? {} : { keyScope: definition.keyScope }),
 		...(definition.subject === undefined ? {} : { subject: definition.subject }),
 	});
+	const group = withDeclaration(
+		declared.annotateRpcs(DefinedModule, definition.name),
+		declared.application.annotateRpcs(DefinedModule, definition.name),
+		declared.declaration,
+	);
 	return definition.middleware?.key === undefined ? group : group.middleware(definition.middleware);
 }

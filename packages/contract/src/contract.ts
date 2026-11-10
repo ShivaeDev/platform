@@ -46,18 +46,18 @@ function assertValid(name: string, operations: readonly (QueryShape | CommandSha
 	return declarationError(name, operations);
 }
 
-type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
+export type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
 
-interface Group {
+export interface Group {
 	middleware: (middleware: RpcMiddleware.AnyService) => Group;
 }
 
-interface DeclaredGroup extends Group {
+export interface DeclaredGroup extends Group {
 	readonly application: unknown;
 	readonly declaration: AnyDeclared;
 }
 
-function withDeclaration(group: Group, application: Group, declaration: AnyDeclared): DeclaredGroup {
+export function withDeclaration(group: Group, application: Group, declaration: AnyDeclared): DeclaredGroup {
 	const nativeMiddleware = group.middleware.bind(group);
 	return Object.assign(group, {
 		application,

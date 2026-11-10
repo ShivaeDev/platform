@@ -84,7 +84,7 @@ Host option types include this HTTP-only shape. A wrapper that reads native RPC 
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` to those Layers.
 
-For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, `group`, `handlers`, `services` and `migrations: { loader, components? }`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, its operations, `services` and `migrations: { loader, components? }`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
 
 ```ts
 import { Effect } from "effect";
@@ -101,6 +101,31 @@ const hosts = Effect.gen(function* () {
 	};
 });
 ```
+
+A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` registers as `module:`, and the host builds its group and its handlers with `moduleHandlers`. Its `services` provide what the module's `requires` lists, except the SQL client and the other services the host provides. A module written as a contract with hand-written handlers registers as `group` plus `handlers`; that form is being retired, and both forms can sit in one application while it moves one module at a time:
+
+```ts
+import { Layer } from "effect";
+import { Migrator, SqlClient } from "effect/sql";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { Create, Get } from "./notes/operations.ts";
+import { Drafts, readDraft } from "./drafts.ts";
+
+export const Notes = defineModule({ name: "notes", operations: [Create, Get], requires: [SqlClient.SqlClient] });
+
+export const notes = { migrations: { loader: Migrator.fromRecord({}) }, module: Notes, name: "notes", services: Layer.empty } satisfies AppModule;
+
+export const drafts = {
+	group: Drafts,
+	handlers: Drafts.application.toLayer({ "drafts.read": readDraft }),
+	migrations: { loader: Migrator.fromRecord({}) },
+	name: "drafts",
+	services: Layer.empty,
+} satisfies AppModule;
+```
+
+A defined module's generated handlers check each query's read policy with the module's services. `AppModule` refuses a defined module as `group` at compile time, and the host refuses to start when any query of a defined module is served by another handler: it fails with `HandWrittenModuleHandlers` from `@shivaedev/server/HandWrittenModuleHandlers.ts`, whose `module`, `queries` and `message` name the module, each affected query and the `module:` registration to use instead. Fakes in this repository's own stories opt out through `replacedModuleHandlers` in the package's test support, which is not published.
 
 `appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
 

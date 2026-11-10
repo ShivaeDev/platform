@@ -1,11 +1,12 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Migrator } from "effect/sql";
+import { Migrator, type SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
 import type { AppModule } from "#AppModule.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
+import { Notes, notesModule } from "#test/defined-modules/features.ts";
 import { workerHost } from "#workerHost.ts";
 
 class Port extends Context.Service<Port, string>()("@shivaedev/server/test/modules/Port") {}
@@ -69,4 +70,21 @@ it("worker composition retains missing ports, replacement requirements, failures
 	expectTypeOf<Layer.Services<Effect.Success<typeof replacedWorker>>>().toEqualTypeOf<Input>();
 	expectTypeOf<Extract<Layer.Error<Effect.Success<typeof replacedWorker>>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
 	expectTypeOf<Effect.Error<typeof incompleteWorker>>().toEqualTypeOf<DuplicateModuleQueue>();
+});
+
+const definedModules = appModules([notesModule]);
+
+it("a defined module's generated handlers require exactly the services it declares", () => {
+	expectTypeOf<Layer.Services<Effect.Success<typeof definedModules>["handlers"]>>().toEqualTypeOf<SqlClient.SqlClient>();
+});
+
+it("a defined module never registers as a group with hand-written handlers", () => {
+	expectTypeOf({
+		// @ts-expect-error A defined module registers as `module:`, because hand-written handlers would replace its generated read policy checks.
+		group: Notes,
+		handlers: Layer.empty,
+		migrations: { loader: Migrator.fromRecord({}) },
+		name: "notes",
+		services: Layer.empty,
+	} satisfies AppModule).not.toBeAny();
 });
