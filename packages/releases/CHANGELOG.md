@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 - 2026-11-10
+
+### Breaking
+
+- `loadConfig` in `@shivaedev/releases/workspace.ts` now requires `Path.Path`; provide it with `NodeServices.layer`.
+
 ## 0.13.1 - 2026-11-07
 
 ### Changed

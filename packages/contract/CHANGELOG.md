@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.5 - 2026-11-10
+
+### Fixed
+
+- `api[LiveConnection].status.needsResync` is now true from a resume until the reopened subscription delivers its first update; `connection` stays unchanged and query results keep reporting nothing pending.
+
 ## 0.43.4 - 2026-11-08
 
 ### Changed

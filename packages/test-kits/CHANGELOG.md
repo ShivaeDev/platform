@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.1 - 2026-11-10
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.43.4 to 0.43.5.
+- Update `@shivaedev/identity` from 0.31.0 to 0.31.1.
+- Update `@shivaedev/test-story` from 0.46.0 to 0.46.1.
+
 ## 0.11.0 - 2026-11-08
 
 ### Breaking
