@@ -114,8 +114,8 @@ export function aliceEntryOnDay(day: Day) {
 	});
 }
 
-export function watches(owner: string, day: number) {
-	return tupleBuckets.trait("watchers", `a query subscribes to ${owner}'s entries for day ${day}`, function* (engine) {
+export function watches(owner: string, day: number | string) {
+	return tupleBuckets.trait("watchers", `a query subscribes to ${owner}'s entries for day ${JSON.stringify(day)}`, function* (engine) {
 		const stop = engine.reactivity.registerUnsafe(readKeys([engine.keys.bucket.ownerDay({ day, ownerId: owner })]), () =>
 			engine.woken.push(`${owner} day ${day}`),
 		);

@@ -16,6 +16,16 @@ for (const [owner, day] of [
 }
 
 tupleBuckets.it(
+	'a query that names day 1 as the text "1" reruns on an insert of alice\'s entry for the number 1',
+	[watches("alice", "1")],
+	function* ({ inserts, woken }) {
+		yield* inserts("alice", 1);
+
+		expect(yield* woken()).toEqual(["alice day 1"]);
+	},
+);
+
+tupleBuckets.it(
 	"editing alice's day 1 entry reruns only the query of alice's day 1",
 	[aliceEntryOnDay(1), ...SUBSCRIBERS],
 	function* ({ editsEntry, woken }) {

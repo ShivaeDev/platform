@@ -40,7 +40,7 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 			}
 			values.push(decoded);
 		}
-		return tuple ? compositeId(values) : values[0];
+		return tuple ? compositeId(values.map(String)) : values[0];
 	});
 	const bucketKeys = Effect.fnUntraced(function* (row: Readonly<Record<string, unknown>>) {
 		const keys: Key[] = [];

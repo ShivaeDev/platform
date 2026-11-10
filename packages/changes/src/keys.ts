@@ -101,7 +101,7 @@ export function collection(name: string, _id: Schema.Top, fields: BucketFields =
 			...Object.keys(fields).map((field) => [field, (value: Identity) => bucket(field, value)]),
 			...Object.entries(tuples).map(([field, columns]) => [
 				field,
-				(values: Readonly<Record<string, Identity>>) => bucket(field, compositeId(columns.map((column) => values[column]))),
+				(values: Readonly<Record<string, Identity>>) => bucket(field, compositeId(columns.map((column) => String(values[column])))),
 			]),
 		]),
 		item: (id: Identity): ItemKey => ({ _tag: "Item", collection: name, id }),
