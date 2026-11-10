@@ -28,7 +28,6 @@ function served(rpc: Rpc.AnyWithProps, operation: QueryShape | CommandShape, run
 	return (payload: unknown) =>
 		Effect.gen(function* () {
 			if (operation.kind === "query") {
-				// Permission changes refresh nothing live, so the policy's reads record no keys.
 				yield* checkPolicy(operation, operation.readPolicy, payload, yield* CurrentViewer).pipe(
 					Effect.provideService(ReadRecorder, ReadRecorder.defaultValue()),
 				);
