@@ -88,7 +88,7 @@ function invoiceVerbs(engine: InvoiceEngine, tell: (line: string) => void) {
 		inFailingTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
 			Effect.suspend(() => {
 				tell("a transaction begins, and fails once its body has run");
-				return endingOf(transact(Effect.andThen(Effect.gen(body), Effect.fail("cancelled")), { onSqlError: (error) => error }));
+				return endingOf(transact(Effect.andThen(Effect.gen(body), Effect.fail("cancelled"))));
 			}),
 		insertLabel: (label: string) =>
 			Effect.suspend(() => {

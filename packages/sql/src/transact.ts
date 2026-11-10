@@ -79,29 +79,28 @@ export interface TransactOptions<TError> {
 	readonly onSqlError: (error: SqlError) => TError;
 }
 
+type Transacted<A, E, R> = Effect.Effect<A, E, R | SqlClient.SqlClient | Reactivity.Reactivity>;
+
 export const transact: {
-	<TError>(
-		options: TransactOptions<TError>,
-	): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, Exclude<E, SqlError> | TError, R | SqlClient.SqlClient | Reactivity.Reactivity>;
-	<A, E, R, TError>(
-		effect: Effect.Effect<A, E, R>,
-		options: TransactOptions<TError>,
-	): Effect.Effect<A, Exclude<E, SqlError> | TError, R | SqlClient.SqlClient | Reactivity.Reactivity>;
+	(): <A, E, R>(effect: Effect.Effect<A, E, R>) => Transacted<A, E | SqlError, R>;
+	<TError>(options: TransactOptions<TError>): <A, E, R>(effect: Effect.Effect<A, E, R>) => Transacted<A, Exclude<E, SqlError> | TError, R>;
+	<A, E, R>(effect: Effect.Effect<A, E, R>): Transacted<A, E | SqlError, R>;
+	<A, E, R, TError>(effect: Effect.Effect<A, E, R>, options: TransactOptions<TError>): Transacted<A, Exclude<E, SqlError> | TError, R>;
 } = dual(
-	2,
-	Effect.fn("Transact.transact")(function* <A, E, R, TError>(effect: Effect.Effect<A, E, R>, options: TransactOptions<TError>) {
+	(args) => Effect.isEffect(args[0]),
+	Effect.fn("Transact.transact")(function* <A, E, R, TError>(effect: Effect.Effect<A, E, R>, options?: TransactOptions<TError>) {
 		const sql = yield* SqlClient.SqlClient;
 		const native = yield* Effect.serviceOption(sql.transactionService);
-		return yield* invalidations
+		const transacted = invalidations
 			.within((body, boundary) =>
 				native._tag === "Some"
 					? sql.withTransaction(body)
 					: boundary.restore(sql.withTransaction(Effect.tap(body, () => sql.afterCommit(boundary.committed)))),
 			)(effect)
-			.pipe(
-				Effect.provideService(invalidations.Observer, observe),
-				Effect.provideService(invalidations.CommittedSink, committed),
-				Effect.catchIf(isSqlError, (error) => Effect.fail(options.onSqlError(error))),
-			);
+			.pipe(Effect.provideService(invalidations.Observer, observe), Effect.provideService(invalidations.CommittedSink, committed));
+		if (options === undefined) {
+			return yield* transacted;
+		}
+		return yield* Effect.catchIf(transacted, isSqlError, (error) => Effect.fail(options.onSqlError(error)));
 	}),
 );

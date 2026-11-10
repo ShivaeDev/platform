@@ -41,7 +41,7 @@ export const withChangeCoverage = Effect.fn("Changes.withChangeCoverage")(functi
 		return result;
 	});
 	return yield* checked.pipe(
-		transact({ onSqlError: (error) => error }),
+		transact(),
 		Effect.provideService(ChangeDeclarations, {
 			declare: (table, keys, rows) =>
 				Effect.andThen(

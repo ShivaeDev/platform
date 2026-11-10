@@ -63,7 +63,6 @@ function missingVerbs(
 				announcedBeforeCommit.push(...announced);
 				return then === "fails" ? yield* Effect.fail("cancelled") : row;
 			}),
-			{ onSqlError: (error) => error },
 		);
 	}
 	return {

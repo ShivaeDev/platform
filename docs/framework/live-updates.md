@@ -48,7 +48,7 @@ const renamed = changes({ notes: [notes.item(id), notes.bucket.userId(userId)] }
 yield* Effect.gen(function* () {
 	yield* sql`update notes set title = ${title} where id = ${id} and user_id = ${userId}`;
 	yield* renamed.record();
-}).pipe(transact({ onSqlError: (error) => error }));
+}).pipe(transact());
 ```
 
 A raw SQL move must include both the old and new bucket keys. Repository writes derive these automatically from the stored rows. See [commit-bound changes](./changes.md) for raw-write coverage and transaction composition.

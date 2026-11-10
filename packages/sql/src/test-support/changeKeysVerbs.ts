@@ -175,7 +175,7 @@ export function changeKeysVerbs(engine: ChangeKeysEngine, tell: (line: string) =
 		inTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
 			Effect.suspend(() => {
 				tell("a transaction begins");
-				return Effect.map(Effect.exit(observed(transact(Effect.gen(body), { onSqlError: (error) => error }))), ended("committed"));
+				return Effect.map(Effect.exit(observed(transact(Effect.gen(body)))), ended("committed"));
 			}),
 		ledgerEntries: () =>
 			Effect.flatMap(ledger(), ({ entries }) =>

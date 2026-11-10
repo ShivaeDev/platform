@@ -78,7 +78,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 			}
 		}
 		return yield* migrate({ loader: Effect.succeed(current), table });
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.provideService(Reactivity.Reactivity, reactivity));
+	}).pipe(transact(), Effect.provideService(Reactivity.Reactivity, reactivity));
 	const schemaComponents: readonly SchemaComponent<R, E | SqlError | Schema.SchemaError>[] = [
 		...components,
 		...(release === undefined ? [] : [postgresRelease(release, table)]),

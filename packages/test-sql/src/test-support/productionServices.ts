@@ -97,7 +97,6 @@ export const productionServices = storyKit({
 							yield* sql`update items set value = ${value}`;
 							yield* invalidateOnCommit([ITEMS_KEY]);
 						}),
-						{ onSqlError: (error) => error },
 					),
 				);
 			},

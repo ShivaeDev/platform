@@ -63,7 +63,7 @@ export function partialWriteVerbs(engine: PartialWriteEngine, tell: (line: strin
 			Effect.suspend(() => {
 				tell(`the repository updates only profile ${id}'s name${rollback ? " in a transaction that fails" : ""}`);
 				const update = profiles.update({ id, name: "Published" }, { columns: ["name"], onMissing: "fail" });
-				return write(rollback ? transact(Effect.andThen(update, Effect.fail("rejected")), { onSqlError: (error) => error }) : update, printed);
+				return write(rollback ? transact(Effect.andThen(update, Effect.fail("rejected"))) : update, printed);
 			}),
 		updateOwnerVoid: () =>
 			Effect.suspend(() => {

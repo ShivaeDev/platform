@@ -78,7 +78,7 @@ function codecVerbs({ payments, records: { endings, returned }, samples, sql, ta
 		decodeNanAmountInTransaction: () =>
 			Effect.suspend(() => {
 				tell("a transaction sets the stored amount to numeric NaN and the note to rejected by raw SQL, then reads the payments");
-				return Effect.map(endingOf(transact(readNanAmount(), { onSqlError: (error) => error })), recorded);
+				return Effect.map(endingOf(transact(readNanAmount())), recorded);
 			}),
 		endings: () => Effect.sync(() => [...endings]),
 		insertPayment: (changes: Partial<PaymentInput> = {}) =>

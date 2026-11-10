@@ -71,7 +71,7 @@ export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 		purgeFailure: (options: BatchedDeleteOptions<typeof RetainedRow>, inTransaction: false | "native" | "transact" = false) =>
 			Effect.gen(function* () {
 				tell(`retention attempts a purge${inTransaction ? " inside a transaction" : ""}`);
-				const owned = inTransaction === "transact" ? transact(purge(options), { onSqlError: (error) => error }) : purge(options);
+				const owned = inTransaction === "transact" ? transact(purge(options)) : purge(options);
 				const run = inTransaction === "native" ? sql.withTransaction(owned) : owned;
 				return yield* drivePauses(run, options).pipe(
 					Effect.as("succeeded"),

@@ -9,7 +9,7 @@ function isTestExit<A, E>(value: Exit.Exit<A, E> | SqlError): value is Exit.Exit
 
 export function withTestTransaction<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	const rollback = Effect.uninterruptibleMask((restore) => Effect.flatMap(Effect.exit(Effect.scoped(restore(effect))), Effect.fail));
-	return transact(rollback, { onSqlError: (error) => error }).pipe(
+	return transact(rollback).pipe(
 		Effect.catchIf(isTestExit, (exit) => exit),
 		Effect.mapError(connectionLimitHint),
 	);

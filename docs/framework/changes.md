@@ -24,7 +24,7 @@ const moved = changes({
 yield* Effect.gen(function* () {
   yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
   yield* moved.record();
-}).pipe(transact({ onSqlError: (error) => error }));
+}).pipe(transact());
 ```
 
 The table-to-key declaration also goes directly to `withChangeCoverage(body, moved)`. `moved.record({ publication: "local" })` refreshes local readers after commit without sending NOTIFY. `invalidateOnCommit(keys, { publication: "local" })` supports the same option. Publication defaults to `"shared"`; shared recordings in the same transaction still publish, and a key recorded both ways publishes once. Both kinds disappear on rollback.
