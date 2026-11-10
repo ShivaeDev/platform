@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 - 2026-11-10
+
+### Breaking
+
+- `rerun` in `@shivaedev/vitest-rerun/rerun.ts` now requires `Path.Path`; provide it with `NodeServices.layer`.
+
 ## 0.11.3 - 2026-11-08
 
 ### Changed

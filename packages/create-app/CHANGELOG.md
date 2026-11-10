@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.44.0 - 2026-11-10
+
+### Breaking
+
+- `appTemplate`, `prepareManifest`, `prepareFile` and `registryDependencies` in `@shivaedev/create-app/template.ts` now return Effects and fail with `CreateAppError` instead of throwing; `yield*` their results. `appFile` and `prepareFile` take and return `Uint8Array` instead of `Buffer`.
+
 ## 0.43.32 - 2026-11-08
 
 ### Changed

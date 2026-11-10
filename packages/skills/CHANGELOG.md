@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-11-10
+
+### Breaking
+
+- `skillPaths` in `@shivaedev/skills/layout.ts` is now an Effect that reads `Path.Path` from the environment. Change `skillPaths(path, repo, name)` to `yield* skillPaths(repo, name)`.
+
 ## 0.8.1 - 2026-11-07
 
 ### Changed

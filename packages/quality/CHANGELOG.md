@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.76.0 - 2026-11-10
+
+### Changed
+
+- When `quality hooks pre-commit` fails a lint, it repeats the findings after the output of the `typecheck` and `quality:commit` scripts, with each rule's count and its first three files, and the files of stale baseline or registry entries, just above the line that names the failed checks. A reader of the last lines of a failed commit sees what to fix without scrolling back to the lint report.
+
+### Fixed
+
+- `code/unused` accepts the dependencies of a package that ships only its manifest. Such a package exports `./package.json` alone and holds no sources, so the dependencies it installs are what it delivers.
+
+### Breaking
+
+- `pnpmWorkspaceList` and `pnpmWorkspacePatterns` from `imports/pnpmWorkspacePatterns.ts`, `compilePolicy` from `imports/fences/compilePolicy.ts`, `migrateConfig` from `exceptions/migrateConfig.ts` and `migrateBiome` from `exceptions/migrateBiome.ts` now return a `Result` instead of throwing. Read `Result.isFailure(result)` and `result.failure.message` where you caught the thrown error, or pass the result to `Effect.fromResult` inside Effect code. The failures are `PnpmWorkspaceFailure`, `BoundaryFailure` and `MigrationFailure`, and each keeps the message the thrown error had.
+
 ## 0.75.0 - 2026-11-08
 
 ### Changed
