@@ -1,7 +1,8 @@
-import { Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { liveAnswers } from "@shivaedev/contract/liveAnswers.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
@@ -14,15 +15,8 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 	function driver(settled?: typeof isClientIdle) {
 		return screenDriver({ act, activity: activityScreenSignal(clientActivity(engine.client), settled), root: screenView(engine).container, tell });
 	}
-	function afterNextHint<A, E>(action: Effect.Effect<A, E>) {
-		return Effect.gen(function* () {
-			const hint = yield* driver()
-				.nextLiveHint()
-				.pipe(Effect.forkScoped({ startImmediately: true }));
-			const result = yield* action;
-			yield* Fiber.join(hint);
-			return result;
-		});
+	function notesList() {
+		return liveAnswers(screenView(engine).registry, "the notes list", engine.client.api.list.query());
 	}
 	return {
 		cachedTitle: () =>
@@ -31,7 +25,8 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 					AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.get.query({ id: 1 })), () => undefined)?.title ?? "nothing cached",
 			),
 		finishWordCount: (count: number) =>
-			afterNextHint(
+			driver().withLiveAnswer(
+				notesList(),
 				Effect.promise(async () => {
 					tell(`the worker finishes counting ${count} words`);
 					await act(() => engine.client.finishNote(1, count));
@@ -41,7 +36,8 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		noteReads: () => Effect.sync(() => countWords(engine.client.reads.note, "note read")),
 		notesReads: () => Effect.sync(() => countWords(engine.client.reads.list + engine.client.reads.note, "notes read")),
 		reviseNote: (title: string) =>
-			afterNextHint(
+			driver().withLiveAnswer(
+				liveAnswers(screenView(engine).registry, "note 1", engine.client.api.get.query({ id: 1 })),
 				Effect.promise(async () => {
 					tell(`another session revises the note to ${JSON.stringify(title)} and sends a live hint`);
 					await act(() => engine.client.reviseNote(1, title));
@@ -59,7 +55,7 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				tell(`the worker finishes counting ${count} words while the server read is held`);
 				await act(() => engine.client.finishNote(1, count));
 			}),
-		submitNewNote: () => afterNextHint(screenActions(engine, tell).submit()),
+		submitNewNote: () => driver().withLiveAnswer(notesList(), screenActions(engine, tell).submit()),
 		visitNotes: () =>
 			Effect.promise(async () => {
 				tell("visit the notes list");

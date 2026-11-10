@@ -1,6 +1,7 @@
 import { Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { liveAnswers } from "@shivaedev/contract/liveAnswers.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
@@ -60,9 +61,10 @@ export const activityPage = storyKit({
 				screenDriver({ act, activity: idle, root: view.container, tell: story.tell })
 					.settle()
 					.pipe(Effect.andThen(Effect.sync(() => driver.text("output")))),
-			startHintWait: () =>
+			startAnswerWait: () =>
 				Effect.gen(function* () {
-					const fiber = yield* driver.nextLiveHint().pipe(Effect.forkScoped({ startImmediately: true }));
+					const answers = liveAnswers(view.registry, "page 1", client.api.get.query({ id: 1 }));
+					const fiber = yield* driver.withLiveAnswer(answers, Effect.void).pipe(Effect.forkScoped({ startImmediately: true }));
 					return { finish: Fiber.join(fiber), state: Effect.sync(() => (fiber.pollUnsafe() === undefined ? "waiting" : "received")) };
 				}),
 			startRead: () =>

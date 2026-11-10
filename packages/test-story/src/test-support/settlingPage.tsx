@@ -1,6 +1,7 @@
 import { Deferred, Effect, Fiber, Queue, Stream, SubscriptionRef } from "effect";
 import { act } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { liveAnswers } from "@shivaedev/contract/liveAnswers.ts";
 import { expectNoReactWarnings } from "#client/adapters/react.ts";
 import { domPage } from "#server/domPage.ts";
 import { fakeHttpService } from "#server/fakeHttpService.ts";
@@ -44,7 +45,7 @@ export const settlingPage = storyKit({
 	},
 	inspect: ({ view }) => view.container.textContent,
 	name: "combined screen completion",
-	stages: [],
+	stages: ["host"],
 	verbs: ({ files, host, raw, transport, view }, story) => {
 		const { app } = view;
 		const activity = activityScreenSignal(clientActivity(app.client), isClientIdle);
@@ -62,6 +63,12 @@ export const settlingPage = storyKit({
 			drafts: () => Effect.sync(() => [...document.querySelectorAll("input")].map((input) => input.value)),
 			finishPreview: () => Deferred.succeed(app.preview, undefined).pipe(Effect.andThen(Deferred.await(app.previewed))),
 			preview: () => Effect.sync(() => screen.text("[data-preview]")),
+			save: (settings?: { readonly timeoutMs?: number }) =>
+				screen.withLiveAnswer(
+					liveAnswers(view.registry, "page 1", app.client.api.get.query({ id: 1 })),
+					screen.click({ name: "Save", role: "button" }),
+					settings,
+				),
 			startAttachment: (prepare = false) =>
 				Effect.gen(function* () {
 					const hold = yield* files.hold("attachment");
@@ -98,3 +105,22 @@ export const settlingPage = storyKit({
 		};
 	},
 });
+
+export const rerunsAfterReceipt = settlingPage.trait(
+	"host",
+	"the server reruns a changed page only after the client has the save's receipt",
+	function* ({ host, view }) {
+		host.holdReruns();
+		const receipt = until(clientActivity(view.app.client), (state) => state.commands === 0, { name: "the save's receipt on the client" });
+		yield* Queue.take(host.rerunHeld).pipe(
+			Effect.andThen(receipt),
+			Effect.andThen(Effect.sync(host.releaseReruns)),
+			Effect.forever,
+			Effect.forkScoped,
+		);
+	},
+);
+
+export const savesPublishNoChange = settlingPage.trait("host", "the server publishes no change when a page is saved", ({ host }) =>
+	host.publishNoWrites(),
+);

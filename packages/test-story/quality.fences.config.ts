@@ -9,7 +9,6 @@ export default [
 				"packages/test-story/src/server/screenDriver.ts",
 				"packages/test-story/src/server/screenSignal.ts",
 				"packages/test-story/src/server/waitForScreen.ts",
-				"packages/test-story/src/server/nextScreenHint.ts",
 			),
 		)
 		.mayNotReach(packages("contract"))
