@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import { defineModule } from "#defineModule.ts";
 import { command } from "#operation.ts";
 import { NoteId, NoteSource, SessionUser } from "#test/runNotes.ts";
@@ -8,6 +9,7 @@ const ImportTitle = command("importTitle", {
 		const source = yield* NoteSource;
 		return yield* source.title(id);
 	},
+	success: Schema.String,
 });
 
 const Whoami = command("whoami", {
@@ -15,6 +17,7 @@ const Whoami = command("whoami", {
 		const { id } = yield* SessionUser;
 		return id;
 	},
+	success: Schema.String,
 });
 
 defineModule({

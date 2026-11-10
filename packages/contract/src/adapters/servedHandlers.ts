@@ -34,9 +34,9 @@ function served(rpc: Rpc.AnyWithProps, operation: QueryShape | CommandShape, run
 }
 
 // Live subscriptions check the policy outside the handler, so the policy carries the handler's failure mapping.
-function servedPolicy(rpc: Rpc.AnyWithProps, query: QueryShape): QueryReadPolicy<unknown, unknown, unknown> {
+function servedPolicy(rpc: Rpc.AnyWithProps, policy: QueryReadPolicy<unknown, unknown, unknown>): QueryReadPolicy<unknown, unknown, unknown> {
 	const boundary = guarded(rpc);
-	return (payload, viewer) => boundary(Effect.suspend(() => query.readPolicy(payload, viewer)));
+	return (payload, viewer) => boundary(Effect.suspend(() => policy(payload, viewer)));
 }
 
 type EffectRpc = Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>;
@@ -58,8 +58,8 @@ export function servedHandlers(
 			return Layer.effectContext(Effect.die(new Error(`Module ${declaration.name} cannot serve ${tag}: it has no RPC or no run`)));
 		}
 		const handler = RpcGroup.make(rpc).toLayerHandler(tag, served(rpc, operation, run, `${spanOwner(declaration.name)}.${operation.name}`));
-		return operation.kind === "query"
-			? handler.pipe(Layer.provide(Layer.succeed(ServedReadPolicy, { check: servedPolicy(rpc, operation) })))
+		return operation.kind === "query" && operation.readPolicy !== undefined
+			? handler.pipe(Layer.provide(Layer.succeed(ServedReadPolicy, { check: servedPolicy(rpc, operation.readPolicy) })))
 			: handler;
 	});
 	return Layer.mergeAll(Layer.empty, ...layers);

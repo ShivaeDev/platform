@@ -2,7 +2,7 @@ import { Cause, Effect, Schema } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { contract } from "#contract.ts";
-import { type CommandShape, command, type QueryShape, query, type StreamShape, stream } from "#operation.ts";
+import { type CommandShape, command, query, type StreamShape, stream } from "#operation.ts";
 import { signedIn } from "#readPolicy.ts";
 import { operationsFor } from "#test/operationsFor.ts";
 import { validateReadPolicies } from "#validateReadPolicies.ts";
@@ -37,11 +37,12 @@ export const declarationStory = storyKit({
 			switch (kind) {
 				case "duplicate queries": {
 					const same = query("same", { readPolicy: signedIn, reads: () => [] });
-					const queries: readonly QueryShape[] = [same, same];
+					const queries: readonly (typeof same)[] = [same, same];
 					return failureMessage(contract("dupes", { queries }));
 				}
 				case "duplicate query and command": {
-					const queries: readonly QueryShape[] = [query("same", { readPolicy: signedIn, reads: () => [] })];
+					const same = query("same", { readPolicy: signedIn, reads: () => [] });
+					const queries: readonly (typeof same)[] = [same];
 					const commands: readonly CommandShape[] = [command("same", { invalidates: () => [] })];
 					return failureMessage(contract("dupes", { commands, queries }));
 				}
