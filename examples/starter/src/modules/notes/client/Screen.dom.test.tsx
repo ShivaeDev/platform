@@ -58,12 +58,12 @@ screens.it("a title the server refuses shows its reason and stays in the field",
 screens.it(
 	"adding a note lists it, clears the field and reads the list again",
 	[notesRoute()],
-	function* ({ alert, draft, enter, listReads, settle, shownNotes, submit }) {
+	function* ({ alert, draft, enter, listReads, settle, shownNotes, submitNewNote }) {
 		yield* settle();
 		expect(yield* shownNotes()).toEqual(["no notes yet"]);
 		yield* enter("First note");
 
-		yield* submit();
+		yield* submitNewNote();
 		yield* settle();
 
 		yield* outcomes([
