@@ -6,7 +6,7 @@ import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Finding } from "#rule.ts";
 
-export type FenceGraph = Pick<ImportGraph, "edges" | "modules">;
+export type FenceGraph = Pick<ImportGraph, "edges" | "ignoredEdges" | "modules">;
 
 export type Evaluate = (graph: FenceGraph) => readonly Finding[];
 
@@ -49,7 +49,7 @@ function importFindings(fence: Fence, importer: (path: string) => boolean, to: M
 
 function reachFindings(fence: Fence, importer: (path: string) => boolean, to: Matcher): Evaluate {
 	return (graph) => {
-		const edgesFrom = outgoing(graph.edges);
+		const edgesFrom = outgoing([...graph.edges, ...graph.ignoredEdges]);
 		return graph.modules.filter(importer).flatMap((module) =>
 			reachedFrom(module, edgesFrom, to).map((reached) => ({
 				file: module,

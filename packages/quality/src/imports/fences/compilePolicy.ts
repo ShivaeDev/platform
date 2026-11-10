@@ -26,7 +26,7 @@ function graphOf(chain: Chain): FenceGraph | undefined {
 	const edges = files.map(
 		(from, index): ImportEdge => ({ from, kind: "import", line: 1, specifier: "", to: endpointOf(chain[index + 1] ?? from), type: false }),
 	);
-	return { edges, modules: files };
+	return { edges, ignoredEdges: [], modules: files };
 }
 
 function crossedBy(policy: readonly CompiledFence[], graph: FenceGraph): readonly string[] {

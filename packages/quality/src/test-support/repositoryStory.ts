@@ -36,7 +36,7 @@ export const repositoryStory = storyKit({
 		),
 	inspect: ({ answer }) => ({ answer }),
 	name: "Quality repository",
-	stages: ["repository", "formatting", "history"],
+	stages: ["repository", "formatting", "generation", "history"],
 	verbs: (engine, story) => ({
 		...cliVerbs(engine, story.tell),
 		...skillReadouts(engine),

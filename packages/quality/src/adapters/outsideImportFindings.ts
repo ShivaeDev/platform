@@ -1,6 +1,8 @@
 import { Effect } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import type { ManifestReadFailure } from "#adapters/manifestInventory.ts";
+import type { SetupFailure } from "#failure.ts";
 import type { GlobFailure } from "#imports/globMatcher.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
@@ -14,7 +16,11 @@ const PURE_BUILTINS = new Set(["node:path", "node:path/posix", "node:path/win32"
 
 export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(function* (
 	inputs: RuleInputs,
-): Effect.fn.Return<readonly Finding[], GlobFailure | ImportAnalysisFailure | ManifestReadFailure | PnpmWorkspaceFailure> {
+): Effect.fn.Return<
+	readonly Finding[],
+	GlobFailure | ImportAnalysisFailure | ManifestReadFailure | PnpmWorkspaceFailure | SetupFailure,
+	ChildProcessSpawner.ChildProcessSpawner
+> {
 	const graph = yield* importGraph(inputs);
 	const builtins = graph.edges.flatMap((edge) =>
 		edge.to.kind === "external"

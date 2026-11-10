@@ -51,7 +51,7 @@ function externalDependencies(manifest: PackageManifest, externals: ReadonlySet<
 
 export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 	inputs: RuleInputs,
-	toolOwned: readonly string[] = [],
+	unchecked: readonly string[] = [],
 	builds: ReachableBuilds = { entries: new Set(), externals: new Map() },
 	declared: readonly string[] = declaredEntries(inputs),
 ) {
@@ -81,7 +81,9 @@ export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 		const configs = sources.filter(isToolConfig);
 		// Migration runners load these files from their directory, so no import reaches them.
 		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
-		const ui = toolOwned.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory).map((file) => posix.relative(directory, file));
+		const followed = unchecked
+			.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory)
+			.map((file) => posix.relative(directory, file));
 		const workspaceEntries = declared
 			.filter((file) => (packageOf(packages, file)?.directory ?? ".") === directory)
 			.map((file) => posix.relative(directory, file));
@@ -100,7 +102,7 @@ export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 					...binaries,
 					...scriptEntries,
 					...bundled,
-					...ui,
+					...followed,
 					...styles,
 					...workspaceEntries,
 				],
@@ -110,7 +112,7 @@ export const knipConfiguration = Effect.fn("Knip.knipConfiguration")(function* (
 					...deliveredDependencies(manifest, sources),
 				],
 				paths: importPaths(manifest.imports ?? {}),
-				project: [...sources, ...ui, ...styles, ...workspaceEntries],
+				project: [...sources, ...followed, ...styles, ...workspaceEntries],
 				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },
 			},
 		] as const;

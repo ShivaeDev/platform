@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { builtinName } from "#adapters/builtinName.ts";
-import { type ImportGraph, importGraph } from "#imports/graph.ts";
+import type { Endpoint } from "#imports/Endpoint.ts";
+import { outgoing, walkFrom } from "#imports/fences/reach.ts";
+import { type ImportEdge, type ImportGraph, importGraph } from "#imports/graph.ts";
 import { nodePlatformBarrels } from "#imports/nodePlatformBarrels.ts";
 import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
 import { isTestCode } from "#naming/testName.ts";
@@ -13,22 +15,57 @@ function forbiddenImport(from: Runtime, to: Runtime | undefined, builtin: boolea
 	return from === "client" && (to === "server" || builtin);
 }
 
+const REPAIR = "Move runtime-dependent code into src/client/ or src/server/ and keep shared code independent of both runtimes.";
+
+function forbiddenTarget(from: Runtime, runtime: (path: string) => Runtime | undefined) {
+	return (endpoint: Endpoint): string | undefined => {
+		const to = endpoint.kind === "file" ? runtime(endpoint.path) : undefined;
+		const builtin = endpoint.kind === "external" && builtinName(endpoint.specifier) !== undefined;
+		if (!forbiddenImport(from, to, builtin)) {
+			return undefined;
+		}
+		return builtin ? "Node built-in" : `${to} code`;
+	};
+}
+
+function importer(from: Runtime): string {
+	return from === "client" ? "Client" : "Shared";
+}
+
+interface IgnoredReach {
+	readonly edgesFrom: ReadonlyMap<string, readonly ImportEdge[]>;
+	readonly modules: ReadonlySet<string>;
+}
+
+// An ignored module, such as generated output, is never reported itself, so its forbidden imports land on the checked file that reaches them.
+function ignoredFindings(ignored: IgnoredReach, edge: ImportEdge, from: Runtime, runtime: (path: string) => Runtime | undefined) {
+	if (edge.to.kind !== "file" || !ignored.modules.has(edge.to.path)) {
+		return [];
+	}
+	return walkFrom(edge.to.path, ignored.edgesFrom, forbiddenTarget(from, runtime)).reached.map((reached) => ({
+		file: edge.from,
+		line: edge.line,
+		message: `${importer(from)} code reaches ${reached.match} through "${edge.specifier}", which git ignores: ${reached.path.join(" -> ")}. ${REPAIR}`,
+		subject: edge.specifier,
+	}));
+}
+
 function runtimeFindings(graph: ImportGraph, runtime: (path: string) => Runtime | undefined) {
+	const ignored = { edgesFrom: outgoing(graph.ignoredEdges), modules: new Set(graph.ignoredModules) };
 	return graph.edges.flatMap((edge) => {
 		const from = runtime(edge.from);
 		if (from === undefined || isTestCode(edge.from)) {
 			return [];
 		}
-		const to = edge.to.kind === "file" ? runtime(edge.to.path) : undefined;
-		const builtin = edge.to.kind === "external" && builtinName(edge.to.specifier) !== undefined;
-		if (!forbiddenImport(from, to, builtin)) {
-			return [];
+		const forbidden = forbiddenTarget(from, runtime)(edge.to);
+		if (forbidden === undefined) {
+			return ignoredFindings(ignored, edge, from, runtime);
 		}
 		return [
 			{
 				file: edge.from,
 				line: edge.line,
-				message: `${from === "client" ? "Client" : "Shared"} code imports ${builtin ? "Node built-in" : `${to} code`} through "${edge.specifier}". Move runtime-dependent code into src/client/ or src/server/ and keep shared code independent of both runtimes.`,
+				message: `${importer(from)} code imports ${forbidden} through "${edge.specifier}". ${REPAIR}`,
 				subject: edge.specifier,
 			},
 		];

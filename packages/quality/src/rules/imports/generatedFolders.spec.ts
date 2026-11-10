@@ -42,19 +42,33 @@ importStory.it(
 	},
 );
 
-importStory.it(
-	"imports/resolvable takes a generated folder that git keeps with a placeholder while ignoring its contents",
-	[
+for (const placeholder of [".gitkeep", ".keep", "README.md"]) {
+	const kept = `src/generated/${placeholder}`;
+	const keptFolder = [
 		UNRESOLVABLE,
-		repositoryHas({ content: "src/generated/*\n!src/generated/.gitkeep\n", path: ".gitignore" }, { content: "", path: "src/generated/.gitkeep" }),
-		gitTracks("src/generated/.gitkeep"),
-	],
-	function* ({ check, subjects }) {
-		yield* check(importsResolvable, { generated: ["src/generated"] });
+		repositoryHas({ content: `src/generated/*\n!${kept}\n`, path: ".gitignore" }, { content: "Written by `pnpm generate`.\n", path: kept }),
+	];
 
-		yield* assertThat(yield* subjects(), (actual) => actual.toEqual(OTHER_UNRESOLVED));
-	},
-);
+	importStory.it(
+		`imports/resolvable takes a generated folder that git keeps with a tracked ${placeholder} while ignoring its contents`,
+		[...keptFolder, gitTracks(kept)],
+		function* ({ check, subjects }) {
+			yield* check(importsResolvable, { generated: ["src/generated"] });
+
+			yield* assertThat(yield* subjects(), (actual) => actual.toEqual(OTHER_UNRESOLVED));
+		},
+	);
+
+	importStory.it(
+		`imports/resolvable refuses a generated folder that holds another tracked file beside its ${placeholder}`,
+		[...keptFolder, repositoryHas({ content: "export const kept = 1;\n", path: "src/generated/kept.ts" }), gitTracks(kept, "src/generated/kept.ts")],
+		function* ({ refusal }) {
+			yield* assertThat(yield* refusal(importsResolvable, { generated: ["src/generated"] }), (actual) =>
+				actual.toContain('"src/generated" holds files git tracks, such as src/generated/kept.ts, so it is not generated output'),
+			);
+		},
+	);
+}
 
 importStory.it(
 	"imports/resolvable refuses generated folders under node_modules, outside git's ignores and named by no import, naming each problem",
@@ -84,13 +98,3 @@ for (const [folder, normalized] of [
 		);
 	});
 }
-
-importStory.it(
-	"imports/resolvable refuses a generated folder that holds files git tracks, naming one",
-	[UNRESOLVABLE, repositoryHas({ content: "export const kept = 1;\n", path: "src/generated/kept.ts" }), gitTracks("src/generated/kept.ts")],
-	function* ({ refusal }) {
-		yield* assertThat(yield* refusal(importsResolvable, { generated: ["src/generated"] }), (actual) =>
-			actual.toContain('"src/generated" holds files git tracks, such as src/generated/kept.ts, so it is not generated output'),
-		);
-	},
-);

@@ -243,7 +243,7 @@ import { defineConfig } from "@shivaedev/quality/config.ts";
 export default defineConfig({ sources: ["src"] });
 ```
 
-When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git through `.gitignore`, `info/exclude` or `core.excludesFile`, and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git through `.gitignore`, `info/exclude` or `core.excludesFile`, and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Generated output that git ignores is never reported, but Quality follows its imports: a module the sources import that git ignores joins the import graph, so `imports/runtime` and transitive fences see what it reaches and report the checked file that imports it, and `code/unused` counts its imports as uses. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
 
 Quality reads the skills tool’s `.shivaedev-skills.json` ownership manifest in each repository’s `.agents/skills` folder. It skips the recorded folders, their `.claude/skills` links and the manifest itself in source checks, Biome lint and formatting, manifest sorting and fixes, including rule-specific fixes. Local skills beside those copies remain checked. Change a shared skill at its source and run `shivaedev-skills sync` to refresh the copies.
 
@@ -326,14 +326,21 @@ The import rules resolve every literal specifier with the nearest `tsconfig.json
 
 Vite asset queries resolve the path before the query, including package assets through their declared exports. Supported suffixes match `vite/client`: `?url`, `?raw`, `?worker`, `?worker&inline`, `?worker&url`, `?sharedworker`, `?sharedworker&inline`, `?sharedworker&url`, `?inline`, `?no-inline`, `?url&inline`, `?url&no-inline` and `.wasm?init`. For example, `import url from 'zxing-wasm/reader/zxing_reader.wasm?url'` resolves the exported wasm file without an application module declaration. Missing files, private package paths and unsupported query suffixes still produce findings.
 
-A relative or `#` import of a file that a generator writes before the tests run resolves only inside a folder that `imports/resolvable` lists as `generated`; the folder, or every file an import names in it, must be ignored by git:
+A relative or `#` import of a file that a generator writes before the tests run resolves only inside a folder that `imports/resolvable` lists as `generated`; the folder, or every file an import names in it, must be ignored by git. The folder may keep a tracked `README.md`, `.gitkeep` or `.keep`, such as a README that names the command which writes the output, re-included with `!`; any other tracked file makes it source, not generated output. Imports into it resolve whether the output is present or not yet written:
 
 ```ts
 import { defineConfig } from "@shivaedev/quality/config.ts";
 
 export default defineConfig({
-	rules: { "imports/resolvable": { options: { generated: ["packages/db/src/test-support/generated"] } } },
+	rules: { "imports/resolvable": { options: { generated: ["src/generated"] } } },
 });
+```
+
+The repository's `.gitignore` ignores the output and keeps the README:
+
+```gitignore
+src/generated/*
+!src/generated/README.md
 ```
 
 ### Story tests
