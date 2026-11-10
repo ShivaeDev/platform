@@ -63,8 +63,3 @@ export function workspaceConditions(app: string, starter: string) {
 		writeFileSync(join(app, path), readFileSync(join(starter, path)));
 	}
 }
-
-export function readyAgainstWorkspace(app: string, starter: string) {
-	workspaceConditions(app, starter);
-	return appScript(app, "ready", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]);
-}
