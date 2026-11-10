@@ -37,6 +37,7 @@ export const moduleStory = storyKit({
 				(notes) => notes.map(titled).join(", "),
 			);
 		},
+		noteLookups: () => Effect.sync(() => engine.state.lookups),
 		operationSpans: () => Effect.sync(() => engine.spans.filter((name) => name.startsWith("ModuleNotes."))),
 		read: (person: Person, id: number) => {
 			story.tell(`${person} reads note ${id} over HTTP RPC`);

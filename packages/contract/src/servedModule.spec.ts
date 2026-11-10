@@ -50,6 +50,27 @@ moduleStory.it(
 );
 
 moduleStory.it(
+	"alice's direct read looks her note up once for the read policy and once for run",
+	[noteStored("alice", "Groceries")],
+	function* ({ noteLookups, read }) {
+		const answer = yield* read("alice", 1);
+
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "note 1: Groceries"],
+			["store lookups", () => noteLookups(), 2],
+		]);
+	},
+);
+
+moduleStory.it(
+	"a retryable store failure in the read policy of a direct read answers ServiceUnavailable",
+	[noteStored("alice", "Groceries"), storeFails("unavailable")],
+	function* ({ read }) {
+		expect(yield* read("alice", 1)).toBe("failed with service unavailable");
+	},
+);
+
+moduleStory.it(
 	"the same read policy denies bob's live subscription to alice's note and sends alice its result",
 	[noteStored("alice", "Groceries")],
 	function* ({ subscribe }) {

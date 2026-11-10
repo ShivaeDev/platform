@@ -147,12 +147,44 @@ A module lists its operations once, with the services they may use, and serves t
 ```ts
 import { Effect, Option, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
-import { query } from "@shivaedev/contract/operation.ts";
-import { Caller, Create, List, Note, NotesStore } from "./operations.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { Caller, NotesStore, type StoredNote } from "./services.ts";
 
 const notes = collection("notes", Schema.Number);
+export const NoteFields = Schema.Struct({ title: Schema.String });
+export const Note = Schema.Struct({ id: Schema.Number, title: Schema.String });
+export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
+
+const signedInUser = Effect.flatMap(CurrentViewer, (viewer) =>
+	Option.match(viewer, {
+		onNone: () => Effect.fail(new Unauthorized({ message: "Sign in first" })),
+		onSome: ({ id }) => Effect.succeed(id),
+	}),
+);
+
+function toNotes(stored: readonly StoredNote[]): readonly (typeof Note.Type)[] {
+	return stored.map(({ id, title }) => ({ id, title }));
+}
+
+export const Create = command("create", {
+	payload: NoteFields,
+	rejections: { TitleTaken, Unauthorized },
+	*run({ title }) {
+		const store = yield* NotesStore;
+		const owner = yield* signedInUser;
+		const owned = yield* store.owned(owner);
+		if (owned.some((note) => note.title === title)) {
+			return yield* new TitleTaken({ field: "title", message: "You already have a note with that title" });
+		}
+		const { id } = yield* store.insert(title, owner);
+		return { id, title };
+	},
+	success: Note,
+});
 
 export const Get = query("get", {
 	payload: { id: Schema.Number },
@@ -176,6 +208,16 @@ export const Get = query("get", {
 	success: Note,
 });
 
+export const List = query("list", {
+	reads: () => [notes.list],
+	rejections: { Unauthorized },
+	*run() {
+		const store = yield* NotesStore;
+		return toNotes(yield* store.owned(yield* signedInUser));
+	},
+	success: Schema.Array(Note),
+});
+
 export const Notes = defineModule({
 	middleware: Caller,
 	name: "notes",
@@ -184,7 +226,7 @@ export const Notes = defineModule({
 });
 ```
 
-`defineModule` takes the operations written as payload and run, the services they may use in `requires`, and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
+Here `NotesStore` is an ordinary service, `StoredNote` the row it returns, and `Caller` an RPC middleware that sets the viewer. `defineModule` takes the operations written as payload and run, the services they may use in `requires`, and optionally `middleware`, `subject` and `keyScope` as `contract` does. It returns the module's contract, so `bind`, `makeClient` and a host accept it as they accept any contract. The compiler checks `requires`, and the module does not keep the list at run time. Its generics check the definition on the `name` line, so the first line of the compiler's message names the operation and its problem: `OperationNeedsUndeclaredServices` when an operation's `run` or read policy uses a service that neither `requires` nor the middleware or subject provides, `OperationFailsOutsideItsRejections` when it can fail with something outside its rejections other than an infrastructure failure, and `OperationNameRepeated` when two operations share a name:
 
 ```
 src/test-support/fixtures/invalid/moduleUndeclaredService.ts(21,2): error TS2322: Type '"imports"' is not assignable to type '"imports" & NoInfer<OperationNeedsUndeclaredServices<"importTitle", NoteSource>>'.

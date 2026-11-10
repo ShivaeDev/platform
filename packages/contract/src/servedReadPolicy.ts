@@ -6,11 +6,14 @@ export class ServedReadPolicy extends Context.Service<ServedReadPolicy, { readon
 	"@shivaedev/contract/ServedReadPolicy",
 ) {}
 
-// Only a handler built by moduleHandlers carries the policy, so a hand-written handler keeps the guard's check.
+// Only a handler built by moduleHandlers carries the policy, so a hand-written handler keeps the guard's check. A call's
+// middleware runs in its handler's context; a live rerun finds the query's handler by its RPC.
 export function servedReadPolicy(rpc: Rpc.Any) {
 	return Effect.map(Effect.context<never>(), (request) =>
-		Option.flatMap(Context.getOption(request, Context.Service<Rpc.Handler<string>>(rpc.key)), (handler) =>
-			Option.map(Context.getOption(handler.context, ServedReadPolicy), ({ check }) => check),
-		),
+		Option.orElse(Context.getOption(request, ServedReadPolicy), () =>
+			Option.flatMap(Context.getOption(request, Context.Service<Rpc.Handler<string>>(rpc.key)), (handler) =>
+				Context.getOption(handler.context, ServedReadPolicy),
+			),
+		).pipe(Option.map(({ check }) => check)),
 	);
 }

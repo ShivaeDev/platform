@@ -16,7 +16,7 @@ export type Outage = "none" | "unavailable" | "defect";
 
 export const moduleEngine = Effect.gen(function* () {
 	const stored = yield* Ref.make<readonly StoredNote[]>([]);
-	const state: { outage: Outage } = { outage: "none" };
+	const state: { lookups: number; outage: Outage } = { lookups: 0, outage: "none" };
 	const reactivity = yield* Reactivity.make;
 	const heard: string[] = [];
 	for (const id of [1, 2]) {
@@ -34,7 +34,10 @@ export const moduleEngine = Effect.gen(function* () {
 	});
 	const store = NotesStore.of({
 		find: (id) =>
-			available.pipe(
+			Effect.sync(() => {
+				state.lookups += 1;
+			}).pipe(
+				Effect.andThen(available),
 				Effect.andThen(Ref.get(stored)),
 				Effect.map((notes) => Option.fromNullishOr(notes.find((note) => note.id === id))),
 			),
