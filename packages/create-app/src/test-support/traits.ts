@@ -52,9 +52,9 @@ export const installedPackageManager = application.trait(
 export function qualityGateExits(code: number) {
 	return application.trait(
 		"installation",
-		`pnpm run setup installs the workspace Quality engine and its hook, whose pre-commit gate records what is staged and exits with ${code}`,
+		`pnpm run setup installs the workspace Quality engine and its hook; Quality's format, baseline prune and pre-commit gate only record that they ran, and the gate exits with ${code}`,
 		(engine) => {
-			engine.options = { ...engine.options, preCommitExit: code, realSetup: true };
+			engine.options = { ...engine.options, realSetup: true, stubbedQualityExit: code };
 		},
 	);
 }

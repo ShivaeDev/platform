@@ -1,14 +1,16 @@
 import { dirname } from "node:path";
 
-function sourceBin(cli: string, preCommitExit?: number) {
+function sourceBin(cli: string, stubbedQualityExit?: number) {
 	const preCommit =
-		preCommitExit === undefined
+		stubbedQualityExit === undefined
 			? ""
 			: `if (process.argv[2] === "hooks" && process.argv[3] === "pre-commit") {
-  process.getBuiltinModule("node:fs").writeFileSync(".git/initial-gate.json", JSON.stringify({
+  const fs = process.getBuiltinModule("node:fs");
+  fs.appendFileSync(".git/quality-calls.log", "quality hooks pre-commit\\n");
+  fs.writeFileSync(".git/initial-gate.json", JSON.stringify({
     staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
   }));
-  process.exit(${preCommitExit});
+  process.exit(${stubbedQualityExit});
 }
 `;
 	return `#!/usr/bin/env node
@@ -25,10 +27,10 @@ export function setupInstaller(
 	hoisted: string,
 	quality: string,
 	skills: string,
-	{ scriptsOnly = false, preCommitExit }: { readonly scriptsOnly?: boolean; readonly preCommitExit?: number | undefined } = {},
+	{ scriptsOnly = false, stubbedQualityExit }: { readonly scriptsOnly?: boolean; readonly stubbedQualityExit?: number | undefined } = {},
 ) {
 	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
-	const qualityBin = sourceBin(quality, preCommitExit);
+	const qualityBin = sourceBin(quality, stubbedQualityExit);
 	const skillsBin = sourceBin(skills);
 	return `#!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
@@ -36,6 +38,10 @@ const fs = require("node:fs");
 const { join, relative } = require("node:path");
 const args = process.argv.slice(2);
 const command = args.join(" ");
+if (${stubbedQualityExit !== undefined} && (command === "run format" || command === "baseline prune")) {
+  fs.appendFileSync(".git/quality-calls.log", "pnpm " + command + "\\n");
+  process.exit(0);
+}
 if (${scriptsOnly} && args[0] === "run") {
   if (args[1] === "format") process.exit(0);
   if (args[1] === "setup") args.splice(0, args.length, "install");
