@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { rejectedProfiles, unavailableProfiles, unmappedProfiles } from "#test/fieldRejections.ts";
+import { commandRejectedAccounts, rejectedProfiles, unavailableProfiles, unmappedProfiles } from "#test/fieldRejections.ts";
 
 rejectedProfiles.it("a save's mapped rejection appears on the nested name and leaves its sibling clear", [], function* ({ feedbackAt, submit }) {
 	expect(yield* feedbackAt(["profile", "name"])).toBeUndefined();
@@ -30,3 +30,18 @@ unavailableProfiles.it("an unavailable save retains its error and shows no field
 		["profile feedback", () => feedbackOn("profile"), undefined],
 	]);
 });
+
+commandRejectedAccounts.it(
+	"a field rejection raised by a command's run appears on its name field and leaves email clear",
+	[],
+	function* ({ feedbackOn, submit }) {
+		expect(yield* feedbackOn("name")).toBeUndefined();
+
+		yield* submit();
+
+		yield* outcomes([
+			["name feedback", () => feedbackOn("name"), "Ada is already used"],
+			["email feedback", () => feedbackOn("email"), undefined],
+		]);
+	},
+);

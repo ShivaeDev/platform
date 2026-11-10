@@ -29,6 +29,8 @@ export function refusal(error: unknown): string {
 			return tagged(error, `note ${field(error, "id")} is missing`);
 		case "Invalid":
 			return tagged(error, `invalid ${field(error, "field")}: ${field(error, "message")}`);
+		case "TitleTaken":
+			return tagged(error, `${field(error, "field")} taken: ${field(error, "message")}`);
 		case "Denied":
 			return tagged(error, "denied");
 		case "ServiceUnavailable":

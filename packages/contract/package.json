@@ -50,13 +50,13 @@
 	},
 	"dependencies": {
 		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",

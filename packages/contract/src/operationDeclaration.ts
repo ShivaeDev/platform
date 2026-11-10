@@ -9,6 +9,7 @@ import { type MatchingTags, type RejectedBy, type RejectionSpecs, rejectionSet }
 export interface Declaration<TPayload extends Schema.Top | Schema.Struct.Fields, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs> {
 	readonly payload?: TPayload;
 	readonly rejections?: TSpecs & MatchingTags<TSpecs>;
+	readonly run?: never;
 	readonly success?: TSuccess;
 }
 
@@ -22,6 +23,23 @@ export type QueryDeclaration<
 		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly serverReads?: QueryServerReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
 	};
+
+export type CommandDeclaration<
+	TPayload extends Schema.Top | Schema.Struct.Fields,
+	TSuccess extends Schema.Top,
+	TSpecs extends RejectionSpecs,
+> = Declaration<TPayload, TSuccess, TSpecs> & {
+	readonly invalidates: (payload: PayloadSchema<TPayload>["Type"], result: TSuccess["Type"], viewer?: Option.Option<Viewer>) => readonly Key[];
+};
+
+export type StreamDeclaration<
+	TPayload extends Schema.Top | Schema.Struct.Fields,
+	TSuccess extends Schema.Top,
+	TSpecs extends RejectionSpecs,
+> = Declaration<TPayload, TSuccess, TSpecs> & {
+	readonly reads: (payload: PayloadSchema<TPayload>["Type"]) => readonly Key[];
+	readonly success: TSuccess;
+};
 
 export interface Loose {
 	readonly payload?: Schema.Top | Schema.Struct.Fields;
