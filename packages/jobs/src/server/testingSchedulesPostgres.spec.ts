@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { database } from "#test/jobs/postgres/database.ts";
-import { scheduled } from "#test/jobs/workers.ts";
+import { defineSchedule } from "#server/defineSchedule.ts";
+import { defineQueue } from "#server/definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { scheduled } from "#test/workers.ts";
 
 const Daily = defineSchedule({
 	cron: "17 3 * * *",

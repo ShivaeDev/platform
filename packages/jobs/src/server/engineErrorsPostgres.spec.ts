@@ -1,8 +1,8 @@
 import { Redacted, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { database } from "#test/jobs/postgres/database.ts";
-import { engineUnavailable, enqueued, running } from "#test/jobs/postgres/traits.ts";
+import { defineQueue } from "#server/definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { engineUnavailable, enqueued, running } from "#test/postgres/traits.ts";
 
 const Expiring = defineQueue({ name: "expiring", schema: Schema.Struct({}) });
 
