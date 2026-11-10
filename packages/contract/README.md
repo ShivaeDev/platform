@@ -285,7 +285,7 @@ releaseList();
 registry.dispose();
 ```
 
-The successful rename invalidates note 1 and the list. A rejected rename invalidates neither. Bound queries and commands take the schema's decoded payload type; native clients take its constructor input, which can differ when a field has a constructor default. Result and failure types preserve operation rejections, middleware errors and `RpcClientError`.
+The successful rename invalidates note 1 and the list in the browser, and because this client is bound with `live: false`, that invalidation refreshes both queries. A rejected rename invalidates neither. Bound queries and commands take the schema's decoded payload type; native clients take its constructor input, which can differ when a field has a constructor default. Result and failure types preserve operation rejections, middleware errors and `RpcClientError`.
 
 The dependency rule is deliberately asymmetric:
 
@@ -294,9 +294,9 @@ The dependency rule is deliberately asymmetric:
 | `notes.item(1)` | `"notes:1"` | `"notes:1"` and `"notes"`      |
 | `notes.list`    | `"notes"`   | `"notes"`                      |
 
-`readKeys` and `invalidationKeys` from `@shivaedev/changes/keys.ts` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
+`readKeys` and `invalidationKeys` from `@shivaedev/changes/keys.ts` produce these native keys and remove duplicates. An item change reaches readers of that item and its list, preserving other item queries. A list-only invalidation reaches list readers and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
 
-Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
+The browser invalidates a command's keys after RPC success. That local invalidation refreshes queries bound with `live: false`. A live bound query, the default on database hosts, gets its refresh from the server push instead: the server reruns it when the command's keys are published there, and the local invalidation only retries its subscription after that subscription failed with something other than `QueryReadDenied` ([Server-pushed live queries](#4-server-pushed-live-queries)). Database hosts from `@shivaedev/server` publish declared command invalidations on the server after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
 #### Server-only command keys
 
@@ -435,7 +435,7 @@ An explicit query refresh reopens its subscription, retaining its current value 
 
 Visible browser `online` and `visibilitychange` events reopen active subscriptions for current values. Supply an optional native `resume` source on `makeClient` or `bind` for application or network lifecycle events; it registers a callback and returns its cleanup function. `resumeWindow` selects an embedded browser window. Disposing the registry releases the source, query subscriptions and socket resources.
 
-`status` exposes `connection`, `failure`, `needsResync` and `pending`. A resume keeps `connection` unchanged and sets `needsResync` until the reopened subscription delivers its first update, while the query results keep their values and report nothing pending. A typed stream rejection settles as `failed`; transport failures and defects retry with the existing jittered exponential backoff. A denied subscription can reopen on an identity change or matching local invalidation; resume events leave a settled rejection alone. An established subscription remains open after a policy denial so a later authorized change can restore its value. A `$changes` request is authorized as a whole; automatic query atoms subscribe separately so independent permissions remain independent.
+`status` exposes `connection`, `failure`, `needsResync` and `pending`. A resume keeps `connection` unchanged and sets `needsResync` until the reopened subscription delivers its first update, while the query results keep their values and report nothing pending. A typed stream rejection settles as `failed`; transport failures and defects retry with the existing jittered exponential backoff. A denied subscription stays refused through matching local invalidations and resume events; it reopens when the viewer changes or the query is refreshed explicitly. A matching local invalidation still retries a subscription that settled with another failure, such as a declared `NotFound`. An established subscription remains open after a policy denial so a later authorized change can restore its value. A `$changes` request is authorized as a whole; automatic query atoms subscribe separately so independent permissions remain independent.
 
 Custom native hosts use `changesHandlerLayer`, `querySubscription(rpc, references, viewer)` and `subscribe(subscription, read)`. The authorized query runner is required and must use the same handler and read policy as an ordinary read; session-backed hosts must provide a fresh session context on each rerun. Platform's host supplies this composition. The caller owns consumption and interruption of a raw `$changes` stream, whose values are `Result`, `Unchanged` and `QueryReadDenied`.
 
@@ -511,7 +511,7 @@ const Timeline = query("timeline", {
 });
 ```
 
-Provide `TimelineData` on the server to load the workspace's lists and return their keys. Use an application policy that checks workspace access; derived keys are refresh dependencies and grant no read access. Each write must publish the same keys. Keys are resolved once when the subscription opens. If new lists can join the workspace while it remains open, include a workspace bucket that every record write in that workspace also publishes, or reopen the subscription when membership changes. The browser never runs `serverReads`; matching changes rerun the affected query on the server.
+Provide `TimelineData` on the server to load the workspace's lists and return their keys. Use an application policy that checks workspace access; derived keys are refresh dependencies and grant no read access. Each write must publish the same keys. After every rerun the server evaluates `reads` and `serverReads` again and replaces the subscription's registrations, so the keys follow the workspace while the subscription stays open. A list that joins is watched once a rerun has seen it, so the write that adds a list must publish a key the query already reads, such as a workspace bucket that `serverReads` also returns. Once a rerun has seen a list leave, that list's writes no longer rerun the query. The browser never runs `serverReads`; matching changes rerun the affected query on the server.
 
 Return `false` when denial may be disclosed; the caller receives `QueryReadDenied`. For a private item whose existence the viewer must not learn, fail with a declared `NotFound` for both an absent item and an item owned by someone else:
 
