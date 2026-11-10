@@ -1,7 +1,9 @@
 import { expect } from "@effect/vitest";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
+
+const repository = ruleCases.repository(effectResolves());
 
 for (const [name, code, accepted] of [
 	[
@@ -32,9 +34,9 @@ for (const [name, code, accepted] of [
 	["a service type guard", "export function isStore(store: StoreShape | undefined): store is StoreShape { return store !== undefined; }", true],
 	["a private service operation", "function privateOperation(store: StoreShape) { return store.read(); }", false],
 ] as const) {
-	ruleStory.it(
+	ruleCases.it(
 		`service parameters distinguishes ${name} from dependency plumbing`,
-		[effectResolves(), repositoryHas(serviceModule("src/callback.ts", code))],
+		[repository.has(serviceModule("src/callback.ts", code))],
 		function* ({ check }) {
 			expect(yield* check(serviceParameters)).toEqual(accepted ? [] : [expect.objectContaining({ file: "src/callback.ts" })]);
 		},

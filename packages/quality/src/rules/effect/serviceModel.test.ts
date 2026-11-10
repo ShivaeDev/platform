@@ -1,8 +1,10 @@
 import { expect } from "@effect/vitest";
 import { serviceModel } from "#rules/effect/serviceModel.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
 import { modelFiles, serviceResolves } from "#test/serviceModelFiles.ts";
+
+const repository = ruleCases.repository(effectResolves(), serviceResolves());
 
 for (const [name, operation, inventory] of [
 	["an untraced function", "() => Effect.void", "read"],
@@ -11,9 +13,9 @@ for (const [name, operation, inventory] of [
 	["the wrong service span", 'Effect.fn("Other.read")(() => Effect.void)', "read"],
 	["the wrong operation span", 'Effect.fn("Inventory.write")(() => Effect.void)', "read"],
 ] as const) {
-	ruleStory.it(
+	ruleCases.it(
 		`service model rejects ${name} in the operation inventory`,
-		[effectResolves(), serviceResolves(), repositoryHas(...modelFiles("Effect.void", operation, inventory))],
+		[repository.has(...modelFiles("Effect.void", operation, inventory))],
 		function* ({ check }) {
 			const findings = yield* check(serviceModel);
 
@@ -35,23 +37,17 @@ for (const [name, operation, inventory] of [
 	["a traced operation", 'Effect.fn("Inventory.read")(() => Effect.void)', "read"],
 	["a traced state factory", '() => Effect.fn("Inventory.read")(() => Effect.void.pipe(Effect.asVoid))', "read(state)"],
 ] as const) {
-	ruleStory.it(
-		`service model accepts ${name}`,
-		[effectResolves(), serviceResolves(), repositoryHas(...modelFiles("Effect.void", operation, inventory))],
-		function* ({ check }) {
-			const findings = yield* check(serviceModel);
+	ruleCases.it(`service model accepts ${name}`, [repository.has(...modelFiles("Effect.void", operation, inventory))], function* ({ check }) {
+		const findings = yield* check(serviceModel);
 
-			expect(findings).toEqual([]);
-		},
-	);
+		expect(findings).toEqual([]);
+	});
 }
 
-ruleStory.it(
+ruleCases.it(
 	"service model keeps traced operations beside their service declaration",
 	[
-		effectResolves(),
-		serviceResolves(),
-		repositoryHas(
+		repository.has(
 			...modelFiles().map((file) =>
 				file.path.endsWith("read.ts") ? { ...file, path: "src/read.ts" } : { ...file, content: file.content.replace('"./read.ts"', '"../read.ts"') },
 			),
@@ -68,12 +64,10 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"operation filenames may use their service folder as an export-name prefix",
 	[
-		effectResolves(),
-		serviceResolves(),
-		repositoryHas(
+		repository.has(
 			...modelFiles("Effect.void", 'Effect.fn("Inventory.readInventory")(() => Effect.void)', "readInventory").map((file) => ({
 				...file,
 				content: file.content
@@ -90,12 +84,10 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"each operation has its own file even when both spans are correct",
 	[
-		effectResolves(),
-		serviceResolves(),
-		repositoryHas(
+		repository.has(
 			...modelFiles().map((file) => ({
 				...file,
 				content: file.path.endsWith("read.ts")

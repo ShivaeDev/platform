@@ -1,20 +1,20 @@
 import { expect } from "@effect/vitest";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
 import { serviceResolves } from "#test/serviceModelFiles.ts";
+
+const repository = ruleCases.repository(effectResolves(), serviceResolves());
 
 for (const [name, otherCall] of [
 	["owned state", ""],
 	["hand-built state", "export const other = Effect.gen(function* () { const lifetime = yield* Scope.Scope; return inspect({ lifetime }); });"],
 	["an omitted state argument", "export const missing = inspect();"],
 ] as const) {
-	ruleStory.it(
+	ruleCases.it(
 		`service parameters ${otherCall ? `rejects ${name} beside` : "accepts"} state passed from the service methods factory while reporting an independent Scope`,
 		[
-			effectResolves(),
-			serviceResolves(),
-			repositoryHas(
+			repository.has(
 				{
 					content: `import { defineService } from "@shivaedev/service/defineService.ts";
 import { initialize } from "./initialize.ts";
@@ -54,12 +54,10 @@ ${otherCall}`,
 	);
 }
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters keeps imported owned state through helpers at every depth and reports a borrowed Scope",
 	[
-		effectResolves(),
-		serviceResolves(),
-		repositoryHas(
+		repository.has(
 			{
 				content: `import { defineService } from "@shivaedev/service/defineService.ts";
 import { initialize } from "./initialize.ts";

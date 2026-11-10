@@ -1,14 +1,15 @@
 import { expect } from "@effect/vitest";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
+import { repositoryHas, repositoryLinks } from "#test/ruleStory.ts";
 import { sharedErrorFiles } from "#test/sharedErrorFiles.ts";
 
-const sharedErrors = [
+const repository = ruleCases.repository(
 	effectResolves(),
 	repositoryHas(...sharedErrorFiles),
 	repositoryLinks("node_modules/@shivaedev/errors", "../../packages/errors"),
-];
+);
 
 for (const { name, code, className, tag, exported } of [
 	{
@@ -54,11 +55,10 @@ for (const { name, code, className, tag, exported } of [
 		tag: "TooManyRequests",
 	},
 ]) {
-	ruleStory.it(
+	ruleCases.it(
 		`effect/shared-error-classes reports ${name} with its shared import`,
 		[
-			...sharedErrors,
-			repositoryHas({
+			repository.has({
 				content: [
 					'import { Schema as S, Data } from "effect";',
 					'import { TooManyRequests as SharedRateLimit } from "@shivaedev/errors/taxonomy.ts";',

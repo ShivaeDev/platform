@@ -1,7 +1,9 @@
 import { expect } from "@effect/vitest";
 import { contextCapture } from "#rules/effect/contextCapture.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
+
+const repository = ruleCases.repository(effectResolves());
 
 for (const acquisition of [
 	"Context.merge(inherited, yield* Layer.build(live))",
@@ -9,11 +11,10 @@ for (const acquisition of [
 	"yield* Layer.build(live).pipe(Scope.provide(restart))",
 	"(yield* Layer.build(live)).pipe(Context.merge(inherited))",
 ]) {
-	ruleStory.it(
+	ruleCases.it(
 		`context capture accepts application kit composition through ${acquisition} beside an ambient capture`,
 		[
-			effectResolves(),
-			repositoryHas({
+			repository.has({
 				content: `import { Context, Effect, Layer, Scope } from "effect";
 class Store extends Context.Service<Store, { readonly read: Effect.Effect<string> }>()("app/Store") {}
 const live = Layer.succeed(Store)({ read: Effect.succeed("ready") });
