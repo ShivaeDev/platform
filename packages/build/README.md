@@ -28,9 +28,9 @@ src/generated/modules/notes/notes.ts: written
 
 ### How to think about it
 
-`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. There is no list of modules to keep. The generated files are not committed: every script that reads them generates first, and a run whose inputs have not changed is cheap.
+`generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. There is no list of modules to keep. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. No package or starter script runs it yet.
 
-The generator never guesses. Each type `run` returns maps to the one schema whose `Type` is exactly that type, or the run stops with a refusal that says what to write instead. The compiler then checks the generated wire against `run` on every type check, through [`@shivaedev/contract`'s module checks](https://github.com/ShivaeDev/platform/tree/main/packages/contract#the-wire-and-the-browsers-contract), so a file that went stale is a compile error on the module that names the operation.
+The generator never guesses. Each type `run` returns maps to the one schema whose `Type` is exactly that type, or the run stops with a refusal that says what to write instead. The compiler then checks the generated wire against `run` on every type check, through [`@shivaedev/contract`'s module checks](https://github.com/ShivaeDev/platform/tree/main/packages/contract#the-wire-and-the-browsers-contract), so a file that went stale is usually a compile error on the module that names the operation. One change is not: when a success type gains an optional property, the stale schema still type-checks and drops that key on the wire. `generate --check` is the guard against it.
 
 ### Generate the files
 
@@ -97,7 +97,9 @@ Effect RPC encodes with `Schema.toCodecJson`, so a `Date` travels as an ISO stri
 
 A class instance and a same-shaped interface are told apart by declaration: a helper typed to return an interface with the fields of a Schema class is written as a struct, and an instance of the class as the class.
 
-Anything else is refused, such as a `Map`, a class that is not a Schema class, a function, `any`, `string | number`, or an optional property typed `T | undefined` under `exactOptionalPropertyTypes`:
+An optional property is written with `?` under `exactOptionalPropertyTypes`, such as `flag?: boolean` or `reviewedAt?: Date | null`, and an absent key is the only way to leave it out.
+
+Anything else is refused, such as a `Map`, a class that is not a Schema class, a function, `any`, `string | number`, a branded type, `null | undefined` (the wire would turn one into the other), a property typed `T | undefined`, or an optional property typed `T | undefined`:
 
 ```text
 refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record
@@ -123,6 +125,7 @@ A run that builds a program takes the machine-wide [heavy lock](https://github.c
 
 ### Limits
 
-- The package is private while its npm setup is pending; this repository's packages run it from source.
-- It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement shows as a compile error on the module, never as a silent wire difference.
+- The package is private while its npm setup is pending, and no package of this repository runs it yet.
+- It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement between the two shows as a compile error on the module.
+- An invalid `Date` cannot be encoded, so the caller gets `InternalServerError`.
 - A module file must lie under `src`, define exactly one module and export it as a const.

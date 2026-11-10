@@ -45,6 +45,10 @@ it("a Date with milliseconds arrives as an equal Date", () => {
 	expect([received, prototypeOf(received)]).toEqual([sent, Date.prototype]);
 });
 
+it("an invalid Date cannot be encoded", () => {
+	expect(() => roundTrip(Schema[PRIMITIVE_SCHEMAS.Date], new Date(Number.NaN))).toThrow();
+});
+
 it("a DateTime.Utc with milliseconds arrives as an equal DateTime.Utc", () => {
 	const sent = DateTime.makeUnsafe(Date.UTC(2026, 10, 10, 9, 30, 15, 123));
 

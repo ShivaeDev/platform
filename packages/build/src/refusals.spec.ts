@@ -16,10 +16,14 @@ const REFUSALS = {
 		"refused.returnsLooseOptional: run returns string | undefined at success.summary, which has no exact wire form; drop undefined from the optional property summary, so an absent key is the only way to leave it out",
 	returnsMap:
 		"refused.returnsMap: run returns Map<string, number> at success, which has no exact wire form; return a plain object, an array or a string-keyed record",
+	returnsNullOrUndefined:
+		"refused.returnsNullOrUndefined: run returns null | undefined at success, which has no exact wire form; return either null or undefined, since the wire carries both as one",
 	returnsPlainClass:
 		"refused.returnsPlainClass: run returns Counter at success, which has no exact wire form; return a plain object, or make the class a Schema class",
 	returnsStringOrNumber:
 		"refused.returnsStringOrNumber: run returns string | number at success, which has no exact wire form; return string or number literals, or objects told apart by one literal field such as _tag",
+	returnsUndefinedProperty:
+		"refused.returnsUndefinedProperty: run returns string | undefined at success.summary, which has no exact wire form; return null instead of undefined, or make the property optional",
 } as const;
 
 const MODULE_REFUSALS = {

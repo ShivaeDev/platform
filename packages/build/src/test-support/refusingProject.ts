@@ -24,6 +24,8 @@ const Draft = Schema.Struct({ title: Schema.String });
 
 const loose: { readonly summary?: string | undefined } = {};
 
+const unset: { readonly summary: string | undefined } = { summary: undefined };
+
 export const ReturnsMap = query("returnsMap", {
 	reads: () => [shared.list],
 	*run() {
@@ -45,6 +47,22 @@ export const ReturnsLooseOptional = query("returnsLooseOptional", {
 	*run() {
 		yield* Effect.void;
 		return loose;
+	},
+});
+
+export const ReturnsUndefinedProperty = query("returnsUndefinedProperty", {
+	reads: () => [shared.list],
+	*run() {
+		yield* Effect.void;
+		return unset;
+	},
+});
+
+export const ReturnsNullOrUndefined = query("returnsNullOrUndefined", {
+	reads: () => [shared.list],
+	*run() {
+		const count = yield* Effect.succeed(1);
+		return count > 0 ? null : undefined;
 	},
 });
 
@@ -104,8 +122,10 @@ import {
 	ReturnsAny,
 	ReturnsLooseOptional,
 	ReturnsMap,
+	ReturnsNullOrUndefined,
 	ReturnsPlainClass,
 	ReturnsStringOrNumber,
+	ReturnsUndefinedProperty,
 } from "#modules/refused/operations.ts";
 
 export const Refused = defineModule({
@@ -114,6 +134,8 @@ export const Refused = defineModule({
 		ReturnsMap,
 		ReturnsStringOrNumber,
 		ReturnsLooseOptional,
+		ReturnsUndefinedProperty,
+		ReturnsNullOrUndefined,
 		ReturnsAny,
 		ReturnsPlainClass,
 		FailsUntagged,

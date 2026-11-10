@@ -86,10 +86,10 @@ export function wireForm(reading: TypeReading, type: ts.Type, path: string, seen
 		return { form: "literals", values: [type.value] };
 	}
 	if (type.isUnion()) {
-		return unionForm(reading, type, path, (member, memberPath) => wireForm(reading, member, memberPath, within));
+		return unionForm(reading, type, type.types, path, (member, memberPath) => wireForm(reading, member, memberPath, within));
 	}
 	if (type.isIntersection() && type.types.some((member) => !(member.flags & ts.TypeFlags.Object))) {
-		return reading.refuse(type, path, "return the type without its brand, or declare a Schema for it");
+		return reading.refuse(type, path, "return the unbranded type, or wrap the value in an exported Schema class");
 	}
 	if (type.flags & ts.TypeFlags.Object || type.isIntersection()) {
 		return objectTypeForm(reading, type, path, within);

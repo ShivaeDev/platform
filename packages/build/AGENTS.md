@@ -6,7 +6,7 @@ When goals conflict, lean in this order:
 1. **Exact or refused.** Every wire form has a schema whose `Type` is exactly the TypeScript type and a round-trip test that its values survive Effect's JSON codec. A type without one is refused with a message that names the operation, the type, its path and what to write instead. Never emit a looser schema, and never add a leniency the maintainer has not decided.
 2. **By declaration, not by shape.** The type system compares classes by shape; the generator does not. A rejection is the class `run` raises, imported from where it is declared, and a class instance travels as its class while a same-shaped interface travels as a struct.
 3. **Copied as written.** Payloads, `reads`, `invalidates` and the module's middleware, subject and key scope are the application's own code with their own imports. Refuse what the generated file cannot import rather than rewriting it.
-4. **Cheap to run again.** Every script generates before it reads the files, so an unchanged run builds no program, writes nothing and takes no heavy lock. The cache key covers every input that can change the output.
+4. **Cheap to run again.** A project generates before it reads the files, so an unchanged run must build no program, write nothing and take no heavy lock. The cache key covers every input that can change the output.
 5. **Effect at the core, the compiler at the edge.** TypeScript's API and anything that throws stay in `adapters/`; the core decides from plain facts.
 
 Usage is in [README.md](./README.md). Contract owns the operation, module and wire types and the compiler checks that keep a generated file current; follow the [root guidance](../../AGENTS.md) for the neighbouring packages' jobs.

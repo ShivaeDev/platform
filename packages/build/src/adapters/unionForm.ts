@@ -39,8 +39,12 @@ function optionValue(reading: TypeReading, members: readonly ts.Type[]): ts.Type
 	return none === undefined || value === undefined ? undefined : reading.checker.getTypeOfSymbol(value);
 }
 
-function withoutNull(reading: TypeReading, type: ts.UnionType, path: string, read: Read): WireForm | undefined {
-	const members = type.types.filter((member) => !(member.flags & ts.TypeFlags.Null));
+function withoutNull(reading: TypeReading, type: ts.Type, all: readonly ts.Type[], path: string, read: Read): WireForm | undefined {
+	const members = all.filter((member) => !(member.flags & ts.TypeFlags.Null));
+	const [only] = members;
+	if (members.length === 1 && only !== undefined && only.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)) {
+		return reading.refuse(type, path, "return either null or undefined, since the wire carries both as one");
+	}
 	const booleans = members.filter((member) => member.flags & ts.TypeFlags.BooleanLiteral);
 	const optionInner = optionValue(reading, members);
 	if (optionInner !== undefined && members.length === 2) {
@@ -50,8 +54,8 @@ function withoutNull(reading: TypeReading, type: ts.UnionType, path: string, rea
 	if (booleans.length === 2 && members.length === 2) {
 		return { form: "primitive", primitive: "Boolean" };
 	}
-	if (members.length === 1 && members[0] !== undefined) {
-		return read(members[0], path);
+	if (members.length === 1 && only !== undefined) {
+		return read(only, path);
 	}
 	if (members.some((member) => member.flags & ts.TypeFlags.Undefined)) {
 		return reading.refuse(type, path, "return null instead of undefined, or make the property optional");
@@ -70,12 +74,13 @@ function withoutNull(reading: TypeReading, type: ts.UnionType, path: string, rea
 	return reading.refuse(type, path, "return string or number literals, or objects told apart by one literal field such as _tag");
 }
 
-export function unionForm(reading: TypeReading, type: ts.UnionType, path: string, read: Read): WireForm | undefined {
+// The members are the union's own, or an optional property's without the undefined its optionality adds.
+export function unionForm(reading: TypeReading, type: ts.Type, members: readonly ts.Type[], path: string, read: Read): WireForm | undefined {
 	if (type.aliasSymbol?.name === "Option" && declaredIn(type, "Option") && type.aliasTypeArguments?.[0] !== undefined) {
 		const inner = read(type.aliasTypeArguments[0], `${path}<Some>`);
 		return inner === undefined ? undefined : { form: "option", inner };
 	}
-	const inner = withoutNull(reading, type, path, read);
-	const nullable = type.types.some((member) => member.flags & ts.TypeFlags.Null);
+	const inner = withoutNull(reading, type, members, path, read);
+	const nullable = members.some((member) => member.flags & ts.TypeFlags.Null);
 	return inner === undefined || !nullable ? inner : { form: "nullOr", inner };
 }

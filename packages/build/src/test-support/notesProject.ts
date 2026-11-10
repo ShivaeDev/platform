@@ -139,6 +139,9 @@ interface NoteStats {
 	readonly events: readonly Event[];
 	readonly nothing: null;
 	readonly busy: boolean;
+	readonly flag?: boolean;
+	readonly review?: "open" | "closed";
+	readonly reviewedAt?: Date | null;
 }
 
 export const Stats = query("stats", {

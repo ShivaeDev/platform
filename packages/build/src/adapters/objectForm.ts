@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { isReadonlyProperty } from "#adapters/isReadonlyProperty.ts";
 import { declaredClass, isSchemaClass, type TypeReading } from "#adapters/typeReading.ts";
+import { unionForm } from "#adapters/unionForm.ts";
 import type { Field, WireForm } from "#facts.ts";
 
 type Read = (type: ts.Type, path: string) => WireForm | undefined;
@@ -16,12 +17,15 @@ export function classForm(reading: TypeReading, type: ts.Type, symbol: ts.Symbol
 	return { declared, form: "class" };
 }
 
-function withoutUndefined(type: ts.Type): ts.Type {
-	if (!type.isUnion()) {
-		return type;
+// An exact optional property's only undefined member is the one optionality adds: TypeScript merges a written undefined
+// into it, and the property is then not exact.
+function optionalForm(reading: TypeReading, type: ts.Type, path: string, read: Read): WireForm | undefined {
+	const members = type.isUnion() ? type.types.filter((member) => !(member.flags & ts.TypeFlags.Undefined)) : [type];
+	const [only] = members;
+	if (only === undefined) {
+		return reading.refuse(type, path, "give the optional property a type besides undefined, or drop it");
 	}
-	const kept = type.types.filter((member) => !(member.flags & ts.TypeFlags.Undefined));
-	return kept.length === 1 && kept[0] !== undefined ? kept[0] : type;
+	return members.length === 1 ? read(only, path) : unionForm(reading, type, members, path, read);
 }
 
 function fieldOf(reading: TypeReading, property: ts.Symbol, exact: ReadonlySet<ts.Symbol>, path: string, read: Read): Field | undefined {
@@ -30,7 +34,7 @@ function fieldOf(reading: TypeReading, property: ts.Symbol, exact: ReadonlySet<t
 	if (optional && !exact.has(property)) {
 		return reading.refuse(type, path, `drop undefined from the optional property ${property.name}, so an absent key is the only way to leave it out`);
 	}
-	const form = read(optional ? withoutUndefined(type) : type, path);
+	const form = optional ? optionalForm(reading, type, path, read) : read(type, path);
 	return form === undefined ? undefined : { form, mutable: !isReadonlyProperty(property), name: property.name, optional };
 }
 
