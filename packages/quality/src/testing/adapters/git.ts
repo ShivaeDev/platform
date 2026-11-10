@@ -1,28 +1,23 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { Config, Effect, Option } from "effect";
+import { isolatedGitEnvironment } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 
-const HEAVY_ENV = Object.fromEntries(
-	["CI", "HOME", "HEAVY_PROCESS_LOCK", "HEAVY_PROCESS_LOCK_ID"].flatMap((name) =>
+const INHERITED = Object.fromEntries(
+	["CI", "HOME", "HEAVY_PROCESS_LOCK", "HEAVY_PROCESS_LOCK_ID", "PATH"].flatMap((name) =>
 		Option.toArray(Effect.runSync(Config.option(Config.String(name)))).map((value) => [name, value]),
 	),
 );
 
-// Git reads no user or system config, so a machine-wide hooks path neither runs nor hides a hook under test, and no GIT_DIR or
-// GIT_INDEX_FILE from a hook that runs the tests points git at the outer repository.
-export const ISOLATED_ENV = {
-	...HEAVY_ENV,
+export const qualityGitEnvironment = isolatedGitEnvironment({
 	"GIT_AUTHOR_EMAIL": "quality@example.invalid",
 	"GIT_AUTHOR_NAME": "Quality",
 	"GIT_COMMITTER_EMAIL": "quality@example.invalid",
 	"GIT_COMMITTER_NAME": "Quality",
-	"GIT_CONFIG_GLOBAL": "/dev/null",
-	"GIT_CONFIG_NOSYSTEM": "1",
-	"PATH": Effect.runSync(Config.String("PATH")),
-};
+});
 
 export function isolatedEnvironment(root: string) {
-	return { ...ISOLATED_ENV, "HEAVY_PROCESS_LOCK": resolve(root, "heavy.lock") };
+	return { ...INHERITED, ...qualityGitEnvironment, "HEAVY_PROCESS_LOCK": resolve(root, "heavy.lock") };
 }
 
 const SETTINGS = [

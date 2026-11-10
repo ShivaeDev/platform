@@ -841,6 +841,32 @@ const abandoned = yield* service.untilAbandoned(
 
 All three adapters retain observations from acquisition, so a wait can start before or after its matching event. Each wait observes independently. They use `until` and its live-time deadline and `SignalNotReceived` diagnostics. Ending child output without a match fails immediately with the last line; a missing span or abandoned request fails at the deadline with the last observation. A silent source reports that no values arrived.
 
+### Running git in a temporary repository
+
+A kit that runs git, in its own setup or through the program under test, must give the same result on every machine and from every caller. Without isolation, git reads the developer's global and system configuration, so a global hooks path, commit signing or a commit template changes the story, and when the tests run from a git hook, the `GIT_DIR`, `GIT_INDEX_FILE` and `GIT_CONFIG_PARAMETERS` that hook exports point git at the outer repository. Run every git command of a kit through `isolatedGit(cwd, args)` from `@shivaedev/test-story/server/adapters/isolatedGit.ts`. It returns `{ status, stdout, stderr }`; the kit decides what a failure means.
+
+```ts
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
+
+const run = isolatedGit(repository, [
+	"-c",
+	"user.name=Story",
+	"-c",
+	"user.email=story@example.com",
+	"commit",
+	"--quiet",
+	"--message",
+	"Add the README",
+]);
+if (run.status !== 0) {
+	throw new Error(`git commit failed: ${run.stderr}`);
+}
+```
+
+The git process reads no global or system configuration and inherits none of the variables git clears when it enters another repository (`git rev-parse --local-env-vars`), nor the author and committer a hook exports; it keeps the rest of the test process's environment, such as `PATH` and `HOME`. Give the commits an identity with `-c user.name=… -c user.email=…` or the repository's own config.
+
+To hand a configuration on purpose, pass it as the third argument: `isolatedGit(app, ["commit", "-m", "Initial app"], { GIT_CONFIG_GLOBAL: guardConfig })` runs with that global configuration, because handed variables apply after the isolation. For the program under test, `isolatedGitCommand(["pnpm", "install"], handed)` returns the same isolation as an `env` command line to spawn, and `isolatedGitEnvironment(handed)` returns it as variables, with `undefined` for each variable to remove, for a spawn's `env` or for stubbing the test process's own environment.
+
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
@@ -1139,6 +1165,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/forwardingProxy.ts`                | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
 | `server/otlpReceiver.ts`                   | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`, `OtlpTracerOptions`                                                                                                                                                                                                                                                                                      |
 | `server/rpcSocketHost.ts`                  | `rpcSocketHost(group, handlers)`                                                                                                                                                                                                                                                                                                                                                    |
+| `server/adapters/isolatedGit.ts`           | `isolatedGit(cwd, args, handed?)`, `isolatedGitCommand(command, handed?)`, `isolatedGitEnvironment(handed?)`, `GitRun`                                                                                                                                                                                                                                                              |
 
 ### Install and limits
 

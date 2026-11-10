@@ -2,30 +2,17 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { application, type Flag } from "#test/application.ts";
 import { appScript } from "#test/environment.ts";
 import { createAppIn, generateApp } from "#test/generate.ts";
 import { templateSource } from "#test/templateSource.ts";
-import { gitIn } from "#test/tools.ts";
 
 export const configuredIdentity = application.trait("workspace", "the user's global Git config names App Author <author@example.com>", (engine) => {
 	const config = join(engine.root, "global.gitconfig");
 	writeFileSync(config, "[user]\n\tname = App Author\n\temail = author@example.com\n");
 	engine.environment.push(`GIT_CONFIG_GLOBAL=${config}`);
 });
-
-export const refusingGlobalHook = application.trait(
-	"workspace",
-	"the developer's global Git config points core.hooksPath at a hook that refuses every commit",
-	(engine) => {
-		const hooks = join(dirname(engine.root), "global-hooks");
-		mkdirSync(hooks);
-		writeFileSync(join(hooks, "pre-commit"), "#!/bin/sh\necho 'the global hook refuses every commit' >&2\nexit 1\n", { mode: 0o755 });
-		const config = join(dirname(engine.root), "refusing.gitconfig");
-		writeFileSync(config, `[core]\n\thooksPath = ${hooks}\n`);
-		engine.environment.push(`GIT_CONFIG_GLOBAL=${config}`);
-	},
-);
 
 export const guessableEmail = application.trait(
 	"workspace",
@@ -78,23 +65,9 @@ export const missingGit = application.trait("installation", "Git is not on the P
 });
 
 export const enclosingRepository = application.trait("workspace", "the workspace is a Git repository without commits", (engine) => {
-	const result = gitIn(engine.root, ["init", "--quiet"], engine.environment);
+	const result = isolatedGit(engine.root, ["init", "--quiet"]);
 	if (result.status !== 0) {
 		throw new Error(result.stderr);
-	}
-});
-
-export const committedWorkspace = application.trait("workspace", "the workspace is a Git repository with one commit of README.md", (engine) => {
-	writeFileSync(join(engine.root, "README.md"), "workspace\n");
-	for (const args of [
-		["init", "--quiet"],
-		["add", "README.md"],
-		["-c", "user.name=Workspace", "-c", "user.email=workspace@example.com", "commit", "-qm", "Commit the workspace"],
-	]) {
-		const result = gitIn(engine.root, args, engine.environment);
-		if (result.status !== 0) {
-			throw new Error(result.stderr);
-		}
 	}
 });
 

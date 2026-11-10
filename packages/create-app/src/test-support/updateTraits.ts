@@ -2,8 +2,8 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
+import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { cliAnswer } from "#test/answers.ts";
-import { gitIn } from "#test/tools.ts";
 import { updates } from "#test/updates.ts";
 
 export const AS_RELEASED = { from: "the starter as released today" } as const;
@@ -25,8 +25,8 @@ function applyTo(folder: string, change: Change) {
 	}
 }
 
-function checked(folder: string, args: readonly string[], environment: readonly string[]) {
-	const result = gitIn(folder, args, environment);
+function checked(folder: string, args: readonly string[]) {
+	const result = isolatedGit(folder, args);
 	if (result.status !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
 	}
@@ -61,8 +61,8 @@ export function appCommits(described: string, change: Change) {
 	return updates.trait("customized", `my-app ${described} and commits it`, (engine) =>
 		Effect.sync(() => {
 			applyTo(engine.target, change);
-			checked(engine.target, ["add", "--all"], engine.environment);
-			checked(engine.target, ["-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", described], engine.environment);
+			checked(engine.target, ["add", "--all"]);
+			checked(engine.target, ["-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", described]);
 		}),
 	);
 }

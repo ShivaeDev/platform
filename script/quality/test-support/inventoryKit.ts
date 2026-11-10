@@ -6,14 +6,16 @@ import { services } from "@shivaedev/quality/adapters/runMain.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
 import { git } from "@shivaedev/quality/testing/adapters/git.ts";
 import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { isolatedGitEnvironment } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const inventoryKit = storyKit({
 	create: () =>
 		Effect.acquireRelease(
 			Effect.sync(() => {
-				vi.stubEnv("GIT_CONFIG_GLOBAL", "/dev/null");
-				vi.stubEnv("GIT_CONFIG_NOSYSTEM", "1");
+				for (const [name, value] of Object.entries(isolatedGitEnvironment())) {
+					vi.stubEnv(name, value);
+				}
 				const root = seedTree([
 					{ content: "export const b = 1;", path: "src/b.ts" },
 					{ content: "export const a = 1;", path: ".worktrees/copy/src/a.ts" },

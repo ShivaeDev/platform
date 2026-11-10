@@ -2,6 +2,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { parse } from "yaml";
+import { isolatedGit, isolatedGitCommand } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 import { CLI, exec } from "#test/cli.ts";
 import { writeFile } from "#test/fixture.ts";
 
@@ -36,19 +37,21 @@ function step(name: string) {
 }
 
 function git(cwd: string, ...args: readonly string[]): string {
-	const result = exec("git", ["-c", "user.name=Contributor", "-c", "user.email=contributor@example.com", ...args], cwd);
-	if (result.exit !== 0) {
+	const result = isolatedGit(cwd, ["-c", "user.name=Contributor", "-c", "user.email=contributor@example.com", ...args]);
+	if (result.status !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
 	}
 	return result.stdout;
 }
 
 export function runStep(repo: string, name: string) {
-	return Effect.flatMap(step(name), ({ run }) =>
-		run === undefined
-			? Effect.die(new Error(`The workflow step ${name} has no run script`))
-			: Effect.succeed(exec("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", run], repo)),
-	);
+	return Effect.flatMap(step(name), ({ run }) => {
+		if (run === undefined) {
+			return Effect.die(new Error(`The workflow step ${name} has no run script`));
+		}
+		const [command, ...args] = isolatedGitCommand(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", run]);
+		return Effect.succeed(exec(command, args, repo));
+	});
 }
 
 export const checkOutPullRequest = Effect.fn("SkillsWorkflow.checkOutPullRequest")(function* (repo: string) {
