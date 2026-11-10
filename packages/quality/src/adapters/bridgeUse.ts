@@ -1,4 +1,6 @@
 import ts from "typescript";
+import { effectCallee, unsafeOutsideEffect } from "#adapters/effectCalls.ts";
+import { declaredModule } from "#imports/declaredModule.ts";
 
 // Host globals that reach the browser, the network, timers or randomness; pure data classes such as URL stay core code.
 const HOST_GLOBALS = new Set([
@@ -30,21 +32,6 @@ const HOST_GLOBALS = new Set([
 	"window",
 	"Worker",
 ]);
-
-export function declaredModule(fileName: string): string | undefined {
-	const path = fileName.replaceAll("\\", "/");
-	const at = path.lastIndexOf("/node_modules/");
-	if (at === -1) {
-		return undefined;
-	}
-	const [scope = "", name = "", ...rest] = path.slice(at + "/node_modules/".length).split("/");
-	const pkg = scope.startsWith("@") ? `${scope}/${name}` : scope;
-	if (pkg === "@types/node") {
-		const module = (scope.startsWith("@") ? rest : [name, ...rest]).join("/").replace(/\.d\.[cm]?ts$/u, "");
-		return `node:${module.replace(/^node:/u, "")}`;
-	}
-	return pkg.startsWith("@types/") ? pkg.slice("@types/".length).replace(/^(?<scope>.+)__(?<name>.+)$/u, "@$<scope>/$<name>") : pkg;
-}
 
 function promise(type: ts.Type): boolean {
 	return ["Promise", "PromiseLike"].includes(type.getSymbol()?.name ?? "");
@@ -83,16 +70,7 @@ function unsafeClockRead(node: ts.Node): boolean {
 	return ts.isPropertyAccessExpression(node) && /^currentTime\w*Unsafe$/u.test(node.name.text);
 }
 
-function calleeName(node: ts.CallExpression | ts.NewExpression): ts.Node {
-	return ts.isPropertyAccessExpression(node.expression) ? node.expression.name : node.expression;
-}
-
-function effectModule(fileName: string): boolean {
-	const module = declaredModule(fileName);
-	return module === "effect" || module?.startsWith("@effect/") === true;
-}
-
-export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: (module: string) => boolean): boolean {
+export function bridgeUse(program: ts.Program, source: ts.SourceFile, outside: (module: string) => boolean): boolean {
 	const checker = program.getTypeChecker();
 	function hostGlobal(node: ts.Node): boolean {
 		return (
@@ -113,15 +91,8 @@ export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: 
 		return module !== undefined && outside(module);
 	}
 	function runner(node: ts.CallExpression | ts.NewExpression): boolean {
-		const symbol = checker.getSymbolAtLocation(calleeName(node));
-		const target = symbol !== undefined && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-		const file = target?.declarations?.[0]?.getSourceFile().fileName.replaceAll("\\", "/");
-		return (
-			target !== undefined
-			&& file !== undefined
-			&& effectModule(file)
-			&& RUNNERS.some(([module, member]) => module.test(file) && member.test(target.name))
-		);
+		const callee = effectCallee(checker, node);
+		return callee !== undefined && RUNNERS.some(([module, member]) => module.test(callee.file) && member.test(callee.name));
 	}
 	function promiseResult(node: ts.SignatureDeclaration): boolean {
 		const signature = checker.getSignatureFromDeclaration(node);
@@ -132,7 +103,7 @@ export function adapterUse(program: ts.Program, source: ts.SourceFile, outside: 
 			return true;
 		}
 		if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
-			return promiseValue(checker.getTypeAtLocation(node)) || outsideCall(node) || runner(node);
+			return promiseValue(checker.getTypeAtLocation(node)) || outsideCall(node) || runner(node) || unsafeOutsideEffect(checker, node);
 		}
 		return ts.isFunctionLike(node) && promiseResult(node);
 	}

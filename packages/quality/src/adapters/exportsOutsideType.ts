@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { declaredModule } from "#adapters/bridgeUses.ts";
+import { declaredModule } from "#imports/declaredModule.ts";
 
 function functionValue(node: ts.VariableDeclaration): ts.SignatureDeclaration | undefined {
 	const value = node.initializer;

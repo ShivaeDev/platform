@@ -34,6 +34,21 @@ ruleStory.it(
 	},
 );
 
+for (const [place, file, content] of [
+	["inside an Effect combinator's callback", "inspectionDeferrals.ts", adapterFiles.inspectionDeferrals],
+	["as part of an Effect pipeline", "makeOpencodeServer.ts", adapterFiles.makeOpencodeServer],
+] as const) {
+	ruleStory.it(
+		`effect/adapter-bridges reports an adapter whose Unsafe Effect call runs ${place}`,
+		[effectResolves(), repositoryHas(MANIFEST, { content, path: `src/adapters/${file}` })],
+		function* ({ check }) {
+			const findings = yield* check(adapterBridges);
+
+			expect(findings).toEqual([{ file: `src/adapters/${file}`, message: expect.stringContaining(REPAIR) }]);
+		},
+	);
+}
+
 ruleStory.it(
 	"effect/adapter-bridges reports an adapter whose outside library type never leaves the file",
 	[
@@ -123,6 +138,8 @@ for (const [use, content] of [
 	["a DOM call on a value the default library types", adapterFiles.screenDialogs],
 	["a process runner", adapterFiles.defineScript],
 	["a runner handed to code that is not Effect", adapterFiles.clientErrorReporter],
+	["an Unsafe Effect call from a plain function", adapterFiles.openLiveHints],
+	["an Unsafe Effect call from a socket callback", adapterFiles.discordGateway],
 	[
 		"a managed runtime",
 		'import { Effect, Layer, ManagedRuntime } from "effect";\nconst runtime = ManagedRuntime.make(Layer.empty);\nexport function start(): void {\n\truntime.runFork(Effect.void);\n}\n',
