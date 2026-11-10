@@ -7,7 +7,7 @@ import { command, writeJson } from "#package-check/io.ts";
 import { checkDocumentation, readDocumentation } from "#starter-published/documentation.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { runStarter } from "#starter-published/run.ts";
-import { checkUpgraded } from "#starter-published/upgrade.ts";
+import { checkUpgraded, crossesRegistryConsolidation } from "#starter-published/upgrade.ts";
 
 const versions = { "@shivaedev/contract": "0.1.0" };
 
@@ -56,6 +56,8 @@ export const app = storyKit({
 				Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined }),
 			),
 		ciResult: () => Effect.flatMap(FileSystem.FileSystem, (fs) => fs.readFileString(join(engine.directory, "ci-result.json"))),
+		crossesRegistryConsolidation: () =>
+			crossesRegistryConsolidation(engine.directory).pipe(Effect.match({ onFailure: (error) => error.message, onSuccess: () => "crosses it" })),
 		database: engine.database,
 		directory: engine.directory,
 		documentation: Effect.fn("PublishedStarterStory.documentation")(function* () {

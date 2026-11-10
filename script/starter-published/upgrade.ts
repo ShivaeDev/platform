@@ -8,9 +8,25 @@ const decodeReport = Schema.decodeUnknownSync(
 	Schema.fromJsonString(Schema.Struct({ numPassedTests: Schema.Number, numPendingTests: Schema.Number, numTotalTests: Schema.Number })),
 );
 
+const SEPARATE_REGISTRIES = ["src/admin/modules.ts", "src/server/workerModules.ts"];
+
+export const crossesRegistryConsolidation = Effect.fn("Published.crossesRegistryConsolidation")(function* (app: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	for (const file of SEPARATE_REGISTRIES) {
+		yield* requireThat(
+			yield* fs.exists(path.join(app, file)),
+			`The upgrade no longer crosses the registry consolidation: the restored app has no ${file}, so the version restoreStarter restores in restore.ts moved past it.`,
+		);
+	}
+});
+
 export const checkUpgraded = Effect.fn("Published.checkUpgraded")(function* (app: string, directory: string, database: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
+	for (const file of SEPARATE_REGISTRIES) {
+		yield* requireThat(!(yield* fs.exists(path.join(app, file))), `The upgrade kept the obsolete ${file}.`);
+	}
 	yield* Effect.log(yield* phase("upgraded build", command(app, "pnpm", ["run", "build"])));
 	yield* Effect.log(
 		yield* command(app, "env", [
@@ -46,6 +62,7 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 	const directory = paths.join(temporary, minimal ? "upgrade-minimal" : "upgrade-full");
 	const generation = yield* fs.readFileString(paths.join(app, ".create-app.json"));
 	yield* phase(`${minimal ? "minimal" : "full"} upgrade prepare`, restoreStarter(app, directory, minimal));
+	yield* crossesRegistryConsolidation(app);
 	const home = paths.join(app, "src/client/Home.tsx");
 	const path = yield* packedInstaller(root, directory, tarballs);
 	yield* Effect.log("Upgrading the reused historical app with a committed customization.");

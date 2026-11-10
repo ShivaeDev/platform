@@ -25,3 +25,15 @@ export function workerWarning(stream: "stdout" | "stderr") {
 export const failingBuild = app.trait("source", "the generated app's build script fails", function* ({ directory }) {
 	yield* (yield* FileSystem.FileSystem).writeFileString(join(directory, "build.js"), "process.exit(1);\n");
 });
+
+export const separateRegistries = app.trait(
+	"source",
+	"the app still lists its admin modules and its worker modules in separate registries",
+	function* ({ directory }) {
+		const fs = yield* FileSystem.FileSystem;
+		for (const file of ["src/admin/modules.ts", "src/server/workerModules.ts"]) {
+			yield* fs.makeDirectory(join(directory, file, ".."), { recursive: true });
+			yield* fs.writeFileString(join(directory, file), "export {};\n");
+		}
+	},
+);
