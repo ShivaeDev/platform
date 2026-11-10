@@ -9,6 +9,7 @@ import type { Aggregate } from "#aggregateQuery.ts";
 import { latestPerGroup as makeLatestPerGroup } from "#latestPerGroup.ts";
 import { makeAggregate } from "#makeAggregate.ts";
 import { makeQueryClauses } from "#makeQueryClauses.ts";
+import type { RecordRead } from "#recordRepositoryRead.ts";
 import type { FindMany, FindOne, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
@@ -57,6 +58,7 @@ export interface Queries<TModel extends Model.Any> {
 export function makeQueries<TModel extends Model.Any>(
 	model: TModel,
 	options: {
+		readonly recordRead: RecordRead;
 		readonly tableName: string;
 		readonly spanPrefix: string;
 	},
@@ -72,6 +74,7 @@ export function makeQueries<TModel extends Model.Any>(
 		function count(query: Pick<FindMany<TModel, Key<TModel>>, "where"> = {}): Effect.Effect<number, SqlError | Schema.SchemaError, unknown> {
 			return Effect.gen(function* () {
 				const predicate = yield* where(query.where, true, true);
+				yield* options.recordRead(query.where);
 				const rows = yield* sql`select cast(count(*) as text) as count from ${sql(options.tableName)} where ${predicate}`;
 				const [result] = yield* Schema.decodeUnknownEffect(CountResult)(rows);
 				return result.count;
@@ -88,6 +91,7 @@ export function makeQueries<TModel extends Model.Any>(
 				const predicate = yield* where(query.where, true, true);
 				const order = yield* orderClause(query.orderBy);
 				const limit = yield* limitClause(query.limit);
+				yield* options.recordRead(query.where);
 				return sql`select ${sql.csv(groupColumns(model.fields, keys).map(({ column }) => sql`${sql(column)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
 			});
 			return { fields, statement };
@@ -112,6 +116,7 @@ export function makeQueries<TModel extends Model.Any>(
 			return Effect.gen(function* () {
 				const order = yield* orderClause(query.orderBy);
 				const rowLimit = yield* decodeLimit(query.limit);
+				yield* options.recordRead(query.where);
 				return yield* readLatest(query, order, rowLimit);
 			}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
 		}

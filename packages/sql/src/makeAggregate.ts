@@ -6,15 +6,16 @@ import type { Fragment } from "effect/sql/Statement";
 import { aggregateColumn } from "#aggregateColumn.ts";
 import type { Aggregate } from "#aggregateQuery.ts";
 import { makeQueryClauses } from "#makeQueryClauses.ts";
+import type { RecordRead } from "#recordRepositoryRead.ts";
 import { type FindManyFilter, makeFilter } from "#repositoryFilter.ts";
 
 export function makeAggregate<TModel extends Model.Any>(
 	model: TModel,
-	options: { readonly tableName: string; readonly spanPrefix: string },
+	options: { readonly recordRead: RecordRead; readonly tableName: string; readonly spanPrefix: string },
 ): Effect.Effect<Aggregate<TModel>, never, SqlClient.SqlClient>;
 export function makeAggregate(
 	model: Model.Any,
-	options: { readonly tableName: string; readonly spanPrefix: string },
+	options: { readonly recordRead: RecordRead; readonly tableName: string; readonly spanPrefix: string },
 ): Effect.Effect<unknown, never, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		const sql = yield* SqlClient.SqlClient;
@@ -56,6 +57,7 @@ export function makeAggregate(
 				const predicate = yield* where(query.where, true, true);
 				const order = yield* clauses.orderClause(query.orderBy);
 				const limit = yield* clauses.limitClause(query.limit);
+				yield* options.recordRead(query.where);
 				const partitions = sql.csv(groups.map((key) => sql`${sql(key)}`));
 				const rows =
 					yield* sql`select ${sql.csv(columns)} from ${sql(options.tableName)} where ${predicate} group by ${partitions} ${order} ${limit}`;
