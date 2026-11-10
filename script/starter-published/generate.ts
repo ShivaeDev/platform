@@ -3,7 +3,7 @@ import { Effect, FileSystem } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { packedWorkspace } from "#adapters/packedWorkspace.ts";
 import { pinnedTarballs } from "#package-check/adapters/pinnedTarballs.ts";
-import { command, writeJson } from "#package-check/io.ts";
+import { command, requireThat, writeJson } from "#package-check/io.ts";
 import { decodeVersions, type Package } from "#package-check/model.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { withTarballOverrides } from "#withTarballOverrides.ts";
@@ -34,5 +34,10 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	const bin = join(generator, "node_modules/.bin/create-app");
 	const path = yield* packedInstaller(root, generator, tarballs);
 	yield* command(temporary, "env", [`PATH=${path}`, bin, ...args]);
+	const baseline = join(temporary, folder, "quality-baseline.jsonl");
+	yield* requireThat(
+		!(yield* fs.exists(baseline)) || (yield* fs.readFileString(baseline)).trim() === "",
+		`Generated ${folder} records Quality debt in quality-baseline.jsonl; fix the starter's findings instead of carrying them into new apps.`,
+	);
 	return { folder, tarballs };
 });

@@ -2,21 +2,20 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
-import { quality } from "@shivaedev/quality/testing/adapters/cli.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { scriptOutcome } from "#test/answers.ts";
 import { appReadouts } from "#test/appReadouts.ts";
 import { appFolder } from "#test/cli.ts";
 import { createEngine } from "#test/createEngine.ts";
-import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "#test/environment.ts";
+import { appScript, installDatabaseProbe } from "#test/environment.ts";
 import { createAppIn } from "#test/generate.ts";
 import { generatedReadouts } from "#test/generatedReadouts.ts";
-import { moduleChecks } from "#test/moduleChecks.ts";
 import { railwayReadouts } from "#test/railwayReadouts.ts";
 import { resourceActions } from "#test/resourceActions.ts";
 import { skillActions } from "#test/skillActions.ts";
 import { templateReadouts } from "#test/templateReadouts.ts";
+import { typecheckAgainstWorkspace } from "#test/typecheckAgainstWorkspace.ts";
 
 export type Flag = "--minimal" | "--no-git";
 
@@ -63,7 +62,6 @@ export const application = storyKit({
 				story.tell("create-app --help");
 				return createAppIn(engine, ["--help"]).pipe(Effect.map(() => engine.printed.split("\n").map((line) => line.trim().replaceAll(/\s+/gu, " "))));
 			},
-			lintStarter: () => script("the starter runs its Quality gate", () => quality(engine.source.starter, "lint")),
 			migrate: () =>
 				script("the app applies its registered migrations", () =>
 					appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=@shivaedev/source"]),
@@ -96,14 +94,13 @@ export const application = storyKit({
 					);
 					return result;
 				}),
-			ready: () => script("the app runs pnpm ready against workspace packages", () => readyAgainstWorkspace(target(), engine.source.starter)),
 			runDatabaseProbe: () =>
 				script("the app runs a test that records its environment and both databases", () => {
 					installDatabaseProbe(target());
 					return appScript(target(), "test", ["--config", "environment.config.ts"]);
 				}),
 			scriptResult: () => Effect.sync(() => engine.scripts.at(-1) ?? "the app ran no script"),
-			typecheck: moduleChecks(target, engine.source.starter, story).typecheck,
+			typecheck: () => typecheckAgainstWorkspace(target(), engine.source.starter, story),
 			version: () => {
 				story.tell("create-app --version");
 				return createAppIn(engine, ["--version"]).pipe(Effect.map(() => engine.printed.trim()));

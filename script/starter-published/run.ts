@@ -11,9 +11,9 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (
 	const stdio = yield* Stdio.Stdio;
 	const stdoutSink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = stdio.stdout();
 	const stderrSink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = stdio.stderr();
-	yield* Effect.log("Generated app: pnpm run ci");
+	yield* Effect.log("Generated app: pnpm run ready");
 	const child = yield* spawner.spawn(
-		ChildProcess.make("pnpm", ["run", "ci"], {
+		ChildProcess.make("pnpm", ["run", "ready"], {
 			cwd,
 			env: { ...environment, "TEST_DATABASE_URL": database },
 			extendEnv: true,
@@ -29,5 +29,5 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (
 	);
 	const warnings = `${stdout}\n${stderr}`.split(/\r?\n/u).filter((line) => line.includes("Timeout terminating forks worker"));
 	yield* requireThat(warnings.length === 0, `Generated app in ${cwd}: Vitest workers did not exit cleanly:\n${warnings.join("\n")}`);
-	yield* requireThat(code === 0, `Generated app: pnpm run ci failed (exit ${code}).\n${stdout}\n${stderr}`);
+	yield* requireThat(code === 0, `Generated app: pnpm run ready failed (exit ${code}).\n${stdout}\n${stderr}`);
 }, Effect.scoped);
