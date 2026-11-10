@@ -7,7 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { generate } from "#generate.ts";
 import type { GenerateFailed, GenerateReport } from "#report.ts";
-import { emptyProject, fromSource, typeCheck, writeFiles } from "#test/fixtureProject.ts";
+import { emptyProject, fromSource, generatedOncePerFile, typeCheck, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 
@@ -199,7 +199,7 @@ export function generatedFileAt(file: string, source: string) {
 }
 
 export function generatedOnce() {
-	return generator.trait("generated", "generate has written the project's files", (engine) => Effect.asVoid(run(engine, false)));
+	return generator.trait("generated", "generate has written the project's files", (engine) => generatedOncePerFile(engine.root, run(engine, false)));
 }
 
 export function heavyLockHeldElsewhere() {

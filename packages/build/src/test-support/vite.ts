@@ -3,7 +3,7 @@ import { ConfigProvider, Effect, FileSystem, Option, Path, Queue } from "effect"
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
-import { emptyProject, vitestRun, writeFiles } from "#test/fixtureProject.ts";
+import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
@@ -14,6 +14,11 @@ interface ViteEngine {
 	readonly edited: Set<string>;
 	readonly lock: string;
 	readonly root: string;
+}
+
+// Only the story's lock file, so the lock is taken even on CI, where a set CI variable skips it.
+function onlyTheStoryLock(engine: ViteEngine) {
+	return Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": engine.lock } }));
 }
 
 const runningDevServer = Effect.fn("BuildStory.runningDevServer")(function* (engine: ViteEngine) {
@@ -30,7 +35,7 @@ export const vite = storyKit({
 	inspect: ({ root }) => ({ root }),
 	layer: NodeServices.layer,
 	name: "vite",
-	stages: ["project", "page"],
+	stages: ["project", "generated", "page"],
 	verbs: (engine, story) => ({
 		browserLoadsThePage: Effect.fn("BuildStory.browserLoadsThePage")(function* () {
 			story.tell("the browser loads the page's script and the generated client it imports");
@@ -113,7 +118,7 @@ export const vite = storyKit({
 			generate(engine.root, { check: true }).pipe(
 				Effect.as("every generated file is up to date"),
 				Effect.catchTag("GenerateFailed", (failed) => Effect.succeed(failed.problems.join("\n"))),
-				Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": engine.lock } })),
+				onlyTheStoryLock(engine),
 			),
 	}),
 });
@@ -121,6 +126,12 @@ export const vite = storyKit({
 export function notesApplication() {
 	return vite.trait("project", "the project has the notes module and a page whose script imports its generated client", (engine) =>
 		writeFiles(engine.root, { ...NOTES_PROJECT, ...VITE_PROJECT.notesPage }),
+	);
+}
+
+export function generatedOnce() {
+	return vite.trait("generated", "generate has written the project's files", (engine) =>
+		generatedOncePerFile(engine.root, generate(engine.root, { check: false }).pipe(onlyTheStoryLock(engine))),
 	);
 }
 
