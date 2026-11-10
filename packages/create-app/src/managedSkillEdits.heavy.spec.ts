@@ -3,10 +3,10 @@ import { application } from "#test/application.ts";
 import { generated, realSetup } from "#test/traits.ts";
 
 application.it(
-	"app lint accepts synced instructions and rejects an edited managed skill with a sync recovery command",
+	"lint:skills accepts synced instructions, and app lint checks skills first and rejects an edited managed skill with a sync recovery command",
 	[realSetup, generated("my-app", "--no-git")],
 	function* ({ editSkill, pnpm, scriptResult }) {
-		yield* pnpm("run", "lint");
+		yield* pnpm("run", "lint:skills");
 		expect(yield* scriptResult()).toBe("passed");
 
 		yield* editSkill("story-testing");

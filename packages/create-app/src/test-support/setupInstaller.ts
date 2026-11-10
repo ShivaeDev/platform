@@ -1,12 +1,23 @@
 import { dirname } from "node:path";
 
-function sourceBin(cli: string) {
+function sourceBin(cli: string, stubbedQualityExit?: number) {
+	const preCommit =
+		stubbedQualityExit === undefined
+			? ""
+			: `if (process.argv[2] === "hooks" && process.argv[3] === "pre-commit") {
+  const fs = process.getBuiltinModule("node:fs");
+  fs.appendFileSync(".git/quality-calls.log", "quality hooks pre-commit\\n");
+  fs.writeFileSync(".git/initial-gate.json", JSON.stringify({
+    staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
+  }));
+  process.exit(${stubbedQualityExit});
+}
+`;
 	return `#!/usr/bin/env node
-import("node:child_process").then(({ spawnSync }) => {
-  const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
-  if (result.error) throw result.error;
-  process.exit(result.status ?? 1);
-});
+const { spawnSync } = process.getBuiltinModule("node:child_process");
+${preCommit}const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
+if (result.error) throw result.error;
+process.exit(result.status ?? 1);
 `;
 }
 
@@ -16,10 +27,10 @@ export function setupInstaller(
 	hoisted: string,
 	quality: string,
 	skills: string,
-	{ scriptsOnly = false, typecheckExit }: { readonly scriptsOnly?: boolean; readonly typecheckExit?: number | undefined } = {},
+	{ scriptsOnly = false, stubbedQualityExit }: { readonly scriptsOnly?: boolean; readonly stubbedQualityExit?: number | undefined } = {},
 ) {
 	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
-	const qualityBin = sourceBin(quality);
+	const qualityBin = sourceBin(quality, stubbedQualityExit);
 	const skillsBin = sourceBin(skills);
 	return `#!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
@@ -27,6 +38,10 @@ const fs = require("node:fs");
 const { join, relative } = require("node:path");
 const args = process.argv.slice(2);
 const command = args.join(" ");
+if (${stubbedQualityExit !== undefined} && (command === "run format" || command === "baseline prune")) {
+  fs.appendFileSync(".git/quality-calls.log", "pnpm " + command + "\\n");
+  process.exit(0);
+}
 if (${scriptsOnly} && args[0] === "run") {
   if (args[1] === "format") process.exit(0);
   if (args[1] === "setup") args.splice(0, args.length, "install");
@@ -91,7 +106,7 @@ if (args[0] === "run" && args[1] === "typecheck") {
   fs.writeFileSync(".git/initial-gate.json", JSON.stringify({
     staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
   }));
-  process.exit(${typecheckExit ?? 0});
+  process.exit(0);
 }
 const result = spawnSync(${JSON.stringify(pnpm)}, args, { stdio: "inherit" });
 if (result.error) throw result.error;

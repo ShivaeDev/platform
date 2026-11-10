@@ -1,15 +1,15 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
-import { failingQualityGate, installedPackageManager } from "#test/traits.ts";
+import { installedPackageManager, qualityGateExits } from "#test/traits.ts";
 
 const GATE_TIMEOUT = 120_000;
 const STAGED_FOR_THE_GATE = expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]);
 
 application.it(
-	"a failing Quality gate stops the initial commit, and create-app names the failed commit and where the files remain",
-	[failingQualityGate, installedPackageManager],
-	function* ({ answer, commits, createApp, qualityGateSaw }) {
+	"create-app formats and prunes the baseline before the initial commit, a Quality hook that fails with exit 7 stops that commit, and create-app names the failed commit and where the files remain",
+	[qualityGateExits(7), installedPackageManager],
+	function* ({ answer, commits, createApp, qualityCalls, qualityGateSaw }) {
 		yield* createApp("my-app");
 
 		yield* outcomes([
@@ -18,6 +18,7 @@ application.it(
 				() => answer(),
 				"create-app: git commit -m 'Initialize a generated app' failed (exit 1). The generated files remain in <workspace>/my-app.",
 			],
+			["Quality calls in order", () => qualityCalls(), ["pnpm run format", "pnpm baseline prune", "quality hooks pre-commit"]],
 			["commits", () => commits(), []],
 			["the gate saw staged", () => qualityGateSaw(), STAGED_FOR_THE_GATE],
 		]);
