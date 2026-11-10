@@ -12,13 +12,17 @@ export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", W
 		Object.defineProperty(this, "cause", { value: options?.cause });
 	}
 }
+export const FailedCheck = Schema.Struct({ name: Schema.String, runId: Schema.optionalKey(Schema.Int) });
+export type FailedCheck = typeof FailedCheck.Type;
 export const Snapshot = Schema.Struct({
 	autoMerge: Schema.Boolean,
 	branch: Schema.String,
 	dequeueReason: Schema.optionalKey(Schema.String),
 	dirty: Schema.Boolean,
 	failed: Schema.Boolean,
+	failedChecks: Schema.optionalKey(Schema.Array(FailedCheck)),
 	head: Schema.optionalKey(Schema.String),
+	mergeableState: Schema.optionalKey(Schema.String),
 	merged: Schema.Boolean,
 	number: Schema.Int,
 	queued: Schema.Boolean,

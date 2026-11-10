@@ -4,12 +4,19 @@ import { makeEngine, nativeIo } from "#test/engine.ts";
 import { githubVerbs } from "#test/githubVerbs.ts";
 import { processVerbs } from "#test/processVerbs.ts";
 import { roundVerbs } from "#test/roundVerbs.ts";
+import { waitVerbs } from "#test/waitVerbs.ts";
 import { watcherVerbs } from "#test/watcherVerbs.ts";
 
 export const watch = storyKit({
 	clock: "test",
 	create: () => makeEngine,
-	inspect: (engine) => ({ cli: engine.cli, diagnostics: engine.diagnostics, printed: engine.lines, requests: engine.github.requests }),
+	inspect: (engine) => ({
+		cli: engine.cli,
+		diagnostics: engine.diagnostics,
+		printed: engine.lines,
+		requests: engine.github.requests,
+		wait: engine.wait,
+	}),
 	layer: nativeIo,
 	name: "PR watcher",
 	stages: ["github", "settings", "history"],
@@ -19,5 +26,6 @@ export const watch = storyKit({
 		...roundVerbs(engine, story.tell),
 		...processVerbs(engine, story.tell),
 		...cliVerbs(engine, story.tell),
+		...waitVerbs(engine, story.tell),
 	}),
 });

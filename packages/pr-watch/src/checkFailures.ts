@@ -2,11 +2,15 @@ import { Effect, Schema } from "effect";
 import { GitHubGraphqlError } from "@shivaedev/github/errors.ts";
 import { decodeGraphqlData } from "@shivaedev/github/graphqlRequests.ts";
 import { GitHubHttp } from "#github-http/service.ts";
-import { type Options, WatchError } from "#model.ts";
+import { type FailedCheck, type Options, WatchError } from "#model.ts";
 
-const Check = Schema.Struct({ conclusion: Schema.NullOr(Schema.String), nodeId: Schema.String, status: Schema.String }).pipe(
-	Schema.encodeKeys({ nodeId: "node_id" }),
-);
+const Check = Schema.Struct({
+	conclusion: Schema.NullOr(Schema.String),
+	detailsUrl: Schema.NullOr(Schema.String),
+	name: Schema.String,
+	nodeId: Schema.String,
+	status: Schema.String,
+}).pipe(Schema.encodeKeys({ detailsUrl: "details_url", nodeId: "node_id" }));
 const Checks = Schema.Struct({ checkRuns: Schema.Array(Check) }).pipe(Schema.encodeKeys({ checkRuns: "check_runs" }));
 const Status = Schema.Struct({ statuses: Schema.Array(Schema.Struct({ context: Schema.String, state: Schema.String })) });
 const Context = Schema.Union([
@@ -97,6 +101,10 @@ const requiredFailures = Effect.fn("GitHub.requiredFailures")(function* (
 	const complete = failedChecks.size === 0 && failedStatuses.size === 0;
 	return failed || complete ? failed : undefined;
 });
+function failedCheck({ detailsUrl, name }: typeof Check.Type): FailedCheck {
+	const run = detailsUrl?.match(/\/actions\/runs\/(?<run>\d+)\//u)?.groups?.run;
+	return run === undefined ? { name } : { name, runId: Number(run) };
+}
 export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (options: Options, number: number, sha: string) {
 	const http = yield* GitHubHttp;
 	const base = `${options.apiUrl}/repos/${options.repository}`;
@@ -104,16 +112,16 @@ export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (option
 	const checks = yield* Effect.forEach(bodies, (body) => decode(Checks, body));
 	const statusBodies = yield* http.list(`${base}/commits/${sha}/status`);
 	const statuses = yield* Effect.forEach(statusBodies, (body) => decode(Status, body));
-	const failedChecks = new Set(
-		checks.flatMap((page) =>
-			page.checkRuns.filter((check) => check.status === "completed" && failures.has(check.conclusion ?? "")).map((check) => check.nodeId),
-		),
+	const failedRuns = checks.flatMap((page) => page.checkRuns.filter((check) => check.status === "completed" && failures.has(check.conclusion ?? "")));
+	const failedContexts = statuses.flatMap((page) =>
+		page.statuses.filter((context) => ["failure", "error"].includes(context.state)).map((context) => context.context),
 	);
-	const failedStatuses = new Set(
-		statuses.flatMap((page) => page.statuses.filter((context) => ["failure", "error"].includes(context.state)).map((context) => context.context)),
-	);
-	if (failedChecks.size === 0 && failedStatuses.size === 0) {
-		return false;
+	if (failedRuns.length === 0 && failedContexts.length === 0) {
+		return [];
 	}
-	return yield* requiredFailures(options, number, sha, failedChecks, failedStatuses);
+	const failed = yield* requiredFailures(options, number, sha, new Set(failedRuns.map((check) => check.nodeId)), new Set(failedContexts));
+	if (failed === undefined) {
+		return undefined;
+	}
+	return failed ? [...failedRuns.map(failedCheck), ...failedContexts.map((name) => ({ name }))] : [];
 });

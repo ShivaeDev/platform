@@ -23,10 +23,11 @@ export function makeGitHubState() {
 
 	function checkRuns(prefix: string, runs: readonly Check[]) {
 		return {
-			"check_runs": runs.map(({ required = true, ...run }, index) => {
+			"check_runs": runs.map(({ name = "ci", required = true, runId, ...run }, index) => {
 				const id = `${prefix}-${index}`;
 				checkRequired.set(id, required);
-				return { ...run, "node_id": id };
+				const detailsUrl = runId === undefined ? null : `https://github.com/acme/project/actions/runs/${runId}/job/${index + 1}`;
+				return { ...run, "details_url": detailsUrl, name, "node_id": id };
 			}),
 		};
 	}

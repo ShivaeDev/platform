@@ -8,6 +8,7 @@ export interface Check {
 	readonly conclusion: string | null;
 	readonly name?: string;
 	readonly required?: boolean;
+	readonly runId?: number;
 	readonly status: string;
 }
 

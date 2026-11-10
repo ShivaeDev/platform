@@ -16,6 +16,16 @@ pr-watch --repo acme/project --fleet
 
 Each PR event occupies one JSON line with its PR number, observed head SHA, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
 
+An agent that owns one pull request blocks on its result instead and acts on the exit code:
+
+```sh
+pr-watch wait --repo acme/project 42 --timeout 540
+```
+
+```text
+{"checks":[{"name":"verify","runId":4273}],"head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","number":42,"result":"checks-failed"}
+```
+
 ## Run the watcher
 
 Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline and reports any existing conflict, including before auto-merge or queue entry. If the PR is already queued or has auto-merge enabled with conflicts or failing required checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
@@ -76,9 +86,33 @@ The state file records discovered open PR numbers and the last successfully comp
 
 Transitions that reverse between observations, including while the watcher is down, are not recovered. For example, leaving and rejoining the merge queue before the next observation produces no `dequeued` event. Stdout delivery is at-least-once across a crash: a crash after output but before the state replacement can repeat a line. There is no event history or acknowledged output protocol.
 
+### Wait for one pull request
+
+`pr-watch wait --repo OWNER/REPO NUMBER` blocks until that pull request has a result, prints the result as one JSON line on stdout and exits with the result's code. It runs the watcher's polling loop for that one PR, so it reads GitHub the same way: a 60-second interval, conditional requests, retry backoff and quota pacing. Nothing reaches stdout before the result. While it waits, stderr receives at most one progress line a minute, such as `Waiting for PR 42: required checks (blocked)`, which also names the last failed poll while retries continue.
+
+| Result          | Exit | Meaning                                                                                                                                                                  |
+| --------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `passed`        | 0    | No required check failed and GitHub reports the PR's mergeable state as `clean`, `unstable` or `has_hooks`. Failing optional checks do not hold it back.                 |
+| `checks-failed` | 2    | A required check failed. `checks` lists every failing check run and commit status on the head with its `name`, and `runId` when the check run belongs to an Actions run. |
+| `conflict`      | 3    | The PR has a merge conflict.                                                                                                                                             |
+| `dequeued`      | 4    | The PR left the merge queue without merging. `reason` comes from GitHub's dequeue event, as in the watcher's `dequeued` line.                                            |
+| `merged`        | 5    | The PR merged.                                                                                                                                                           |
+| `closed`        | 6    | The PR closed without merging.                                                                                                                                           |
+| `timeout`       | 7    | `--timeout SECONDS` passed first. `pending` names what the wait still needed, with `mergeableState` when GitHub reported one.                                            |
+
+Every result line carries `result`, the PR `number` and, once observed, the `head` SHA. A queued PR is followed through the merge queue: while it is queued the wait ignores its checks and ends with `merged` or `dequeued`. A PR whose merge GitHub blocks for something other than checks, such as a required review, keeps a mergeable state of `blocked` and waits until it changes or the timeout passes.
+
+`pending` is `observation` before any successful observation, `mergeability` while GitHub is still computing whether the PR can merge, `merge queue` while it is queued and `required checks` otherwise. The timeout ends the wait at its deadline, or when the poll in flight at the deadline finishes; each GitHub request times out after 30 seconds.
+
+Exit code 1 means the wait could not run, for example because GitHub does not know the PR, the arguments are invalid or authentication is missing. The message goes to stderr and stdout stays empty.
+
+The wait saves its snapshot in `.pr-watch/OWNER-REPO-NUMBER.json` unless `--state PATH` names another file, so a second run continues from the first. A PR that left the queue between two runs ends the second run with `dequeued`, a merged PR ends it with `merged` again, and after a new push the second run waits for a fresh observation instead of repeating the previous head's failure. `--api-url URL` works as for the watcher.
+
+One wait sends four REST requests a minute: the queue refs, the PR detail, its check runs and its commit status, plus one for each additional page. GitHub answers unchanged reads with 304, which costs no primary quota. A failed check adds one GraphQL request per 100 check contexts to identify required checks, and a PR that leaves the queue adds one GraphQL request to confirm it.
+
 ### Compose the engine
 
-`watch(options, { heartbeat, once }, emit, diagnostic)` from `@shivaedev/pr-watch/program.ts` runs the same polling, health reporting and retry loop as the CLI without parsing arguments. `heartbeat` is milliseconds; `0` disables routine heartbeats. `emit` receives a `WatchEvent` value from `@shivaedev/pr-watch/outputEvent.ts`; `diagnostic` receives a message string. Both callbacks return Effects, and their failure and service requirement types remain in the runner’s Effect. `TransitionEvent`, `HealthEvent` and their union `WatchEvent` are exported Schemas discriminated by `event`. The CLI writes each value through `encodeJsonLine`, which returns one JSON line including its trailing newline. The runner requires `Watcher`; `watcherLayer` from `@shivaedev/pr-watch/watcherLayer.ts` supplies the production services, native file system, fetch client and GitHub authentication. Scope and interruption stay with the caller. `Options.numbers` is read each poll, so a caller can supply a getter to include newly published PRs without restarting the engine.
+`watch(options, { heartbeat, once }, emit, diagnostic)` from `@shivaedev/pr-watch/program.ts` runs the same polling, health reporting and retry loop as the CLI without parsing arguments. `heartbeat` is milliseconds; `0` disables routine heartbeats. `emit` receives a `WatchEvent` value from `@shivaedev/pr-watch/outputEvent.ts`; `diagnostic` receives a message string. Both callbacks return Effects, and their failure and service requirement types remain in the runner’s Effect. `TransitionEvent`, `HealthEvent` and their union `WatchEvent` are exported Schemas discriminated by `event`. The CLI writes each value through `encodeJsonLine`, which returns one JSON line including its trailing newline. The runner requires `Watcher`; `watcherLayer` from `@shivaedev/pr-watch/watcherLayer.ts` supplies the production services, native file system, fetch client and GitHub authentication. Scope and interruption stay with the caller. `waitFor(options, diagnostic)` from `@shivaedev/pr-watch/waitFor.ts` runs the wait for one PR and returns its `WaitResult` from `@shivaedev/pr-watch/waitResult.ts`, with `waitExitCodes` giving each result's exit code; `options` takes `apiUrl`, `number`, `repository`, `stateFile` and an optional `timeout` in milliseconds, and `diagnostic` receives the progress lines. `Options.numbers` is read each poll, so a caller can supply a getter to include newly published PRs without restarting the engine.
 
 Import `Watcher` from `@shivaedev/pr-watch/watcher/service.ts`, `GitHub` from `@shivaedev/pr-watch/github/service.ts`, `GitHubHttp` from `@shivaedev/pr-watch/github-http/service.ts`, and `StateFile` from `@shivaedev/pr-watch/state-file/service.ts`. Each service declares its dependencies once and yields them inside its operations. `GitHubHttp` owns only its request count and cooldown instant; the other services own no initializer state. Layers choose their lifetime.
 

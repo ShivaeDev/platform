@@ -3,9 +3,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Deferred, Effect, Exit, Schema } from "effect";
 import { WatchEvent } from "#outputEvent.ts";
-import { type Engine, programArguments } from "#test/engine.ts";
+import { type Engine, programArguments, waitArguments } from "#test/engine.ts";
 import { REPOSITORY } from "#test/githubModel.ts";
 import { described } from "#test/readouts.ts";
+import { WaitResult } from "#waitResult.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 
@@ -17,6 +18,7 @@ function exitOf(error: ExecFileException | null) {
 }
 
 const decodeLine = Schema.decodeUnknownSync(Schema.fromJsonString(WatchEvent));
+const decodeResult = Schema.decodeUnknownSync(Schema.fromJsonString(WaitResult));
 
 function events(stdout: string) {
 	return stdout
@@ -27,6 +29,20 @@ function events(stdout: string) {
 
 function lines(stdout: string) {
 	return events(stdout).map(described);
+}
+
+function runNode(engine: Engine, args: readonly string[]) {
+	return Effect.callback<void>((resume) => {
+		execFile(
+			process.execPath,
+			["--conditions=@shivaedev/source", CLI, ...args],
+			{ env: engine.cliEnvironment, timeout: 10_000 },
+			(error, stdout, stderr) => {
+				engine.cli = { exit: exitOf(error), stderr, stdout };
+				resume(Effect.void);
+			},
+		);
+	});
 }
 
 function spawnWatch(engine: Engine, notify: () => void) {
@@ -82,22 +98,26 @@ export function cliVerbs(engine: Engine, tell: (line: string) => void) {
 			}),
 		cliStderr: () => Effect.sync(() => engine.cli.stderr),
 		cliStdout: () => Effect.sync(() => engine.cli.stdout),
+		cliWaitResults: () =>
+			Effect.sync(() =>
+				engine.cli.stdout
+					.split("\n")
+					.slice(0, -1)
+					.map((line) => decodeResult(line)),
+			),
 		credentialsSent: () =>
 			Effect.sync(() => [
 				...new Set(engine.github.requests.filter(({ path }) => path.startsWith(REPOSITORY)).map(({ authorization }) => authorization ?? "none")),
 			]),
 		runCli: (...extra: string[]) =>
-			Effect.callback<void>((resume) => {
+			Effect.suspend(() => {
 				tell(`the CLI runs${extra.length === 0 ? "" : ` with ${extra.join(" ")}`}`);
-				execFile(
-					process.execPath,
-					["--conditions=@shivaedev/source", CLI, ...programArguments(engine, ...extra)],
-					{ env: engine.cliEnvironment, timeout: 10_000 },
-					(error, stdout, stderr) => {
-						engine.cli = { exit: exitOf(error), stderr, stdout };
-						resume(Effect.void);
-					},
-				);
+				return runNode(engine, programArguments(engine, ...extra));
+			}),
+		runWaitCli: (number: number) =>
+			Effect.suspend(() => {
+				tell(`the CLI's wait command runs for PR ${number}`);
+				return runNode(engine, ["wait", ...waitArguments(engine, number, [])]);
 			}),
 		startCli: () =>
 			Effect.gen(function* () {

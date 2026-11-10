@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { Emit } from "#health.ts";
-import type { Options } from "#model.ts";
+import type { Options, State } from "#model.ts";
 import { pollRetries } from "#pollRetries.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { poll } from "#watcher/poll.ts";
@@ -11,6 +11,7 @@ export const polling = Effect.fn("PrWatch.polling")(function* <E, R, TDiagnostic
 	once: boolean,
 	output: { readonly emit: Emit<E, R>; readonly waitForPoll: (interval: number, delay: number, message?: string) => Effect.Effect<void, E, R> },
 	report: { error: (failure: unknown) => Effect.Effect<void, TDiagnosticError, TDiagnosticRequirements>; reset: () => void },
+	settled: (before: State, after: State) => boolean = () => false,
 ) {
 	const watcher = yield* Watcher;
 	let state = yield* watcher.load(options);
@@ -32,9 +33,10 @@ export const polling = Effect.fn("PrWatch.polling")(function* <E, R, TDiagnostic
 			yield* output.waitForPoll(options.interval, delay, `Retrying: ${error.message}${reason}`);
 			continue;
 		}
+		const before = state;
 		state = result.success;
 		retries.reset();
-		if (once) {
+		if (once || settled(before, state)) {
 			return;
 		}
 		const pacing = yield* watcher.pacing(options.interval);
