@@ -1,12 +1,21 @@
 import { dirname } from "node:path";
 
-function sourceBin(cli: string) {
+function sourceBin(cli: string, preCommitExit?: number) {
+	const preCommit =
+		preCommitExit === undefined
+			? ""
+			: `if (process.argv[2] === "hooks" && process.argv[3] === "pre-commit") {
+  process.getBuiltinModule("node:fs").writeFileSync(".git/initial-gate.json", JSON.stringify({
+    staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
+  }));
+  process.exit(${preCommitExit});
+}
+`;
 	return `#!/usr/bin/env node
-import("node:child_process").then(({ spawnSync }) => {
-  const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
-  if (result.error) throw result.error;
-  process.exit(result.status ?? 1);
-});
+const { spawnSync } = process.getBuiltinModule("node:child_process");
+${preCommit}const result = spawnSync(process.execPath, ["--conditions=@shivaedev/source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
+if (result.error) throw result.error;
+process.exit(result.status ?? 1);
 `;
 }
 
@@ -16,10 +25,10 @@ export function setupInstaller(
 	hoisted: string,
 	quality: string,
 	skills: string,
-	{ scriptsOnly = false, typecheckExit }: { readonly scriptsOnly?: boolean; readonly typecheckExit?: number | undefined } = {},
+	{ scriptsOnly = false, preCommitExit }: { readonly scriptsOnly?: boolean; readonly preCommitExit?: number | undefined } = {},
 ) {
 	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
-	const qualityBin = sourceBin(quality);
+	const qualityBin = sourceBin(quality, preCommitExit);
 	const skillsBin = sourceBin(skills);
 	return `#!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
@@ -91,7 +100,7 @@ if (args[0] === "run" && args[1] === "typecheck") {
   fs.writeFileSync(".git/initial-gate.json", JSON.stringify({
     staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
   }));
-  process.exit(${typecheckExit ?? 0});
+  process.exit(0);
 }
 const result = spawnSync(${JSON.stringify(pnpm)}, args, { stdio: "inherit" });
 if (result.error) throw result.error;

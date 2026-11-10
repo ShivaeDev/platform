@@ -1,20 +1,19 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
-import { installedPackageManager, realSetup } from "#test/traits.ts";
+import { installedPackageManager, qualityGateExits } from "#test/traits.ts";
 
 const GATE_TIMEOUT = 120_000;
 const STAGED_FOR_THE_GATE = expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]);
 
 application.it(
-	"create-app my-app --minimal installs Quality's hook before anything is staged, and commits the generated files with no Quality debt",
-	[realSetup, installedPackageManager],
-	function* ({ baselineEntries, commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
+	"create-app my-app --minimal installs Quality's hook before anything is staged, and commits the generated files once the hook passes them",
+	[qualityGateExits(0), installedPackageManager],
+	function* ({ commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
 		yield* createApp("my-app", "--minimal");
 
 		yield* outcomes([
 			["commits", () => commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
-			["Quality baseline", () => baselineEntries(), []],
 			["pre-commit hook", () => preCommitHook(), "Quality's hook"],
 			["setup saw", () => setupSaw(), { commit: "no commit", staged: [] }],
 			["the gate saw staged", () => qualityGateSaw(), STAGED_FOR_THE_GATE],

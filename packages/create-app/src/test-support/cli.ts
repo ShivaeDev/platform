@@ -16,7 +16,7 @@ export function appFolder(
 		realSetup = false,
 		linkedPackageScripts = false,
 		installer,
-		typecheckExit,
+		preCommitExit,
 		destination = "absent",
 	}: {
 		readonly installationExit?: number;
@@ -24,7 +24,7 @@ export function appFolder(
 		readonly realSetup?: boolean;
 		readonly linkedPackageScripts?: boolean;
 		readonly installer?: string;
-		readonly typecheckExit?: number;
+		readonly preCommitExit?: number;
 		readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
 	} = {},
 ) {
@@ -43,7 +43,7 @@ export function appFolder(
 		const skills = fileURLToPath(new URL("../../../skills/src/cli.ts", import.meta.url));
 		writeFileSync(
 			join(bin, "pnpm"),
-			setupInstaller(pnpm, modules, hoistedPieces(), quality, skills, { scriptsOnly: linkedPackageScripts, typecheckExit }),
+			setupInstaller(pnpm, modules, hoistedPieces(), quality, skills, { preCommitExit, scriptsOnly: linkedPackageScripts }),
 			{
 				mode: 0o755,
 			},

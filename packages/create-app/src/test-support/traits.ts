@@ -49,9 +49,15 @@ export const installedPackageManager = application.trait(
 	},
 );
 
-export const failingQualityGate = application.trait("installation", "the installed Quality gate fails its typecheck with exit 7", (engine) => {
-	engine.options = { ...engine.options, realSetup: true, typecheckExit: 7 };
-});
+export function qualityGateExits(code: number) {
+	return application.trait(
+		"installation",
+		`pnpm run setup installs the workspace Quality engine and its hook, whose pre-commit gate records what is staged and exits with ${code}`,
+		(engine) => {
+			engine.options = { ...engine.options, preCommitExit: code, realSetup: true };
+		},
+	);
+}
 
 export const missingGit = application.trait("installation", "Git is not on the PATH", (engine) => {
 	engine.options = { ...engine.options, gitAvailable: false };
