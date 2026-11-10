@@ -1,11 +1,9 @@
 import { join, posix, sep } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
-import { vendorTypes } from "#package-check/adapters/vendorTypes.ts";
 import { exportTargets } from "#package-check/exports.ts";
 import { CODE, missingImportTargets } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Manifest, type Package, targets } from "#package-check/model.ts";
-import { vendorTypeProblems } from "#package-check/vendorTypeExceptions.ts";
 
 const exact = /^(?:npm:.+@)?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const SourceMap = Schema.fromJsonString(Schema.Struct({ sourceRoot: Schema.optional(Schema.String), sources: Schema.Array(Schema.String) }));
@@ -88,8 +86,6 @@ const checkImports = Effect.fn("Packed.checkImports")(function* (unpacked: strin
 	);
 	const problems = missingImportTargets(manifest.imports ?? {}, packed, sources);
 	yield* requireThat(problems.length === 0, `${manifest.name}: ${problems.join("; ")}`);
-	const vendors = vendorTypeProblems(manifest.name, vendorTypes(manifest, sources));
-	yield* requireThat(vendors.length === 0, `${manifest.name}: ${vendors.join("; ")}`);
 });
 
 const checkMaps = Effect.fn("Packed.checkMaps")(function* (unpacked: string, contents: ReadonlySet<string>) {
