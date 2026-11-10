@@ -56,7 +56,9 @@
 			"dist/rules/stories/unitSyntax.d.ts",
 			"dist/rules/stories/usesInputs.d.ts",
 			"dist/rules/suppressions/hiddenCast.d.ts",
-			"dist/rules/suppressions/readonlyWrite.d.ts"
+			"dist/rules/suppressions/readonlyWrite.d.ts",
+			"dist/rules/effect/adapterUses.d.ts",
+			"dist/units/runtime.d.ts"
 		],
 		"name": "native-typescript-rule-analysis",
 		"package": "@shivaedev/quality",
@@ -70,7 +72,8 @@
 			"dist/client/NoticeContext.d.ts",
 			"dist/client/RecheckContext.d.ts",
 			"dist/client/SignOutRegistryContext.d.ts",
-			"dist/client/notices.d.ts"
+			"dist/client/notices.d.ts",
+			"dist/client/SessionSignOut.d.ts"
 		],
 		"name": "native-react-components-and-contexts",
 		"package": "@shivaedev/react",
@@ -78,7 +81,14 @@
 	},
 	{
 		"dependency": "vitest",
-		"files": ["dist/mergeAttempt.d.ts", "dist/refuseDeclaredRetries.d.ts", "dist/snapshot.d.ts", "dist/SnapshotFiles.d.ts"],
+		"files": [
+			"dist/mergeAttempt.d.ts",
+			"dist/refuseDeclaredRetries.d.ts",
+			"dist/snapshot.d.ts",
+			"dist/SnapshotFiles.d.ts",
+			"dist/mergeSnapshotSummary.d.ts",
+			"dist/tasks.d.ts"
+		],
 		"name": "native-vitest-rerun-state",
 		"package": "@shivaedev/vitest-rerun",
 		"reason": "The Vitest plugin merges runner attempts and snapshots through native Vitest test modules, state and snapshot environments."
@@ -96,5 +106,78 @@
 		"name": "native-browser-story-rendering",
 		"package": "@shivaedev/test-story",
 		"reason": "Browser stories mount application React trees, so the public render callback accepts native ReactNode values."
+	},
+	{
+		"dependency": "react",
+		"files": ["dist/client/JobsView.d.ts", "dist/client/SessionsView.d.ts", "dist/client/UsersView.d.ts"],
+		"name": "native-react-admin-views",
+		"package": "@shivaedev/admin",
+		"reason": "The built-in admin views are React components whose props and results are native React types, so applications mount them in their own admin shell."
+	},
+	{
+		"dependency": "@anthropic-ai/claude-agent-sdk",
+		"files": [
+			"dist/ClaudeProvider.d.ts",
+			"dist/mirrorKeys.d.ts",
+			"dist/openSessionMapping.d.ts",
+			"dist/openSubsessions.d.ts",
+			"dist/openTurnUsage.d.ts",
+			"dist/rateLimitEvent.d.ts",
+			"dist/rawPayload.d.ts",
+			"dist/sessionLanes.d.ts",
+			"dist/sessionOptions.d.ts",
+			"dist/spilledPreview.d.ts",
+			"dist/subsessionEndings.d.ts",
+			"dist/systemEvents.d.ts",
+			"dist/transcriptEvents.d.ts",
+			"dist/workflowAdoption.d.ts",
+			"dist/workflowIdentity.d.ts"
+		],
+		"name": "native-claude-sdk-messages",
+		"package": "@shivaedev/agent-claude-code",
+		"reason": "These Effect mappers read the Claude Agent SDK's own message, option and usage types, so a scripted provider and the real SDK feed the same mapping."
+	},
+	{
+		"dependency": "@earendil-works/pi-coding-agent",
+		"files": ["dist/mapping.d.ts", "dist/messageEvents.d.ts"],
+		"name": "native-pi-session-events",
+		"package": "@shivaedev/agent-pi",
+		"reason": "These Effect mappers read the pi coding agent's own session event and message types."
+	},
+	{
+		"dependency": "react",
+		"files": ["dist/numberInput.d.ts"],
+		"name": "native-react-number-input",
+		"package": "@shivaedev/form",
+		"reason": "numberInput reads native React input events, so a number field binds to a plain input element."
+	},
+	{
+		"dependency": "better-auth",
+		"files": [
+			"dist/server/better-auth/SeedOptions.d.ts",
+			"dist/server/better-auth/assertSchema.d.ts",
+			"dist/server/better-auth/migrate.d.ts",
+			"dist/server/better-auth/migrations/generate.d.ts",
+			"dist/server/better-auth/mountSettings.d.ts",
+			"dist/server/better-auth/preferencesClient.d.ts",
+			"dist/server/better-auth/storedRoleOptions.d.ts"
+		],
+		"name": "better-auth-native-options",
+		"package": "@shivaedev/identity",
+		"reason": "These modules assemble Better Auth options, plugins, seeds and schema checks for the caller's own Better Auth instance, so their signatures carry Better Auth's option and schema types."
+	},
+	{
+		"dependency": "@tanstack/react-router",
+		"files": ["dist/screenPending.d.ts"],
+		"name": "native-router-pending-screen",
+		"package": "@shivaedev/react",
+		"reason": "The pending-screen readout takes the application's own TanStack Router instance to see whether a route is still mounting."
+	},
+	{
+		"dependency": "vitest",
+		"files": ["dist/TestOutput.d.ts"],
+		"name": "native-vitest-test-output",
+		"package": "@shivaedev/quality",
+		"reason": "The TestOutput service holds Vitest's own silent setting for the application's test configuration."
 	}
 ]
