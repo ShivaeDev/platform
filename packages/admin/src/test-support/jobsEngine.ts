@@ -1,5 +1,4 @@
 import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
-import { Migrator } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -9,7 +8,7 @@ import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
+import { emptyPostgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "#test/adminRpc.ts";
@@ -21,11 +20,7 @@ import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 const { url, configured: postgresConfigured } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 
 export { postgresConfigured };
-export const postgresLayer = makePostgresTestLayer({
-	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
-	prepare: false,
-	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
-});
+export const postgresLayer = emptyPostgres(Redacted.make(url ?? "postgresql://integration-tests-disabled"));
 
 class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {
 	override get message() {
