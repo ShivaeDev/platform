@@ -28,7 +28,8 @@ export interface OperationShape {
 
 export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	readonly kind: "query";
-	readonly readPolicy: Bivariant<QueryReadPolicy<unknown, E, R>>;
+	// A browser's contract declares no policy; a host refuses to serve a query without one.
+	readonly readPolicy?: Bivariant<QueryReadPolicy<unknown, E, R>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
 	readonly serverReads?: Bivariant<QueryServerReads<unknown, E, R>>;

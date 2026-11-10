@@ -24,7 +24,10 @@ export function declarationError(contractName: string, operations: readonly (Que
 		return `Operation names must be unique; duplicated: ${[...new Set(duplicated)].join(", ")}`;
 	}
 	const member = operations.find(
-		(operation) => operation.kind === "query" && operation.readsCollections !== undefined && !isPermissionReadPolicy(operation.readPolicy),
+		(operation) =>
+			operation.kind === "query"
+			&& operation.readsCollections !== undefined
+			&& (operation.readPolicy === undefined || !isPermissionReadPolicy(operation.readPolicy)),
 	);
 	return member === undefined
 		? undefined
