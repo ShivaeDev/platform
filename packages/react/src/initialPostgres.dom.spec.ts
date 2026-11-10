@@ -30,6 +30,24 @@ initialPostgres.it("a route loader receives the decoded PostgreSQL result with o
 	]);
 });
 
+initialPostgres.it(
+	"a screen opening its query after a route loader read it and the registry's idle window passed shows the PostgreSQL result from one request and one read",
+	[],
+	function* ({ idleWindowPasses, loadRoute, open, reads, requests, settled, shown }) {
+		yield* loadRoute();
+		yield* idleWindowPasses();
+
+		yield* open();
+		yield* settled();
+
+		yield* outcomes([
+			["screen", () => shown(), "Visible first (bigint)"],
+			["requests", () => requests(), ["opening.$changes"]],
+			["query reads", () => reads(), 1],
+		]);
+	},
+);
+
 for (const at of ["before", "after"] as const) {
 	initialPostgres.it(
 		`a commit ${at} the registered query's first SQL snapshot reaches the screen`,

@@ -21,21 +21,25 @@ loaderScreen.it(
 );
 
 loaderScreen.it(
-	"a route that mounts after the idle window passed renders its loader's value first and revalidates",
+	"a route that mounts after the idle window passed renders its loader's value from one server read",
 	[noteMountedAfterIdleWindow("Delayed note")],
 	function* ({ firstRenders, serverCalls }) {
 		yield* outcomes([
-			["first render", () => Effect.map(firstRenders(), (titles) => titles[0]), "Delayed note"],
-			["server calls", () => serverCalls(), ["get", "get"]],
+			["first renders", () => firstRenders(), ["Delayed note"]],
+			["server calls", () => serverCalls(), ["get"]],
 		]);
 	},
 );
 
 loaderScreen.it(
-	"a completed loader releases query execution before its route renders",
+	"leaving a route before it renders holds its completed loader's query only until the hand-over window passes",
 	[noteLoadedButNotMounted("Unread note")],
-	function* ({ leave, loaderSource }) {
+	function* ({ handOverWindowPasses, leave, loaderSource }) {
 		yield* leave();
+
+		expect(yield* loaderSource()).toBe("held");
+
+		yield* handOverWindowPasses();
 
 		expect(yield* loaderSource()).toBe("released");
 	},

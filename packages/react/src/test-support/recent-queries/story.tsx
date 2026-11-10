@@ -3,6 +3,7 @@ import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.t
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
+import { HAND_OVER_WINDOW } from "#adapters/queryHandoff.ts";
 import { App, type Controls } from "#test/recent-queries/App.tsx";
 import { openClient } from "#test/recent-queries/openClient.ts";
 import { Screen } from "#test/Screen.ts";
@@ -33,6 +34,10 @@ export const recentQueries = storyKit({
 						await loader.done;
 					})
 					.pipe(Effect.andThen(settleScreen(view.container, () => view.container.querySelector('[data-pending="true"]') !== null, story.tell))),
+			handOverWindowPasses: () => {
+				story.tell(`the loader's ${HAND_OVER_WINDOW} hand-over window passes without a reader`);
+				return untilTimer(HAND_OVER_WINDOW).pipe(Effect.andThen(passes(HAND_OVER_WINDOW, Queue.take(host.closed))));
+			},
 			leave: () =>
 				screen
 					.act("leave the note screen", () => {

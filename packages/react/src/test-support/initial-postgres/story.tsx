@@ -1,6 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { Deferred, Effect, Queue, Redacted, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { act } from "react";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -10,6 +11,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { migrations } from "#test/compared-postgres/feature.ts";
 import { transport } from "#test/compared-postgres/transport.ts";
+import { idleRegistry } from "#test/idleRegistry.ts";
 import { Api, openHost } from "#test/initial-postgres/host.ts";
 import { blankScreen, displayed } from "#test/initial-postgres/readouts.ts";
 import { Screen } from "#test/initial-postgres/Screen.tsx";
@@ -51,6 +53,10 @@ export const initialPostgres = storyKit({
 			});
 		},
 		firstReadEntered: () => Deferred.await(engine.host.entered),
+		idleWindowPasses: () => {
+			story.tell("the screen registry's idle window passes, shown by an idle atom being swept");
+			return Effect.promise(() => act(() => idleRegistry(engine.screen.registry)));
+		},
 		loadRoute: () => {
 			story.tell("the route loader loads the live query in the screen's registry");
 			return Effect.promise(() =>
