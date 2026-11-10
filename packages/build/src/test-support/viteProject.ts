@@ -58,6 +58,29 @@ console.log(queue);
 console.log(List);
 `,
 	},
+	"effect at its entry and, four imports deeper, a repository on effect/sql/SqlClient": {
+		"src/client.ts": `import { Schema } from "effect";
+import { notesScreen } from "#screens/notes.ts";
+
+console.log(Schema.String, notesScreen);
+`,
+		"src/data/notes.ts": `import { notesRepository } from "#data/repository.ts";
+
+export const notesData = { repository: notesRepository };
+`,
+		"src/data/repository.ts": `import { SqlClient } from "effect/sql/SqlClient";
+
+export const notesRepository = { client: SqlClient };
+`,
+		"src/screens/list.ts": `import { notesData } from "#data/notes.ts";
+
+export const listScreen = { data: notesData };
+`,
+		"src/screens/notes.ts": `import { listScreen } from "#screens/list.ts";
+
+export const notesScreen = { list: listScreen };
+`,
+	},
 	"effect/sql": {
 		"src/client.ts": `import { SqlClient } from "effect/sql";
 

@@ -74,7 +74,6 @@ const displayed = Effect.fn("Build.displayed")(function* (id: string, options: S
 
 const reasonOf = Effect.fn("Build.reasonOf")(function* (
 	id: string,
-	parent: string | undefined,
 	module: BundleModule,
 	markers: ServerMarkers,
 	options: ServerCodeOptions,
@@ -91,13 +90,6 @@ const reasonOf = Effect.fn("Build.reasonOf")(function* (
 		return Option.some("an operation file: it defines a query or a command");
 	}
 	const owner = yield* ownerOf(id, owners);
-	// Effect's own index re-exports modules that import effect/sql, which tree shaking drops; an import from outside Effect is real.
-	if (Option.exists(markers.sql, (directory) => id.startsWith(`${directory}${path.sep}`))) {
-		const importer = parent === undefined ? Option.none<Owner>() : yield* ownerOf(parent, owners);
-		if (!Option.exists(importer, (each) => Option.exists(owner, ({ directory }) => each.directory === directory))) {
-			return Option.some("Effect's SQL client, effect/sql");
-		}
-	}
 	if (Option.isSome(owner) && options.serverOnly.includes(owner.value.name)) {
 		return Option.some(`part of ${owner.value.name}, which is listed as server-only`);
 	}
@@ -108,6 +100,37 @@ const reasonOf = Effect.fn("Build.reasonOf")(function* (
 	return Option.none<string>();
 });
 
+// Effect's own index re-exports modules that import effect/sql, which tree shaking drops, so the import edge decides: every
+// importer of effect/sql outside Effect counts, however many paths inside Effect reach the same module sooner.
+const importsSqlFromOutside = Effect.fn("Build.importsSqlFromOutside")(function* (
+	importer: string,
+	imported: string,
+	markers: ServerMarkers,
+	owners: Map<string, Option.Option<Owner>>,
+) {
+	const path = yield* Path.Path;
+	if (!Option.exists(markers.sql, (directory) => imported.startsWith(`${directory}${path.sep}`))) {
+		return false;
+	}
+	const sqlOwner = yield* ownerOf(imported, owners);
+	const importerOwner = yield* ownerOf(importer, owners);
+	return !Option.exists(importerOwner, (each) => Option.exists(sqlOwner, ({ directory }) => each.directory === directory));
+});
+
+const failure = Effect.fn("Build.failure")(function* (
+	chain: readonly string[],
+	reason: string,
+	options: ServerCodeOptions,
+	owners: Map<string, Option.Option<Owner>>,
+) {
+	const shown = yield* Effect.forEach(chain, (each) => displayed(each, options, owners));
+	return [
+		`Server code reached the browser bundle: ${shown.at(-1)} is ${reason}. The import chain from the client entry:`,
+		...shown.map((each, index) => (index === 0 ? `  ${each}` : `  → ${each}`)),
+		"The browser reaches a defined module through its generated client in src/generated and imports no server code.",
+	].join("\n");
+});
+
 function chainTo(id: string, parents: ReadonlyMap<string, string | undefined>): readonly string[] {
 	const chain: string[] = [];
 	for (let each: string | undefined = id; each !== undefined; each = parents.get(each)) {
@@ -116,31 +139,37 @@ function chainTo(id: string, parents: ReadonlyMap<string, string | undefined>): 
 	return chain;
 }
 
+interface Walk {
+	readonly owners: Map<string, Option.Option<Owner>>;
+	readonly parents: Map<string, string | undefined>;
+	readonly pending: string[];
+}
+
+const visit = Effect.fn("Build.visit")(function* (id: string, module: BundleModule, walk: Walk, markers: ServerMarkers, options: ServerCodeOptions) {
+	const reason = yield* reasonOf(id, module, markers, options, walk.owners);
+	if (Option.isSome(reason)) {
+		return Option.some(yield* failure(chainTo(id, walk.parents), reason.value, options, walk.owners));
+	}
+	for (const imported of module.imports) {
+		if (yield* importsSqlFromOutside(id, imported, markers, walk.owners)) {
+			return Option.some(yield* failure([...chainTo(id, walk.parents), imported], "Effect's SQL client, effect/sql", options, walk.owners));
+		}
+		if (!walk.parents.has(imported)) {
+			walk.parents.set(imported, id);
+			walk.pending.push(imported);
+		}
+	}
+	return Option.none<string>();
+});
+
 // Breadth first from the entries, so the chain printed is a shortest one to the nearest server module.
 export const serverCodeIn = Effect.fn("Build.serverCodeIn")(function* (graph: BundleGraph, markers: ServerMarkers, options: ServerCodeOptions) {
-	const owners = new Map<string, Option.Option<Owner>>();
-	const parents = new Map<string, string | undefined>(graph.entries.map((entry) => [entry, undefined]));
-	const pending = [...graph.entries];
-	for (let id = pending.shift(); id !== undefined; id = pending.shift()) {
+	const walk: Walk = { owners: new Map(), parents: new Map(graph.entries.map((entry) => [entry, undefined])), pending: [...graph.entries] };
+	for (let id = walk.pending.shift(); id !== undefined; id = walk.pending.shift()) {
 		const module = graph.modules.get(id);
-		if (module !== undefined) {
-			const reason = yield* reasonOf(id, parents.get(id), module, markers, options, owners);
-			if (Option.isSome(reason)) {
-				const chain = yield* Effect.forEach(chainTo(id, parents), (each) => displayed(each, options, owners));
-				return Option.some(
-					[
-						`Server code reached the browser bundle: ${chain.at(-1)} is ${reason.value}. The import chain from the client entry:`,
-						...chain.map((each, index) => (index === 0 ? `  ${each}` : `  → ${each}`)),
-						"The browser reaches a defined module through its generated client in src/generated and imports no server code.",
-					].join("\n"),
-				);
-			}
-			for (const imported of module.imports) {
-				if (!parents.has(imported)) {
-					parents.set(imported, id);
-					pending.push(imported);
-				}
-			}
+		const found = module === undefined ? Option.none<string>() : yield* visit(id, module, walk, markers, options);
+		if (Option.isSome(found)) {
+			return found;
 		}
 	}
 	return Option.none<string>();

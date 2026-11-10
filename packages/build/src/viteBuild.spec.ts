@@ -64,3 +64,17 @@ vite.it("vite build stops on a refusal with the generator's message", [notesAppl
 		),
 	});
 });
+
+vite.it(
+	"vite build fails when a repository deep behind the page imports effect/sql, though Effect's own index reaches effect/sql sooner",
+	[notesApplication(), pageImporting("effect at its entry and, four imports deeper, a repository on effect/sql/SqlClient")],
+	function* ({ builds }) {
+		const built = yield* builds();
+
+		expect(built).toEqual({
+			failed: expect.stringContaining(
+				"Server code reached the browser bundle: effect/dist/sql/SqlClient.js is Effect's SQL client, effect/sql. The import chain from the client entry:\n  index.html\n  → src/client.ts\n  → src/screens/notes.ts\n  → src/screens/list.ts\n  → src/data/notes.ts\n  → src/data/repository.ts\n  → effect/dist/sql/SqlClient.js\n",
+			),
+		});
+	},
+);
