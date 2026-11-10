@@ -1,15 +1,22 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { serviceDefinitionAssembly } from "#rules/effect/serviceDefinitionAssembly.ts";
 import { effectInstalled } from "#test/consumerServices.ts";
-import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { biomeFormatted, repositoryHas as cliRepositoryHas, qualityInstalled, repositoryStory } from "#test/repositoryStory.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ASSEMBLY_INVENTORY, assemblyFiles, serviceAssembly, serviceInstalled, statelessAssembly } from "#test/serviceAssemblyFiles.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
-
-const consumer = [qualityInstalled(), effectInstalled(), serviceInstalled(), repositoryHas(...assemblyFiles)];
 
 repositoryStory.it(
 	"quality lint accepts ordinary operations, state factories and marked generic operations and factories",
-	[...consumer, repositoryHas(serviceAssembly(ASSEMBLY_INVENTORY)), biomeFormatted()],
+	[
+		qualityInstalled(),
+		effectInstalled(),
+		serviceInstalled(),
+		cliRepositoryHas(...assemblyFiles, serviceAssembly(ASSEMBLY_INVENTORY)),
+		biomeFormatted(),
+	],
 	function* ({ runs, outcome, stdout }) {
 		yield* runs("lint");
 
@@ -33,36 +40,23 @@ for (const [name, source] of [
 		},
 	],
 ] as const) {
-	repositoryStory.it(
-		`quality lint accepts an aliased constructor and ${name}`,
-		[...consumer, repositoryHas(source), biomeFormatted()],
-		function* ({ runs, outcome, stdout }) {
-			yield* runs("lint");
+	ruleStory.it(
+		`effect/service-definition-assembly accepts an aliased constructor and ${name}`,
+		[repositoryHas(...assemblyFiles, source)],
+		function* ({ check, messages }) {
+			yield* check(serviceDefinitionAssembly);
 
-			yield* outcomes([
-				["gate", () => outcome(), "passed"],
-				["report", () => stdout(), expect.stringContaining("quality: passed")],
-			]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([]));
 		},
-		CLI_TIMEOUT,
 	);
 }
 
-repositoryStory.it(
-	"quality lint rejects a namespace service constructor with the direct-import repair",
-	[
-		...consumer,
-		repositoryHas(serviceAssembly(ASSEMBLY_INVENTORY, "", 'import * as Definitions from "@shivaedev/service/defineService.ts";')),
-		biomeFormatted(),
-	],
-	function* ({ runs, outcome, stdout }) {
-		yield* runs("lint");
+ruleStory.it(
+	"effect/service-definition-assembly rejects a namespace service constructor with the direct-import repair",
+	[repositoryHas(...assemblyFiles, serviceAssembly(ASSEMBLY_INVENTORY, "", 'import * as Definitions from "@shivaedev/service/defineService.ts";'))],
+	function* ({ check, messages }) {
+		yield* check(serviceDefinitionAssembly);
 
-		yield* outcomes([
-			["gate", () => outcome(), "rejected"],
-			["rule", () => stdout(), expect.stringContaining("error effect/service-definition-assembly")],
-			["repair", () => stdout(), expect.stringContaining("Import and call defineService directly.")],
-		]);
+		yield* assertThat(yield* messages(), (actual) => actual.toContainEqual("Import and call defineService directly."));
 	},
-	CLI_TIMEOUT,
 );
