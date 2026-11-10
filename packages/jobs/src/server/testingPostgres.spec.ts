@@ -1,11 +1,11 @@
 import { Effect, Option, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import type { PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import type { PgBossTesting } from "#jobs/testing.ts";
-import { database } from "#test/jobs/postgres/database.ts";
-import { controlled, enqueued, idleReadsCounted, idleWaitStarted, running, sent, waiting, watchingForChange } from "#test/jobs/postgres/traits.ts";
-import { worker } from "#test/jobs/workers.ts";
+import { defineQueue } from "#server/definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { controlled, enqueued, idleReadsCounted, idleWaitStarted, running, sent, waiting, watchingForChange } from "#test/postgres/traits.ts";
+import { worker } from "#test/workers.ts";
 
 const Checked = defineQueue({
 	name: "checked",

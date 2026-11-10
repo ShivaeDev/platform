@@ -1,10 +1,10 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { database } from "#test/jobs/postgres/database.ts";
-import { enqueued, idleWaitStarted, running, waiting } from "#test/jobs/postgres/traits.ts";
-import { worker } from "#test/jobs/workers.ts";
+import { defineQueue } from "#server/definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { enqueued, idleWaitStarted, running, waiting } from "#test/postgres/traits.ts";
+import { worker } from "#test/workers.ts";
 
 const Reports = defineQueue({
 	name: "reports",
