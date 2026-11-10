@@ -8,9 +8,11 @@ const BRIDGES = [
 	'import { Effect } from "effect";',
 	'import { client, get } from "remote-client";',
 	'import * as Remote from "@remote/sdk/http";',
+	'import { sql } from "remote-sql";',
 	"export const load = (id: string) => Effect.tryPromise({ try: () => get(id), catch: (cause) => cause });",
 	"export const lookup = (id: string) => Effect.promise(() => client.load(id));",
 	"export const send = Effect.tryPromise(Remote.send);",
+	"export const rows = Effect.tryPromise(() => sql`select 1`);",
 ].join("\n");
 
 ruleStory.it(
@@ -19,9 +21,10 @@ ruleStory.it(
 	function* ({ check }) {
 		yield* assertThat(yield* check(effectBoundary), (actual) =>
 			actual.toEqual([
-				usesAt("src/work.ts", 4, "Promise bridge to the library remote-client"),
 				usesAt("src/work.ts", 5, "Promise bridge to the library remote-client"),
-				usesAt("src/work.ts", 6, "Promise bridge to the library @remote/sdk/http"),
+				usesAt("src/work.ts", 6, "Promise bridge to the library remote-client"),
+				usesAt("src/work.ts", 7, "Promise bridge to the library @remote/sdk/http"),
+				usesAt("src/work.ts", 8, "Promise bridge to the library remote-sql"),
 			]),
 		);
 	},

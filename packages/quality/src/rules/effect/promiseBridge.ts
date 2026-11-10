@@ -12,6 +12,13 @@ function rootIdentifier(expression: ts.Expression): ts.Identifier | undefined {
 		: undefined;
 }
 
+function calleeOf(node: ts.Node): ts.Identifier | undefined {
+	if (ts.isTaggedTemplateExpression(node)) {
+		return rootIdentifier(node.tag);
+	}
+	return ts.isCallExpression(node) ? rootIdentifier(node.expression) : undefined;
+}
+
 function moduleOf(declaration: ts.Declaration): string | undefined {
 	if (!(ts.isImportSpecifier(declaration) || ts.isNamespaceImport(declaration) || ts.isImportClause(declaration))) {
 		return undefined;
@@ -39,7 +46,7 @@ export function promiseBridge(checker: ts.TypeChecker, workspace: ReadonlySet<st
 			return direct;
 		}
 		function visit(node: ts.Node): string | undefined {
-			const callee = ts.isCallExpression(node) ? rootIdentifier(node.expression) : undefined;
+			const callee = calleeOf(node);
 			return (callee === undefined ? undefined : outsideLibrary(callee)) ?? ts.forEachChild(node, visit);
 		}
 		return ts.forEachChild(callback, visit);
