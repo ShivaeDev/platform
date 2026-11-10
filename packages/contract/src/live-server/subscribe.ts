@@ -10,6 +10,44 @@ import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
 
+function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>, replaceKeys: (keys: readonly Key[]) => void) {
+	let scopes = subscription.scopes;
+	const recorded = subscription.queries.map((): readonly Key[] => []);
+	const recording = subscription.queries.map((): readonly Key[] => []);
+	function merged() {
+		return scopes.map((declared, index) => [...declared, ...(recorded[index] ?? [])]);
+	}
+	function register() {
+		replaceKeys([...merged(), ...recording].flat());
+	}
+	function recordInto(run: Key[]) {
+		return (keys: readonly Key[]) =>
+			Effect.sync(() => {
+				run.push(...keys);
+				register();
+			});
+	}
+	function keep(index: number, run: readonly Key[]) {
+		return Effect.sync(() => {
+			recorded[index] = run;
+			recording[index] = [];
+		});
+	}
+	function recordingRead(request: QueryRequest) {
+		const index = subscription.queries.indexOf(request);
+		const run: Key[] = [];
+		recording[index] = run;
+		return read(request).pipe(
+			Effect.provideService(ReadRecorder, recordInto(run)),
+			Effect.tap(() => keep(index, run)),
+		);
+	}
+	function replaceScopes(next: readonly (readonly Key[])[]) {
+		scopes = next;
+	}
+	return { merged, recordingRead, register, replaceScopes };
+}
+
 function subscribeQueries<E, R>(
 	subscription: QuerySubscription<E, R>,
 	read: QueryRerun<E, R>,
@@ -20,45 +58,18 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 		const hints = yield* server.register(subscription.keys);
 		return hints.pipe(
 			Stream.flatMap((registration) => {
-				let scopes = subscription.scopes;
-				const recorded = subscription.queries.map((): readonly Key[] => []);
-				const recording = subscription.queries.map((): readonly Key[] => []);
-				function merged() {
-					return scopes.map((declared, index) => [...declared, ...(recorded[index] ?? [])]);
-				}
-				function register() {
-					registration.replaceKeys([...merged(), ...recording].flat());
-				}
-				function recordingRead(request: QueryRequest) {
-					const index = subscription.queries.indexOf(request);
-					const run: Key[] = [];
-					recording[index] = run;
-					return read(request).pipe(
-						Effect.provideService(ReadRecorder, (keys) =>
-							Effect.sync(() => {
-								run.push(...keys);
-								register();
-							}),
-						),
-						Effect.tap(() =>
-							Effect.sync(() => {
-								recorded[index] = run;
-								recording[index] = [];
-							}),
-						),
-					);
-				}
-				let compare = compareQueries(subscription, recordingRead);
+				const keys = subscriptionKeys(subscription, read, registration.replaceKeys);
+				let compare = compareQueries(subscription, keys.recordingRead);
 				const next = Effect.fnUntraced(function* (hint: LiveHint) {
 					if (!(yield* subscription.authorized)) {
-						compare = compareQueries(subscription, recordingRead, false);
+						compare = compareQueries(subscription, keys.recordingRead, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
-					const updates = yield* compare(hint, merged());
+					const updates = yield* compare(hint, keys.merged());
 					if (subscription.readScopes !== undefined) {
-						scopes = yield* subscription.readScopes;
+						keys.replaceScopes(yield* subscription.readScopes);
 					}
-					register();
+					keys.register();
 					return updates;
 				});
 				return registration.stream.pipe(
