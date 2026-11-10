@@ -1,5 +1,5 @@
-import { Effect, Option, Path, Schema } from "effect";
-import { readIfPresent } from "#files.ts";
+import { Effect, Option, Path } from "effect";
+import { type Owner, ownerOf } from "#ownerOf.ts";
 
 export interface BundleModule {
 	readonly builtin: boolean;
@@ -21,43 +21,6 @@ export interface ServerCodeOptions {
 	readonly root: string;
 	readonly serverOnly: readonly string[];
 }
-
-interface Owner {
-	readonly directory: string;
-	readonly name: string;
-}
-
-const Manifest = Schema.fromJsonString(Schema.Struct({ name: Schema.optionalKey(Schema.String) }));
-
-const decodeManifest = Schema.decodeUnknownOption(Manifest);
-
-const ownerOf = Effect.fn("Build.ownerOf")(function* (id: string, owners: Map<string, Option.Option<Owner>>) {
-	const path = yield* Path.Path;
-	if (!path.isAbsolute(id)) {
-		return Option.none<Owner>();
-	}
-	const visited: string[] = [];
-	for (let directory = path.dirname(id); ; directory = path.dirname(directory)) {
-		const known = owners.get(directory);
-		if (known !== undefined) {
-			for (const each of visited) {
-				owners.set(each, known);
-			}
-			return known;
-		}
-		visited.push(directory);
-		const name = Option.flatMap(yield* readIfPresent(path.join(directory, "package.json")), (text) =>
-			Option.flatMap(decodeManifest(text), (manifest) => Option.fromUndefinedOr(manifest.name)),
-		);
-		if (Option.isSome(name) || path.dirname(directory) === directory) {
-			const found = Option.map(name, (each): Owner => ({ directory, name: each }));
-			for (const each of visited) {
-				owners.set(each, found);
-			}
-			return found;
-		}
-	}
-});
 
 const displayed = Effect.fn("Build.displayed")(function* (id: string, options: ServerCodeOptions, owners: Map<string, Option.Option<Owner>>) {
 	const path = yield* Path.Path;
