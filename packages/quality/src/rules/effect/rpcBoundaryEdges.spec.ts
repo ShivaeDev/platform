@@ -1,15 +1,17 @@
 import { expect } from "@effect/vitest";
 import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
 import { rpcBoundaryImports, rpcBoundaryResolves } from "#test/rpcBoundaryResolves.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
+
+const repository = ruleCases.repository(...rpcBoundaryResolves);
 
 for (const { name, code } of [
 	{ code: 'const read = Effect.succeed("note").pipe(expose(Schema.String, options));', name: "rpcBoundary" },
 	{ code: 'const read = Boundaries.rpcBoundaryHandlers(Api, options, { Read: () => Effect.succeed("note") });', name: "rpcBoundaryHandlers" },
 ]) {
-	ruleStory.it(
+	ruleCases.it(
 		`effect/rpc-boundary reports ${name} in a service module with its repair`,
-		[...rpcBoundaryResolves, repositoryHas({ content: [...rpcBoundaryImports, code].join("\n"), path: "src/service.ts" })],
+		[repository.has({ content: [...rpcBoundaryImports, code].join("\n"), path: "src/service.ts" })],
 		function* ({ check }) {
 			const findings = yield* check(rpcBoundary);
 
@@ -25,11 +27,10 @@ for (const { name, code } of [
 }
 
 for (const builder of ["toLayer", "toHandlers", "of", "toLayerHandler"]) {
-	ruleStory.it(
+	ruleCases.it(
 		`effect/rpc-boundary accepts both boundaries in a module building RPC handlers with ${builder}`,
 		[
-			...rpcBoundaryResolves,
-			repositoryHas({
+			repository.has({
 				content: [
 					...rpcBoundaryImports,
 					'const handlers = Boundaries.rpcBoundaryHandlers(Api, options, { Read: () => Effect.succeed("note").pipe(expose(Schema.String, options)) });',
@@ -63,9 +64,9 @@ for (const { name, code, path } of [
 		path: "src/registration.ts",
 	},
 ]) {
-	ruleStory.it(
+	ruleCases.it(
 		`effect/rpc-boundary reports ${name}`,
-		[...rpcBoundaryResolves, repositoryHas({ content: [...rpcBoundaryImports, code].join("\n"), path })],
+		[repository.has({ content: [...rpcBoundaryImports, code].join("\n"), path })],
 		function* ({ check, locations }) {
 			yield* check(rpcBoundary);
 
@@ -74,11 +75,10 @@ for (const { name, code, path } of [
 	);
 }
 
-ruleStory.it(
+ruleCases.it(
 	"effect/rpc-boundary follows a renamed re-export into a service module",
 	[
-		...rpcBoundaryResolves,
-		repositoryHas(
+		repository.has(
 			{ content: 'export { rpcBoundary as expose } from "@shivaedev/errors/boundary.ts";', path: "src/expose.ts" },
 			{
 				content: [
@@ -97,11 +97,10 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"effect/rpc-boundary accepts unrelated boundary functions and boundary test kits",
 	[
-		...rpcBoundaryResolves,
-		repositoryHas(
+		repository.has(
 			{ content: "function rpcBoundary() {} rpcBoundary();", path: "src/unrelated.ts" },
 			{
 				content: [...rpcBoundaryImports, "expose(Schema.String, options);"].join("\n"),

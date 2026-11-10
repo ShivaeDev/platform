@@ -2,22 +2,24 @@ import { expect } from "@effect/vitest";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { adapterServiceFiles } from "#test/adapterServiceFiles.ts";
 import { effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { ruleCases } from "#test/ruleCases.ts";
+import { repositoryHas } from "#test/ruleStory.ts";
 import { serviceKitFiles, serviceKitResolves } from "#test/serviceKitFiles.ts";
 
-ruleStory.it(
+const repository = ruleCases.repository(effectResolves());
+
+ruleCases.it(
 	"service parameters accepts a foreign server constructed and passed inside an adapter",
-	[effectResolves(), repositoryHas(...adapterServiceFiles)],
+	[repository.has(...adapterServiceFiles)],
 	function* ({ check }) {
 		expect(yield* check(serviceParameters)).toEqual([]);
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters follows construction through a local foreign acquisition helper",
 	[
-		effectResolves(),
-		repositoryHas(
+		repository.has(
 			...adapterServiceFiles.map((file) => ({
 				...file,
 				content: file.content
@@ -31,11 +33,10 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters rejects the same foreign server when it comes from the environment",
 	[
-		effectResolves(),
-		repositoryHas(
+		repository.has(
 			...adapterServiceFiles.map((file) =>
 				file.path.endsWith("renderer-tooling.ts")
 					? {
@@ -53,11 +54,10 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters rejects an environment resource passed from another adapter module",
 	[
-		effectResolves(),
-		repositoryHas(...adapterServiceFiles, {
+		repository.has(...adapterServiceFiles, {
 			content: `import { Effect } from "effect";
 import { RendererServer } from "../../../../src/RendererServer.ts";
 import { close } from "./renderer-tooling.ts";
@@ -72,11 +72,10 @@ export const borrowed = Effect.gen(function* () { yield* close(yield* RendererSe
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters follows a foreign factory through typed promise acquisition",
 	[
-		effectResolves(),
-		repositoryHas(
+		repository.has(
 			...adapterServiceFiles.map((file) => ({
 				...file,
 				content: file.content.replace(
@@ -92,20 +91,19 @@ ruleStory.it(
 );
 
 for (const path of ["src/runtime.ts", "src/adapters/runtime.ts"]) {
-	ruleStory.it(
+	ruleCases.it(
 		`service parameters rejects non-exported runtime service plumbing in ${path}`,
-		[effectResolves(), repositoryHas(serviceModule(path, "function local(store: StoreShape) { return store.read(); }"))],
+		[repository.has(serviceModule(path, "function local(store: StoreShape) { return store.read(); }"))],
 		function* ({ check }) {
 			expect(yield* check(serviceParameters)).toEqual([expect.objectContaining({ file: path })]);
 		},
 	);
 }
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters keeps test-kit engine arguments separate from runtime services",
 	[
-		effectResolves(),
-		repositoryHas(
+		repository.has(
 			serviceModule("src/test-support/kit.ts", "export const inspect = (store: StoreShape) => store;"),
 			serviceModule("src/runtime.ts", "function local(store: StoreShape) { return store.read(); }"),
 		),
@@ -115,9 +113,9 @@ ruleStory.it(
 	},
 );
 
-ruleStory.it(
+ruleCases.it(
 	"service parameters accepts story-kit engine callbacks beside a rejected runtime helper",
-	[effectResolves(), serviceKitResolves(), repositoryHas(...serviceKitFiles)],
+	[repository.case(serviceKitResolves(), repositoryHas(...serviceKitFiles))],
 	function* ({ check }) {
 		expect(yield* check(serviceParameters)).toEqual([
 			expect.objectContaining({ file: "src/application-story.ts", message: expect.stringContaining("Parameter store carries a service.") }),
