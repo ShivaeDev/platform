@@ -1,16 +1,18 @@
 import { Effect, Queue } from "effect";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes } from "@shivaedev/test-story/server/watchedClock.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "#test/socket-clock/connect.ts";
 import { Editor } from "#test/socket-clock/Editor.tsx";
-import { openHost } from "#test/socket-clock/openHost.ts";
+import { editWindow } from "#test/socket-clock/editWindow.ts";
+import { Notes } from "#test/socket-clock/feature.ts";
 
 export const socketClockStory = storyKit({
 	clock: "test",
 	*create() {
-		const host = yield* openHost;
+		const host = yield* rpcSocketHost(Notes, yield* editWindow);
 		const connections = yield* Queue.unbounded<string>();
 		const client = yield* connect(host.url, connections);
 		const run = Effect.runPromiseWith(yield* Effect.context());
@@ -18,7 +20,7 @@ export const socketClockStory = storyKit({
 		const view = yield* screen.open(<Editor client={client} />);
 		return { connections, host, run, screen, view };
 	},
-	inspect: ({ host, view }) => ({ ...host.state, html: view.container.innerHTML }),
+	inspect: ({ host, view }) => Effect.map(host.handshakes, (handshakes) => ({ handshakes, html: view.container.innerHTML })),
 	name: "shared socket on a story clock",
 	stages: ["screen"],
 	verbs: ({ connections, host, run, screen, view }, story) => {
@@ -28,18 +30,19 @@ export const socketClockStory = storyKit({
 				Effect.gen(function* () {
 					story.tell("the server drops the socket and holds its next WebSocket handshake");
 					yield* Queue.take(connections);
-					yield* host.disconnect();
+					yield* host.hold;
+					yield* host.drop;
 					yield* Queue.take(connections);
 				}),
-			handshakes: () => Effect.sync(() => host.state.handshakes),
+			handshakes: () => host.handshakes,
 			minutePasses: () => screen.act("a minute passes on the story clock", () => run(passes("1 minute", Effect.void))),
 			reconnectDelayPasses: () =>
 				screen
 					.act("the reconnect delay passes and the next handshake reaches the server", () => run(passes("1 second", Effect.void)))
-					.pipe(Effect.andThen(host.waiting)),
+					.pipe(Effect.andThen(host.held)),
 			releaseHandshake: () => {
 				story.tell("the server releases the WebSocket handshake");
-				return host.release.pipe(Effect.andThen(Queue.take(connections)));
+				return host.accept.pipe(Effect.andThen(Queue.take(connections)));
 			},
 			save: () =>
 				screen

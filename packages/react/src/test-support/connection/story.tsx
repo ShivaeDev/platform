@@ -4,29 +4,32 @@ import { TestClock } from "effect/testing";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { activityScreenSignal, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { querySignals } from "@shivaedev/contract/querySignals.ts";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { connect } from "#test/connection/connect.ts";
-import { openHost } from "#test/connection/openHost.ts";
+import { Api } from "#test/connection/feature.ts";
+import { noteHandlers } from "#test/connection/noteHandlers.ts";
 import { View } from "#test/connection/View.tsx";
 import { Screen } from "#test/Screen.ts";
 
 export const connections = storyKit({
 	clock: "test",
 	*create() {
-		const host = yield* openHost;
+		const handlers = yield* noteHandlers;
+		const host = yield* rpcSocketHost(Api, handlers.layer);
 		const connection = yield* connect(host.url);
 		const screen = new Screen(() => undefined);
 		const view = yield* screen.open(<View {...connection} />);
 		const run = Effect.runPromiseWith(yield* Effect.context());
 		const activity = clientActivity(connection.client);
-		return { activity, connection, host, run, screen, view };
+		return { activity, connection, handlers, host, run, screen, view };
 	},
 	inspect: ({ view }) => ({ html: view.container.innerHTML }),
 	name: "client connection screen",
 	stages: ["screen"],
-	verbs: ({ activity, connection, host, run, screen, view }, story) => {
+	verbs: ({ activity, connection, handlers, host, run, screen, view }, story) => {
 		screen.tell = story.tell;
 		function status(value: "live" | "reconnecting") {
 			return until(activity, (state) => state.connectionStatus === value, { name: `client ${value}` });
@@ -56,10 +59,10 @@ export const connections = storyKit({
 						}
 						button.click();
 					})
-					.pipe(Effect.andThen(Queue.take(host.closed))),
+					.pipe(Effect.andThen(Queue.take(handlers.closed))),
 			dropSocket: () =>
 				screen.act("drop the socket and hold the next handshake", () =>
-					run(host.drop.pipe(Effect.andThen(Queue.take(connection.events)), Effect.andThen(host.waiting))),
+					run(host.hold.pipe(Effect.andThen(host.drop), Effect.andThen(Queue.take(connection.events)), Effect.andThen(host.held))),
 				),
 			outagePasses: () =>
 				screen.act("thirty seconds pass while the socket is unavailable", () =>
@@ -79,14 +82,14 @@ export const connections = storyKit({
 			refuseNote: () =>
 				Effect.sync(() => {
 					story.tell("the server refuses the note");
-					host.state.refused = true;
+					handlers.notes.refused = true;
 				}),
 			renameNote: () =>
 				Effect.sync(() => {
 					story.tell("another client renames the note while disconnected");
-					host.state.title = "Changed while away";
+					handlers.notes.title = "Changed while away";
 				}),
-			restoreSocket: () => screen.act("restore the socket", () => run(host.restore.pipe(Effect.andThen(Queue.take(connection.events))))),
+			restoreSocket: () => screen.act("restore the socket", () => run(host.accept.pipe(Effect.andThen(Queue.take(connection.events))))),
 			resume: (source: "online" | "visibilitychange") => {
 				const answered = nextQueryAnswers();
 				return screen

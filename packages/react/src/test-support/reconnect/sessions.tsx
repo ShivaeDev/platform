@@ -1,12 +1,14 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { type Duration, Effect, Queue } from "effect";
 import { act } from "react";
+import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer, watchedClock } from "@shivaedev/test-story/server/watchedClock.ts";
 import { App } from "#test/reconnect/App.tsx";
+import { accountHandlers } from "#test/reconnect/accountHandlers.ts";
 import { makeAuth } from "#test/reconnect/auth.ts";
-import { openHost } from "#test/reconnect/openHost.ts";
+import { Accounts } from "#test/reconnect/feature.ts";
 import { settleOnSignal } from "#test/reconnect/settleOnSignal.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
@@ -17,27 +19,29 @@ export const reconnectSessions = storyKit({
 		const clock = yield* watchedClock;
 		const runtime = yield* storyRuntime;
 		const run = Effect.runPromiseWith(yield* Effect.context());
-		const host = yield* openHost;
+		const { accounts, layer } = accountHandlers();
+		const host = yield* rpcSocketHost(Accounts, layer);
 		const auth = yield* makeAuth;
 		const screen = new Screen(() => undefined);
 		const errors: string[] = [];
 		const history = createMemoryHistory({ initialEntries: ["/"] });
 		const view = yield* screen.open(<App auth={auth} errors={errors} history={history} runtime={runtime} url={host.url} />);
 		yield* settleScreen(view.container, () => view.container.querySelector('[data-live="live"][data-pending="false"]') === null, screen.tell);
-		yield* Queue.take(host.handshakes);
+		yield* host.nextHandshake;
 		yield* Queue.take(auth.checked);
 		yield* Queue.take(auth.started);
-		return { auth, clock, errors, history, host, run, screen, view };
+		return { accounts, auth, clock, errors, history, host, run, screen, view };
 	},
-	inspect: ({ auth, host, view }) => ({ auth: auth.state, host: host.state, html: view.container.innerHTML }),
+	inspect: ({ accounts, auth, host, view }) =>
+		Effect.map(host.handshakes, (handshakes) => ({ accounts, auth: auth.state, handshakes, html: view.container.innerHTML })),
 	name: "session recovery over a dropped WebSocket",
 	stages: ["screen"],
-	verbs: ({ auth, clock, errors, history, host, run, screen, view }, story) => {
+	verbs: ({ accounts, auth, clock, errors, history, host, run, screen, view }, story) => {
 		screen.tell = story.tell;
 		return {
 			checkIntervals: () => Effect.sync(() => auth.state.checks.slice(2).map(({ at }, index) => at - (auth.state.checks[index + 1]?.at ?? at))),
 			checks: () => Effect.sync(() => auth.state.checks.map(({ operation }) => operation)),
-			dropSocket: () => screen.act("the server drops the socket", () => Effect.runPromise(host.drop())),
+			dropSocket: () => screen.act("the server drops the socket", () => Effect.runPromise(host.drop)),
 			failSessionChecks: () =>
 				Effect.sync(() => {
 					story.tell("Better Auth keeps alice's data but reports an unreachable session server");
@@ -53,12 +57,12 @@ export const reconnectSessions = storyKit({
 				settleOnSignal("the next session request starts", Queue.take(auth.started), { clock, root: view.container, tell: story.tell }),
 			queryErrors: () => Effect.sync(() => [...errors]),
 			reconnectIntervalPasses: () =>
-				settleOnSignal("the socket reconnect interval passes", Queue.take(host.handshakes), { clock, root: view.container, tell: story.tell }),
-			refusedAccountRequests: () => Effect.sync(() => [...host.state.failures]),
+				settleOnSignal("the socket reconnect interval passes", host.nextHandshake, { clock, root: view.container, tell: story.tell }),
+			refusedAccountRequests: () => Effect.sync(() => [...accounts.failures]),
 			refuseReconnect: () =>
 				Effect.sync(() => {
 					story.tell("the next RPC subscription refuses alice's authentication");
-					host.state.authorized = false;
+					accounts.authorized = false;
 				}),
 			releaseSessionRead: () =>
 				screen.act("the session refetch answers signed out", () => {
@@ -76,16 +80,14 @@ export const reconnectSessions = storyKit({
 				screen.act(`${interval} pass before the next session check`, () =>
 					run(untilTimer(interval).pipe(Effect.andThen(passes(interval, Queue.take(auth.checked))))),
 				),
-			serverReturns: () =>
-				Effect.sync(() => {
-					story.tell("the RPC server returns");
-					host.state.reachable = true;
-				}),
-			serverUnavailable: () =>
-				Effect.sync(() => {
-					story.tell("the RPC server becomes unreachable");
-					host.state.reachable = false;
-				}),
+			serverReturns: () => {
+				story.tell("the RPC server returns");
+				return host.accept;
+			},
+			serverUnavailable: () => {
+				story.tell("the RPC server becomes unreachable");
+				return host.refuse;
+			},
 			shown: () => Effect.sync(() => view.container.textContent),
 			signedOutAnswer: () =>
 				screen.act("the session server confirms signed out", () => {
@@ -97,7 +99,7 @@ export const reconnectSessions = storyKit({
 				screen.act("sign-out succeeds and holds its session refetch", () => {
 					auth.state.hold = true;
 					auth.state.signedIn = false;
-					host.state.authorized = false;
+					accounts.authorized = false;
 					auth.signOutResponse.resolve();
 				}),
 			signOutIntent: () => Effect.sync(() => (history.location.state.__platformSignOut ? "explicit sign-out" : "ordinary visit")),

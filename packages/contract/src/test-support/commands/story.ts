@@ -9,7 +9,7 @@ import { commandEngine } from "#test/commands/engine.ts";
 export const commands = storyKit({
 	clock: "test",
 	create: () => commandEngine,
-	inspect: ({ host }) => host.state,
+	inspect: ({ counter, host }) => Effect.map(host.handshakes, (handshakes) => ({ ...counter, handshakes })),
 	name: "commands across reconnect",
 	stages: ["connection"],
 	verbs: (engine, story) => ({
@@ -49,22 +49,23 @@ export const commands = storyKit({
 		drop: () =>
 			Effect.gen(function* () {
 				story.tell("the socket drops and the server holds the next handshake");
+				yield* engine.host.hold;
 				yield* engine.host.drop;
 				yield* Queue.take(engine.events);
 			}),
-		executed: () => Effect.map(Queue.take(engine.host.executed), (value) => `counter: ${value}`),
+		executed: () => Effect.map(Queue.take(engine.executed), (value) => `counter: ${value}`),
 		holdResponse: () => {
 			story.tell("the server holds the next command response");
-			engine.host.state.holdResponse = true;
+			engine.counter.holdResponse = true;
 		},
-		opened: () => Effect.sync(() => `${engine.host.state.handshakes} socket handshakes`),
+		opened: () => Effect.map(engine.host.handshakes, (handshakes) => `${handshakes} socket handshakes`),
 		pass: (milliseconds: number) => {
 			story.tell(`${milliseconds} milliseconds pass`);
 			return TestClock.adjust(milliseconds);
 		},
 		restore: () => {
 			story.tell("the server accepts connections again");
-			return engine.host.restore;
+			return engine.host.accept;
 		},
 		resume: (source: "native" | "online" | "visibilitychange" | "pageshow") => {
 			story.tell(`the client resumes through ${source}`);
@@ -77,7 +78,7 @@ export const commands = storyKit({
 		settlement: () => Effect.map(engine.connection().activity.current, (state) => (isClientSettled(state) ? "settled" : "pending")),
 		silence: () => {
 			story.tell("the network silently stops delivering frames on the open socket");
-			return engine.host.silence;
+			return engine.host.pause;
 		},
 		status: () => Effect.map(engine.connection().activity.current, (state) => state.connectionStatus),
 		untilConnected: () =>
