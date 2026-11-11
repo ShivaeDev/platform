@@ -1,8 +1,7 @@
 {
 	"name": "@shivaedev/build",
 	"version": "0.0.0",
-	"private": true,
-	"description": "An application's build setup: the generated wire and browser contract of each defined module",
+	"description": "An application's build setup: its Vite and Vitest configuration, and the generated wire and browser contract of each defined module",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/build#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
@@ -33,7 +32,7 @@
 		"./package.json": "./package.json"
 	},
 	"bin": {
-		"shivaedev-build": "./dist/cli.js"
+		"shivaedev-build": "./bin/source.ts"
 	},
 	"files": [
 		"dist",
@@ -52,6 +51,7 @@
 	},
 	"dependencies": {
 		"@shivaedev/heavy-lock": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
 		"typescript": "catalog:compiler-api"
 	},
 	"devDependencies": {
@@ -60,7 +60,6 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
-		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@typescript/native": "catalog:",
@@ -85,5 +84,12 @@
 	},
 	"engines": {
 		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"bin": {
+			"shivaedev-build": "./dist/cli.js"
+		},
+		"provenance": true
 	}
 }

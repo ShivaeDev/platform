@@ -418,6 +418,9 @@ importers:
       '@shivaedev/browser-check':
         specifier: workspace:*
         version: link:../../packages/browser-check
+      '@shivaedev/build':
+        specifier: workspace:*
+        version: link:../../packages/build
       '@shivaedev/heavy-lock':
         specifier: workspace:*
         version: link:../../packages/heavy-lock
@@ -764,6 +767,9 @@ importers:
       '@shivaedev/heavy-lock':
         specifier: workspace:*
         version: link:../heavy-lock
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
       typescript:
         specifier: catalog:compiler-api
         version: '@typescript/typescript6@6.0.2'
@@ -783,9 +789,6 @@ importers:
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

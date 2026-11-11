@@ -1,4 +1,4 @@
-import { expect } from "@effect/vitest";
+import { expect } from "vitest";
 import { appConfigStory } from "#test/appConfigStory.ts";
 
 appConfigStory.it("an application limits its test workers to its database connection budget", [], ({ generate }) => {

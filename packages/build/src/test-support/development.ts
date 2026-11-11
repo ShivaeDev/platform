@@ -1,9 +1,11 @@
 import { createServer } from "node:http";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Schema } from "effect";
 import { createViteServer } from "vitest/node";
 import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appViteConfig } from "#appViteConfig.ts";
+import { appViteConfig } from "#adapters/appViteConfig.ts";
+import { emptyProject, writeFiles } from "#test/fixtureProject.ts";
 
 const HostRecord = Schema.fromJsonString(Schema.Struct({ host: Schema.String, path: Schema.String }));
 
@@ -31,9 +33,11 @@ export const development = storyKit({
 			response.end(JSON.stringify({ host: request.headers.host, path: request.url }));
 		});
 		const hostUrl = yield* loopbackServer(host);
+		const root = yield* emptyProject();
+		yield* writeFiles(root, { "src/client.ts": "export {};\n" });
 		const config = appViteConfig([], [], ["/health"], { apiPort: Number(new URL(hostUrl).port), webPort: 0 });
 		const vite = yield* Effect.acquireRelease(
-			Effect.promise(() => createViteServer({ ...config, configFile: false, server: { ...config.server, watch: null } })),
+			Effect.promise(() => createViteServer({ ...config, configFile: false, root, server: { ...config.server, watch: null } })),
 			(server) => Effect.promise(() => server.close()),
 		);
 		yield* Effect.promise(() => vite.listen());
@@ -45,6 +49,7 @@ export const development = storyKit({
 		return engine;
 	},
 	inspect: ({ answer, origin }) => ({ answer, origin }),
+	layer: NodeServices.layer,
 	name: "Vite development proxy",
 	stages: [],
 	verbs: (engine, story) => ({
