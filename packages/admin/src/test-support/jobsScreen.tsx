@@ -9,8 +9,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { JobsView } from "#client/adapters/JobsView.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { idOf, named } from "#test/jobsNames.ts";
-import { Mail, pages } from "#test/jobsPages.ts";
+import { queues as declarations, Mail } from "#test/jobsPages.ts";
 import { type JobsScreenEngine, jobsReadouts, screenOf } from "#test/jobsScreenReadouts.ts";
+import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
@@ -72,7 +73,6 @@ function openJobsView(namesOnly: boolean) {
 		"screen",
 		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}`,
 		function* (engine) {
-			const declarations = pages().pages[0].queues;
 			const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
 			engine.screen = yield* Effect.acquireRelease(
 				Effect.promise(() =>
@@ -82,7 +82,7 @@ function openJobsView(namesOnly: boolean) {
 							queues={queues}
 							retry={engine.retryAction}
 							runScheduleNow={engine.runScheduleNowAction}
-							schedules={pages().pages[0].schedules}
+							schedules={[ScheduledWorker]}
 						/>,
 					),
 				),

@@ -137,7 +137,6 @@ The starter declares `StatisticsPage` with `adminPage` in [`src/modules/notes/ad
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { NoteStatistics } from "#modules/notes/admin/pages.ts";
-import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -147,7 +146,7 @@ export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
 		Request: Schema.Void,
 		Result: NoteStatistics,
 	});
-	return yield* read(undefined).pipe(Effect.catchTag("SqlError", (cause) => Effect.fail(notesSqlFailure(cause))));
+	return yield* read(undefined);
 });
 ```
 
@@ -158,7 +157,7 @@ import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { readStatistics } from "./readStatistics.ts";
+import { readStatistics } from "#modules/notes/server/admin/readStatistics.ts";
 
 const statistics = StatisticsPage.contract.application.toLayer({
 	"admin.notes.statistics": () =>
@@ -176,54 +175,48 @@ The read stays in notes because notes owns the table. The [client registration](
 
 ### Built-in Jobs page
 
-Share each queue's name, optional display label, subject columns and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.
+Add `JobsPage` from `@shivaedev/admin/jobs/Page.ts` to the registry and register `jobs: moduleHandlers(Jobs)`, with `Jobs` from `@shivaedev/admin/Jobs.ts`, the module behind the page, which is server code. The module requires `RegisteredQueues` from `@shivaedev/admin/server/RegisteredQueues.ts`: the queues operators may administer and the jobs runtime they run on. Provide it with `pgBossQueues` from `@shivaedev/admin/server/adapters/pgBossQueues.ts`, passing the application's existing `makePgBoss` service and each queue's name, optional display label, subject columns and payload Schema. The page exposes only those queues; a queue registered with the jobs runtime is not automatically available to operators.
 
 ```ts
-import { Schema } from "effect";
-import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
+import { Layer, Schema } from "effect";
+import { Jobs } from "@shivaedev/admin/Jobs.ts";
+import { JobsPage } from "@shivaedev/admin/jobs/Page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { pgBossQueues } from "@shivaedev/admin/server/adapters/pgBossQueues.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 
-const MailPayload = Schema.Struct({ id: Schema.NumberFromString });
-const JobsPage = jobsPage({
+const Mail = {
 	name: "mail",
 	label: "Email delivery",
-	schema: MailPayload,
+	schema: Schema.Struct({ id: Schema.NumberFromString }),
 	subject: [{ field: "id", label: "Message" }],
-});
-const Admin = adminRegistry(JobsPage);
+};
+const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(Jobs) });
+const queues = pgBossQueues(JobsService, Mail);
+const handlers = registration.handlers.pipe(Layer.provide(queues));
 ```
 
-Register its handlers with the application's existing `makePgBoss` service:
+The `pgBossQueues` Layer requires the jobs service and the payload Schemas' decoding services, so the page's operations require only `RegisteredQueues`.
 
-```ts
-import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
-import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<JobsRow>`. Each job is a `JobsRow` from `@shivaedev/admin/jobs/Row.ts` carrying its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings return `JobsDeadLetter` from `@shivaedev/admin/jobs/DeadLetter.ts`, which also carries `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values. Jobs decodes the durable payload and masks native `Redacted` values and sensitive keys before the RPC response. Payloads are diagnostic `data: unknown`; narrow them before reading fields. Result serialization does not run the queue's payload encoder or require its encoding services.
 
-const registration = registerAdmin(Admin, {
-	jobs: jobsHandlers(JobsPage, JobsService),
-});
-```
+Schedule definitions from `defineSchedule` can be passed beside queues. For a worker-only schedule, share a browser-safe object such as `const Cleanup = { name: "cleanup" } as const`. Pass `Cleanup` to `pgBossQueues` and spread it into the worker's `defineSchedule({ ...Cleanup, cron: "17 3 * * *" })`. Scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. With no queues, `pgBossQueues(JobsService)` serves health with no jobs and zero totals.
 
-`jobsHandlers` uses the shared `PgBossInspection` service internally and provides it from the application-specific jobs service tag. Direct calls to `jobsReadHandlers` use the `PgBossInspection` service from the caller's Effect environment.
+Health reads the declared queues in declaration order, including schedules registered by a separate worker service, and totals only those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. Jobs decodes the durable payload and masks native `Redacted` values and sensitive keys before the RPC response. Payloads are diagnostic `data: unknown`; narrow them before reading fields. Result serialization does not run the queue's payload encoder or require its encoding services.
-
-Schedule definitions from `defineSchedule` can be passed beside queues. For a worker-only schedule, share a browser-safe object such as `const Cleanup = { name: "cleanup" } as const`. Pass `Cleanup` to `jobsPage` and spread it into the worker's `defineSchedule({ ...Cleanup, cron: "17 3 * * *" })`. The page needs no server import or worker registration. Scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. Calling `jobsPage()` with no arguments registers the same read-only page and serves health with no jobs and zero totals.
-
-Health reads the page's declared queues in declaration order, including schedules registered by a separate worker service, and totals only those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
-
-The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application mounts the registration on its existing RPC host.
+The `Jobs` module declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application mounts the registration on its existing RPC host.
 
 #### Mount the Jobs view
 
-Bind the page contract to the application's AtomRpc client and pass `JobsPage.queues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
+Bind the page contract to the application's AtomRpc client and pass the queues given to `pgBossQueues` to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client/adapters";` in their client CSS.
 
 ```tsx
 import { JobsView } from "@shivaedev/admin/client/adapters/JobsView.ts";
 
 const jobs = bind(JobsPage.contract, Client);
 
-<JobsView api={jobs} queues={JobsPage.queues} />;
+<JobsView api={jobs} queues={[Mail]} />;
 ```
 
 For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omit both action props for a read-only view. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
@@ -232,38 +225,28 @@ Queue and schedule labels replace internal names in the queue picker and selecte
 
 ## Declare retry explicitly
 
-Use `jobsPageWithRetry` and `jobsHandlersWithRetry` when administrators should be able to retry failed original jobs:
+Use `JobsPageWithRetry` from `@shivaedev/admin/jobs/PageWithRetry.ts` and its module `JobsWithRetry` from `@shivaedev/admin/JobsWithRetry.ts` when administrators should be able to retry failed original jobs:
 
 ```ts
-import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
-import { jobsHandlersWithRetry } from "@shivaedev/admin/server/jobsHandlersWithRetry.ts";
-import { Effect, Layer } from "effect";
-import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
+import { JobsWithRetry } from "@shivaedev/admin/JobsWithRetry.ts";
+import { JobsPageWithRetry } from "@shivaedev/admin/jobs/PageWithRetry.ts";
 
-const JobsPage = jobsPageWithRetry({ name: "mail", schema: MailPayload });
-const Admin = adminRegistry(JobsPage);
-const registration = registerAdmin(Admin, {
-	jobs: jobsHandlersWithRetry(JobsPage, JobsService),
-});
-const inspection = Layer.effect(
-	PgBossInspection,
-	Effect.flatMap(JobsService, (jobs) => jobs.inspection()),
-);
-const handlers = registration.handlers.pipe(Layer.provide(inspection));
+const registration = registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: moduleHandlers(JobsWithRetry) });
+const handlers = registration.handlers.pipe(Layer.provide(pgBossQueues(JobsService, Mail)));
 ```
 
-This variant adds `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the handler. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the operation. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The operation uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed` from `@shivaedev/admin/jobs/NotFailed.ts`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. Health retains the runtime monitor's refresh timing.
 
 ### Run a schedule now
 
-The retry-enabled page also exposes `admin.jobs.runScheduleNow`, taking `{ queue }` and returning `Option<string>` with the enqueued run ID. Declare a schedule as `{ name, label?, scheduleOptions?: { key? } }` without a payload Schema, or pass its `defineSchedule` definition. The handler calls the jobs service's `runScheduleNow` and requires the same `ReadJobs` and `RetryJobs` permissions as retry. It rejects queues and schedules omitted from the page with `JobsQueueUnregistered`. The schedule's normal handler processes the run and its timetable stays unchanged.
+The retry-enabled page also exposes `admin.jobs.runScheduleNow`, taking `{ queue }` and returning `Option<string>` with the enqueued run ID. Declare a schedule as `{ name, label?, scheduleOptions?: { key? } }` without a payload Schema, or pass its `defineSchedule` definition. The operation calls the jobs service's `runScheduleNow` and requires the same `ReadJobs` and `RetryJobs` permissions as retry. It rejects queues and schedules not passed to `pgBossQueues` with `JobsQueueUnregistered`. The schedule's normal handler processes the run and its timetable stays unchanged.
 
-Pass the page's schedule declarations and bound action to show **Run now** for a selected schedule:
+Pass the schedule declarations and bound action to show **Run now** for a selected schedule:
 
 ```tsx
-<JobsView api={jobs} queues={JobsPage.queues} schedules={JobsPage.schedules} runScheduleNow={Client.runtime.fn(jobs.runScheduleNow.run)} />;
+<JobsView api={jobs} queues={[Mail, Cleanup]} schedules={[Cleanup]} runScheduleNow={Client.runtime.fn(jobs.runScheduleNow.run)} />;
 ```
 
 ### Built-in Users page

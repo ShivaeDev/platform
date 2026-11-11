@@ -3,7 +3,7 @@ import { anyOf, anything, external, files, folders, modules, packages } from "@s
 
 const server = folders("packages/admin/src/server", "packages/admin/src/test-support");
 const client = folders("packages/admin/src/client");
-const definedModules = files("packages/admin/src/Users.ts");
+const definedModules = files("packages/admin/src/Jobs.ts", "packages/admin/src/JobsWithRetry.ts", "packages/admin/src/Users.ts");
 const browser = folders("packages/admin/src").except(server, client, definedModules);
 const identityDeclarations = anyOf(
 	folders("packages/identity/src/generated"),

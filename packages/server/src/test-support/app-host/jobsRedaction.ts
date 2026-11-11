@@ -2,14 +2,16 @@ import { Context, Effect, Layer, Option, Redacted, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { TestClock } from "effect/testing";
-import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
-import { jobSchema } from "@shivaedev/admin/jobs/schemas.ts";
+import { Jobs as JobsModule } from "@shivaedev/admin/Jobs.ts";
+import { JobsPage } from "@shivaedev/admin/jobs/Page.ts";
+import { JobsRow } from "@shivaedev/admin/jobs/Row.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
-import { jobsHandlers, jobsReadHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
+import { pgBossQueues } from "@shivaedev/admin/server/adapters/pgBossQueues.ts";
+import { Detail } from "@shivaedev/admin/server/jobsReads.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { PgBossInspection } from "@shivaedev/jobs/server/inspection.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -24,9 +26,8 @@ import { TypedFailures, typedFailure, typedFailureHandlers } from "#test/app-hos
 const { url } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 const Jobs = makePgBoss("test/JobsRedaction");
 const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ recipient: Schema.String }) });
-const page = jobsPage(Mail);
-const JobDetails = RpcGroup.make(Rpc.make("jobFailure", { error: jobSchema(Mail), success: Schema.Void }));
-const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
+const JobDetails = RpcGroup.make(Rpc.make("jobFailure", { error: JobsRow, success: Schema.Void }));
+const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(JobsModule) });
 
 export const jobsRedaction = storyKit({
 	...hostOptions(),
@@ -58,7 +59,6 @@ export const registeredJobs = jobsRedaction.trait(
 			Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url, supervise: false })),
 		);
 		const jobs = Context.get(yield* Layer.build(services), Jobs);
-		const inspection = yield* jobs.inspection();
 		const id = Option.getOrThrow(yield* jobs.enqueue(Mail, { recipient: "private-recipient@example.test" }, { retryLimit: 0 }));
 		yield* testing.waitForIdle;
 		const handlers = Layer.mergeAll(
@@ -66,14 +66,12 @@ export const registeredJobs = jobsRedaction.trait(
 			typedFailureHandlers,
 			JobDetails.toLayer({
 				jobFailure: () =>
-					jobsReadHandlers(page)
-						["admin.jobs.job"]({ id, queue: Mail.name })
-						.pipe(
-							Effect.orDie,
-							Effect.flatMap((job) => Effect.fail(Option.getOrThrow(job))),
-						),
+					Detail.run({ id, queue: Mail.name }).pipe(
+						Effect.orDie,
+						Effect.flatMap((job) => Effect.fail(Option.getOrThrow(job))),
+					),
 			}),
-		).pipe(Layer.provide(Layer.merge(Layer.succeed(Jobs, jobs), Layer.succeed(PgBossInspection, inspection))));
+		).pipe(Layer.provide(pgBossQueues(Jobs, Mail).pipe(Layer.provide(Layer.succeed(Jobs, jobs)))));
 		state.build = () =>
 			appHost({
 				config: state.config,
