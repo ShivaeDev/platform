@@ -5,7 +5,6 @@ import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type ListenerControls, type ListenerEvents, listenerEvents } from "#test/changeFeedListener.ts";
 import type { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "#test/changeFeedTables.ts";
-import { liveStreams } from "#test/liveStreams.ts";
 import { postgresLayer } from "#test/postgres.ts";
 import { RecordedLogs } from "#test/RecordedLogs.ts";
 
@@ -39,12 +38,9 @@ export interface ChangeFeedEngine {
 	readonly logs: RecordedLogs["Service"];
 	readonly other: SqlClient.SqlClient;
 	readonly reactivity: Reactivity.Reactivity;
-	resyncs: number;
 	readonly stalledCleanup: Effect.Effect<void>;
-	readonly streams: ReturnType<typeof liveStreams>;
 	readonly tables: FeedTables;
 	timing: FeedTiming;
-	readonly unreachable: PgClient.PgClient;
 }
 
 function ownedName(prefix: string) {
@@ -66,7 +62,7 @@ export const changeFeedEngine = Effect.fnUntraced(function* () {
 		binding: undefined,
 		channel: ownedName("feed"),
 		client,
-		controls: { cleanupStalls: false, history: [], muted: false, payloads: [], unreachable: false },
+		controls: { cleanupStalls: false, history: [], payloads: [] },
 		endings: [],
 		events: yield* listenerEvents,
 		feedScope,
@@ -75,12 +71,9 @@ export const changeFeedEngine = Effect.fnUntraced(function* () {
 		logs: yield* RecordedLogs,
 		other: Context.get(yield* Layer.build(Layer.fresh(postgresLayer)), SqlClient.SqlClient),
 		reactivity: yield* Reactivity.Reactivity,
-		resyncs: 0,
 		stalledCleanup: Deferred.await(stalledCleanup),
-		streams: liveStreams(),
 		tables: {},
 		timing: { heartbeatInterval: "5 seconds", heartbeatTimeout: "10 seconds", retryDelay: "1 second" },
-		unreachable: yield* PgClient.make({ host: "127.0.0.1", port: 1 }),
 	};
 	return engine;
 });

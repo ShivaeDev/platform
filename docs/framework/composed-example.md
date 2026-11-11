@@ -26,8 +26,8 @@ The server configures `appHost` with `config.changes` to bind `postgresChanges` 
 
 ## Delivery between processes
 
-Several processes can share one feature. Two native HTTP servers and a pg-boss worker can run against the same migrated database, each with its own pool and Reactivity, and a commit through any of them reaches live subscribers on both servers. When a server loses its LISTEN connection, it reruns its subscriptions after `Resync`, pushes changed values, and a fresh listener picks up later commits. A rolled-back write publishes no hint.
+Several processes can share one feature. Two native HTTP servers and a pg-boss worker can run against the same migrated database, each with its own pool and Reactivity, and a commit through any of them reaches live subscribers on both servers. A rolled-back write publishes no hint.
 
-NOTIFY is not a durable log. The binding detects listener loss through a heartbeat and resyncs again after reconnecting so readers query authoritative data. The default PostgreSQL payload limit is smaller than 8,000 bytes; the binding splits arrays of invalidation keys and rejects an individual key that cannot fit. LISTEN needs a session connection, so this adapter does not establish PgBouncer transaction-pooling support.
+NOTIFY is not a durable log. The default PostgreSQL payload limit is smaller than 8,000 bytes; the binding splits arrays of invalidation keys and rejects an individual key that cannot fit. LISTEN needs a session connection, so this adapter does not establish PgBouncer transaction-pooling support.
 
 This composition is proved against real PostgreSQL and real HTTP, with separate server and worker processes and two independently rendered editors. The editors are DOM renders, so they do not prove SSR or browser lifecycle, and the fixture's session provider and commit gate do not establish a production deployment.

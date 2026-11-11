@@ -1,44 +1,20 @@
 import type * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Logger, Queue, Scope } from "effect";
+import { Effect, Queue, Scope } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PostgresChangeClient, PostgresNotification } from "#postgresChanges.ts";
 
 export interface ListenerControls {
 	cleanupStalls: boolean;
 	readonly history: string[];
-	muted: boolean;
 	readonly payloads: string[];
-	unreachable: boolean;
 }
 
 export const listenerEvents = Effect.gen(function* () {
-	const events = {
+	return {
 		cleanups: yield* Queue.unbounded<void>(),
-		heldHeartbeats: yield* Queue.unbounded<Effect.Effect<void>>(),
 		listeners: yield* Queue.unbounded<void>(),
-		losses: yield* Queue.unbounded<void>(),
-		reconnectFailures: yield* Queue.unbounded<void>(),
-		recoveries: yield* Queue.unbounded<void>(),
 		resyncs: yield* Queue.unbounded<void>(),
-		retries: yield* Queue.unbounded<void>(),
 	};
-	const loggers = yield* Logger.CurrentLoggers;
-	const logger = Logger.make((options) => {
-		switch (options.logLevel) {
-			case "Debug":
-				Queue.offerUnsafe(events.reconnectFailures, undefined);
-				Queue.offerUnsafe(events.retries, undefined);
-				break;
-			case "Info":
-				Queue.offerUnsafe(events.recoveries, undefined);
-				break;
-			case "Warn":
-				Queue.offerUnsafe(events.losses, undefined);
-				Queue.offerUnsafe(events.retries, undefined);
-				break;
-		}
-	});
-	return { ...events, loggers: new Set([...loggers, logger]) };
 });
 
 export type ListenerEvents = Effect.Success<typeof listenerEvents>;
@@ -65,15 +41,10 @@ const instrument = Effect.fnUntraced(function* (
 	yield* Effect.forever(
 		Effect.gen(function* () {
 			const notification = yield* Queue.take(notifications);
-			const keys = notification.payload.startsWith("[");
-			if (keys) {
+			if (notification.payload.startsWith("[")) {
 				controls.payloads.push(notification.payload);
 			}
-			if (!controls.muted) {
-				yield* Queue.offer(forwarded, notification);
-			} else if (!keys) {
-				yield* Queue.offer(events.heldHeartbeats, Effect.asVoid(Queue.offer(forwarded, notification)));
-			}
+			yield* Queue.offer(forwarded, notification);
 		}),
 	).pipe(
 		Effect.catchCause((cause) => Queue.failCause(forwarded, cause)),
@@ -84,7 +55,6 @@ const instrument = Effect.fnUntraced(function* (
 
 export function instrumentedClient(
 	client: PgClient.PgClient,
-	unreachable: PgClient.PgClient,
 	controls: ListenerControls,
 	events: ListenerEvents,
 	release: Effect.Effect<void>,
@@ -96,7 +66,7 @@ export function instrumentedClient(
 			}
 			return (channel: string) => {
 				controls.history.push("listen");
-				return instrument((controls.unreachable ? unreachable : client).listen(channel), controls, events, release);
+				return instrument(client.listen(channel), controls, events, release);
 			};
 		},
 	});

@@ -28,7 +28,7 @@ export const changeFeed = storyKit({
 });
 
 export function listenerCleanupStalls() {
-	return changeFeed.trait("listener", "closing a lost listener runs a cleanup that never finishes", (engine) =>
+	return changeFeed.trait("listener", "closing the listener runs a cleanup that never finishes", (engine) =>
 		Effect.sync(() => {
 			engine.controls.cleanupStalls = true;
 		}),
@@ -43,11 +43,7 @@ function timingLine(timing: Partial<FeedTiming>) {
 export function feedListens(timing: Partial<FeedTiming> = {}) {
 	return changeFeed.trait("feed", `the change feed listens for NOTIFY on its own channel${timingLine(timing)}`, function* (engine) {
 		engine.timing = { ...engine.timing, ...timing };
-		yield* startFeed(
-			engine,
-			engine.channel,
-			instrumentedClient(engine.client, engine.unreachable, engine.controls, engine.events, engine.stalledCleanup),
-		);
+		yield* startFeed(engine, engine.channel, instrumentedClient(engine.client, engine.controls, engine.events, engine.stalledCleanup));
 		yield* Queue.take(engine.events.listeners);
 		yield* Queue.take(engine.events.resyncs);
 	});
