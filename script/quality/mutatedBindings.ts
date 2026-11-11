@@ -63,3 +63,24 @@ export function mutatedBindings(tree: ts.SourceFile): ReadonlySet<string> {
 	visit(tree);
 	return names;
 }
+
+export interface ImportedChange {
+	readonly name: string;
+	readonly specifier: string;
+}
+
+// Changing an imported container changes the exporting module's state, so the change belongs to the exported name.
+export function importedChanges(tree: ts.SourceFile, changed: ReadonlySet<string>): readonly ImportedChange[] {
+	return tree.statements.flatMap((statement) => {
+		if (!(ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier))) {
+			return [];
+		}
+		const specifier = statement.moduleSpecifier.text;
+		const bindings = statement.importClause?.namedBindings;
+		return bindings !== undefined && ts.isNamedImports(bindings)
+			? bindings.elements
+					.filter((element) => changed.has(element.name.text))
+					.map((element) => ({ name: (element.propertyName ?? element.name).text, specifier }))
+			: [];
+	});
+}

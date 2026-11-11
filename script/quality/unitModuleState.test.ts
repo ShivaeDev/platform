@@ -63,6 +63,18 @@ for (const [shape, files, state] of [
 		],
 		{ file: "packages/quality/src/settings.ts", line: 1, name: "settings" },
 	],
+	[
+		"an exported registry that an importing kit pushes to",
+		[
+			{ content: 'import { register } from "./test-support/routes.ts";\nregister("orders");\n', path: UNIT_SPEC },
+			{
+				content: 'import { routes as known } from "./registry.ts";\nexport function register(route: string) {\n\tknown.push(route);\n}\n',
+				path: "packages/quality/src/test-support/routes.ts",
+			},
+			{ content: "export const routes: string[] = [];\n", path: "packages/quality/src/test-support/registry.ts" },
+		],
+		{ file: "packages/quality/src/test-support/registry.ts", line: 1, name: "routes" },
+	],
 ] as const) {
 	ruleKit.it(`a unit spec's shared modules report ${shape}`, [repositoryHas(...files)], function* ({ check }) {
 		const findings = yield* check(unitModuleState);
@@ -112,6 +124,13 @@ for (const [shape, files] of [
 		[
 			{ content: 'import type { Shape } from "./shape.ts";\nexport const shape: Shape = 1;\n', path: UNIT_SPEC },
 			{ content: "export let current = 0;\nexport type Shape = number;\n", path: "packages/quality/src/shape.ts" },
+		],
+	],
+	[
+		"an exported list that importers only read",
+		[
+			{ content: 'import { routes } from "./registry.ts";\nexport const first = routes[0];\n', path: UNIT_SPEC },
+			{ content: 'export const routes = ["orders"];\n', path: "packages/quality/src/registry.ts" },
 		],
 	],
 	[

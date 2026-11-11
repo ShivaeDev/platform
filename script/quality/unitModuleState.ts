@@ -3,10 +3,10 @@ import ts from "typescript";
 import type { ImportEdge } from "@shivaedev/quality/imports/graph.ts";
 import { importGraph } from "@shivaedev/quality/imports/graph.ts";
 import { ENVIRONMENTS, testName } from "@shivaedev/quality/naming/testName.ts";
-import type { Finding, SourceFile } from "@shivaedev/quality/rule.ts";
+import type { Finding } from "@shivaedev/quality/rule.ts";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 import { parse } from "@shivaedev/quality/rules/parse.ts";
-import { mutatedBindings } from "#quality/mutatedBindings.ts";
+import { importedChanges, mutatedBindings } from "#quality/mutatedBindings.ts";
 
 const UNIT_PROJECT = "packages/quality/src/";
 
@@ -54,12 +54,7 @@ function bound(name: ts.BindingName): readonly string[] {
 	return ts.isIdentifier(name) ? [name.text] : name.elements.flatMap((element) => (ts.isOmittedExpression(element) ? [] : bound(element.name)));
 }
 
-function moduleState(file: SourceFile): readonly Finding[] {
-	const tree = parse(file);
-	if (tree === undefined) {
-		return [];
-	}
-	const changed = mutatedBindings(tree);
+function moduleState(path: string, tree: ts.SourceFile, changed: ReadonlySet<string>): readonly Finding[] {
 	return tree.statements.flatMap((statement) => {
 		if (!ts.isVariableStatement(statement)) {
 			return [];
@@ -69,12 +64,29 @@ function moduleState(file: SourceFile): readonly Finding[] {
 			const names = bound(declaration.name);
 			const changing = constant ? names.filter((name) => container(declaration.initializer) && changed.has(name)) : names;
 			return changing.map((name) => ({
-				file: file.path,
+				file: path,
 				line: tree.getLineAndCharacterOfPosition(declaration.getStart(tree)).line + 1,
 				message: `holds module-level state \`${name}\` that the files of @shivaedev/quality:unit share, because that project runs without per-file isolation. Keep the state in the story's engine or scope, or key a cache by the run's own objects in a WeakMap.`,
 			}));
 		});
 	});
+}
+
+interface LoadedModule {
+	readonly changed: ReadonlySet<string>;
+	readonly path: string;
+	readonly tree: ts.SourceFile;
+}
+
+function changedByAnyone(modules: readonly LoadedModule[], edges: readonly ImportEdge[]): ReadonlyMap<string, ReadonlySet<string>> {
+	const targets = new Map(edges.flatMap((edge) => (edge.to.kind === "file" ? [[`${edge.from}:${edge.specifier}`, edge.to.path] as const] : [])));
+	const changed = new Map(modules.map(({ changed: own, path }) => [path, new Set(own)]));
+	for (const { changed: own, path, tree } of modules) {
+		for (const { name, specifier } of importedChanges(tree, own)) {
+			changed.get(targets.get(`${path}:${specifier}`) ?? "")?.add(name);
+		}
+	}
+	return changed;
 }
 
 export const unitModuleState = defineRule({
@@ -83,7 +95,12 @@ export const unitModuleState = defineRule({
 			const graph = yield* importGraph(inputs);
 			const starts = graph.modules.filter(unitFile);
 			const shared = loaded(starts, graph.edges);
-			return inputs.sources.filter((file) => shared.has(file.path) && testName(file.path) === undefined).flatMap(moduleState);
+			const trees = inputs.sources.flatMap((file): LoadedModule[] => {
+				const tree = shared.has(file.path) ? parse(file) : undefined;
+				return tree === undefined ? [] : [{ changed: mutatedBindings(tree), path: file.path, tree }];
+			});
+			const changed = changedByAnyone(trees, graph.edges);
+			return trees.flatMap(({ path, tree }) => (testName(path) === undefined ? moduleState(path, tree, changed.get(path) ?? new Set()) : []));
 		}),
 	description: "Modules that Quality's unit test files load hold no module-level state, because those files share one module graph per worker.",
 	id: "tests/unit-module-state",
