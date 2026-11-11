@@ -102,9 +102,11 @@ const operationPlan = Effect.fn("Build.operationPlan")(function* (
 		);
 	}
 	const members = yield* Effect.forEach([operation.reads, operation.readsCollections, operation.invalidates], (parts) => copiedOf(placement, parts));
+	// A browser contract's query always carries reads, so a query that declares no keys gets none, as query() gives it.
+	const reads = operation.kind === "query" && operation.reads === undefined ? [code("reads: () => []")] : [];
 	const planned: PlannedOperation = {
 		kind: operation.kind,
-		members: members.filter((member) => member !== undefined),
+		members: [...reads, ...members.filter((member) => member !== undefined)],
 		name: operation.name,
 		payload: yield* copiedOf(placement, operation.payload),
 		rejections: rejections.map(({ declared, tag }) => [tag, refOf(declared)] as const),

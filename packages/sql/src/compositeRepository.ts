@@ -5,6 +5,7 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { storageSchema } from "#adapters/storageSchema.ts";
 import type { BatchedDelete } from "#batchedDelete.ts";
+import type { RecordRead } from "#recordRepositoryRead.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryListFilter } from "#repositoryFilter.ts";
 import type { Update, UpdateVoid } from "#repositoryUpdate.ts";
@@ -47,6 +48,7 @@ export const makeCompositeCrud = Effect.fnUntraced(function* (
 	model: Model.Any,
 	options: {
 		readonly columns: readonly string[];
+		readonly recordRead: RecordRead;
 		readonly tableName: string;
 		readonly spanPrefix: string;
 	},
@@ -54,7 +56,7 @@ export const makeCompositeCrud = Effect.fnUntraced(function* (
 ) {
 	const sql = yield* SqlClient.SqlClient;
 	const nameTransforms = yield* sqlNameTransforms;
-	const { columns, tableName, spanPrefix } = options;
+	const { columns, recordRead, tableName, spanPrefix } = options;
 	const entries: [string, Schema.Constraint][] = [];
 	for (const column of columns) {
 		const field = model.fields[column];
@@ -84,6 +86,11 @@ export const makeCompositeCrud = Effect.fnUntraced(function* (
 
 	return {
 		...(yield* repositoryWrites(model, { ...options, idColumns: columns }, changes)),
-		findById: (id: unknown) => find(id).pipe(Effect.withSpan(`${spanPrefix}.findById`)),
+		findById: (id: unknown) =>
+			record(columns.length === 1 ? { [columns[0] ?? ""]: id } : id).pipe(
+				Effect.flatMap(recordRead),
+				Effect.andThen(find(id)),
+				Effect.withSpan(`${spanPrefix}.findById`),
+			),
 	};
 });

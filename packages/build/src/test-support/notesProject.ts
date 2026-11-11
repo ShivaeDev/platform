@@ -1,5 +1,5 @@
 // An application's notes module: its operations cover every wire form, a field rejection, a twin rejection class, a
-// query whose policy reads the store and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
+// query whose policy reads the store, a query that declares no keys and a type declared globally in the project's declaration file. Paths are relative to the project; the kit writes package.json and tsconfig.json.
 export const NOTES_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/notes/archive.ts": `import { Schema } from "effect";
 
@@ -90,6 +90,7 @@ import { Create } from "#modules/notes/create.ts";
 import { Get } from "#modules/notes/get.ts";
 import { List } from "#modules/notes/list.ts";
 import { NotesCaller } from "#modules/notes/model.ts";
+import { Recent } from "#modules/notes/recent.ts";
 import { Remove } from "#modules/notes/remove.ts";
 import { Stats } from "#modules/notes/stats.ts";
 import { NotesStore } from "#modules/notes/store.ts";
@@ -98,9 +99,19 @@ import { Summary } from "#modules/notes/summary.ts";
 export const Notes = defineModule({
 	middleware: NotesCaller,
 	name: "notes",
-	operations: [List, Get, Create, Remove, Stats, Summary],
+	operations: [List, Get, Create, Recent, Remove, Stats, Summary],
 	requires: [NotesStore],
 	wire: notesWire,
+});
+`,
+	"src/modules/notes/recent.ts": `import { query } from "@shivaedev/contract/operation.ts";
+import { NotesStore } from "#modules/notes/store.ts";
+
+export const Recent = query("recent", {
+	*run() {
+		const rows = yield* (yield* NotesStore).rows;
+		return rows.slice(0, 3).map((row) => row.title);
+	},
 });
 `,
 	"src/modules/notes/remove.ts": `import { Schema } from "effect";

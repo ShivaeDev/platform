@@ -74,7 +74,7 @@ export type RunQueryDeclaration<
 > = RunDeclaration<TPayload, TYielded, TReturn, TSuccess, TSpecs> &
 	CollectionReadPolicy<TCollections, PayloadSchema<TPayload>["Type"], TPolicyError, TPolicyServices> & {
 		readonly readPolicy?: QueryReadPolicy<PayloadSchema<TPayload>["Type"], TPolicyError, TPolicyServices>;
-		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
+		readonly reads?: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readsCollections?: TCollections;
 		readonly serverReads?: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => TReads;
 	} & NoInfer<RunCheck<TName, TSuccess, TSpecs, TReturn, ErrorOf<TYielded> | TPolicyError | ErrorOf<TReads>>>;
@@ -125,7 +125,7 @@ interface LooseRun extends Loose {
 
 export interface LooseQuery extends LooseRun {
 	readonly readPolicy?: QueryReadPolicy<unknown, unknown, unknown>;
-	readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
+	readonly reads?: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
 	readonly readsCollections?: readonly { readonly name: string }[];
 	readonly serverReads?: QueryServerReads<unknown, unknown, unknown>;
 }

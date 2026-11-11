@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
+import { ReadRecorder, type RecordReadOptions } from "@shivaedev/changes/readRecorder.ts";
 import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
 import type { LiveHint } from "#live.ts";
@@ -10,35 +10,56 @@ import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
 
+// Matching compares serialized keys, so the same serialization identifies a registered key.
+function identity(key: Key) {
+	return JSON.stringify(key);
+}
+
 function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>, replaceKeys: (keys: readonly Key[]) => void) {
 	let scopes = subscription.scopes;
 	const recorded = subscription.queries.map((): readonly Key[] => []);
-	const recording = subscription.queries.map((): readonly Key[] => []);
+	const recording = subscription.queries.map(() => new Map<string, Key>());
 	function merged() {
 		return scopes.map((declared, index) => [...declared, ...(recorded[index] ?? [])]);
 	}
+	let registered = new Set(merged().flat().map(identity));
 	function register() {
-		replaceKeys([...merged(), ...recording].flat());
+		const current = new Map([...merged().flat(), ...recording.flatMap((run) => [...run.values()])].map((key) => [identity(key), key]));
+		if (current.size === registered.size && [...current.keys()].every((key) => registered.has(key))) {
+			return;
+		}
+		registered = new Set(current.keys());
+		replaceKeys([...current.values()]);
 	}
-	function recordInto(run: Key[]) {
-		return (keys: readonly Key[]) =>
+	function recordInto(run: Map<string, Key>, declared: boolean) {
+		return (keys: readonly Key[], { inferred = false }: RecordReadOptions) =>
 			Effect.sync(() => {
-				run.push(...keys);
-				register();
+				if (inferred && declared) {
+					return;
+				}
+				let unregistered = false;
+				for (const key of keys) {
+					const id = identity(key);
+					run.set(id, key);
+					unregistered ||= !registered.has(id);
+				}
+				if (unregistered) {
+					register();
+				}
 			});
 	}
-	function keep(index: number, run: readonly Key[]) {
+	function keep(index: number, run: ReadonlyMap<string, Key>) {
 		return Effect.sync(() => {
-			recorded[index] = run;
-			recording[index] = [];
+			recorded[index] = [...run.values()];
+			recording[index] = new Map();
 		});
 	}
 	function recordingRead(request: QueryRequest) {
 		const index = subscription.queries.indexOf(request);
-		const run: Key[] = [];
+		const run = new Map<string, Key>();
 		recording[index] = run;
 		return read(request).pipe(
-			Effect.provideService(ReadRecorder, recordInto(run)),
+			Effect.provideService(ReadRecorder, recordInto(run, request.query.undeclaredReads !== true)),
 			Effect.tap(() => keep(index, run)),
 		);
 	}

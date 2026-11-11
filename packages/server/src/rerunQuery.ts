@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
+import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { authorizeReads, CurrentViewer, type PolicyChannels } from "@shivaedev/contract/readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { QueryRequest } from "@shivaedev/contract/serverMetadata.ts";
@@ -30,6 +31,10 @@ export function rerunQuery(group: { readonly requests: ReadonlyMap<string, Rpc.A
 		if (!Effect.isEffect(result)) {
 			return yield* Effect.die(new Error(`Query ${tag} must return an Effect`));
 		}
-		return yield* authorizeReads(result, { payload, rpc }, viewer);
+		// Permission changes refresh nothing live, so only the handler's reads record keys, never the read policy's.
+		const recorder = yield* ReadRecorder;
+		return yield* authorizeReads(Effect.provideService(result, ReadRecorder, recorder), { payload, rpc }, viewer).pipe(
+			Effect.provideService(ReadRecorder, ReadRecorder.defaultValue()),
+		);
 	});
 }

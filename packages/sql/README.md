@@ -861,6 +861,16 @@ PostgreSQL commit visibility decides publication even when a caller is interrupt
 
 For the generic ownership mechanism, read [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md). Reactivity keys are local reader invalidation; an application's cross-process or browser delivery belongs at its delivery boundary.
 
+### Live reads listen on what they filter by
+
+A live query that declares no keys listens on what its repository reads pin. `findById`, `findOne`, `findMany`, `select`, `count`, `aggregate` and `latestPerGroup` name that key from their arguments with `recordRead(keys, { inferred: true })` from `@shivaedev/changes/readRecorder.ts` before they send their statement. A query that declares keys in `reads`, `serverReads` or `readsCollections` listens on them exactly as declared, and these inferred keys are ignored. The key is the same string the table's repository writes announce:
+
+- When the filter pins every id column by equality or `in`, the read listens on each row it names. A composite id is keyed by its encoded values, the way writes key the row.
+- Otherwise, when it pins a `bucket` column by equality or `in`, the read listens on that bucket's keys. When it pins several buckets, it listens on the one pinned to the fewest values.
+- Otherwise it listens on the table.
+
+`null`, comparisons and `like` pin nothing. An `in` with no values matches no row and records no key. Columns other than the chosen one stay coarse: a list filtered by a bucket and a status reruns for any write in that bucket. A read by id plus a bucket listens on the row, which a move out of the bucket still announces. Keys come only from the arguments, never from the returned rows, so a read of a missing row still listens on that row. Outside a live query run the recorder does nothing.
+
 ### PostgreSQL advisory locks
 
 Serialize cooperating jobs inside `transact`:

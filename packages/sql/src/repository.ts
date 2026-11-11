@@ -6,6 +6,7 @@ import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
+import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
 import { type BucketRegistrationError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
@@ -118,14 +119,14 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 ): Effect.Effect<unknown, BucketRegistrationError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
 		yield* validateRepositoryCollection(model.fields, options);
-		const composite = typeof options.idColumn === "object";
-		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
+		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
 		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
+		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName });
 		const crud = {
-			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns }, changes)),
+			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns, recordRead }, changes)),
 			deleteBatched: yield* makeBatchedDelete(model, options, changes),
 		};
-		const queries = yield* makeQueries(model, options);
+		const queries = yield* makeQueries(model, { ...options, recordRead });
 		return {
 			...crud,
 			...queries,

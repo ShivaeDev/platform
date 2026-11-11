@@ -162,6 +162,8 @@ const rows = yield* sql`select title from books where shelf = ${shelf}`;
 
 Record the key before the statement it belongs to, never from the rows a statement returned. A key learned from an earlier statement, like `shelf` here, is recorded before the later statement that reads by it.
 
+`recordRead(keys, { inferred: true })` marks keys a library worked out on the caller's behalf, as `@shivaedev/sql` repository reads do. The contract subscription uses inferred keys only for a query that declares no keys of its own; keys recorded without the option always count.
+
 Live query handlers read at READ COMMITTED, PostgreSQL's default, which statements and plain Effect SQL transactions keep. Each statement then takes its own snapshot when it starts, after the key recorded before it is registered. A commit to that key either lands before the snapshot, so the statement reads it, or after it, so its notification reaches the registered key and the query runs again. Under REPEATABLE READ or SERIALIZABLE a transaction keeps the snapshot of its first statement, so a commit landing between that statement and a later key's registration can be missed; such handlers keep their keys in the query's declared reads.
 
 ### Group already-autocommitted writes
