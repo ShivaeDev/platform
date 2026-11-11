@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/agent",
-	"version": "0.4.1",
+	"version": "0.4.2",
 	"description": "Shared agent execution conventions for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/agent#readme",
 	"bugs": {

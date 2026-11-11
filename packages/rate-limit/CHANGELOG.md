@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.10 - 2026-11-11
+
+### Changed
+
+- `StoreError` states `isRetryable` from its cause, and as `true` when the cause does not state it, so `rpcBoundary` answers a retryable store failure with `ServiceUnavailable` when the RPC declares it; a non-retryable one, such as a missing table, still answers the unexpected rejection and is reported.
+
 ## 0.6.9 - 2026-11-08
 
 ### Changed

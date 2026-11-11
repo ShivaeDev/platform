@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.42.2 - 2026-11-11
+
+### Changed
+
+- `PgBossError` and `PgBossPayloadError` state `isRetryable` as `false`, so they are infrastructure failures that no operation declares.
+
 ## 0.42.1 - 2026-11-08
 
 ### Changed

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.47.0 - 2026-11-11
+
+### Added
+
+- `transact` accepts no options: `transact(effect)` and `effect.pipe(transact())` keep a `SqlError` from the body or the `COMMIT` in the error channel unchanged. Pass `transact({ onSqlError })` only to map it, for example with `mapSqlError`.
+- `readSql` from `@shivaedev/sql/readSql.ts` is a tagged template for raw SQL reads such as joins. Interpolate a `collection()` bucket or row key where its value goes, as in `where b.shelf = ${books.bucket.shelf(shelf)}`: `readSql` binds the key's value as the parameter and records the key, as an inferred key, before it sends the statement, so a live query that declares no keys reruns only for writes in that bucket or to that row. Other interpolations behave as in `sql`. A read through `sql` still records nothing. A tuple bucket key or a composite row key spans several columns, so `readSql` refuses it: the call does not compile, and a key typed as a plain `Key` fails with `MultiColumnKeyParameter` before anything is recorded or sent.
+- `findById`, `findOne`, `findMany`, `select`, `count`, `aggregate` and `latestPerGroup` record, as inferred keys, the key their filter pins before they send their statement: each row when every id column is pinned by equality or `in`, otherwise a pinned `bucket` column's keys, otherwise the table.
+- A repository read whose filter pins every column of a tuple bucket by equality or `in` records that tuple's keys, one per combination of pinned values, so a live query of alice's entries for day 1 that declares no `reads` reruns only for writes to alice's day 1. A tuple wins over a single-column bucket on one of its columns; a filter that pins a tuple only in part falls back to a single-column bucket it pins, else the table.
+- An `in` list that holds `null` pins no column, so a read that also matches rows without a value, such as `latestPerGroup` over `day: { in: [1, null] }`, listens on a broader bucket that hears writes to them. A bucket pinned to more than 1,000 keys is skipped for the next bucket that covers the read, else the table.
+- Repository writes announce tuple buckets from the row's old and new stored values: an insert its new tuple, a delete its old one, an update both when any column changed, and no key for a tuple with an absent value.
+- `makeRepository` refuses a collection whose tuple names a column the model lacks or one that cannot decode to a string, number or absent value; `BucketRegistrationError` names them in `invalidTupleColumns`.
+
 ## 0.46.4 - 2026-11-08
 
 ### Changed
