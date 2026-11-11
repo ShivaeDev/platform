@@ -5,6 +5,7 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
+import { querySignals } from "#querySignals.ts";
 import { socketIdentity } from "#rpcClient.ts";
 import { shown } from "#test/answers.ts";
 import { records } from "#test/deniedContract.ts";
@@ -35,14 +36,21 @@ export const deniedStory = storyKit({
 			return engine.reactivity.invalidate(invalidationKeys([records.item(1)]));
 		},
 		attempts: () => Effect.sync(() => engine.attempts.length),
+		commandSucceeds: () => {
+			story.tell("the client's command declaring the record's key succeeds");
+			return engine.run(engine.api.touch.run());
+		},
 		minutePasses: () => {
 			story.tell("the page stays open for a minute");
 			return TestClock.adjust("1 minute");
 		},
 		policyChecks: () => Effect.sync(() => engine.access.checks),
 		refresh: () => {
-			story.tell("the page explicitly refreshes its query");
+			story.tell("the page explicitly refreshes its query and its read completes");
+			const signals = querySignals(engine.view);
+			const before = engine.registry.get(signals).completed;
 			engine.registry.refresh(engine.view);
+			return until(AtomRegistry.toStream(engine.registry, signals), (current) => current.completed > before, { name: "refreshed query" });
 		},
 		resume: () => {
 			story.tell("the application resumes");
@@ -75,10 +83,11 @@ export function rejected(rejection: "denied" | "NotFound" | "Rejected") {
 		engine.access.rejection = rejection;
 	});
 }
-export function watching() {
-	return deniedStory.trait("view", "the page opens a pushed live query", (engine) =>
+export function watching(query: "pushed" | "unkeyed" = "pushed") {
+	const opened = query === "pushed" ? "a pushed live query" : "a pushed live query that declares no reads";
+	return deniedStory.trait("view", `the page opens ${opened}`, (engine) =>
 		Effect.gen(function* () {
-			engine.view = engine.api.pushed.query();
+			engine.view = engine.api[query].query();
 			engine.registry.mount(engine.view);
 			yield* shownOf(engine);
 			yield* until(

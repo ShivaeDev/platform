@@ -3,7 +3,7 @@ import { RpcMiddleware } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { contract } from "#contract.ts";
-import { query } from "#operation.ts";
+import { command, query } from "#operation.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", {}) {}
@@ -30,7 +30,8 @@ const policy = Effect.fnUntraced(function* (_payload: unknown, viewer: Option.Op
 	}
 	return access.allowed || Option.isSome(viewer);
 });
-const declaration = { readPolicy: policy, reads: () => [records.item(1)], rejections: { NotFound, Rejected }, success: Schema.String };
+const declaration = { readPolicy: policy, rejections: { NotFound, Rejected }, success: Schema.String };
 export const Records = contract("denied-records", {
-	queries: [query("pushed", { ...declaration })],
+	commands: [command("touch", { invalidates: () => [records.item(1)] })],
+	queries: [query("pushed", { ...declaration, reads: () => [records.item(1)] }), query("unkeyed", declaration)],
 }).middleware(Guard);

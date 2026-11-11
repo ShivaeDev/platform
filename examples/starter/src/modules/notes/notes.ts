@@ -1,4 +1,4 @@
-import { Option, Schema } from "effect";
+import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -23,13 +23,11 @@ export const notes = collection("notes", Schema.Number, { userId: Schema.String 
 const Get = query("get", {
 	payload: NoteId,
 	readPolicy: signedIn,
-	reads: ({ id }) => [notes.item(id)],
 	rejections: { InternalServerError, NotFound, ServiceUnavailable },
 	success: Note.json,
 });
 const List = query("list", {
 	readPolicy: signedIn,
-	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 	rejections: { InternalServerError, ServiceUnavailable },
 	success: Schema.Array(Note.json),
 });

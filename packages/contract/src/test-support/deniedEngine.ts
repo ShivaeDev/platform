@@ -24,6 +24,8 @@ export const deniedEngine = Effect.gen(function* () {
 	const handlers = Layer.merge(
 		Records.application.toLayer({
 			"denied-records.pushed": () => Effect.succeed("Alice's record"),
+			"denied-records.touch": () => Effect.void,
+			"denied-records.unkeyed": () => Effect.succeed("Alice's record"),
 		}),
 		changesHandlerLayer(
 			Records,
@@ -60,6 +62,9 @@ export const deniedEngine = Effect.gen(function* () {
 	const native = syntheticNative();
 	const api = bind(Records, Client, { resume: native.source });
 	const clientReactivity = AtomRegistry.getResult(registry, Client.runtime.atom(Effect.service(Reactivity.Reactivity)));
-	return { access, api, attempts, clientReactivity, native, reactivity, registry, view: api.pushed.query() };
+	function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
+		return AtomRegistry.getResult(registry, Client.runtime.atom(effect));
+	}
+	return { access, api, attempts, clientReactivity, native, reactivity, registry, run, view: api.pushed.query() };
 });
 export type DeniedEngine = Effect.Success<typeof deniedEngine>;

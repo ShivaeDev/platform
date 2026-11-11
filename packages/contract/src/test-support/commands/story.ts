@@ -4,14 +4,16 @@ import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { isClientSettled } from "#clientActivity.ts";
+import { shown } from "#test/answers.ts";
 import { commandEngine } from "#test/commands/engine.ts";
+import { settled } from "#test/settled.ts";
 
 export const commands = storyKit({
 	clock: "test",
 	create: () => commandEngine,
 	inspect: ({ counter, host }) => Effect.map(host.handshakes, (handshakes) => ({ ...counter, handshakes })),
 	name: "commands across reconnect",
-	stages: ["connection"],
+	stages: ["connection", "view"],
 	verbs: (engine, story) => ({
 		add: (amount: number) =>
 			Effect.gen(function* () {
@@ -76,6 +78,8 @@ export const commands = storyKit({
 			}
 		},
 		settlement: () => Effect.map(engine.connection().activity.current, (state) => (isClientSettled(state) ? "settled" : "pending")),
+		shownValue: () =>
+			Effect.map(settled(engine.registry, engine.connection().client.api.value.query()), (result) => shown(result, (value) => `counter: ${value}`)),
 		silence: () => {
 			story.tell("the network silently stops delivering frames on the open socket");
 			return engine.host.pause;
@@ -112,4 +116,12 @@ export function connected(custom = false, shared = false) {
 			}
 		},
 	);
+}
+
+export function showingValue() {
+	return commands.trait("view", "the client shows the counter's value query", function* (engine) {
+		const view = engine.connection().client.api.value.query();
+		engine.registry.mount(view);
+		yield* settled(engine.registry, view);
+	});
 }

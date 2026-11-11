@@ -1,6 +1,7 @@
 import { Deferred, Effect, Layer, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { recordRead } from "@shivaedev/changes/readRecorder.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
@@ -77,11 +78,12 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 		"notes.get": ({ id }) =>
 			Effect.sync(() => {
 				reads.note += 1;
-			}).pipe(Effect.andThen(get(id))),
+			}).pipe(Effect.andThen(recordRead([notes.item(id)])), Effect.andThen(get(id))),
 		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
 		"notes.list": () =>
 			Effect.gen(function* () {
 				reads.list += 1;
+				yield* recordRead([notes.bucket.userId("alice")]);
 				const gate = listGate;
 				if (gate !== undefined) {
 					yield* Deferred.succeed(listStarted, undefined);
