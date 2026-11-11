@@ -5,7 +5,7 @@ import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
-import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
+import { changesRpc, operationAnnotations } from "#serverMetadata.ts";
 import type { SubjectDeclaration, WithSubject } from "#subject.ts";
 import { subjectMiddleware } from "#subjectMiddleware.ts";
 
@@ -120,14 +120,14 @@ export function declaredGroup(name: string, operations: Operations): DeclaredGro
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,
-		}).annotateMerge(Context.merge(operationAnnotations(operation, keyScope), annotations));
+		}).annotateMerge(Context.merge(operationAnnotations(operation), annotations));
 		const guarded = operation.kind === "query" ? rpc.middleware(ReadPolicyGuard) : rpc;
 		return operations.subject === undefined ? guarded : guarded.middleware(subjectMiddleware(`${name}.${operation.name}`, operations.subject));
 	});
 	const application = RpcGroup.make(...rpcs);
 	const changes = changesRpc(name, queries).annotateMerge(annotations).middleware(ReadPolicyGuard);
 	const subjectChanges = operations.subject === undefined ? changes : changes.middleware(subjectMiddleware(`${name}.$changes`, operations.subject));
-	const built = application.add(keyScope === undefined ? subjectChanges : subjectChanges.annotate(KeyScope, keyScope));
+	const built = application.add(subjectChanges);
 	const group = error === undefined ? built : built.annotate(DeclarationError, error);
 	return withDeclaration(group, application, {
 		commands,
