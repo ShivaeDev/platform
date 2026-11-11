@@ -10,7 +10,7 @@ export const postgresGate = storyKit({
 	name: "PostgreSQL test collection",
 	stages: ["environment"],
 	verbs: (engine, story) => ({
-		collect: () =>
+		collect: (name = "GATE_TEST_DATABASE_URL") =>
 			Effect.sync(() => {
 				story.tell("the test kit declares its PostgreSQL URL gate");
 				const result = spawnSync(
@@ -19,7 +19,7 @@ export const postgresGate = storyKit({
 						"--conditions=@shivaedev/source",
 						"--input-type=module",
 						"--eval",
-						`import { postgresTestUrl } from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify(postgresTestUrl("PLATFORM_GATE_TEST_DATABASE_URL")));`,
+						`import { postgresTestUrl } from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify(postgresTestUrl(${JSON.stringify(name)})));`,
 					],
 					{ encoding: "utf8", env: engine.env },
 				);
@@ -28,10 +28,10 @@ export const postgresGate = storyKit({
 	}),
 });
 
-export function databaseEnvironment(url: string | undefined, ci: string | undefined) {
-	return postgresGate.trait("environment", `database URL ${JSON.stringify(url)}, CI ${JSON.stringify(ci)}`, (engine) => {
+export function databaseEnvironment(url: string | undefined, ci: string | undefined, name = "GATE_TEST_DATABASE_URL") {
+	return postgresGate.trait("environment", `${name} ${JSON.stringify(url)}, CI ${JSON.stringify(ci)}`, (engine) => {
 		engine.env = {
-			...(url === undefined ? {} : { "PLATFORM_GATE_TEST_DATABASE_URL": url }),
+			...(url === undefined ? {} : { [name]: url }),
 			...(ci === undefined ? {} : { "CI": ci }),
 		};
 	});

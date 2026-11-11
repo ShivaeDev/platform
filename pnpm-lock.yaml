@@ -2094,6 +2094,9 @@ importers:
 
   packages/test-sql:
     dependencies:
+      '@shivaedev/local-postgres':
+        specifier: workspace:*
+        version: link:../local-postgres
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
