@@ -48,10 +48,16 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 				}
 			});
 	}
-	function keep(index: number, run: ReadonlyMap<string, Key>) {
-		return Effect.sync(() => {
+	function keep(request: QueryRequest, index: number, run: ReadonlyMap<string, Key>) {
+		return Effect.suspend(() => {
 			recorded[index] = [...run.values()];
 			recording[index] = new Map();
+			// A handler may read nothing for some payloads, so an unheard query is reported, never failed.
+			return request.query.undeclaredReads === true && run.size === 0
+				? Effect.logWarning(
+						`Live query ${request.query.name} declares no reads and recorded no key, so no write reruns it. Mark its raw SQL reads with their keys or declare reads; reads: () => [] states that it reads nothing.`,
+					)
+				: Effect.void;
 		});
 	}
 	function recordingRead(request: QueryRequest) {
@@ -60,7 +66,7 @@ function subscriptionKeys<E, R>(subscription: QuerySubscription<E, R>, read: Que
 		recording[index] = run;
 		return read(request).pipe(
 			Effect.provideService(ReadRecorder, recordInto(run, request.query.undeclaredReads !== true)),
-			Effect.tap(() => keep(index, run)),
+			Effect.tap(() => keep(request, index, run)),
 		);
 	}
 	function replaceScopes(next: readonly (readonly Key[])[]) {

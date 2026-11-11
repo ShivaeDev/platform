@@ -1,4 +1,5 @@
 import { Hash, Schema, SchemaAST } from "effect";
+import { Composite, type CompositeBucketKey, CompositeId, type CompositeItemKey, isCompositeId } from "#compositeKeys.ts";
 
 export type Identity = string | number;
 
@@ -27,8 +28,8 @@ export function isBucketSchema(schema: Schema.Constraint): boolean {
 	return supported(SchemaAST.toType(schema.ast));
 }
 
-export function compositeId(values: readonly unknown[]): string {
-	return JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value));
+export function compositeId(values: readonly unknown[]): CompositeId {
+	return CompositeId(JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value)));
 }
 
 export function recordKey(name: string, id: unknown): string {
@@ -78,9 +79,12 @@ export interface Collection<
 	TTuples extends BucketTuples = Record<never, never>,
 > {
 	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => BucketKey<TName> } & {
-		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => BucketKey<TName>;
+		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => CompositeBucketKey<TName>;
 	};
-	readonly item: (id: TId) => ItemKey<TName>;
+	readonly item: {
+		(id: string extends TId ? CompositeId : never): CompositeItemKey<TName>;
+		(id: TId): ItemKey<TName>;
+	};
 	readonly list: ListKey<TName>;
 	readonly name: TName;
 	readonly tuples: TTuples;
@@ -101,10 +105,14 @@ export function collection(name: string, _id: Schema.Top, fields: BucketFields =
 			...Object.keys(fields).map((field) => [field, (value: Identity) => bucket(field, value)]),
 			...Object.entries(tuples).map(([field, columns]) => [
 				field,
-				(values: Readonly<Record<string, Identity>>) => bucket(field, compositeId(columns.map((column) => String(values[column])))),
+				(values: Readonly<Record<string, Identity>>): CompositeBucketKey => ({
+					...bucket(field, compositeId(columns.map((column) => String(values[column])))),
+					[Composite]: true,
+				}),
 			]),
 		]),
-		item: (id: Identity): ItemKey => ({ _tag: "Item", collection: name, id }),
+		item: (id: Identity): ItemKey | CompositeItemKey =>
+			isCompositeId(id) ? { _tag: "Item", collection: name, id, [Composite]: true } : { _tag: "Item", collection: name, id },
 		list: { _tag: "List", collection: name },
 		name,
 		tuples,

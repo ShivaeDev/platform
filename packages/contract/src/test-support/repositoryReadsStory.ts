@@ -26,14 +26,21 @@ export const repositoryReadsStory = storyKit({
 	clock: "test",
 	create: () => engine,
 	layer: database,
-	name: "live queries built from repository reads over PostgreSQL",
+	name: "live queries built from repository and raw SQL reads over PostgreSQL",
 	runIf: configured,
 	stages: ["view"],
 	verbs: (current, story) => {
 		function watched() {
 			return current.watched.current === undefined ? Effect.die("nothing is watched yet") : Effect.succeed(current.watched.current);
 		}
+		let loansMade = 0;
 		return {
+			lend: (book: number, reader: string) => {
+				story.tell(`a writer lends book ${book} to ${reader}`);
+				loansMade += 1;
+				return current.client("library.lend", { book, id: 100 + loansMade, reader });
+			},
+			loggedWarnings: () => Effect.sync(current.warnings),
 			move: (shelf: number) => {
 				story.tell(`alice moves to shelf ${shelf}`);
 				return current.client("library.move", { reader: "alice", shelf });

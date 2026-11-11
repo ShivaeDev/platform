@@ -135,7 +135,7 @@ const keys = [entries.bucket.ownerId("alice"), entries.bucket.ownerDay({ ownerId
 
 Use a single-column bucket when readers filter by that one column, and a tuple bucket when they filter by several at once: a reader of alice's entries for day 1 listens on `ownerDay` and stays quiet when alice writes on day 2 or bob writes on day 1, while a reader of all of alice's entries listens on `ownerId`. A tuple key is an ordinary bucket key whose field is the tuple's name and whose value is `compositeId` of the values as strings in declared column order, so readers, writers and subscriptions handle it exactly like any other bucket. A tuple spans at least two columns and cannot reuse the name of a single-column bucket. A column that is also a single-column bucket keeps its declared value type; any other column takes a string or number, and both forms give the same key, so `day: 1` and `day: "1"` match a write of the number 1.
 
-For composite SQL identities, use `compositeId(values)` with stored key values in the repository's `idColumn` order, then pass the resulting string to `collection(name, Schema.String).item(id)`. It encodes the values as a JSON array, with bigint components represented as decimal strings. Repository writes use the same encoder, so the subscriber and writer identify the same record. `recordKey(collection, id)` builds a raw record dependency for native Reactivity; typed item keys use it too.
+For composite SQL identities, use `compositeId(values)` with stored key values in the repository's `idColumn` order, then pass the resulting string to `collection(name, Schema.String).item(id)`. It encodes the values as a JSON array, with bigint components represented as decimal strings. Repository writes use the same encoder, so the subscriber and writer identify the same record. `recordKey(collection, id)` builds a raw record dependency for native Reactivity; typed item keys use it too. A tuple bucket key is typed `CompositeBucketKey`. An item key is typed `CompositeItemKey` when its id comes from `compositeId`, and an id spelled exactly as `compositeId` spells two or more values marks the key at runtime too. `isComposite(key)` from `@shivaedev/changes/compositeKeys.ts` reads that mark, which leaves the key's string unchanged. One value of one column cannot stand for such a key, so `@shivaedev/sql`'s `readSql` refuses it as a parameter.
 
 `bucket(schema)` from `@shivaedev/changes/buckets.ts` declares a model field as a write bucket without changing its schema type or variants:
 
@@ -162,7 +162,7 @@ const rows = yield* sql`select title from books where shelf = ${shelf}`;
 
 Record the key before the statement it belongs to, never from the rows a statement returned. A key learned from an earlier statement, like `shelf` here, is recorded before the later statement that reads by it.
 
-`recordRead(keys, { inferred: true })` marks keys a library worked out on the caller's behalf, as `@shivaedev/sql` repository reads do. The contract subscription uses inferred keys only for a query that declares no keys of its own; keys recorded without the option always count.
+`recordRead(keys, { inferred: true })` marks keys a library worked out on the caller's behalf, as `@shivaedev/sql` repository reads and its `readSql` raw reads do. The contract subscription uses inferred keys only for a query that declares no keys of its own; keys recorded without the option always count.
 
 Live query handlers read at READ COMMITTED, PostgreSQL's default, which statements and plain Effect SQL transactions keep. Each statement then takes its own snapshot when it starts, after the key recorded before it is registered. A commit to that key either lands before the snapshot, so the statement reads it, or after it, so its notification reaches the registered key and the query runs again. Under REPEATABLE READ or SERIALIZABLE a transaction keeps the snapshot of its first statement, so a commit landing between that statement and a later key's registration can be missed; such handlers keep their keys in the query's declared reads.
 
@@ -226,16 +226,17 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module                               | Names                                                                                                                                                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/changes/channel.ts`      | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
-| `@shivaedev/changes/frame.ts`        | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
-| `@shivaedev/changes/capture.ts`      | `makeCapture`, `Capture`                                                                                                                                                   |
-| `@shivaedev/changes/observe.ts`      | `Observation`, `Observer`                                                                                                                                                  |
-| `@shivaedev/changes/publish.ts`      | `Publish`, `PublishFailure`                                                                                                                                                |
-| `@shivaedev/changes/keys.ts`         | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
-| `@shivaedev/changes/buckets.ts`      | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
-| `@shivaedev/changes/readRecorder.ts` | `ReadRecorder`, `recordRead`                                                                                                                                               |
+| Module                                | Names                                                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/changes/channel.ts`       | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
+| `@shivaedev/changes/frame.ts`         | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
+| `@shivaedev/changes/capture.ts`       | `makeCapture`, `Capture`                                                                                                                                                   |
+| `@shivaedev/changes/observe.ts`       | `Observation`, `Observer`                                                                                                                                                  |
+| `@shivaedev/changes/publish.ts`       | `Publish`, `PublishFailure`                                                                                                                                                |
+| `@shivaedev/changes/keys.ts`          | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
+| `@shivaedev/changes/compositeKeys.ts` | `isComposite`, `isCompositeId`, `CompositeItemKey`, `CompositeBucketKey`, `CompositeId`, `Composite`                                                                       |
+| `@shivaedev/changes/buckets.ts`       | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
+| `@shivaedev/changes/readRecorder.ts`  | `ReadRecorder`, `recordRead`                                                                                                                                               |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 
