@@ -8,7 +8,7 @@ import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { make${pascal}Client } from "#modules/${name}/client/make.ts";
-import { Item } from "#modules/${name}/${name}.ts";
+import { Item } from "#modules/${name}/model.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
@@ -36,13 +36,13 @@ export const app = storyKit({
 	name: "${name}",
 	stages: ["accounts", "items"],
 	verbs: (engine, story) => {
-		const accountClient = (name: string) => {
+		function accountClient(name: string) {
 			const client = engine.accounts.get(name);
 			if (client === undefined) {
 				throw new Error(\`Give the story signedIn("\${name}")\`);
 			}
 			return client;
-		};
+		}
 		return {
 			itemsOf: (name: string) => {
 				const client = accountClient(name);
@@ -68,7 +68,8 @@ export const app = storyKit({
 				Effect.gen(function* () {
 					story.tell(\`\${name} keeps the ${name} list open\`);
 					const updates = yield* Queue.unbounded<QueryUpdate>();
-					yield* accountClient(name)["${name}.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
+					const client = accountClient(name);
+					yield* client["${name}.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
 						Stream.runForEach((update) => Queue.offer(updates, update)),
 						Effect.forkScoped,
 					);

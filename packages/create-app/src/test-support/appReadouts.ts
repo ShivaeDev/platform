@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
 import { isolatedGit } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 
@@ -41,6 +41,13 @@ export function appReadouts(target: () => string) {
 		fileLines: (path: string, count: number) => Effect.sync(() => read(path).split("\n").slice(0, count)),
 		fileMentions: (path: string, text: string) => Effect.sync(() => read(path).includes(text)),
 		filesPresent: (paths: readonly string[]) => Effect.sync(() => paths.filter((path) => existsSync(join(target(), path)))),
+		filesUnder: (folder: string) =>
+			Effect.sync(() =>
+				readdirSync(join(target(), folder), { recursive: true, withFileTypes: true })
+					.filter((entry) => entry.isFile())
+					.map((entry) => relative(join(target(), folder), join(entry.parentPath, entry.name)))
+					.sort(),
+			),
 		generationRecord: () => Effect.sync(() => decodeRecord(read(".create-app.json"))),
 		gitState: (path: string) =>
 			Effect.sync(() => {
