@@ -49,6 +49,12 @@ export function shardsRecorded() {
 	});
 }
 
+const SHARD_KEYS = ["path", "rule", "count", "deep"];
+
+export function splitEntry(count: number, deep?: number): string {
+	return JSON.stringify({ count, ...(deep === undefined ? {} : { deep }), path: "packages/alpha/src/a.ts", rule: "effect/boundary" }, SHARD_KEYS);
+}
+
 function shardOf(lines: readonly string[]): string {
 	return lines.map((line) => `${line}\n`).join("");
 }
