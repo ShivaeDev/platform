@@ -1,8 +1,9 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
-import { repositoryHas } from "#test/debtRecorded.ts";
-import { ALPHA_SHARD, packageWorkspace } from "#test/packageWorkspace.ts";
+import { boundaryDebt, typedBoundaryDebt } from "#test/boundaryDebt.ts";
+import { debtRecorded, repositoryHas } from "#test/debtRecorded.ts";
+import { ALPHA_SHARD, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const BETA_SHARD = "packages/beta/quality-baseline.jsonl";
@@ -15,15 +16,19 @@ const ALPHA_DEBT = [
 const BETA_DEBT = ["packages/beta/src/b.ts structure/max-lines 3"];
 
 baselineStory.it(
-	"baseline write records each package's debt in that package's shard and the debt outside packages in the root shard",
-	[packageWorkspace()],
-	function* ({ recorded, runs }) {
+	"baseline write records each package's debt in that package's shard and the debt outside packages in the root shard, byte for byte as the given that records it without the command",
+	[packageWorkspace(), shardsRecorded()],
+	function* ({ recorded, removesShards, runs, shards }) {
+		const written = yield* shards();
+		yield* removesShards();
+
 		yield* runs("baseline", "write");
 
 		yield* outcomes([
 			["alpha shard", () => recorded(ALPHA_SHARD), ALPHA_DEBT],
 			["beta shard", () => recorded(BETA_SHARD), BETA_DEBT],
 			["root shard", () => recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
+			["shards", () => shards(), written],
 		]);
 	},
 	CLI_TIMEOUT,
@@ -65,3 +70,23 @@ baselineStory.it(
 	},
 	CLI_TIMEOUT,
 );
+
+for (const { debt, given } of [
+	{ debt: "the line-limit debt of a single-package repository", given: [debtRecorded()] },
+	{ debt: "an await finding", given: [boundaryDebt()] },
+	{ debt: "a typed boundary finding beside the other findings of its files", given: [typedBoundaryDebt()] },
+]) {
+	baselineStory.it(
+		`baseline write records ${debt} byte for byte as the given that records it without the command`,
+		given,
+		function* ({ removesShards, runs, shards }) {
+			const written = yield* shards();
+			yield* removesShards();
+
+			yield* runs("baseline", "write");
+
+			expect(yield* shards()).toEqual(written);
+		},
+		CLI_TIMEOUT,
+	);
+}

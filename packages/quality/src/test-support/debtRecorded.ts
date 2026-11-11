@@ -1,10 +1,9 @@
 import { renameSync } from "node:fs";
 import { join } from "node:path";
-import { baselineStory, setupRun } from "#test/baselineStory.ts";
-import { sourceOf, writeAll } from "#test/recordedDebt.ts";
+import { baselineStory } from "#test/baselineStory.ts";
+import { sourceOf, writeAll, writeShards } from "#test/recordedDebt.ts";
 import { trees } from "#test/trees.ts";
 import { branchOff, commitAll, git } from "#testing/adapters/git.ts";
-import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 
 const INSTALLED: readonly SeedFile[] = [
@@ -17,17 +16,23 @@ const LEGACY = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { cou
 function installed(root: string, files: readonly SeedFile[]): void {
 	writeAll(root, [...INSTALLED, ...files]);
 	linkPackage(root);
-	formatTree(root);
 }
 
 const OVER_LIMIT =
 	"src/long.ts runs 1 line and src/longer.ts 3 lines over the 3-line limit of structure/max-lines, while src/short.ts stays within it";
 
 export function debtRecorded() {
-	return baselineStory.trait("repository", `${OVER_LIMIT}, and quality baseline write records that debt`, function* (engine) {
-		installed(engine.root, trees.dirty);
-		yield* setupRun(engine, "baseline", "write");
-	});
+	return baselineStory.trait(
+		"repository",
+		`${OVER_LIMIT}, and quality-baseline.jsonl records that debt as quality baseline write records it`,
+		(engine) => {
+			installed(engine.root, trees.dirty);
+			writeShards(engine.root, [
+				{ count: 1, file: "src/long.ts", rule: "structure/max-lines" },
+				{ count: 3, file: "src/longer.ts", rule: "structure/max-lines" },
+			]);
+		},
+	);
 }
 
 export function earlierBaseline() {

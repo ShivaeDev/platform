@@ -1,9 +1,10 @@
-import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { decodeBaseline } from "#baseline/format.ts";
+import { SHARD_NAME } from "#baseline/shards.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "#test/cliAnswers.ts";
 import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "#test/recordedDebt.ts";
 import { runQuality } from "#testing/adapters/cli.ts";
@@ -13,6 +14,12 @@ export interface BaselineEngine {
 	answer: CliAnswer | undefined;
 	readonly folder: string;
 	root: string;
+}
+
+function shardPaths(root: string): string[] {
+	const packages = join(root, "packages");
+	const names = existsSync(packages) ? readdirSync(packages).sort() : [];
+	return [ROOT_SHARD, ...names.map((name) => `packages/${name}/${SHARD_NAME}`)].filter((path) => existsSync(join(root, path)));
 }
 
 function created(): BaselineEngine {
@@ -54,8 +61,16 @@ export const baselineStory = storyKit({
 				}),
 			reads: (path: string) => Effect.sync(() => readOrUndefined(engine.root, path)),
 			recorded: (shard = ROOT_SHARD) => Effect.sync(() => recordedDebt(engine.root, shard)),
+			removesShards: () =>
+				Effect.sync(() => {
+					story.tell("the author deletes every baseline shard");
+					for (const path of shardPaths(engine.root)) {
+						rmSync(join(engine.root, path));
+					}
+				}),
 			rootFiles: () => Effect.sync(() => readdirSync(engine.root).sort()),
 			shallow: () => Effect.sync(() => (git(engine.root, "rev-parse", "--is-shallow-repository").trim() === "true" ? "shallow" : "complete")),
+			shards: () => Effect.sync(() => shardPaths(engine.root).map((path) => [path, readOrUndefined(engine.root, path)] as const)),
 			stages: (...paths: readonly string[]) =>
 				Effect.sync(() => {
 					story.tell(`the author stages ${paths.join(", ")}`);
