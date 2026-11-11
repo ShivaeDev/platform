@@ -1,4 +1,4 @@
-import { Effect, Option, Result } from "effect";
+import { Effect, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { raceWithLock } from "#server/raceWithLock.ts";
@@ -71,14 +71,14 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 	});
 	const bobNeverQueues = Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const names = ["alice", "bob"];
 		yield* raceWithLock({
 			effects: [sql`update items set value = 'alice' where id = 1`, sql`select 1`],
 			lock: takeLock(sql, "table"),
-			timeout: "500 millis",
 		}).pipe(
-			Effect.catchTag("NeverSettled", (error) =>
+			Effect.catchTag("FinishedBeforeBlocking", (error) =>
 				Effect.sync(() => {
-					stalled = `waited for ${error.waitingFor}; ${Option.getOrElse(error.last, () => 0)} blocked at the last read`;
+					stalled = `waited for ${error.waitingFor}; ${error.finished.map((index) => names[index]).join(", ")} finished first and ${error.blocked} blocked`;
 				}),
 			),
 		);
