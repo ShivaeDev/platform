@@ -23,7 +23,7 @@ export const readiness = storyKit({
 	*create(): Effect.fn.Return<State> {
 		return {
 			held: yield* Deferred.make<void>(),
-			port: Number(new URL(yield* Effect.scoped(loopbackServer(createServer()))).port),
+			port: Number(new URL(yield* Effect.orDie(Effect.scoped(loopbackServer(createServer())))).port),
 			release: yield* Deferred.make<void>(),
 		};
 	},
