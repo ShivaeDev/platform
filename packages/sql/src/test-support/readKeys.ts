@@ -2,6 +2,7 @@ import { type Cause, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import * as Statement from "effect/sql/Statement";
+import { isComposite } from "@shivaedev/changes/compositeKeys.ts";
 import { type BucketKey, collection, compositeId, type ItemKey, type Key } from "@shivaedev/changes/keys.ts";
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -9,8 +10,13 @@ import { type MultiColumnKeyParameter, readSql } from "#readSql.ts";
 import type { FindManyFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { type BucketRow, bucketRows } from "#test/bucketRows.ts";
 import { compositeLedger } from "#test/compositeLedger.ts";
+import { type DiaryEntry, diaryEntries } from "#test/diaryEntries.ts";
 import { onPostgres } from "#test/engines.ts";
 import { type OwnedRow, setupOwnedRows } from "#test/postgresOwnedRows.ts";
+
+function numbered(count: number) {
+	return Array.from({ length: count }, (_, index) => index + 1);
+}
 
 function keyWords(key: Key) {
 	switch (key._tag) {
@@ -19,12 +25,18 @@ function keyWords(key: Key) {
 		case "Item":
 			return `record ${key.id}`;
 		case "Bucket":
-			return `${key.field} ${JSON.stringify(key.value)}`;
+			return `${key.field} ${isComposite(key) ? key.value : JSON.stringify(key.value)}`;
 	}
 }
 
 const engine = Effect.gen(function* () {
-	return { buckets: yield* bucketRows, ledger: yield* compositeLedger, owned: yield* setupOwnedRows, sql: yield* SqlClient.SqlClient };
+	return {
+		buckets: yield* bucketRows,
+		diary: yield* diaryEntries,
+		ledger: yield* compositeLedger,
+		owned: yield* setupOwnedRows,
+		sql: yield* SqlClient.SqlClient,
+	};
 });
 
 type Reading = Effect.Effect<void, SqlError | Schema.SchemaError | Cause.NoSuchElementError | MultiColumnKeyParameter>;
@@ -34,6 +46,9 @@ export type Read =
 	| { readonly call: "aggregate" | "count" | "findOne" | "select"; readonly where: FindManyFilter<typeof BucketRow> }
 	| { readonly call: "findMany"; readonly where?: FindManyFilter<typeof BucketRow> }
 	| { readonly call: "latestPerGroup"; readonly where: RepositoryListFilter<typeof BucketRow> }
+	| { readonly call: "findDiaryEntries"; readonly where: FindManyFilter<typeof DiaryEntry> }
+	| { readonly call: "findDiaryDays"; readonly owners: readonly string[]; readonly days: number }
+	| { readonly call: "findDiaryOwners"; readonly owners: number }
 	| { readonly call: "findLedgerEntry"; readonly account: string; readonly sequence: bigint }
 	| { readonly call: "findOwnedRow"; readonly id: number; readonly ownerId: number }
 	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> }
@@ -72,7 +87,7 @@ function observed(read: Reading) {
 	});
 }
 
-function perform({ buckets: { keys, rows, tableName }, ledger, owned, sql }: Effect.Success<typeof engine>, read: Read): Reading {
+function perform({ buckets: { keys, rows, tableName }, diary, ledger, owned, sql }: Effect.Success<typeof engine>, read: Read): Reading {
 	switch (read.call) {
 		case "aggregate":
 			return Effect.asVoid(rows.aggregate({ aggregates: { rows: { count: "*" } }, groupBy: ["owner"], where: read.where }));
@@ -80,6 +95,12 @@ function perform({ buckets: { keys, rows, tableName }, ledger, owned, sql }: Eff
 			return Effect.asVoid(rows.count({ where: read.where }));
 		case "findById":
 			return Effect.asVoid(rows.findById(read.id));
+		case "findDiaryDays":
+			return Effect.asVoid(diary.entries.findMany({ where: { day: { in: numbered(read.days) }, ownerId: { in: read.owners } } }));
+		case "findDiaryEntries":
+			return Effect.asVoid(diary.entries.findMany({ where: read.where }));
+		case "findDiaryOwners":
+			return Effect.asVoid(diary.entries.findMany({ where: { ownerId: { in: numbered(read.owners).map((owner) => `owner ${owner}`) } } }));
 		case "findLedgerEntry":
 			return Effect.asVoid(ledger.entries.findById({ account: read.account, sequence: read.sequence }));
 		case "findMany":
@@ -126,6 +147,10 @@ function described(read: Read) {
 	switch (read.call) {
 		case "findById":
 			return `row ${read.id}`;
+		case "findDiaryDays":
+			return `the diary entries of ${read.owners.join(" and ")} for days 1 to ${read.days}`;
+		case "findDiaryOwners":
+			return `the diary entries of ${read.owners} owners`;
 		case "findLedgerEntry":
 			return `the ${read.account} ledger entry at sequence ${read.sequence}, a composite id with a bigint`;
 		case "findOwnedRow":
@@ -139,6 +164,7 @@ function described(read: Read) {
 		case "findMany":
 		case "findOne":
 		case "findOwnedRows":
+		case "findDiaryEntries":
 		case "latestPerGroup":
 		case "select":
 			return read.where === undefined ? "without a filter" : `where ${JSON.stringify(read.where)}`;

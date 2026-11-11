@@ -34,6 +34,7 @@ export const repositoryReadsStory = storyKit({
 			return current.watched.current === undefined ? Effect.die("nothing is watched yet") : Effect.succeed(current.watched.current);
 		}
 		let loansMade = 0;
+		let entriesWritten = 0;
 		return {
 			lend: (book: number, reader: string) => {
 				story.tell(`a writer lends book ${book} to ${reader}`);
@@ -56,6 +57,11 @@ export const repositoryReadsStory = storyKit({
 						Effect.map((all) => all.map((update) => words(watch, update))),
 					),
 				),
+			writesInDiary: (owner: string, day: number, note: string) => {
+				story.tell(`${owner} writes ${note} in the diary for day ${day}`);
+				entriesWritten += 1;
+				return current.client("library.writeDiary", { day, id: 100 + entriesWritten, note, ownerId: owner });
+			},
 		};
 	},
 });
