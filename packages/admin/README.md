@@ -131,43 +131,42 @@ Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.
 
 An `admin/` path segment means admin-only code. A wholly admin-only feature lives under `src/modules/admin/<name>`, with its shared declarations, `server/` and `client/` there. Admin tools for a member feature stay inside that feature: `admin/` for browser-safe page declarations, `server/admin/` for reads and handlers, and `client/admin/` for bindings and views. Each module reads only its own tables; compose another module's exposed operations for data it owns. Permissions enforce access regardless of the path.
 
-The starter declares `StatisticsPage` with `adminPage` in [`src/modules/notes/admin/pages.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/admin/pages.ts). Its all-user read lives in [`src/modules/notes/server/admin/readStatistics.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/readStatistics.ts):
+The starter writes the statistics read once as an operation in [`src/modules/notes/server/admin/Read.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/Read.ts):
 
 ```ts
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { NoteStatistics } from "#modules/notes/admin/pages.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import { notes } from "#modules/notes/model.ts";
 
-export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const read = SqlSchema.findOne({
-		execute: () => sql`select count(*)::int as notes, count(*) filter (where word_count is null)::int as pending,
-			coalesce(sum(word_count), 0)::int as words from notes`,
-		Request: Schema.Void,
-		Result: NoteStatistics,
-	});
-	return yield* read(undefined);
+const Totals = Schema.Struct({ notes: Schema.Number, pending: Schema.Number, words: Schema.Number });
+
+export const Read = query("statistics", {
+	reads: () => [notes.list],
+	*run() {
+		const sql = yield* SqlClient.SqlClient;
+		const read = SqlSchema.findOne({
+			execute: () => sql`select count(*)::int as notes, count(*) filter (where word_count is null)::int as pending,
+				coalesce(sum(word_count), 0)::int as words from notes`,
+			Request: Schema.Void,
+			Result: Totals,
+		});
+		// An aggregate without grouping always returns one row.
+		return yield* read(undefined).pipe(Effect.catchTag("NoSuchElementError", Effect.die));
+	},
 });
 ```
 
-[`src/modules/notes/server/admin/registration.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/registration.ts) pairs that read with the page:
+Its module, [`src/modules/notes/admin/Statistics.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/admin/Statistics.ts), lists that operation under the page's permission. [`src/modules/notes/admin/pages.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/admin/pages.ts) declares `StatisticsPage` with `adminPage` over the generated contract, and [`src/modules/notes/server/admin/registration.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/registration.ts) serves the module:
 
 ```ts
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
-import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { readStatistics } from "#modules/notes/server/admin/readStatistics.ts";
-
-const statistics = StatisticsPage.contract.application.toLayer({
-	"admin.notes.statistics": () =>
-		readStatistics().pipe(
-			rpcBoundary(StatisticsPage.contract.declaration.queries[0].error, { unexpected: (message) => new InternalServerError({ message }) }),
-		),
-});
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { Admin } from "#modules/notes/admin/pages.ts";
+import { Statistics } from "#modules/notes/admin/Statistics.ts";
 
 export const adminRegistration = registerAdmin(Admin, {
-	"note-statistics": statistics,
+	"note-statistics": moduleHandlers(Statistics),
 });
 ```
 

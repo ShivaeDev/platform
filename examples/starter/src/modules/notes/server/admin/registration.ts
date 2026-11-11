@@ -1,16 +1,8 @@
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
-import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
-import { readStatistics } from "#modules/notes/server/admin/readStatistics.ts";
-
-const statistics = StatisticsPage.contract.application.toLayer({
-	"admin.notes.statistics": () =>
-		readStatistics().pipe(
-			rpcBoundary(StatisticsPage.contract.declaration.queries[0].error, { unexpected: (message) => new InternalServerError({ message }) }),
-		),
-});
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
+import { Admin } from "#modules/notes/admin/pages.ts";
+import { Statistics } from "#modules/notes/admin/Statistics.ts";
 
 export const adminRegistration = registerAdmin(Admin, {
-	"note-statistics": statistics,
+	"note-statistics": moduleHandlers(Statistics),
 });
