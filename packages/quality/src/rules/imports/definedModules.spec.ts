@@ -3,7 +3,7 @@ import { external, folders } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { definedModuleWorkspace, generatorWrote, NOTES_GENERATED } from "#test/definedModules.ts";
-import { emptyFolders, generatedDeclared, importStory, repositoryHas } from "#test/importStory.ts";
+import { emptyFolders, importStory, repositoryHas } from "#test/importStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const REPAIR = "Move runtime-dependent code into src/client/ or src/server/ and keep shared code independent of both runtimes.";
@@ -45,7 +45,7 @@ importStory.it(
 
 importStory.it(
 	"imports/runtime lets shared code import a generated client whose only import of its server module is a type import",
-	[...definedModuleWorkspace, generatorWrote("type"), generatedDeclared(NOTES_GENERATED), emptyFolders("packages/ui/src/client")],
+	[...definedModuleWorkspace, generatorWrote("type"), emptyFolders("packages/ui/src/client")],
 	function* ({ check }) {
 		yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 	},
@@ -62,7 +62,7 @@ const UI_STAYS_OFF_SERVER = fence("ui-stays-off-notes-server")
 
 importStory.it(
 	"imports/fences does not follow a generated client's type import of its own module across another package's fence",
-	[...definedModuleWorkspace, generatorWrote("type"), generatedDeclared(NOTES_GENERATED)],
+	[...definedModuleWorkspace, generatorWrote("type")],
 	function* ({ check }) {
 		yield* assertThat(yield* check(importFences, { fences: [UI_STAYS_OFF_SERVER] }), (actual) => actual.toEqual([]));
 	},
@@ -70,7 +70,7 @@ importStory.it(
 
 importStory.it(
 	"imports/fences reports the page whose generated client imports its module as a value, naming the chain to server code",
-	[...definedModuleWorkspace, generatorWrote("value"), generatedDeclared(NOTES_GENERATED)],
+	[...definedModuleWorkspace, generatorWrote("value")],
 	function* ({ check, messages }) {
 		yield* check(importFences, { fences: [UI_STAYS_OFF_SERVER] });
 

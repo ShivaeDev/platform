@@ -8,7 +8,6 @@ import type { PreCommit } from "#config.ts";
 import { validOrFail } from "#decoded.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { SetupFailure } from "#failure.ts";
-import { generatedFolder } from "#imports/generatedFolders.ts";
 import type { InventoryScope } from "#inventory/collect.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
 import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
@@ -19,7 +18,6 @@ export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly entries: readonly string[];
 	readonly exceptions: readonly ExceptionDeclaration[];
 	readonly file: string;
-	readonly generated: readonly string[];
 	readonly nonEffectFolders: readonly string[];
 	readonly preCommit: PreCommit;
 	readonly registry: string;
@@ -33,13 +31,6 @@ function biomeDeclarations(config: ConfigInput): readonly Declaration[] {
 	return Schema.is(LegacyOptions)(options) ? options.declared : [];
 }
 
-const GeneratedOptions = Schema.Struct({ generated: Schema.Array(Schema.String) });
-function generatedFolders(config: ConfigInput): readonly string[] {
-	const setting = config.rules?.["imports/resolvable"];
-	const options = typeof setting === "object" ? setting.options : undefined;
-	return Schema.is(GeneratedOptions)(options) ? options.generated.map(generatedFolder) : [];
-}
-
 function resolved(root: string, file: string, config: ConfigInput, rules: ResolvedRules): ResolvedConfig {
 	return {
 		...rules,
@@ -50,7 +41,6 @@ function resolved(root: string, file: string, config: ConfigInput, rules: Resolv
 		exclude: [],
 		extensions: config.extensions ?? DEFAULT_EXTENSIONS,
 		file,
-		generated: generatedFolders(config),
 		nonEffectFolders: config.nonEffectFolders ?? [],
 		preCommit: config.preCommit ?? "full",
 		registry: config.registry ?? "quality/registry.json",

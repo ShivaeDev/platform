@@ -247,7 +247,7 @@ import { defineConfig } from "@shivaedev/quality/config.ts";
 export default defineConfig({ sources: ["src"] });
 ```
 
-When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git through `.gitignore`, `info/exclude` or `core.excludesFile`, and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Generated output that git ignores is never reported, but Quality follows its imports: a module the sources import that git ignores joins the import graph, so `imports/runtime` and transitive fences see what it reaches and report the checked file that imports it, and `code/unused` counts its imports as uses. A generated client's type import of its own module, the file at the same path outside a declared generated folder, is erased and reaches nothing at run time, so `imports/runtime` and transitive fences do not follow it; its value imports they still follow. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git through `.gitignore`, `info/exclude` or `core.excludesFile`, and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Generated output that git ignores is never reported, but Quality follows its imports: a module the sources import that git ignores joins the import graph, so `imports/runtime` and transitive fences see what it reaches and report the checked file that imports it, and `code/unused` counts its imports as uses. A generated client's type import of its own module, the file at the same path outside `src/generated`, is erased and reaches nothing at run time, so `imports/runtime` and transitive fences do not follow it; its value imports they still follow. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
 
 Quality reads the skills tool’s `.shivaedev-skills.json` ownership manifest in each repository’s `.agents/skills` folder. It skips the recorded folders, their `.claude/skills` links and the manifest itself in source checks, Biome lint and formatting, manifest sorting and fixes, including rule-specific fixes. Local skills beside those copies remain checked. Change a shared skill at its source and run `shivaedev-skills sync` to refresh the copies.
 
@@ -332,22 +332,14 @@ The import rules resolve every literal specifier with the nearest `tsconfig.json
 
 Vite asset queries resolve the path before the query, including package assets through their declared exports. Supported suffixes match `vite/client`: `?url`, `?raw`, `?worker`, `?worker&inline`, `?worker&url`, `?sharedworker`, `?sharedworker&inline`, `?sharedworker&url`, `?inline`, `?no-inline`, `?url&inline`, `?url&no-inline` and `.wasm?init`. For example, `import url from 'zxing-wasm/reader/zxing_reader.wasm?url'` resolves the exported wasm file without an application module declaration. Missing files, private package paths and unsupported query suffixes still produce findings.
 
-A relative or `#` import of a file that a generator writes before the tests run resolves only inside a folder that `imports/resolvable` lists as `generated`; the folder, or every file an import names in it, must be ignored by git. The folder may keep a tracked `README.md`, `.gitkeep` or `.keep`, such as a README that names the command which writes the output, re-included with `!`; any other tracked file makes it source, not generated output. Imports into it resolve whether the output is present or not yet written, including another workspace package's import such as `@scope/notes/generated/Notes.ts` that leads into it through the package's `exports`. `docs/references` accepts a module path or a link into a declared folder before the file exists. Every rule reads the declared folders as `generated` among its inputs:
-
-```ts
-import { defineConfig } from "@shivaedev/quality/config.ts";
-
-export default defineConfig({
-	rules: { "imports/resolvable": { options: { generated: ["src/generated"] } } },
-});
-```
-
-The repository's `.gitignore` ignores the output and keeps the README:
+An application, and each workspace package, keeps the files a generator writes in `src/generated`, where `@shivaedev/build` writes the client of each defined module. Git ignores the folder's contents and keeps a README that names the command:
 
 ```gitignore
 src/generated/*
 !src/generated/README.md
 ```
+
+Quality makes sure those files exist before it reads a source: it first runs the `generate` script of the `package.json` in the config's folder through the manifest's `packageManager` (`npm` when omitted), so a fresh checkout, a module written since the last run and a deleted `src/generated` lint the same as an up-to-date tree. A project without a `generate` script runs nothing; give a script that must not run before every lint, such as a database client generator or a migration writer that can prompt, another name. When the script fails, the run stops before any rule with the script's output and exit code 2. No config names the folder. An import of a generated file is then checked like any other: `imports/resolvable` reports one the generator does not write and names the module file that would define it, and `docs/references` reports a path to one.
 
 ### Story tests
 

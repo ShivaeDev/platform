@@ -15,7 +15,6 @@ const rewrittenMinimalFiles = new Set([
 	"src/server/modules.ts",
 	"src/server/workerModules.ts",
 	"src/client/modules.ts",
-	"quality.config.ts",
 ]);
 
 export const appTemplate = Effect.fn("CreateApp.appTemplate")(function* (template: Template, minimal = false) {
@@ -39,8 +38,7 @@ export const appTemplate = Effect.fn("CreateApp.appTemplate")(function* (templat
 			);
 			const source = textOf(bytes)
 				.replace(/^import .* from "#modules\/notes\/.*";\n/gmu, "")
-				.replace(/,?\s*\b(?:noteQueue|notesModule|notesRegistration|notesWorker)\b/gu, "")
-				.replace(/^\t*"imports\/resolvable": \{ options: \{ generated: \["src\/generated"\] \} \},\n/gmu, "");
+				.replace(/,?\s*\b(?:noteQueue|notesModule|notesRegistration|notesWorker)\b/gu, "");
 			return { ...entry, content: Base64.encode(bytesOf(source)) };
 		}),
 	);

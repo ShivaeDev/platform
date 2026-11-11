@@ -90,10 +90,10 @@ application.it(
 );
 
 application.it(
-	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module:, and the app declares its generated folder",
+	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module:, and leaves the Quality config unchanged",
 	[generated("my-app", "--no-git", "--minimal")],
-	function* ({ addResource, fileMentions, filesUnder }) {
-		expect(yield* fileMentions("quality.config.ts", "src/generated")).toBe(false);
+	function* ({ addResource, file, fileMentions, filesUnder }) {
+		const qualityConfig = yield* file("quality.config.ts");
 
 		yield* addResource("reading-lists");
 
@@ -115,30 +115,7 @@ application.it(
 				],
 			],
 			["registration names the module", () => fileMentions("src/modules/reading-lists/server/registration.ts", "module: ReadingLists,"), true],
-			[
-				"generated folder declared",
-				() => fileMentions("quality.config.ts", '"imports/resolvable": { options: { generated: ["src/generated"] } },'),
-				true,
-			],
-		]);
-	},
-);
-
-application.it(
-	"a Quality config whose rules cannot take the generated folder is named and left alone, and no module is written",
-	[generated("my-app", "--no-git", "--minimal"), appAdds("quality.config.ts", "export default { local: [] };\n")],
-	function* ({ addResource, exists, file }) {
-		const modules = yield* file("src/server/modules.ts");
-
-		const answer = yield* addResource("bookmarks");
-
-		expect(answer).toBe(
-			'create-app: Cannot declare src/generated for bookmarks: add "imports/resolvable": { options: { generated: ["src/generated"] } } to the rules in quality.config.ts, then run the command again.',
-		);
-		yield* outcomes([
-			["Quality config", () => file("quality.config.ts"), "export default { local: [] };\n"],
-			["module list", () => file("src/server/modules.ts"), modules],
-			["resource", () => exists("src/modules/bookmarks"), false],
+			["Quality config", () => file("quality.config.ts"), qualityConfig],
 		]);
 	},
 );

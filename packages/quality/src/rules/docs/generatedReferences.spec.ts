@@ -1,11 +1,11 @@
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, markdown, noModule } from "#test/docsRepository.ts";
-import { generatedDeclared, importStory, repositoryHas } from "#test/importStory.ts";
+import { importStory, repositoryHas } from "#test/importStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GENERATED = "packages/lib/src/generated";
 
-// The generator writes the client after checkout, so the README names a file that is not on disk yet.
+// Quality runs the generate script before it reads the sources, so a README naming a generated file that is not on disk names one the generator does not write.
 const README = markdown(
 	"packages/lib/README.md",
 	"# @acme/lib",
@@ -18,15 +18,7 @@ const README = markdown(
 const REPOSITORY = repositoryHas(...docsWorkspace, { content: "Written by `pnpm generate`.\n", path: `${GENERATED}/README.md` }, README);
 
 importStory.it(
-	"docs/references accepts a README's module path and link into a declared generated folder before the generator writes the file",
-	[REPOSITORY, generatedDeclared(GENERATED)],
-	function* ({ check }) {
-		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
-	},
-);
-
-importStory.it(
-	"docs/references reports a README's module path and link into a folder nobody declared generated",
+	"docs/references reports a README's module path and link to a file in src/generated that is not on disk",
 	[REPOSITORY],
 	function* ({ check }) {
 		yield* assertThat(yield* check(docsReferences), (actual) =>

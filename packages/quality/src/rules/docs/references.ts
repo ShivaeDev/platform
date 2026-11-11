@@ -44,7 +44,6 @@ const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
 	const shared = {
 		anchors: anchorsReader(inputs.readText),
 		exports: new Map([...manifests].map(([name, manifest]) => [name, field(manifest, "exports")])),
-		generated: inputs.generated ?? [],
 		packages: new Map(packages.map((owner) => [owner.name, owner])),
 		readText: inputs.readText,
 		repository: repositoryOf(yield* readPackageManifest(inputs.readText, "package.json")),

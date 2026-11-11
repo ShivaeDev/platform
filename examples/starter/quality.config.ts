@@ -10,6 +10,5 @@ export default defineConfig({
 				],
 			},
 		},
-		"imports/resolvable": { options: { generated: ["src/generated"] } },
 	},
 });

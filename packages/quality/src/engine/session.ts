@@ -5,6 +5,7 @@ import { manifestReader } from "#adapters/manifestReader.ts";
 import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { type BaselineFile, readBaseline, readInput } from "#engine/baselineFile.ts";
+import { generateFirst } from "#engine/generateFirst.ts";
 import { runRules } from "#engine/runRules.ts";
 import type { Violation } from "#engine/violation.ts";
 import { biomeExceptions } from "#exceptions/biomeFindings.ts";
@@ -42,7 +43,6 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		entries: config.entries,
 		exceptions: config.exceptions,
 		files: inventory.files,
-		generated: config.generated,
 		nonEffectFolders: config.nonEffectFolders,
 		readText,
 		root: config.root,
@@ -84,6 +84,7 @@ export const openSession = Effect.fn("Engine.openSession")(function* (
 		}
 	}
 	const baseline = yield* readBaseline(config);
+	yield* generateFirst(config.root);
 	const scanned = yield* scan(config);
 	return { ...scanned, baseline, config, registry: registryEntries(config.exceptions) };
 });

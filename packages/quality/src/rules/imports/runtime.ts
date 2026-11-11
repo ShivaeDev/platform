@@ -3,7 +3,7 @@ import { builtinName } from "#adapters/builtinName.ts";
 import { callsDefineModule } from "#imports/callsDefineModule.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
 import { outgoing, walkFrom } from "#imports/fences/reach.ts";
-import { followedEdges } from "#imports/generatedFolders.ts";
+import { followedEdges, generatedFolders } from "#imports/generatedFolders.ts";
 import { type ImportEdge, type ImportGraph, importGraph } from "#imports/graph.ts";
 import { nodePlatformBarrels } from "#imports/nodePlatformBarrels.ts";
 import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
@@ -69,8 +69,11 @@ function ignoredFindings(ignored: IgnoredReach, edge: ImportEdge, from: Runtime,
 	}));
 }
 
-function runtimeFindings(graph: ImportGraph, generated: readonly string[], classified: Classified) {
-	const ignored = { edgesFrom: outgoing(followedEdges(generated, graph.ignoredEdges)), modules: new Set(graph.ignoredModules) };
+function runtimeFindings(graph: ImportGraph, classified: Classified) {
+	const ignored = {
+		edgesFrom: outgoing(followedEdges(generatedFolders(graph.packages), graph.ignoredEdges)),
+		modules: new Set(graph.ignoredModules),
+	};
 	return graph.edges.flatMap((edge) => {
 		const from = classified.runtime(edge.from);
 		if (from === undefined || isTestCode(edge.from)) {
@@ -98,7 +101,7 @@ export const importsRuntime = defineRule({
 			const definedModules = new Set(inputs.sources.filter(callsDefineModule).map((file) => file.path));
 			const runtime = yield* runtimeOf(inputs, graph.packages, definedModules);
 			const classified = { definedModules, runtime };
-			const imports = [...runtimeFindings(graph, inputs.generated ?? [], classified), ...inputs.sources.flatMap(nodePlatformBarrels)];
+			const imports = [...runtimeFindings(graph, classified), ...inputs.sources.flatMap(nodePlatformBarrels)];
 			const declarations = (yield* runtimeDeclarationProblems(inputs, graph.packages)).map(({ directory, message }) => ({
 				file: directory === "." ? "package.json" : `${directory}/package.json`,
 				line: 1,

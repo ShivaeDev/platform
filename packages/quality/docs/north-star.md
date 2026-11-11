@@ -10,7 +10,7 @@ Quality exists to make that decision once. A repository adopts Quality's opinion
 
 A consuming repository gets the whole policy. It does not select a preset of standards, turn a Quality rule off or demote it to a warning. Quality decides which checks belong together and explains their repairs. Internal exceptions belong to the package and have reasons; they are part of its judgement, not a template of switches for consumers to copy.
 
-The repository supplies facts Quality cannot infer: where the source and generated files live, which architectural boundaries its imports must respect, and which additional commands a commit must run. Shared Biome and TypeScript configuration and Vitest helpers carry the package's conventions into those tools. The usual setup should stay small, with defaults that make sense together.
+The repository supplies facts Quality cannot infer: where the source files live, which architectural boundaries its imports must respect, and which additional commands a commit must run. Shared Biome and TypeScript configuration and Vitest helpers carry the package's conventions into those tools. The usual setup should stay small, with defaults that make sense together.
 
 Adopting the whole policy does not require fixing all old debt in one change. The baseline records existing findings by rule and file while the checks stay strict. An uncovered finding asks for a repair. Fixing debt passes immediately, and lowering tools reduce its recorded counts. A permitted permanent exception lives in the config with a reason, once for both Quality and Biome. When that exception no longer applies, the gate asks for its removal.
 

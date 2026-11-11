@@ -13,7 +13,6 @@ const STORIES = {
 	empty: "only Markdown files",
 	fence:
 		"a game package whose play, run and words modules import the cms, simulation and vocabulary packages, beside game tests that make the same imports",
-	generatedAlias: "a test that imports git-ignored generated and cached clients through the #test/* alias",
 	nested: "a game module that imports a cms test fixture with its own package.json",
 	pending: "a game module that imports a cms client its generator has not written yet",
 	references: "type and path references, JSDoc @import tags, require.resolve and import.meta.resolve calls, each with one missing target",
