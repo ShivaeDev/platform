@@ -33,9 +33,7 @@ export const watchedList = Effect.fn("AppStory.watchedList")(function* (address:
 
 export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address: RpcAddress, cookie: string, id: number) {
 	const { client, registry } = yield* liveClient(address, cookie);
-	const query = client.api.get.query({ id });
-	const settled = settledQueries(query).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
-	const results = yield* settled;
+	const results = yield* settledQueries(client.api.get.query({ id })).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	const nextAnswer = answerWithReason(Effect.flatMap(results.next, AsyncResult.toExit));
 	let seen: Effect.Success<typeof nextAnswer> | undefined;
 	const remember = Effect.tap(nextAnswer, (answer) =>
@@ -56,11 +54,6 @@ export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address:
 				}
 			}),
 		nextNote: () => remember,
-		refresh: () =>
-			Effect.sync(() => registry.refresh(query)).pipe(
-				Effect.andThen(settled),
-				Effect.flatMap((refreshed) => answerWithReason(Effect.flatMap(refreshed.next, AsyncResult.toExit))),
-			),
 	};
 });
 

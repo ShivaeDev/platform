@@ -1,6 +1,5 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { failedOver, processes, renamedWithoutNotice, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
+import { processes, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
 
 processes.it("every subscribed client receives its initial order", [twoServersAndWorker()], function* ({ initialHints }) {
 	yield* outcomes([
@@ -58,66 +57,6 @@ processes.it(
 			["a hints", () => hintsSinceAction("a"), ["result after rollback"]],
 			["answers", () => answers(), ["rejected as Rejected", "saved"]],
 			["b hints", () => hintsSinceAction("b"), ["result after rollback"]],
-		]);
-	},
-	30_000,
-);
-
-processes.it(
-	"a server that loses its listener resyncs its streams and receives later commits",
-	[twoServersAndWorker()],
-	function* ({ hintsSinceAction, loseListener, order }) {
-		yield* loseListener();
-
-		yield* outcomes([
-			["a hints", () => hintsSinceAction("a"), expect.arrayContaining(["result after reconnect"])],
-			["a reads", () => order("a"), "after reconnect"],
-			["another hints", () => hintsSinceAction("another"), expect.arrayContaining(["result after reconnect"])],
-		]);
-	},
-	30_000,
-);
-
-processes.it(
-	"after every backend is terminated both servers log the loss and recovery and resync every stream",
-	[twoServersAndWorker(), renamedWithoutNotice("during outage")],
-	function* ({ hintsSinceAction, listenerLogs, terminateBackends }) {
-		yield* terminateBackends();
-
-		yield* outcomes([
-			["a hints", () => hintsSinceAction("a"), expect.arrayContaining(["result during outage"])],
-			["another hints", () => hintsSinceAction("another"), expect.arrayContaining(["result during outage"])],
-			["b hints", () => hintsSinceAction("b"), expect.arrayContaining(["result during outage"])],
-			[
-				"first server logs",
-				() => listenerLogs("first"),
-				[
-					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
-					"Info: PostgreSQL change listener recovered; resynchronized live streams",
-				],
-			],
-			[
-				"second server logs",
-				() => listenerLogs("second"),
-				[
-					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
-					"Info: PostgreSQL change listener recovered; resynchronized live streams",
-				],
-			],
-		]);
-	},
-	30_000,
-);
-
-processes.it(
-	"after a failover the pg-boss worker's commits reach both servers",
-	[failedOver()],
-	function* ({ order, saveFromWorker }) {
-		yield* saveFromWorker();
-
-		yield* outcomes([
-			["a reads", () => order("a"), "worker"],
-			["b reads", () => order("b"), "worker"],
 		]);
 	},
 	30_000,

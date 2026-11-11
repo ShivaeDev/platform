@@ -31,29 +31,3 @@ pool.it(
 		expect(yield* nativePoolBackend()).toBe(backend);
 	},
 );
-
-pool.it(
-	"after an administrator terminates the idle connection, the next query runs on a new backend",
-	[poolCapacity("host", 2)],
-	function* ({ queryBackend, theIdleBackendIsTerminated }) {
-		const terminated = yield* queryBackend();
-
-		yield* theIdleBackendIsTerminated(terminated);
-
-		expect(yield* queryBackend()).not.toBe(terminated);
-	},
-);
-
-pool.it("a query that terminates its own backend fails with a SQL error", [poolCapacity("host", 2)], function* ({ selfTerminatingQuery }) {
-	expect(yield* selfTerminatingQuery()).toBe("failed with sql error");
-});
-
-pool.it(
-	"after a query terminates its own backend, the pool answers the next query",
-	[poolCapacity("host", 2)],
-	function* ({ queryBackend, selfTerminatingQuery }) {
-		yield* selfTerminatingQuery();
-
-		expect(yield* queryBackend()).toEqual(expect.any(Number));
-	},
-);

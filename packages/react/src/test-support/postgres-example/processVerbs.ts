@@ -5,24 +5,6 @@ import { client, type ProcessEngine, process } from "#test/postgres-example/proc
 
 type Client = "a" | "b" | "another";
 
-const listenerMessages = [
-	"PostgreSQL change listener lost; resynchronizing live streams",
-	"PostgreSQL change listener recovered; resynchronized live streams",
-];
-
-function listenerLogs(engine: ProcessEngine, name: string) {
-	return process(engine, name).responses.items.flatMap((response) => {
-		if (response._tag !== "Log" || !Array.isArray(response.message)) {
-			return [];
-		}
-		const [message] = response.message;
-		if (typeof message !== "string" || !listenerMessages.includes(message)) {
-			return [];
-		}
-		return [`${response.level}: ${message}`];
-	});
-}
-
 export function processVerbs(engine: ProcessEngine, tell: (line: string) => void) {
 	function mark() {
 		for (const [name, remote] of engine.clients) {
@@ -38,32 +20,10 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 	async function save(writer: Client, name: string) {
 		engine.answers.push(answerWord(await client(engine, writer).save(name)));
 	}
-	function recovered(name: string) {
-		return process(engine, name).responses.when(() => listenerLogs(engine, name).some((log) => log.includes("recovered")));
-	}
 	return {
 		answers: () => Effect.sync(() => [...engine.answers]),
 		hintsSinceAction: (name: Client) => Effect.sync(() => since(name).map((result) => `result ${result.name}`)),
 		initialHints: (name: Client) => Effect.sync(() => client(engine, name).results.items.map((result) => `result ${result.name}`)),
-		listenerLogs: (name: "first" | "second") => Effect.sync(() => listenerLogs(engine, name)),
-		loseListener: () =>
-			Effect.gen(function* () {
-				tell("the first server loses its PostgreSQL listener; once it recovers, b commits after reconnect");
-				mark();
-				const listeners = yield* engine.sql<{
-					readonly pid: number;
-				}>`select pid from pg_stat_activity where application_name = ${engine.configuration.applicationName} and query like 'LISTEN%'`;
-				const listener = listeners[0];
-				if (listeners.length !== 1 || listener === undefined) {
-					return yield* Effect.die(new Error(`Expected one listener to terminate, found ${listeners.length}`));
-				}
-				yield* engine.sql`select pg_terminate_backend(${listener.pid})`;
-				yield* Effect.promise(async () => {
-					await recovered("first");
-					await save("b", "after reconnect");
-					await changedSinceMark("a", "another");
-				});
-			}),
 		order: (name: Client) =>
 			Effect.sync(() => {
 				const result = client(engine, name).results.items.at(-1);
@@ -94,21 +54,6 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 				await worker.send({ _tag: "Enqueue", order: new Order({ id: 1, name: "worker", quantity: 500 }) }, "Enqueued");
 				await handled;
 				await changedSinceMark("a", "b");
-			}),
-		terminateBackends: () =>
-			Effect.gen(function* () {
-				tell(
-					"PostgreSQL terminates every other backend in the story database; both servers recover and every client catches up with the stored order",
-				);
-				mark();
-				yield* engine.sql`select pg_terminate_backend(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()`;
-				yield* Effect.promise(() => Promise.all([recovered("first"), recovered("second")]));
-				const [stored] = yield* engine.sql<{
-					readonly name: string;
-				}>`select name from ${engine.sql(engine.configuration.table)} where id = 1`;
-				yield* Effect.promise(() =>
-					Promise.all([...engine.clients.values()].map((remote) => remote.results.when((items) => items.at(-1)?.name === stored?.name))),
-				);
 			}),
 	};
 }

@@ -1,10 +1,8 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import * as PgPool from "@effect/sql-pg/PgPool";
 import { Context, Deferred, Effect, Fiber, Layer, Predicate } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
-import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase, appHost } from "#appDatabase.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
@@ -107,23 +105,6 @@ export const pool = storyKit({
 					const answeredBy = yield* Fiber.join(queued);
 					return answeredBy === released ? "answered by the released backend" : `answered by another backend ${answeredBy}`;
 				});
-			},
-			selfTerminatingQuery: () => {
-				story.tell("an application query terminates its own backend");
-				return answered(client()`select pg_terminate_backend(pg_backend_pid())`);
-			},
-			theIdleBackendIsTerminated: (pid: number) => {
-				story.tell(`an administrator terminates idle application backend ${pid}`);
-				return Effect.scoped(
-					Effect.gen(function* () {
-						const url = (yield* PostgresTestDatabase).url;
-						yield* Effect.gen(function* () {
-							const admin = yield* SqlClient.SqlClient;
-							yield* admin`select pg_terminate_backend(${pid}, 5000)`;
-						}).pipe(Effect.provide(PgClient.layer({ url })));
-						yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)));
-					}),
-				);
 			},
 		};
 	},

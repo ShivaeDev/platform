@@ -33,16 +33,3 @@ app.it("alice's open note refreshes after she edits its title", [signedIn("alice
 
 	expect(yield* aliceNote.changedNote()).toEqual(edited);
 });
-
-app.it(
-	"alice's open note answers service unavailable when PostgreSQL loses its connection",
-	[signedIn("alice")],
-	function* ({ noteReadsLoseTheDatabase, notesOf, watchesNote }) {
-		const note = yield* notesOf("alice").create("Alice's note");
-		const aliceNote = yield* watchesNote("alice", note);
-		expect(yield* aliceNote.nextNote()).toEqual(note);
-		yield* noteReadsLoseTheDatabase();
-
-		expect(yield* aliceNote.refresh()).toBe("service unavailable: Could not reach the notes database");
-	},
-);

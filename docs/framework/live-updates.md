@@ -91,7 +91,7 @@ Queries from different subscribers never share reruns, even for identical inputs
 
 Each subscription permits one running rerun and one pending rerun. Hints during a rerun mark it dirty and merge their keys; the next rerun consumes that pending work. A burst received during a held rerun therefore costs at most two reruns, including the one in flight. Subscriptions run independently in parallel, with no global concurrency cap. There is no client coalescing window.
 
-`Resync` is a server reconciliation signal for uncertain change history. More than 256 queued hints collapse pending keys into one `Resync`, and subsequent hints are absorbed until it is consumed. A PostgreSQL listener reconnect also resynchronizes affected subscriptions. The server reruns their authorized queries and pushes changed values itself. There is no replay cursor or event journal. The PostgreSQL and React stories exercise separate committed writes, policy denial during a burst and a real loopback socket stalled across 257 commits.
+`Resync` is a server reconciliation signal for uncertain change history. More than 256 queued hints collapse pending keys into one `Resync`, and subsequent hints are absorbed until it is consumed. The server then reruns the affected subscriptions' authorized queries and pushes changed values itself. There is no replay cursor or event journal. The PostgreSQL and React stories exercise separate committed writes, policy denial during a burst and a real loopback socket stalled across 257 commits.
 
 Pausing through `api[LiveConnection].paused` keeps consuming updates while holding the screen's value. Its pending count saturates at 256 observations. Unpausing reopens subscriptions for a current result. Visible online, visibility and optional native resume events also reopen active subscriptions. Typed rejections stay settled until their supported retry trigger; transport failures and defects use jittered backoff. Disposing the registry releases the streams and lifecycle listeners.
 
@@ -99,7 +99,7 @@ Pausing through `api[LiveConnection].paused` keeps consuming updates while holdi
 
 The application host connects repository commits to PostgreSQL NOTIFY and shares native Reactivity with the socket's live server. Configure `maxConnections` through sql's `postgresLayer(url, options)` or the host's existing `config.maxConnections`. The default is 10 connections, unchanged from native `PgPool`. The listener reserves one connection when it shares that pool; queries and transactions share the remaining budget, as the [host pool stories](../../packages/server/src/appHostPool.spec.ts) show by filling the pool with one fewer transaction than `maxConnections`. A separate `config.listenDatabaseUrl` can provide a direct or session-mode listener connection. Both URLs must reach the same database.
 
-LISTEN requires a session connection. Startup waits for its own heartbeat; after startup, connection loss and recovery request server reconciliation. NOTIFY is a wake-up signal, not a durable log. Raw SQL writers must record their keys inside `transact`; rollback discards both writes and notifications. Payloads contain keys rather than row values, and oversized keys fail before commit.
+LISTEN requires a session connection. Startup waits for its own heartbeat. NOTIFY is a wake-up signal, not a durable log. Raw SQL writers must record their keys inside `transact`; rollback discards both writes and notifications. Payloads contain keys rather than row values, and oversized keys fail before commit.
 
 ## Session revalidation and cost
 

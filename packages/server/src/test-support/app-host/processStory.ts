@@ -1,9 +1,7 @@
 import { Effect, Exit, type Redacted, Result, Scope } from "effect";
-import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { hostProcess } from "@shivaedev/test-kits/host/process.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseUrl, postgres } from "#test/postgres.ts";
@@ -37,26 +35,6 @@ const processOptions = {
 			closeScope: () => {
 				story.tell("the story closes the scope that owns the child process");
 				return Scope.close(state.scope, Exit.void);
-			},
-			databaseConnections: () =>
-				SqlClient.SqlClient.use(
-					(sql) =>
-						sql<{
-							pid: number;
-							state: string;
-						}>`select pid, state from pg_stat_activity where application_name = ${`host-process-${running().pid}`} order by pid`,
-				),
-			disconnectIdlePostgres: () => {
-				story.tell("the proxy kills the host's idle PostgreSQL connections");
-				return Effect.gen(function* () {
-					yield* running().disconnectIdlePostgres();
-					const sql = yield* SqlClient.SqlClient;
-					yield* observeUntil(
-						sql`select pid from pg_stat_activity where application_name = ${`host-process-${running().pid}`}`,
-						(rows) => rows.length === 0,
-						"the host's disconnected PostgreSQL backends to disappear",
-					);
-				});
 			},
 			finalizers: () => Effect.suspend(() => running().finalizers()),
 			headers: (path: string) => Effect.suspend(() => running().headers(path)),

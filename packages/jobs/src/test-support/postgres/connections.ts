@@ -18,12 +18,9 @@ function backendOf(engine: DatabaseEngine, name: string) {
 }
 
 export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
-	const terminated = new Set<number>();
 	return {
 		backendIsConnected: (pid: number) => engine.sql`select pid from pg_stat_activity where pid = ${pid}`.pipe(Effect.map((rows) => rows.length > 0)),
 		backendPid: (name: string) => backendOf(engine, name),
-		connectionAfterwards: (name: string) =>
-			Effect.map(backendOf(engine, name), (pid) => (terminated.has(pid) ? "the terminated connection" : "a new connection")),
 		connectionsOf: (applicationName: string) =>
 			engine.sql<{ readonly ssl: boolean }>`select s.ssl from pg_stat_activity a join pg_stat_ssl s using (pid)
 				where a.datname = current_database() and a.application_name = ${applicationName}`.pipe(
@@ -46,14 +43,6 @@ export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => 
 				url.searchParams.set("sslmode", mode);
 			}
 			return startRuntime(engine, name, jobs, { connectionString: Redacted.make(url.toString()) });
-		},
-		terminateIdleConnection: (name: string) => {
-			tell(`an administrator terminates ${name}'s idle PostgreSQL pool connection`);
-			return Effect.gen(function* () {
-				const pid = yield* backendOf(engine, name);
-				terminated.add(pid);
-				yield* engine.sql`select pg_terminate_backend(${pid})`;
-			});
 		},
 		untilBackendDisconnects: (pid: number) => {
 			tell(`PostgreSQL reports backend ${pid} disconnected after the pool timeout`);

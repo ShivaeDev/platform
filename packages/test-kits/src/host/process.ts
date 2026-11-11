@@ -7,15 +7,9 @@ import { HostPrepared, HostReady, HostSignal } from "#host/processProtocol.ts";
 export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* <E = never, R = never>(
 	options: HostProcessOptions & { readonly beforeStart?: Effect.Effect<void, E, R> },
 ) {
-	const databaseUrl = options.databaseUrl;
-	const database =
-		databaseUrl === undefined
-			? undefined
-			: yield* Effect.promise(() => import("@shivaedev/test-sql/server/disconnectProxy.ts")).pipe(
-					Effect.flatMap(({ disconnectProxy }) => disconnectProxy(Redacted.value(databaseUrl))),
-				);
+	const databaseUrl = options.databaseUrl === undefined ? undefined : Redacted.value(options.databaseUrl);
 	const child = yield* Effect.acquireRelease(
-		Effect.try({ catch: (cause) => new HostProcessError({ cause, operation: "launch" }), try: () => forkHost(options, database?.url) }),
+		Effect.try({ catch: (cause) => new HostProcessError({ cause, operation: "launch" }), try: () => forkHost(options, databaseUrl) }),
 		(acquired) => Effect.promise(() => stopHost(acquired)),
 	);
 	const read = collectHostReadouts(child);
@@ -44,12 +38,6 @@ export const hostProcess = Effect.fn("HostProcess.hostProcess")(function* <E = n
 	}
 	return {
 		activeWork: () => readouts().pipe(Effect.map((state) => state.activeWork)),
-		disconnectIdlePostgres: () =>
-			Effect.suspend(() =>
-				database === undefined
-					? Effect.die(new Error("Launch the host with databaseUrl before disconnecting PostgreSQL"))
-					: Effect.sync(database.disconnect),
-			),
 		finalizers: () => readouts().pipe(Effect.map((state) => state.finalizers)),
 		headers: (path: string) => response(path).pipe(Effect.map((answer) => answer.headers)),
 		health: () => response("/health"),

@@ -1,6 +1,5 @@
 import { ConfigProvider, type Duration, Effect, Exit, Layer, Predicate, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -117,17 +116,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			story.tell(`${name}'s socket asks for change hints on ${JSON.stringify(note.title)}`);
 			return noteChangesSubscription(liveAddress(engine), account(engine, name).cookie, note.id);
 		},
-		noteReadsLoseTheDatabase: Effect.fn("AppStory.noteReadsLoseTheDatabase")(function* () {
-			story.tell("PostgreSQL loses its connection for note reads while sessions stay readable");
-			const sql = yield* SqlClient.SqlClient;
-			yield* sql.withTransaction(
-				Effect.gen(function* () {
-					yield* sql`alter table notes rename to available_notes`;
-					yield* sql`create function unavailable_notes() returns setof available_notes language plpgsql as $$begin raise exception 'connection lost' using errcode = '08006'; end$$`;
-					yield* sql`create view notes as select * from unavailable_notes()`;
-				}),
-			);
-		}),
 		notesOf: (name: string) => account(engine, name).notes,
 		queueRefusesNextWordCount: Effect.fn("AppStory.queueRefusesNextWordCount")(function* () {
 			story.tell("the queue refuses the next word-count job");

@@ -636,7 +636,7 @@ Each subscription stores one hash per query in memory in the process holding its
 
 The server coalesces changes per subscription: one rerun can be in flight and one can be pending. Further hints merge into the pending rerun. When the current rerun finishes, the server runs once more if dirty. Different subscriptions progress independently and in parallel; there is no global rerun limit and no client coalescing timer.
 
-`Resync` is an internal server reconciliation signal. When more than 256 hints accumulate behind a stalled subscription, pending keys collapse to one `Resync`; further hints are absorbed until it is consumed. PostgreSQL listener recovery also resynchronizes affected subscriptions. In either case, the server reruns the subscriber's queries and pushes changed results. `Resync` never asks the client to issue reads.
+`Resync` is an internal server reconciliation signal. When more than 256 hints accumulate behind a stalled subscription, pending keys collapse to one `Resync`; further hints are absorbed until it is consumed. The server then reruns the subscriber's queries and pushes changed results. `Resync` never asks the client to issue reads.
 
 The `paused` atom at `api[LiveConnection]` suppresses applying pushed values to the screen while continuing to observe the stream. Its `status.pending` count saturates at 256. Unpausing reopens the subscription for a current authorized result and resets that count. Bindings on one client runtime share pause state.
 
