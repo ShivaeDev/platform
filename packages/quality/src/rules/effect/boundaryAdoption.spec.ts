@@ -36,7 +36,7 @@ repositoryStory.it(
 			[
 				"recorded debt",
 				() => reads("quality-baseline.jsonl"),
-				'{"path":"src/work.ts","rule":"effect/adapter-imports","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":4}\n',
+				'{"path":"src/work.ts","rule":"effect/adapter-imports","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":4,"deep":0}\n',
 			],
 		]);
 
