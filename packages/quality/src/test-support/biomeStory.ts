@@ -4,11 +4,11 @@ import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#adapters/runMain.ts";
-import { recommendedRules } from "#biome/recommendedRules.ts";
 import { loadConfig } from "#config/load.ts";
 import type { Findings } from "#rule.ts";
 import { biome } from "#rules/biome.ts";
 import { pluginOf } from "#test/namingFindings.ts";
+import { presetBelowError, recommendedRules } from "#test/recommendedRules.ts";
 import { scanned } from "#testing/adapters/imports.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { locationOf } from "#testing/ruleStory.ts";
@@ -69,6 +69,11 @@ export const biomeStory = storyKit({
 					.map((finding) => `${finding.line ?? 0} ${pluginOf(finding.message)}`)
 					.toSorted(),
 			),
+		// A rule named beyond Biome's own list stands in for one a Biome upgrade adds to its recommended preset.
+		presetBelowError: (...added: readonly string[]) => {
+			story.tell("quality compares its shipped preset with the rules Biome's recommended preset enables");
+			return Effect.flatMap(recommendedRules(), (rules) => presetBelowError([...rules, ...added]));
+		},
 		reported: (subject: string) =>
 			Effect.sync(() =>
 				checked(engine)

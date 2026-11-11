@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import ts from "typescript";
 import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
 import { directServiceDefinitions } from "#adapters/serviceAssemblySyntax.ts";
@@ -35,6 +34,4 @@ function checkServices(sources: readonly SourceFile[], { checker, program, sourc
 	return found;
 }
 
-export function serviceModelCheck() {
-	return Effect.succeed({ checks: definesServices, findings: checkServices });
-}
+export const serviceModelCheck = { checks: definesServices, findings: checkServices };

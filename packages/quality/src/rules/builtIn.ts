@@ -55,7 +55,6 @@ import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
-import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
 import { noInline } from "#rules/suppressions/noInline.ts";
@@ -87,7 +86,6 @@ export const builtInRules = [
 	noDoubleCast,
 	noIgnoreDeprecations,
 	biomeOverrides,
-	biomeRecommended,
 	biome,
 	importCycles,
 	importFences,
