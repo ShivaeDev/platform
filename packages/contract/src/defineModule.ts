@@ -108,5 +108,5 @@ export function defineModule(definition: {
 		...(definition.keyScope === undefined ? {} : { keyScope: definition.keyScope }),
 		...(definition.subject === undefined ? {} : { subject: definition.subject }),
 	});
-	return definition.middleware?.key === undefined ? group : group.middleware(definition.middleware);
+	return definition.middleware === undefined ? group : group.middleware(definition.middleware);
 }
