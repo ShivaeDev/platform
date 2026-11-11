@@ -5,11 +5,11 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#adapters/runMain.ts";
 import { loadConfig } from "#config/load.ts";
+import { scan } from "#engine/session.ts";
 import type { Findings } from "#rule.ts";
-import { biome } from "#rules/biome.ts";
 import { pluginOf } from "#test/namingFindings.ts";
 import { presetBelowError, recommendedRules } from "#test/recommendedRules.ts";
-import { scanned } from "#testing/adapters/imports.ts";
+import { scannerRuleList } from "#test/scannerRuleList.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { locationOf } from "#testing/ruleStory.ts";
 
@@ -50,17 +50,16 @@ export const biomeStory = storyKit({
 	verbs: (engine, story) => ({
 		checks: Effect.fn("BiomeStory.checks")(function* () {
 			story.tell("quality checks the repository with its biome rule");
-			const configured = yield* Effect.promise(() => biome.configure(undefined));
-			if (configured._tag === "Invalid") {
-				return yield* Effect.die(new Error(`biome refused its options: ${configured.issues.join("; ")}`));
-			}
 			const config = yield* loadConfig(engine.root, undefined);
-			const inputs = yield* Effect.promise(() => scanned(engine.root));
-			engine.findings = yield* configured.check({ ...inputs, exceptions: config.exceptions });
+			engine.findings = (yield* scan({ ...config, active: config.active.filter((rule) => rule.id === "biome") })).violations;
 		}),
 		listsRecommendedRules: () => {
 			story.tell("quality asks Biome for the rules its recommended preset enables");
 			return recommendedRules();
+		},
+		listsScannerRules: () => {
+			story.tell("quality asks the installed Biome which of its lint rules belong to the project or types domain");
+			return scannerRuleList();
 		},
 		plugins: (path: string) =>
 			Effect.sync(() =>

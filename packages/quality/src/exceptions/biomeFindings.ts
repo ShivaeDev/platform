@@ -1,33 +1,36 @@
 import { Effect } from "effect";
-import { biomeReport } from "#biome/report.ts";
-import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
+import { needsScanner } from "#biome/scannerRules.ts";
+import { keyOf, type Violation } from "#engine/violation.ts";
 import type { StaleRegistryEntry } from "#exceptions/registry.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 
-export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")(function* (inputs: RuleInputs) {
-	const declarations = inputs.exceptions ?? [];
-	const declared = declarations.flatMap(({ files, reason, rules }) =>
+// The biome rule reports excepted diagnostics at any severity; the session drops them and names each exception that none matched.
+export const biomeExceptions = Effect.fn("Exceptions.biomeExceptions")(function* (
+	violations: readonly Violation[],
+	inputs: Pick<RuleInputs, "configFile" | "exceptions" | "readText">,
+	skippedHalves: ReadonlySet<string>,
+) {
+	const declared = (inputs.exceptions ?? []).flatMap(({ files, reason, rules }) =>
 		rules.filter((rule) => /^biome\/(?:lint|assist)\//u.test(rule)).flatMap((rule) => files.map((file) => ({ file, reason, rule }))),
 	);
+	const excepted = new Set(declared.map(({ file, rule }) => keyOf(rule, file)));
+	const reported = new Set(violations.map((violation) => keyOf(violation.rule, violation.file)));
 	const texts = yield* Effect.forEach(declared, ({ file }) => inputs.readText(file), { concurrency: "unbounded" });
-	const entries = declared.filter((_, index) => texts[index] !== undefined);
-	if (entries.length === 0) {
-		return [];
-	}
-	const exclusions = declarations.flatMap((entry) =>
-		entry.rules.includes("biome/files/includes") ? [{ ...entry, rules: ["biome/files/includes"] as const }] : [],
+	const judged = declared.filter(
+		(entry, index) => texts[index] !== undefined && !(skippedHalves.has("biome") && needsScanner(entry.rule.slice("biome/".length))),
 	);
-	const report = yield* biomeReport(inputs.root, ["check", "--no-errors-on-unmatched"], exclusions, [...new Set(entries.map(({ file }) => file))]);
-	const diagnostics = yield* withoutEntryPointImports(inputs, report.diagnostics);
-	return entries
-		.filter(({ file, rule }) => !diagnostics.some((diagnostic) => diagnostic.location.path === file && `biome/${diagnostic.category}` === rule))
-		.map(
-			(entry): StaleRegistryEntry => ({
-				entry,
-				problem: `matches no finding. Remove this file/rule pair from exceptions in ${inputs.configFile ?? "quality.config.ts"}`,
-			}),
-		);
+	return {
+		kept: violations.filter((violation) => !excepted.has(keyOf(violation.rule, violation.file))),
+		stale: judged
+			.filter(({ file, rule }) => !reported.has(keyOf(rule, file)))
+			.map(
+				(entry): StaleRegistryEntry => ({
+					entry,
+					problem: `matches no finding. Remove this file/rule pair from exceptions in ${inputs.configFile ?? "quality.config.ts"}`,
+				}),
+			),
+	};
 });
 
 const missingBiomeFile = Effect.fn("Exceptions.missingBiomeFile")(function* (

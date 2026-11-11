@@ -10,6 +10,7 @@ import { KNIP_ISSUES } from "#adapters/knip/findings.ts";
 import { knipReport } from "#adapters/knip/report.ts";
 import { sourceConfig } from "#adapters/knip/sourceConfig.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { childStarted } from "#engine/childStarted.ts";
 import { ignoredModules } from "#imports/graph.ts";
 import { programmaticBuilds } from "#inventory/programmaticBuilds.ts";
 import { toolOwnedFiles } from "#inventory/toolOwnedFiles.ts";
@@ -70,6 +71,7 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 					{ cwd, env: { "JITI_TRY_NATIVE": "true" }, extendEnv: true, stdin: "ignore" },
 				),
 			);
+			yield* childStarted();
 			const [stdout, stderr, code] = yield* Effect.all(
 				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 				{ concurrency: "unbounded" },

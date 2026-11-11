@@ -24,6 +24,10 @@ export const qualityKit = storyKit({
 			story.tell("run the repository formatter through quality fix");
 			return runQuality(root, "fix");
 		},
+		fullLint: () => {
+			story.tell("lint the repository through Quality with every check, Biome's scanner half included");
+			return runQuality(root, "lint", "--full");
+		},
 		lint: () => {
 			story.tell("lint the repository through Quality");
 			return runQuality(root, "lint");
