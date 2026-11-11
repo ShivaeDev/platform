@@ -4,11 +4,13 @@ import ts from "typescript";
 import type { MarkdownLine } from "#docs/markdownLines.ts";
 import { markdownLinks } from "#docs/markdownLinks.ts";
 import { type Repository, repositoryLink } from "#docs/repositoryLink.ts";
+import { inGeneratedFolder } from "#imports/generatedFolders.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Finding } from "#rule.ts";
 
 export interface LinkContext {
 	readonly anchors: (path: string) => Effect.Effect<ReadonlySet<string> | undefined, FilesystemFailure>;
+	readonly generated: readonly string[];
 	readonly published: string | undefined;
 	readonly repository: Repository | undefined;
 	readonly root: string;
@@ -56,7 +58,7 @@ function placement(context: LinkContext, target: string, to: Destination): strin
 		return `"${target}" leaves the repository. Link to a file inside it, or use an absolute URL.`;
 	}
 	const absolute = join(context.root, to.path);
-	if (!(ts.sys.fileExists(absolute) || ts.sys.directoryExists(absolute))) {
+	if (!(ts.sys.fileExists(absolute) || ts.sys.directoryExists(absolute) || inGeneratedFolder(context.generated, to.path))) {
 		return `"${target}" links to ${to.path}, which does not exist. Link to the file's current path, or remove the link.`;
 	}
 	if (context.published !== undefined && !SCHEME.test(target) && !inside(to.path, context.published)) {

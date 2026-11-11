@@ -29,6 +29,7 @@ export default [
 					"packages/changes/src/keys.ts",
 					"packages/jobs/src/JobFailure.ts",
 					"packages/jobs/src/display.ts",
+					"packages/service/src/ServiceRequirements.ts",
 				),
 				browser,
 				packages("access"),
