@@ -25,7 +25,7 @@ pnpm run setup
 pnpm dev
 ```
 
-Setup installs dependencies and Quality's pre-commit hook when this app has its own Git repository. Development first prepares the development and test databases, then starts the server, worker and Vite. Open `http://127.0.0.1:5173`, create an account and add a note.
+Setup installs dependencies and Quality's pre-commit hook when this app has its own Git repository. Installing runs `pnpm generate`, which writes `src/generated` from the app's defined modules; that folder stays out of Git, and `pnpm dev`, `pnpm typecheck`, the tests and `pnpm build` generate again first. Development first prepares the development and test databases, then starts the server, worker and Vite. Open `http://127.0.0.1:5173`, create an account and add a note.
 
 The git-ignored `.env.local` contains local database URLs and an authentication secret. On a new checkout, copy `.env.example` to `.env.local` and replace `BETTER_AUTH_SECRET` with the output of `openssl rand -base64 32`. Have PostgreSQL 18.6 on loopback port 55432 or Docker available; `pnpm db:setup` prepares both databases without starting development.
 
@@ -60,7 +60,7 @@ pnpm migrate
 pnpm start
 ```
 
-The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs and queued auth email delivery. Set `DATABASE_URL` on both processes; `pnpm migrate` needs only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters. Set `PUBLIC_URL` to your public app URL on both web and worker. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`.
+`pnpm build` writes `src/generated` before it bundles the client. A production install (`pnpm install --prod --frozen-lockfile`) leaves out `@shivaedev/build`, and pnpm skips `prepare` there, so the install succeeds without the generator and leaves `src/generated` as the build wrote it. The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs and queued auth email delivery. Set `DATABASE_URL` on both processes; `pnpm migrate` needs only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters. Set `PUBLIC_URL` to your public app URL on both web and worker. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`.
 
 In production (`NODE_ENV=production`), the worker sends auth emails through Resend. Configure these worker variables before deploying:
 

@@ -2,6 +2,7 @@
 	"@shivaedev/access": "0.6.2",
 	"@shivaedev/admin": "0.24.2",
 	"@shivaedev/browser-check": "0.7.1",
+	"@shivaedev/build": "0.0.0",
 	"@shivaedev/changes": "0.11.1",
 	"@shivaedev/contract": "0.43.5",
 	"@shivaedev/deploy": "0.7.0",

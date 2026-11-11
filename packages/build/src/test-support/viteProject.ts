@@ -115,15 +115,17 @@ console.log(SqlClient);
 
 const CONDITIONS = JSON.stringify(["@shivaedev/source", "node", "development|production"]);
 
-// The global setup runs from this package's sources, which Vitest's own environment resolves only with the source condition.
-const NOTES_TEST: Readonly<Record<string, string>> = {
-	"src/notes.test.ts": `import { expect, test } from "vitest";
+const NOTES_TEST_FILE = `import { expect, test } from "vitest";
 import { notesWire } from "#generated/modules/notes/notes.ts";
 
 test("the generated notes wire lists the module's operations", () => {
 	expect(Object.keys(notesWire)).toContain("list");
 });
-`,
+`;
+
+// The global setup runs from this package's sources, which Vitest's own environment resolves only with the source condition.
+const NOTES_TEST: Readonly<Record<string, string>> = {
+	"src/notes.test.ts": NOTES_TEST_FILE,
 	"vitest.config.mjs": `export default {
 	environments: { __vitest__: { resolve: { conditions: ${CONDITIONS} } } },
 	ssr: { resolve: { conditions: ${CONDITIONS} } },
@@ -132,9 +134,18 @@ test("the generated notes wire lists the module's operations", () => {
 `,
 };
 
+const NOTES_TEST_THROUGH_THE_APP_CONFIG: Readonly<Record<string, string>> = {
+	"src/notes.test.ts": NOTES_TEST_FILE,
+	"vitest.config.mjs": `import { appTestConfig } from "@shivaedev/build/adapters/appTestConfig.ts";
+
+export default appTestConfig(["@shivaedev/source"]);
+`,
+};
+
 export const VITE_PROJECT = {
 	notesPage: NOTES_PAGE,
 	notesTest: NOTES_TEST,
+	notesTestThroughTheAppConfig: NOTES_TEST_THROUGH_THE_APP_CONFIG,
 	pageImportingTheTagsClient: PAGE_IMPORTING_THE_TAGS_CLIENT,
 	screenImportingTheModule: SCREEN_IMPORTING_THE_MODULE,
 	serverCodePages: SERVER_CODE_PAGES,

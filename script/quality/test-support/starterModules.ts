@@ -18,7 +18,8 @@ screen.it("runs DOM stories", [], function* ({ click, text }) { click(); expect(
 	"src/application.slow.spec.ts": 'throw new Error("Slow stories must be selected explicitly");',
 	"src/main.tsx": 'import { createRoot } from "react-dom/client"; createRoot(document.body).render(<p>Application</p>);',
 	"tsconfig.json": '{ "extends": "@shivaedev/quality/tsconfig/app.json", "include": ["src/main.tsx"] }',
-	"vite.config.ts": `import { appViteConfig } from "@shivaedev/quality/appViteConfig.ts";
+	"vite.config.ts": `import { appViteConfig } from "@shivaedev/build/adapters/appViteConfig.ts";
 export default appViteConfig([{ name: "application", transformIndexHtml: (html: string) => html.replace("Application shell", "Application plugin") }], ["@shivaedev/source"]);`,
-	"vitest.config.ts": 'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts"; export default appTestConfig(["@shivaedev/source"]);',
+	"vitest.config.ts":
+		'import { appTestConfig } from "@shivaedev/build/adapters/appTestConfig.ts"; export default appTestConfig(["@shivaedev/source"]);',
 };

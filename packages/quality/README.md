@@ -76,7 +76,7 @@ Import `ImportCompiler` from `@shivaedev/quality/adapters/import-compiler/servic
 
 ### Dependency pins and repository hygiene
 
-`manifests/no-test-kits` rejects runtime packages that expose a `testing` module or declare `@shivaedev/test`, `@shivaedev/test-story`, `@shivaedev/test-sql`, `@shivaedev/test-kits` or `vitest` in dependencies, optional dependencies or peers. It checks explicit export names and targets, including conditions and fallback arrays, and inventoried testing modules exposed through wildcards. Blocked exports and development dependencies pass. Private applications and the test-tooling packages quality, vitest-rerun, test, test-story, test-sql and test-kits are exempt. Move reusable runtime-package helpers into test-kits and keep test dependencies in development dependencies.
+`manifests/no-test-kits` rejects runtime packages that expose a `testing` module or declare `@shivaedev/test`, `@shivaedev/test-story`, `@shivaedev/test-sql`, `@shivaedev/test-kits` or `vitest` in dependencies, optional dependencies or peers. It checks explicit export names and targets, including conditions and fallback arrays, and inventoried testing modules exposed through wildcards. Blocked exports and development dependencies pass. Private applications and the test-tooling packages build, quality, vitest-rerun, test, test-story, test-sql and test-kits are exempt. Move reusable runtime-package helpers into test-kits and keep test dependencies in development dependencies.
 
 `manifests/dependency-pins` checks dependencies, development dependencies, optional dependencies and peers in every inventoried package manifest. External dependencies use exact versions, including npm aliases. Workspace dependencies use `workspace:`. Replace `file:` and `link:` dependencies with npm versions or workspace/catalog references in both published and private packages. Quality finds the nearest `pnpm-workspace.yaml` at or above its config folder. When that workspace declares a default or named catalog, external dependencies use `catalog:` or `catalog:<name>`, and the referenced catalog must contain that dependency. Catalog entries themselves use exact versions. Write catalogs as indented block mappings; inline mappings and YAML aliases receive findings instead of escaping the check.
 
@@ -582,8 +582,6 @@ Import names from their defining module; there is no root entry. The package's `
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`                                           |
 | `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`                                                |
 | `adapters/testProjects.ts`    | `testProjects`, `TestProjectsOptions`                                                                                                       |
-| `appViteConfig.ts`            | `appViteConfig`                                                                                                                             |
-| `appTestConfig.ts`            | `appTestConfig`                                                                                                                             |
 | `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                                                        |
 
 #### Config
@@ -694,25 +692,7 @@ The TypeScript base leaves `types`, `jsx`, `paths`, `include` and output directo
 
 For a React browser app, extend `@shivaedev/quality/tsconfig/app.json` instead. It adds React JSX, browser libraries and the Node, React and React DOM types to the base. Keep the application's paths and input files in its own config.
 
-Platform apps can share the Vite and Vitest setup too:
-
-```ts
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import { appViteConfig } from "@shivaedev/quality/appViteConfig.ts";
-
-export default appViteConfig([tailwindcss(), react()]);
-```
-
-Use this in `vite.config.ts`. Plugins belong to the app. The web server port defaults to `VITE_PORT`, then 5173. The API port defaults to `PORT`, then 3000. These variables come from the process environment. Pass `{ webPort: 5273, apiPort: 3100 }` as the fourth argument to override either port, for example `appViteConfig(plugins, [], ["/health"], { webPort: 5273, apiPort: 3100 })`. The shared server proxies `/api/auth` and `/rpc` to the API port on `127.0.0.1`, preserving the request Host. Pass extra host routes as the third argument to proxy them to the same host during development. It enables TypeScript path resolution. Client routes, including administration pages, stay on Vite.
-
-```ts
-import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
-
-export default appTestConfig();
-```
-
-Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines the `@shivaedev` packages for the test server, since an application imports each framework piece by its own name. Its `testProjects` defaults enable Node’s on-disk compilation cache in workers to reuse compiled dependencies while Vitest keeps module state isolated between files. Node’s `NODE_DISABLE_COMPILE_CACHE=1` disables that cache. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["@shivaedev/source"])` and `appTestConfig(["@shivaedev/source"])`. Published apps use the defaults.
+An application built on Platform takes its Vite and Vitest setup from [`@shivaedev/build`](https://github.com/ShivaeDev/platform/tree/main/packages/build#readme), which builds its Vitest config on `testProjects`.
 
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 
@@ -725,20 +705,18 @@ export default defineConfig({ test: testProjects() });
 
 `testProjects` selects four projects by default: `unit` runs ordinary Node tests and specs, `pure` runs `.unit.test` and `.unit.spec` files in Node, `dom` runs `.dom` tests and specs in test-story's DOM environment, and `heavy` runs `.heavy` tests and specs in Node. Heavy files run one at a time after the ordinary projects finish, including across packages in a workspace run. Use `.heavy` for tests that spawn CPU-heavy toolchains. The `pure` project always installs an I/O guard: calls to Node's `fs` (including `fs/promises`), `net`, `http`, `https`, `child_process` and `worker_threads` modules and global `fetch` throw an error naming the unit file and call. The guard also patches ESM named imports while preserving Node and Vitest module loading. Keep unit tests pure; test I/O through the package's story kit. Use `--project pure` to run only unit files, or `--project unit` for ordinary Node files. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. Every project excludes `**/.worktrees/**` so a checkout does not collect specs from its worktrees.
 
-`appTestConfig` passes `connectionBudget`, `connectionsPerWorker` and `maxWorkers` to `testProjects`. Worker concurrency comes from a configured PostgreSQL connection budget, independent of CPU count: `max(1, floor(connectionBudget / connectionsPerWorker))`. The defaults are 80 usable connections and 14 connections per worker, giving five workers. The budget leaves room on a typical 100-connection server for administration and other clients; the estimate allows for full-app tests with several pools. Set the budget from your server's `SHOW max_connections`, subtracting connections reserved for other clients and concurrent test processes. Quality does not query the server. If even one worker exceeds the budget, it still runs one worker; reduce that test's pool sizes or increase the server capacity.
+Worker concurrency in `testProjects` comes from a configured PostgreSQL connection budget, independent of CPU count: `max(1, floor(connectionBudget / connectionsPerWorker))`. The defaults are 80 usable connections and 14 connections per worker, giving five workers. The budget leaves room on a typical 100-connection server for administration and other clients; the estimate allows for full-app tests with several pools. Set the budget from your server's `SHOW max_connections`, subtracting connections reserved for other clients and concurrent test processes. Quality does not query the server. If even one worker exceeds the budget, it still runs one worker; reduce that test's pool sizes or increase the server capacity.
 
 Set the per-worker estimate to the peak connections held by one test worker, and supply your usable budget or an explicit worker override:
 
 ```ts
 testProjects({ connectionBudget: 84, connectionsPerWorker: 14 });
 testProjects({ maxWorkers: 4 });
-appTestConfig([], { connectionBudget: 84, connectionsPerWorker: 14 });
-appTestConfig([], { maxWorkers: 4 });
 ```
 
 The first configuration allows six workers, including on a two-CPU runner. `maxWorkers` takes precedence over the connection calculation. Counts and estimates must be positive safe integers. Vitest's native `--maxWorkers` CLI option can also override the returned configuration for a single run.
 
-Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Quality supplies `@vitest/coverage-v8` at its supported Vitest version. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })` or `appTestConfig([], { coverage: { include: ["src/domain/**/*.ts"] } })`. No separate coverage config is needed.
+Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Quality supplies `@vitest/coverage-v8` at its supported Vitest version. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
 
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 

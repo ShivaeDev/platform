@@ -45,6 +45,28 @@ application.it(
 );
 
 application.it(
+	"packing leaves out every generated file under src/generated and keeps the folder's README",
+	[
+		customTemplate(
+			{
+				"src/generated/modules/notes/notes.ts": "export const notesWire = {};\n",
+				"src/generated/README.md": "Written by `pnpm generate`.\n",
+				"src/modules/notes/notes.ts": "export const notes = true;\n",
+			},
+			"the template holds a generated file under src/generated, the folder's README and the module it was generated from",
+		),
+	],
+	function* ({ pack, packedFiles }) {
+		yield* pack();
+
+		expect(yield* packedFiles()).toEqual({
+			"src/generated/README.md": "Written by `pnpm generate`.\n",
+			"src/modules/notes/notes.ts": "export const notes = true;\n",
+		});
+	},
+);
+
+application.it(
 	"packing keeps a binary file's bytes",
 	[customTemplate({ "image.png": IMAGE }, "the template holds image.png with the bytes 00 ff 80 41")],
 	function* ({ pack, packedBytes }) {

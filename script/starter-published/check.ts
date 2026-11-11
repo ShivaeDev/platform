@@ -1,4 +1,5 @@
 import { Effect, Path } from "effect";
+import { command } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
 import { checkAdoption } from "#starter-published/checkAdoption.ts";
 import { checkTooling } from "#starter-published/checkTooling.ts";
@@ -23,6 +24,8 @@ export const checkStarters = Effect.fn("Published.checkStarters")(function* (
 		}
 		const current = path.join(temporary, minimal ? "generator-minimal" : "generator", "node_modules/.bin/create-app");
 		yield* phase(`${variant} upgrade total`, upgradeStarter(root, temporary, path.join(temporary, folder), current, tarballs, database, minimal));
+		// A deploy image installs without development dependencies, so the generator is absent and prepare must not stop the install.
+		yield* phase(`${variant} production install`, command(path.join(temporary, folder), "pnpm", ["install", "--prod", "--frozen-lockfile"]));
 		yield* Effect.log(
 			`Packed ${minimal ? "minimal" : "full"} app upgraded with real installs, typechecks and PostgreSQL/HTTP stories without skips.`,
 		);

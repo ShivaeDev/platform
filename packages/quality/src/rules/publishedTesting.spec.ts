@@ -81,7 +81,7 @@ ruleStory.it(
 	[
 		repositoryHas(
 			...publishedTestingFiles({ dependencies: { "@shivaedev/test-kits": "workspace:*" }, private: true }, "testing.ts"),
-			...["test", "test-story", "test-sql", "test-kits", "vitest-rerun", "quality"].map((name) =>
+			...["test", "test-story", "test-sql", "test-kits", "vitest-rerun", "quality", "build"].map((name) =>
 				exportsPackage(
 					{
 						exports: { "./testing": "./src/testing.ts" },
