@@ -155,8 +155,15 @@ export function screenImportingTheModule() {
 }
 
 export function pageImportingTheTagsClient() {
-	return vite.trait("page", "the page's script also imports the generated client of a tags module whose module file does not exist yet", (engine) =>
-		writeFiles(engine.root, VITE_PROJECT.pageImportingTheTagsClient),
+	return vite.trait(
+		"page",
+		"the page's script also imports the generated client of a tags module whose folder exists and whose module file does not exist yet",
+		Effect.fn("BuildStory.pageImportingTheTagsClient")(function* (engine: ViteEngine) {
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			yield* writeFiles(engine.root, VITE_PROJECT.pageImportingTheTagsClient);
+			yield* fs.makeDirectory(path.dirname(path.join(engine.root, VITE_PROJECT.tagsModule.path)), { recursive: true });
+		}),
 	);
 }
 

@@ -116,6 +116,11 @@ export const generator = storyKit({
 			}
 			yield* fs.writeFileString(path.join(engine.root, file), text.replace(from, to));
 		}),
+		entriesOf: Effect.fn("BuildStory.entriesOf")(function* (folder: string) {
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			return (yield* fs.readDirectory(path.join(engine.root, folder))).toSorted();
+		}),
 		generatedFile: Effect.fn("BuildStory.generatedFile")(function* (file: string) {
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;

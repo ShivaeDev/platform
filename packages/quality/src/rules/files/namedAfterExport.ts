@@ -37,7 +37,7 @@ function stemOf(path: string): string {
 }
 
 function repeated(stem: string, folders: readonly string[]): string | undefined {
-	if (folders.at(-1) === stem) {
+	if (folders.at(-1)?.toLowerCase() === stem.toLowerCase()) {
 		return undefined;
 	}
 	const words = wordsOf(stem);
@@ -134,7 +134,7 @@ export const namedAfterExport = defineRule({
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. A file named like its own folder, in any case, does not repeat it: notes/Notes.ts exports Notes. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
 		parseOptions: { errors: "all", onExcessProperty: "error" },
