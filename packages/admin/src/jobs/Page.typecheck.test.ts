@@ -52,6 +52,13 @@ expectTypeOf<JobsRow["output"]>().toEqualTypeOf<JobFailure | null>();
 type ReadOnly = typeof JobsPage.contract.declaration;
 type ReadOnlyClient = Bound<ReadOnly["name"], ReadOnly["queries"], ReadOnly["commands"], RpcGroup.Rpcs<typeof JobsPage.contract>, never>;
 expectTypeOf<Extract<keyof ReadOnlyClient, "retry" | "runScheduleNow">>().toEqualTypeOf<never>();
+type CountsQuery = Extract<ReadOnly["queries"][number], { readonly name: "counts" }>;
+expectTypeOf<CountsQuery["success"]["Type"]>().toEqualTypeOf<{
+	readonly activeCount: number;
+	readonly failedCount: number;
+	readonly queuedCount: number;
+	readonly totalCount: number;
+}>();
 
 const retryRegistration = registerAdmin(adminRegistry(JobsPageWithRetry), { jobs: moduleHandlers(JobsWithRetry) });
 expectTypeOf<Layer.Services<typeof retryRegistration.handlers>>().toEqualTypeOf<RegisteredQueues | SessionPolicy>();

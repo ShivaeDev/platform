@@ -12,3 +12,7 @@
 ### Added
 
 - `RegisteredQueues` from `@shivaedev/admin/server/RegisteredQueues.ts` holds the queues operators may administer; `pgBossQueues` builds it from the application's jobs service, keeping the payload Schemas' decoding services on its Layer.
+
+### Fixed
+
+- `adminPage` keeps each query's own payload and success types for a generated contract with several queries, so its bound client's queries no longer return the union of every query's success.
