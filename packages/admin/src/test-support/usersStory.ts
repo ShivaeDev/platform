@@ -10,7 +10,7 @@ import { makeUsersEngine, usersEngine } from "#test/usersEngine.ts";
 type Role = typeof Access.Role.Type;
 type Engine = Effect.Success<typeof usersEngine>;
 
-function changeRole(engine: Engine, actor: string, userId: string, role: Role) {
+function changeRole(engine: Engine, actor: string, userId: string, role: string) {
 	return engine
 		.clientAs(actor)
 		.pipe(Effect.flatMap((client) => answered(client["admin.users.changeRole"]({ role, userId }).pipe(Effect.as("assigned")))));
@@ -63,7 +63,7 @@ function usersKit(engineEffect: typeof usersEngine) {
 		stages: ["users", "roles"],
 		verbs: (engine, story) => ({
 			answerTo: (actor: string) => Effect.sync(() => engine.answers.get(actor) ?? `${actor} has not asked`),
-			assign: (actor: string, userId: string, role: Role) => {
+			assign: (actor: string, userId: string, role: string) => {
 				story.tell(`${actor} assigns ${role} to ${userId}`);
 				return Effect.gen(function* () {
 					engine.assignment.started = yield* Clock.currentTimeMillis;

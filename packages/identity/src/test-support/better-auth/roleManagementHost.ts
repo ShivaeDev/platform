@@ -7,10 +7,11 @@ import { SqlClient } from "effect/sql";
 import { role as declareRole } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { ReadUsers, UsersPermission } from "@shivaedev/admin/permissions.ts";
-import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
-import { usersPage } from "@shivaedev/admin/users/page.ts";
+import { Users } from "@shivaedev/admin/Users.ts";
+import { UsersPage } from "@shivaedev/admin/users/Page.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
@@ -24,7 +25,6 @@ import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 
 const Access = roleSet(declareRole("user", []), declareRole("admin", [ReadUsers, AssignRoles]), declareRole("delegate", [ReadUsers, AssignRoles]));
-const Page = usersPage(Access);
 const ORIGIN = "http://localhost";
 const Session = Schema.Struct({ user: Schema.Struct({ role: Schema.String }) });
 export type ManagedRole = typeof Access.Role.Type;
@@ -52,13 +52,13 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
-	const handlers = hostChanges(Page.contract)
-		.pipe(Layer.provideMerge(usersHandlers(Page)))
+	const handlers = hostChanges(UsersPage.contract)
+		.pipe(Layer.provideMerge(moduleHandlers(Users)))
 		.pipe(
 			Layer.provide(betterAuthUserDirectory(Access)),
 			Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 		);
-	const rpcRoutes = RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
+	const rpcRoutes = RpcServer.layerHttp({ group: UsersPage.contract, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(UsersPermission), RpcSerialization.layerJson]),
 		Layer.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),
 	);
@@ -75,7 +75,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 				}),
 			),
 		);
-		return RpcClient.make(Page.contract).pipe(Effect.provide(protocol));
+		return RpcClient.make(UsersPage.contract).pipe(Effect.provide(protocol));
 	}
 	return {
 		changeOnUsersPage: (person: Person, role: ManagedRole) =>

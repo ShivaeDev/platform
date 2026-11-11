@@ -11,6 +11,8 @@ export function refusal(error: unknown, jobName: (id: string) => string = (id) =
 	switch (error._tag) {
 		case "Unauthorized":
 			return "unauthorized";
+		case "AuthUnavailable":
+			return field(error, "message");
 		case "QueryReadDenied":
 			return "read denied";
 		case "Forbidden":

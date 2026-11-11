@@ -2,7 +2,7 @@ import { Cause, Effect } from "effect";
 import { makeRuleStory } from "@shivaedev/quality/testing/ruleStory.ts";
 
 export const ruleKit = makeRuleStory();
-export const { repositoryHas, repositoryLinks } = ruleKit;
+export const { repositoryHas } = ruleKit;
 
 export function ruleFailure<A, E, R>(check: Effect.Effect<A, E, R>) {
 	return Effect.matchCause(check, {

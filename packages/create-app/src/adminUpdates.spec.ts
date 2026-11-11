@@ -22,11 +22,7 @@ updates.it(
 	"update delivers the released foundation pages and keeps my-app's admin title",
 	[
 		starterAt010("registers no Users page", {
-			[PAGES]: (pages) =>
-				pages
-					.replace(/^import \{ usersPage \}.*\n/gmu, "")
-					.replace(/^const UsersPage =.*\n/gmu, "")
-					.replace("adminRegistry(JobsPage, UsersPage", "adminRegistry(JobsPage"),
+			[PAGES]: (pages) => pages.replace(/^import \{ UsersPage \}.*\n/gmu, "").replace("adminRegistry(JobsPage, UsersPage", "adminRegistry(JobsPage"),
 		}),
 		createdWith010(),
 		published010,

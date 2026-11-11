@@ -39,7 +39,26 @@ ruleStory.it(
 );
 
 ruleStory.it(
-	"effect/service-parameters reports a tag that is yielded, called or handed to anything but a declaration",
+	"effect/service-parameters accepts a presence check on an optional tag that is otherwise only declared",
+	[
+		effectResolves(),
+		repositoryHas(
+			serviceModule(
+				"src/presence.ts",
+				...RPC_IMPORTS,
+				"export const compared = (group: Group, middleware?: RpcMiddleware.AnyService) => (middleware === undefined ? group : group.middleware(middleware));",
+				"export const reversed = (group: Group, reversedTag?: RpcMiddleware.AnyService) => (undefined !== reversedTag ? group.middleware(reversedTag) : group);",
+				"export const chained = (group: Group, options?: { readonly middleware?: RpcMiddleware.AnyService }) => (options?.middleware === undefined ? group : group.middleware(options.middleware));",
+			),
+		),
+	],
+	function* ({ check }) {
+		yield* assertThat(yield* check(serviceParameters), (actual) => actual.toEqual([]));
+	},
+);
+
+ruleStory.it(
+	"effect/service-parameters reports a tag that is yielded, called, stored, returned, never declared or handed to anything but a declaration, also after a presence check",
 	[
 		effectResolves(),
 		repositoryHas(
@@ -58,6 +77,9 @@ ruleStory.it(
 				"export const forwards = (forwarded: { readonly tag: typeof Store }) => readsTag(forwarded);",
 				"export const unused = (neverDeclared: RpcMiddleware.AnyService) => 1;",
 				"export const shorthand = (group: Group, escapes: RpcMiddleware.AnyService) => [group.middleware(escapes), { escapes }];",
+				"export const checkedOnly = (group: Group, checked?: RpcMiddleware.AnyService) => (checked === undefined ? undefined : group);",
+				"export const returned = (group: Group, returnedTag?: RpcMiddleware.AnyService) => (returnedTag === undefined ? group : [group.middleware(returnedTag), returnedTag]);",
+				"export const stored = (group: Group, storedTag?: RpcMiddleware.AnyService) => { if (storedTag !== undefined) { group.middleware(storedTag); } return { storedTag }; };",
 			),
 		),
 	],
@@ -74,6 +96,9 @@ ruleStory.it(
 				carries("forwarded"),
 				carries("neverDeclared"),
 				carries("escapes"),
+				carries("checked"),
+				carries("returnedTag"),
+				carries("storedTag"),
 				carries("reading"),
 			]),
 		);

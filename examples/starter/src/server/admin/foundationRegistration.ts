@@ -1,7 +1,7 @@
 import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
+import { Users } from "@shivaedev/admin/Users.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { Sessions } from "@shivaedev/identity/Sessions.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
@@ -15,7 +15,7 @@ export function foundationRegistration<const TQueues extends readonly JobsEntry[
 		...registerAdmin(foundation.admin, {
 			jobs: jobsHandlers(foundation.JobsPage, AdminJobs),
 			sessions: moduleHandlers(Sessions),
-			users: usersHandlers(foundation.UsersPage),
+			users: moduleHandlers(Users),
 		}),
 		services: AdminJobs.layer({ jobs: [] }),
 	};

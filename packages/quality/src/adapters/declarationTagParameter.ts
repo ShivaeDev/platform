@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { presenceCheck } from "#adapters/presenceCheck.ts";
 import { declarationOf, resolvedValue } from "#adapters/serviceModelSyntax.ts";
 
 const RPC_MIDDLEWARE = "~effect/rpc/RpcMiddleware";
@@ -123,6 +124,9 @@ export function declarationTagParameter(checker: ts.TypeChecker, carries: (type:
 			}
 			if (ts.isVariableDeclaration(value.parent) && value.parent.initializer === value) {
 				return onlyDeclared(body, value.parent.name, seen);
+			}
+			if (presenceCheck(checker, value)) {
+				return true;
 			}
 			const declaration = declares(value);
 			seen.declared ||= declaration;

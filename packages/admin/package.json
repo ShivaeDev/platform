@@ -47,10 +47,11 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && pnpm generate && tsc --project tsconfig.build.json",
+		"generate": "shivaedev-build generate",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "pnpm generate && tsc --noEmit"
 	},
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
@@ -62,6 +63,7 @@
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
+		"@shivaedev/build": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/react": "workspace:*",
