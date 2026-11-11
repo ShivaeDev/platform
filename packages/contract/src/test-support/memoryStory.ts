@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { type HintViewer, layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
 import { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
-import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/Repository.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";

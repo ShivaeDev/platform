@@ -5,7 +5,7 @@ import { SqlClient } from "effect/sql";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { NotesViewer, noteOperations, viewerFromHeader } from "@shivaedev/test-kits/test-support/notes/module.ts";
-import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/Repository.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { defineModule } from "#defineModule.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";

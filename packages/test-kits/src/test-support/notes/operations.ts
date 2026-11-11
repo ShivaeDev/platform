@@ -3,7 +3,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { BadRequest, Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Note, NoteFields, type NoteRow } from "#test/notes/model.ts";
-import { NotesRepository } from "#test/notes/repository.ts";
+import { NotesRepository } from "#test/notes/Repository.ts";
 
 export const NoteId = Schema.Struct({ id: Schema.Number });
 export const NoteRename = Schema.Struct({ id: Schema.Number, title: Schema.String });

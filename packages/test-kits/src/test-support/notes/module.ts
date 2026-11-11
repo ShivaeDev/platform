@@ -5,7 +5,7 @@ import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Create, Get, List, Rename } from "#test/notes/operations.ts";
-import { NotesRepository } from "#test/notes/repository.ts";
+import { NotesRepository } from "#test/notes/Repository.ts";
 
 export class NotesViewer extends RpcMiddleware.Service<NotesViewer>()("@shivaedev/test-kits/test/NotesViewer", { error: Unauthorized }) {}
 

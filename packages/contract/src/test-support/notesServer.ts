@@ -6,7 +6,7 @@ import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { Note, NoteFields, notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { NotesViewer } from "@shivaedev/test-kits/test-support/notes/module.ts";
 import { Create, Get, List, NoteId, NoteRename, NotesOf, Rename } from "@shivaedev/test-kits/test-support/notes/operations.ts";
-import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/Repository.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";

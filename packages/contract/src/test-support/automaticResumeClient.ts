@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
-import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/Repository.ts";
 import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { compareQueries } from "#compareQueries.ts";
