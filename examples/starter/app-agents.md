@@ -6,7 +6,9 @@ Shared declarations in the app and its modules stay browser safe. PostgreSQL, mi
 
 An `admin/` path segment means admin-only code. Put wholly admin-only modules under `src/modules/admin/<name>`. Admin-only declarations, reads and views for a member module stay in its `admin/`, `server/admin/` and `client/admin/` folders. Each module reads only its own tables; compose another module’s exposed operations for its data. Paths show intent; permissions enforce access.
 
-A server module exports a registration with `migrations` (its directory path), `group`, `handlers` and `services`. Register it in `src/server/modules.ts`; the foundation derives migrations from those registrations. Keep numbered migrations in the module’s server folder and use the next number across all modules.
+Write an operation once: a file under `<module>/server/` that exports a `query` or `command` with `payload` (when it has input) and a generator `*run` that yields its services and returns the public shape. Do not write `success` or `rejections`; `pnpm generate` derives them from `run`. The module file lists the operations with `defineModule`, keeps `requires` exact and passes the wire from `#generated/...`. Client code imports the module's contract from `src/generated`, which is written by `pnpm generate`, never edited and never committed. Map a constraint violation in `run` only when the operation knows what it means; anything unmapped answers `InternalServerError`.
+
+A server module exports a registration with `migrations` (its directory path), `module` and `services`. Register it in `src/server/modules.ts`; the foundation derives migrations from those registrations. Keep numbered migrations in the module’s server folder and use the next number across all modules.
 
 Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.
 

@@ -19,6 +19,7 @@ const named = [
 	],
 	["ItemPanel.tsx exporting ItemPanel", "packages/app/src/ItemPanel.tsx", "export function ItemPanel() {}\n"],
 	["Panel.tsx in its module folder Panel/", "packages/app/src/Panel/Panel.tsx", "export function Panel() {}\n"],
+	["Notes.ts in its feature folder notes/ exporting Notes", "packages/app/src/modules/notes/Notes.ts", "export class Notes {}\n"],
 	["Order.ts exporting the interface Order", "packages/app/src/Order.ts", "export interface Order {}\n"],
 	["the topic file limits.ts exporting two constants", "packages/app/src/limits.ts", "export const MAX_ITEMS = 10;\nexport const MAX_DEPTH = 4;\n"],
 	["the camelCase topic file helpers.ts", "packages/app/src/helpers.ts", "export function list() {}\nexport function count() {}\n"],
@@ -47,6 +48,30 @@ const misnamed = [
 		"packages/app/src/items/listItems.ts",
 		"export function listItems() {}\n",
 		'"listItems" repeats its folder "items".',
+	],
+	[
+		"module.ts that repeats its folder modules/ above notes/",
+		"packages/app/src/modules/notes/module.ts",
+		"export const notesModule = () => ({});\n",
+		'"module" repeats its folder "modules".',
+	],
+	[
+		"ownedNote.ts that repeats its folder notes/ above server/",
+		"packages/app/src/notes/server/ownedNote.ts",
+		"export function ownedNote() {}\n",
+		'"ownedNote" repeats its folder "notes".',
+	],
+	[
+		"UsersList.ts that repeats its folder users/ with more words",
+		"packages/app/src/users/UsersList.ts",
+		"export function UsersList() {}\n",
+		'"UsersList" repeats its folder "users".',
+	],
+	[
+		"notes.ts in notes/ exporting only Notes",
+		"packages/app/src/notes/notes.ts",
+		"export class Notes {}\n",
+		'"notes" does not name its export Notes.',
 	],
 	[
 		"list-copy.ts exporting itemList",

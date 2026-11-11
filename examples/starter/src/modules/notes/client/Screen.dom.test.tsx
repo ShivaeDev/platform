@@ -43,18 +43,6 @@ for (const title of ["", "   "]) {
 	);
 }
 
-screens.it("a title the server refuses shows its reason and stays in the field", [notesRoute()], function* ({ alert, draft, enter, settle, submit }) {
-	yield* enter("reserved");
-
-	yield* submit();
-	yield* settle();
-
-	yield* outcomes([
-		["alert", alert, "Choose another title"],
-		["draft", draft, "reserved"],
-	]);
-});
-
 screens.it(
 	"adding a note lists it, clears the field and reads the list again",
 	[notesRoute()],

@@ -3,7 +3,7 @@ import { FetchHttpClient, HttpClient } from "effect/http";
 import { NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
-import { Note } from "#modules/notes/notes.ts";
+import { Note } from "#modules/notes/model.ts";
 import { NoteSource } from "#modules/notes/server/Source.ts";
 
 const Post = Schema.Struct({ title: Note.fields.title });

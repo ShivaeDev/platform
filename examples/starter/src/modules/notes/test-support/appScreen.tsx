@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
 import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { makeAdminClient } from "#modules/notes/client/admin/make.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
-import { Notes } from "#modules/notes/notes.ts";
 import { appScreen as openAppScreen } from "#test-support/appScreen.tsx";
 
 const modules = {

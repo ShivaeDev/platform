@@ -1,6 +1,6 @@
 # Live queries
 
-Database-backed Platform hosts and React session boundaries provide live queries by default. Model fields define write buckets, queries declare who may read them, a query's repository reads name the keys it listens on, and mounted queries subscribe over the client's shared WebSocket. Start with this automatic path, as the [starter notes feature](../../examples/starter/src/modules/notes/notes.ts) does. It needs no subscribe operation, `live()` call or hand-written invalidation.
+Database-backed Platform hosts and React session boundaries provide live queries by default. Model fields define write buckets, queries declare who may read them, a query's repository reads name the keys it listens on, and mounted queries subscribe over the client's shared WebSocket. Start with this automatic path, as the [starter notes feature](../../examples/starter/src/modules/notes/Notes.ts) does. It needs no subscribe operation, `live()` call or hand-written invalidation.
 
 ## Mark buckets on the stored model
 

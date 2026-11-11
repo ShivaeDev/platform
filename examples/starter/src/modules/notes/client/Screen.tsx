@@ -8,7 +8,7 @@ import { Card, CardContent } from "#client/ui/card.tsx";
 import { NoteCreate } from "#modules/notes/client/Create.tsx";
 import type { NotesClient } from "#modules/notes/client/make.ts";
 import { NotesTable } from "#modules/notes/client/Table.tsx";
-import type { Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/model.ts";
 
 export function NotesScreen({
 	client,
@@ -16,7 +16,7 @@ export function NotesScreen({
 	signOut,
 }: {
 	readonly client: NotesClient;
-	readonly loaded: readonly (typeof Note.Type)[];
+	readonly loaded: (typeof Note.Type)[];
 	readonly signOut?: AuthActions["signOut"];
 }) {
 	const query = useLoaderQuery(client.api.list.query(), loaded);

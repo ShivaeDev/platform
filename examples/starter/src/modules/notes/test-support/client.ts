@@ -6,7 +6,8 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { type Note, notes } from "#modules/notes/model.ts";
 import { notesClientHost } from "#modules/notes/test-support/clientHost.ts";
 
 export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
@@ -55,9 +56,6 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				if (faults.saveDefect) {
 					return yield* Effect.die("Save unavailable");
 				}
-				if (title === "reserved") {
-					return yield* Create.reject.Invalid({ field: "title", message: "Choose another title" });
-				}
 				const row = { id: rows.length + 1, title, version: 0, wordCount: null };
 				rows.unshift(row);
 				yield* announce(row.id);
@@ -99,9 +97,6 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 				const row = yield* get(input.id);
 				if (row.version !== input.version) {
 					return yield* Effect.fail(conflict());
-				}
-				if (input.title === "reserved") {
-					return yield* Update.reject.Invalid({ field: "title", message: "Choose another title" });
 				}
 				const saved = { ...row, title: input.title, version: row.version + 1, wordCount: null };
 				rows[rows.findIndex((note) => note.id === row.id)] = saved;

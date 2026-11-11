@@ -5,8 +5,9 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { settledQueries } from "@shivaedev/test-kits/contract/settledQueries.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
-import { Note, Notes } from "#modules/notes/notes.ts";
+import { Note } from "#modules/notes/model.ts";
 import type { RpcAddress } from "#modules/notes/test-support/Engine.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";
 
