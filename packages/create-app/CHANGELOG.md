@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.45.0 - 2026-11-11
+
+### Changed
+
+- `create-app resource <name>` writes a defined module in the starter's notes shape: `<Module>.ts` with `defineModule` and the wire from `#generated/...`, a `model.ts`, and one file per operation under `server/` (`List.ts`, `Create.ts`) with `payload` and `*run`. Its registration names `module:`, its client imports the generated contract, and it no longer writes a service, a handler map, hand-written rejections or an `unavailable.ts` helper. Its output now lints cleanly as written.
+- The first resource in a minimal app adds the `src/generated` entry under `imports/resolvable` in `quality.config.ts`; the command refuses before writing when the config's rules cannot take that entry.
+- The app's `quality.config.ts` no longer names `src/generated`, and a minimal app's config is the full app's.
+- `create-app resource` no longer adds a `generated` entry to a minimal app's `quality.config.ts`, and no longer refuses a config whose rules cannot take one.
+- Generated applications write each notes operation once, as `payload` and `*run` in its own file under `src/modules/notes/server/`, listed in `src/modules/notes/Notes.ts` with `defineModule` and registered as `module: Notes`. `pnpm generate` writes the module's wire and browser contract into `src/generated`, and client code imports it from `#generated/modules/notes/Notes.ts`. A constraint violation that no operation maps now answers `InternalServerError` instead of `Conflict`.
+
 ## 0.44.1 - 2026-11-11
 
 ### Changed

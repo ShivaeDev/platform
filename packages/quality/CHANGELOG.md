@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.78.0 - 2026-11-11
+
+### Added
+
+- `tests/raw-servers` reports a `test-support/` module that creates a `node:http`, `node:https` or `node:net` server and listens on a port itself, including a free-port probe. Hand a Node HTTP server to `loopbackServer` from `@shivaedev/test-story/server/adapters/loopback.ts`, which listens on a loopback port and closes it with the story's scope, or fake an outside HTTP API with `fakeHttpService` from `@shivaedev/test-story/server/fakeHttpService.ts`. Servers listening on a Unix socket path and `node:net` servers that handle their own sockets are accepted.
+
+### Changed
+
+- `files/named-after-export` accepts a file named like its own folder in any case, so a feature folder `notes/` can hold `Notes.ts` exporting `Notes`. The file name still follows its export's case.
+- `files/named-after-export` accepts a folder's main file whose name matches the folder's ignoring case and separators: `reading-lists/ReadingLists.ts` exporting `ReadingLists` passes, while `reading-lists/ReadingListsItems.ts` still repeats its folder.
+- `files/named-after-export` lets a file whose one export is a `query` or `command` from `@shivaedev/contract/operation.ts` repeat words of the folders above it, so `reading-lists/server/List.ts` exporting `List` passes. The file is still named after its operation, case included, and other files beside it, such as `reading-lists/server/listRows.ts`, still may not repeat a folder.
+- An import of a generated file that the generator does not write is reported by `imports/resolvable`, which names the module file that would define it, and `docs/references` reports a path to one, instead of accepting any path into a declared folder.
+
+### Fixed
+
+- `imports/runtime` takes a file that calls `defineModule` as server code, so a defined module may import server code, and client or shared code that imports the module itself is reported with the generated client as the repair. It no longer follows a generated client's type import of its own module.
+- `imports/fences` no longer follows a generated client's type import of its own module, so a page that imports another package's generated client needs no exception for the module behind it; the client's value imports still count.
+- `imports/resolvable` accepts another workspace package's import of a file in a declared generated folder, such as `@scope/notes/generated/Notes.ts`, before the generator writes it.
+- `docs/references` accepts a module path or a link into a declared generated folder before the generator writes the file.
+- `effect/service-parameters` accepts comparing a tag that a function only hands to a `.middleware(tag)` declaration or `Context.pick` with `undefined` or `null`, such as `tag === undefined` or `options?.middleware !== undefined`, because that only tests whether an optional tag is present. Code that read a property such as `tag?.key` to get past the rule can compare the tag itself. Returning, storing, yielding or calling the tag is still reported.
+
+### Breaking
+
+- `imports/resolvable` takes no `generated` option, and a config that sets it is refused. Delete the option from `quality.config.ts`: Quality knows that the generator writes to `src/generated` at the project's root and in each workspace package. `RuleInputs.generated` is gone with it.
+- `quality lint`, which the pre-commit hook and `quality ci` run too, first runs the `generate` script of the project's `package.json` through its package manager, so a fresh checkout, a newly written module and a deleted `src/generated` lint the same as an up-to-date tree. A project without a `generate` script runs nothing. When the script fails, the run stops with its output and exit code 2. A `generate` script that must not run before every lint, such as a database client generator, a migration writer that can prompt or a slow generator, gets another name.
+
 ## 0.77.0 - 2026-11-11
 
 ### Added

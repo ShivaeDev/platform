@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/build",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "An application's build setup: its Vite and Vitest configuration, and the generated wire and browser contract of each defined module",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/build#readme",
 	"bugs": {

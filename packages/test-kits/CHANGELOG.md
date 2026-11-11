@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.1 - 2026-11-11
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.31.2 to 0.32.0.
+- Update `@shivaedev/test-sql` from 0.24.9 to 0.25.0.
+- Update `@shivaedev/test-story` from 0.47.0 to 0.47.1.
+
 ## 0.12.0 - 2026-11-11
 
 ### Changed

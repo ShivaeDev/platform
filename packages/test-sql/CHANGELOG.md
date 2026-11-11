@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.25.0 - 2026-11-11
+
+### Added
+
+- `postgresTestUrl` falls back to the local `platform_test_<name>` database for a `PLATFORM_<NAME>_TEST_DATABASE_URL` variable that is not set, so a focused test run needs no setup. Other variable names and the `CI` refusal are unchanged.
+
+### Fixed
+
+- `raceWithLock` fails with the new `FinishedBeforeBlocking` error as soon as a contender has finished while the holder still holds the lock and every other contender has finished too or is blocked, naming the finished contenders' indexes and the blocked count. Before, such a race waited out its whole deadline and failed with `NeverSettled`, and under a controlled clock a contender still opening its connection could be counted as never blocking.
+
 ## 0.24.9 - 2026-11-11
 
 ### Changed
