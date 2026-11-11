@@ -9,12 +9,14 @@ const NOTES_REFERENCE = /notes(?:Registration|Worker|Migrations)|notesModule|not
 application.it(
 	"a minimal app removes notes files, registrations, dependencies and the declared generated folder that only notes imports from, preserves the remaining full app files and records its variant",
 	[fullAppToCompare],
-	function* ({ createApp, dependsOn, file, filesDifferingFrom, filesMissingFrom, filesOnlyIn, generationRecord }) {
+	function* ({ createApp, dependsOn, file, fileMentions, filesDifferingFrom, filesMissingFrom, filesOnlyIn, generationRecord }) {
 		for (const registration of REGISTRATIONS) {
 			expect(yield* file(registration)).toMatch(NOTES_REFERENCE);
 		}
-		expect(yield* dependsOn("@tanstack/react-table")).toBe(true);
-		expect(yield* file("quality.config.ts")).toContain('generated: ["src/generated"]');
+		yield* outcomes([
+			["notes dependency", () => dependsOn("@tanstack/react-table"), true],
+			["generated folder declared", () => fileMentions("quality.config.ts", "src/generated"), true],
+		]);
 
 		yield* createApp("my-app", "--minimal", "--no-git");
 
@@ -35,11 +37,11 @@ application.it(
 				],
 			],
 			["notes dependency", () => dependsOn("@tanstack/react-table"), false],
+			["generated folder declared", () => fileMentions("quality.config.ts", "src/generated"), false],
 			["generation record", () => generationRecord(), { minimal: true, name: "my-app" }],
 		]);
 		for (const registration of REGISTRATIONS) {
 			expect(yield* file(registration)).not.toMatch(NOTES_REFERENCE);
 		}
-		expect(yield* file("quality.config.ts")).not.toContain("src/generated");
 	},
 );
