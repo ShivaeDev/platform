@@ -71,7 +71,6 @@ function run(engine: GeneratorEngine, check: boolean) {
 	);
 }
 
-// The browser contract's query keeps the shape query() builds, and a bound query asks it for its keys with no viewer.
 const browserKeysOf = Effect.fn("BuildStory.browserKeysOf")(function* (engine: GeneratorEngine, operation: string) {
 	const generated = yield* importedFrom(engine, NOTES_WIRE);
 	const contract = Predicate.hasProperty(generated, "Notes") ? generated.Notes : undefined;
