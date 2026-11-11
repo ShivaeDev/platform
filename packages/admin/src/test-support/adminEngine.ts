@@ -1,17 +1,17 @@
-import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
+import { Effect, Layer, Option, Ref, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
-import { query } from "@shivaedev/contract/operation.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { Restricted as RestrictedClient } from "#generated/test-support/Restricted.ts";
 import { adminPage } from "#page.ts";
 import { UsersPermission } from "#permissions.ts";
 import { adminRegistry } from "#registry.ts";
@@ -20,11 +20,10 @@ import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 import { Jobs, Users } from "#test/pages.ts";
+import { Restricted } from "#test/Restricted.ts";
 
-const Restricted = adminPage({
-	contract: contract("admin.restricted", {
-		queries: [query("profile", { readPolicy: () => Effect.succeed(false), reads: () => [], success: Schema.String })],
-	}),
+const RestrictedPage = adminPage({
+	contract: RestrictedClient,
 	id: "restricted",
 	permission: UsersPermission,
 	route: { path: "/admin/restricted", title: "Restricted" },
@@ -46,9 +45,7 @@ export const adminEngine = Effect.gen(function* () {
 			"admin.users.profile": () => Effect.map(SessionUser, (user) => user.email),
 		}),
 	});
-	const restrictedModule = registerAdmin(adminRegistry(Restricted), {
-		restricted: Restricted.contract.application.toLayer({ "admin.restricted.profile": () => Effect.succeed("unrestricted") }),
-	});
+	const restrictedModule = registerAdmin(adminRegistry(RestrictedPage), { restricted: moduleHandlers(Restricted) });
 	const registration = mergeAdminRegistrations(jobsModule, usersModule, restrictedModule);
 	const group = registration.group;
 	const changes = hostChanges(registration.group).pipe(Layer.provide(Layer.succeed(LiveServer, live)));

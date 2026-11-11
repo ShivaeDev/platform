@@ -11,8 +11,9 @@ import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { mappedTables } from "#test/mappedTables.ts";
-import { makeUsersEngine, Page, usersEngine } from "#test/usersEngine.ts";
+import { makeUsersEngine, usersEngine } from "#test/usersEngine.ts";
 import { availability, rowOf, screenOf, usersReadouts } from "#test/usersScreenReadouts.ts";
+import { UsersPage } from "#users/Page.ts";
 
 type Engine = Effect.Success<typeof usersEngine> & {
 	actor: string;
@@ -97,7 +98,7 @@ export const twentyOneUsers = usersScreen.trait(
 export const viewOpen = usersScreen.trait("screen", "the users view is open without live subscriptions on its first page", function* (engine) {
 	const protocol = yield* engine.protocolAs(engine.actor);
 	const runtime = yield* clientRuntime;
-	const client = makeClient(Page.contract, { live: false, protocol, runtime, url: "http://localhost/rpc" });
+	const client = makeClient(UsersPage.contract, { live: false, protocol, runtime, url: "http://localhost/rpc" });
 	engine.activity = Option.some(clientActivity(client));
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>

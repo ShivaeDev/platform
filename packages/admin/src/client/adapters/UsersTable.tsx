@@ -2,7 +2,7 @@ import { DateTime } from "effect";
 import type { ReactNode } from "react";
 import type { DirectoryUser } from "@shivaedev/identity/users.ts";
 import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
-import type { UsersList } from "#users/page.ts";
+import type { UsersList } from "#users/List.ts";
 
 interface RoleControls<TRole extends string> {
 	readonly dispatch: (input: ChangeRoleInput<TRole>) => void;
@@ -74,7 +74,7 @@ function UserCell({ label, children }: { readonly label: string; readonly childr
 	);
 }
 
-function UserRows<TRole extends string>({ data, ...controls }: RoleControls<TRole> & { readonly data: typeof UsersList.Type }) {
+function UserRows<TRole extends string>({ data, ...controls }: RoleControls<TRole> & { readonly data: UsersList }) {
 	return (
 		<div className="sm:overflow-x-auto sm:rounded-md sm:border">
 			<table className="block w-full text-left text-sm sm:table">
@@ -91,7 +91,7 @@ function UserRows<TRole extends string>({ data, ...controls }: RoleControls<TRol
 		</div>
 	);
 }
-export function UsersTable<TRole extends string>({ data, ...controls }: RoleControls<TRole> & { readonly data: typeof UsersList.Type }) {
+export function UsersTable<TRole extends string>({ data, ...controls }: RoleControls<TRole> & { readonly data: UsersList }) {
 	const permission = !data.canChangeRoles && <p>Permission to assign roles is required to change roles.</p>;
 	const users = data.users.length === 0 ? <p>No users.</p> : <UserRows {...controls} data={data} />;
 	return (

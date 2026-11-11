@@ -94,12 +94,25 @@ usersStory.it(
 	},
 );
 
-usersStory.it("listing users and changing a role trace the admin operations", [], function* ({ assign, page, spanNames }) {
+usersStory.it("listing users and changing a role trace the served module's operations around admin's", [], function* ({ assign, page, spanNames }) {
 	yield* page("alice", { limit: 2 });
 	yield* assign("alice", "bob", "auditor");
 
-	expect(yield* spanNames()).toEqual(["Admin.listUsers", "Admin.changeUserRole"]);
+	expect(yield* spanNames()).toEqual(["Admin.users.list", "Admin.listUsers", "Admin.users.changeRole", "Admin.changeUserRole"]);
 });
+
+usersStory.it(
+	"alice assigning bob a role the application does not declare is refused, and bob stays a user",
+	[],
+	function* ({ answerTo, assign, rolesSeenBy }) {
+		yield* assign("alice", "bob", "superuser");
+
+		yield* outcomes([
+			["alice's answer", () => answerTo("alice"), "User role is not declared by the application"],
+			["roles alice sees", () => rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
+		]);
+	},
+);
 
 for (const [limit, shown] of [
 	[1, { next: "after aaron", users: ["aaron"] }],
