@@ -75,6 +75,36 @@ Declare application roles with `@shivaedev/access`, grant the relevant domain pe
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids defect when the handler Layer is built; TypeScript also checks each Layer provides the handlers for its page.
 
+### Write a page's operations once
+
+A page's operations can instead be a module built with `defineModule` from `@shivaedev/contract/defineModule.ts`: each operation is its `payload` and `*run`, and `pnpm generate` writes the browser contract from the module. Give the module the page's permission middleware, so `run` can read `SessionUser`. The module file is server code, for example `src/modules/admin/jobs/Failed.ts`:
+
+```ts
+export const Failed = defineModule({
+	middleware: JobsPermission,
+	name: "admin.jobs",
+	operations: [ListFailed],
+	requires: [JobStore],
+	wire: adminJobsWire,
+});
+```
+
+The browser-safe page imports the generated contract, which has the module's name:
+
+```ts
+import { Failed } from "#generated/modules/admin/jobs/Failed.ts";
+
+export const Jobs = adminPage({ contract: Failed, id: "jobs", permission: JobsPermission, route: { path: "/admin/jobs", title: "Jobs" } });
+```
+
+Server registration serves the module itself with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts`, which runs each query's read policy inside its handler:
+
+```ts
+registerAdmin(Admin, { jobs: moduleHandlers(Failed) });
+```
+
+The page's permission covers every operation as for any page. Pages in this form and pages with hand-written handlers share one registry, so an application moves one page at a time.
+
 ### Protect documents and detail routes
 
 Provide the application's session policy through `SessionPolicy` once. Registration builds each page's permission layer with that policy. The handler Layer requires identity's `SessionPolicy` service.
@@ -238,7 +268,7 @@ Pass the page's schedule declarations and bound action to show **Run now** for a
 
 ### Built-in Users page
 
-Call `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with the application's code-defined role set. Add the returned page to the same registry as Jobs and register `users: usersHandlers(UsersPage)` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers require identity's `UserDirectory` service. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the same options used by `betterAuthMount`. Identity owns the PostgreSQL reads and role writes, including custom auth mappings. For example, `authOptions.user.modelName: "users"` makes the Users view open and page through `users`; mapped name, email, role and creation-time columns are used as well. The page reads identity's exported `userKeys.list` collection, so role changes refresh open user lists.
+Add `UsersPage` from `@shivaedev/admin/users/Page.ts` to the same registry as Jobs and register `users: moduleHandlers(Users)`, with `Users` from `@shivaedev/admin/Users.ts`, the module behind the page, which is server code. The module requires identity's `UserDirectory` service. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the same options used by `betterAuthMount`. Identity owns the PostgreSQL reads and role writes, including custom auth mappings. For example, `authOptions.user.modelName: "users"` makes the Users view open and page through `users`; mapped name, email, role and creation-time columns are used as well. The page reads identity's exported `userKeys.list` collection, so role changes refresh open user lists.
 
 Each user stores one role string accepted by `AppAccess.Role`. Each role declares an explicit permission list in application code. The Users area assigns roles; it does not edit their grants.
 
@@ -255,9 +285,9 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 
 `admin.users.list` takes `{ limit, cursor? }` (1–100 users) and returns `{ users, next, canChangeRoles }` ordered by user id. Each user has id, name, email, role and a UTC sign-up time. The page's operations and generated subscription require `ReadUsers` (`users.read`), enforced by `UsersPermission`. Registration installs this middleware using `SessionPolicy`.
 
-`admin.users.changeRole` takes `{ userId, role }`; its role Schema is the application's declared role union. The handler also requires `AssignRoles` (`roles.assign`) from `@shivaedev/identity/roles.ts`. The view shows a role select only to callers with that permission. Role writes use identity’s `assignRole` verb, serialize in a transaction and return `LastRoleAssigner` (from `@shivaedev/identity/roles.ts`) if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
+`admin.users.changeRole` takes `{ userId, role }` with the role as a string, since one page serves every application. The user directory refuses a role the application does not declare with `AuthUnavailable`, before anything is written, so the role set passed to `betterAuthUserDirectory` decides which roles exist. The operation also requires `AssignRoles` (`roles.assign`) from `@shivaedev/identity/roles.ts`. The view shows a role select only to callers with that permission. Role writes use identity’s `assignRole` verb, serialize in a transaction and return `LastRoleAssigner` (from `@shivaedev/identity/roles.ts`) if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
 
-Applications can call `listUsers(input)` and `changeUserRole(input)` from `@shivaedev/admin/server/users.ts` on the server. Both require `UserDirectory` from the Effect environment. These enforce their respective domain permissions using `SessionUser`. Decode untrusted role input with `AppAccess.Role` before calling `changeUserRole` directly; native RPC performs that decode at the contract boundary. Identity resolves the caller's stored role through the session policy.
+Applications can call `listUsers(input)` and `changeUserRole(input)` from `@shivaedev/admin/server/users.ts` on the server. Both require `UserDirectory` from the Effect environment. These enforce their respective domain permissions using `SessionUser`. Identity resolves the caller's stored role through the session policy.
 
 Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through `UserDirectory.assignRole` to retain the final-assigner policy. Keep Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints disabled because they write roles outside that policy. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
@@ -289,6 +319,6 @@ The view lists signed-in sessions with the user's name and email, started, last 
 
 Install `@shivaedev/admin` with its required `effect` peer. Registry, contract and guard consumers need no React stack. To use the optional default views, also install the optional peers `react`, `@effect/atom-react` and `@shivaedev/react`. The package has no root entry; import the module that defines the name.
 
-Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the optional default Jobs, Users and Sessions views under `/client/adapters` use React. Applications own route composition and styling.
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and modules built with `defineModule`, such as `Users.ts`, are server code whose browser contracts are in `/generated`. The package's build writes `src/generated` and `dist/generated` before compiling, so the published archive holds them although the repository does not commit them. The optional default Jobs, Users and Sessions views under `/client/adapters` use React. Applications own route composition and styling.
 
 This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissionLayer.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

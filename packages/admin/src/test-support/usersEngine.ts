@@ -5,6 +5,7 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
@@ -17,11 +18,10 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import { usersHandlers } from "#server/usersHandlers.ts";
 import { Access } from "#test/Access.ts";
-import { usersPage } from "#users/page.ts";
+import { Users } from "#Users.ts";
+import { UsersPage } from "#users/Page.ts";
 
-export const Page = usersPage(Access);
 const Profile = DirectoryUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));
 export interface LogRecord {
 	readonly annotations: Readonly<Record<string, unknown>>;
@@ -77,7 +77,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	]);
 	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer.pipe(Layer.provide(reactivity))));
-	const registration = registerAdmin(adminRegistry(Page), { users: usersHandlers(Page) });
+	const registration = registerAdmin(adminRegistry(UsersPage), { users: moduleHandlers(Users) });
 	const handlers = hostChanges(registration.group)
 		.pipe(Layer.provideMerge(registration.handlers))
 		.pipe(
@@ -112,7 +112,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 		});
 	}
 	function clientAs(id: string) {
-		return protocolAs(id).pipe(Effect.flatMap((protocol) => RpcClient.make(Page.contract).pipe(Effect.provide(protocol))));
+		return protocolAs(id).pipe(Effect.flatMap((protocol) => RpcClient.make(UsersPage.contract).pipe(Effect.provide(protocol))));
 	}
 	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, protocolAs, register, spans };
 });

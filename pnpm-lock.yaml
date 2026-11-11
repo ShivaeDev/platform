@@ -522,6 +522,9 @@ importers:
       '@effect/atom-react':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)(react@19.3.1)(scheduler@0.28.0)
+      '@shivaedev/build':
+        specifier: workspace:*
+        version: link:../build
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

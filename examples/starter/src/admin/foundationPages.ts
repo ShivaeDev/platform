@@ -2,10 +2,7 @@ import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
 import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { SessionsPage } from "@shivaedev/admin/sessions/Page.ts";
-import { usersPage } from "@shivaedev/admin/users/page.ts";
-import { AppAccess } from "#AppAccess.ts";
-
-const UsersPage = usersPage(AppAccess);
+import { UsersPage } from "@shivaedev/admin/users/Page.ts";
 
 export function foundationPages<const TQueues extends readonly JobsEntry[]>(...queues: TQueues) {
 	const JobsPage = jobsPage(...queues);

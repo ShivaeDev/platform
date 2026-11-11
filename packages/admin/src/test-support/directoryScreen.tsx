@@ -14,14 +14,15 @@ import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { mappedTables } from "#test/mappedTables.ts";
-import { makeUsersEngine, Page } from "#test/usersEngine.ts";
+import { makeUsersEngine } from "#test/usersEngine.ts";
+import { UsersPage } from "#users/Page.ts";
 
 const openDirectory = Effect.fnUntraced(function* (mapping: AuthTableOptions) {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	const engine = yield* makeUsersEngine(mapping);
 	const protocol = yield* engine.protocolAs("alice");
 	const runtime = yield* clientRuntime;
-	const client = makeClient(Page.contract, { protocol, runtime, url: "http://localhost/rpc" });
+	const client = makeClient(UsersPage.contract, { protocol, runtime, url: "http://localhost/rpc" });
 	const activity = clientActivity(client);
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>

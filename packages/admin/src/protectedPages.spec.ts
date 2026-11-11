@@ -94,6 +94,19 @@ for (const [role, answer] of [
 	});
 }
 
-adminStory.it("a page grant does not override a query's additional read restriction", [signedInAs("admin")], function* ({ restrictedProfile }) {
-	expect(yield* restrictedProfile()).toBe("read denied");
-});
+adminStory.it(
+	"a page grant does not override the read restriction a defined module's query runs inside its handler",
+	[signedInAs("admin")],
+	function* ({ restrictedProfile }) {
+		expect(yield* restrictedProfile()).toBe("read denied");
+	},
+);
+
+for (const [caller, traits, refusal] of [
+	["a signed-out caller", [signedOut], "unauthorized"],
+	["an operator, who reads jobs only,", [signedInAs("operator")], "forbidden"],
+] as const) {
+	adminStory.it(`${caller} is ${refusal} on a page whose operations are a defined module`, traits, function* ({ restrictedProfile }) {
+		expect(yield* restrictedProfile()).toBe(refusal);
+	});
+}
