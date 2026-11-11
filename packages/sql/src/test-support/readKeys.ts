@@ -14,6 +14,10 @@ import { type DiaryEntry, diaryEntries } from "#test/diaryEntries.ts";
 import { onPostgres } from "#test/engines.ts";
 import { type OwnedRow, setupOwnedRows } from "#test/postgresOwnedRows.ts";
 
+function numbered(count: number) {
+	return Array.from({ length: count }, (_, index) => index + 1);
+}
+
 function keyWords(key: Key) {
 	switch (key._tag) {
 		case "List":
@@ -43,6 +47,8 @@ export type Read =
 	| { readonly call: "findMany"; readonly where?: FindManyFilter<typeof BucketRow> }
 	| { readonly call: "latestPerGroup"; readonly where: RepositoryListFilter<typeof BucketRow> }
 	| { readonly call: "findDiaryEntries"; readonly where: FindManyFilter<typeof DiaryEntry> }
+	| { readonly call: "findDiaryDays"; readonly owners: readonly string[]; readonly days: number }
+	| { readonly call: "findDiaryOwners"; readonly owners: number }
 	| { readonly call: "findLedgerEntry"; readonly account: string; readonly sequence: bigint }
 	| { readonly call: "findOwnedRow"; readonly id: number; readonly ownerId: number }
 	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> }
@@ -89,8 +95,12 @@ function perform({ buckets: { keys, rows, tableName }, diary, ledger, owned, sql
 			return Effect.asVoid(rows.count({ where: read.where }));
 		case "findById":
 			return Effect.asVoid(rows.findById(read.id));
+		case "findDiaryDays":
+			return Effect.asVoid(diary.entries.findMany({ where: { day: { in: numbered(read.days) }, ownerId: { in: read.owners } } }));
 		case "findDiaryEntries":
 			return Effect.asVoid(diary.entries.findMany({ where: read.where }));
+		case "findDiaryOwners":
+			return Effect.asVoid(diary.entries.findMany({ where: { ownerId: { in: numbered(read.owners).map((owner) => `owner ${owner}`) } } }));
 		case "findLedgerEntry":
 			return Effect.asVoid(ledger.entries.findById({ account: read.account, sequence: read.sequence }));
 		case "findMany":
@@ -137,6 +147,10 @@ function described(read: Read) {
 	switch (read.call) {
 		case "findById":
 			return `row ${read.id}`;
+		case "findDiaryDays":
+			return `the diary entries of ${read.owners.join(" and ")} for days 1 to ${read.days}`;
+		case "findDiaryOwners":
+			return `the diary entries of ${read.owners} owners`;
 		case "findLedgerEntry":
 			return `the ${read.account} ledger entry at sequence ${read.sequence}, a composite id with a bigint`;
 		case "findOwnedRow":
