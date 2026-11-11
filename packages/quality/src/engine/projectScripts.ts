@@ -6,22 +6,20 @@ import { SetupFailure } from "#failure.ts";
 
 export interface ProjectScripts {
 	readonly manager: string;
-	readonly scripts: Readonly<Record<string, string>>;
+	readonly scripts: readonly string[];
 }
 
 const MANAGERS = ["npm", "pnpm", "yarn", "bun"];
 
-export const projectScripts = Effect.fn("Engine.projectScripts")(function* (root: string) {
+export const projectScripts = Effect.fn("Engine.projectScripts")(function* (root: string, wanted: readonly string[]) {
 	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
 	const file = join(root, "package.json");
-	const manifest = yield* Effect.mapError(
-		readPackageManifest(yield* manifestReader(root), file),
-		(cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause.message}` }),
-	);
+	const manifest = yield* readPackageManifest(yield* manifestReader(root), file);
+	const scripts = wanted.filter((script) => manifest?.scripts?.[script] !== undefined);
 	const manager = manifest?.packageManager?.split("@")[0] ?? "npm";
-	if (!MANAGERS.includes(manager)) {
+	if (scripts.length > 0 && !MANAGERS.includes(manager)) {
 		return yield* new SetupFailure({ message: `${file}: unsupported packageManager "${manager}". Use npm, pnpm, yarn or bun.` });
 	}
-	return { manager, scripts: manifest?.scripts ?? {} } satisfies ProjectScripts;
+	return { manager, scripts } satisfies ProjectScripts;
 });

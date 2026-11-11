@@ -6,13 +6,16 @@ import { SetupFailure } from "#failure.ts";
 
 const SCRIPT = "generate";
 
-// Generated files are not committed, so the project writes them before any rule reads an import of them; a run holding the heavy lock lends it to the generator.
+// Generated files are not committed, so the project writes them before any rule reads an import of them; a run holding the heavy lock lends it to the generator. An unreadable manifest names no script, and manifests/valid reports it.
 export const generateFirst = Effect.fn("Engine.generateFirst")(
 	function* (root: string) {
-		const { manager, scripts } = yield* projectScripts(root);
-		if (scripts[SCRIPT] === undefined) {
+		const project = yield* projectScripts(root, [SCRIPT]).pipe(
+			Effect.catchTags({ FilesystemFailure: () => Effect.undefined, ManifestFailure: () => Effect.undefined }),
+		);
+		if (project === undefined || project.scripts.length === 0) {
 			return;
 		}
+		const { manager } = project;
 		const held = yield* Effect.serviceOption(HeldLock);
 		const env = Option.match(held, { onNone: () => ({}), onSome: (lock) => lock.env });
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;

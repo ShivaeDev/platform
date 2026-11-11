@@ -1,5 +1,6 @@
 import { Config, Console, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import type { ManifestReadFailure } from "#adapters/manifestInventory.ts";
 import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { passes } from "#engine/evaluate.ts";
@@ -23,6 +24,10 @@ const runScript = Effect.fnUntraced(
 	Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run a pre-commit script: ${error.message}` })),
 );
 
+function invalidManifest(cause: ManifestReadFailure) {
+	return new SetupFailure({ cause, message: `${cause.path} is invalid: ${cause.message}` });
+}
+
 const inCloudSession = Config.String("CLAUDE_CODE_REMOTE").pipe(
 	Config.withDefault(""),
 	Config.map((value) => value === "true"),
@@ -38,8 +43,9 @@ export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: st
 		}
 		return;
 	}
-	const { manager, scripts: declared } = yield* projectScripts(config.root);
-	const scripts = ["typecheck", "quality:commit"].filter((script) => declared[script] !== undefined);
+	const { manager, scripts } = yield* projectScripts(config.root, ["typecheck", "quality:commit"]).pipe(
+		Effect.catchTags({ FilesystemFailure: invalidManifest, ManifestFailure: invalidManifest }),
+	);
 	const { context, outcome } = yield* reportLint(cwd, path, true);
 	const linted = passes(outcome);
 	const failed = linted ? [] : ["quality lint"];
