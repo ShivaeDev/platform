@@ -6,6 +6,7 @@ import { libraryTiers } from "#quality/libraryTiers.ts";
 import { migrationConvention } from "#quality/migrationConvention.ts";
 import { serverKitImports } from "#quality/serverKitImports.ts";
 import { starterBaseline } from "#quality/starterBaseline.ts";
+import { unitModuleState } from "#quality/unitModuleState.ts";
 import { unreadable } from "#quality/unreadable.ts";
 import { workspaceSection } from "#quality/workspaceSection.ts";
 
@@ -28,6 +29,18 @@ export default defineConfig({
 				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The file-scoped Layer fixture depends on none, so its pattern is empty.",
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
 		},
+		{
+			"files": ["packages/quality/src/testing/adapters/tree.ts"],
+			"reason":
+				"The list only collects seeded trees for removal and nothing reads it otherwise. A worker runs its files one after another, so a later file's cleanup removes only trees of stories that have ended.",
+			"rules": ["tests/unit-module-state"],
+		},
+		{
+			"files": ["packages/test-story/src/server/adapters/installOutbound.ts"],
+			"reason":
+				"Each story adds its outbound routes when it starts and removes them when it ends, and the last removal restores Node's dispatchers, so no route outlives its story.",
+			"rules": ["tests/unit-module-state"],
+		},
 	],
 	local: [
 		catalogOnly,
@@ -37,6 +50,7 @@ export default defineConfig({
 		migrationConvention,
 		serverKitImports,
 		starterBaseline,
+		unitModuleState,
 		unreadable,
 		workspaceSection,
 	],
