@@ -47,6 +47,7 @@ const bridge = defineRule({
 	description:
 		"Biome's lint, format and assist findings under the shared preset, except undeclared-dependency findings for a piece that an application's entry point brings. `quality fix` applies Biome's lint fixes, unsafe ones included, its assist actions and formatting.",
 	id: "biome",
+	needs: "child-process",
 	registrable: false,
 });
 

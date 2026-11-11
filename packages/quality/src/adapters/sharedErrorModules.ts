@@ -47,7 +47,7 @@ function resolveModules(specifiers: readonly string[], from: string, project: Pr
 	});
 }
 
-export const sharedErrorModules = Effect.fn("SharedErrors.sharedErrorModules")(function* (inputs: RuleInputs) {
+export const sharedErrorModules = Effect.fn("SharedErrors.sharedErrorModules")(function* (inputs: Pick<RuleInputs, "readText" | "root" | "sources">) {
 	const projectOf = projectsFor(inputs.root);
 	const manifests = new Map<string, string>();
 	for (const source of inputs.sources) {

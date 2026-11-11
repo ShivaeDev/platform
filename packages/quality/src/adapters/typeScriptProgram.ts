@@ -50,10 +50,6 @@ export const sourcesProgram = Effect.fn("TypeScriptProgram.sourcesProgram")(func
 	return yield* compile(root, [...texts.keys()], texts, projectOf);
 });
 
-export const filesProgram = Effect.fn("TypeScriptProgram.filesProgram")(function* (root: string, files: readonly string[]) {
-	return yield* compile(root, files, new Map(), projectsFor(root));
-});
-
 // Rules receive the program as an Effect without requirements, so it keeps the declaration files of the run that scanned the sources.
 export const typeScriptProgram = Effect.fn("TypeScriptProgram.typeScriptProgram")(function* (root: string, sources: readonly SourceFile[]) {
 	const declarations = yield* DeclarationFiles;

@@ -35,6 +35,7 @@ function activeRule(rule: RegisteredRule, check: ActiveRule["check"]): ActiveRul
 		family: rule.family === true,
 		id: rule.id,
 		level: "error",
+		...(rule.needs === undefined ? {} : { needs: rule.needs }),
 		registrable: rule.registrable !== false,
 	};
 }

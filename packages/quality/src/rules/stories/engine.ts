@@ -70,4 +70,5 @@ export const storyEngine = defineRule({
 	description:
 		"Story bodies use their kit instead of raw services, story.engine or production wiring; constructor subjects and native transaction blocks remain explicit.",
 	id: "tests/story-engine",
+	needs: "story-program",
 });

@@ -88,5 +88,6 @@ export const waitOnEvents = defineRule({
 	check: (inputs) => Effect.map(storyWaitSources(inputs), (sources) => sources.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE))),
 	description: "Stories and reachable test-support settle on the engine's own signals; controlled clock advances belong in kit verbs.",
 	id: "tests/wait-on-events",
+	needs: "story-program",
 	registrable: false,
 });

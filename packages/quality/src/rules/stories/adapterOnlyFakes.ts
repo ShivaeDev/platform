@@ -62,5 +62,6 @@ export const adapterOnlyFakes = defineRule({
 	}),
 	description: "Tests fake only adapters, outside libraries and platform globals; owned modules and services run for real.",
 	id: "tests/adapter-only-fakes",
+	needs: "story-program",
 	registrable: false,
 });

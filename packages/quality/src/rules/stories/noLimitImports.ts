@@ -79,4 +79,5 @@ export const noLimitImports = defineRule({
 	check: (inputs) => Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, capImports, MESSAGE))),
 	description: "Stories prove behavior instead of importing implementation caps from limits modules.",
 	id: "tests/no-limit-imports",
+	needs: "story-program",
 });

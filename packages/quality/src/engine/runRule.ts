@@ -6,7 +6,7 @@ import type { ActiveLevel, Violation } from "#engine/violation.ts";
 import { SetupFailure } from "#failure.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
+import type { Finding, Need, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 
 export interface ActiveRule {
 	readonly check: RuleCheck;
@@ -15,6 +15,7 @@ export interface ActiveRule {
 	readonly family: boolean;
 	readonly id: string;
 	readonly level: ActiveLevel;
+	readonly needs?: Need;
 	readonly registrable?: boolean;
 }
 

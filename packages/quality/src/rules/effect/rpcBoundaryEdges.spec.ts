@@ -1,9 +1,17 @@
 import { expect } from "@effect/vitest";
 import { rpcBoundary } from "#rules/effect/rpcBoundary.ts";
-import { rpcBoundaryImports, rpcBoundaryResolves } from "#test/rpcBoundaryResolves.ts";
 import { ruleCases } from "#test/ruleCases.ts";
 
-const repository = ruleCases.repository(...rpcBoundaryResolves);
+const repository = ruleCases.repository();
+
+const imports = [
+	'import { Context, Effect, Schema } from "effect";',
+	'import { Rpc, RpcGroup } from "effect/rpc";',
+	'import { rpcBoundary as expose } from "@shivaedev/errors/boundary.ts";',
+	'import * as Boundaries from "@shivaedev/errors/rpcBoundaryHandlers.ts";',
+	'const Api = RpcGroup.make(Rpc.make("Read", { success: Schema.String, error: Schema.String }));',
+	'const options = { unexpected: () => "unavailable" };',
+];
 
 for (const { name, code } of [
 	{ code: 'const read = Effect.succeed("note").pipe(expose(Schema.String, options));', name: "rpcBoundary" },
@@ -11,7 +19,7 @@ for (const { name, code } of [
 ]) {
 	ruleCases.it(
 		`effect/rpc-boundary reports ${name} in a service module with its repair`,
-		[repository.has({ content: [...rpcBoundaryImports, code].join("\n"), path: "src/service.ts" })],
+		[repository.has({ content: [...imports, code].join("\n"), path: "src/service.ts" })],
 		function* ({ check }) {
 			const findings = yield* check(rpcBoundary);
 
@@ -32,7 +40,7 @@ for (const builder of ["toLayer", "toHandlers", "of", "toLayerHandler"]) {
 		[
 			repository.has({
 				content: [
-					...rpcBoundaryImports,
+					...imports,
 					'const handlers = Boundaries.rpcBoundaryHandlers(Api, options, { Read: () => Effect.succeed("note").pipe(expose(Schema.String, options)) });',
 					builder === "toLayerHandler" ? 'Api.toLayerHandler("Read", handlers.Read);' : `Api.${builder}(handlers);`,
 				].join("\n"),
@@ -47,26 +55,55 @@ for (const builder of ["toLayer", "toHandlers", "of", "toLayerHandler"]) {
 	);
 }
 
+ruleCases.it(
+	"effect/rpc-boundary accepts a group imported from its contract module or declared as a class",
+	[
+		repository.has(
+			{
+				content: [
+					'import { rpcBoundary } from "@shivaedev/errors/boundary.ts";',
+					'import { Notes } from "#modules/notes/contract.ts";',
+					"Notes.application.toLayer({ Read: () => Notes.read().pipe(rpcBoundary(Notes.error, Notes.options)) });",
+				].join("\n"),
+				path: "src/notes/registration.ts",
+			},
+			{
+				content: [
+					...imports,
+					'class Group extends RpcGroup.make().prefix("notes.") {}',
+					'Group.toLayer({ Read: () => Effect.succeed("note").pipe(expose(Schema.String, options)) });',
+				].join("\n"),
+				path: "src/group/registration.ts",
+			},
+		),
+	],
+	function* ({ check, findings }) {
+		yield* check(rpcBoundary);
+
+		expect(yield* findings()).toEqual([]);
+	},
+);
+
 for (const { name, code, path } of [
-	{
-		code: 'const boundary = expose; Effect.succeed("note").pipe(boundary(Schema.String, options));',
-		name: "a local boundary alias",
-		path: "src/service.ts",
-	},
-	{
-		code: 'const { rpcBoundaryHandlers: boundary } = Boundaries; boundary(Api, options, { Read: () => Effect.succeed("note") });',
-		name: "a destructured namespace import",
-		path: "src/adapters/service.ts",
-	},
 	{
 		code: "const unrelated = { toLayer: (value: unknown) => value }; unrelated.toLayer({}); expose(Schema.String, options);",
 		name: "a same-named method unrelated to RPC",
 		path: "src/registration.ts",
 	},
+	{
+		code: 'class Notes extends Context.Service<Notes, { read: unknown }>()("Notes") {} Notes.of({ read: Effect.succeed("note").pipe(expose(Schema.String, options)) });',
+		name: "a service tag's of",
+		path: "src/adapters/service.ts",
+	},
+	{
+		code: 'import { Notes } from "#notes/Notes.ts"; Notes.of({ read: Effect.succeed("note").pipe(expose(Schema.String, options)) });',
+		name: "an imported service tag's of",
+		path: "src/notes/service.ts",
+	},
 ]) {
 	ruleCases.it(
-		`effect/rpc-boundary reports ${name}`,
-		[repository.has({ content: [...rpcBoundaryImports, code].join("\n"), path })],
+		`effect/rpc-boundary reports a boundary beside ${name}`,
+		[repository.has({ content: [...imports, code].join("\n"), path })],
 		function* ({ check, locations }) {
 			yield* check(rpcBoundary);
 
@@ -76,34 +113,12 @@ for (const { name, code, path } of [
 }
 
 ruleCases.it(
-	"effect/rpc-boundary follows a renamed re-export into a service module",
-	[
-		repository.has(
-			{ content: 'export { rpcBoundary as expose } from "@shivaedev/errors/boundary.ts";', path: "src/expose.ts" },
-			{
-				content: [
-					'import { Schema } from "effect";',
-					'import { expose } from "./expose.ts";',
-					'expose(Schema.String, { unexpected: () => "unavailable" });',
-				].join("\n"),
-				path: "src/service.ts",
-			},
-		),
-	],
-	function* ({ check, locations }) {
-		yield* check(rpcBoundary);
-
-		expect(yield* locations()).toEqual(["src/service.ts:3"]);
-	},
-);
-
-ruleCases.it(
 	"effect/rpc-boundary accepts unrelated boundary functions and boundary test kits",
 	[
 		repository.has(
 			{ content: "function rpcBoundary() {} rpcBoundary();", path: "src/unrelated.ts" },
 			{
-				content: [...rpcBoundaryImports, "expose(Schema.String, options);"].join("\n"),
+				content: [...imports, "expose(Schema.String, options);"].join("\n"),
 				path: "src/test-support/boundary.ts",
 			},
 		),
