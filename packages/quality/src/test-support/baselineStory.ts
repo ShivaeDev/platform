@@ -70,7 +70,7 @@ export const baselineStory = storyKit({
 				}),
 			rootFiles: () => Effect.sync(() => readdirSync(engine.root).sort()),
 			shallow: () => Effect.sync(() => (git(engine.root, "rev-parse", "--is-shallow-repository").trim() === "true" ? "shallow" : "complete")),
-			shards: () => Effect.sync(() => Object.fromEntries(shardPaths(engine.root).map((path) => [path, readOrUndefined(engine.root, path)]))),
+			shards: () => Effect.sync(() => shardPaths(engine.root).map((path) => [path, readOrUndefined(engine.root, path)] as const)),
 			stages: (...paths: readonly string[]) =>
 				Effect.sync(() => {
 					story.tell(`the author stages ${paths.join(", ")}`);

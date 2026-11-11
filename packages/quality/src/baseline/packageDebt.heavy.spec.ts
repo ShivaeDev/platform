@@ -16,15 +16,19 @@ const ALPHA_DEBT = [
 const BETA_DEBT = ["packages/beta/src/b.ts structure/max-lines 3"];
 
 baselineStory.it(
-	"baseline write records each package's debt in that package's shard and the debt outside packages in the root shard",
-	[packageWorkspace()],
-	function* ({ recorded, runs }) {
+	"baseline write records each package's debt in that package's shard and the debt outside packages in the root shard, byte for byte as the given that records it without the command",
+	[packageWorkspace(), shardsRecorded()],
+	function* ({ recorded, removesShards, runs, shards }) {
+		const written = yield* shards();
+		yield* removesShards();
+
 		yield* runs("baseline", "write");
 
 		yield* outcomes([
 			["alpha shard", () => recorded(ALPHA_SHARD), ALPHA_DEBT],
 			["beta shard", () => recorded(BETA_SHARD), BETA_DEBT],
 			["root shard", () => recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
+			["shards", () => shards(), written],
 		]);
 	},
 	CLI_TIMEOUT,
@@ -68,7 +72,6 @@ baselineStory.it(
 );
 
 for (const { debt, given } of [
-	{ debt: "each package's line-limit debt in its shard", given: [packageWorkspace(), shardsRecorded()] },
 	{ debt: "the line-limit debt of a single-package repository", given: [debtRecorded()] },
 	{ debt: "an await finding", given: [boundaryDebt()] },
 	{ debt: "a typed boundary finding beside the other findings of its files", given: [typedBoundaryDebt()] },
