@@ -7,7 +7,20 @@ import { JobsNotFailed } from "#jobs/NotFailed.ts";
 import { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
 import { RegisteredQueues } from "#server/RegisteredQueues.ts";
 
-function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBossPayloadError | Schema.SchemaError, R>) {
+type Declared<E> = E extends Schema.SchemaError
+	? BadRequest
+	: E extends PgBossPayloadError
+		? JobsPayloadInvalid
+		: E extends PgBossError
+			? JobsUnavailable
+			: never;
+
+function jobsFailures<A, E extends PgBossError | PgBossPayloadError | Schema.SchemaError, R>(
+	effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, Declared<E>, R>;
+function jobsFailures<A, R>(
+	effect: Effect.Effect<A, PgBossError | PgBossPayloadError | Schema.SchemaError, R>,
+): Effect.Effect<A, BadRequest | JobsPayloadInvalid | JobsUnavailable, R> {
 	return effect.pipe(
 		Effect.mapError((error) => {
 			switch (error._tag) {

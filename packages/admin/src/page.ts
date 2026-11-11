@@ -38,15 +38,14 @@ interface PageGroup extends RpcGroup.Any {
 	readonly requests: ReadonlyMap<string, Rpc.Any>;
 }
 
-type PageQueries<TQueries extends readonly QueryShape[]> = {
-	readonly [TIndex in keyof TQueries]: Omit<TQueries[TIndex], "readPolicy"> & {
-		readonly readPolicy: QueryReadPolicy<
-			TQueries[TIndex]["payload"]["Type"],
-			TQueries[TIndex]["error"]["Type"],
-			QueryServices<TQueries[TIndex]> | SessionUser
-		>;
-	};
-};
+// Distributes over a generated contract's queries, which arrive as one array of their union rather than a tuple.
+type PageQuery<TQuery> = TQuery extends QueryShape
+	? Omit<TQuery, "readPolicy"> & {
+			readonly readPolicy: QueryReadPolicy<TQuery["payload"]["Type"], TQuery["error"]["Type"], QueryServices<TQuery> | SessionUser>;
+		}
+	: never;
+
+type PageQueries<TQueries extends readonly QueryShape[]> = { readonly [TIndex in keyof TQueries]: PageQuery<TQueries[TIndex]> };
 
 type PageRpcs<TRpc> =
 	TRpc extends Rpc.Rpc<infer TTag, infer TPayload, infer TSuccess, infer TError, infer TMiddleware, infer R>
