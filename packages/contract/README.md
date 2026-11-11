@@ -96,17 +96,14 @@ An operation can also be written as its business logic: a `payload` schema and a
 
 ```ts
 import { Effect, Schema } from "effect";
-import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { NotesRepository, SessionUser } from "./services.ts";
 
 export const NoteFields = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty({ message: "Enter a title" })) });
 export class TitleTaken extends Schema.TaggedError<TitleTaken>()("TitleTaken", fieldRejection(NoteFields)) {}
-const notes = collection("notes", Schema.Number);
 
 export const Create = command("create", {
-	invalidates: () => [notes.list],
 	payload: NoteFields,
 	*run({ title }) {
 		const repository = yield* NotesRepository;
@@ -114,19 +111,20 @@ export const Create = command("create", {
 		if (title === "reserved") {
 			return yield* new TitleTaken({ field: "title", message: "That title is reserved" });
 		}
-		return yield* repository.insert(title, userId).pipe(Effect.map(({ id }) => ({ id, title })));
+		return yield* repository.insert({ title, userId }).pipe(Effect.map(({ id }) => ({ id, title })));
 	},
 });
 
 export const List = query("list", {
-	reads: () => [notes.list],
 	*run() {
 		const repository = yield* NotesRepository;
 		const { id: userId } = yield* SessionUser;
-		return yield* repository.findMany(userId);
+		return yield* repository.findMany({ select: ["id", "title"], where: { userId } });
 	},
 });
 ```
+
+Here `NotesRepository` is a `@shivaedev/sql` repository whose model marks `userId` as a bucket. Its insert announces the new row and its owner's bucket, so `Create` declares no `invalidates`, and `List` declares no `reads`: its `findMany` pins the owner's bucket, so the live list listens on it.
 
 `Create.run` is an Effect-returning function, so another operation composes it with `yield* Create.run({ title })`, and `Create`'s services and failures join that operation's types. A query without `readPolicy` gets `signedIn`, at run time and in its type. It may declare `reads`, `serverReads` and `readsCollections` (which need a `permissionReadPolicy`); one that declares none listens on what its repository reads filter by, as [query policies, record keys and buckets](#query-policies-record-keys-and-buckets) explains. A command without `invalidates` announces no keys of its own. A payload-free operation omits `payload` and gets `Schema.Void`.
 
@@ -659,21 +657,18 @@ Contract groups carry their read-policy guard into native `RpcServer` hosts and 
 A query declares its decoded input, result and `readPolicy` together, and declares `reads` when its handler's reads do not name its keys, as described below. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections`; a failing access check reaches the client as its declared error, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
 
 ```ts
-import { Option, Schema } from "effect";
-import { collection } from "@shivaedev/changes/keys.ts";
+import { Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 
-const notes = collection("notes", Schema.Number, { userId: Schema.String });
 const Mine = query("mine", {
 	payload: { title: Schema.String },
 	success: Schema.Array(Schema.String),
 	readPolicy: signedIn,
-	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 });
 ```
 
-On a repository model, annotate tenant fields with `bucket()` from `@shivaedev/changes/buckets.ts` so writes announce the affected buckets. For an admin page spanning every tenant, declare `readsCollections` beside a permission read policy:
+`Mine` declares no `reads`. Its handler reads `findMany({ where: { userId } })` through a `@shivaedev/sql` repository, which names the viewer's `userId` bucket, so the live query listens on that bucket. On a repository model, annotate tenant fields with `bucket()` from `@shivaedev/changes/buckets.ts` so writes announce the affected buckets. For an admin page spanning every tenant, declare `readsCollections` beside a permission read policy:
 
 ```ts
 import { Effect, Schema } from "effect";
@@ -694,7 +689,7 @@ const AllNotes = query("allNotes", {
 });
 ```
 
-The application supplies the permission checker through `permissionReadPolicy(permission, check)`; `check` receives that permission and the current viewer, and must check the viewer's grant using server services. Its failures and service requirements flow through the query like any other read policy. Supply `SessionUser` with the application's identity middleware. The policy guards both calls and subscriptions, and runs again before queries rerun. `readsCollections` requires this policy at declaration: a `signedIn` or ordinary boolean policy fails TypeScript checking, and the server reports an untyped declaration with that policy as an Effect defect during host startup. The server also refuses collection queries changed to an ordinary policy after construction as `QueryReadDenied`. Tenant-facing queries use `notes.bucket.userId(viewerId)` instead.
+The application supplies the permission checker through `permissionReadPolicy(permission, check)`; `check` receives that permission and the current viewer, and must check the viewer's grant using server services. Its failures and service requirements flow through the query like any other read policy. Supply `SessionUser` with the application's identity middleware. The policy guards both calls and subscriptions, and runs again before queries rerun. `readsCollections` requires this policy at declaration: a `signedIn` or ordinary boolean policy fails TypeScript checking, and the server reports an untyped declaration with that policy as an Effect defect during host startup. The server also refuses collection queries changed to an ordinary policy after construction as `QueryReadDenied`. A tenant-facing query instead filters its repository read by the tenant column, which names that tenant's bucket.
 
 Collection reads reuse the bare repository table key, the same key as `notes.list`, even when the contract uses `keyScope: "session"`; record and bucket reads also use plain server keys. They add no wildcard matching or write-side work. Every committed repository insert, update, delete, upsert and bulk write already publishes that key. Generated-id inserts also publish the bare collection key alongside their generated record key, so `publishes` stories that check exact published keys must allow the bare key today. For a table named `notes`, that is `"notes"` alongside `"notes:<id>"` and any affected bucket keys. Mounting a collection subscriber adds **zero PostgreSQL NOTIFY messages per write**: it consumes the existing payloads. It adds a normal query subscription and an authorized reread when the collection changes.
 
