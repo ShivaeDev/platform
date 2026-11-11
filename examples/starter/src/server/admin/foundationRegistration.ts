@@ -1,5 +1,7 @@
+import { Layer } from "effect";
+import { Jobs } from "@shivaedev/admin/Jobs.ts";
 import type { JobsEntry } from "@shivaedev/admin/jobs/entry.ts";
-import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
+import { pgBossQueues } from "@shivaedev/admin/server/adapters/pgBossQueues.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { Users } from "@shivaedev/admin/Users.ts";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
@@ -13,10 +15,10 @@ export function foundationRegistration<const TQueues extends readonly JobsEntry[
 	const foundation = foundationPages(...queues);
 	return {
 		...registerAdmin(foundation.admin, {
-			jobs: jobsHandlers(foundation.JobsPage, AdminJobs),
+			jobs: moduleHandlers(Jobs),
 			sessions: moduleHandlers(Sessions),
 			users: moduleHandlers(Users),
 		}),
-		services: AdminJobs.layer({ jobs: [] }),
+		services: pgBossQueues(AdminJobs, ...queues).pipe(Layer.provideMerge(AdminJobs.layer({ jobs: [] }))),
 	};
 }

@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
@@ -9,9 +10,10 @@ import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { jobsPage } from "#jobs/page.ts";
+import { Jobs as JobsModule } from "#Jobs.ts";
+import { JobsPage } from "#jobs/Page.ts";
 import { adminRegistry } from "#registry.ts";
-import { jobsHandlers } from "#server/jobsHandlers.ts";
+import { pgBossQueues } from "#server/adapters/pgBossQueues.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
@@ -24,15 +26,14 @@ const emptyJobsEngine = Effect.gen(function* () {
 	const context = yield* Layer.build(
 		Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
 	);
-	const page = jobsPage();
-	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
+	const registration = registerAdmin(adminRegistry(JobsPage), { jobs: moduleHandlers(JobsModule) });
 	const jobs = Context.get(context, Jobs);
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const auth = Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
-	const client = yield* RpcTest.makeClient(page.contract).pipe(
+	const client = yield* RpcTest.makeClient(JobsPage.contract).pipe(
 		Effect.provide(hostChanges(registration.group).pipe(Layer.provideMerge(registration.handlers))),
 		Effect.provide(auth),
-		Effect.provide(Layer.succeed(Jobs, jobs)),
+		Effect.provide(pgBossQueues(Jobs).pipe(Layer.provide(Layer.succeed(Jobs, jobs)))),
 	);
 	return { client, session };
 });

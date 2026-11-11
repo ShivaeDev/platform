@@ -1,6 +1,7 @@
 import { Context, Data, Effect, Exit, Layer, Option, type Queue, Redacted, Schema, Scope } from "effect";
 import { TestClock } from "effect/testing";
 import { vi } from "vitest";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
@@ -9,11 +10,12 @@ import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { emptyPostgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
-import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
+import { JobsWithRetry } from "#JobsWithRetry.ts";
+import { pgBossQueues } from "#server/adapters/pgBossQueues.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "#test/adminRpc.ts";
 import { jobsClient } from "#test/jobsClient.ts";
-import { Mail, Private, pages, Sync } from "#test/jobsPages.ts";
+import { Mail, Private, pages, queues, Sync } from "#test/jobsPages.ts";
 import { Users } from "#test/pages.ts";
 import { ScheduledWorker } from "#test/ScheduledWorker.ts";
 
@@ -87,14 +89,14 @@ export const jobsEngine = Effect.gen(function* () {
 	const registry = pages();
 	const page = registry.pages[0];
 	const registration = registerAdmin(registry, {
-		jobs: jobsHandlersWithRetry(page, Jobs),
+		jobs: moduleHandlers(JobsWithRetry),
 		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
 	});
 	const rpc = yield* adminRpc(
 		registration.group,
 		hostChanges(registration.group)
 			.pipe(Layer.provideMerge(registration.handlers))
-			.pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
+			.pipe(Layer.provide(pgBossQueues(Jobs, ...queues)), Layer.provide(Layer.succeed(Jobs, jobs))),
 	);
 
 	return {

@@ -5,7 +5,7 @@
 				"./registry.ts",
 				"./page.ts",
 				"./permissions.ts",
-				"./jobs/page.ts",
+				"./jobs/Page.ts",
 				"./users/Page.ts",
 				"./sessions/Page.ts",
 				"./client/adapters/adminPermissionGuard.ts",

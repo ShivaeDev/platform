@@ -224,3 +224,7 @@ export function mounted(view: JobsView) {
 		yield* Effect.addFinalizer(() => Effect.sync(unsubscribe));
 	});
 }
+
+export const nightlyCleanupUnscheduled = jobsStory.trait("jobs", "nightly cleanup was unscheduled in pg-boss", (engine) =>
+	engine.jobs.unschedule(ScheduledWorker),
+);

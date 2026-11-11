@@ -1,5 +1,4 @@
 import { Schema } from "effect";
-import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 
 export interface JobsQueue {
@@ -18,8 +17,6 @@ export class JobsPayloadInvalid extends Schema.TaggedError<JobsPayloadInvalid>()
 export class JobsQueueUnregistered extends Schema.TaggedError<JobsQueueUnregistered>()("JobsQueueUnregistered", {
 	queue: Schema.String,
 }) {}
-
-export const JobsFailures = { BadRequest, JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable };
 
 export const QueueCounts = Schema.Struct({
 	activeCount: Schema.Number,
@@ -50,8 +47,10 @@ export const JobFields = {
 	attempt: Schema.Number,
 	completedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
 	createdOn: Schema.DateTimeUtcFromString,
+	data: Schema.Unknown.annotate({ sensitive: true }),
 	id: Schema.String,
 	output: Schema.NullOr(JobFailure).annotate({ sensitive: true }),
+	queue: Schema.String,
 	retryCount: Schema.Number,
 	retryLimit: Schema.Number,
 	startedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
@@ -59,23 +58,3 @@ export const JobFields = {
 };
 
 export const PageFields = { cursor: Schema.optionalKey(Schema.String), limit: Schema.Number };
-
-export function jobSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
-	return Schema.Struct({ ...JobFields, data: Schema.Unknown.annotate({ sensitive: true }), queue: Schema.Literal(queue.name) });
-}
-
-export function deadLetteredSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
-	const name: string = `${queue.name}-dlq`;
-	return Schema.Struct({
-		...JobFields,
-		data: Schema.Unknown.annotate({ sensitive: true }),
-		queue: Schema.Literal(name),
-		sourceId: Schema.OptionFromNullOr(Schema.String),
-		sourceOutput: Schema.NullOr(JobFailure).annotate({ sensitive: true }),
-		sourceQueue: Schema.Literal(queue.name),
-	});
-}
-
-export function jobPage<TJob extends Schema.Top>(job: TJob) {
-	return Schema.Struct({ jobs: Schema.Array(job), next: Schema.OptionFromNullOr(Schema.String) });
-}
