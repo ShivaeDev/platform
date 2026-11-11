@@ -63,13 +63,13 @@ repositoryReadsStory.it(
 
 for (const style of ["module handlers", "hand-written handlers"] as const) {
 	repositoryReadsStory.it(
-		`with ${style}, a write to the row a read policy reads does not rerun the query, while a query reading that row itself reruns`,
-		[watching(["shelf 1 behind a policy reading alice's reader row", "alice's reader row"], style)],
+		`with ${style}, a write to the row a read policy reads and records with recordRead does not rerun the query, while a query reading that row itself reruns`,
+		[watching(["shelf 1 behind a policy that reads and records alice's reader row", "alice's reader row"], style)],
 		function* ({ move, untilDeliveries }) {
 			yield* move(2);
 
 			expect(yield* untilDeliveries(3)).toEqual([
-				"shelf 1 behind a policy reading alice's reader row: Dune | Emma",
+				"shelf 1 behind a policy that reads and records alice's reader row: Dune | Emma",
 				"alice's reader row: 1",
 				"alice's reader row: 2",
 			]);

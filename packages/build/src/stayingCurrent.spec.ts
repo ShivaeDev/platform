@@ -63,7 +63,7 @@ generator.it(
 		yield* edits("src/modules/notes/stats.ts", "count: rows.length,", "count: String(rows.length),");
 
 		expect(yield* compiles()).toContain(
-			`src/modules/notes/notes.ts(14,2): error TS2322: Type '"notes"' is not assignable to type '"notes" & NoInfer<WireSuccessStale<"stats", "the generated file is stale; run pnpm generate"`,
+			`src/modules/notes/notes.ts(15,2): error TS2322: Type '"notes"' is not assignable to type '"notes" & NoInfer<WireSuccessStale<"stats", "the generated file is stale; run pnpm generate"`,
 		);
 		yield* generates();
 		expect(yield* compiles()).toBe("compiles cleanly");

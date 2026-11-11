@@ -4,6 +4,7 @@ import { Model } from "effect/schema";
 import { Migrator, SqlClient } from "effect/sql";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
+import { recordRead } from "@shivaedev/changes/readRecorder.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -15,6 +16,7 @@ import { CurrentViewer, signedIn, type Viewer } from "#readPolicy.ts";
 export class StoredBook extends Model.Class<StoredBook>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
 export class StoredReader extends Model.Class<StoredReader>("LibraryReader")({ name: Schema.String, shelf: Schema.Number }) {}
 export const books = collection("library_books", Schema.Number, { shelf: Schema.Number });
+const readerRows = collection("library_readers", Schema.String);
 
 export const makeBooks = makeRepository(StoredBook, { collection: books, idColumn: "id", spanPrefix: "LibraryBooks", tableName: "library_books" });
 export const makeReaders = makeRepository(StoredReader, { idColumn: "name", spanPrefix: "LibraryReaders", tableName: "library_readers" });
@@ -95,7 +97,11 @@ const Reader = query("reader", {
 const ReaderShelf = query("readerShelf", {
 	payload: { shelf: Schema.Number },
 	readPolicy: (_payload, viewer) =>
-		Effect.flatMap(Library, ({ readers }) => Effect.map(readers.findOne({ where: { name: readerOf(viewer) } }), Option.isSome)).pipe(Effect.orDie),
+		Effect.gen(function* () {
+			const { readers } = yield* Library;
+			yield* recordRead([readerRows.item(readerOf(viewer))]);
+			return Option.isSome(yield* Effect.orDie(readers.findOne({ where: { name: readerOf(viewer) } })));
+		}),
 	*run({ shelf }) {
 		return yield* titlesOn(shelf);
 	},

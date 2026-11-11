@@ -65,6 +65,14 @@ generator.it(
 );
 
 generator.it(
+	"recent, a module query that declares no keys, reaches the browser contract with reads that returns no keys",
+	[notesProject(), generatedOnce()],
+	function* ({ browserKeys }) {
+		expect(yield* browserKeys("recent")).toEqual([]);
+	},
+);
+
+generator.it(
 	"generate writes the notes module's file under src/generated, headed as generated from its module, and tsc compiles the project with it",
 	[notesProject()],
 	function* ({ compiles, generatedFile, generates }) {

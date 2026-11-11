@@ -15,7 +15,7 @@ const views = {
 	"book 1": { payload: { id: 1 }, query: "book" },
 	"book 1 read 100 times": { payload: { id: 1, times: 100 }, query: "rereadBook" },
 	"shelf 1": { payload: { shelf: 1 }, query: "shelf" },
-	"shelf 1 behind a policy reading alice's reader row": { payload: { shelf: 1 }, query: "readerShelf" },
+	"shelf 1 behind a policy that reads and records alice's reader row": { payload: { shelf: 1 }, query: "readerShelf" },
 	"shelf 1 declaring its bucket and filtering every book in code": { payload: { shelf: 1 }, query: "declaredShelf" },
 	"the catalog": { payload: undefined, query: "catalog" },
 } as const;
