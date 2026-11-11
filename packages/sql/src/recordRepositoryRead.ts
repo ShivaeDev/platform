@@ -37,7 +37,6 @@ export function makeRecordRead(
 	const fields = declaredBuckets(model.fields).map(({ field }) => field);
 	const keys = collection(options.tableName, AnyIdentity, Object.fromEntries(fields.map((field) => [field, AnyIdentity])));
 	const tupleKeys = collection(options.tableName, AnyIdentity, {}, options.tuples);
-	// Tuples come first so that a tie in pinned values goes to the bucket spanning more columns.
 	const buckets: readonly Bucket[] = [
 		...Object.entries(tupleKeys.tuples).flatMap(([tuple, columns]) => {
 			const make = tupleKeys.bucket[tuple];
