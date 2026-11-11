@@ -4,6 +4,7 @@ import ts from "typescript";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
+import { parse } from "#rules/parse.ts";
 
 const programs = new WeakMap<RuleInputs["sources"], ts.Program>();
 
@@ -12,7 +13,7 @@ export function storyProgram(inputs: RuleInputs, graph: ImportGraph): ts.Program
 	if (known !== undefined) {
 		return known;
 	}
-	const sources = new Map(inputs.sources.map((file) => [join(inputs.root, file.path), file.text]));
+	const sources = new Map(inputs.sources.map((file) => [join(inputs.root, file.path), file]));
 	const targets = new Map(
 		graph.edges.flatMap((edge) =>
 			edge.to.kind === "file" ? [[`${join(inputs.root, edge.from)}:${edge.specifier}`, join(inputs.root, edge.to.path)] as const] : [],
@@ -24,10 +25,15 @@ export function storyProgram(inputs: RuleInputs, graph: ImportGraph): ts.Program
 		...ts.createCompilerHost(options),
 		fileExists: (path) => sources.has(path) || ts.sys.fileExists(path),
 		getSourceFile: (path) => {
-			const text = sources.get(path) ?? ts.sys.readFile(path);
+			const file = sources.get(path);
+			const tree = file === undefined ? undefined : parse(file);
+			if (tree !== undefined) {
+				return tree;
+			}
+			const text = file?.text ?? ts.sys.readFile(path);
 			return text === undefined ? undefined : ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
 		},
-		readFile: (path) => sources.get(path) ?? ts.sys.readFile(path),
+		readFile: (path) => sources.get(path)?.text ?? ts.sys.readFile(path),
 		resolveModuleNames: (names, from) =>
 			names.map((name) => {
 				const path = targets.get(`${from}:${name}`);

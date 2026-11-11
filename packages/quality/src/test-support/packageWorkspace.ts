@@ -1,9 +1,8 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { baselineStory, setupRun } from "#test/baselineStory.ts";
-import { editedShard, editsPhrase, readOrUndefined, type ShardEdits, sourceOf, writeAll } from "#test/recordedDebt.ts";
+import { editedShard, editsPhrase, readOrUndefined, type ShardEdits, sourceOf, writeAll, writeShards } from "#test/recordedDebt.ts";
 import { commitAll, git } from "#testing/adapters/git.ts";
-import { formatTree } from "#testing/adapters/qualityTree.ts";
 import { linkPackage, packageRoot } from "#testing/adapters/tree.ts";
 
 export const ALPHA_SHARD = "packages/alpha/quality-baseline.jsonl";
@@ -32,7 +31,6 @@ export function packageWorkspace() {
 				{ content: sourceOf(1), path: "packages/clean/src/idle.ts" },
 			]);
 			linkPackage(engine.root);
-			formatTree(engine.root);
 			writeAll(engine.root, [
 				{ content: `#!/bin/sh\nexec node --conditions=@shivaedev/source ${join(packageRoot, "src", "cli.ts")} "$@"\n`, path: BIN },
 			]);
@@ -43,10 +41,17 @@ export function packageWorkspace() {
 }
 
 export function shardsRecorded() {
-	return baselineStory.trait("baseline", "quality baseline write records that debt, and git commits it on main", function* (engine) {
-		yield* setupRun(engine, "baseline", "write");
-		commitAll(engine.root, "Record debt");
-	});
+	return baselineStory.trait(
+		"baseline",
+		"the root and package shards record that debt as quality baseline write records it, and git commits them on main",
+		(engine) => {
+			writeShards(
+				engine.root,
+				IN_DEBT.map((file) => ({ count: 3, file, rule: "structure/max-lines" })),
+			);
+			commitAll(engine.root, "Record debt");
+		},
+	);
 }
 
 const SHARD_KEYS = ["path", "rule", "count", "deep"];

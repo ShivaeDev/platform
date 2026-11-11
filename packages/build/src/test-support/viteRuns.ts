@@ -1,5 +1,6 @@
 import { Effect, Queue } from "effect";
 import { build, createServer, type InlineConfig, type Logger, type ViteDevServer } from "vite";
+import { type AppViteOptions, appViteConfig } from "#adapters/appViteConfig.ts";
 import { buildPlugin } from "#adapters/vitePlugin.ts";
 
 // What reaches the browser over Vite's HMR socket: a page reload and the file whose change caused it, or the error overlay.
@@ -23,6 +24,8 @@ function terminalOf(lines: string[]): Logger {
 	};
 }
 
+const CONDITIONS = ["@shivaedev/source", "module", "browser", "development|production"];
+
 function configFor(root: string, terminal: string[], serverOnly: readonly string[]): InlineConfig {
 	return {
 		build: { minify: false, write: false },
@@ -33,7 +36,7 @@ function configFor(root: string, terminal: string[], serverOnly: readonly string
 		// Dependency discovery reloads the page once it has optimized what the first request found, which no story is about.
 		optimizeDeps: { include: [], noDiscovery: true },
 		plugins: [buildPlugin({ serverOnly })],
-		resolve: { conditions: ["@shivaedev/source", "module", "browser", "development|production"] },
+		resolve: { conditions: CONDITIONS },
 		root,
 		server: { fs: { strict: false }, host: "127.0.0.1", port: 0 },
 	};
@@ -46,6 +49,20 @@ function attempt<A>(start: () => Promise<A>) {
 export const viteBuild = Effect.fn("BuildStory.viteBuild")(function* (root: string, serverOnly: readonly string[]) {
 	const terminal: string[] = [];
 	return yield* attempt(() => build(configFor(root, terminal, serverOnly))).pipe(
+		Effect.as("built" as const),
+		Effect.catch((failure) => Effect.succeed(failure)),
+	);
+});
+
+export const appConfigBuild = Effect.fn("BuildStory.appConfigBuild")(function* (root: string, options: AppViteOptions) {
+	const config = {
+		...appViteConfig([], CONDITIONS, [], options),
+		build: { minify: false, write: false },
+		configFile: false as const,
+		logLevel: "silent" as const,
+		root,
+	};
+	return yield* attempt(() => build(config)).pipe(
 		Effect.as("built" as const),
 		Effect.catch((failure) => Effect.succeed(failure)),
 	);

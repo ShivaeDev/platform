@@ -5,6 +5,7 @@ import { runNode } from "#adapters/runNode.ts";
 import { type GenerateRound, type WatchedGeneration, watchedGeneration } from "#generateRound.ts";
 
 export interface BuildPluginOptions {
+	readonly bundleCheck?: boolean;
 	readonly serverOnly?: readonly string[];
 }
 
@@ -97,6 +98,6 @@ function generateFiles(): Plugin {
 	};
 }
 
-export function buildPlugin(options: BuildPluginOptions = {}): Plugin[] {
-	return [generateFiles(), bundleCheck(options.serverOnly ?? [])];
+export function buildPlugin({ bundleCheck: checked = true, serverOnly = [] }: BuildPluginOptions = {}): Plugin[] {
+	return checked ? [generateFiles(), bundleCheck(serverOnly)] : [generateFiles()];
 }

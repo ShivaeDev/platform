@@ -20,7 +20,7 @@ Next steps:
 
 ## Create and run
 
-The package contains a snapshot of the starter made when it is packed. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
+The package contains a snapshot of the starter made when it is packed, without the files under `src/generated` except that folder's README, since a generated app's first install writes them. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
 
 Generated apps start with an empty Quality baseline. Code imports outside libraries directly; `adapters/` holds only what Quality forbids elsewhere because a library requires it.
 
@@ -44,7 +44,7 @@ A generated app gets a README titled with its name, its own framework guidance i
 
 A generated app includes a GitHub Actions workflow that runs `pnpm run ci` against PostgreSQL and a `.railway/railway.ts` that defines PostgreSQL, builds the web and worker services, runs migrations before deployment, starts both processes and checks `/health` on the web service.
 
-Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup and CI command, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
+Generated apps reference Quality’s app TypeScript preset, hook setup and CI command, `@shivaedev/build`'s Vite and test configuration, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
 
 Published framework pins live in the generated workspace’s `framework` catalog; manifests reference them with `catalog:framework`. Review that catalog when upgrading framework versions, then run `pnpm install`. A template without a catalog keeps literal exact pins.
 

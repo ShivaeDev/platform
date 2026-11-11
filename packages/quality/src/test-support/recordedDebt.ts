@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { type BaselineEntry, encodeBaseline } from "#baseline/format.ts";
+import { shardOf } from "#baseline/shards.ts";
 import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const ROOT_SHARD = "quality-baseline.jsonl";
@@ -17,6 +19,14 @@ export function writeAll(root: string, files: readonly SeedFile[]): void {
 		mkdirSync(dirname(join(root, file.path)), { recursive: true });
 		writeFileSync(join(root, file.path), file.content);
 	}
+}
+
+export function writeShards(root: string, debt: readonly BaselineEntry[]): void {
+	const shards = Map.groupBy(debt, (entry) => shardOf(entry.file, ROOT_SHARD));
+	writeAll(
+		root,
+		[...shards].map(([path, entries]) => ({ content: encodeBaseline(entries), path })),
+	);
 }
 
 export function sourceOf(lines: number): string {

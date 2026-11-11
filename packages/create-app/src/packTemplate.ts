@@ -13,8 +13,13 @@ const appPaths = new Map([
 ]);
 const excluded = new Set(["node_modules", "dist", "coverage", "test-results", ".browser-check", "pnpm-lock.yaml", ".git"]);
 const rootExcluded = new Set(["published-versions.json", "AGENTS.md", "CLAUDE.md", "README.md", ".agents", ".claude"]);
+const GENERATED = "src/generated/";
 function included(path: string) {
-	return !(rootExcluded.has(path) || excluded.has(basename(path))) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
+	return (
+		!(rootExcluded.has(path) || excluded.has(basename(path)))
+		&& (!basename(path).startsWith(".env") || basename(path) === ".env.example")
+		&& (!path.startsWith(GENERATED) || path === `${GENERATED}README.md`)
+	);
 }
 
 export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (starter: string, output: string) {

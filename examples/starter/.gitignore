@@ -5,3 +5,5 @@ dist/
 coverage/
 test-results/
 .browser-check/
+src/generated/*
+!src/generated/README.md

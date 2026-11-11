@@ -8,7 +8,7 @@ import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 
 const TEST_PACKAGES = new Set(["@shivaedev/test", "@shivaedev/test-story", "@shivaedev/test-sql", "@shivaedev/test-kits", "vitest"]);
 
-const TEST_TOOLING = new Set([...TEST_PACKAGES, "@shivaedev/quality", "@shivaedev/vitest-rerun"]);
+const TEST_TOOLING = new Set([...TEST_PACKAGES, "@shivaedev/build", "@shivaedev/quality", "@shivaedev/vitest-rerun"]);
 
 function testingModule(path: string): boolean {
 	return isTestCode(path) || /(?:^|\/)(?:testing|test-support)(?:\/|\.|$)/u.test(path);

@@ -1,5 +1,5 @@
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appTestConfig } from "#appTestConfig.ts";
+import { appTestConfig } from "#adapters/appTestConfig.ts";
 
 export const appConfigStory = storyKit({
 	create: () => ({}),

@@ -9,6 +9,7 @@ const PACKAGE = fileURLToPath(new URL("../..", import.meta.url));
 // The packages a fixture project imports, linked from this package's own install so they resolve as an application's do.
 const LINKED: readonly (readonly [string, string])[] = [
 	["effect", createRequire(import.meta.url).resolve("effect/package.json")],
+	["@shivaedev/build", createRequire(import.meta.url).resolve("@shivaedev/build/package.json")],
 	["@shivaedev/changes", createRequire(import.meta.url).resolve("@shivaedev/changes/package.json")],
 	["@shivaedev/contract", createRequire(import.meta.url).resolve("@shivaedev/contract/package.json")],
 	["@shivaedev/errors", createRequire(import.meta.url).resolve("@shivaedev/errors/package.json")],

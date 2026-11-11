@@ -1,13 +1,14 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ConfigProvider, Effect, FileSystem, Option, Path, Queue } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { AppViteOptions } from "#adapters/appViteConfig.ts";
 import { writeAtomically } from "#files.ts";
 import { generate } from "#generate.ts";
 import { emptyProject, generatedOncePerFile, vitestRun, writeFiles } from "#test/fixtureProject.ts";
 import { NOTES_PROJECT } from "#test/notesProject.ts";
 import { REFUSING_PROJECT } from "#test/refusingProject.ts";
 import { VITE_PROJECT } from "#test/viteProject.ts";
-import { type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
+import { appConfigBuild, type DevServer, viteBuild, viteDevServer } from "#test/viteRuns.ts";
 
 interface ViteEngine {
 	devServer: Option.Option<DevServer>;
@@ -67,6 +68,10 @@ export const vite = storyKit({
 					: `the application runs vite build with ${serverOnly.join(", ")} listed as server-only`,
 			);
 			return viteBuild(engine.root, serverOnly);
+		},
+		buildsWithTheAppConfig: (options: AppViteOptions = {}) => {
+			story.tell(`the application runs vite build with appViteConfig and ${JSON.stringify(options)}`);
+			return appConfigBuild(engine.root, options);
 		},
 		createsTheTagsModule: Effect.fn("BuildStory.createsTheTagsModule")(function* () {
 			const { path: file, text } = VITE_PROJECT.tagsModule;
@@ -162,6 +167,12 @@ export function pageImporting(kind: keyof typeof VITE_PROJECT.serverCodePages) {
 export function notesTest() {
 	return vite.trait("page", "the project has a test file that imports the generated notes wire", (engine) =>
 		writeFiles(engine.root, VITE_PROJECT.notesTest),
+	);
+}
+
+export function notesTestThroughTheAppConfig() {
+	return vite.trait("page", "the project has a test file that imports the generated notes wire and a vitest config made by appTestConfig", (engine) =>
+		writeFiles(engine.root, VITE_PROJECT.notesTestThroughTheAppConfig),
 	);
 }
 

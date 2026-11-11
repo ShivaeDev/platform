@@ -15,7 +15,7 @@ export function seedCiApplication(root: string, failing: boolean): void {
 	writes(
 		root,
 		"vitest.config.ts",
-		'import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";\nexport default appTestConfig(["@shivaedev/source"], { coverage: { enabled: false, include: ["src/double.ts"] } });\n',
+		'import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";\nexport default { test: testProjects({ coverage: { enabled: false, include: ["src/double.ts"] } }) };\n',
 	);
 	writes(
 		root,

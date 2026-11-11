@@ -1,6 +1,6 @@
 # @shivaedev/build
 
-An application's build setup. Its generator reads each defined module's `run` types and writes the wire the server encodes with and the browser decodes with, so an operation is written once, as its business logic, and the browser receives exactly what the type says. Its Vite plugin and Vitest setup run the generator wherever the files are read, and a build whose browser bundle reaches server code fails.
+An application's build setup: one import for its Vite configuration and one for its Vitest configuration. Its generator reads each defined module's `run` types and writes the wire the server encodes with and the browser decodes with, so an operation is written once, as its business logic, and the browser receives exactly what the type says. Its Vite plugin and Vitest setup run the generator wherever the files are read, and a build whose browser bundle reaches server code fails.
 
 ## Why you want this
 
@@ -31,6 +31,49 @@ src/generated/modules/notes/notes.ts: written
 `generate` finds every file of the project's tsconfig that calls `defineModule`, builds one TypeScript program for them and writes one file per module at `src/generated/<the module file's path under src>`. There is no list of modules to keep. The generated files are not committed, so a project runs `generate` before anything that reads them; a run whose inputs have not changed is cheap. Inside Vite and Vitest the plugin and the global setup run it; the command line covers everything else, such as a type check.
 
 The generator never guesses. Each type `run` returns maps to the one schema whose `Type` is exactly that type, or the run stops with a refusal that says what to write instead. The compiler then checks the generated wire against `run` on every type check, through [`@shivaedev/contract`'s module checks](https://github.com/ShivaeDev/platform/tree/main/packages/contract#the-wire-and-the-browsers-contract), so a file that went stale is usually a compile error on the module that names the operation, including a success type that gains or loses an optional property at any struct position the check walks. One change is not: an optional property that only one side has on a `Schema.Struct` behind another schema, such as a transformation, a brand or `Schema.suspend`, still type-checks and is dropped on the wire or never sent. `generate --check` is the guard against it.
+
+### Set up an application
+
+An application's `vite.config.ts` and `vitest.config.ts` each import one function and pass only what is the application's own, such as its Vite plugins and the host routes its dev server forwards:
+
+```ts
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { appViteConfig } from "@shivaedev/build/adapters/appViteConfig.ts";
+
+export default appViteConfig([tailwindcss(), react()], [], ["/health"]);
+```
+
+```ts
+import { appTestConfig } from "@shivaedev/build/adapters/appTestConfig.ts";
+
+export default appTestConfig();
+```
+
+`appViteConfig` adds the generator's Vite plugin and the bundle check to the application's plugins, so `vite build` and the dev server generate first and a browser bundle that reaches server code fails the build. The dev server listens on `127.0.0.1` at the port in `VITE_PORT`, then 5173, and forwards `/api/auth`, `/rpc` and every path in the third argument to the application host on `127.0.0.1` at the port in `PORT`, then 3000, keeping the Host header the browser sent. The fourth argument overrides either port, as in `{ webPort: 5273, apiPort: 3100 }`, and names the packages the bundle check treats as server-only, as in `{ serverOnly: ["pg-boss"] }`. Path resolution follows the tsconfig.
+
+`appTestConfig` builds on Quality's [`testProjects`](https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme), resolves imports for the browser and for the server, inlines the `@shivaedev` packages for the test server and generates as Vitest's global setup, before any test file loads. Its second argument goes to `testProjects`, so `appTestConfig([], { connectionBudget: 84, connectionsPerWorker: 14 })` or `appTestConfig([], { maxWorkers: 4 })` sizes the test workers. The second argument of `appViteConfig` and the first of `appTestConfig` add export conditions for development inside a workspace, such as `["@shivaedev/source"]`; a published application passes none.
+
+An application whose browser still imports contracts or operation files of the old operation form passes `{ bundleCheck: false }` in the fourth argument of `appViteConfig`, and its build then generates without checking the bundle. The option is temporary: it exists for applications still on the old operation form and goes away with that form.
+
+The application's `package.json` runs the generator before anything that reads the files without Vite, and `prepare` makes `pnpm install` write them in a fresh checkout:
+
+```json
+{
+	"scripts": {
+		"generate": "shivaedev-build generate",
+		"prepare": "pnpm generate",
+		"typecheck": "pnpm generate && tsc --noEmit"
+	}
+}
+```
+
+pnpm does not run `prepare` on a production install (`pnpm install --prod`), so a production install without development dependencies succeeds without the generator; the files must already be written, as `pnpm build` writes them through the Vite plugin. The folder's contents stay out of Git except a README that names the command, and once the application imports from the folder, Quality's `imports/resolvable` lists it as `generated`:
+
+```gitignore
+src/generated/*
+!src/generated/README.md
+```
 
 ### Generate the files
 
@@ -168,7 +211,6 @@ A run that builds a program takes the machine-wide [heavy lock](https://github.c
 
 ### Limits
 
-- The package is private while its npm setup is pending, and no package of this repository runs it yet.
 - The plugin and the global setup take Vite's and Vitest's root as the project folder, the one that holds `tsconfig.json`.
 - It reads types through TypeScript 6's API, while this repository type-checks with TypeScript 7; a disagreement between the two shows as a compile error on the module.
 - An invalid `Date` cannot be encoded, so the caller gets `InternalServerError`.

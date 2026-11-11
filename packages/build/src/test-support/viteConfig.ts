@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appViteConfig } from "#appViteConfig.ts";
+import { appViteConfig } from "#adapters/appViteConfig.ts";
 
 interface Engine {
 	config: ReturnType<typeof appViteConfig> | undefined;

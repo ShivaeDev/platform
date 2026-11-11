@@ -1,5 +1,5 @@
+import { expect } from "vitest";
 import { environmentPorts, viteConfig } from "#test/viteConfig.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const { name, env, options, webPort, apiPort } of [
 	{ apiPort: 3000, env: {}, name: "defaults", options: {}, webPort: 5173 },
@@ -18,15 +18,13 @@ for (const { name, env, options, webPort, apiPort } of [
 		yield* build(options);
 
 		const actual = yield* ports();
-		yield* assertThat(actual, (value) =>
-			value.toEqual({
-				proxyTargets: {
-					"/api/auth": `http://127.0.0.1:${apiPort}`,
-					"/health": `http://127.0.0.1:${apiPort}`,
-					"/rpc": `http://127.0.0.1:${apiPort}`,
-				},
-				serverPort: webPort,
-			}),
-		);
+		expect(actual).toEqual({
+			proxyTargets: {
+				"/api/auth": `http://127.0.0.1:${apiPort}`,
+				"/health": `http://127.0.0.1:${apiPort}`,
+				"/rpc": `http://127.0.0.1:${apiPort}`,
+			},
+			serverPort: webPort,
+		});
 	});
 }
