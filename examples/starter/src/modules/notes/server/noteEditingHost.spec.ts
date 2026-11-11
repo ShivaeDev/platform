@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import type { Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/model.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 import type { NotesRequests } from "#modules/notes/test-support/requests.ts";
 import { answer, refusal } from "#test-support/answers.ts";

@@ -8,7 +8,7 @@ import { scriptOutcome } from "#test/answers.ts";
 import { appReadouts } from "#test/appReadouts.ts";
 import { appFolder } from "#test/cli.ts";
 import { createEngine } from "#test/createEngine.ts";
-import { appScript, installDatabaseProbe } from "#test/environment.ts";
+import { appScript, installDatabaseProbe, workspaceConditions } from "#test/environment.ts";
 import { createAppIn } from "#test/generate.ts";
 import { generatedReadouts } from "#test/generatedReadouts.ts";
 import { railwayReadouts } from "#test/railwayReadouts.ts";
@@ -95,9 +95,12 @@ export const application = storyKit({
 					return result;
 				}),
 			runDatabaseProbe: () =>
-				script("the app runs a test that records its environment and both databases", () => {
+				script("the app generates its modules' files and runs a test that records its environment and both databases", () => {
 					installDatabaseProbe(target());
-					return appScript(target(), "test", ["--config", "environment.config.ts"]);
+					workspaceConditions(target(), engine.source.starter);
+					// The probe's own Vitest config has no global setup, and a linked app never ran the install that generates.
+					const generated = appScript(target(), "generate");
+					return generated.status === 0 ? appScript(target(), "test", ["--config", "environment.config.ts"]) : generated;
 				}),
 			scriptResult: () => Effect.sync(() => engine.scripts.at(-1) ?? "the app ran no script"),
 			typecheck: () => typecheckAgainstWorkspace(target(), engine.source.starter, story),

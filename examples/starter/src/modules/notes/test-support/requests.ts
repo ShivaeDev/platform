@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/model.ts";
 import type { RpcAddress } from "#modules/notes/test-support/Engine.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { authPost } from "#test-support/authHttp.ts";

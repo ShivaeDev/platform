@@ -97,7 +97,9 @@ export default defineConfig({
 				],
 			},
 		},
-		"imports/resolvable": { options: { generated: ["packages/admin/src/generated", "packages/identity/src/generated"] } },
+		"imports/resolvable": {
+			options: { generated: ["examples/starter/src/generated", "packages/admin/src/generated", "packages/identity/src/generated"] },
+		},
 	},
 	sources: [".agents", "AGENTS.md", "README.md", "docs", "examples", "packages", "script"],
 });

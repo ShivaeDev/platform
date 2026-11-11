@@ -10,7 +10,7 @@ The command initializes Git when it is available and the target is outside an ex
 
 The starter passes queue definitions to the jobs package's `NoteJobs.layer({ connectionString, jobs: [CountWords] })` to create its queues and dead-letter queues before serving requests, without starting a consumer. The separate worker registers the handler.
 
-Change the example’s shared operations in `src/modules/notes/notes.ts`, its table and services in `src/modules/notes/server`, and its screen in `src/modules/notes/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm migrate && pnpm start` serves the built app on port 3000; run `pnpm worker` in a second process to handle jobs.
+Change the example’s operations, table and services in `src/modules/notes/server`, its module in `src/modules/notes/Notes.ts`, and its screen in `src/modules/notes/client`. The CSS declaration is local; no `vite/client` types are needed. `pnpm build && pnpm migrate && pnpm start` serves the built app on port 3000; run `pnpm worker` in a second process to handle jobs.
 
 The notes route loads an authenticated RPC query; the create command is also protected. Missing or revoked sessions return typed `Unauthorized` failures that the UI presents as a sign-in prompt. Each account sees its own notes. `SessionBoundary` replaces the query registry and drafts when the user changes or signs out; a session rotation for the same user keeps the signed-in screen's state. Better Auth's HTTP endpoints share the app host at `/api/auth/*`; Vite proxies both auth and RPC to that host during development.
 

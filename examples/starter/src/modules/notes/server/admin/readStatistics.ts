@@ -1,7 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { NoteStatistics } from "#modules/notes/admin/pages.ts";
-import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
 
 export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -11,5 +10,5 @@ export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
 		Request: Schema.Void,
 		Result: NoteStatistics,
 	});
-	return yield* read(undefined).pipe(Effect.catchTag("SqlError", (cause) => Effect.fail(notesSqlFailure(cause))));
+	return yield* read(undefined);
 });

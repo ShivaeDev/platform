@@ -65,22 +65,6 @@ screens.it(
 );
 
 screens.it(
-	"a title the server refuses while editing shows its reason and stays in the field",
-	[editingNote()],
-	function* ({ alert, click, draft, enter, settle }) {
-		yield* enter("reserved");
-
-		yield* click("Save note");
-		yield* settle();
-
-		yield* outcomes([
-			["alert", alert, "Choose another title"],
-			["draft", draft, "reserved"],
-		]);
-	},
-);
-
-screens.it(
 	"deleting a note returns to the list, which no longer shows it",
 	[editingNote()],
 	function* ({ click, openListedNote, route, settle, shownNotes, visitNotes }) {

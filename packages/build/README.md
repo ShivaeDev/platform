@@ -8,10 +8,10 @@ An operation written as `payload` and `*run` has its success and rejections only
 
 ```ts
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
-import { notesWire } from "#generated/modules/notes/notes.ts";
-import { Create } from "#modules/notes/create.ts";
-import { List } from "#modules/notes/list.ts";
-import { NotesStore } from "#modules/notes/store.ts";
+import { notesWire } from "#generated/modules/notes/Notes.ts";
+import { Create } from "#modules/notes/server/Create.ts";
+import { List } from "#modules/notes/server/List.ts";
+import { NotesStore } from "#modules/notes/server/Store.ts";
 
 export const Notes = defineModule({ name: "notes", operations: [List, Create], requires: [NotesStore], wire: notesWire });
 ```
@@ -21,7 +21,7 @@ shivaedev-build generate
 ```
 
 ```text
-src/generated/modules/notes/notes.ts: written
+src/generated/modules/notes/Notes.ts: written
 ```
 
 ## Using it
@@ -123,19 +123,19 @@ With a generated client the browser never needs a module or its operations, so t
 The build fails with the import chain from the client entry to that module:
 
 ```text
-Server code reached the browser bundle: src/modules/notes/notes.ts is a module file: it calls defineModule. The import chain from the client entry:
+Server code reached the browser bundle: src/modules/notes/Notes.ts is a module file: it calls defineModule. The import chain from the client entry:
   index.html
   → src/client.ts
   → src/screens/notes.ts
-  → src/modules/notes/notes.ts
+  → src/modules/notes/Notes.ts
 The browser reaches a defined module through its generated client in src/generated and imports no server code.
 ```
 
-The browser imports `Notes` from `#generated/modules/notes/notes.ts` instead.
+The browser imports `Notes` from `#generated/modules/notes/Notes.ts` instead.
 
 ### The generated file
 
-For the module above, the file starts with a line saying it is generated from `src/modules/notes/notes.ts`, must not be edited and is not committed. It exports the module's wire, named after the module's `name`, the browser's contract under the module's own export name, built by `clientContract`, and a closing `ClientMatchesModule` assertion:
+For the module above, the file starts with a line saying it is generated from `src/modules/notes/Notes.ts`, must not be edited and is not committed. It exports the module's wire, named after the module's `name`, the browser's contract under the module's own export name, built by `clientContract`, and a closing `ClientMatchesModule` assertion:
 
 ```ts
 export const notesWire = {

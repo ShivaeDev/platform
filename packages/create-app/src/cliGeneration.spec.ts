@@ -102,7 +102,7 @@ application.it(
 
 		yield* outcomes([
 			["answer", () => answer(), "created"],
-			["src/modules/notes/notes.ts", () => exists("src/modules/notes/notes.ts"), true],
+			["src/modules/notes/Notes.ts", () => exists("src/modules/notes/Notes.ts"), true],
 		]);
 	},
 );
