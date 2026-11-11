@@ -11,11 +11,13 @@ import { knownDataExports } from "#naming/adapters/plainData.ts";
 import { constantModule } from "#naming/constantModule.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { isMigrationFile } from "#naming/isMigrationFile.ts";
+import { isOperationFile } from "#naming/isOperationFile.ts";
 import { mainExport } from "#naming/mainExport.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
 import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
-import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
+import { repeatedFolder } from "#naming/repeatedFolder.ts";
+import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 
@@ -34,14 +36,6 @@ const NamedAfterExportOptions = Schema.Struct({
 
 function stemOf(path: string): string {
 	return posix.basename(path).replace(/\.[^.]+$/u, "");
-}
-
-function repeated(stem: string, folders: readonly string[]): string | undefined {
-	if (folders.at(-1)?.toLowerCase() === stem.toLowerCase()) {
-		return undefined;
-	}
-	const words = wordsOf(stem);
-	return folders.find((folder) => wordsOf(folder).some((word) => words.some((own) => sameWord(own, word))));
 }
 
 function nameFinding(file: SourceFile, stem: string, folders: readonly string[]): string | undefined {
@@ -85,8 +79,12 @@ function nameFinding(file: SourceFile, stem: string, folders: readonly string[])
 }
 
 function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[] {
-	const source = posix.basename(file.path) === "service.ts" ? parse(file) : undefined;
-	if (source !== undefined && directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0) {
+	const source = parse(file);
+	if (
+		posix.basename(file.path) === "service.ts"
+		&& source !== undefined
+		&& directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0
+	) {
 		return [];
 	}
 	const stem = stemOf(file.path);
@@ -103,7 +101,10 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 	}
 	const root = moduleRoot(file.path);
 	const admin = root === undefined ? undefined : /^(?:client|server)\/(?<path>admin\/.+)$/u.exec(file.path.slice(root.length + 1))?.groups?.path;
-	const folder = repeated(stem, admin === undefined ? folders : posix.dirname(admin).split("/"));
+	const folder =
+		source !== undefined && isOperationFile(source)
+			? undefined
+			: repeatedFolder(stem, admin === undefined ? folders : posix.dirname(admin).split("/"));
 	const messages = [
 		nameFinding(file, stem, folders),
 		folder === undefined ? undefined : `"${stem}" repeats its folder "${folder}". The folder is the prefix: items/listItems.ts is items/list.ts.`,
@@ -134,7 +135,7 @@ export const namedAfterExport = defineRule({
 				.flatMap((file) => findingsOf(file, layout));
 		}),
 	description:
-		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. A file named like its own folder, in any case, does not repeat it: notes/Notes.ts exports Notes. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main runtime export, ignoring private constants and plain-data constants beside it, with its folders as the prefix, including in test-support; module client/admin and server/admin files may repeat names from above the admin folder. A file named like its own folder, ignoring case and separators, does not repeat it: notes/Notes.ts exports Notes and reading-lists/ReadingLists.ts exports ReadingLists. A file whose one export is a query or command from @shivaedev/contract/operation.ts may repeat words of the folders above it: reading-lists/server/List.ts exports List. defineService declarations use service.ts; TanStack Router configuration owns route filenames; programmatic bundler entries and tool configs keep their role names. A constants module holds only plain data and derived types, in a camelCase file named for words every constant shares (timeouts.ts), limits for max/min/limit constants, or defaults for default constants. Split unrelated constants. A file of several non-constant exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, {
 		parseOptions: { errors: "all", onExcessProperty: "error" },

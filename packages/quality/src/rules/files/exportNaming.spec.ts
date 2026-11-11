@@ -20,6 +20,26 @@ const named = [
 	["ItemPanel.tsx exporting ItemPanel", "packages/app/src/ItemPanel.tsx", "export function ItemPanel() {}\n"],
 	["Panel.tsx in its module folder Panel/", "packages/app/src/Panel/Panel.tsx", "export function Panel() {}\n"],
 	["Notes.ts in its feature folder notes/ exporting Notes", "packages/app/src/modules/notes/Notes.ts", "export class Notes {}\n"],
+	[
+		"ReadingLists.ts in its feature folder reading-lists/ exporting ReadingLists",
+		"packages/app/src/modules/reading-lists/ReadingLists.ts",
+		"export class ReadingLists {}\n",
+	],
+	[
+		"the query List.ts in reading-lists/server/",
+		"packages/app/src/modules/reading-lists/server/List.ts",
+		`import { query } from "@shivaedev/contract/operation.ts";\nexport const List = query("list", {});\n`,
+	],
+	[
+		"the command Create.ts in create-requests/server/",
+		"packages/app/src/modules/create-requests/server/Create.ts",
+		`import { command } from "@shivaedev/contract/operation.ts";\nexport const Create = command("create", {});\n`,
+	],
+	[
+		"the query List.ts in reading-lists/server/ that imports query under another name",
+		"packages/app/src/modules/reading-lists/server/List.ts",
+		`import { query as defineQuery } from "@shivaedev/contract/operation.ts";\nexport const List = defineQuery("list", {});\n`,
+	],
 	["Order.ts exporting the interface Order", "packages/app/src/Order.ts", "export interface Order {}\n"],
 	["the topic file limits.ts exporting two constants", "packages/app/src/limits.ts", "export const MAX_ITEMS = 10;\nexport const MAX_DEPTH = 4;\n"],
 	["the camelCase topic file helpers.ts", "packages/app/src/helpers.ts", "export function list() {}\nexport function count() {}\n"],
@@ -60,6 +80,36 @@ const misnamed = [
 		"packages/app/src/notes/server/ownedNote.ts",
 		"export function ownedNote() {}\n",
 		'"ownedNote" repeats its folder "notes".',
+	],
+	[
+		"ReadingListsItems.ts that shares only some words with its folder reading-lists/",
+		"packages/app/src/reading-lists/ReadingListsItems.ts",
+		"export function ReadingListsItems() {}\n",
+		'"ReadingListsItems" repeats its folder "reading-lists".',
+	],
+	[
+		"UserListRow.ts that shares only some words with its folder user-list/",
+		"packages/app/src/user-list/UserListRow.ts",
+		"export function UserListRow() {}\n",
+		'"UserListRow" repeats its folder "user-list".',
+	],
+	[
+		"listRows.ts in reading-lists/server/, which imports query but exports no operation",
+		"packages/app/src/modules/reading-lists/server/listRows.ts",
+		`import { query } from "@shivaedev/contract/operation.ts";\nexport function listRows() {}\n`,
+		'"listRows" repeats its folder "reading-lists".',
+	],
+	[
+		"List.ts in reading-lists/server/ exporting a query from another module",
+		"packages/app/src/modules/reading-lists/server/List.ts",
+		`import { query } from "#modules/reading-lists/server/query.ts";\nexport const List = query("list", {});\n`,
+		'"List" repeats its folder "reading-lists".',
+	],
+	[
+		"the query list.ts in reading-lists/server/ exporting List",
+		"packages/app/src/modules/reading-lists/server/list.ts",
+		`import { query } from "@shivaedev/contract/operation.ts";\nexport const List = query("list", {});\n`,
+		'"list" does not name its export List.',
 	],
 	[
 		"UsersList.ts that repeats its folder users/ with more words",
