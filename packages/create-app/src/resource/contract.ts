@@ -1,15 +1,9 @@
 import type { ResourceNames } from "#resource/names.ts";
 
-export function resourceContract({ name, pascal, table }: ResourceNames) {
+export function resourceModel({ pascal, table }: ResourceNames) {
 	return `import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { contract } from "@shivaedev/contract/contract.ts";
-import { command, query } from "@shivaedev/contract/operation.ts";
-import { signedIn } from "@shivaedev/contract/readPolicy.ts";
-import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
 export class Item extends Model.Class<Item>("${pascal}Item")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -19,19 +13,26 @@ export class Item extends Model.Class<Item>("${pascal}Item")({
 export const Fields = Schema.Struct({ title: Item.fields.title });
 export const keys = collection("${table}", Schema.Number, { userId: Schema.String });
 
-export const List = query("list", {
-	readPolicy: signedIn,
-	rejections: { InternalServerError, ServiceUnavailable },
-	success: Schema.Array(Item.json),
-});
+export function toItem({ id, title }: typeof Item.json.Type): typeof Item.json.Type {
+	return { id, title };
+}
+`;
+}
 
-export const Create = command("create", {
-	invalidates: () => [],
-	payload: Fields,
-	rejections: { InternalServerError, Invalid: fieldRejection(Fields), ServiceUnavailable },
-	success: Item.json,
-});
+export function resourceModule({ camel, name, pascal }: ResourceNames) {
+	return `import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
+import { ${camel}Wire } from "#generated/modules/${name}/${pascal}.ts";
+import { Create } from "#modules/${name}/server/Create.ts";
+import { List } from "#modules/${name}/server/List.ts";
+import { ${pascal}Repository } from "#modules/${name}/server/Repository.ts";
 
-export const ${pascal}Contract = contract("${name}", { commands: [Create], queries: [List] }).middleware(AuthenticatedUser);
+export const ${pascal} = defineModule({
+	middleware: AuthenticatedUser,
+	name: "${name}",
+	operations: [List, Create],
+	requires: [${pascal}Repository],
+	wire: ${camel}Wire,
+});
 `;
 }

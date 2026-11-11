@@ -19,6 +19,12 @@ export function resourceActions(engine: Engine, story: { readonly tell: (line: s
 	return {
 		addResource: (name: string) => addResourceAt(app(), name),
 		addResourceOutsideApp: (name: string) => addResourceAt(engine.root, name),
+		lint: () =>
+			Effect.sync(() => {
+				story.tell("the app runs its lint script");
+				workspaceConditions(app(), engine.source.starter);
+				return scriptOutcome(appScript(app(), "lint"));
+			}),
 		runResourceStories: (...names: readonly string[]) =>
 			Effect.sync(() => {
 				story.tell(`the app runs the generated ${names.join(" and ")} PostgreSQL stories`);

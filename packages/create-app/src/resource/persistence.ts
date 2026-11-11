@@ -6,7 +6,7 @@ import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { Item, keys } from "#modules/${name}/${name}.ts";
+import { Item, keys } from "#modules/${name}/model.ts";
 
 class StoredItem extends Model.Class<StoredItem>("Stored${pascal}Item")({
 	...Model.fields(Item),
@@ -21,23 +21,6 @@ const make${pascal}Repository = makeRepository(StoredItem, {
 });
 
 export const ${pascal}Repository = defineRepository({ id: "app/${pascal}Repository", initialize: make${pascal}Repository });
-`;
-}
-
-export function resourceService({ camel, pascal }: ResourceNames) {
-	return `import { Effect } from "effect";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { defineService } from "@shivaedev/service/defineService.ts";
-import { create } from "./create.ts";
-import { list } from "./list.ts";
-import { ${pascal}Repository } from "./Repository.ts";
-
-export const ${camel}Service = defineService({
-	id: "app/${pascal}Service",
-	initialize: Effect.void,
-	methods: () => ({ create, list }),
-	requires: [${pascal}Repository, SessionUser],
-});
 `;
 }
 

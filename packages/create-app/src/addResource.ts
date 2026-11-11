@@ -19,6 +19,16 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 	if ([...source.matchAll(declaration)].length !== 1) {
 		return yield* new CreateAppError({ message: `Cannot register ${name}: ${registry} must declare const modules = [...] as const;` });
 	}
+	const qualityConfig = "quality.config.ts";
+	const qualitySource = yield* fs.readFileString(path.join(root, qualityConfig));
+	const generatedFolder = `"imports/resolvable": { options: { generated: ["src/generated"] } }`;
+	const rulesEnd = /\n\t\},\n\}\);\n$/u;
+	const declared = qualitySource.includes('generated: ["src/generated"]');
+	if (!declared && (qualitySource.includes('"imports/resolvable"') || !rulesEnd.test(qualitySource))) {
+		return yield* new CreateAppError({
+			message: `Cannot declare src/generated for ${name}: add ${generatedFolder} to the rules in ${qualityConfig}, then run the command again.`,
+		});
+	}
 	const files = yield* fs.readDirectory(path.join(root, "src"), { recursive: true });
 	const ids = files
 		.filter((file) => path.basename(path.dirname(file)) === "migrations" && MIGRATION_FILE_PATTERN.test(path.basename(file)))
@@ -39,7 +49,19 @@ export const addResource = Effect.fn("CreateApp.addResource")(function* (folder:
 		yield* fs.writeFileString(path.join(root, file), content, { flag: "wx", mode: 0o644 });
 	}
 	const registration = `${names.camel}Registration`;
-	const imported = `import { ${registration} } from "#modules/${name}/server/registration.ts";\n`;
-	yield* fs.writeFileString(path.join(root, registry), imported + source.replace("const modules = [", `const modules = [${registration}, `));
+	const specifier = `#modules/${name}/server/registration.ts`;
+	const lines = source
+		.replace(declaration, (list) => list.replace(/^const modules = \[/u, `const modules = [${registration}${list.includes("[]") ? "" : ", "}`))
+		.split("\n");
+	const following = lines.findIndex((line) => /^import .* from "#/u.test(line) && line.slice(line.indexOf('from "') + 6) > specifier);
+	lines.splice(
+		following === -1 ? lines.findLastIndex((line) => line.startsWith("import ")) + 1 : following,
+		0,
+		`import { ${registration} } from "${specifier}";`,
+	);
+	yield* fs.writeFileString(path.join(root, registry), lines.join("\n"));
+	if (!declared) {
+		yield* fs.writeFileString(path.join(root, qualityConfig), qualitySource.replace(rulesEnd, `\n\t\t${generatedFolder},\n\t},\n});\n`));
+	}
 	yield* Console.log(`Added ${name}.\n\nNext steps:\n  pnpm format\n  pnpm migrate\n  pnpm test src/modules/${name}/server/lifecycle.spec.ts`);
 });

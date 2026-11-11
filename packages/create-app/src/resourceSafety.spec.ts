@@ -37,7 +37,7 @@ application.it(
 	"resource generation names every existing destination and leaves the module list and files alone",
 	[
 		generated("my-app", "--no-git", "--minimal"),
-		appAdds("src/modules/bookmarks/bookmarks.ts", "custom contract\n"),
+		appAdds("src/modules/bookmarks/Bookmarks.ts", "custom module\n"),
 		appAdds("src/modules/bookmarks/client/make.ts", "custom client\n"),
 	],
 	function* ({ addResource, file, exists }) {
@@ -46,13 +46,13 @@ application.it(
 		const answer = yield* addResource("bookmarks");
 
 		expect(answer).toBe(
-			"create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/bookmarks.ts\nsrc/modules/bookmarks/client/make.ts",
+			"create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts\nsrc/modules/bookmarks/client/make.ts",
 		);
 		yield* outcomes([
 			["module list", () => file("src/server/modules.ts"), modules],
-			["contract", () => file("src/modules/bookmarks/bookmarks.ts"), "custom contract\n"],
+			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), "custom module\n"],
 			["client", () => file("src/modules/bookmarks/client/make.ts"), "custom client\n"],
-			["service", () => exists("src/modules/bookmarks/server/service.ts"), false],
+			["operation", () => exists("src/modules/bookmarks/server/Create.ts"), false],
 		]);
 	},
 );
@@ -77,14 +77,68 @@ application.it(
 	function* ({ addResource, file }) {
 		expect(yield* addResource("bookmarks")).toBe("added");
 		const modules = yield* file("src/server/modules.ts");
-		const contract = yield* file("src/modules/bookmarks/bookmarks.ts");
+		const module = yield* file("src/modules/bookmarks/Bookmarks.ts");
 
 		const answer = yield* addResource("bookmarks");
 
-		expect(answer).toContain("create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/bookmarks.ts");
+		expect(answer).toContain("create-app: Refusing to overwrite existing files:\nsrc/modules/bookmarks/Bookmarks.ts");
 		yield* outcomes([
 			["module list", () => file("src/server/modules.ts"), modules],
-			["contract", () => file("src/modules/bookmarks/bookmarks.ts"), contract],
+			["module", () => file("src/modules/bookmarks/Bookmarks.ts"), module],
+		]);
+	},
+);
+
+application.it(
+	"a resource in a minimal app is a defined module with one file per operation under server/, registered as module:, and the app declares its generated folder",
+	[generated("my-app", "--no-git", "--minimal")],
+	function* ({ addResource, fileMentions, filesUnder }) {
+		expect(yield* fileMentions("quality.config.ts", "src/generated")).toBe(false);
+
+		yield* addResource("reading-lists");
+
+		yield* outcomes([
+			[
+				"module files",
+				() => filesUnder("src/modules/reading-lists"),
+				[
+					"ReadingLists.ts",
+					"client/make.ts",
+					"model.ts",
+					"server/Create.ts",
+					"server/List.ts",
+					"server/Repository.ts",
+					"server/lifecycle.spec.ts",
+					"server/migrations/0006_reading_lists.ts",
+					"server/registration.ts",
+					"test-support/application.ts",
+				],
+			],
+			["registration names the module", () => fileMentions("src/modules/reading-lists/server/registration.ts", "module: ReadingLists,"), true],
+			[
+				"generated folder declared",
+				() => fileMentions("quality.config.ts", '"imports/resolvable": { options: { generated: ["src/generated"] } },'),
+				true,
+			],
+		]);
+	},
+);
+
+application.it(
+	"a Quality config whose rules cannot take the generated folder is named and left alone, and no module is written",
+	[generated("my-app", "--no-git", "--minimal"), appAdds("quality.config.ts", "export default { local: [] };\n")],
+	function* ({ addResource, exists, file }) {
+		const modules = yield* file("src/server/modules.ts");
+
+		const answer = yield* addResource("bookmarks");
+
+		expect(answer).toBe(
+			'create-app: Cannot declare src/generated for bookmarks: add "imports/resolvable": { options: { generated: ["src/generated"] } } to the rules in quality.config.ts, then run the command again.',
+		);
+		yield* outcomes([
+			["Quality config", () => file("quality.config.ts"), "export default { local: [] };\n"],
+			["module list", () => file("src/server/modules.ts"), modules],
+			["resource", () => exists("src/modules/bookmarks"), false],
 		]);
 	},
 );

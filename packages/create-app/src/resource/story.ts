@@ -41,8 +41,10 @@ app.it(
 	function* ({ itemsOf, watchesList }) {
 		const aliceList = yield* watchesList("alice");
 		const bobList = yield* watchesList("bob");
-		expect(yield* aliceList.nextUpdate()).toEqual([]);
-		expect(yield* bobList.nextUpdate()).toEqual([]);
+		yield* outcomes([
+			["alice's first update", () => aliceList.nextUpdate(), []],
+			["bob's first update", () => bobList.nextUpdate(), []],
+		]);
 
 		yield* itemsOf("bob").create("Bob's item");
 
