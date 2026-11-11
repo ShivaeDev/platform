@@ -6,7 +6,7 @@ import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rul
 import { boundaryFindings } from "#rules/effect/boundaryFindings.ts";
 import { moduleBinder } from "#rules/effect/boundaryReference.ts";
 import { workspaceProgram } from "#rules/effect/workspaceProgram.ts";
-import { parse } from "#rules/parse.ts";
+import { parses } from "#rules/parse.ts";
 
 function groupsOf(inputs: RuleInputs, packages: readonly WorkspacePackage[]): readonly (readonly SourceFile[])[] {
 	const groups = new Map<string, SourceFile[]>();
@@ -36,7 +36,7 @@ const everyFinding = Effect.fn("Boundary.everyFinding")(function* (inputs: RuleI
 	const program = yield* workspaceProgram(inputs);
 	const found = boundaryFindings(program.getTypeChecker(), workspace, true);
 	return inputs.sources.flatMap((file) => {
-		const source = parse(file) === undefined ? undefined : program.getSourceFile(join(inputs.root, file.path));
+		const source = parses(file) ? program.getSourceFile(join(inputs.root, file.path)) : undefined;
 		return source === undefined ? [] : found(file.path, source);
 	});
 });

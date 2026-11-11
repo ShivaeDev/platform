@@ -8,7 +8,7 @@ import { serviceCatalog } from "#rules/effect/serviceCatalog.ts";
 import { parse } from "#rules/parse.ts";
 
 function definesServices(file: SourceFile): boolean {
-	const source = parse(file);
+	const source = file.text.includes("defineService") ? parse(file) : undefined;
 	return source !== undefined && directServiceDefinitions(source, serviceAssemblyImports(source).definitions).length > 0;
 }
 

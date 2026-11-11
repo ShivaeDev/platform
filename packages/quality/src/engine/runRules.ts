@@ -6,6 +6,7 @@ import type { Violation } from "#engine/violation.ts";
 import type { SetupFailure } from "#failure.ts";
 import type { RuleInputs, RuleServices } from "#rule.ts";
 import { PACKAGE_CHECKS, withPackageWalk } from "#rules/packageFindings.ts";
+import { withSharedTrees } from "#rules/parse.ts";
 
 type RuleRun = Effect.Effect<readonly Violation[], SetupFailure, RuleServices>;
 
@@ -34,7 +35,7 @@ function walks(rule: ActiveRule): boolean {
 }
 
 // Rules share one Node thread, so only the Biome and Knip child processes run beside the other rules, started first because synchronous rules would starve their preparation; a check that never reports its child as started finishes first. Each type-checker program, the package walk's included, is built alone.
-// The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them.
+// The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them; they and the program share one tree per source, which goes with the program because keeping the trees for every rule raised the peak.
 function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	function run(rule: ActiveRule): RuleRun {
 		return runRule(rule, inputs, inputs.configFile ?? "quality.config.ts");
@@ -42,7 +43,8 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	const walked = rules.filter(walks);
 	const inThread = rules.filter((rule) => !(walks(rule) || spawnsChild(rule) || readsStories(rule)));
 	const stories = rules.filter(readsStories).map(run);
-	const told = stories.length === 0 ? [] : [Effect.map(withStoryProgram(inputs, Effect.all(stories)), (found) => found.flat())];
+	const told =
+		stories.length === 0 ? [] : [Effect.map(withSharedTrees(inputs, withStoryProgram(inputs, Effect.all(stories))), (found) => found.flat())];
 	const fast = [...inThread.filter((rule) => rule.depth === "fast").map(run), ...told];
 	const deep = inThread.filter((rule) => rule.depth === "deep").map(run);
 	function lanes(thread: readonly RuleRun[]): RuleRun {
