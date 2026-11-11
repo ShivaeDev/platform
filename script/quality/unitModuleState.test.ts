@@ -44,6 +44,25 @@ for (const [shape, files, state] of [
 		],
 		{ file: "packages/quality/src/registry.ts", line: 1, name: "known" },
 	],
+	[
+		"a module-level object whose member the module increments",
+		[
+			{ content: 'import { tick } from "./ticks.ts";\ntick();\n', path: UNIT_SPEC },
+			{ content: "const ticks = { count: 0 };\nexport function tick() {\n\tticks.count++;\n}\n", path: "packages/quality/src/ticks.ts" },
+		],
+		{ file: "packages/quality/src/ticks.ts", line: 1, name: "ticks" },
+	],
+	[
+		"a module-level object the module assigns into",
+		[
+			{ content: 'import { configure } from "./settings.ts";\nconfigure({ strict: true });\n', path: UNIT_SPEC },
+			{
+				content: "const settings = {};\nexport function configure(options: object) {\n\tObject.assign(settings, options);\n}\n",
+				path: "packages/quality/src/settings.ts",
+			},
+		],
+		{ file: "packages/quality/src/settings.ts", line: 1, name: "settings" },
+	],
 ] as const) {
 	ruleKit.it(`a unit spec's shared modules report ${shape}`, [repositoryHas(...files)], function* ({ check }) {
 		const findings = yield* check(unitModuleState);

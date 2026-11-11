@@ -77,6 +77,9 @@ function changedThrough(node: ts.Node): ts.Expression | undefined {
 	if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && MUTATORS.has(node.expression.name.text)) {
 		return node.expression.expression;
 	}
+	if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.getText() === "Object.assign") {
+		return node.arguments[0];
+	}
 	let assigned: ts.Expression | undefined;
 	if (
 		ts.isBinaryExpression(node)
@@ -86,6 +89,11 @@ function changedThrough(node: ts.Node): ts.Expression | undefined {
 		assigned = node.left;
 	} else if (ts.isDeleteExpression(node)) {
 		assigned = node.expression;
+	} else if (
+		(ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node))
+		&& (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
+	) {
+		assigned = node.operand;
 	}
 	return assigned !== undefined && (ts.isPropertyAccessExpression(assigned) || ts.isElementAccessExpression(assigned))
 		? assigned.expression
