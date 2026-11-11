@@ -4,4 +4,4 @@
 
 ### Changed
 
-- A lint no longer keeps type-checker data alive after the rules that need it. The package walk drops the installed declarations it parsed when it ends, and the rules that read the story program run together and drop it after the last of them. On Platform the heap that a run retains after the walk goes from about 0.8 GB to 0.1 GB, and at the end of the run from 1.5 GB to 0.2 GB. The findings do not change.
+- A lint drops the story program after the last rule that reads it, instead of keeping it until the run ends, and the package walk parses installed declarations into a registry of its own. Measured on Platform's own repository, the heap a run keeps after the walk goes from about 0.8 GB to 0.1 GB, and at the end of the run from 1.5 GB to 0.2 GB. The findings do not change.

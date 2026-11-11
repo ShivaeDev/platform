@@ -38,7 +38,7 @@ function messageOf(cause: unknown): string {
 }
 
 // One program per package serves every check and is dropped before the next package, so memory stays bounded by the largest package.
-// The walk parses installed declarations into a fresh registry rather than the run's memoized one, so they go with it: no rule after the walk reads them.
+// The walk parses installed declarations into its own registry, not the run's memoized one, so they are released with it; later rules parse again the few they read.
 const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs, ids: ReadonlySet<string>) {
 	const prepared = yield* Effect.forEach(
 		CHECKS.filter(({ id }) => ids.has(id)),
