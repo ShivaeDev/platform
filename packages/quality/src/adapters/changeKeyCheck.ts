@@ -42,7 +42,7 @@ function candidate(node: ts.Node, aliases: ReadonlySet<string>): node is ts.Call
 }
 
 function hasCandidates(file: SourceFile): boolean {
-	const source = parse(file);
+	const source = [...APIS].some((name) => file.text.includes(name)) ? parse(file) : undefined;
 	if (source === undefined) {
 		return false;
 	}

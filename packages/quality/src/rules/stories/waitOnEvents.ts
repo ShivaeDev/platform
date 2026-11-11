@@ -63,9 +63,8 @@ function readsInCondition(node: ts.Node): boolean {
 	return ts.isYieldExpression(node) || ts.forEachChild(node, readsInCondition) === true;
 }
 
-function timedWaits(source: ts.SourceFile): readonly ts.Node[] {
+function timedWaits(source: ts.SourceFile, support: boolean): readonly ts.Node[] {
 	const bindings = importBindings(source);
-	const support = isTestSupport(source.fileName);
 	const found: ts.Node[] = [];
 	function visit(node: ts.Node): void {
 		if (
@@ -85,7 +84,10 @@ function timedWaits(source: ts.SourceFile): readonly ts.Node[] {
 }
 
 export const waitOnEvents = defineRule({
-	check: (inputs) => Effect.map(storyWaitSources(inputs), (sources) => sources.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE))),
+	check: (inputs) =>
+		Effect.map(storyWaitSources(inputs), (sources) =>
+			sources.flatMap((file) => syntaxFindings(file, (source) => timedWaits(source, isTestSupport(file.path)), MESSAGE)),
+		),
 	description: "Stories and reachable test-support settle on the engine's own signals; controlled clock advances belong in kit verbs.",
 	id: "tests/wait-on-events",
 	needs: "story-program",
