@@ -1,17 +1,20 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import { testProjects } from "#adapters/testProjects.ts";
 
+const projects = testProjects();
+
 export default defineConfig({
 	resolve: {
-		alias: {
-			"#baseline-workspace": fileURLToPath(new URL("../../script/quality/test-support/baselineWorkspace.ts", import.meta.url)),
-			"#effect-policy-story": fileURLToPath(new URL("../../script/quality/test-support/effectPolicyStory.ts", import.meta.url)),
-			"#exports-story": fileURLToPath(new URL("../../script/quality/test-support/exportsStory.ts", import.meta.url)),
-			"#rule-story": fileURLToPath(new URL("../../script/quality/test-support/ruleKit.ts", import.meta.url)),
-		},
 		conditions: ["@shivaedev/source", "module", "browser", "development|production"],
 	},
 	ssr: { resolve: { conditions: ["@shivaedev/source", "node", "development|production"] } },
-	test: testProjects(),
+	test: {
+		...projects,
+		// Every unit file loads the same few hundred modules. Sharing them per worker is safe while the local rule tests/unit-module-state keeps module-level state out of them.
+		projects: projects.projects?.map((project) =>
+			typeof project === "object" && "test" in project && project.test?.name === "unit"
+				? { ...project, test: { ...project.test, isolate: false } }
+				: project,
+		),
+	},
 });
