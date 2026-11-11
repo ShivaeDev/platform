@@ -20,10 +20,13 @@ function serverModule(binding: ImportBinding | undefined): string | undefined {
 	return name !== undefined && SERVER_MODULES.has(name) ? `node:${name}` : undefined;
 }
 
-function constructedFrom(node: ts.Node, bindings: ReadonlyMap<string, ImportBinding>): string | undefined {
-	if (!(ts.isCallExpression(node) || ts.isNewExpression(node))) {
-		return undefined;
-	}
+type Construction = ts.CallExpression | ts.NewExpression;
+
+function isConstruction(node: ts.Node): node is Construction {
+	return ts.isCallExpression(node) || ts.isNewExpression(node);
+}
+
+function constructedFrom(node: Construction, bindings: ReadonlyMap<string, ImportBinding>): string | undefined {
 	const callee = unwrapped(node.expression);
 	if (ts.isIdentifier(callee)) {
 		const binding = bindings.get(callee.text);
@@ -55,9 +58,10 @@ function boundName(node: ts.Node): string | undefined {
 }
 
 // A node:net server that handles its own sockets speaks a protocol other than HTTP, which neither shared helper serves.
-function handlesSockets(created: ts.Node): boolean {
-	const values = ts.isCallExpression(created) || ts.isNewExpression(created) ? (created.arguments ?? []).map(unwrapped) : [];
-	return values.some((value) => ts.isArrowFunction(value) || ts.isFunctionExpression(value) || ts.isIdentifier(value));
+function handlesSockets(created: Construction): boolean {
+	return (created.arguments ?? [])
+		.map(unwrapped)
+		.some((value) => ts.isArrowFunction(value) || ts.isFunctionExpression(value) || ts.isIdentifier(value));
 }
 
 function socketPath(argument: ts.Expression | undefined): boolean {
@@ -85,26 +89,25 @@ function findings(file: SourceFile): readonly Finding[] {
 		return [];
 	}
 	const bindings = importBindings(source);
-	if (![...bindings.values()].some((binding) => serverModule(binding) !== undefined)) {
-		return [];
-	}
 	const listeners = portListeners(source);
 	const names = new Set(listeners.flatMap((listener) => (ts.isIdentifier(listener) ? [listener.text] : [])));
-	return nodesWhere(source, (node) => ts.isCallExpression(node) || ts.isNewExpression(node)).flatMap((created) => {
-		const module = constructedFrom(created, bindings);
-		const name = boundName(outermost(created));
-		const listened = listeners.includes(created) || (name !== undefined && names.has(name));
-		if (module === undefined || !listened || (module === "node:net" && handlesSockets(created))) {
-			return [];
-		}
-		return [
-			{
-				file: file.path,
-				line: source.getLineAndCharacterOfPosition(created.getStart(source)).line + 1,
-				message: `Starts a ${module} server with listen in test-support. ${module === "node:net" ? NET_REPAIR : REPAIR}`,
-			},
-		];
-	});
+	return nodesWhere(source, isConstruction)
+		.filter(isConstruction)
+		.flatMap((created) => {
+			const module = constructedFrom(created, bindings);
+			const name = boundName(outermost(created));
+			const listened = listeners.includes(created) || (name !== undefined && names.has(name));
+			if (module === undefined || !listened || (module === "node:net" && handlesSockets(created))) {
+				return [];
+			}
+			return [
+				{
+					file: file.path,
+					line: source.getLineAndCharacterOfPosition(created.getStart(source)).line + 1,
+					message: `Starts a ${module} server with listen in test-support. ${module === "node:net" ? NET_REPAIR : REPAIR}`,
+				},
+			];
+		});
 }
 
 export const rawServers = defineRule({
