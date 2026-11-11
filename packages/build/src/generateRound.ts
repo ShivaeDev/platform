@@ -44,7 +44,7 @@ export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* 
 	const serial = yield* Semaphore.make(1);
 	const run = serial.withPermits(1)(Effect.tap(generateRound(root), (round) => Ref.set(inputs, new Set(round.inputs))));
 	const newModule = Effect.fn("Build.newModule")(function* (file: string) {
-		if (!file.startsWith(sources) || file.startsWith(generated)) {
+		if (!(file.startsWith(sources) && (file.endsWith(".ts") || file.endsWith(".tsx"))) || file.startsWith(generated)) {
 			return false;
 		}
 		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text));
