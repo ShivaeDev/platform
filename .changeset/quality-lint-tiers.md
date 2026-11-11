@@ -11,7 +11,7 @@
 - `effect/service-parameters` is a deep rule. A local `quality lint`, and the pre-commit hook outside a Claude Code cloud session, no longer report it; CI and `quality lint --full` still do.
 - The type-checking rules that share each package's program prepare and run only the checks of the rules in the run, so a fast lint no longer pays for `effect/service-parameters`. A rule waiting for that shared walk no longer holds one of the two rule slots, and deep rules run one at a time after the others.
 - The rule story kit's `gate()` runs `quality lint --full`, so a story sees deep rules' findings in every environment.
-- `runQuality` and `quality` from the testing adapters no longer pass the host's `CI` variable to the run, so a story lints the same rule set on a laptop and in CI.
+- `runQuality` and `quality` from the testing adapters no longer pass the host's `CI` or `CLAUDE_CODE_REMOTE` to the run, so a story lints the same rule set on a laptop and in CI. `runQualityWith(root, variables, ...args)` runs with the variables a story states.
 
 ### Breaking
 
