@@ -24,8 +24,6 @@ export class CommandInvalidation extends Context.Service<CommandInvalidation, { 
 	"@shivaedev/contract/CommandInvalidation",
 ) {}
 
-export class KeyScope extends Context.Service<KeyScope, "session">()("@shivaedev/contract/KeyScope") {}
-
 export interface QueryReference {
 	readonly payload: unknown;
 	readonly query: string;
@@ -66,10 +64,9 @@ export function changesRpc(name: string, queries: readonly QueryShape[]) {
 	}).annotate(ChangesQueries, { queries, resolve: (references) => resolveQueries(queries, references) });
 }
 
-export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {
-	const scope = keyScope === undefined ? Context.empty() : Context.make(KeyScope, keyScope);
+export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape) {
 	if (operation.kind === "command") {
-		return Context.add(scope, CommandInvalidation, { invalidates: operation.invalidates });
+		return Context.make(CommandInvalidation, { invalidates: operation.invalidates });
 	}
-	return operation.kind === "query" ? Context.add(scope, QueryDefinition, { definition: operation }) : scope;
+	return operation.kind === "query" ? Context.make(QueryDefinition, { definition: operation }) : Context.empty();
 }

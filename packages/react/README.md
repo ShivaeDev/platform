@@ -94,7 +94,7 @@ A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` a
 
 #### Session-scoped bindings
 
-A contract declared with `keyScope: "session"` keys its reads and invalidations by the signed-in account, and its binding requires the registry that owns the session's queries. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
+A contract declared with `keyScope: "session"` binds to the registry that owns the session's queries. In the browser, `bind` prefixes every client read and invalidation key of that contract with an opaque id of its registry, so a successful command in one session refreshes none of another session's queries on the page, even when both registries share one runtime. The server adds no prefix: its subscriptions and committed writes use plain keys, and each query's read policy decides what a viewer receives. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
 
 ```tsx
 import { bind } from "@shivaedev/contract/bind.ts";
