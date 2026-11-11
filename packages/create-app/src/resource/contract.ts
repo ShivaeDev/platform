@@ -1,7 +1,7 @@
 import type { ResourceNames } from "#resource/names.ts";
 
 export function resourceContract({ name, pascal, table }: ResourceNames) {
-	return `import { Option, Schema } from "effect";
+	return `import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -21,7 +21,6 @@ export const keys = collection("${table}", Schema.Number, { userId: Schema.Strin
 
 export const List = query("list", {
 	readPolicy: signedIn,
-	reads: (_input, viewer) => (Option.isSome(viewer) ? [keys.bucket.userId(viewer.value.id)] : []),
 	rejections: { InternalServerError, ServiceUnavailable },
 	success: Schema.Array(Item.json),
 });

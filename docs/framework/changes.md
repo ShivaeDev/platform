@@ -1,6 +1,6 @@
 # Commit-bound changes
 
-Repository writes announce their own changes. A database-backed Platform host delivers them across processes through PostgreSQL NOTIFY, serves the subscription stream, and a React `SessionBoundary` mounts its bound contract APIs' live connections. An application declares query read keys and command invalidation keys; it needs no change channel option, subscribe operation or handler, `live()` call, or invalidation at repository write sites.
+Repository writes announce their own changes. A database-backed Platform host delivers them across processes through PostgreSQL NOTIFY, serves the subscription stream, and a React `SessionBoundary` mounts its bound contract APIs' live connections. A query's repository reads name the keys it listens on, and an application declares keys only for reads and effects no repository call names; it needs no change channel option, subscribe operation or handler, `live()` call, or invalidation at repository write sites.
 
 ## Write and commit
 
@@ -39,9 +39,11 @@ A server change hint names the subscribed keys affected by an invalidation. Cont
 
 ## Query read keys
 
-Declare each query's dependencies with `reads(payload, viewer)`. On the server, `viewer` is the session's `Option<{ id: string }>`, so a query can read the signed-in account's bucket, as the [viewer stories](../../packages/contract/src/viewerHints.spec.ts) show; the browser derives its local keys with `Option.none()`. For a query joining several tables, include each table's collection key so a write to either table refreshes it. Item keys give a narrower dependency when the query reads a specific row. Raw SQL and views need the same explicit declarations.
+A query that declares no keys listens on what its repository reads filter by: a row, a bucket, or the whole table for an unfiltered read. Each read records its key from its own arguments before it sends its statement, never from the rows it returns, as the [live-update guide](./live-updates.md#declare-who-may-read-and-let-the-reads-name-their-keys) explains. A raw SQL read marks its key with `readSql` from `@shivaedev/sql/readSql.ts`.
 
-PostgreSQL's `pg_stat_xact_user_tables` scan counters cannot identify a query's dependencies from one snapshot at the end of a read-only transaction. On PostgreSQL 18.6 with `track_counts` enabled, `seq_scan` and `idx_scan` can retain reads from earlier committed transactions on the same connection until PostgreSQL flushes its pending statistics. Treating every positive counter as a dependency would subscribe later queries to tables they did not read. Read keys therefore come from the contract, with no extra SQL statement for automatic read tracking.
+A query that declares `reads(payload, viewer)`, `serverReads` or `readsCollections` listens exactly on those keys. On the server, `viewer` is the session's `Option<{ id: string }>`, so a declared query can read the signed-in account's bucket, as the [viewer stories](../../packages/contract/src/viewerHints.spec.ts) show; the browser derives its local keys with `Option.none()`. Declare keys for reads through the native `sql` tag, which record none: for a join, include each table's key so a write to either table refreshes it, and use item keys when it reads a specific row.
+
+PostgreSQL's `pg_stat_xact_user_tables` scan counters cannot identify a query's dependencies from one snapshot at the end of a read-only transaction. On PostgreSQL 18.6 with `track_counts` enabled, `seq_scan` and `idx_scan` can retain reads from earlier committed transactions on the same connection until PostgreSQL flushes its pending statistics. Treating every positive counter as a dependency would subscribe later queries to tables they did not read. Read keys therefore come from each read's arguments or the contract's declarations, with no extra SQL statement for automatic read tracking.
 
 ## Catch uncovered SQL in stories
 
