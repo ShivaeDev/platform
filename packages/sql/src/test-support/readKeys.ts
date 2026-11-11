@@ -5,6 +5,7 @@ import * as Statement from "effect/sql/Statement";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { readSql } from "#readSql.ts";
 import type { FindManyFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { type BucketRow, bucketRows } from "#test/bucketRows.ts";
 import { compositeLedger } from "#test/compositeLedger.ts";
@@ -35,7 +36,8 @@ export type Read =
 	| { readonly call: "latestPerGroup"; readonly where: RepositoryListFilter<typeof BucketRow> }
 	| { readonly call: "findLedgerEntry"; readonly account: string; readonly sequence: bigint }
 	| { readonly call: "findOwnedRow"; readonly id: number; readonly ownerId: number }
-	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> };
+	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> }
+	| { readonly call: "readSql"; readonly id: number; readonly owner: string };
 
 function observed(read: Reading) {
 	return Effect.suspend(() => {
@@ -59,7 +61,7 @@ function observed(read: Reading) {
 	});
 }
 
-function perform({ buckets: { rows }, ledger, owned, sql }: Effect.Success<typeof engine>, read: Read): Reading {
+function perform({ buckets: { keys, rows, tableName }, ledger, owned, sql }: Effect.Success<typeof engine>, read: Read): Reading {
 	switch (read.call) {
 		case "aggregate":
 			return Effect.asVoid(rows.aggregate({ aggregates: { rows: { count: "*" } }, groupBy: ["owner"], where: read.where }));
@@ -81,6 +83,8 @@ function perform({ buckets: { rows }, ledger, owned, sql }: Effect.Success<typeo
 			return Effect.asVoid(
 				rows.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["listId"], where: read.where }),
 			);
+		case "readSql":
+			return Effect.asVoid(readSql`select id from ${sql(tableName)} where owner = ${keys.bucket.owner(read.owner)} or id = ${keys.item(read.id)}`);
 		case "select":
 			return Effect.asVoid(Effect.flatMap(rows.select({ where: read.where }).statement, (statement) => sql`${statement}`));
 	}
@@ -89,7 +93,7 @@ function perform({ buckets: { rows }, ledger, owned, sql }: Effect.Success<typeo
 export const readKeys = storyKit({
 	...onPostgres,
 	create: () => engine,
-	name: "keys that PostgreSQL repository reads record",
+	name: "keys that PostgreSQL repository and raw SQL reads record",
 	stages: [],
 	verbs: (current, story) => ({
 		read: (read: Read) => {
@@ -107,6 +111,8 @@ function described(read: Read) {
 			return `the ${read.account} ledger entry at sequence ${read.sequence}, a composite id with a bigint`;
 		case "findOwnedRow":
 			return `owned row ${read.id} of owner ${read.ownerId}, a composite id stored as text`;
+		case "readSql":
+			return `raw SQL rows of owner ${read.owner} or with id ${read.id}, marking the owner bucket and the row`;
 		case "aggregate":
 		case "count":
 		case "findMany":

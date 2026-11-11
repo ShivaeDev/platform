@@ -63,6 +63,11 @@ const cases: readonly { readonly claim: string; readonly read: Read; readonly ex
 		expected: "the table",
 		read: { call: "findOwnedRows", where: { id: 1 } },
 	},
+	{
+		claim: "a raw read through readSql listens on the bucket and the row its parameters mark",
+		expected: 'owner "alice", record 1',
+		read: { call: "readSql", id: 1, owner: "alice" },
+	},
 ];
 
 for (const { claim, expected, read } of cases) {

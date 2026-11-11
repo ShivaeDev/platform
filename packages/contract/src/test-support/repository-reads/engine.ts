@@ -8,12 +8,26 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { CurrentViewer } from "#readPolicy.ts";
-import { type Handlers, handlers, Libraries, Library, LibraryViewer, makeBooks, makeReaders } from "#test/repository-reads/fixture.ts";
+import {
+	type Handlers,
+	handlers,
+	Libraries,
+	Library,
+	LibraryViewer,
+	LoggedWarnings,
+	makeBooks,
+	makeLoans,
+	makeReaders,
+} from "#test/repository-reads/fixture.ts";
 
 const views = {
+	"alice's loans on shelf 1 through raw SQL marking both buckets": { payload: { reader: "alice", shelf: 1 }, query: "loansOnShelf" },
 	"alice's reader row": { payload: undefined, query: "reader" },
 	"book 1": { payload: { id: 1 }, query: "book" },
 	"book 1 read 100 times": { payload: { id: 1, times: 100 }, query: "rereadBook" },
+	"every loan": { payload: undefined, query: "everyLoan" },
+	"every title through unmarked raw SQL": { payload: undefined, query: "unmarkedTitles" },
+	"every title through unmarked raw SQL, declaring it reads nothing": { payload: undefined, query: "unmarkedTitlesReadingNothing" },
 	"shelf 1": { payload: { shelf: 1 }, query: "shelf" },
 	"shelf 1 behind a policy that reads and records alice's reader row": { payload: { shelf: 1 }, query: "readerShelf" },
 	"shelf 1 declaring its bucket and filtering every book in code": { payload: { shelf: 1 }, query: "declaredShelf" },
@@ -27,6 +41,8 @@ export interface Watched {
 }
 
 export const engine = Effect.gen(function* () {
+	const logged = yield* LoggedWarnings;
+	const warningsBefore = logged.length;
 	const shared = yield* Reactivity.Reactivity;
 	const registrations: (readonly string[])[] = [];
 	const reactivity = Reactivity.Reactivity.of({
@@ -37,7 +53,9 @@ export const engine = Effect.gen(function* () {
 		},
 	});
 	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
-	const library = yield* Effect.all({ books: makeBooks, readers: makeReaders }).pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
+	const library = yield* Effect.all({ books: makeBooks, loans: makeLoans, readers: makeReaders }).pipe(
+		Effect.provideService(Reactivity.Reactivity, reactivity),
+	);
 	const services = Layer.merge(Layer.succeed(Library, library), Layer.succeed(Reactivity.Reactivity, reactivity));
 	const viewer = Option.some({ id: "alice" });
 	const connect = Effect.fnUntraced(function* (style: Handlers) {
@@ -69,5 +87,8 @@ export const engine = Effect.gen(function* () {
 		watched.current = { updates, views: watching };
 		return updates;
 	});
-	return { client, registrations, watch, watched };
+	function warnings() {
+		return logged.slice(warningsBefore);
+	}
+	return { client, registrations, warnings, watch, watched };
 });
