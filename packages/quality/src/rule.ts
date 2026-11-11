@@ -60,11 +60,14 @@ export type Configured<TServices = RuleServices> =
 
 export type Depth = "deep";
 
+export type Need = "child-process" | "story-program";
+
 export interface RegisteredRule<TServices = RuleServices> {
 	readonly depth?: Depth;
 	readonly description: string;
 	readonly family?: boolean;
 	readonly id: string;
+	readonly needs?: Need;
 	readonly registrable?: boolean;
 	readonly [ruleConfiguration]: (options: unknown) => Promise<Configured<TServices>>;
 }
@@ -79,6 +82,7 @@ interface RuleDefinition<TId extends string, TOptions, TServices> {
 	readonly depth?: Depth;
 	readonly description: string;
 	readonly id: TId;
+	readonly needs?: Need;
 	readonly registrable?: false;
 	readonly validate?: (context: RuleContext<NoInfer<TOptions>>) => readonly string[];
 }
@@ -110,6 +114,7 @@ export function defineRule<const TId extends string, TInput, TOptions, TServices
 		...(definition.depth === undefined ? {} : { depth: definition.depth }),
 		description: definition.description,
 		id: definition.id,
+		...(definition.needs === undefined ? {} : { needs: definition.needs }),
 		registrable: definition.registrable ?? true,
 	};
 }

@@ -47,4 +47,5 @@ export const globalRetries = defineRule({
 		}),
 	description: "Test, suite and story retries are global only and recorded by vitest-rerun; registrations declare no retry option.",
 	id: "tests/global-retries",
+	needs: "story-program",
 });

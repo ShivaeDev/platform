@@ -104,4 +104,5 @@ export const namedValues = defineRule({
 		),
 	description: "Stories assert observed items or named values instead of bare counts and numbers.",
 	id: "tests/named-values",
+	needs: "story-program",
 });

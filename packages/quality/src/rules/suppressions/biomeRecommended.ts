@@ -53,6 +53,7 @@ export function biomeRecommendedFrom(recommended: Recommended): Rule<"suppressio
 		description:
 			"Every recommended Biome rule without a shipped internal exception runs at error in the shared preset. Set missing rules to error in the preset and repair the code they report.",
 		id: "suppressions/biome-recommended",
+		needs: "child-process",
 		registrable: false,
 	});
 }

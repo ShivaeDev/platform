@@ -63,4 +63,5 @@ export const groupedOutcomes = defineRule({
 	check: (inputs) => Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, consecutiveChecks, MESSAGE))),
 	description: "Several outcomes after one action are rows of one outcomes call, so the story's words lead each line.",
 	id: "tests/grouped-outcomes",
+	needs: "story-program",
 });

@@ -3,9 +3,7 @@ import { changeKeyCheck } from "#adapters/changeKeyCheck.ts";
 import { contextCaptureCheck } from "#adapters/contextCaptureCheck.ts";
 import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { projectsFor } from "#adapters/imports/projects.ts";
-import { rpcBoundaryCheck } from "#adapters/rpcBoundaryCheck.ts";
 import { serviceModelCheck } from "#adapters/serviceModelCheck.ts";
-import { sharedErrorCheck } from "#adapters/sharedErrorCheck.ts";
 import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
 import type { Finding, RuleInputs, SourceFile, TypeScriptProgram } from "#rule.ts";
@@ -20,10 +18,8 @@ export interface PackageCheck {
 const CHECKS = [
 	{ id: "boundaries/imported-change-keys", prepare: changeKeyCheck },
 	{ id: "effect/context-capture", prepare: contextCaptureCheck },
-	{ id: "effect/rpc-boundary", prepare: rpcBoundaryCheck },
 	{ id: "effect/service-model", prepare: serviceModelCheck },
 	{ id: "effect/service-parameters", prepare: serviceParameterCheck },
-	{ id: "effect/shared-error-classes", prepare: sharedErrorCheck },
 	{ id: "suppressions/no-double-cast", prepare: typedCastCheck },
 ] as const;
 

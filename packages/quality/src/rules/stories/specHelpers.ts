@@ -21,4 +21,5 @@ export const specHelpers = defineRule({
 		),
 	description: "Specs state expectations and may keep pure matchers and readers; story-kit traits and verbs in test-support own setup and actions.",
 	id: "tests/spec-helpers",
+	needs: "story-program",
 });

@@ -48,4 +48,5 @@ export const domainOutcomes = defineRule({
 		}),
 	description: "Story verbs and readouts return outcomes in the domain's words, not Exit, Cause or Result shapes or their internal tag reads.",
 	id: "tests/domain-outcomes",
+	needs: "story-program",
 });

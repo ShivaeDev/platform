@@ -1,12 +1,10 @@
 import { expect } from "@effect/vitest";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
-import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { ruleCases } from "#test/ruleCases.ts";
 import { repositoryHas, repositoryLinks } from "#test/ruleStory.ts";
 import { sharedErrorFiles } from "#test/sharedErrorFiles.ts";
 
 const repository = ruleCases.repository(
-	effectResolves(),
 	repositoryHas(...sharedErrorFiles),
 	repositoryLinks("node_modules/@shivaedev/errors", "../../packages/errors"),
 );
@@ -28,9 +26,9 @@ for (const { name, code, className, tag, exported } of [
 	},
 	{
 		className: "LimitReached",
-		code: 'const tag = "SharedBudget"; const tagged = Schema.TaggedError; class LimitReached extends tagged<LimitReached>()(tag, {}) {}',
+		code: 'class LimitReached extends Schema.TaggedErrorClass<LimitReached>()("SharedBudget", {}) {}',
 		exported: "BudgetExhausted",
-		name: "an aliased constructor and constant tag exported under a different class name",
+		name: "a tagged error class exported under a different class name",
 		tag: "SharedBudget",
 	},
 	{

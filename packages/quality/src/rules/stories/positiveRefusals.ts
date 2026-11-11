@@ -14,4 +14,5 @@ export const positiveRefusals = defineRule({
 	}),
 	description: "Negative outcome comparisons in a story need a positive assertion of the expected refusal on the same outcome.",
 	id: "tests/positive-refusals",
+	needs: "story-program",
 });

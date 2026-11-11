@@ -6,5 +6,6 @@ export const unusedCode = defineRule({
 	description:
 		"Reports unused files, exports and package dependencies, and missing dependencies, through knip. Reach code from declared entry points or remove it; record existing debt in the baseline.",
 	id: "code/unused",
+	needs: "child-process",
 	registrable: false,
 });

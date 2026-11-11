@@ -1,14 +1,9 @@
 import { expect } from "@effect/vitest";
 import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
-import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { sharedErrorFiles } from "#test/sharedErrorFiles.ts";
 
-const sharedErrors = [
-	effectResolves(),
-	repositoryHas(...sharedErrorFiles),
-	repositoryLinks("node_modules/@shivaedev/errors", "../../packages/errors"),
-];
+const sharedErrors = [repositoryHas(...sharedErrorFiles), repositoryLinks("node_modules/@shivaedev/errors", "../../packages/errors")];
 
 ruleStory.it(
 	"effect/shared-error-classes accepts shared declarations and imports, unique errors, private tags and non-error classes",
@@ -59,7 +54,6 @@ ruleStory.it(
 ruleStory.it(
 	"effect/shared-error-classes reads a published declaration export and reports its public import",
 	[
-		effectResolves(),
 		repositoryLinks("node_modules/@shivaedev/errors", "../../packages/errors"),
 		repositoryHas(
 			{
@@ -116,7 +110,6 @@ ruleStory.it(
 ruleStory.it(
 	"effect/shared-error-classes requires shared tags even before the repository depends on errors",
 	[
-		effectResolves(),
 		repositoryHas({
 			content: 'import { Data } from "effect";\nclass LocalLimit extends Data.TaggedError("TooManyRequests") {}',
 			path: "src/limit.ts",
