@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { contextCaptureCheck } from "#adapters/contextCaptureCheck.ts";
+import { linesOf } from "#inventory/linesOf.ts";
 
 const EFFECT = 'import { Effect, Layer } from "effect";\n';
+
+function checks(path: string, text: string): boolean {
+	return contextCaptureCheck.checks({ lines: linesOf(text), path, text });
+}
 
 describe("contextCaptureCheck.checks", () => {
 	for (const [shape, text] of [
@@ -13,7 +18,7 @@ describe("contextCaptureCheck.checks", () => {
 		["provide in a pipe", `${EFFECT}effect.pipe(Effect.provide(services.context));`],
 	] as const) {
 		it(`type-checks a file with ${shape}`, () => {
-			expect(contextCaptureCheck.checks({ path: "src/run.ts", text })).toBe(true);
+			expect(checks("src/run.ts", text)).toBe(true);
 		});
 	}
 
@@ -24,11 +29,11 @@ describe("contextCaptureCheck.checks", () => {
 		["provide only in text", `${EFFECT}// provideContext would hide requirements\nconst label = "runPromiseWith";`],
 	] as const) {
 		it(`leaves out a file with ${shape}`, () => {
-			expect(contextCaptureCheck.checks({ path: "src/run.ts", text })).toBe(false);
+			expect(checks("src/run.ts", text)).toBe(false);
 		});
 	}
 
 	it("leaves out a runtime bridge in adapters/", () => {
-		expect(contextCaptureCheck.checks({ path: "src/adapters/run.ts", text: `${EFFECT}Effect.runPromiseWith(context)(effect);` })).toBe(false);
+		expect(checks("src/adapters/run.ts", `${EFFECT}Effect.runPromiseWith(context)(effect);`)).toBe(false);
 	});
 });
