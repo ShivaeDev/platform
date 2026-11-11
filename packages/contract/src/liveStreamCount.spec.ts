@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { liveHints, watcher } from "#test/liveStreams.ts";
-import { notes } from "#test/notes.ts";
 
 liveHints.it(
 	"with three streams open, closing one leaves a resync reporting two streams open",

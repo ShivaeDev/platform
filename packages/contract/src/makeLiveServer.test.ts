@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { liveHints, watcher } from "#test/liveStreams.ts";
-import { notes } from "#test/notes.ts";
 
 liveHints.it(
 	"a change to note 1 reaches the note 1 watcher and not the note 2 watcher",

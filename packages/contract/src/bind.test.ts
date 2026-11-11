@@ -32,7 +32,7 @@ notesStory.it(
 );
 
 notesStory.it("creating the note Three refreshes the watched note 3 that was missing", [watching("note 3")], function* ({ create, shown }) {
-	expect(yield* shown("note 3")).toBe("failed with note 3 is missing");
+	expect(yield* shown("note 3")).toBe("failed with not found");
 
 	yield* create("Three");
 

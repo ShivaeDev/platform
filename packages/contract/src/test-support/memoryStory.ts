@@ -1,9 +1,10 @@
 import { Effect, Exit, Layer, Ref, Schema, Scope, Stream, SubscriptionRef } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { type HintViewer, layerMemoryProtocol, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
+import { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { makeClient } from "#bind.ts";
@@ -12,8 +13,8 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { answered, shown, streams, updateWords } from "#test/answers.ts";
-import { Note, Notes, notes } from "#test/notes.ts";
-import { notesServer } from "#test/notesServer.ts";
+import { notesDatabase } from "#test/notesDatabase.ts";
+import { DeclaredNotes, notesServer } from "#test/notesServer.ts";
 import { type Mark, markQuery, reRead } from "#test/reRead.ts";
 import { settled } from "#test/settled.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
@@ -21,21 +22,11 @@ import { storyRuntime } from "#test/storyRuntime.ts";
 const memoryEngine = Effect.gen(function* () {
 	const runtime = yield* storyRuntime;
 	const server = yield* notesServer;
-	const reactivity = yield* Reactivity.make;
-	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
+	const live = yield* makeLiveServer;
 	const active = yield* SubscriptionRef.make(0);
-	const application = Notes.application.toLayer({
-		...server.implementation,
-
-		"notes.rename": (payload) =>
-			Effect.gen(function* () {
-				const note = yield* server.implementation["notes.rename"](payload);
-				yield* reactivity.invalidate(invalidationKeys([notes.item(payload.id)]));
-				return note;
-			}),
-	});
+	const { application } = server;
 	const changes = changesHandlerLayer(
-		Notes,
+		DeclaredNotes,
 		() =>
 			({ queries }, options) =>
 				Stream.unwrap(
@@ -43,14 +34,14 @@ const memoryEngine = Effect.gen(function* () {
 						const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
 						yield* SubscriptionRef.update(active, (count) => count + 1);
 						return live
-							.subscribe(subscription, rerunQuery(Notes.application.omit("notes.create", "notes.rename"), options))
+							.subscribe(subscription, rerunQuery(DeclaredNotes.application.omit("notes.create", "notes.rename"), options))
 							.pipe(Stream.ensuring(SubscriptionRef.update(active, (count) => count - 1)));
 					}),
 				),
 	);
-	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
-	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide([handlers, server.guard])));
-	const connection = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide([application, Layer.succeed(NotesRepository, server.repository)])));
+	const transport = yield* Layer.build(layerMemoryProtocol(DeclaredNotes).pipe(Layer.provide([handlers, server.guard])));
+	const connection = makeClient(DeclaredNotes, { protocol: Layer.succeedContext(transport), runtime, url: "memory://notes" });
 	const client = yield* connection.client;
 	const other = yield* connection.client;
 	const listeners = new Map<number, { readonly scope: Scope.Closeable; readonly viewer: HintViewer<unknown> }>();
@@ -64,9 +55,12 @@ const memoryEngine = Effect.gen(function* () {
 });
 
 export const memoryStory = storyKit({
+	around: withIsolatedDatabase,
 	clock: "test",
 	create: () => memoryEngine,
+	layer: notesDatabase.layer,
 	name: "in-memory clients",
+	runIf: notesDatabase.configured,
 	stages: ["access", "listeners", "screen"],
 	verbs: (engine, story) => ({
 		close: (id: number) =>

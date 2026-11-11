@@ -1,81 +1,92 @@
-import { Effect, Layer, Ref, Stream, SubscriptionRef } from "effect";
+import { Context, Effect, Layer, Option, Ref, Schema, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { SqlClient } from "effect/sql";
+import { BadRequest, Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { Note, NoteFields, notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
+import { NotesViewer } from "@shivaedev/test-kits/test-support/notes/module.ts";
+import { Create, Get, List, NoteId, NoteRename, NotesOf, Rename } from "@shivaedev/test-kits/test-support/notes/operations.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
+import { contract } from "#contract.ts";
 import { liveServerLayer } from "#live-server/layer.ts";
 import { subscribe } from "#live-server/subscribe.ts";
+import { command, query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { QueryReference } from "#serverMetadata.ts";
-import { Create, Denied, Get, Guard, Note, Notes, notes, Rename, Session } from "#test/notes.ts";
+
+// The reference queries declare no keys; these stories prove refreshes that follow keys a contract declares by hand.
+export const DeclaredNotes = contract("notes", {
+	commands: [
+		command("rename", { invalidates: ({ id }) => [notes.item(id)], payload: NoteRename, rejections: { BadRequest, NotFound }, success: Note }),
+		command("create", {
+			invalidates: (_fields, note) => [notes.item(note.id)],
+			payload: NoteFields,
+			rejections: { BadRequest, Conflict, Unauthorized },
+			success: Note,
+		}),
+	],
+	queries: [
+		query("get", { payload: NoteId, readPolicy: Get.readPolicy, reads: ({ id }) => [notes.item(id)], rejections: { NotFound }, success: Note }),
+		query("list", { payload: NotesOf, readPolicy: List.readPolicy, reads: () => [notes.list], success: Schema.Array(Note) }),
+	],
+}).middleware(NotesViewer);
+
+export const READER = "ada";
 
 export const notesServer = Effect.gen(function* () {
-	const stored = yield* Ref.make(
-		new Map([
-			[1, new Note({ body: "", id: 1, title: "One" })],
-			[2, new Note({ body: "", id: 2, title: "Two" })],
-		]),
+	const sql = yield* SqlClient.SqlClient;
+	const reactivity = yield* Reactivity.Reactivity;
+	const repository = Context.get(
+		yield* Layer.build(NotesRepository.layer.pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)))),
+		NotesRepository,
 	);
+	yield* Effect.orDie(Effect.forEach(["One", "Two"], (title) => repository.insertVoid({ owner: READER, title })));
 	const reads = yield* SubscriptionRef.make<readonly string[]>([]);
 	const subscriptions = yield* Ref.make<readonly QueryReference[]>([]);
 	const denied = yield* Ref.make(false);
-	const session = yield* Ref.make({ user: "ada" });
 	function read(label: string) {
 		return SubscriptionRef.update(reads, (all) => [...all, label]);
 	}
-	function find(id: number) {
-		return Effect.flatMap(Ref.get(stored), (all) => {
-			const note = all.get(id);
-			return note === undefined ? Get.reject.NoteMissing({ id }) : Effect.succeed(note);
-		});
+	// The client's Atom runtime builds this server, whose own Reactivity would otherwise receive the repository's writes.
+	function publishing<A, E, R>(effect: Effect.Effect<A, E, R>) {
+		return Effect.provideService(effect, Reactivity.Reactivity, reactivity);
 	}
-	function save(note: Note) {
-		return Effect.tap(
-			Effect.as(
-				Ref.update(stored, (all) => new Map([...all, [note.id, note]])),
-				note,
-			),
-			() => reactivity.invalidate(invalidationKeys([notes.item(note.id)])),
-		);
-	}
-	const implementation = Notes.application.of({
-		"notes.create": (draft) =>
-			draft.title === ""
-				? Create.reject.Invalid({ field: "title", message: "Enter a title" })
-				: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
-		"notes.get": ({ id }) => Effect.andThen(read(`get:${id}`), find(id)),
-		"notes.list": () =>
-			Effect.andThen(
-				read("list"),
-				Effect.map(Ref.get(stored), (all) => [...all.values()]),
-			),
-		"notes.rename": ({ id, title }) =>
-			title.trim() === ""
-				? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
-				: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
-	});
-	const application = Notes.application.toLayer(Effect.succeed(implementation));
-	const reactivity = yield* Reactivity.make;
+	const implementation = {
+		"notes.create": (payload: typeof NoteFields.Type) => publishing(Create.run(payload)),
+		"notes.get": (payload: typeof NoteId.Type) => Effect.andThen(read(`get:${payload.id}`), Get.run(payload)),
+		"notes.list": (payload: typeof NotesOf.Type) => Effect.andThen(read("list"), List.run(payload)),
+		"notes.rename": (payload: typeof NoteRename.Type) => publishing(Rename.run(payload)),
+	};
+	const services = Layer.mergeAll(
+		Layer.succeed(NotesRepository, repository),
+		Layer.succeed(Reactivity.Reactivity, reactivity),
+		Layer.succeed(SqlClient.SqlClient, sql),
+	);
+	const application = DeclaredNotes.application.toLayer(implementation).pipe(Layer.provide(services));
 	const changes = changesHandlerLayer(
-		Notes,
-		(rpc) =>
+		DeclaredNotes,
+		() =>
 			({ queries }, options) =>
 				Stream.unwrap(
 					Effect.gen(function* () {
 						yield* Ref.set(subscriptions, queries);
-						const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
-						return yield* subscribe(subscription, rerunQuery(Notes.application.omit("notes.create", "notes.rename"), options));
+						const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
+						return yield* subscribe(subscription, rerunQuery(DeclaredNotes.application.omit("notes.create", "notes.rename"), options));
 					}),
 				),
 	);
 	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application))).pipe(
 		Layer.provide(liveServerLayer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)))),
+		Layer.provide(services),
 	);
-	const guard = Layer.succeed(Guard, (effect) =>
+	const guard = Layer.succeed(NotesViewer, (effect) =>
 		Effect.flatMap(Ref.get(denied), (isDenied) =>
-			isDenied ? Effect.fail(new Denied()) : Effect.flatMap(Ref.get(session), (identity) => Effect.provideService(effect, Session, identity)),
+			isDenied
+				? Effect.fail(new Unauthorized({ message: "This session is denied" }))
+				: Effect.provideService(effect, CurrentViewer, Option.some({ id: READER })),
 		),
 	);
-	return { denied, guard, implementation, layer: Layer.merge(handlers, guard), reads, session, stored, subscriptions };
+	return { application, denied, guard, layer: Layer.merge(handlers, guard), reads, repository, sql, subscriptions };
 });

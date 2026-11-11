@@ -3,22 +3,22 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
+import { NotesRepository } from "@shivaedev/test-kits/test-support/notes/repository.ts";
 import { bind } from "#bind.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { compareQueries } from "#compareQueries.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import type { ResumeSource } from "#resume.ts";
-import { Notes } from "#test/notes.ts";
-import type { notesServer } from "#test/notesServer.ts";
+import { DeclaredNotes, type notesServer } from "#test/notesServer.ts";
 
 export function automaticResumeClient(server: Effect.Success<typeof notesServer>, runtime: Atom.RuntimeFactory, resume?: ResumeSource) {
 	const opened = Effect.runSync(SubscriptionRef.make(0));
 	const active = Effect.runSync(SubscriptionRef.make(0));
 	const ended = Effect.runSync(Effect.flatMap(Deferred.make<void>(), Ref.make));
-	const application = Notes.application.toLayer(server.implementation);
+	const { application } = server;
 	const changes = changesHandlerLayer(
-		Notes,
+		DeclaredNotes,
 		() =>
 			({ queries }, options) =>
 				Stream.unwrap(
@@ -30,22 +30,22 @@ export function automaticResumeClient(server: Effect.Success<typeof notesServer>
 						const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
 						const updates = yield* compareQueries(
 							subscription,
-							rerunQuery(Notes.application.omit("notes.create", "notes.rename"), options),
+							rerunQuery(DeclaredNotes.application.omit("notes.create", "notes.rename"), options),
 						)({ _tag: "Resync" });
 						return Stream.concat(Stream.fromIterable(updates), Stream.drain(Stream.fromEffect(Deferred.await(end))));
 					}),
 				),
 	);
-	const handlers = Layer.merge(application, changes.pipe(Layer.provide(application)));
+	const handlers = Layer.merge(application, changes.pipe(Layer.provide([application, Layer.succeed(NotesRepository, server.repository)])));
 	class Client extends AtomRpc.Service<Client>()("test/AutomaticResume", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
+		group: DeclaredNotes,
+		makeEffect: RpcTest.makeClient(DeclaredNotes, { flatten: true }),
 		protocol: Layer.merge(handlers, server.guard),
 		runtime,
 	}) {}
 	return {
 		active,
-		api: bind(Notes, Client, resume === undefined ? {} : { resume }),
+		api: bind(DeclaredNotes, Client, resume === undefined ? {} : { resume }),
 		disconnect: Effect.gen(function* () {
 			const previous = yield* Ref.getAndSet(ended, yield* Deferred.make<void>());
 			yield* Deferred.succeed(previous, undefined);

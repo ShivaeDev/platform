@@ -1,11 +1,11 @@
 import { Effect, Queue, Scheduler, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { hintWords, times } from "#test/answers.ts";
-import { notes } from "#test/notes.ts";
 
 const scheduledHintsEngine = Effect.gen(function* () {
 	const scheduler = yield* Scheduler.Scheduler;

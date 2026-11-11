@@ -32,7 +32,7 @@ memoryStory.it("two clients sharing the in-memory protocol receive their own con
 });
 
 memoryStory.it("an in-memory query receives its decoded declared rejection", [], function* ({ get }) {
-	expect(yield* get(9)).toBe("failed with note 9 is missing");
+	expect(yield* get(9)).toBe("failed with not found");
 });
 
 memoryStory.it("an in-memory command receives its decoded declared rejection", [], function* ({ rename }) {
@@ -40,7 +40,7 @@ memoryStory.it("an in-memory command receives its decoded declared rejection", [
 });
 
 memoryStory.it("an in-memory query passes through the server's denying middleware", [memoryDenied], function* ({ get }) {
-	expect(yield* get(1)).toBe("failed with denied");
+	expect(yield* get(1)).toBe("failed with unauthorized");
 });
 
 memoryStory.it(

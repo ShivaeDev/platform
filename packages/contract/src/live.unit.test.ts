@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect, it } from "vitest";
+import { notes } from "@shivaedev/test-kits/test-support/notes/model.ts";
 import { LiveHint } from "#live.ts";
-import { notes } from "#test/notes.ts";
 
 it("rejects unknown hints and invalid read keys at the Schema boundary", () => {
 	const decode = Schema.decodeUnknownResult(LiveHint);

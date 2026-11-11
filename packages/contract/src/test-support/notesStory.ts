@@ -1,11 +1,14 @@
 import { Effect, Ref, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import type { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { answered, shown, times } from "#test/answers.ts";
 import { type LocalEngine, localEngine } from "#test/localEngine.ts";
-import type { Note } from "#test/notes.ts";
+import { notesDatabase } from "#test/notesDatabase.ts";
+import { READER } from "#test/notesServer.ts";
 import { markQuery, reRead } from "#test/reRead.ts";
 import { settled } from "#test/settled.ts";
 
@@ -18,7 +21,7 @@ function readLabel(view: View) {
 }
 
 function viewAtom(engine: LocalEngine, view: View): Atom.Atom<AsyncResult.AsyncResult<Note | readonly Note[], unknown>> {
-	return view === "the list" ? engine.api.list.query(undefined) : engine.api.get.query({ id: NOTE_IDS[view] });
+	return view === "the list" ? engine.api.list.query({ owner: READER }) : engine.api.get.query({ id: NOTE_IDS[view] });
 }
 
 function titles(value: Note | readonly Note[]): string | readonly string[] {
@@ -48,22 +51,21 @@ function write(engine: LocalEngine, effect: Effect.Effect<Note, unknown>) {
 }
 
 export const notesStory = storyKit({
+	around: withIsolatedDatabase,
 	clock: "test",
 	create: () => localEngine,
 	inspect: ({ server }) => ({
 		reads: Effect.runSync(SubscriptionRef.get(server.reads)),
-		stored: [...Effect.runSync(Ref.get(server.stored)).values()],
 		subscriptions: Effect.runSync(Ref.get(server.subscriptions)),
 	}),
+	layer: notesDatabase.layer,
 	name: "notes",
+	runIf: notesDatabase.configured,
 	stages: ["connection", "views"],
 	verbs: (engine, story) => ({
 		create: (title: string) => {
 			story.tell(`the client creates the note ${title}`);
-			return answered(
-				write(engine, engine.run(engine.api.create.run({ body: "", title }))),
-				(note) => `created note ${note.id} titled ${note.title}`,
-			);
+			return answered(write(engine, engine.run(engine.api.create.run({ title }))), (note) => `created note ${note.id} titled ${note.title}`);
 		},
 		mount: (view: View) => {
 			story.tell(`the client mounts ${view}`);
@@ -77,7 +79,7 @@ export const notesStory = storyKit({
 			story.tell(`the client renames note ${id} to ${JSON.stringify(title)}`);
 			return answered(write(engine, engine.run(engine.api.rename.run({ id, title }))), (note) => `renamed note ${note.id} to ${note.title}`);
 		},
-		serverReads: () => SubscriptionRef.get(engine.server.reads),
+		serverReads: () => Effect.map(SubscriptionRef.get(engine.server.reads), (reads) => reads.toSorted()),
 		shown: (view: View) => shownOf(engine, view),
 		subscriptions: () => Ref.get(engine.server.subscriptions),
 		timesRead: (view: View) =>

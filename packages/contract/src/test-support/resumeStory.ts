@@ -1,7 +1,9 @@
-import { Effect, Ref, SubscriptionRef } from "effect";
+import { Effect, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { TestClock } from "effect/testing";
+import type { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { shareQuerySignals } from "#querySignals.ts";
@@ -9,7 +11,7 @@ import { resumeSignal } from "#resume.ts";
 import { failure, streams, times } from "#test/answers.ts";
 import { automaticResumeClient } from "#test/automaticResumeClient.ts";
 import { localEngine } from "#test/localEngine.ts";
-import { Note } from "#test/notes.ts";
+import { notesDatabase } from "#test/notesDatabase.ts";
 import { type Mark, markQuery, reRead } from "#test/reRead.ts";
 import { syntheticNative, syntheticWindow } from "#test/resumeSources.ts";
 import { settled } from "#test/settled.ts";
@@ -87,6 +89,7 @@ function automaticOf(engine: ResumeEngine) {
 }
 
 export const resumeStory = storyKit({
+	around: withIsolatedDatabase,
 	clock: "test",
 	create: () => resumeEngine,
 	inspect: ({ browser, native, server }) => ({
@@ -94,15 +97,14 @@ export const resumeStory = storyKit({
 		nativeListeners: native.listeners.size,
 		reads: Effect.runSync(SubscriptionRef.get(server.reads)),
 	}),
+	layer: notesDatabase.layer,
 	name: "notes resume",
+	runIf: notesDatabase.configured,
 	stages: ["client", "views"],
 	verbs: (engine, story) => ({
 		changeQuietly: (id: number, title: string) => {
-			story.tell(`note ${id} is renamed to ${title} on the server without any hint`);
-			return Ref.update(engine.server.stored, (all) => {
-				const note = all.get(id);
-				return note === undefined ? all : new Map([...all, [id, new Note({ ...note, title })]]);
-			});
+			story.tell(`note ${id} is renamed to ${title} on the server through SQL that announces no change`);
+			return Effect.orDie(engine.server.sql`update notes set title = ${title} where id = ${id}`);
 		},
 		dispose: () => {
 			story.tell("the client disposes its registry");
