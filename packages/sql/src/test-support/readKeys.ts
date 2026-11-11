@@ -84,7 +84,10 @@ function perform({ buckets: { keys, rows, tableName }, ledger, owned, sql }: Eff
 				rows.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["listId"], where: read.where }),
 			);
 		case "readSql":
-			return Effect.asVoid(readSql`select id from ${sql(tableName)} where owner = ${keys.bucket.owner(read.owner)} or id = ${keys.item(read.id)}`);
+			return readSql`select id from ${sql(tableName)} where owner = ${keys.bucket.owner(read.owner)} or id = ${keys.item(read.id)}`.pipe(
+				Effect.provideService(SqlClient.SqlClient, sql),
+				Effect.asVoid,
+			);
 		case "select":
 			return Effect.asVoid(Effect.flatMap(rows.select({ where: read.where }).statement, (statement) => sql`${statement}`));
 	}

@@ -1,6 +1,7 @@
 import { Effect, Layer, Option, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient } from "effect/rpc";
+import { SqlClient } from "effect/sql";
 import { rerunQuery } from "@shivaedev/server/rerunQuery.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 import { changesHandlerLayer } from "#changesHandlerLayer.ts";
@@ -56,7 +57,11 @@ export const engine = Effect.gen(function* () {
 	const library = yield* Effect.all({ books: makeBooks, loans: makeLoans, readers: makeReaders }).pipe(
 		Effect.provideService(Reactivity.Reactivity, reactivity),
 	);
-	const services = Layer.merge(Layer.succeed(Library, library), Layer.succeed(Reactivity.Reactivity, reactivity));
+	const services = Layer.mergeAll(
+		Layer.succeed(Library, library),
+		Layer.succeed(Reactivity.Reactivity, reactivity),
+		Layer.succeed(SqlClient.SqlClient, yield* SqlClient.SqlClient),
+	);
 	const viewer = Option.some({ id: "alice" });
 	const connect = Effect.fnUntraced(function* (style: Handlers) {
 		const application = handlers[style].pipe(Layer.provide(services));

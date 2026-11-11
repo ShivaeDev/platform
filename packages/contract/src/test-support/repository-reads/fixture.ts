@@ -212,7 +212,7 @@ export const Libraries = defineModule({
 		Move,
 		Lend,
 	],
-	requires: [Library],
+	requires: [Library, SqlClient.SqlClient],
 });
 
 export const handlers = {
