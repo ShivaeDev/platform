@@ -1,4 +1,4 @@
-// Biome names a rule's domains only in `biome explain`, one rule per process, so the list is kept here and scannerRules.spec.ts compares it with the installed Biome.
+// Biome names a rule's domains only in `biome explain`, one rule per process, so the list is kept here and scannerDomains.heavy.spec.ts compares it with the installed Biome.
 export const SCANNER_RULES: ReadonlySet<string> = new Set([
 	"lint/complexity/useArrayFind",
 	"lint/correctness/noPrivateImports",
