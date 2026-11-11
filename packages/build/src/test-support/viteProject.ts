@@ -27,6 +27,30 @@ export const notesScreen = { module: Notes };
 `,
 };
 
+const PAGE_IMPORTING_THE_TAGS_CLIENT: Readonly<Record<string, string>> = {
+	"src/client.ts": `import { Notes } from "#generated/modules/notes/notes.ts";
+import { Tags } from "#generated/modules/tags/tags.ts";
+
+console.log(Notes, Tags);
+`,
+};
+
+const TAGS_MODULE = {
+	path: "src/modules/tags/tags.ts",
+	text: `import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import { tagsWire } from "#generated/modules/tags/tags.ts";
+
+const Names = query("names", {
+	*run() {
+		return ["inbox", "later"];
+	},
+});
+
+export const Tags = defineModule({ name: "tags", operations: [Names], requires: [], wire: tagsWire });
+`,
+};
+
 const SERVER_CODE_PAGES = {
 	"a file under a server folder": {
 		"src/client.ts": `import { sessionCookie } from "#server/session.ts";
@@ -111,6 +135,8 @@ test("the generated notes wire lists the module's operations", () => {
 export const VITE_PROJECT = {
 	notesPage: NOTES_PAGE,
 	notesTest: NOTES_TEST,
+	pageImportingTheTagsClient: PAGE_IMPORTING_THE_TAGS_CLIENT,
 	screenImportingTheModule: SCREEN_IMPORTING_THE_MODULE,
 	serverCodePages: SERVER_CODE_PAGES,
+	tagsModule: TAGS_MODULE,
 };

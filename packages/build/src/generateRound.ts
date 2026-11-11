@@ -1,4 +1,6 @@
 import { Effect, FileSystem, Option, Path, Ref, Semaphore } from "effect";
+import { definesModule } from "#adapters/typeScript.ts";
+import { readIfPresent } from "#files.ts";
 import { generate } from "#generate.ts";
 import type { GenerateReport } from "#report.ts";
 
@@ -30,15 +32,27 @@ export const generateRound = Effect.fn("Build.generateRound")(function* (directo
 	);
 });
 
-// A dev server's generator: one run at a time, and a changed file starts a run only when some module's last run read it.
+// A dev server's generator: one run at a time, and a changed file starts a run only when some module's last run read it or it
+// is a module file under src that no run has seen yet.
 export const watchedGeneration = Effect.fn("Build.watchedGeneration")(function* (directory: string) {
 	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
+	const root = yield* fs.realPath(directory);
+	const sources = `${path.join(root, "src")}${path.sep}`;
+	const generated = `${path.join(sources, "generated")}${path.sep}`;
 	const inputs = yield* Ref.make<ReadonlySet<string>>(new Set());
 	const serial = yield* Semaphore.make(1);
-	const run = serial.withPermits(1)(Effect.tap(generateRound(directory), (round) => Ref.set(inputs, new Set(round.inputs))));
+	const run = serial.withPermits(1)(Effect.tap(generateRound(root), (round) => Ref.set(inputs, new Set(round.inputs))));
+	const newModule = Effect.fn("Build.newModule")(function* (file: string) {
+		if (!(file.startsWith(sources) && (file.endsWith(".ts") || file.endsWith(".tsx"))) || file.startsWith(generated)) {
+			return false;
+		}
+		return Option.exists(yield* readIfPresent(file), (text) => definesModule(file, text));
+	});
 	const changed = Effect.fn("Build.changed")(function* (file: string) {
 		const real = yield* fs.realPath(file).pipe(Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(file)));
-		return (yield* Ref.get(inputs)).has(real) ? Option.some(yield* run) : Option.none<GenerateRound>();
+		const known = (yield* Ref.get(inputs)).has(real);
+		return known || (yield* newModule(real)) ? Option.some(yield* run) : Option.none<GenerateRound>();
 	});
 	return { changed, run };
 });

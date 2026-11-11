@@ -2,7 +2,15 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { successOf } from "#test/generatedText.ts";
-import { generatedOnce, notesApplication, pageImporting, refusedModule, screenImportingTheModule, vite } from "#test/vite.ts";
+import {
+	generatedOnce,
+	notesApplication,
+	pageImporting,
+	pageImportingTheTagsClient,
+	refusedModule,
+	screenImportingTheModule,
+	vite,
+} from "#test/vite.ts";
 
 const NOTES = "src/generated/modules/notes/notes.ts";
 
@@ -99,6 +107,30 @@ vite.it(
 				expect.stringContaining("archived: Schema.Boolean"),
 			],
 			["src/client.ts in Vite's module graph", () => moduleGraphEntry("src/client.ts"), "invalidated"],
+		]);
+	},
+);
+
+vite.it(
+	"in the dev server, a module file created while the page fails to resolve its generated client is generated without a restart, and the browser reloads a page that loads",
+	[notesApplication(), generatedOnce(), pageImportingTheTagsClient()],
+	function* ({ browserLoadsThePage, browserReceives, createsTheTagsModule, generatedFile, startsTheDevServer }) {
+		yield* startsTheDevServer();
+		yield* outcomes([
+			["the page", () => browserLoadsThePage(), "failed"],
+			["the browser", () => browserReceives(), { overlay: expect.stringContaining('Failed to resolve import "#generated/modules/tags/tags.ts"') }],
+		]);
+
+		yield* createsTheTagsModule();
+
+		yield* outcomes([
+			["the browser", () => browserReceives(), { reloadAfter: "src/modules/tags/tags.ts" }],
+			[
+				"the generated tags client",
+				() => generatedFile("src/generated/modules/tags/tags.ts"),
+				expect.stringContaining("export const Tags = clientContract("),
+			],
+			["the page, loaded again", () => browserLoadsThePage(), "loaded"],
 		]);
 	},
 );

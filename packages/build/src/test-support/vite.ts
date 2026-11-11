@@ -40,9 +40,10 @@ export const vite = storyKit({
 		browserLoadsThePage: Effect.fn("BuildStory.browserLoadsThePage")(function* () {
 			story.tell("the browser loads the page's script and the generated client it imports");
 			const { url } = yield* runningDevServer(engine);
-			for (const file of ["/src/client.ts", "/src/generated/modules/notes/notes.ts"]) {
-				yield* Effect.promise(() => fetch(`${url}${file}`).then((response) => response.text()));
-			}
+			const answers = yield* Effect.forEach(["/src/client.ts", "/src/generated/modules/notes/notes.ts"], (file) =>
+				Effect.promise(() => fetch(`${url}${file}`).then((response) => response.text().then(() => response.ok))),
+			);
+			return answers.every(Boolean) ? "loaded" : "failed";
 		}),
 		// macOS reports the fixture's own writes from just before the watcher started, and Vite reloads the page for them; those
 		// reloads answer no edit of the story, so the browser's next answer to an edit is the first reload one caused.
@@ -67,6 +68,13 @@ export const vite = storyKit({
 			);
 			return viteBuild(engine.root, serverOnly);
 		},
+		createsTheTagsModule: Effect.fn("BuildStory.createsTheTagsModule")(function* () {
+			const { path: file, text } = VITE_PROJECT.tagsModule;
+			story.tell(`the developer creates ${file}, which defines the tags module`);
+			const path = yield* Path.Path;
+			engine.edited.add(path.join(engine.root, file));
+			yield* writeAtomically(path.join(engine.root, file), text);
+		}),
 		edits: Effect.fn("BuildStory.edits")(function* (file: string, from: string, to: string) {
 			story.tell(`the developer changes ${from} to ${to} in ${file}`);
 			const fs = yield* FileSystem.FileSystem;
@@ -138,6 +146,12 @@ export function generatedOnce() {
 export function screenImportingTheModule() {
 	return vite.trait("page", "the page's notes screen imports the notes module instead of its generated client", (engine) =>
 		writeFiles(engine.root, VITE_PROJECT.screenImportingTheModule),
+	);
+}
+
+export function pageImportingTheTagsClient() {
+	return vite.trait("page", "the page's script also imports the generated client of a tags module whose module file does not exist yet", (engine) =>
+		writeFiles(engine.root, VITE_PROJECT.pageImportingTheTagsClient),
 	);
 }
 
