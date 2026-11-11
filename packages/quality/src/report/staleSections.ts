@@ -23,7 +23,7 @@ function unsplitSection(file: string, unsplit: readonly StaleBaselineEntry[]): r
 		.map(([rule, entries]) => `${rule} ${entries.length}`)
 		.sort((left, right) => left.localeCompare(right));
 	return [
-		`note ${file}: ${plural(unsplit.length, "entry does", "entries do")} not record how many findings the deep half reports (${rules.join(", ")}). Run \`quality baseline tighten\` once to record it, so a local lint locks in fixed debt of the fast half.`,
+		`note ${file}: ${plural(unsplit.length, "entry does", "entries do")} not record how many findings the deep half reports (${rules.join(", ")}). Run \`quality baseline prune\` once to record it, so a local lint locks in fixed debt of the fast half.`,
 	];
 }
 

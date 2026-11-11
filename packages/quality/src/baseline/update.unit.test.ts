@@ -93,6 +93,7 @@ describe("prune", () => {
 				{ count: 1, file: "src/a.ts", rule: "local/new" },
 				{ count: 262, file: "src/big.ts", rule: "structure/max-lines" },
 			],
+			grown: [],
 			lowered: 2,
 			moved: 0,
 			removed: 1,
@@ -102,13 +103,14 @@ describe("prune", () => {
 
 	it("never raises an entry for a file that got worse", () => {
 		const existing = [{ count: 150, file: "src/big.ts", rule: "structure/max-lines" }];
-		expect(prune(existing, [long], known)).toEqual({ entries: existing, lowered: 0, moved: 0, removed: 0, split: 0 });
+		expect(prune(existing, [long], known)).toEqual({ entries: existing, grown: [], lowered: 0, moved: 0, removed: 0, split: 0 });
 	});
 
 	it("drops entries for unknown rules", () => {
 		const existing = [{ count: 1, file: "src/a.ts", rule: "local/typo" }];
 		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/typo" })], known)).toEqual({
 			entries: [],
+			grown: [],
 			lowered: 0,
 			moved: 0,
 			removed: 1,
@@ -121,6 +123,7 @@ describe("prune", () => {
 		const moved = violation({ count: 330, file: "lib/new.ts", rule: "structure/max-lines", threshold: 150 });
 		expect(prune(existing, [moved], known, { moves: new Map([["src/old.ts", "lib/new.ts"]]) })).toEqual({
 			entries: [{ count: 330, file: "lib/new.ts", rule: "structure/max-lines" }],
+			grown: [],
 			lowered: 1,
 			moved: 1,
 			removed: 0,
@@ -145,7 +148,14 @@ describe("prune", () => {
 			{ count: 2, file: "src/gone.ts", rule: "local/new" },
 		];
 		const pruned = prune(existing, [fresh], known, { files: new Set(["src/a.ts"]), moves: new Map() });
-		expect(pruned).toEqual({ entries: [{ count: 1, file: "src/a.ts", rule: "local/new" }, existing[1]], lowered: 1, moved: 0, removed: 0, split: 0 });
+		expect(pruned).toEqual({
+			entries: [{ count: 1, file: "src/a.ts", rule: "local/new" }, existing[1]],
+			grown: [],
+			lowered: 1,
+			moved: 0,
+			removed: 0,
+			split: 0,
+		});
 	});
 });
 
@@ -176,6 +186,7 @@ describe("split entries", () => {
 		const now = [syntax, typed, typed, violation({ file: "src/b.ts", rule: "local/split" }), violation({ file: "src/b.ts", rule: "local/split" })];
 		expect(prune(before, now, index)).toEqual({
 			entries: [{ count: 3, deep: 2, file: "src/a.ts", rule: "local/split" }, before[1]],
+			grown: [],
 			lowered: 0,
 			moved: 0,
 			removed: 0,

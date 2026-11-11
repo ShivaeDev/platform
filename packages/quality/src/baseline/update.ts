@@ -6,8 +6,15 @@ export type Adoption =
 	| { readonly _tag: "Refused"; readonly reasons: readonly string[] }
 	| { readonly _tag: "Adopted"; readonly entries: readonly BaselineEntry[]; readonly added: number; readonly replaced: number };
 
+export interface Growth {
+	readonly by: number;
+	readonly file: string;
+	readonly rule: string;
+}
+
 export interface Pruned {
 	readonly entries: readonly BaselineEntry[];
+	readonly grown: readonly Growth[];
 	readonly lowered: number;
 	readonly moved: number;
 	readonly removed: number;
@@ -96,12 +103,16 @@ export function prune(
 	const current = new Map(record(violations, index).map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const taken = new Set(existing.map((entry) => keyOf(entry.rule, entry.file)));
 	let moved = 0;
+	const grown: Growth[] = [];
 	const kept = existing.flatMap((before) => {
 		if (!inScope(before, scope)) {
 			return [{ after: before, before }];
 		}
 		const level = levelOf(index, before.rule);
 		const now = current.get(keyOf(before.rule, before.file)) ?? destination(before, current, scope.moves, taken);
+		if (now?.deep !== undefined && before.deep !== undefined && now.deep > before.deep) {
+			grown.push({ by: now.deep - before.deep, file: now.file, rule: before.rule });
+		}
 		const after = now === undefined || level === undefined ? undefined : lowered(before, now);
 		if (after === undefined) {
 			return [];
@@ -111,6 +122,7 @@ export function prune(
 	});
 	return {
 		entries: kept.map(({ after }) => after),
+		grown,
 		lowered: kept.filter(({ after, before }) => after.count !== before.count).length,
 		moved,
 		removed: existing.length - kept.length,

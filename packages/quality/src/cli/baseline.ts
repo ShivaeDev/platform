@@ -64,4 +64,9 @@ export const shrinkBaseline = Effect.fn("Cli.shrinkBaseline")(function* <TRequir
 	}
 	yield* save(session, pruned.entries);
 	yield* Console.log(`quality: ${changes(pruned)} in ${session.config.baseline}.`);
+	for (const { by, file, rule } of pruned.grown) {
+		yield* Console.log(
+			`quality: ${rule}'s typed half reports ${plural(by, "finding")} more in ${file} than its entry allows; CI will report ${by === 1 ? "it" : "them"}.`,
+		);
+	}
 });
