@@ -19,6 +19,7 @@ describe("exceptionConfig", () => {
 				{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
 				{ assist: { actions: { source: { useSortedKeys: "off" } } }, includes: ["src/parse.ts"] },
 			],
+			rules: {},
 		});
 	});
 
@@ -28,6 +29,15 @@ describe("exceptionConfig", () => {
 			{ files: ["**", "!**/fixtures"], reason: REASON, rules: ["biome/files/includes"] },
 		]);
 
-		expect(config).toEqual({ includes: ["**", "!**/generated", "!**/fixtures"], overrides: [] });
+		expect(config).toEqual({ includes: ["**", "!**/generated", "!**/fixtures"], overrides: [], rules: {} });
+	});
+
+	it("turns a lint rule excepted for every file off at the top level instead of in an override", () => {
+		const config = exceptionConfig([
+			{ files: ["**"], reason: REASON, rules: ["biome/lint/nursery/noFloatingPromises"] },
+			{ files: ["**"], reason: REASON, rules: ["biome/lint/nursery/useRegexpExec"] },
+		]);
+
+		expect(config).toEqual({ includes: [], overrides: [], rules: { nursery: { noFloatingPromises: "off", useRegexpExec: "off" } } });
 	});
 });

@@ -61,14 +61,18 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"quality baseline write records a Biome finding under its rule and file",
+	"quality baseline write records a Biome finding under its rule and file, with no share for the scanner half",
 	[qualityInstalled(), repositoryHas(UNTYPED_PARSER)],
 	function* ({ reads, runs, stdout }) {
 		yield* runs("baseline", "write");
 
 		yield* withMatchers((expect) =>
 			outcomes([
-				["baseline", () => reads("quality-baseline.jsonl"), '{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'],
+				[
+					"baseline",
+					() => reads("quality-baseline.jsonl"),
+					'{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1,"deep":0}\n',
+				],
 				["report", () => stdout(), expect.stringContaining("quality: recorded 1 entry in quality-baseline.jsonl.\n")],
 			]),
 		);
@@ -89,7 +93,7 @@ repositoryStory.it(
 		yield* withMatchers((expect) =>
 			outcomes([
 				["exit", () => outcome(), "rejected"],
-				["report", () => stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
+				["report", () => stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined for its fast half.")],
 			]),
 		);
 	},
@@ -97,13 +101,13 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"quality baseline write --rule biome records the findings of every Biome rule",
+	"quality baseline write --rule biome records the findings of every Biome rule, with no share for the scanner half",
 	[qualityInstalled(), repositoryHas(UNTYPED_PARSER)],
 	function* ({ reads, runs }) {
 		yield* runs("baseline", "write", "--rule", "biome");
 
 		yield* assertThat(yield* reads("quality-baseline.jsonl"), (actual) =>
-			actual.toBe('{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'),
+			actual.toBe('{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1,"deep":0}\n'),
 		);
 	},
 	CLI_TIMEOUT,

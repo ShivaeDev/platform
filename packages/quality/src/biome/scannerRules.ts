@@ -1,0 +1,42 @@
+// Biome names a rule's domains only in `biome explain`, one rule per process, so the list is kept here and scannerRules.spec.ts compares it with the installed Biome.
+export const SCANNER_RULES: ReadonlySet<string> = new Set([
+	"lint/complexity/useArrayFind",
+	"lint/correctness/noPrivateImports",
+	"lint/correctness/noUndeclaredDependencies",
+	"lint/correctness/noUnresolvedImports",
+	"lint/correctness/useImportExtensions",
+	"lint/correctness/useJsonImportAttributes",
+	"lint/nursery/noBaseToString",
+	"lint/nursery/noFloatingPromises",
+	"lint/nursery/noMeaninglessVoidOperator",
+	"lint/nursery/noMisleadingReturnType",
+	"lint/nursery/noMisusedPromises",
+	"lint/nursery/noSelfImport",
+	"lint/nursery/noTailwindRawColors",
+	"lint/nursery/noUndeclaredClasses",
+	"lint/nursery/noUndeclaredCustomProperties",
+	"lint/nursery/noUnsafePlusOperands",
+	"lint/nursery/noUnsafeReturn",
+	"lint/nursery/noUnsafeUnaryMinus",
+	"lint/nursery/noUnusedClasses",
+	"lint/nursery/noUselessTypeConversion",
+	"lint/nursery/useAwaitThenable",
+	"lint/nursery/useDisposables",
+	"lint/nursery/useExhaustiveSwitchCases",
+	"lint/nursery/useIncludes",
+	"lint/nursery/useNullishCoalescing",
+	"lint/nursery/useRegexpExec",
+	"lint/nursery/useStrictBooleanExpressions",
+	"lint/nursery/useStringStartsEndsWith",
+	"lint/nursery/useTailwindSortedClasses",
+	"lint/style/useConsistentEnumValueType",
+	"lint/suspicious/noDeprecatedImports",
+	"lint/suspicious/noImportCycles",
+	"lint/suspicious/noUnnecessaryConditions",
+	"lint/suspicious/noUntrustedLicenses",
+	"lint/suspicious/useArraySortCompare",
+]);
+
+export function needsScanner(category: string | undefined): boolean {
+	return category !== undefined && SCANNER_RULES.has(category);
+}

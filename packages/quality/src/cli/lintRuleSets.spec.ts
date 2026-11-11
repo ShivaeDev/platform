@@ -151,7 +151,13 @@ lintRunStory.it(
 
 		yield* outcomes([
 			["outcome", () => outcome(), "passed"],
-			["note", () => report(), expect.stringContaining("not record how many findings the deep half reports (effect/boundary 5).")],
+			[
+				"note",
+				() => report(),
+				expect.stringContaining(
+					"not record how many findings the deep half reports (biome/assist/source/organizeImports 1, biome/format 3, biome/lint/nursery/useConsistentFunctionStyle 3, biome/lint/style/useImportType 1, effect/boundary 5).",
+				),
+			],
 		]);
 	},
 	CLI_TIMEOUT,

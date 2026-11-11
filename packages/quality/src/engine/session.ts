@@ -7,7 +7,7 @@ import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { type BaselineFile, readBaseline, readInput } from "#engine/baselineFile.ts";
 import { runRules } from "#engine/runRules.ts";
 import type { Violation } from "#engine/violation.ts";
-import { staleBiomeExceptions } from "#exceptions/biomeFindings.ts";
+import { biomeExceptions } from "#exceptions/biomeFindings.ts";
 import type { RegistryEntry, StaleRegistryEntry } from "#exceptions/registry.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
@@ -48,9 +48,8 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		sources: inventory.sources,
 		typeScript: yield* typeScriptProgram(config.root, inventory.sources),
 	};
-	const violations = yield* runRules(config.active, inputs, config.skippedHalves);
-	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
-	return { inventory, staleRegistry, violations };
+	const { kept, stale } = yield* setup(biomeExceptions(yield* runRules(config.active, inputs, config.skippedHalves), inputs, config.skippedHalves));
+	return { inventory, staleRegistry: stale, violations: kept };
 });
 
 export type RunSet = "fast" | "full";

@@ -4,6 +4,7 @@ import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
+import { childStarted } from "#engine/childStarted.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { skillCopies } from "#inventory/skillCopies.ts";
@@ -42,6 +43,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 					const child = yield* spawner.spawn(
 						ChildProcess.make(process.execPath, [BIN, ...args, ...configArgs, "--colors=off"], { cwd: root, stdin: "ignore" }),
 					);
+					yield* childStarted();
 					const [stdout, stderr, code] = yield* Effect.all(
 						[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
 						{ concurrency: "unbounded" },
