@@ -1253,6 +1253,9 @@ importers:
       '@shivaedev/admin':
         specifier: workspace:*
         version: link:../admin
+      '@shivaedev/build':
+        specifier: workspace:*
+        version: link:../build
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

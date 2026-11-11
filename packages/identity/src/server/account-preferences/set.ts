@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { AccountPreferenceValues } from "#accountPreferences.ts";
+import type { AccountPreferenceValues } from "#accountPreferenceValues.ts";
 import { AccountPreferenceRows } from "#server/account-preferences/Rows.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 
