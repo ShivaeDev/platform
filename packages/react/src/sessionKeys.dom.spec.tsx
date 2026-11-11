@@ -1,5 +1,5 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { sessionKeys, sessionsSharingOneRuntime } from "#test/session-keys/story.tsx";
+import { sessionKeys, sessionsSharingOneRuntime } from "#test/shared-runtime/story.tsx";
 
 sessionKeys.it(
 	"alice's save re-reads her preferences and not bob's, though both read the same key through one shared runtime",

@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { type Backend, bindPreferences, type Person } from "#test/session-keys/preferences.ts";
+import { type Backend, bindPreferences, type Person } from "#test/shared-runtime/preferences.ts";
 
 function PreferencesScreen({ person, preferences }: { readonly person: Person; readonly preferences: ReturnType<typeof bindPreferences> }) {
 	const self = useQuery(preferences.api.self.query());

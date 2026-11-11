@@ -3,9 +3,9 @@ import * as Atom from "effect/reactivity/Atom";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Screen } from "#test/Screen.ts";
-import type { Backend, Person } from "#test/session-keys/preferences.ts";
-import { TwoSessions } from "#test/session-keys/TwoSessions.tsx";
 import { settleScreen } from "#test/settleScreen.ts";
+import type { Backend, Person } from "#test/shared-runtime/preferences.ts";
+import { TwoSessions } from "#test/shared-runtime/TwoSessions.tsx";
 
 interface SessionKeysEngine {
 	readonly backend: Backend;
