@@ -108,6 +108,17 @@ export function debtRecorded() {
 	);
 }
 
+export function deepSharesDropped() {
+	return lintRunStory.trait("repository", "every baseline entry is rewritten without its deep field, as an older Quality wrote it", (engine) =>
+		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			const shard = path.join(engine.root, "packages/alpha/quality-baseline.jsonl");
+			yield* fs.writeFileString(shard, (yield* fs.readFileString(shard)).replaceAll(/,"deep":\d+/gu, ""));
+		}),
+	);
+}
+
 export function environmentSets(environment: Readonly<Record<string, string>>) {
 	return lintRunStory.trait("environment", `the environment sets ${JSON.stringify(environment)}`, (engine) => {
 		engine.environment = environment;

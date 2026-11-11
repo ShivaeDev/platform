@@ -48,7 +48,7 @@ describe("evaluate", () => {
 	});
 
 	it("judges a halved rule's baseline entries only by the findings its fast half can report", () => {
-		const halved = levels({ "local/split": "error" }, { halved: ["local/split"] });
+		const halved = levels({ "local/split": "error" }, { skippedHalves: ["local/split"], split: ["local/split"] });
 		function found(file: string, count: number) {
 			return Array.from({ length: count }, () => violation({ file, rule: "local/split" }));
 		}

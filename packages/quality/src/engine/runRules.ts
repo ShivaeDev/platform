@@ -17,9 +17,9 @@ function readsStories(rule: ActiveRule): boolean {
 }
 
 // A full run checks a rule's deep half as a run of its own in the deep tier; only that half reads the package walk.
-function runsOf(rule: ActiveRule, halved: ReadonlySet<string>): readonly ActiveRule[] {
+function runsOf(rule: ActiveRule, skippedHalves: ReadonlySet<string>): readonly ActiveRule[] {
 	const { deepHalf, ...whole } = rule;
-	return deepHalf === undefined || halved.has(rule.id) ? [rule] : [rule, { ...whole, check: deepHalf.check, depth: "deep" }];
+	return deepHalf === undefined || skippedHalves.has(rule.id) ? [rule] : [rule, { ...whole, check: deepHalf.check, depth: "deep", half: "deep" }];
 }
 
 function walks(rule: ActiveRule): boolean {
@@ -60,7 +60,7 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 export const runRules = Effect.fn("Engine.runRules")(function* (
 	rules: readonly ActiveRule[],
 	inputs: RuleInputs,
-	halved: ReadonlySet<string> = new Set(),
+	skippedHalves: ReadonlySet<string> = new Set(),
 ) {
 	const validation = rules.find((rule) => rule.id === "manifests/valid");
 	if (validation !== undefined) {
@@ -70,7 +70,7 @@ export const runRules = Effect.fn("Engine.runRules")(function* (
 		}
 	}
 	const results = yield* runTiers(
-		rules.filter((rule) => rule !== validation).flatMap((rule) => runsOf(rule, halved)),
+		rules.filter((rule) => rule !== validation).flatMap((rule) => runsOf(rule, skippedHalves)),
 		inputs,
 	);
 	const seen = new Set<string>();

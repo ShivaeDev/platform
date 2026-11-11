@@ -43,6 +43,7 @@ function changes(pruned: Pruned): string {
 		`removed ${plural(pruned.removed, "entry", "entries")}`,
 		`lowered ${plural(pruned.lowered, "entry", "entries")}`,
 		...(pruned.moved > 0 ? [`carried ${plural(pruned.moved, "entry", "entries")} to moved files`] : []),
+		...(pruned.split > 0 ? [`recorded the deep half of ${plural(pruned.split, "entry", "entries")}`] : []),
 	];
 	return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 }
@@ -58,7 +59,7 @@ export const shrinkBaseline = Effect.fn("Cli.shrinkBaseline")(function* <TRequir
 	}
 	const pruned = prune(session.baseline.entries, unregistered(session), session.config, yield* scopeOf(session));
 	const emptyShard = [...session.baseline.files.values()].some((file) => file.entries.length === 0);
-	if (pruned.removed === 0 && pruned.lowered === 0 && pruned.moved === 0 && !emptyShard) {
+	if (pruned.removed === 0 && pruned.lowered === 0 && pruned.moved === 0 && pruned.split === 0 && !emptyShard) {
 		return yield* Console.log(`quality: ${session.config.baseline} is current.`);
 	}
 	yield* save(session, pruned.entries);

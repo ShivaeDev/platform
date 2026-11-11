@@ -13,16 +13,18 @@ export function levels(
 	entries: Readonly<Record<string, Level>>,
 	more: {
 		readonly families?: readonly string[];
-		readonly halved?: readonly string[];
 		readonly skipped?: readonly string[];
+		readonly skippedHalves?: readonly string[];
+		readonly split?: readonly string[];
 		readonly unregistrable?: readonly string[];
 	} = {},
 ): RuleIndex {
 	return {
 		families: new Set(more.families),
-		halved: new Set(more.halved),
 		levels: new Map(Object.entries(entries)),
 		skipped: new Set(more.skipped),
+		skippedHalves: new Set(more.skippedHalves),
+		split: new Set(more.split),
 		unregistrable: new Set(more.unregistrable),
 	};
 }

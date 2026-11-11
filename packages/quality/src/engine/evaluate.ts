@@ -1,4 +1,4 @@
-import { applyBaseline, type Regression, type StaleBaselineEntry } from "#baseline/compare.ts";
+import { applyBaseline, type Regression, type StaleBaselineEntry, unsplitEntries } from "#baseline/compare.ts";
 import type { BaselineEntry } from "#baseline/format.ts";
 import { byLocation, type RuleIndex, type Violation } from "#engine/violation.ts";
 import { applyRegistry, type RegistryEntry, type StaleRegistryEntry } from "#exceptions/registry.ts";
@@ -11,6 +11,7 @@ export interface Outcome {
 	readonly regressions: readonly Regression[];
 	readonly staleBaseline: readonly StaleBaselineEntry[];
 	readonly staleRegistry: readonly StaleRegistryEntry[];
+	readonly unsplitBaseline: readonly StaleBaselineEntry[];
 }
 
 export function evaluate(
@@ -30,6 +31,7 @@ export function evaluate(
 		regressions: baselined.regressions,
 		staleBaseline: baselined.stale,
 		staleRegistry: registered.stale,
+		unsplitBaseline: unsplitEntries(baseline, rules),
 	};
 }
 

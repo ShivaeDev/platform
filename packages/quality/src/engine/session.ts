@@ -48,7 +48,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		sources: inventory.sources,
 		typeScript: yield* typeScriptProgram(config.root, inventory.sources),
 	};
-	const violations = yield* runRules(config.active, inputs, config.halved);
+	const violations = yield* runRules(config.active, inputs, config.skippedHalves);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
 	return { inventory, staleRegistry, violations };
 });
@@ -64,8 +64,8 @@ function selected(config: ResolvedConfig, set: RunSet): ResolvedConfig {
 	return {
 		...config,
 		active,
-		halved: new Set(active.filter((rule) => rule.deepHalf !== undefined).map((rule) => rule.id)),
 		skipped: new Set(config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id)),
+		skippedHalves: new Set(active.filter((rule) => rule.deepHalf !== undefined).map((rule) => rule.id)),
 	};
 }
 

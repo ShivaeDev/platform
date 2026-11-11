@@ -1,13 +1,13 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
+import { boundaryDebt, HELPER_CALL, THROW, typedBoundaryDebt } from "#test/boundaryDebt.ts";
 import { branchedFromMain, debtRecorded, shortened, staged } from "#test/debtRecorded.ts";
-import { FIXME, todoDebt } from "#test/todoDebt.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"pre-commit requires fixed debt to be tightened before a new finding can reuse its count",
-	[todoDebt()],
+	[boundaryDebt()],
 	function* ({ outcome, recorded, runs, stages, stdout, writes }) {
 		yield* writes("src/work.ts", "String(0);\n");
 		yield* stages("src/work.ts");
@@ -15,7 +15,11 @@ baselineStory.it(
 		yield* withMatchers((expect) =>
 			outcomes([
 				["commit", () => outcome(), "rejected"],
-				["reason", () => stdout(), expect.stringContaining("comments/no-todo src/work.ts has no violations left")],
+				[
+					"reason",
+					() => stdout(),
+					expect.stringContaining("effect/boundary src/work.ts has no violations left for its fast half: 0 against 1 baselined"),
+				],
 			]),
 		);
 
@@ -28,13 +32,35 @@ baselineStory.it(
 		yield* runs("hooks", "pre-commit");
 		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 
-		yield* writes("src/work.ts", FIXME);
+		yield* writes("src/work.ts", THROW);
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
 		yield* withMatchers((expect) =>
 			outcomes([
 				["commit", () => outcome(), "rejected"],
-				["reason", () => stdout(), expect.stringContaining("FIXME")],
+				["reason", () => stdout(), expect.stringContaining("throw")],
+			]),
+		);
+	},
+	CLI_TIMEOUT,
+);
+
+baselineStory.it(
+	"pre-commit refuses a new syntax finding in a file whose baselined count holds only typed findings",
+	[typedBoundaryDebt()],
+	function* ({ outcome, reads, runs, stages, stdout, writes }) {
+		yield* assertThat(yield* reads("quality-baseline.jsonl"), (actual) =>
+			actual.toContain('{"path":"src/work.ts","rule":"effect/boundary","count":1,"deep":1}'),
+		);
+
+		yield* writes("src/work.ts", HELPER_CALL + THROW);
+		yield* stages("src/work.ts");
+		yield* runs("hooks", "pre-commit");
+
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => outcome(), "rejected"],
+				["reason", () => stdout(), expect.stringContaining("src/work.ts is over its baseline: 1 against 0 baselined for its fast half")],
 			]),
 		);
 	},

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyBaseline } from "#baseline/compare.ts";
+import { applyBaseline, unsplitEntries } from "#baseline/compare.ts";
 import { levels, violation } from "#test/violations.ts";
 
 const known = levels({ "local/todo": "error", "structure/max-lines": "error" });
@@ -88,5 +88,48 @@ describe("applyBaseline", () => {
 			loose: checked.loose.map((loose) => loose.entry.rule),
 			stale: checked.stale.map((stale) => stale.entry.rule),
 		}).toEqual({ baselined: 1, loose: ["tool/format"], stale: ["toolkit/x"] });
+	});
+
+	it("judges a split entry on a fast run by the share it recorded for the fast half", () => {
+		const fast = levels({ "local/split": "error" }, { skippedHalves: ["local/split"], split: ["local/split"] });
+		const found = violation({ file: "src/a.ts", rule: "local/split" });
+		const exact = { count: 3, deep: 2, file: "src/a.ts", rule: "local/split" };
+		const fewer = { count: 3, deep: 1, file: "src/b.ts", rule: "local/split" };
+		const gone = { count: 2, deep: 1, file: "src/c.ts", rule: "local/split" };
+		const typed = { count: 2, deep: 2, file: "src/d.ts", rule: "local/split" };
+		const over = { count: 3, deep: 3, file: "src/e.ts", rule: "local/split" };
+		const checked = applyBaseline(
+			[found, violation({ file: "src/b.ts", rule: "local/split" }), violation({ file: "src/e.ts", rule: "local/split" })],
+			[exact, fewer, gone, typed, over],
+			fast,
+		);
+		expect({ loose: checked.loose.map(({ entry, problem }) => `${entry.file} ${problem}`), regressions: checked.regressions }).toEqual({
+			loose: [
+				"src/b.ts allows more than is left: 1 against 2 baselined for its fast half",
+				"src/c.ts has no violations left for its fast half: 0 against 1 baselined",
+			],
+			regressions: [{ allowed: 0, count: 1, entry: over }],
+		});
+	});
+
+	it("judges a split entry on a full run by its total", () => {
+		const full = levels({ "local/split": "error" }, { split: ["local/split"] });
+		const found = violation({ file: "src/a.ts", rule: "local/split" });
+		const checked = applyBaseline([found, found], [{ count: 3, deep: 3, file: "src/a.ts", rule: "local/split" }], full);
+		expect({ loose: checked.loose.map(({ problem }) => problem), regressions: checked.regressions }).toEqual({
+			loose: ["allows more than is left: 2 against 3 baselined"],
+			regressions: [],
+		});
+	});
+
+	it("names the split entries that do not record their deep share only on a run that checks both halves", () => {
+		const entries = [
+			{ count: 1, file: "src/a.ts", rule: "local/split" },
+			{ count: 1, deep: 0, file: "src/b.ts", rule: "local/split" },
+			{ count: 1, file: "src/c.ts", rule: "local/todo" },
+		];
+		const full = levels({ "local/split": "error", "local/todo": "error" }, { split: ["local/split"] });
+		const fast = levels({ "local/split": "error", "local/todo": "error" }, { skippedHalves: ["local/split"], split: ["local/split"] });
+		expect([unsplitEntries(entries, full).map(({ entry }) => entry.file), unsplitEntries(entries, fast)]).toEqual([["src/a.ts"], []]);
 	});
 });

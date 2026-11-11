@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { baselineStory } from "#test/baselineStory.ts";
-import { ALPHA_SHARD, branchEdits, driverInstalled, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { ALPHA_SHARD, branchEdits, branchShard, driverInstalled, packageWorkspace, shardCommitted, shardsRecorded } from "#test/packageWorkspace.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
@@ -44,3 +44,26 @@ baselineStory.it(
 	},
 	CLI_TIMEOUT,
 );
+
+const SHARD_KEYS = ["path", "rule", "count", "deep"];
+
+function split(count: number, deep?: number): string {
+	return JSON.stringify({ count, ...(deep === undefined ? {} : { deep }), path: "packages/alpha/src/a.ts", rule: "effect/boundary" }, SHARD_KEYS);
+}
+
+for (const [name, left, right, expected] of [
+	["takes the lower fast share and the lower deep share of a split entry and writes their sum", split(4, 2), split(4, 1), split(3, 1)],
+	["takes the lower total of a split entry and drops the deep share when one branch has not recorded it", split(4), split(3, 1), split(3)],
+] as const) {
+	baselineStory.it(
+		`the driver ${name}`,
+		[packageWorkspace(), shardCommitted([split(5, 2)]), driverInstalled(), branchShard("left", [left]), branchShard("right", [right])],
+		function* ({ merges, reads }) {
+			const result = yield* merges("left");
+
+			expect(result).toBe("merged");
+			expect(yield* reads(ALPHA_SHARD)).toBe(`${expected}\n`);
+		},
+		CLI_TIMEOUT,
+	);
+}

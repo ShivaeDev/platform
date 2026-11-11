@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { debtRecorded, effectInstalled, environmentSets, lintRunStory, repositoryHas } from "#test/lintRuns.ts";
+import { debtRecorded, deepSharesDropped, effectInstalled, environmentSets, lintRunStory, repositoryHas } from "#test/lintRuns.ts";
 import { packageProgramFiles } from "#test/packageProgramFiles.ts";
 import { FAST_RUN, FULL_RUN } from "#test/runs.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
@@ -119,20 +119,39 @@ lintRunStory.it(
 	CLI_TIMEOUT,
 );
 
-lintRunStory.it(
-	"a local lint passes beside baseline entries of a deep rule and of a skipped deep half, reports them neither stale nor loose and leaves their shard untouched",
-	[...WORKSPACE, debtRecorded()],
-	function* ({ lints, outcome, reads, report }) {
-		const recorded = yield* reads("packages/alpha/quality-baseline.jsonl");
-		expect(recorded).toContain('"rule":"effect/service-parameters"');
-		expect(recorded).toContain('{"path":"packages/alpha/src/stop.ts","rule":"effect/boundary","count":1}');
+for (const [recording, traits, line] of [
+	["records", [], '{"path":"packages/alpha/src/stop.ts","rule":"effect/boundary","count":1,"deep":1}'],
+	["does not yet record", [deepSharesDropped()], '{"path":"packages/alpha/src/stop.ts","rule":"effect/boundary","count":1}'],
+] as const) {
+	lintRunStory.it(
+		`a local lint passes beside a deep rule's entries and a split rule's entry that ${recording} its deep half, reports them neither stale nor loose and leaves their shard untouched`,
+		[...WORKSPACE, debtRecorded(), ...traits],
+		function* ({ lints, outcome, reads, report }) {
+			const recorded = yield* reads("packages/alpha/quality-baseline.jsonl");
+			expect(recorded).toContain('"rule":"effect/service-parameters"');
+			expect(recorded).toContain(line);
 
-		yield* lints();
+			yield* lints();
+
+			yield* outcomes([
+				["outcome", () => outcome(), "passed"],
+				["report", () => report(), expect.not.stringContaining("quality-baseline.jsonl")],
+				["shard", () => reads("packages/alpha/quality-baseline.jsonl"), recorded],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+lintRunStory.it(
+	"a full lint passes beside split entries that do not record their deep half and notes once how to record it",
+	[...WORKSPACE, debtRecorded(), deepSharesDropped()],
+	function* ({ lints, outcome, report }) {
+		yield* lints("--full");
 
 		yield* outcomes([
 			["outcome", () => outcome(), "passed"],
-			["report", () => report(), expect.not.stringContaining("quality-baseline.jsonl")],
-			["shard", () => reads("packages/alpha/quality-baseline.jsonl"), recorded],
+			["note", () => report(), expect.stringContaining("not record how many findings the deep half reports (effect/boundary 5).")],
 		]);
 	},
 	CLI_TIMEOUT,

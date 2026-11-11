@@ -75,5 +75,6 @@ export const resolveRules = Effect.fn("Config.resolveRules")(function* (config: 
 	const active = activated.flatMap((result) => (result._tag === "Valid" ? [result.value] : []));
 	const levels = new Map(rules.map((rule) => [rule.id, "error" as const]));
 	const unregistrable = new Set(rules.filter((rule) => rule.registrable === false).map((rule) => rule.id));
-	return { _tag: "Valid", value: { active, families, halved: new Set(), levels, skipped: new Set(), unregistrable } };
+	const split = new Set(active.filter((rule) => rule.deepHalf !== undefined).map((rule) => rule.id));
+	return { _tag: "Valid", value: { active, families, levels, skipped: new Set(), skippedHalves: new Set(), split, unregistrable } };
 });

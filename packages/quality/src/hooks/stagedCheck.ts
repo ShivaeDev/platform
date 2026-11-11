@@ -42,7 +42,7 @@ export const stagedCheck = Effect.fn("Hooks.stagedCheck")(function* (config: Res
 	const violations = findings.map((finding): Violation => ({ ...finding, level: "error", rule: `biome/${finding.subject ?? "internal"}` }));
 	const baseline = yield* readBaseline(config);
 	const evaluated = evaluate(violations, registryEntries(config.exceptions), baseline.entries, config);
-	const outcome: Outcome = { ...evaluated, looseBaseline: [], staleBaseline: [], staleRegistry: [] };
+	const outcome: Outcome = { ...evaluated, looseBaseline: [], staleBaseline: [], staleRegistry: [], unsplitBaseline: [] };
 	const context: ReportContext = {
 		baseline: config.baseline,
 		checked: staged.length,
