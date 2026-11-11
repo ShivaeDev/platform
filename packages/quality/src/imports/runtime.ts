@@ -84,7 +84,12 @@ export const runtimeDeclarationProblems = Effect.fn("Imports.runtimeDeclarationP
 	return problems.flat();
 });
 
-export const runtimeOf = Effect.fn("Imports.runtimeOf")(function* (inputs: RuleInputs, packages: readonly WorkspacePackage[]) {
+// A defined module holds the run of each operation, so it is server code wherever it sits.
+export const runtimeOf = Effect.fn("Imports.runtimeOf")(function* (
+	inputs: RuleInputs,
+	packages: readonly WorkspacePackage[],
+	definedModules: ReadonlySet<string>,
+) {
 	const owners = [...packages, { directory: ".", name: "." }];
 	const manifests = new Map(
 		yield* Effect.forEach(owners, (owner) =>
@@ -104,5 +109,5 @@ export const runtimeOf = Effect.fn("Imports.runtimeOf")(function* (inputs: RuleI
 	);
 	const executable = new Set(owners.filter((owner) => hasExecutable(manifests.get(owner.directory))).map((owner) => owner.directory));
 	const policy = { adopted, declared, executable, packages };
-	return (path: string) => classifyRuntime(policy, path);
+	return (path: string): Runtime | undefined => (definedModules.has(path) ? "server" : classifyRuntime(policy, path));
 });

@@ -1,4 +1,5 @@
 import { importsResolvable } from "#rules/imports/resolvable.ts";
+import { definedModuleWorkspace, NOTES_GENERATED } from "#test/definedModules.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gitTracks, importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
 import { assertThat } from "#testing/adapters/assertThat.ts";
@@ -39,6 +40,22 @@ importStory.it(
 		yield* check(importsResolvable, { generated: ["test/generated"] });
 
 		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["test/client.test.ts:2 #test/cache/client.ts"]));
+	},
+);
+
+importStory.it(
+	"imports/resolvable takes another workspace package's import of a missing file in a declared generated folder as resolved, and reports one in an undeclared folder",
+	[
+		...definedModuleWorkspace,
+		repositoryHas({
+			content: 'import { Draft } from "@acme/notes/drafts/Draft.ts";\n\nexport const draft = Draft;\n',
+			path: "packages/ui/src/drafts.ts",
+		}),
+	],
+	function* ({ check, sites }) {
+		yield* check(importsResolvable, { generated: [NOTES_GENERATED] });
+
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["packages/ui/src/drafts.ts:1 @acme/notes/drafts/Draft.ts"]));
 	},
 );
 
