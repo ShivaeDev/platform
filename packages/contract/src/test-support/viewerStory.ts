@@ -1,25 +1,25 @@
-import { Effect, Option, Ref, Schema, Stream, SubscriptionRef } from "effect";
+import { Effect, Option, Schema, Stream, SubscriptionRef } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { type HintViewer, watchHints } from "@shivaedev/test-kits/contract/testing.ts";
+import { Note } from "@shivaedev/test-kits/test-support/notes/model.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { answered, shown, times, updateWords } from "#test/answers.ts";
+import { notesDatabase } from "#test/notesDatabase.ts";
 import { type Mark, markQuery, reRead } from "#test/reRead.ts";
 import { settled } from "#test/settled.ts";
-import { type Notes, notes, Row, viewerEngine } from "#test/viewerEngine.ts";
+import { type Notes, viewerEngine } from "#test/viewerEngine.ts";
 import { type ViewerPage, viewerPage } from "#test/viewerPage.ts";
 
 type Viewer = "alice" | "bob";
 type QueryReferences = Rpc.Payload<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.$changes">>["queries"];
 
 const QUERIES = {
-	"alice's notes": { payload: { userId: "alice" }, query: "listFor" },
-	"every note of theirs": { payload: { title: "" }, query: "list" },
+	"alice's notes": { payload: { owner: "alice" }, query: "list" },
 	"note 1": { payload: { id: 1 }, query: "get" },
 	"note 2": { payload: { id: 2 }, query: "get" },
 	"note 3": { payload: { id: 3 }, query: "get" },
-	"their notes titled One": { payload: { title: "One" }, query: "list" },
 } as const satisfies Record<string, QueryReferences[number]>;
 type ViewerQuery = keyof typeof QUERIES;
 
@@ -61,19 +61,15 @@ function shownOf(engine: ViewerEngine, viewer: Viewer) {
 }
 
 export const viewerStory = storyKit({
+	around: withIsolatedDatabase,
 	clock: "test",
 	create: () => viewerStoryEngine,
-	inspect: (engine) => ({ reads: Effect.runSync(SubscriptionRef.get(engine.reads)), stored: [...Effect.runSync(Ref.get(engine.stored)).values()] }),
+	inspect: (engine) => ({ reads: Effect.runSync(SubscriptionRef.get(engine.reads)) }),
+	layer: notesDatabase.layer,
 	name: "viewer-scoped hints",
+	runIf: notesDatabase.configured,
 	stages: ["pages", "listeners"],
 	verbs: (engine, story) => ({
-		announce: (viewer: Viewer, id: number) =>
-			Effect.gen(function* () {
-				story.tell(`the server announces a change to note ${id} in ${viewer}'s session and rechecks the read policy before delivering it`);
-				const before = yield* SubscriptionRef.get(engine.checks);
-				yield* engine.reactivity.invalidate(invalidationKeys([notes.item(id)]));
-				yield* until(SubscriptionRef.changes(engine.checks), (count) => count > before, { name: "policy check" });
-			}),
 		changesHeard: (viewer: Viewer) =>
 			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (hints) => hints.filter((hint) => hint._tag === "Result").map(updateWords)),
 		get: (viewer: Viewer, id: number) => {
@@ -81,16 +77,13 @@ export const viewerStory = storyKit({
 			return answered(engine.client("notes.get", { id }, { headers: { viewer } }), (row) => `note ${row.id} titled ${row.title}`);
 		},
 		handOver: (id: number, owner: Viewer) => {
-			story.tell(`the server hands note ${id} to ${owner} without announcing it`);
-			return Ref.update(engine.stored, (rows) => {
-				const row = rows.get(id);
-				return row === undefined ? rows : new Map([...rows, [id, new Row({ ...row, owner })]]);
-			});
+			story.tell(`the server hands note ${id} to ${owner}`);
+			return Effect.orDie(engine.repository.updateVoid({ id, owner }, { columns: ["owner"] }));
 		},
 		noteTitle: (viewer: Viewer, id: number) =>
 			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (updates) => {
-				const result = updates.findLast((update) => update._tag === "Result" && Schema.is(Row)(update.value) && update.value.id === id);
-				return result?._tag === "Result" && Schema.is(Row)(result.value) ? result.value.title : undefined;
+				const result = updates.findLast((update) => update._tag === "Result" && Schema.is(Note)(update.value) && update.value.id === id);
+				return result?._tag === "Result" && Schema.is(Note)(result.value) ? result.value.title : undefined;
 			}),
 		pageReads: (viewer: Viewer) =>
 			Effect.andThen(
@@ -121,7 +114,7 @@ export const viewerStory = storyKit({
 				SubscriptionRef.changes(listenerOf(engine, viewer).hints),
 				(updates) =>
 					updates.some(
-						(update) => update._tag === "Result" && Schema.is(Row)(update.value) && update.value.id === id && update.value.title === title,
+						(update) => update._tag === "Result" && Schema.is(Note)(update.value) && update.value.id === id && update.value.title === title,
 					),
 				{ name: "authorized note delivery" },
 			),
@@ -145,7 +138,7 @@ export function listening(viewer: Viewer, ...queries: readonly ViewerQuery[]) {
 export function pageOpen(viewer: Viewer, title = "") {
 	return viewerStory.trait("pages", `${viewer} has opened their notes page${title === "" ? "" : ` filtered to ${title}`}`, (engine) =>
 		Effect.gen(function* () {
-			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "list", title }));
+			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "titled", title }));
 			yield* shownOf(engine, viewer);
 		}),
 	);
@@ -154,7 +147,7 @@ export function pageOpen(viewer: Viewer, title = "") {
 export function othersPageOpen(viewer: Viewer, owner: Viewer) {
 	return viewerStory.trait("pages", `${viewer} has opened a page of ${owner}'s notes`, (engine) =>
 		Effect.gen(function* () {
-			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "listFor", userId: owner }));
+			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "list", owner }));
 		}),
 	);
 }

@@ -7,7 +7,7 @@ import { bind } from "#bind.ts";
 import { storyRuntime } from "#test/storyRuntime.ts";
 import { Notes, type viewerEngine } from "#test/viewerEngine.ts";
 
-export type PageQuery = { readonly kind: "list"; readonly title: string } | { readonly kind: "listFor"; readonly userId: string };
+export type PageQuery = { readonly kind: "titled"; readonly title: string } | { readonly kind: "list"; readonly owner: string };
 
 export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<typeof viewerEngine>, viewer: string, page: PageQuery) {
 	const runtime = yield* storyRuntime;
@@ -24,10 +24,10 @@ export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<ty
 	const api = bind(Notes, Client, { registry });
 	function queryOf() {
 		switch (page.kind) {
+			case "titled":
+				return api.titled.query({ title: page.title });
 			case "list":
-				return api.list.query({ title: page.title });
-			case "listFor":
-				return api.listFor.query({ userId: page.userId });
+				return api.list.query({ owner: page.owner });
 		}
 	}
 	const query = queryOf();

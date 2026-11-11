@@ -47,10 +47,8 @@ viewerStory.it(
 viewerStory.it(
 	"losing note 1 denies alice's whole subscription until access returns",
 	[listening("alice", "note 1", "note 3")],
-	function* ({ announce, handOver, rename, subscriptionDenial, untilNoteTitle, noteTitle }) {
+	function* ({ handOver, rename, subscriptionDenial, untilNoteTitle, noteTitle }) {
 		yield* handOver(1, "bob");
-
-		yield* announce("alice", 1);
 
 		expect(yield* subscriptionDenial("alice")).toBe("read denied");
 
