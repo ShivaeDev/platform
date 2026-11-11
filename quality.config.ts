@@ -12,6 +12,19 @@ import { workspaceSection } from "#quality/workspaceSection.ts";
 export default defineConfig({
 	exceptions: [
 		{
+			"files": ["packages/identity/src/AccountPreferences.ts", "packages/identity/src/Sessions.ts"],
+			"reason":
+				"A module built with defineModule is the server half of its operations and imports their services; browser code imports its generated client contract from src/generated instead.",
+			"rules": ["imports/runtime"],
+		},
+		{
+			"files": ["packages/admin/src/sessions/Page.ts"],
+			"reason":
+				"The page imports identity's generated sessions client, whose only imports of server code are type imports: the compile-time check that the client matches its module. They are erased, and the build's bundle check proves no server code reaches the browser.",
+			"rules": ["imports/fences"],
+			"subject": "admin-declarations-stay-browser-safe",
+		},
+		{
 			"files": ["**", "!**/test-support/generated", "!**/test-support/*/generated", "!examples/starter"],
 			"reason": "Generated clients are not source. The starter has a nested Biome config and runs its own Quality gate.",
 			"rules": ["biome/files/includes"],
@@ -83,6 +96,7 @@ export default defineConfig({
 				],
 			},
 		},
+		"imports/resolvable": { options: { generated: ["packages/identity/src/generated"] } },
 	},
 	sources: [".agents", "AGENTS.md", "README.md", "docs", "examples", "packages", "script"],
 });

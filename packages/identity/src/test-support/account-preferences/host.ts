@@ -7,13 +7,15 @@ import { Migrator } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { appModules } from "@shivaedev/server/appModules.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { AccountPreferences } from "#accountPreferences.ts";
+import { AccountPreferences } from "#AccountPreferences.ts";
+import { AccountPreferences as AccountPreferencesClient } from "#generated/AccountPreferences.ts";
 import { AccountClock } from "#server/account-clock/service.ts";
 import { AccountDayStart, LogicalDay } from "#server/account-clock/settings.ts";
 import { accountPreferencesStore } from "#server/account-preferences/store.ts";
-import { accountPreferencesHandlers } from "#server/accountPreferencesHandlers.ts";
 import { accountPreferencesMigration } from "#server/adapters/accountPreferencesMigration.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
@@ -38,7 +40,7 @@ const ClockApi = contract("clock", {
 	],
 	subject: selfSubject,
 });
-export const Api = AccountPreferences.merge(ClockApi);
+export const Api = AccountPreferencesClient.merge(ClockApi);
 export const ORIGIN = "http://localhost:3000";
 
 export const preferencesHost = Effect.fnUntraced(function* () {
@@ -52,10 +54,25 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 	};
 	yield* migrateBetterAuth(options);
-	yield* migratePostgres({
-		loader: Migrator.fromRecord({ "0001_preferences": accountPreferencesMigration }),
-		lockTimeout: "5 seconds",
-	});
+	const modules = yield* appModules([
+		{
+			migrations: { loader: Migrator.fromRecord({ "0001_preferences": accountPreferencesMigration }) },
+			module: AccountPreferences,
+			name: "accountPreferences",
+			services: accountPreferencesStore,
+		} satisfies AppModule,
+		{
+			group: ClockApi,
+			handlers: ClockApi.application.toLayer({
+				"clock.day": ({ instant }) => Effect.flatMap(AccountClock, (account) => account.logicalDay(instant)),
+				"clock.range": ({ day }) => Effect.flatMap(AccountClock, (account) => account.dayRange(day)).pipe(Effect.orDie),
+			}),
+			migrations: { loader: Migrator.fromRecord({}) },
+			name: "clock",
+			services: Layer.empty,
+		} satisfies AppModule,
+	]);
+	yield* migratePostgres({ loader: modules.migrations.loader, lockTimeout: "5 seconds" });
 	const mounted = yield* betterAuthMount(options, { accountPreferences: true }).pipe(
 		Effect.provide(memoryStore),
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
@@ -70,22 +87,15 @@ export const preferencesHost = Effect.fnUntraced(function* () {
 		),
 		Layer.orDie,
 	);
-	const handlers = Layer.merge(
-		accountPreferencesHandlers,
-		ClockApi.application.toLayer({
-			"clock.day": ({ instant }) => Effect.flatMap(AccountClock, (account) => account.logicalDay(instant)),
-			"clock.range": ({ day }) => Effect.flatMap(AccountClock, (account) => account.dayRange(day)).pipe(Effect.orDie),
-		}),
-	);
 	const sessions = Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true });
 	const services = yield* Layer.build(
 		appHost({
 			config: { disablePreemptiveShutdown: true, port: 0 },
-			group: Api,
-			handlers,
+			group: modules.group,
+			handlers: modules.handlers,
 			requestServices,
 			routes: mounted.routes,
-			services: accountPreferencesStore,
+			services: modules.services,
 			sessions,
 		}),
 	);

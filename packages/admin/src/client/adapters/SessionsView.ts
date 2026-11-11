@@ -2,7 +2,7 @@ import { Cause, type Effect, Option, Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
-import type { SessionList, SessionListInput, SignedInSession } from "@shivaedev/identity/sessions.ts";
+import type { SessionList, SessionListInput, SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
 import type { AtomServices } from "@shivaedev/react/AtomServices.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { SessionConfirmation } from "#client/adapters/SessionConfirmation.tsx";
@@ -11,7 +11,7 @@ import { SessionPagination } from "#client/adapters/SessionPagination.tsx";
 
 export interface SessionsViewProps<R, E> {
 	readonly currentSessionId: string | undefined;
-	readonly list: (input: typeof SessionListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<typeof SessionList.Type, unknown>>;
+	readonly list: (input: typeof SessionListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<SessionList, unknown>>;
 	readonly onCurrentSessionRevoked: () => void;
 	readonly revoke: (input: { readonly id: string }) => Effect.Effect<void, unknown, AtomServices<R>>;
 	readonly runtime: Atom.AtomRuntime<R, E>;
