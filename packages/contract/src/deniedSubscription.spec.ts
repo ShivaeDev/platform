@@ -26,12 +26,11 @@ deniedStory.it(
 deniedStory.it(
 	"pushed: an explicit refresh recovers a denied query after access is restored",
 	[watching()],
-	function* ({ allow, attempts, refresh, shown, untilLive }) {
+	function* ({ allow, attempts, refresh, shown }) {
 		expect(yield* shown()).toBe("failed with read denied");
 		allow();
 
-		refresh();
-		yield* untilLive();
+		yield* refresh();
 
 		yield* outcomes([
 			["query", () => shown(), "Alice's record"],
@@ -161,6 +160,29 @@ deniedStory.it(
 		yield* outcomes([
 			["query", () => shown(), "Alice's record"],
 			["subscriptions", () => attempts(), 2],
+		]);
+	},
+);
+deniedStory.it(
+	"pushed: a query without reads stays settled on NotFound through a command declaring its record, until an explicit refresh",
+	[rejected("NotFound"), watching("unkeyed")],
+	function* ({ allow, attempts, commandSucceeds, minutePasses, refresh, shown }) {
+		expect(yield* shown()).toBe("failed with not found");
+		allow();
+
+		yield* commandSucceeds();
+		yield* minutePasses();
+
+		yield* outcomes([
+			["query after the command", () => shown(), "failed with not found"],
+			["subscriptions after the command", () => attempts(), 1],
+		]);
+
+		yield* refresh();
+
+		yield* outcomes([
+			["query after the refresh", () => shown(), "Alice's record"],
+			["subscriptions after the refresh", () => attempts(), 2],
 		]);
 	},
 );
