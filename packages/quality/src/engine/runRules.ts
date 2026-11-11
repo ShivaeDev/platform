@@ -1,95 +1,43 @@
-import { basename, isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
-import { ManifestFailure } from "#adapters/manifestInventory.ts";
-import { inNonEffectFolder } from "#config/nonEffectFolders.ts";
-import type { ActiveLevel, Violation } from "#engine/violation.ts";
-import { SetupFailure } from "#failure.ts";
-import { FilesystemFailure } from "#inventory/filesystem.ts";
-import { posix } from "#inventory/ignoreScope.ts";
-import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
+import { type ActiveRule, runRule } from "#engine/runRule.ts";
+import type { Violation } from "#engine/violation.ts";
+import type { SetupFailure } from "#failure.ts";
+import type { RuleInputs, RuleServices } from "#rule.ts";
+import { PACKAGE_CHECKS, withPackageWalk } from "#rules/packageFindings.ts";
 
-export interface ActiveRule {
-	readonly check: RuleCheck;
-	readonly description: string;
-	readonly family: boolean;
-	readonly id: string;
-	readonly level: ActiveLevel;
-	readonly registrable?: boolean;
+type RuleRun = Effect.Effect<readonly Violation[], SetupFailure, RuleServices>;
+
+const CHILD_PROCESS_RULES: ReadonlySet<string> = new Set(["biome", "code/unused", "suppressions/biome-recommended"]);
+
+function spawnsChild(rule: ActiveRule): boolean {
+	return CHILD_PROCESS_RULES.has(rule.id) && rule.depth === "fast";
 }
 
-function messageOf(cause: unknown): string {
-	return cause instanceof Error ? cause.message : String(cause);
-}
-
-// Registry and baseline entries match on the path, so every finding names its file the same way.
-function repositoryPath(root: string, file: string): string {
-	return posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(?:\.\/)+/u, "");
-}
-
-function exceptionHint(rule: ActiveRule, finding: Finding, file: string, config: string): string {
-	const id = rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id;
-	const biome = /^biome\/(?:lint|assist)\/[a-zA-Z]+\/[a-zA-Z]+$/u.test(id);
-	if (!biome && rule.registrable === false) {
-		return "";
+// Rules share one Node thread, so only the Biome and Knip child processes run beside the other rules: each type-checker program, the package walk's included, is built alone.
+function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
+	function run(rule: ActiveRule): RuleRun {
+		return runRule(rule, inputs, inputs.configFile ?? "quality.config.ts");
 	}
-	const shape = JSON.stringify({
-		files: [file],
-		reason: "Explain why this exception is permanent.",
-		rules: [id],
-		...(!rule.family && finding.subject !== undefined ? { subject: finding.subject } : {}),
-	});
-	return ` For a permanent exception, add to exceptions in ${config}: ${shape}.`;
-}
-
-function violationOf(rule: ActiveRule, root: string, finding: Finding, exceptionFile: string): Violation {
-	return {
-		...finding,
-		file: repositoryPath(root, finding.file),
-		level: rule.level,
-		message: finding.message + exceptionHint(rule, finding, repositoryPath(root, finding.file), exceptionFile),
-		rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
-	};
-}
-
-function expectedFailure(rule: ActiveRule, root: string, cause: unknown): readonly Violation[] | undefined {
-	if (cause instanceof ManifestFailure || cause instanceof FilesystemFailure) {
-		const manifest = cause instanceof ManifestFailure || basename(cause.path) === "package.json";
-		return [
-			{
-				file: repositoryPath(root, cause.path),
-				level: rule.level,
-				message: cause.message,
-				rule: manifest ? "manifests/valid" : rule.id,
-			},
-		];
+	const walked = rules.filter((rule) => PACKAGE_CHECKS.has(rule.id));
+	const inThread = rules.filter((rule) => !(PACKAGE_CHECKS.has(rule.id) || spawnsChild(rule)));
+	const fast = inThread.filter((rule) => rule.depth === "fast").map(run);
+	const deep = inThread.filter((rule) => rule.depth === "deep").map(run);
+	function lanes(thread: readonly RuleRun[]): RuleRun {
+		return Effect.map(Effect.all([Effect.all(rules.filter(spawnsChild).map(run)), Effect.all(thread)], { concurrency: 2 }), ([children, inOrder]) => [
+			...children.flat(),
+			...inOrder.flat(),
+		]);
 	}
-	return undefined;
-}
-
-function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
-	return Effect.suspend(() => rule.check(inputs)).pipe(
-		Effect.map((findings) =>
-			findings
-				.filter(
-					(finding) =>
-						!(rule.id.startsWith("effect/") && inNonEffectFolder(repositoryPath(inputs.root, finding.file), inputs.nonEffectFolders ?? [])),
-				)
-				.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
+	if (walked.length === 0) {
+		return lanes([...fast, ...deep]);
+	}
+	return withPackageWalk(inputs, new Set(walked.map((rule) => rule.id)), (walk) =>
+		Effect.map(
+			Effect.all([lanes([Effect.as(walk, []), ...fast, ...deep]), Effect.all(walked.map(run), { concurrency: "unbounded" })], {
+				concurrency: "unbounded",
+			}),
+			([laned, waited]) => [...laned, ...waited.flat()],
 		),
-		Effect.catch((cause) => {
-			const findings = expectedFailure(rule, inputs.root, cause);
-			if (findings !== undefined) {
-				return Effect.succeed(findings);
-			}
-			if (cause instanceof SetupFailure) {
-				return Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }));
-			}
-			return Effect.die(cause);
-		}),
-		Effect.catchDefect((cause) => {
-			const findings = expectedFailure(rule, inputs.root, cause);
-			return findings === undefined ? Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })) : Effect.succeed(findings);
-		}),
 	);
 }
 
@@ -101,13 +49,12 @@ export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly 
 			return failures;
 		}
 	}
-	const results = yield* Effect.forEach(
+	const results = yield* runTiers(
 		rules.filter((rule) => rule !== validation),
-		(rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"),
-		{ concurrency: 2 },
+		inputs,
 	);
 	const seen = new Set<string>();
-	return results.flat().filter((finding) => {
+	return results.filter((finding) => {
 		if (finding.rule !== "manifests/valid") {
 			return true;
 		}

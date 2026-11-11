@@ -2,7 +2,6 @@ import { Deferred, Effect, Result } from "effect";
 import { changeKeyCheck } from "#adapters/changeKeyCheck.ts";
 import { contextCaptureCheck } from "#adapters/contextCaptureCheck.ts";
 import { projectsFor } from "#adapters/imports/projects.ts";
-import { nativeTransactionCheck } from "#adapters/nativeTransactionCheck.ts";
 import { rpcBoundaryCheck } from "#adapters/rpcBoundaryCheck.ts";
 import { serviceModelCheck } from "#adapters/serviceModelCheck.ts";
 import { sharedErrorCheck } from "#adapters/sharedErrorCheck.ts";
@@ -24,11 +23,12 @@ const CHECKS = [
 	{ id: "effect/service-model", prepare: serviceModelCheck },
 	{ id: "effect/service-parameters", prepare: serviceParameterCheck },
 	{ id: "effect/shared-error-classes", prepare: sharedErrorCheck },
-	{ id: "effect/sql-transact", prepare: nativeTransactionCheck },
 	{ id: "suppressions/no-double-cast", prepare: typedCastCheck },
 ] as const;
 
 type CheckId = (typeof CHECKS)[number]["id"];
+
+export const PACKAGE_CHECKS: ReadonlySet<string> = new Set(CHECKS.map(({ id }) => id));
 type Prepared = ReturnType<(typeof CHECKS)[number]["prepare"]>;
 type Checked = ReadonlyMap<CheckId, Result.Result<readonly Finding[], Effect.Error<Prepared>>>;
 
@@ -37,9 +37,11 @@ function messageOf(cause: unknown): string {
 }
 
 // One program per package serves every check and is dropped before the next package, so memory stays bounded by the largest package.
-const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs) {
-	const prepared = yield* Effect.forEach(CHECKS, ({ id, prepare }) =>
-		Effect.map(Effect.result<PackageCheck, Effect.Error<Prepared>, Effect.Services<Prepared>>(prepare(inputs)), (result) => [id, result] as const),
+const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs, ids: ReadonlySet<string>) {
+	const prepared = yield* Effect.forEach(
+		CHECKS.filter(({ id }) => ids.has(id)),
+		({ id, prepare }) =>
+			Effect.map(Effect.result<PackageCheck, Effect.Error<Prepared>, Effect.Services<Prepared>>(prepare(inputs)), (result) => [id, result] as const),
 	);
 	const ready = prepared.flatMap(([id, result]) => (Result.isSuccess(result) ? [[id, result.success] as const] : []));
 	const packages = yield* workspacePackages(inputs);
@@ -78,15 +80,26 @@ const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs) {
 type Walk = ReturnType<typeof walk>;
 const walks = new WeakMap<readonly SourceFile[], Deferred.Deferred<Checked, Effect.Error<Walk>>>();
 
-// The first type-checking rule of a scan walks the packages for all of them; the others wait for its results.
+// A run walks the packages once for the checks of its active rules. Those rules wait for the walk outside the rule pool, and the run decides when the walk itself runs.
+export function withPackageWalk<TValue, TError, TServices>(
+	inputs: RuleInputs,
+	ids: ReadonlySet<string>,
+	use: (walked: Effect.Effect<void, never, Effect.Services<Walk>>) => Effect.Effect<TValue, TError, TServices>,
+): Effect.Effect<TValue, TError, TServices> {
+	return Effect.acquireUseRelease(
+		Effect.sync(() => {
+			const walked = Deferred.makeUnsafe<Checked, Effect.Error<Walk>>();
+			walks.set(inputs.sources, walked);
+			return walked;
+		}),
+		(walked) => use(Effect.asVoid(Deferred.into(walk(inputs, ids), walked))),
+		() => Effect.sync(() => walks.delete(inputs.sources)),
+	);
+}
+
 export function packageFindings(inputs: RuleInputs, id: CheckId): Effect.Effect<readonly Finding[], unknown, Effect.Services<Walk>> {
 	return Effect.suspend(() => {
-		const known = walks.get(inputs.sources);
-		if (known !== undefined) {
-			return Deferred.await(known);
-		}
-		const walked = Deferred.makeUnsafe<Checked, Effect.Error<Walk>>();
-		walks.set(inputs.sources, walked);
-		return Effect.andThen(Deferred.into(walk(inputs), walked), Deferred.await(walked));
+		const walked = walks.get(inputs.sources);
+		return walked === undefined ? walk(inputs, new Set([id])) : Deferred.await(walked);
 	}).pipe(Effect.flatMap((checked) => Effect.fromResult(checked.get(id) ?? Result.succeed([]))));
 }

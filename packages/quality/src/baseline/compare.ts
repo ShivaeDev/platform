@@ -1,5 +1,5 @@
 import type { BaselineEntry } from "#baseline/format.ts";
-import { groupBy, keyOf, levelOf, type RuleIndex, unusedEntryProblem, type Violation } from "#engine/violation.ts";
+import { groupBy, keyOf, levelOf, type RuleIndex, skipped, unusedEntryProblem, type Violation } from "#engine/violation.ts";
 
 export interface Regression {
 	readonly count: number;
@@ -29,7 +29,7 @@ export function applyBaseline(violations: readonly Violation[], entries: readonl
 	const regressions: Regression[] = [];
 	const stale: StaleBaselineEntry[] = [];
 	const loose: StaleBaselineEntry[] = [];
-	for (const entry of entries) {
+	for (const entry of entries.filter((candidate) => !skipped(rules, candidate.rule))) {
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
 		if (group.length === 0) {
 			const level = levelOf(rules, entry.rule);

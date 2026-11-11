@@ -4,8 +4,10 @@ export const OPTIONS = {
 	against: { type: "string" },
 	config: { type: "string" },
 	coverage: { type: "boolean" },
+	fast: { type: "boolean" },
 	force: { type: "boolean" },
 	from: { type: "string" },
+	full: { type: "boolean" },
 	help: { short: "h", type: "boolean" },
 	rule: { multiple: true, type: "string" },
 	staged: { type: "boolean" },
@@ -15,7 +17,7 @@ export type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allo
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "force", "from", "rule", "staged"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "fast", "force", "from", "full", "rule", "staged"];
 
 export const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline install-driver": [],
@@ -30,7 +32,7 @@ export const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"hooks pre-commit": [],
 	"hooks status": [],
 	"hooks uninstall": [],
-	lint: [],
+	lint: ["fast", "full"],
 	setup: [],
 };
 

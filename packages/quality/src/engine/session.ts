@@ -53,11 +53,26 @@ export const scan = Effect.fn("Engine.scan")(function* (
 	return { inventory, staleRegistry, violations };
 });
 
+export type RunSet = "fast" | "full";
+
+// A fast run leaves deep rules out and sets their baseline entries and exceptions aside instead of judging them.
+function selected(config: ResolvedConfig, set: RunSet): ResolvedConfig {
+	if (set === "full") {
+		return config;
+	}
+	return {
+		...config,
+		active: config.active.filter((rule) => rule.depth === "fast"),
+		skipped: new Set(config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id)),
+	};
+}
+
 export const openSession = Effect.fn("Engine.openSession")(function* (
 	cwd: string,
 	configPath: string | undefined,
+	set: RunSet = "full",
 ): Effect.fn.Return<Session, SetupFailure, RuleServices> {
-	const config = yield* loadConfig(cwd, configPath);
+	const config = selected(yield* loadConfig(cwd, configPath), set);
 	const selection = configPath === undefined ? "" : ` --config ${configPath}`;
 	for (const path of new Set([config.registry, "quality/registry.json"])) {
 		if ((yield* readInput(config.root, path)) !== undefined) {

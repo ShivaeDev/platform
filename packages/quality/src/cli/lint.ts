@@ -3,11 +3,13 @@ import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect, Path } from "effect";
 import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { looseStagedEntries } from "#baseline/looseStagedEntries.ts";
+import { runSet } from "#cli/runSet.ts";
 import { evaluate, type Outcome, passes } from "#engine/evaluate.ts";
-import { openSession } from "#engine/session.ts";
+import { openSession, type RunSet } from "#engine/session.ts";
 import { keyOf } from "#engine/violation.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
 import { type ReportContext, render } from "#report/render.ts";
+import { runSetLine } from "#report/runSetLine.ts";
 import type { RuleServices } from "#rule.ts";
 
 export interface LintResult {
@@ -16,10 +18,11 @@ export interface LintResult {
 }
 
 export const reportLint = Effect.fn("Cli.reportLint")(
-	function* (cwd: string, config: string | undefined, staged: boolean): Effect.fn.Return<LintResult, SetupFailure, RuleServices> {
+	function* (cwd: string, config: string | undefined, staged: boolean, requested?: RunSet): Effect.fn.Return<LintResult, SetupFailure, RuleServices> {
 		const { relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
 
-		const session = yield* openSession(cwd, config);
+		const set = yield* runSet(requested);
+		const session = yield* openSession(cwd, config, set);
 		const evaluated = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
 		const loose = staged ? yield* looseStagedEntries(session) : [];
 		const rejected = new Set(loose.map(({ entry }) => keyOf(entry.rule, entry.file)));
@@ -35,7 +38,8 @@ export const reportLint = Effect.fn("Cli.reportLint")(
 			descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
 			registry: session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
 		};
-		yield* Console.log(render(outcome, context));
+		const deep = set === "full" ? session.config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id) : [...session.config.skipped];
+		yield* Console.log([render(outcome, context), ...runSetLine(set, deep, config)].join("\n\n"));
 		return { context, outcome };
 	},
 	(effect) =>
@@ -46,8 +50,8 @@ export const reportLint = Effect.fn("Cli.reportLint")(
 		),
 );
 
-export const lint = Effect.fn("Cli.lint")(function* (cwd: string, config: string | undefined) {
-	const { outcome } = yield* reportLint(cwd, config, false);
+export const lint = Effect.fn("Cli.lint")(function* (cwd: string, config: string | undefined, requested: RunSet | undefined) {
+	const { outcome } = yield* reportLint(cwd, config, false, requested);
 	if (!passes(outcome)) {
 		return yield* new GateFailed();
 	}

@@ -36,7 +36,7 @@ export const customServiceStory = storyKit({
 	verbs: (engine, story) => ({
 		checks: () => {
 			story.tell("quality lint runs the configured rule with the supplied line allowance");
-			return lint(engine.root, undefined).pipe(
+			return lint(engine.root, undefined, undefined).pipe(
 				Effect.provide(
 					ConfigProvider.layerAdd(ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": isolatedEnvironment(engine.root).HEAVY_PROCESS_LOCK } }), {
 						asPrimary: true,

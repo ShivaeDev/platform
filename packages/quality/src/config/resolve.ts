@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { configureRegistered } from "#adapters/rule.ts";
 import type { ConfigInput } from "#config/decode.ts";
 import type { Decoded } from "#decoded.ts";
-import type { ActiveRule } from "#engine/runRules.ts";
+import type { ActiveRule } from "#engine/runRule.ts";
 import type { RuleIndex } from "#engine/violation.ts";
 import type { RegisteredRule } from "#rule.ts";
 import { builtInRules } from "#rules/builtIn.ts";
@@ -30,6 +30,7 @@ function duplicateIssues(rules: readonly RegisteredRule[]): readonly string[] {
 function activeRule(rule: RegisteredRule, check: ActiveRule["check"]): ActiveRule {
 	return {
 		check,
+		depth: rule.depth ?? "fast",
 		description: rule.description,
 		family: rule.family === true,
 		id: rule.id,
@@ -71,5 +72,5 @@ export const resolveRules = Effect.fn("Config.resolveRules")(function* (config: 
 	const active = activated.flatMap((result) => (result._tag === "Valid" ? [result.value] : []));
 	const levels = new Map(rules.map((rule) => [rule.id, "error" as const]));
 	const unregistrable = new Set(rules.filter((rule) => rule.registrable === false).map((rule) => rule.id));
-	return { _tag: "Valid", value: { active, families, levels, unregistrable } };
+	return { _tag: "Valid", value: { active, families, levels, skipped: new Set(), unregistrable } };
 });

@@ -1,5 +1,7 @@
 import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
+import { effectInstalled, repositoryHas as lintRunRepositoryHas, lintRunStory } from "#test/lintRuns.ts";
 import { PACKAGES, packageProgramFiles } from "#test/packageProgramFiles.ts";
 import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
@@ -16,6 +18,21 @@ ruleStory.it(
 			expect(services).toContain(`packages/${name}/src/store.ts:2  Parameter store carries a service.`);
 			expect(contexts).toContain(`packages/${name}/src/application.ts:6  Do not re-provide a captured Effect context in core code.`);
 		}
+	},
+	CLI_TIMEOUT,
+);
+
+lintRunStory.it(
+	"a full lint builds each workspace package's program once for every type-checking rule that shares it",
+	[effectInstalled(), lintRunRepositoryHas(...packageProgramFiles)],
+	function* ({ lints, reportsRule, spanCount }) {
+		yield* lints("--full");
+
+		yield* outcomes([
+			["service parameters reported", () => reportsRule("effect/service-parameters"), true],
+			["context capture reported", () => reportsRule("effect/context-capture"), true],
+			["package programs built", () => spanCount("TypeScriptProgram.sourcesProgram"), PACKAGES.length],
+		]);
 	},
 	CLI_TIMEOUT,
 );

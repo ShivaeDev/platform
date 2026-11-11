@@ -4,7 +4,7 @@ import { Config, Effect, Option } from "effect";
 import { isolatedGitEnvironment } from "@shivaedev/test-story/server/adapters/isolatedGit.ts";
 
 const INHERITED = Object.fromEntries(
-	["CI", "HOME", "HEAVY_PROCESS_LOCK", "HEAVY_PROCESS_LOCK_ID", "PATH"].flatMap((name) =>
+	["HOME", "HEAVY_PROCESS_LOCK", "HEAVY_PROCESS_LOCK_ID", "PATH"].flatMap((name) =>
 		Option.toArray(Effect.runSync(Config.option(Config.String(name)))).map((value) => [name, value]),
 	),
 );

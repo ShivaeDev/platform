@@ -2,11 +2,12 @@ import { Result } from "effect";
 import { commandLine } from "#adapters/commandLine.ts";
 import { ACCEPTS, misplaced, type Values } from "#cli/misplaced.ts";
 import { SUBCOMMANDS } from "#cli/subcommands.ts";
+import type { RunSet } from "#engine/session.ts";
 
 export type Command =
 	| { readonly _tag: "Ci"; readonly coverage: boolean }
 	| { readonly _tag: "Setup"; readonly config: string | undefined }
-	| { readonly _tag: "Lint"; readonly config: string | undefined }
+	| { readonly _tag: "Lint"; readonly config: string | undefined; readonly set: RunSet | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Fix"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselineMerge"; readonly base: string; readonly ours: string; readonly theirs: string }
@@ -39,6 +40,13 @@ function ref(against: string | undefined, command: Command): Parsed {
 	return against?.startsWith("-") === true ? usage(`--against takes a git ref, not "${against}".`) : parsed(command);
 }
 
+function runSetOf(values: Values): RunSet | undefined {
+	if (values.fast === true) {
+		return "fast";
+	}
+	return values.full === true ? "full" : undefined;
+}
+
 function commandFor(name: string, values: Values): Parsed {
 	const config = values.config;
 	switch (name) {
@@ -47,7 +55,10 @@ function commandFor(name: string, values: Values): Parsed {
 		case "setup":
 			return parsed({ _tag: "Setup", config });
 		case "lint":
-			return parsed({ _tag: "Lint", config });
+			if (values.fast === true && values.full === true) {
+				return usage("--fast and --full exclude each other.");
+			}
+			return parsed({ _tag: "Lint", config, set: runSetOf(values) });
 		case "exceptions migrate":
 			return parsed({ _tag: "ExceptionsMigrate", config, from: values.from });
 		case "fix":

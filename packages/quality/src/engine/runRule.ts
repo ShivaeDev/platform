@@ -1,0 +1,99 @@
+import { basename, isAbsolute, relative } from "node:path";
+import { Effect } from "effect";
+import { ManifestFailure } from "#adapters/manifestInventory.ts";
+import { inNonEffectFolder } from "#config/nonEffectFolders.ts";
+import type { ActiveLevel, Violation } from "#engine/violation.ts";
+import { SetupFailure } from "#failure.ts";
+import { FilesystemFailure } from "#inventory/filesystem.ts";
+import { posix } from "#inventory/ignoreScope.ts";
+import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
+
+export interface ActiveRule {
+	readonly check: RuleCheck;
+	readonly depth: "deep" | "fast";
+	readonly description: string;
+	readonly family: boolean;
+	readonly id: string;
+	readonly level: ActiveLevel;
+	readonly registrable?: boolean;
+}
+
+function messageOf(cause: unknown): string {
+	return cause instanceof Error ? cause.message : String(cause);
+}
+
+// Registry and baseline entries match on the path, so every finding names its file the same way.
+function repositoryPath(root: string, file: string): string {
+	return posix(isAbsolute(file) ? relative(root, file) : file).replace(/^(?:\.\/)+/u, "");
+}
+
+function exceptionHint(rule: ActiveRule, finding: Finding, file: string, config: string): string {
+	const id = rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id;
+	const biome = /^biome\/(?:lint|assist)\/[a-zA-Z]+\/[a-zA-Z]+$/u.test(id);
+	if (!biome && rule.registrable === false) {
+		return "";
+	}
+	const shape = JSON.stringify({
+		files: [file],
+		reason: "Explain why this exception is permanent.",
+		rules: [id],
+		...(!rule.family && finding.subject !== undefined ? { subject: finding.subject } : {}),
+	});
+	return ` For a permanent exception, add to exceptions in ${config}: ${shape}.`;
+}
+
+function violationOf(rule: ActiveRule, root: string, finding: Finding, exceptionFile: string): Violation {
+	return {
+		...finding,
+		file: repositoryPath(root, finding.file),
+		level: rule.level,
+		message: finding.message + exceptionHint(rule, finding, repositoryPath(root, finding.file), exceptionFile),
+		rule: rule.family && finding.subject !== undefined ? `${rule.id}/${finding.subject}` : rule.id,
+	};
+}
+
+function expectedFailure(rule: ActiveRule, root: string, cause: unknown): readonly Violation[] | undefined {
+	if (cause instanceof ManifestFailure || cause instanceof FilesystemFailure) {
+		const manifest = cause instanceof ManifestFailure || basename(cause.path) === "package.json";
+		return [
+			{
+				file: repositoryPath(root, cause.path),
+				level: rule.level,
+				message: cause.message,
+				rule: manifest ? "manifests/valid" : rule.id,
+			},
+		];
+	}
+	return undefined;
+}
+
+export function runRule(
+	rule: ActiveRule,
+	inputs: RuleInputs,
+	exceptionFile: string,
+): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
+	return Effect.suspend(() => rule.check(inputs)).pipe(
+		Effect.map((findings) =>
+			findings
+				.filter(
+					(finding) =>
+						!(rule.id.startsWith("effect/") && inNonEffectFolder(repositoryPath(inputs.root, finding.file), inputs.nonEffectFolders ?? [])),
+				)
+				.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
+		),
+		Effect.catch((cause) => {
+			const findings = expectedFailure(rule, inputs.root, cause);
+			if (findings !== undefined) {
+				return Effect.succeed(findings);
+			}
+			if (cause instanceof SetupFailure) {
+				return Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }));
+			}
+			return Effect.die(cause);
+		}),
+		Effect.catchDefect((cause) => {
+			const findings = expectedFailure(rule, inputs.root, cause);
+			return findings === undefined ? Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })) : Effect.succeed(findings);
+		}),
+	);
+}

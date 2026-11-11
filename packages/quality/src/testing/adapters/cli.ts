@@ -24,7 +24,11 @@ export function qualityArgs(args: readonly string[]): string[] {
 	return [...OPTIONS, CLI, ...args];
 }
 
-const ISOLATED: readonly (readonly [string, string | undefined])[] = [["CLAUDE_CODE_REMOTE", undefined], ...Object.entries(qualityGitEnvironment)];
+const ISOLATED: readonly (readonly [string, string | undefined])[] = [
+	["CI", undefined],
+	["CLAUDE_CODE_REMOTE", undefined],
+	...Object.entries(qualityGitEnvironment),
+];
 
 async function isolateGit(): Promise<() => void> {
 	const { vi } = await import("vitest");

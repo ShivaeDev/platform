@@ -3,8 +3,10 @@ import { parseCommand } from "#cli/args.ts";
 
 describe("parseCommand", () => {
 	it.for([
-		[[], { _tag: "Lint", config: undefined }],
-		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
+		[[], { _tag: "Lint", config: undefined, set: undefined }],
+		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts", set: undefined }],
+		[["lint", "--fast"], { _tag: "Lint", config: undefined, set: "fast" }],
+		[["lint", "--full"], { _tag: "Lint", config: undefined, set: "full" }],
 		[["fix"], { _tag: "Fix", config: undefined, rules: [] }],
 		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, rules: [] }],
 		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, rules: ["a/b", "c/d"] }],
@@ -40,6 +42,11 @@ describe("parseCommand", () => {
 		[["hooks"], "hooks takes install, uninstall, status or pre-commit"],
 		[["hooks", "commit-msg"], "hooks takes install, uninstall, status or pre-commit"],
 		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
+		[["lint", "--fast", "--full"], "--fast and --full exclude each other"],
+		[["baseline", "write", "--fast"], "--fast applies only to lint"],
+		[["baseline", "tighten", "--fast"], "--fast applies only to lint"],
+		[["baseline", "prune", "--fast"], "--fast applies only to lint"],
+		[["fix", "--fast"], "--fast applies only to lint"],
 	] satisfies ReadonlyArray<readonly [unknown, unknown]>)("refuses %j with its usage problem", ([args, problem]) => {
 		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });
 	});

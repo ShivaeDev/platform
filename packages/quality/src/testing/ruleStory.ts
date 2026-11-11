@@ -68,8 +68,8 @@ export function makeRuleStory() {
 			...ruleChecks(engine, story.tell),
 			findings: () => checked(engine),
 			gate: Effect.fn("RuleStory.gate")(function* () {
-				story.tell("quality runs the repository gate");
-				engine.answer = yield* runQuality(engine.root, "lint");
+				story.tell("quality runs the full repository gate");
+				engine.answer = yield* runQuality(engine.root, "lint", "--full");
 			}),
 			gateOutcome: () => Effect.map(answered(engine), outcomeOf),
 			gateReport: () => Effect.map(answered(engine), (answer) => answer.stdout + answer.stderr),
