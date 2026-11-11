@@ -1,4 +1,4 @@
-import { createServer } from "node:net";
+import { createServer } from "node:http";
 import { getMigrations } from "better-auth/db/migration";
 import { admin, jwt } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
@@ -10,6 +10,7 @@ import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/ad
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
 import { admissionPolicy } from "#test/admissionPolicy.ts";
@@ -18,17 +19,6 @@ import { hashGrantToken } from "#test/hashGrantToken.ts";
 import { jwksEndpoint } from "#test/jwksEndpoint.ts";
 import { tokenSigner } from "#test/tokenSigner.ts";
 import { audiences, Roles } from "#test/tools.ts";
-
-async function availablePort() {
-	const server = createServer();
-	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		throw new Error("Expected a TCP address");
-	}
-	await new Promise<void>((resolve) => server.close(() => resolve()));
-	return address.port;
-}
 
 export const POLICY_ONLY_ORIGIN = "https://policy-only.mcp.test";
 export const TRANSPORT_ONLY_ORIGIN = "https://transport-only.mcp.test";
@@ -42,7 +32,7 @@ export interface HostOptions {
 export const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issuerPath }: HostOptions) {
 	const admission = yield* admissionPolicy;
 	const pool = yield* betterAuthDatabase();
-	const port = yield* Effect.promise(availablePort);
+	const port = Number(new URL(yield* Effect.scoped(loopbackServer(createServer()))).port);
 	const baseUrl = `http://127.0.0.1:${port}`;
 	const publicUrl = inProcess ? "https://mcp.story.test" : baseUrl;
 	const resource = `${publicUrl}/mcp`;
