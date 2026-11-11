@@ -339,7 +339,7 @@ src/generated/*
 !src/generated/README.md
 ```
 
-Quality makes sure those files exist before it reads a source: it first runs the `generate` script of the `package.json` in the config's folder through the manifest's `packageManager` (`npm` when omitted), so a fresh checkout, a module written since the last run and a deleted `src/generated` lint the same as an up-to-date tree. A project without a `generate` script runs nothing. When the script fails, the run stops before any rule with the script's output and exit code 2. No config names the folder. An import of a generated file is then checked like any other: `imports/resolvable` reports one the generator does not write and names the module file that would define it, and `docs/references` reports a path to one.
+Quality makes sure those files exist before it reads a source: it first runs the `generate` script of the `package.json` in the config's folder through the manifest's `packageManager` (`npm` when omitted), so a fresh checkout, a module written since the last run and a deleted `src/generated` lint the same as an up-to-date tree. A project without a `generate` script runs nothing; give a script that must not run before every lint, such as a database client generator or a migration writer that can prompt, another name. When the script fails, the run stops before any rule with the script's output and exit code 2. No config names the folder. An import of a generated file is then checked like any other: `imports/resolvable` reports one the generator does not write and names the module file that would define it, and `docs/references` reports a path to one.
 
 ### Story tests
 
