@@ -31,6 +31,7 @@ export function groupBy<TItem>(items: readonly TItem[], key: (item: TItem) => st
 
 export interface RuleIndex {
 	readonly families: ReadonlySet<string>;
+	readonly halved: ReadonlySet<string>;
 	readonly levels: ReadonlyMap<string, Level>;
 	readonly skipped: ReadonlySet<string>;
 	readonly unregistrable: ReadonlySet<string>;
@@ -50,6 +51,10 @@ export function levelOf(index: RuleIndex, rule: string): Level | undefined {
 
 export function skipped(index: RuleIndex, rule: string): boolean {
 	return index.skipped.has(ownerOf(index, rule));
+}
+
+export function halved(index: RuleIndex, rule: string): boolean {
+	return index.halved.has(ownerOf(index, rule));
 }
 
 export function registrable(index: RuleIndex, rule: string): boolean {

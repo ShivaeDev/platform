@@ -1,5 +1,5 @@
 import type { BaselineEntry } from "#baseline/format.ts";
-import { groupBy, keyOf, levelOf, type RuleIndex, skipped, unusedEntryProblem, type Violation } from "#engine/violation.ts";
+import { groupBy, halved, keyOf, levelOf, type RuleIndex, skipped, unusedEntryProblem, type Violation } from "#engine/violation.ts";
 
 export interface Regression {
 	readonly count: number;
@@ -31,6 +31,10 @@ export function applyBaseline(violations: readonly Violation[], entries: readonl
 	const loose: StaleBaselineEntry[] = [];
 	for (const entry of entries.filter((candidate) => !skipped(rules, candidate.rule))) {
 		const group = groups.get(keyOf(entry.rule, entry.file)) ?? [];
+		const partial = halved(rules, entry.rule);
+		if (group.length === 0 && partial) {
+			continue;
+		}
 		if (group.length === 0) {
 			const level = levelOf(rules, entry.rule);
 			(level === undefined ? stale : loose).push({
@@ -45,7 +49,7 @@ export function applyBaseline(violations: readonly Violation[], entries: readonl
 			continue;
 		}
 		covered.add(keyOf(entry.rule, entry.file));
-		if (count < entry.count) {
+		if (count < entry.count && !partial) {
 			loose.push({ entry, problem: `allows more than is left: ${count} against ${entry.count} baselined` });
 		}
 	}

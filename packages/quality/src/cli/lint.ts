@@ -38,7 +38,11 @@ export const reportLint = Effect.fn("Cli.reportLint")(
 			descriptions: new Map(session.config.active.map((rule) => [rule.id, rule.description])),
 			registry: session.config.exceptions.length === 0 ? session.config.registry : `${relative(session.config.root, session.config.file)} exceptions`,
 		};
-		const deep = set === "full" ? session.config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id) : [...session.config.skipped];
+		const halves = session.config.active.flatMap((rule) => (rule.deepHalf === undefined ? [] : [`${rule.id} ${rule.deepHalf.name}`]));
+		const deep = [
+			...(set === "full" ? session.config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id) : session.config.skipped),
+			...halves,
+		];
 		yield* Console.log([render(outcome, context), ...runSetLine(set, deep, config)].join("\n\n"));
 		return { context, outcome };
 	},

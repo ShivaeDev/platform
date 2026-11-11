@@ -4,7 +4,7 @@ import type { ConfigInput } from "#config/decode.ts";
 import type { Decoded } from "#decoded.ts";
 import type { ActiveRule } from "#engine/runRule.ts";
 import type { RuleIndex } from "#engine/violation.ts";
-import type { RegisteredRule } from "#rule.ts";
+import type { Configured, RegisteredRule } from "#rule.ts";
 import { builtInRules } from "#rules/builtIn.ts";
 
 export interface ResolvedRules extends RuleIndex {
@@ -27,9 +27,11 @@ function duplicateIssues(rules: readonly RegisteredRule[]): readonly string[] {
 	);
 }
 
-function activeRule(rule: RegisteredRule, check: ActiveRule["check"]): ActiveRule {
+function activeRule(rule: RegisteredRule, configured: Extract<Configured, { readonly _tag: "Ready" }>): ActiveRule {
+	const { halves } = configured;
 	return {
-		check,
+		check: halves?.fast ?? configured.check,
+		...(halves === undefined ? {} : { deepHalf: { check: halves.deep, name: halves.name } }),
 		depth: rule.depth ?? "fast",
 		description: rule.description,
 		family: rule.family === true,
@@ -49,7 +51,7 @@ function activate(rule: RegisteredRule, setting: Setting | undefined): Effect.Ef
 					? { _tag: "Invalid", issues: configured.issues.map((issue) => `rules.${rule.id}.options: ${issue}`) }
 					: {
 							_tag: "Valid",
-							value: activeRule(rule, configured.check),
+							value: activeRule(rule, configured),
 						},
 		}),
 	);
@@ -73,5 +75,5 @@ export const resolveRules = Effect.fn("Config.resolveRules")(function* (config: 
 	const active = activated.flatMap((result) => (result._tag === "Valid" ? [result.value] : []));
 	const levels = new Map(rules.map((rule) => [rule.id, "error" as const]));
 	const unregistrable = new Set(rules.filter((rule) => rule.registrable === false).map((rule) => rule.id));
-	return { _tag: "Valid", value: { active, families, levels, skipped: new Set(), unregistrable } };
+	return { _tag: "Valid", value: { active, families, halved: new Set(), levels, skipped: new Set(), unregistrable } };
 });

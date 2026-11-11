@@ -10,6 +10,7 @@ import type { Finding, Need, RuleCheck, RuleInputs, RuleServices } from "#rule.t
 
 export interface ActiveRule {
 	readonly check: RuleCheck;
+	readonly deepHalf?: { readonly check: RuleCheck; readonly name: string };
 	readonly depth: "deep" | "fast";
 	readonly description: string;
 	readonly family: boolean;

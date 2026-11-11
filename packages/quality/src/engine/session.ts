@@ -48,21 +48,23 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		sources: inventory.sources,
 		typeScript: yield* typeScriptProgram(config.root, inventory.sources),
 	};
-	const violations = yield* runRules(config.active, inputs);
+	const violations = yield* runRules(config.active, inputs, config.halved);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
 	return { inventory, staleRegistry, violations };
 });
 
 export type RunSet = "fast" | "full";
 
-// A fast run leaves deep rules out and sets their baseline entries and exceptions aside instead of judging them.
+// A fast run leaves deep rules and deep halves out and sets aside the baseline entries and exceptions it cannot judge.
 function selected(config: ResolvedConfig, set: RunSet): ResolvedConfig {
 	if (set === "full") {
 		return config;
 	}
+	const active = config.active.filter((rule) => rule.depth === "fast");
 	return {
 		...config,
-		active: config.active.filter((rule) => rule.depth === "fast"),
+		active,
+		halved: new Set(active.filter((rule) => rule.deepHalf !== undefined).map((rule) => rule.id)),
 		skipped: new Set(config.active.filter((rule) => rule.depth === "deep").map((rule) => rule.id)),
 	};
 }

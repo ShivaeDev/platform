@@ -54,9 +54,15 @@ export type RuleCheck<TServices = RuleServices> = (
 	inputs: Omit<RuleInputs, "typeScript"> & Partial<Pick<RuleInputs, "typeScript">>,
 ) => Effect.Effect<Findings, unknown, TServices>;
 
+export interface Halves<TServices = RuleServices> {
+	readonly deep: RuleCheck<TServices>;
+	readonly fast: RuleCheck<TServices>;
+	readonly name: string;
+}
+
 export type Configured<TServices = RuleServices> =
 	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
-	| { readonly _tag: "Ready"; readonly check: RuleCheck<TServices> };
+	| { readonly _tag: "Ready"; readonly check: RuleCheck<TServices>; readonly halves?: Halves<TServices> };
 
 export type Depth = "deep";
 
@@ -77,8 +83,11 @@ export interface Rule<TId extends string = string, TInput = unknown, TServices =
 	readonly id: TId;
 }
 
+type DefinedCheck<TOptions, TServices> = (context: RuleContext<NoInfer<TOptions>>) => RuleCheckResult<TServices>;
+
 interface RuleDefinition<TId extends string, TOptions, TServices> {
-	readonly check: (context: RuleContext<NoInfer<TOptions>>) => RuleCheckResult<TServices>;
+	readonly check: DefinedCheck<TOptions, TServices>;
+	readonly deepHalf?: { readonly check: DefinedCheck<TOptions, TServices>; readonly name: string };
 	readonly depth?: Depth;
 	readonly description: string;
 	readonly id: TId;
@@ -106,8 +115,8 @@ export function defineRule<const TId extends string, TInput, TOptions, TServices
 ): Rule<TId, TInput, TServices> | Rule<TId, undefined, TServices> {
 	const configure =
 		definition.options === undefined
-			? configureWith(noOptions, definition.check, definition.id, undefined, definition.validate)
-			: configureWith(definition.options, definition.check, definition.id, {}, definition.validate);
+			? configureWith(noOptions, definition, definition.id, undefined, definition.validate)
+			: configureWith(definition.options, definition, definition.id, {}, definition.validate);
 	return {
 		[ruleConfiguration]: configure,
 		configure,

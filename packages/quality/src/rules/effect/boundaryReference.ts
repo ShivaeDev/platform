@@ -97,8 +97,8 @@ export function boundaryEntryPoint(path: string, source: ts.SourceFile, checker:
 	return RUNNER_HOST.test(path) || entryModule(path, source, checker);
 }
 
-// Entry markers name their imports, so each module binds on its own without resolving the program behind it.
-export function entryModules(sources: readonly SourceFile[]): ReadonlySet<string> {
+// Imports name their modules, so each module binds on its own without resolving the program behind it: local names resolve, imports stay unresolved.
+export function moduleBinder(sources: readonly SourceFile[]) {
 	const options: ts.CompilerOptions = { allowJs: true, noLib: true, noResolve: true, types: [] };
 	const host = ts.createCompilerHost(options);
 	const parsed = new Map(
@@ -108,6 +108,10 @@ export function entryModules(sources: readonly SourceFile[]): ReadonlySet<string
 		}),
 	);
 	host.getSourceFile = (path) => parsed.get(path);
-	const checker = ts.createProgram([...parsed.keys()], options, host).getTypeChecker();
+	return { checker: ts.createProgram([...parsed.keys()], options, host).getTypeChecker(), parsed };
+}
+
+export function entryModules(sources: readonly SourceFile[]): ReadonlySet<string> {
+	const { checker, parsed } = moduleBinder(sources);
 	return new Set([...parsed].flatMap(([path, source]) => (entryModule(path, source, checker) ? [path] : [])));
 }

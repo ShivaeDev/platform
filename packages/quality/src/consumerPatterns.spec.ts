@@ -21,10 +21,10 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"Quality reports runners outside entry modules, throwing helpers outside adapters and column-helper forwarding without type arguments",
+	"Quality's full lint reports runners outside entry modules, throwing helpers outside adapters and column-helper forwarding without type arguments",
 	[qualityInstalled(), repositoryHas(config('{ sources: ["src"] }'), ...outsideConsumerPatterns), biomeFormatted()],
 	function* ({ outcome, runs, stdout }) {
-		yield* runs("lint");
+		yield* runs("lint", "--full");
 
 		yield* withMatchers((expect) =>
 			outcomes([

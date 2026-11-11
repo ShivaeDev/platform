@@ -16,14 +16,24 @@ function readsStories(rule: ActiveRule): boolean {
 	return rule.needs === "story-program";
 }
 
+// A full run checks a rule's deep half as a run of its own in the deep tier; only that half reads the package walk.
+function runsOf(rule: ActiveRule, halved: ReadonlySet<string>): readonly ActiveRule[] {
+	const { deepHalf, ...whole } = rule;
+	return deepHalf === undefined || halved.has(rule.id) ? [rule] : [rule, { ...whole, check: deepHalf.check, depth: "deep" }];
+}
+
+function walks(rule: ActiveRule): boolean {
+	return PACKAGE_CHECKS.has(rule.id) && rule.deepHalf === undefined;
+}
+
 // Rules share one Node thread, so only the Biome and Knip child processes run beside the other rules: each type-checker program, the package walk's included, is built alone.
 // The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them.
 function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	function run(rule: ActiveRule): RuleRun {
 		return runRule(rule, inputs, inputs.configFile ?? "quality.config.ts");
 	}
-	const walked = rules.filter((rule) => PACKAGE_CHECKS.has(rule.id));
-	const inThread = rules.filter((rule) => !(PACKAGE_CHECKS.has(rule.id) || spawnsChild(rule) || readsStories(rule)));
+	const walked = rules.filter(walks);
+	const inThread = rules.filter((rule) => !(walks(rule) || spawnsChild(rule) || readsStories(rule)));
 	const stories = rules.filter(readsStories).map(run);
 	const told = stories.length === 0 ? [] : [Effect.map(withStoryProgram(inputs, Effect.all(stories)), (found) => found.flat())];
 	const fast = [...inThread.filter((rule) => rule.depth === "fast").map(run), ...told];
@@ -47,7 +57,11 @@ function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	);
 }
 
-export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly ActiveRule[], inputs: RuleInputs) {
+export const runRules = Effect.fn("Engine.runRules")(function* (
+	rules: readonly ActiveRule[],
+	inputs: RuleInputs,
+	halved: ReadonlySet<string> = new Set(),
+) {
 	const validation = rules.find((rule) => rule.id === "manifests/valid");
 	if (validation !== undefined) {
 		const failures = yield* runRule(validation, inputs, inputs.configFile ?? "quality.config.ts");
@@ -56,7 +70,7 @@ export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly 
 		}
 	}
 	const results = yield* runTiers(
-		rules.filter((rule) => rule !== validation),
+		rules.filter((rule) => rule !== validation).flatMap((rule) => runsOf(rule, halved)),
 		inputs,
 	);
 	const seen = new Set<string>();

@@ -1,13 +1,13 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
-import { boundaryDebt, THROW } from "#test/boundaryDebt.ts";
 import { branchedFromMain, debtRecorded, shortened, staged } from "#test/debtRecorded.ts";
+import { FIXME, todoDebt } from "#test/todoDebt.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"pre-commit requires fixed debt to be tightened before a new finding can reuse its count",
-	[boundaryDebt()],
+	[todoDebt()],
 	function* ({ outcome, recorded, runs, stages, stdout, writes }) {
 		yield* writes("src/work.ts", "String(0);\n");
 		yield* stages("src/work.ts");
@@ -15,7 +15,7 @@ baselineStory.it(
 		yield* withMatchers((expect) =>
 			outcomes([
 				["commit", () => outcome(), "rejected"],
-				["reason", () => stdout(), expect.stringContaining("effect/boundary src/work.ts has no violations left")],
+				["reason", () => stdout(), expect.stringContaining("comments/no-todo src/work.ts has no violations left")],
 			]),
 		);
 
@@ -28,13 +28,13 @@ baselineStory.it(
 		yield* runs("hooks", "pre-commit");
 		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 
-		yield* writes("src/work.ts", THROW);
+		yield* writes("src/work.ts", FIXME);
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
 		yield* withMatchers((expect) =>
 			outcomes([
 				["commit", () => outcome(), "rejected"],
-				["reason", () => stdout(), expect.stringContaining("throw")],
+				["reason", () => stdout(), expect.stringContaining("FIXME")],
 			]),
 		);
 	},
