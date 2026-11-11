@@ -4,6 +4,7 @@ import { keyOf } from "#engine/violation.ts";
 
 const Line = Schema.Struct({
 	count: Schema.Int.check(Schema.isGreaterThan(0)),
+	deep: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
 	path: Schema.NonEmptyString,
 	reason: Schema.optionalKey(Schema.NonEmptyString),
 	rule: Schema.NonEmptyString,
@@ -13,6 +14,7 @@ const BaselineLine = Schema.fromJsonString(Line);
 
 export interface BaselineEntry {
 	readonly count: number;
+	readonly deep?: number;
 	readonly file: string;
 	readonly reason?: string;
 	readonly rule: string;
@@ -44,6 +46,9 @@ export function decodeBaseline(raw: string | undefined): Decoded<readonly Baseli
 			continue;
 		}
 		const { path, ...stored } = decoded.value;
+		if (stored.deep !== undefined && stored.deep > stored.count) {
+			issues.push(`line ${line}: records ${stored.deep} deep findings of a count of ${stored.count}`);
+		}
 		if (seen.has(keyOf(stored.rule, path))) {
 			issues.push(`line ${line}: repeats the entry for ${stored.rule} in ${path}`);
 		}
@@ -53,10 +58,10 @@ export function decodeBaseline(raw: string | undefined): Decoded<readonly Baseli
 	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
 }
 
-const LINE_KEYS = ["path", "rule", "count", "reason"];
+const LINE_KEYS = ["path", "rule", "count", "deep", "reason"];
 
 export function encodeEntry(entry: BaselineEntry): string {
-	return JSON.stringify({ count: entry.count, path: entry.file, reason: entry.reason, rule: entry.rule }, LINE_KEYS);
+	return JSON.stringify({ count: entry.count, deep: entry.deep, path: entry.file, reason: entry.reason, rule: entry.rule }, LINE_KEYS);
 }
 
 export function encodeBaseline(entries: readonly BaselineEntry[]): string {

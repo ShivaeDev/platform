@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { type Decoded, decodeWith } from "#decoded.ts";
-import { type RuleIndex, registrable, skipped, unusedEntryProblem, type Violation } from "#engine/violation.ts";
+import { halfSkipped, type RuleIndex, registrable, skipped, unusedEntryProblem, type Violation } from "#engine/violation.ts";
 
 const RegistryEntry = Schema.Struct({
 	file: Schema.NonEmptyString,
@@ -50,7 +50,7 @@ export function applyRegistry(violations: readonly Violation[], entries: readonl
 		return entry === undefined;
 	});
 	const stale = entries
-		.filter((entry) => !(used.has(entry) || (registrable(rules, entry.rule) && skipped(rules, entry.rule))))
+		.filter((entry) => !(used.has(entry) || (registrable(rules, entry.rule) && (skipped(rules, entry.rule) || halfSkipped(rules, entry.rule)))))
 		.map((entry) => ({
 			entry,
 			problem: registrable(rules, entry.rule) ? unusedEntryProblem(rules, entry.rule, "matches no violation") : UNREGISTRABLE,

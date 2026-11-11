@@ -4,6 +4,17 @@ import { validOrFail } from "#decoded.ts";
 import { keyOf } from "#engine/violation.ts";
 import { SetupFailure } from "#failure.ts";
 
+// A split entry merges each half on its own; when either side has not recorded the split, the totals merge as before.
+function merged(a: BaselineEntry, b: BaselineEntry): readonly BaselineEntry[] {
+	const { deep: _recorded, ...entry } = a;
+	if (a.deep === undefined || b.deep === undefined) {
+		return [{ ...entry, count: Math.min(a.count, b.count) }];
+	}
+	const deep = Math.min(a.deep, b.deep);
+	const count = Math.min(a.count - a.deep, b.count - b.deep) + deep;
+	return count === 0 ? [] : [{ ...entry, count, deep }];
+}
+
 function mergeEntries(base: readonly BaselineEntry[], ours: readonly BaselineEntry[], theirs: readonly BaselineEntry[]): readonly BaselineEntry[] {
 	const original = new Set(base.map((entry) => keyOf(entry.rule, entry.file)));
 	const left = new Map(ours.map((entry) => [keyOf(entry.rule, entry.file), entry]));
@@ -14,8 +25,11 @@ function mergeEntries(base: readonly BaselineEntry[], ours: readonly BaselineEnt
 		if (original.has(key) && (a === undefined || b === undefined)) {
 			return [];
 		}
+		if (a !== undefined && b !== undefined) {
+			return merged(a, b);
+		}
 		const entry = a ?? b;
-		return entry === undefined ? [] : [{ ...entry, count: Math.min(a?.count ?? entry.count, b?.count ?? entry.count) }];
+		return entry === undefined ? [] : [entry];
 	});
 }
 

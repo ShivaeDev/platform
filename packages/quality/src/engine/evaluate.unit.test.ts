@@ -46,4 +46,26 @@ describe("evaluate", () => {
 		const outcome = evaluate([], [{ file: "src/a.ts", reason: "Kept for a reason.", rule: "local/deep" }], [], skipped);
 		expect(outcome.staleRegistry.map(({ problem }) => problem)).toEqual([expect.stringContaining("takes no exceptions")]);
 	});
+
+	it("judges a halved rule's baseline entries only by the findings its fast half can report", () => {
+		const halved = levels({ "local/split": "error" }, { skippedHalves: ["local/split"], split: ["local/split"] });
+		function found(file: string, count: number) {
+			return Array.from({ length: count }, () => violation({ file, rule: "local/split" }));
+		}
+		const outcome = evaluate(
+			[...found("src/fewer.ts", 1), ...found("src/more.ts", 3)],
+			[{ file: "src/deep.ts", reason: "Kept for a reason.", rule: "local/split" }],
+			[
+				{ count: 2, file: "src/deep.ts", rule: "local/split" },
+				{ count: 2, file: "src/fewer.ts", rule: "local/split" },
+				{ count: 2, file: "src/more.ts", rule: "local/split" },
+			],
+			halved,
+		);
+		expect({
+			loose: outcome.looseBaseline,
+			regressions: outcome.regressions.map(({ entry }) => entry.file),
+			stale: [...outcome.staleBaseline, ...outcome.staleRegistry],
+		}).toEqual({ loose: [], regressions: ["src/more.ts"], stale: [] });
+	});
 });

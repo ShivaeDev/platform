@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { encodeBaseline } from "#baseline/format.ts";
+import { decodeBaseline, encodeBaseline } from "#baseline/format.ts";
 
 const entries = [
 	{ count: 262, file: "src/b.ts", rule: "structure/max-lines" },
@@ -17,5 +17,19 @@ describe("encodeBaseline", () => {
 				"",
 			].join("\n"),
 		);
+	});
+});
+
+describe("the deep share of an entry", () => {
+	it("is written after the count and read back, zero included", () => {
+		const split = [{ count: 3, deep: 0, file: "src/a.ts", rule: "effect/boundary" }];
+		expect(decodeBaseline(encodeBaseline(split))).toEqual({ _tag: "Valid", value: split });
+	});
+
+	it("cannot exceed the count it is part of", () => {
+		expect(decodeBaseline('{"path":"src/a.ts","rule":"effect/boundary","count":1,"deep":2}\n')).toEqual({
+			_tag: "Invalid",
+			issues: ["line 1: records 2 deep findings of a count of 1"],
+		});
 	});
 });

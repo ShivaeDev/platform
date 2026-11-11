@@ -10,9 +10,11 @@ import type { Finding, Need, RuleCheck, RuleInputs, RuleServices } from "#rule.t
 
 export interface ActiveRule {
 	readonly check: RuleCheck;
+	readonly deepHalf?: { readonly check: RuleCheck; readonly name: string };
 	readonly depth: "deep" | "fast";
 	readonly description: string;
 	readonly family: boolean;
+	readonly half?: "deep";
 	readonly id: string;
 	readonly level: ActiveLevel;
 	readonly needs?: Need;
@@ -46,6 +48,7 @@ function exceptionHint(rule: ActiveRule, finding: Finding, file: string, config:
 function violationOf(rule: ActiveRule, root: string, finding: Finding, exceptionFile: string): Violation {
 	return {
 		...finding,
+		...(rule.half === "deep" ? { deep: true } : {}),
 		file: repositoryPath(root, finding.file),
 		level: rule.level,
 		message: finding.message + exceptionHint(rule, finding, repositoryPath(root, finding.file), exceptionFile),

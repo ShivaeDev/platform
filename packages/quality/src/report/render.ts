@@ -16,7 +16,8 @@ function locate(violation: Violation): string {
 }
 
 function regressionNote(regression: Regression): string {
-	return `  ${regression.entry.file} is over its baseline: ${regression.count} against ${regression.entry.count} baselined.`;
+	const share = regression.allowed === undefined ? `${regression.entry.count} baselined` : `${regression.allowed} baselined for its fast half`;
+	return `  ${regression.entry.file} is over its baseline: ${regression.count} against ${share}.`;
 }
 
 function heading(rule: string, violations: readonly Violation[], context: ReportContext): readonly string[] {

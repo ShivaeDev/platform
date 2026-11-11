@@ -51,5 +51,5 @@ function typedCasts(sources: readonly SourceFile[], { checker, sourceFile }: Typ
 }
 
 export function typedCastCheck() {
-	return Effect.succeed({ checks: candidate, findings: typedCasts });
+	return Effect.withSpan(Effect.succeed({ checks: candidate, findings: typedCasts }), "Suppressions.typedCastCheck");
 }

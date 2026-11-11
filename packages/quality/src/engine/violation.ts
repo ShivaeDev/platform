@@ -4,6 +4,7 @@ import type { Finding } from "#rule.ts";
 export type ActiveLevel = "error";
 
 export interface Violation extends Finding {
+	readonly deep?: true;
 	readonly level: ActiveLevel;
 	readonly rule: string;
 }
@@ -33,6 +34,8 @@ export interface RuleIndex {
 	readonly families: ReadonlySet<string>;
 	readonly levels: ReadonlyMap<string, Level>;
 	readonly skipped: ReadonlySet<string>;
+	readonly skippedHalves: ReadonlySet<string>;
+	readonly split: ReadonlySet<string>;
 	readonly unregistrable: ReadonlySet<string>;
 }
 
@@ -50,6 +53,14 @@ export function levelOf(index: RuleIndex, rule: string): Level | undefined {
 
 export function skipped(index: RuleIndex, rule: string): boolean {
 	return index.skipped.has(ownerOf(index, rule));
+}
+
+export function halfSkipped(index: RuleIndex, rule: string): boolean {
+	return index.skippedHalves.has(ownerOf(index, rule));
+}
+
+export function isSplit(index: RuleIndex, rule: string): boolean {
+	return index.split.has(ownerOf(index, rule));
 }
 
 export function registrable(index: RuleIndex, rule: string): boolean {

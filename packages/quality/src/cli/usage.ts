@@ -18,7 +18,7 @@ export const USAGE = `Usage:
 ci                Check pnpm peers, then run the application scripts lint, typecheck, build and test, stopping on failure.
 setup             Install the Quality hook when the current folder owns a .git entry; skip unversioned and enclosed apps.
 lint              Run the fast rules, or every rule when CI is set, CLAUDE_CODE_REMOTE is true or --full is given.
-                  A fast run names the deep rules it skipped and sets their baseline entries and exceptions aside.
+                  A fast run names the deep rules and deep halves it skipped and sets aside the baseline entries and exceptions they own.
                   Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for an unknown rule.
 fix               Sort every package.json, apply Biome's lint fixes, unsafe ones included, its assist actions and formatting, then format again.

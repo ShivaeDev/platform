@@ -5,9 +5,9 @@ export function runSetLine(set: RunSet, deep: readonly string[], configPath: str
 	if (deep.length === 0) {
 		return [];
 	}
-	const rules = `${plural(deep.length, "deep rule")} (${deep.toSorted((left, right) => left.localeCompare(right)).join(", ")})`;
+	const rules = `${plural(deep.length, "deep check")} (${deep.toSorted((left, right) => left.localeCompare(right)).join(", ")})`;
 	if (set === "full") {
-		return [`quality: full run checked ${rules}.`];
+		return [`quality: full run ran ${rules}.`];
 	}
 	const selection = configPath === undefined ? "" : ` --config ${configPath}`;
 	return [`quality: fast run skipped ${rules}; CI runs ${deep.length === 1 ? "it" : "them"}. Run \`quality lint --full${selection}\` to check now.`];

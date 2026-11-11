@@ -6,7 +6,7 @@ import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const PREVIOUS = '{"path":"src/work.ts","rule":"effect/boundary","count":1}\n';
 const RECORDED =
-	'{"path":"src/other.ts","rule":"effect/boundary","count":1}\n{"path":"src/work.ts","rule":"biome/format","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":1}\n{"path":"src/work.ts","rule":"nesting/max-depth","count":1}\n';
+	'{"path":"src/other.ts","rule":"effect/boundary","count":1,"deep":0}\n{"path":"src/work.ts","rule":"biome/format","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":1,"deep":0}\n{"path":"src/work.ts","rule":"nesting/max-depth","count":1}\n';
 const UPGRADED = [mixedDebt, { content: "await Promise.resolve();\n", path: "src/other.ts" }, { content: PREVIOUS, path: "quality-baseline.jsonl" }];
 
 repositoryStory.it(

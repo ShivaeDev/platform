@@ -13,7 +13,9 @@ export function rewriteBaseline(raw: string | undefined, before: readonly Baseli
 		const entry = wanted.get(keyOf(old.rule, old.file));
 		const line = lines[index];
 		wanted.delete(keyOf(old.rule, old.file));
-		return entry === undefined ? [] : [{ entry, text: line !== undefined && old.count === entry.count ? line.text : encodeEntry(entry) }];
+		return entry === undefined
+			? []
+			: [{ entry, text: line !== undefined && old.count === entry.count && old.deep === entry.deep ? line.text : encodeEntry(entry) }];
 	});
 	for (const entry of [...wanted.values()].sort(byPathAndRule)) {
 		const at = rows.findIndex((row) => byPathAndRule(row.entry, entry) > 0);

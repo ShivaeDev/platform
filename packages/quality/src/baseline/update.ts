@@ -1,27 +1,50 @@
 import { countOf } from "#baseline/compare.ts";
 import type { BaselineEntry } from "#baseline/format.ts";
-import { covers, groupBy, keyOf, levelOf, type RuleIndex, type Violation } from "#engine/violation.ts";
+import { covers, groupBy, isSplit, keyOf, levelOf, type RuleIndex, type Violation } from "#engine/violation.ts";
 
 export type Adoption =
 	| { readonly _tag: "Refused"; readonly reasons: readonly string[] }
 	| { readonly _tag: "Adopted"; readonly entries: readonly BaselineEntry[]; readonly added: number; readonly replaced: number };
 
+export interface Growth {
+	readonly by: number;
+	readonly file: string;
+	readonly rule: string;
+}
+
 export interface Pruned {
 	readonly entries: readonly BaselineEntry[];
+	readonly grown: readonly Growth[];
 	readonly lowered: number;
 	readonly moved: number;
 	readonly removed: number;
+	readonly split: number;
 }
 
-function record(violations: readonly Violation[]): readonly BaselineEntry[] {
+function record(violations: readonly Violation[], index: RuleIndex): readonly BaselineEntry[] {
 	return [...groupBy(violations, (violation) => keyOf(violation.rule, violation.file)).values()].flatMap((group) => {
 		const first = group[0];
 		if (first === undefined) {
 			return [];
 		}
 		const count = countOf(group);
-		return count > 0 ? [{ count, file: first.file, rule: first.rule }] : [];
+		const deep = isSplit(index, first.rule) ? { deep: countOf(group.filter((violation) => violation.deep === true)) } : {};
+		return count > 0 ? [{ count, ...deep, file: first.file, rule: first.rule }] : [];
 	});
+}
+
+// Each half only ever lowers its own share, so a split entry keeps the smaller fast share and the smaller deep share.
+function lowered(before: BaselineEntry, now: BaselineEntry): BaselineEntry | undefined {
+	const { deep: _recorded, ...kept } = before;
+	if (now.deep === undefined) {
+		return { ...kept, count: Math.min(before.count, now.count), file: now.file };
+	}
+	if (before.deep === undefined) {
+		return now.count > before.count ? { ...kept, file: now.file } : { ...kept, count: now.count, deep: now.deep, file: now.file };
+	}
+	const deep = Math.min(before.deep, now.deep);
+	const count = Math.min(before.count - before.deep, now.count - now.deep) + deep;
+	return count === 0 ? undefined : { ...kept, count, deep, file: now.file };
 }
 
 function refusal(id: string, index: RuleIndex): readonly string[] {
@@ -47,7 +70,7 @@ export function adopt(
 	}
 	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
 	const adopted = violations.filter((violation) => named(violation.rule));
-	const added = record(adopted);
+	const added = record(adopted, index);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
 }
 
@@ -77,25 +100,32 @@ export function prune(
 	index: RuleIndex,
 	scope: Scope = { moves: new Map() },
 ): Pruned {
-	const current = new Map(record(violations).map((entry) => [keyOf(entry.rule, entry.file), entry]));
+	const current = new Map(record(violations, index).map((entry) => [keyOf(entry.rule, entry.file), entry]));
 	const taken = new Set(existing.map((entry) => keyOf(entry.rule, entry.file)));
 	let moved = 0;
+	const grown: Growth[] = [];
 	const kept = existing.flatMap((before) => {
 		if (!inScope(before, scope)) {
 			return [{ after: before, before }];
 		}
 		const level = levelOf(index, before.rule);
 		const now = current.get(keyOf(before.rule, before.file)) ?? destination(before, current, scope.moves, taken);
-		if (now === undefined || level === undefined) {
+		if (now?.deep !== undefined && before.deep !== undefined && now.deep > before.deep) {
+			grown.push({ by: now.deep - before.deep, file: now.file, rule: before.rule });
+		}
+		const after = now === undefined || level === undefined ? undefined : lowered(before, now);
+		if (after === undefined) {
 			return [];
 		}
-		moved += Number(now.file !== before.file);
-		return [{ after: { ...before, count: Math.min(before.count, now.count), file: now.file }, before }];
+		moved += Number(after.file !== before.file);
+		return [{ after, before }];
 	});
 	return {
 		entries: kept.map(({ after }) => after),
+		grown,
 		lowered: kept.filter(({ after, before }) => after.count !== before.count).length,
 		moved,
 		removed: existing.length - kept.length,
+		split: kept.filter(({ after, before }) => after.count === before.count && after.deep !== before.deep).length,
 	};
 }

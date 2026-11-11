@@ -93,20 +93,29 @@ describe("prune", () => {
 				{ count: 1, file: "src/a.ts", rule: "local/new" },
 				{ count: 262, file: "src/big.ts", rule: "structure/max-lines" },
 			],
+			grown: [],
 			lowered: 2,
 			moved: 0,
 			removed: 1,
+			split: 0,
 		});
 	});
 
 	it("never raises an entry for a file that got worse", () => {
 		const existing = [{ count: 150, file: "src/big.ts", rule: "structure/max-lines" }];
-		expect(prune(existing, [long], known)).toEqual({ entries: existing, lowered: 0, moved: 0, removed: 0 });
+		expect(prune(existing, [long], known)).toEqual({ entries: existing, grown: [], lowered: 0, moved: 0, removed: 0, split: 0 });
 	});
 
 	it("drops entries for unknown rules", () => {
 		const existing = [{ count: 1, file: "src/a.ts", rule: "local/typo" }];
-		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/typo" })], known)).toEqual({ entries: [], lowered: 0, moved: 0, removed: 1 });
+		expect(prune(existing, [violation({ file: "src/a.ts", rule: "local/typo" })], known)).toEqual({
+			entries: [],
+			grown: [],
+			lowered: 0,
+			moved: 0,
+			removed: 1,
+			split: 0,
+		});
 	});
 
 	it("carries the entry of a moved file to its new path, lowered to what is left there", () => {
@@ -114,9 +123,11 @@ describe("prune", () => {
 		const moved = violation({ count: 330, file: "lib/new.ts", rule: "structure/max-lines", threshold: 150 });
 		expect(prune(existing, [moved], known, { moves: new Map([["src/old.ts", "lib/new.ts"]]) })).toEqual({
 			entries: [{ count: 330, file: "lib/new.ts", rule: "structure/max-lines" }],
+			grown: [],
 			lowered: 1,
 			moved: 1,
 			removed: 0,
+			split: 0,
 		});
 	});
 
@@ -137,6 +148,49 @@ describe("prune", () => {
 			{ count: 2, file: "src/gone.ts", rule: "local/new" },
 		];
 		const pruned = prune(existing, [fresh], known, { files: new Set(["src/a.ts"]), moves: new Map() });
-		expect(pruned).toEqual({ entries: [{ count: 1, file: "src/a.ts", rule: "local/new" }, existing[1]], lowered: 1, moved: 0, removed: 0 });
+		expect(pruned).toEqual({
+			entries: [{ count: 1, file: "src/a.ts", rule: "local/new" }, existing[1]],
+			grown: [],
+			lowered: 1,
+			moved: 0,
+			removed: 0,
+			split: 0,
+		});
+	});
+});
+
+describe("split entries", () => {
+	const index = levels({ "local/split": "error", "structure/max-lines": "error" }, { split: ["local/split"] });
+	const syntax = violation({ file: "src/a.ts", rule: "local/split" });
+	const typed = violation({ deep: true, file: "src/a.ts", rule: "local/split" });
+
+	it("records the deep share of a split rule, zero included, and none for other rules", () => {
+		const adoption = adopt(undefined, [], [syntax, typed, typed, violation({ file: "src/b.ts", rule: "local/split" }), long], index);
+		expect(adoption._tag === "Adopted" ? adoption.entries : []).toEqual([
+			{ count: 3, deep: 2, file: "src/a.ts", rule: "local/split" },
+			{ count: 1, deep: 0, file: "src/b.ts", rule: "local/split" },
+			{ count: 262, file: "src/big.ts", rule: "structure/max-lines" },
+		]);
+	});
+
+	it("lowers each share on its own, so a typed finding cannot make room for a syntax finding", () => {
+		const pruned = prune([{ count: 3, deep: 1, file: "src/a.ts", rule: "local/split" }], [syntax, syntax, syntax], index);
+		expect(pruned.entries).toEqual([{ count: 2, deep: 0, file: "src/a.ts", rule: "local/split" }]);
+	});
+
+	it("records the shares of an entry that has none yet when its file holds no more than its count", () => {
+		const before = [
+			{ count: 3, file: "src/a.ts", rule: "local/split" },
+			{ count: 1, file: "src/b.ts", rule: "local/split" },
+		];
+		const now = [syntax, typed, typed, violation({ file: "src/b.ts", rule: "local/split" }), violation({ file: "src/b.ts", rule: "local/split" })];
+		expect(prune(before, now, index)).toEqual({
+			entries: [{ count: 3, deep: 2, file: "src/a.ts", rule: "local/split" }, before[1]],
+			grown: [],
+			lowered: 0,
+			moved: 0,
+			removed: 0,
+			split: 1,
+		});
 	});
 });

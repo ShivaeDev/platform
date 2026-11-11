@@ -49,6 +49,35 @@ export function shardsRecorded() {
 	});
 }
 
+const SHARD_KEYS = ["path", "rule", "count", "deep"];
+
+export function splitEntry(count: number, deep?: number): string {
+	return JSON.stringify({ count, ...(deep === undefined ? {} : { deep }), path: "packages/alpha/src/a.ts", rule: "effect/boundary" }, SHARD_KEYS);
+}
+
+function shardOf(lines: readonly string[]): string {
+	return lines.map((line) => `${line}\n`).join("");
+}
+
+export function shardCommitted(lines: readonly string[]) {
+	return baselineStory.trait("baseline", `${ALPHA_SHARD} holds ${lines.join(" and ")}, and git commits it on main`, (engine) => {
+		writeAll(engine.root, [{ content: shardOf(lines), path: ALPHA_SHARD }]);
+		commitAll(engine.root, "Record debt");
+	});
+}
+
+export function branchShard(branch: string, lines: readonly string[]) {
+	return baselineStory.trait(
+		"work",
+		`on the branch ${branch} from main, ${ALPHA_SHARD} becomes ${lines.join(" and ")} and the author commits`,
+		(engine) => {
+			git(engine.root, "switch", "--quiet", "--create", branch, "main");
+			writeAll(engine.root, [{ content: shardOf(lines), path: ALPHA_SHARD }]);
+			commitAll(engine.root, `Edit debt on ${branch}`);
+		},
+	);
+}
+
 export function driverInstalled() {
 	return baselineStory.trait("history", "quality baseline install-driver configures the quality-baseline merge driver", (engine) =>
 		setupRun(engine, "baseline", "install-driver"),

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { packageFindings } from "#rules/packageFindings.ts";
@@ -49,8 +48,8 @@ function doubleCasts(file: SourceFile): readonly Finding[] {
 }
 
 export const noDoubleCast = defineRule({
-	check: (inputs) =>
-		Effect.map(packageFindings(inputs, "suppressions/no-double-cast"), (typed) => [...inputs.sources.flatMap(doubleCasts), ...typed]),
+	check: (inputs) => inputs.sources.flatMap(doubleCasts),
+	deepHalf: { check: (inputs) => packageFindings(inputs, "suppressions/no-double-cast"), name: "typed half" },
 	description:
 		"Decode unknown values with Schema.decodeUnknownEffect and SQL rows with SqlSchema. Check declared overload returns and preserve Context service types and readonly native fields; writes on an object just built with new, before anything else can see it, are construction. Reports double casts everywhere and hidden casts outside adapters/ and test-support/.",
 	id: "suppressions/no-double-cast",
