@@ -5,7 +5,7 @@ import { isBucketSchema } from "@shivaedev/changes/keys.ts";
 export interface RepositoryCollection {
 	readonly bucket: Readonly<Record<string, unknown>>;
 	readonly name: string;
-	readonly tuples?: Readonly<Record<string, readonly string[]>>;
+	readonly tuples?: Readonly<Record<string, readonly [string, string, ...string[]]>>;
 }
 
 export interface RepositoryOptions<TId> {

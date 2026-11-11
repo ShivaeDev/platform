@@ -64,6 +64,36 @@ const cases: readonly { readonly claim: string; readonly read: Read; readonly ex
 		read: { call: "findOwnedRows", where: { id: 1 } },
 	},
 	{
+		claim: "findMany pinning every column of a tuple bucket listens on that tuple rather than the owner bucket inside it",
+		expected: 'ownerDay ["alice","1"]',
+		read: { call: "findDiaryEntries", where: { day: 1, ownerId: "alice" } },
+	},
+	{
+		claim: "findMany pinning a tuple's columns to lists listens on each tuple of their values, though the owner bucket inside it has fewer keys",
+		expected: 'ownerDay ["alice","1"], ownerDay ["alice","2"], ownerDay ["bob","1"], ownerDay ["bob","2"]',
+		read: { call: "findDiaryEntries", where: { day: { in: [1, 2] }, ownerId: { in: ["alice", "bob"] } } },
+	},
+	{
+		claim: "findMany pinning only the owner of an owner-day tuple listens on the owner bucket",
+		expected: 'ownerId "alice"',
+		read: { call: "findDiaryEntries", where: { ownerId: "alice" } },
+	},
+	{
+		claim: "findMany pinning the owner and a null day, which no tuple key announces, listens on the owner bucket",
+		expected: 'ownerId "alice"',
+		read: { call: "findDiaryEntries", where: { day: null, ownerId: "alice" } },
+	},
+	{
+		claim: "findMany pinning the owner and a day list that holds null pins no day, so it listens on the owner bucket",
+		expected: 'ownerId "alice"',
+		read: { call: "findDiaryEntries", where: { day: { in: [1, null] }, ownerId: "alice" } },
+	},
+	{
+		claim: "findMany pinning only the day of an owner-day tuple, which is no bucket itself, listens on the table",
+		expected: "the table",
+		read: { call: "findDiaryEntries", where: { day: 1 } },
+	},
+	{
 		claim: "a raw read through readSql listens on the bucket and the row its parameters mark",
 		expected: 'owner "alice", record 1',
 		read: { call: "readSql", id: 1, owner: "alice" },

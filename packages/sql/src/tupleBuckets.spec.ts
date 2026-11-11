@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { aliceEntryOnDay, tupleBuckets, watches } from "#test/tupleBuckets.ts";
+import { aliceEntryOnDay, readsLatestPerDay, tupleBuckets, watches } from "#test/tupleBuckets.ts";
 
 const SUBSCRIBERS = [watches("alice", 1), watches("alice", 2), watches("bob", 1)];
 
@@ -68,5 +68,17 @@ tupleBuckets.it(
 		yield* movesEntryTo(null);
 
 		expect(yield* publishedBuckets()).toEqual(["alice day 1", "owner alice"]);
+	},
+);
+
+const LATEST_DAY_1_OR_UNDATED = "alice's latest entry for day 1 or without a day";
+
+tupleBuckets.it(
+	"a read of alice's latest entry for day 1 or without a day reruns when her undated entry is edited",
+	[aliceEntryOnDay(null), readsLatestPerDay(LATEST_DAY_1_OR_UNDATED, { day: { in: [1, null] }, ownerId: "alice" })],
+	function* ({ editsEntry, woken }) {
+		yield* editsEntry();
+
+		expect(yield* woken()).toEqual([LATEST_DAY_1_OR_UNDATED]);
 	},
 );
