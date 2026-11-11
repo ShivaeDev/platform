@@ -7,7 +7,7 @@ import { STORY_PROGRAM_RULES, storyProgram } from "#adapters/storyProgram.ts";
 import { loadConfig } from "#config/load.ts";
 import { scan } from "#engine/session.ts";
 import { importGraph } from "#imports/graph.ts";
-import type { RuleInputs } from "#rule.ts";
+import type { RuleCheck, RuleInputs } from "#rule.ts";
 import { seedTree } from "#testing/adapters/tree.ts";
 
 interface StoryProgramState {
@@ -34,13 +34,16 @@ export const storyProgramRun = storyKit({
 			.filter((rule) => RULES.includes(rule.id) && STORY_PROGRAM_RULES.has(rule.id))
 			.map((rule) => ({
 				...rule,
-				check: (inputs: RuleInputs) =>
-					Effect.tap(rule.check(inputs), () =>
-						Effect.map(programRead(inputs), (program) => {
-							state.inputs = inputs;
-							state.read.push(program);
-						}),
-					),
+				check: ((inputs) =>
+					Effect.tap(rule.check(inputs), () => {
+						const scanned = inputs.typeScript === undefined ? undefined : { ...inputs, typeScript: inputs.typeScript };
+						return scanned === undefined
+							? Effect.die(new Error("A scan hands rules its TypeScript program"))
+							: Effect.map(programRead(scanned), (program) => {
+									state.inputs = scanned;
+									state.read.push(program);
+								});
+					})) satisfies RuleCheck,
 			}));
 		return { check: scan({ ...config, active }), state };
 	},
