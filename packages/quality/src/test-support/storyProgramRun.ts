@@ -5,6 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#adapters/runMain.ts";
 import { STORY_PROGRAM_RULES, storyProgram } from "#adapters/storyProgram.ts";
 import { loadConfig } from "#config/load.ts";
+import type { ActiveRule } from "#engine/runRule.ts";
 import { scan } from "#engine/session.ts";
 import { importGraph } from "#imports/graph.ts";
 import type { RuleCheck, RuleInputs } from "#rule.ts";
@@ -21,6 +22,20 @@ function programRead(inputs: RuleInputs): Effect.Effect<ts.Program, unknown, Eff
 	return Effect.map(importGraph(inputs), (graph) => storyProgram(inputs, graph));
 }
 
+function recordingReads(rule: ActiveRule, state: StoryProgramState): RuleCheck {
+	return (inputs) =>
+		Effect.tap(rule.check(inputs), () => {
+			const scanned = inputs.typeScript === undefined ? undefined : { ...inputs, typeScript: inputs.typeScript };
+			if (scanned === undefined) {
+				return Effect.die(new Error("A scan hands rules its TypeScript program"));
+			}
+			return Effect.map(programRead(scanned), (program) => {
+				state.inputs = scanned;
+				state.read.push(program);
+			});
+		});
+}
+
 export const storyProgramRun = storyKit({
 	*create() {
 		const root = seedTree([
@@ -32,19 +47,7 @@ export const storyProgramRun = storyKit({
 		const state: StoryProgramState = { inputs: undefined, read: [] };
 		const active = config.active
 			.filter((rule) => RULES.includes(rule.id) && STORY_PROGRAM_RULES.has(rule.id))
-			.map((rule) => ({
-				...rule,
-				check: ((inputs) =>
-					Effect.tap(rule.check(inputs), () => {
-						const scanned = inputs.typeScript === undefined ? undefined : { ...inputs, typeScript: inputs.typeScript };
-						return scanned === undefined
-							? Effect.die(new Error("A scan hands rules its TypeScript program"))
-							: Effect.map(programRead(scanned), (program) => {
-									state.inputs = scanned;
-									state.read.push(program);
-								});
-					})) satisfies RuleCheck,
-			}));
+			.map((rule) => ({ ...rule, check: recordingReads(rule, state) }));
 		return { check: scan({ ...config, active }), state };
 	},
 	inspect: ({ state }) => ({ reads: state.read.length }),
