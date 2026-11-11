@@ -84,6 +84,11 @@ const cases: readonly { readonly claim: string; readonly read: Read; readonly ex
 		read: { call: "findDiaryEntries", where: { day: null, ownerId: "alice" } },
 	},
 	{
+		claim: "findMany pinning the owner and a day list that holds null pins no day, so it listens on the owner bucket",
+		expected: 'ownerId "alice"',
+		read: { call: "findDiaryEntries", where: { day: { in: [1, null] }, ownerId: "alice" } },
+	},
+	{
 		claim: "findMany pinning only the day of an owner-day tuple, which is no bucket itself, listens on the table",
 		expected: "the table",
 		read: { call: "findDiaryEntries", where: { day: 1 } },

@@ -11,6 +11,9 @@ export type RecordRead = (where?: Where) => Effect.Effect<void, Schema.SchemaErr
 
 const AnyIdentity = Schema.Union([Schema.String, Schema.Number]);
 
+// Each key is its own registration, renewed on every rerun, so a read pinned to more keys listens on a broader bucket instead.
+const MAX_BUCKET_KEYS = 1000;
+
 function isIdentity(value: unknown): value is Identity {
 	return typeof value === "string" || typeof value === "number";
 }
@@ -57,8 +60,8 @@ export function makeRecordRead(
 		if (acceptsValue(value)) {
 			return [value];
 		}
-		return typeof value === "object" && "in" in value && Array.isArray(value.in)
-			? value.in.filter((entry) => entry !== null && entry !== undefined)
+		return typeof value === "object" && "in" in value && Array.isArray(value.in) && value.in.every((entry) => entry !== null && entry !== undefined)
+			? value.in
 			: undefined;
 	}
 	// Writes key a row by the values the driver returns, which the encoded value matches unless the codec wraps it in a driver parameter.
@@ -92,16 +95,17 @@ export function makeRecordRead(
 	});
 	function pinnedKeys(where: Where, { columns, make }: Bucket) {
 		const pins: (readonly Pin[])[] = [];
+		let count = 1;
 		for (const column of columns) {
-			const values = pinned(where, column)?.filter(isIdentity);
-			if (values === undefined) {
+			const values = pinned(where, column);
+			if (values === undefined || !values.every(isIdentity)) {
 				return undefined;
 			}
+			count *= values.length;
 			pins.push(values.map((value): Pin => [column, value]));
 		}
-		return { columns, keys: combinations(pins).flatMap(make) };
+		return count > MAX_BUCKET_KEYS ? undefined : { columns, keys: combinations(pins).flatMap(make) };
 	}
-	// A bucket over a subset of another pinned bucket's columns hears every write the other hears, and more.
 	function bucketKeys(where: Where): readonly Key[] | undefined {
 		const pinnedBuckets = buckets.flatMap((bucket) => pinnedKeys(where, bucket) ?? []);
 		let narrowest: readonly Key[] | undefined;

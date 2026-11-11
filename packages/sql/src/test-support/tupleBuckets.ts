@@ -2,7 +2,9 @@ import { Effect, Order } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Capture, makeCapture } from "@shivaedev/changes/capture.ts";
 import { readKeys } from "@shivaedev/changes/keys.ts";
+import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { RepositoryListFilter } from "#repositoryFilter.ts";
 import { type DiaryEntry, diaryEntries } from "#test/diaryEntries.ts";
 import { onPostgres } from "#test/engines.ts";
 import { ChangeObserver } from "#transact.ts";
@@ -98,4 +100,27 @@ export function watches(owner: string, day: number | string) {
 		);
 		yield* Effect.addFinalizer(() => Effect.sync(stop));
 	});
+}
+
+export function readsLatestPerDay(label: string, where: RepositoryListFilter<typeof DiaryEntry>) {
+	return tupleBuckets.trait(
+		"watchers",
+		`a live query reads ${label} with latestPerGroup partitioned by owner and day, and listens on the keys that read records`,
+		function* (engine) {
+			const stops: (() => void)[] = [];
+			yield* Effect.addFinalizer(() =>
+				Effect.sync(() => {
+					for (const stop of stops) {
+						stop();
+					}
+				}),
+			);
+			yield* engine.entries.latestPerGroup({ limit: 1, orderBy: [{ direction: "desc", field: "id" }], partitionBy: ["ownerId", "day"], where }).pipe(
+				Effect.provideService(ReadRecorder, (keys) =>
+					Effect.sync(() => stops.push(engine.reactivity.registerUnsafe(readKeys(keys), () => engine.woken.push(label)))),
+				),
+				Effect.orDie,
+			);
+		},
+	);
 }
