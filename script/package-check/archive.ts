@@ -1,6 +1,7 @@
 import { join, posix, sep } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { exportTargets } from "#package-check/exports.ts";
+import { checkGeneratedOutput } from "#package-check/generatedOutput.ts";
 import { CODE, missingImportTargets } from "#package-check/imports.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, decodeManifest, dependencyKeys, type Manifest, type Package, targets } from "#package-check/model.ts";
@@ -55,8 +56,9 @@ export const checkPackedArchive = Effect.fn("Packed.checkPackedArchive")(functio
 			`${manifest.name}: executable needs @effect/platform-node-shared as an exact peer at ${nodeVersion}`,
 		);
 	}
-	yield* checkImports(unpacked, manifest, contents);
 	const packed = new Set([...contents].map((path) => posix.relative("package", path)));
+	yield* checkGeneratedOutput(pkg, unpacked, packed);
+	yield* checkImports(unpacked, manifest, contents);
 	const required = [...exportTargets(manifest, packed), ...targets(manifest.types), ...Object.values(bins(manifest))];
 	for (const target of required) {
 		yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
