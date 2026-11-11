@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 - 2026-11-11
+
+### Changed
+
+- The README's examples name a module file after its export, as in `src/modules/notes/Notes.ts` and `#generated/modules/notes/Notes.ts`, and import operations from the module's `server/` folder, as applications write them.
+
+### Fixed
+
+- Generating no longer leaves an empty `.<file>.XXXXXX` folder beside every file it writes, under `src/generated` and in `node_modules/.cache/@shivaedev/build`. Each write still replaces the file in one rename, and its temporary folder is removed when the write ends, also when it fails or is interrupted. Folders left by earlier versions stay until you delete them.
+
 ## 0.1.0 - 2026-11-11
 
 ### Added

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.25.0 - 2026-11-11
+
+### Added
+
+- `RegisteredQueues` from `@shivaedev/admin/server/RegisteredQueues.ts` holds the queues operators may administer; `pgBossQueues` builds it from the application's jobs service, keeping the payload Schemas' decoding services on its Layer.
+- An admin page's operations can be a module built with `defineModule`: pass the generated client contract to `adminPage` and register `moduleHandlers(Module)` for the page, beside pages with hand-written handlers in the same registry.
+- The package's build writes `src/generated` and `dist/generated` before compiling, so the published archive holds the generated client contracts.
+
+### Changed
+
+- The sessions page uses identity's generated sessions contract, so a browser bundle with the page holds none of identity's server code.
+
+### Fixed
+
+- `adminPage` keeps each query's own payload and success types for a generated contract with several queries, so its bound client's queries no longer return the union of every query's success.
+
+### Breaking
+
+- The Jobs pages are fixed pages instead of factories over the queue list. Replace `jobsPage(...queues)` from `@shivaedev/admin/jobs/page.ts` with `JobsPage` from `@shivaedev/admin/jobs/Page.ts`, and `jobsPageWithRetry(...queues)` from `@shivaedev/admin/jobs/retryPage.ts` with `JobsPageWithRetry` from `@shivaedev/admin/jobs/PageWithRetry.ts`. The pages no longer carry `queues` or `schedules`: pass the application's queue and schedule declarations to `JobsView` directly.
+- Their operations are the modules `Jobs` from `@shivaedev/admin/Jobs.ts` and `JobsWithRetry` from `@shivaedev/admin/JobsWithRetry.ts`, which are server code. Replace `jobsHandlers(page, JobsService)` (`@shivaedev/admin/server/jobsHandlers.ts`) with `moduleHandlers(Jobs)` and `jobsHandlersWithRetry(page, JobsService)` (`@shivaedev/admin/server/jobsHandlersWithRetry.ts`) with `moduleHandlers(JobsWithRetry)`, with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts`, and provide `pgBossQueues(JobsService, ...queues)` from `@shivaedev/admin/server/adapters/pgBossQueues.ts` to the handlers. `jobsReadHandlers` and `jobsFailures` are removed. Browser code that needs the client contracts imports `Jobs` from `@shivaedev/admin/generated/Jobs.ts` and `JobsWithRetry` from `@shivaedev/admin/generated/JobsWithRetry.ts`.
+- Listed jobs and job details are `JobsRow` from `@shivaedev/admin/jobs/Row.ts` and dead-letter copies are `JobsDeadLetter` from `@shivaedev/admin/jobs/DeadLetter.ts`; `jobSchema`, `deadLetteredSchema`, `jobPage` and `JobsFailures` from `@shivaedev/admin/jobs/schemas.ts` are removed. A job's `queue` and a copy's `sourceQueue` are strings. `JobsNotFailed` moved from `@shivaedev/admin/jobs/retryPage.ts` to `@shivaedev/admin/jobs/NotFailed.ts`.
+- Each Jobs operation declares only the rejections it can raise, and `next`, job lookups and `runScheduleNow` travel as encoded `Option` values instead of nullable ones; deploy the browser and the server together.
+- The Users page is a fixed page instead of a factory: replace `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with `UsersPage` from `@shivaedev/admin/users/Page.ts`. Its operations are the module `Users` from `@shivaedev/admin/Users.ts`, which is server code; register them with `users: moduleHandlers(Users)`, with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts`. `usersHandlers` (`@shivaedev/admin/server/usersHandlers.ts`) is removed. Browser code that needs the client contract imports `Users` from `@shivaedev/admin/generated/Users.ts`.
+- `admin.users.changeRole` takes the role as a string. The application's role set still decides which roles exist: `betterAuthUserDirectory(AppAccess, ...)` refuses an undeclared role with `AuthUnavailable` before writing anything.
+- The `UsersList` schema from `@shivaedev/admin/users/page.ts` is now the `UsersList` type from `@shivaedev/admin/users/List.ts`: replace `typeof UsersList.Type` with `UsersList`.
+- `admin.users.list` takes its success from what the operation returns, so `next` travels as an encoded `Option` instead of a nullable cursor; deploy the browser and the server together.
+
 ## 0.24.3 - 2026-11-11
 
 ### Changed
