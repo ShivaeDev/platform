@@ -1,10 +1,8 @@
-import { isBuiltin } from "node:module";
-import { dirname, join } from "node:path";
 import { Option } from "effect";
 import type { EnvironmentModuleNode, HookHandler, Plugin, ResolvedConfig, Rollup, ViteDevServer } from "vite";
+import { bundleCheck } from "#adapters/bundleCheck.ts";
 import { runNode } from "#adapters/runNode.ts";
 import { type GenerateRound, type WatchedGeneration, watchedGeneration } from "#generateRound.ts";
-import { type BundleGraph, type BundleModule, type ServerMarkers, serverCodeIn } from "#serverCode.ts";
 
 export interface BuildPluginOptions {
 	readonly serverOnly?: readonly string[];
@@ -12,11 +10,18 @@ export interface BuildPluginOptions {
 
 type HotUpdateContext = ThisParameterType<HookHandler<NonNullable<Plugin["hotUpdate"]>>>;
 
-const BROWSER_EXTERNAL = "__vite-browser-external:";
-
 interface SharedRound {
 	readonly round: Promise<Option.Option<GenerateRound>>;
 	seenBy: number;
+}
+
+function tellTheBrowser(environment: HotUpdateContext["environment"], devServer: ViteDevServer, refusal: Option.Option<string>, file: string) {
+	if (Option.isSome(refusal)) {
+		devServer.config.logger.error(refusal.value, { timestamp: true });
+		environment.hot.send({ err: { message: refusal.value, plugin: "shivaedev:build", stack: "" }, type: "error" });
+		return;
+	}
+	environment.hot.send({ path: "*", triggeredBy: file, type: "full-reload" });
 }
 
 function generateFiles(): Plugin {
@@ -63,22 +68,23 @@ function generateFiles(): Plugin {
 		},
 		enforce: "pre",
 		async hotUpdate(this: HotUpdateContext, { file, modules, server: devServer, timestamp }) {
-			// A run hands Vite the modules of each file it rewrites, so the watcher's own event for that write would reload twice.
+			// A run hands Vite the modules of each file it rewrites and reloads the page when it creates one, since a page may have failed
+			// to resolve it, so the watcher's own event for that write would reload twice.
 			if (outputs.has(file)) {
 				return [];
 			}
 			if (generation === undefined) {
 				return;
 			}
+			const known = outputs;
 			const { changed } = await generation;
 			const round = Option.map(await sharedRound(changed, file, timestamp, Object.keys(devServer.environments).length), remember);
 			if (Option.isNone(round)) {
 				return;
 			}
-			if (Option.isSome(round.value.refusal)) {
+			if (Option.isSome(round.value.refusal) || round.value.changed.some((output) => !known.has(output))) {
 				if (this.environment.config.consumer === "client") {
-					devServer.config.logger.error(round.value.refusal.value, { timestamp: true });
-					this.environment.hot.send({ err: { message: round.value.refusal.value, plugin: "shivaedev:build", stack: "" }, type: "error" });
+					tellTheBrowser(this.environment, devServer, round.value.refusal, file);
 				}
 				return [];
 			}
@@ -88,55 +94,6 @@ function generateFiles(): Plugin {
 			return [...modules, ...regenerated];
 		},
 		name: "shivaedev:build-generate",
-	};
-}
-
-function graphOf(context: Rollup.PluginContext): BundleGraph {
-	const modules = new Map<string, BundleModule>();
-	const entries: string[] = [];
-	for (const id of context.getModuleIds()) {
-		const info = context.getModuleInfo(id);
-		if (info !== null) {
-			if (info.isEntry) {
-				entries.push(id);
-			}
-			const bare = id.startsWith(BROWSER_EXTERNAL) ? id.slice(BROWSER_EXTERNAL.length) : id;
-			modules.set(id, { builtin: isBuiltin(bare), imports: [...info.importedIds, ...info.dynamicallyImportedIds] });
-		}
-	}
-	return { entries, modules };
-}
-
-async function markersFrom(context: Rollup.PluginContext, root: string): Promise<ServerMarkers> {
-	const importer = join(root, "index.html");
-	async function resolved(specifier: string) {
-		return Option.fromNullishOr((await context.resolve(specifier, importer))?.id);
-	}
-	return {
-		defineModule: await resolved("@shivaedev/contract/defineModule.ts"),
-		operation: await resolved("@shivaedev/contract/operation.ts"),
-		sql: Option.map(await resolved("effect/sql"), dirname),
-	};
-}
-
-function bundleCheck(serverOnly: readonly string[]): Plugin {
-	let root = ".";
-	return {
-		apply: "build",
-		applyToEnvironment: (environment) => environment.config.consumer === "client",
-		async buildEnd(this: Rollup.PluginContext, error) {
-			if (error !== undefined) {
-				return;
-			}
-			const found = await runNode(serverCodeIn(graphOf(this), await markersFrom(this, root), { root, serverOnly }));
-			if (Option.isSome(found)) {
-				this.error(found.value);
-			}
-		},
-		configResolved(resolved) {
-			root = resolved.root;
-		},
-		name: "shivaedev:build-bundle-check",
 	};
 }
 

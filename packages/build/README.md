@@ -62,7 +62,7 @@ export default {
 };
 ```
 
-`buildPlugin` generates when `vite build` or the dev server starts, in the folder Vite runs in. A refusal stops the build, or keeps the dev server from starting, with the generator's message. While the dev server runs, a change to a file that went into any module's last run, such as an operation's `run`, generates again: each rewritten file's importers are invalidated in Vite's module graph and the browser reloads. A refusal then prints the generator's message in the terminal and shows it in the browser's error overlay, and the module's last file stays in place until the next run succeeds.
+`buildPlugin` generates when `vite build` or the dev server starts, in the folder Vite runs in. A refusal stops the build, or keeps the dev server from starting, with the generator's message. While the dev server runs, a change to a file that went into any module's last run, such as an operation's `run`, generates again: each rewritten file's importers are invalidated in Vite's module graph and the browser reloads. A file under `src` that calls `defineModule` and no run has read yet, such as a module file created while the dev server runs, generates too, and when the run writes a generated file that did not exist the browser reloads, so a page that failed to resolve its `#generated/...` import loads without a restart. A refusal then prints the generator's message in the terminal and shows it in the browser's error overlay, and the module's last file stays in place until the next run succeeds.
 
 The global setup generates once before Vitest loads any test file, and a refusal stops the run before a test starts. Runs that start at once, such as two Vitest processes on one project, each generate and leave the files correct, because every file is written whole through a rename.
 
@@ -159,6 +159,8 @@ refused.failsUntagged: run fails with string, which has no _tag; fail with an ex
 ### Staying current
 
 Each module's inputs are the contents of every project file in its import graph, its tsconfig and the files it extends, the project's declaration files, which can declare global types, the lockfile, which stands in for installed packages, and the generator's own code and TypeScript's version. They are recorded under `node_modules/.cache/@shivaedev/build/`. A run whose inputs are unchanged builds no program and reports the module as unchanged; a generated file removed meanwhile comes back from the cache. Files are written only when their content differs, through a fresh file renamed into place, so a reader never sees half a file.
+
+A run in the dev server after a save that changes a module's inputs builds a program again, and later programs of one process reuse the declaration files the first one parsed. On a developer laptop, the first run takes about 0.8 s and each regeneration about 0.15 s for this package's fixture notes module of seven operations; for the starter's notes module written as a defined module, nine operations over SQL, identity and rate limiting, the first run takes about 1.4 s and each regeneration about 0.4 s.
 
 A run that builds a program takes the machine-wide [heavy lock](https://github.com/ShivaeDev/platform/tree/main/packages/heavy-lock), so it waits while another heavy run holds it; an unchanged run does not.
 
