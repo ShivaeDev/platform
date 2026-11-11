@@ -9,6 +9,7 @@ import { makeLiveServer } from "#makeLiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { CurrentViewer } from "#readPolicy.ts";
+import { Diary, makeDiary } from "#test/repository-reads/diary.ts";
 import {
 	type Handlers,
 	handlers,
@@ -22,10 +23,12 @@ import {
 } from "#test/repository-reads/fixture.ts";
 
 const views = {
+	"alice's diary for day 1": { payload: { day: 1, ownerId: "alice" }, query: "diaryDay" },
 	"alice's loans on shelf 1 through raw SQL marking both buckets": { payload: { reader: "alice", shelf: 1 }, query: "loansOnShelf" },
 	"alice's reader row": { payload: undefined, query: "reader" },
 	"book 1": { payload: { id: 1 }, query: "book" },
 	"book 1 read 100 times": { payload: { id: 1, times: 100 }, query: "rereadBook" },
+	"every diary entry": { payload: undefined, query: "everyDiaryEntry" },
 	"every loan": { payload: undefined, query: "everyLoan" },
 	"every title through unmarked raw SQL": { payload: undefined, query: "unmarkedTitles" },
 	"every title through unmarked raw SQL, declaring it reads nothing": { payload: undefined, query: "unmarkedTitlesReadingNothing" },
@@ -57,7 +60,9 @@ export const engine = Effect.gen(function* () {
 	const library = yield* Effect.all({ books: makeBooks, loans: makeLoans, readers: makeReaders }).pipe(
 		Effect.provideService(Reactivity.Reactivity, reactivity),
 	);
+	const diary = yield* makeDiary.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	const services = Layer.mergeAll(
+		Layer.succeed(Diary, diary),
 		Layer.succeed(Library, library),
 		Layer.succeed(Reactivity.Reactivity, reactivity),
 		Layer.succeed(SqlClient.SqlClient, yield* SqlClient.SqlClient),

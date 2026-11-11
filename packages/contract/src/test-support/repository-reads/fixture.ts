@@ -13,6 +13,7 @@ import { defineModule } from "#defineModule.ts";
 import { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer, signedIn, type Viewer } from "#readPolicy.ts";
+import { Diary, DiaryDay, diaryMigration, EveryDiaryEntry, WriteDiary } from "#test/repository-reads/diary.ts";
 
 export class StoredBook extends Model.Class<StoredBook>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
 export class StoredLoan extends Model.Class<StoredLoan>("LibraryLoan")({ book: Schema.Number, id: Schema.Number, reader: bucket(Schema.String) }) {}
@@ -211,8 +212,11 @@ export const Libraries = defineModule({
 		Retitle,
 		Move,
 		Lend,
+		DiaryDay,
+		EveryDiaryEntry,
+		WriteDiary,
 	],
-	requires: [Library, SqlClient.SqlClient],
+	requires: [Library, Diary, SqlClient.SqlClient],
 });
 
 export const handlers = {
@@ -220,6 +224,8 @@ export const handlers = {
 		"library.book": Book.run,
 		"library.catalog": Catalog.run,
 		"library.declaredShelf": DeclaredShelf.run,
+		"library.diaryDay": DiaryDay.run,
+		"library.everyDiaryEntry": EveryDiaryEntry.run,
 		"library.everyLoan": EveryLoan.run,
 		"library.lend": Lend.run,
 		"library.loansOnShelf": LoansOnShelf.run,
@@ -231,6 +237,7 @@ export const handlers = {
 		"library.shelf": Shelf.run,
 		"library.unmarkedTitles": UnmarkedTitles.run,
 		"library.unmarkedTitlesReadingNothing": UnmarkedTitlesReadingNothing.run,
+		"library.writeDiary": WriteDiary.run,
 	}),
 	"module handlers": moduleHandlers(Libraries),
 };
@@ -247,6 +254,7 @@ export const migrations = {
 			yield* sql`create table library_loans (id integer primary key, book integer not null, reader text not null)`;
 			yield* sql`insert into library_loans values (1, 1, 'alice'), (2, 3, 'alice')`;
 		}),
+		"2_diary": diaryMigration,
 	}),
 	lockTimeout: "5 seconds" as const,
 };

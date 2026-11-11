@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
 import { collection, compositeId, type Identity, type Key } from "@shivaedev/changes/keys.ts";
 import { recordRead } from "@shivaedev/changes/readRecorder.ts";
+import type { RepositoryCollection } from "#repositoryCollection.ts";
 
 type Where = Readonly<Record<string, unknown>>;
 
@@ -18,17 +19,35 @@ function isPrimitive(value: unknown): value is Identity | bigint | boolean {
 	return isIdentity(value) || typeof value === "bigint" || typeof value === "boolean";
 }
 
-function combinations(columns: readonly (readonly unknown[])[]): readonly (readonly unknown[])[] {
-	return columns.reduce<readonly (readonly unknown[])[]>((rows, values) => rows.flatMap((row) => values.map((value) => [...row, value])), [[]]);
+function combinations<T>(columns: readonly (readonly T[])[]): readonly (readonly T[])[] {
+	return columns.reduce<readonly (readonly T[])[]>((rows, values) => rows.flatMap((row) => values.map((value) => [...row, value])), [[]]);
 }
 
-export function makeRecordRead(model: Model.Any, options: { readonly tableName: string; readonly idColumns: readonly string[] }): RecordRead {
+type Pin = readonly [column: string, value: Identity];
+
+interface Bucket {
+	readonly columns: readonly string[];
+	readonly make: (pins: readonly Pin[]) => readonly Key[];
+}
+
+export function makeRecordRead(
+	model: Model.Any,
+	options: { readonly tableName: string; readonly idColumns: readonly string[]; readonly tuples?: RepositoryCollection["tuples"] },
+): RecordRead {
 	const fields = declaredBuckets(model.fields).map(({ field }) => field);
 	const keys = collection(options.tableName, AnyIdentity, Object.fromEntries(fields.map((field) => [field, AnyIdentity])));
-	const buckets = fields.flatMap((field) => {
-		const make = keys.bucket[field];
-		return make === undefined ? [] : [{ field, make }];
-	});
+	const tupleKeys = collection(options.tableName, AnyIdentity, {}, options.tuples);
+	// Tuples come first so that a tie in pinned values goes to the bucket spanning more columns.
+	const buckets: readonly Bucket[] = [
+		...Object.entries(tupleKeys.tuples).flatMap(([tuple, columns]) => {
+			const make = tupleKeys.bucket[tuple];
+			return make === undefined ? [] : [{ columns, make: (pins: readonly Pin[]) => [make(Object.fromEntries(pins))] }];
+		}),
+		...fields.flatMap((field) => {
+			const make = keys.bucket[field];
+			return make === undefined ? [] : [{ columns: [field], make: (pins: readonly Pin[]) => pins.map(([, value]) => make(value)) }];
+		}),
+	];
 	function pinned(where: Where, column: string): readonly unknown[] | undefined {
 		const field = model.fields[column];
 		const value = where[column];
@@ -72,12 +91,27 @@ export function makeRecordRead(model: Model.Any, options: { readonly tableName: 
 		const ids = yield* Effect.forEach(combinations(columns), rowId);
 		return ids.every((id) => id !== undefined) ? ids.map((id): Key => keys.item(id)) : undefined;
 	});
+	function pinnedKeys(where: Where, { columns, make }: Bucket) {
+		const pins: (readonly Pin[])[] = [];
+		for (const column of columns) {
+			const values = pinned(where, column)?.filter(isIdentity);
+			if (values === undefined) {
+				return undefined;
+			}
+			pins.push(values.map((value): Pin => [column, value]));
+		}
+		return { columns, keys: combinations(pins).flatMap(make) };
+	}
+	// A bucket over a subset of another pinned bucket's columns hears every write the other hears, and more.
 	function bucketKeys(where: Where): readonly Key[] | undefined {
+		const pinnedBuckets = buckets.flatMap((bucket) => pinnedKeys(where, bucket) ?? []);
 		let narrowest: readonly Key[] | undefined;
-		for (const { field, make } of buckets) {
-			const values = pinned(where, field)?.filter(isIdentity);
-			if (values !== undefined && (narrowest === undefined || values.length < narrowest.length)) {
-				narrowest = values.map(make);
+		for (const { columns, keys: candidate } of pinnedBuckets) {
+			const covered = pinnedBuckets.some(
+				(other) => other.columns.length > columns.length && columns.every((column) => other.columns.includes(column)),
+			);
+			if (!covered && (narrowest === undefined || candidate.length < narrowest.length)) {
+				narrowest = candidate;
 			}
 		}
 		return narrowest;

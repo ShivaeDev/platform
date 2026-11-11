@@ -1,21 +1,11 @@
-import { Effect, Order, Schema } from "effect";
+import { Effect, Order } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { Model } from "effect/schema";
-import { SqlClient } from "effect/sql";
-import { bucket } from "@shivaedev/changes/buckets.ts";
 import { type Capture, makeCapture } from "@shivaedev/changes/capture.ts";
-import { collection, readKeys } from "@shivaedev/changes/keys.ts";
+import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { makeRepository } from "#repository.ts";
+import { type DiaryEntry, diaryEntries } from "#test/diaryEntries.ts";
 import { onPostgres } from "#test/engines.ts";
 import { ChangeObserver } from "#transact.ts";
-
-class DiaryEntry extends Model.Class<DiaryEntry>("DiaryEntry")({
-	day: Schema.NullOr(Schema.Number),
-	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
-	note: Schema.String,
-	ownerId: bucket(Schema.String),
-}) {}
 
 type Day = number | null;
 
@@ -23,36 +13,23 @@ function dayWords(day: Day) {
 	return day === null ? "no day" : `day ${day}`;
 }
 
-function diaryKeys(tableName: string) {
-	return collection(tableName, Schema.Number, { ownerId: Schema.String }, { ownerDay: ["ownerId", "day"] });
-}
-
 interface TupleBucketsEngine {
 	readonly capture: Capture<unknown>;
-	readonly entries: Effect.Success<ReturnType<typeof makeDiaryEntries>>;
+	readonly entries: Effect.Success<typeof diaryEntries>["entries"];
 	entry: DiaryEntry | undefined;
-	readonly keys: ReturnType<typeof diaryKeys>;
+	readonly keys: Effect.Success<typeof diaryEntries>["keys"];
 	readonly reactivity: Reactivity.Reactivity;
 	readonly tableName: string;
 	readonly woken: string[];
 }
 
-function makeDiaryEntries(tableName: string) {
-	return makeRepository(DiaryEntry, { collection: diaryKeys(tableName), idColumn: "id", spanPrefix: "DiaryEntries", tableName });
-}
-
 const tupleBucketsEngine = Effect.fnUntraced(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const tableName = `diary_entries_${crypto.randomUUID().replaceAll("-", "")}`;
-	yield* Effect.acquireRelease(
-		sql`create table ${sql(tableName)} (id integer generated always as identity primary key, "ownerId" text not null, day integer, note text not null)`,
-		() => sql`drop table ${sql(tableName)}`.pipe(Effect.orDie),
-	);
+	const { entries, keys, tableName } = yield* diaryEntries;
 	const engine: TupleBucketsEngine = {
 		capture: yield* makeCapture<unknown>(),
-		entries: yield* makeDiaryEntries(tableName),
+		entries,
 		entry: undefined,
-		keys: diaryKeys(tableName),
+		keys,
 		reactivity: yield* Reactivity.Reactivity,
 		tableName,
 		woken: [],

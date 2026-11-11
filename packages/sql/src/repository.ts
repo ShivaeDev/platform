@@ -121,7 +121,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		yield* validateRepositoryCollection(model.fields, options);
 		const idColumns = (typeof options.idColumn === "object" ? options.idColumn : [options.idColumn]).map(String);
 		const changes = yield* repositoryChanges(options.tableName, idColumns, model.fields, options.collection?.tuples);
-		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName });
+		const recordRead = makeRecordRead(model, { idColumns, tableName: options.tableName, tuples: options.collection?.tuples });
 		const crud = {
 			...(yield* makeCompositeCrud(model, { ...options, columns: idColumns, recordRead }, changes)),
 			deleteBatched: yield* makeBatchedDelete(model, options, changes),
