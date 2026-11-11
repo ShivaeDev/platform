@@ -1,11 +1,7 @@
-import { Brand, Hash, Option, Schema, SchemaAST } from "effect";
+import { Hash, Schema, SchemaAST } from "effect";
+import { Composite, type CompositeBucketKey, CompositeId, type CompositeItemKey, isCompositeId } from "#compositeKeys.ts";
 
 export type Identity = string | number;
-
-export const Composite: unique symbol = Symbol.for("@shivaedev/changes/keys/Composite");
-
-export type CompositeId = Brand.Branded<string, "CompositeId">;
-const CompositeId = Brand.nominal<CompositeId>();
 
 export function isBucketSchema(schema: Schema.Constraint): boolean {
 	function supported(ast: SchemaAST.AST): boolean {
@@ -36,17 +32,6 @@ export function compositeId(values: readonly unknown[]): CompositeId {
 	return CompositeId(JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value)));
 }
 
-const IdParts = Schema.fromJsonString(Schema.Array(Schema.Unknown));
-
-// A composite id arrives as a plain string, so only its exact compositeId spelling identifies it.
-function isCompositeId(id: Identity): boolean {
-	if (typeof id !== "string" || !id.startsWith("[")) {
-		return false;
-	}
-	const parts = Schema.decodeUnknownOption(IdParts)(id);
-	return Option.isSome(parts) && parts.value.length > 1 && compositeId(parts.value) === id;
-}
-
 export function recordKey(name: string, id: unknown): string {
 	const identity = typeof id === "string" || typeof id === "number" || typeof id === "bigint" || typeof id === "boolean" ? String(id) : Hash.hash(id);
 	return `${name}:${identity}`;
@@ -70,13 +55,6 @@ export interface BucketKey<TName extends string = string> {
 	readonly value: Identity;
 }
 export type Key = ListKey | ItemKey | BucketKey;
-
-export type CompositeItemKey<TName extends string = string> = ItemKey<TName> & { readonly [Composite]: true };
-export type CompositeBucketKey<TName extends string = string> = BucketKey<TName> & { readonly [Composite]: true };
-
-export function isComposite(key: Key): key is CompositeItemKey | CompositeBucketKey {
-	return Composite in key;
-}
 
 export const Key = Schema.Union([
 	Schema.Struct({

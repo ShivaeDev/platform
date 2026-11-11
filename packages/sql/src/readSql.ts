@@ -1,15 +1,7 @@
 import { Data, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import {
-	type BucketKey,
-	type Composite,
-	type CompositeBucketKey,
-	type CompositeItemKey,
-	type ItemKey,
-	isComposite,
-	Key,
-	recordKey,
-} from "@shivaedev/changes/keys.ts";
+import { type Composite, type CompositeBucketKey, type CompositeItemKey, isComposite } from "@shivaedev/changes/compositeKeys.ts";
+import { type BucketKey, type ItemKey, Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { recordRead } from "@shivaedev/changes/readRecorder.ts";
 
 export class MultiColumnKeyParameter extends Data.TaggedError("MultiColumnKeyParameter")<{
