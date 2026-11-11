@@ -53,6 +53,7 @@
 		"@shivaedev/test-story": "workspace:*"
 	},
 	"devDependencies": {
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/github": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
