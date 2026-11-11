@@ -10,13 +10,14 @@ import {
 	projectIn,
 	withoutConfig,
 } from "#test/linkedWorktree.ts";
+import { FAST_RUN } from "#test/runs.ts";
 import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { logs } from "#testing/adapters/hookRepository.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
-const LINT_PASSED = "quality: passed. 1 source file checked.";
+const LINT_PASSED = ["quality: passed. 1 source file checked.", FAST_RUN];
 const LINT_FAILED = [
 	"quality lint failed with 6 errors:",
 	"  error biome/plugin (4): src/full.ts",
@@ -33,7 +34,7 @@ checkoutStory.it(
 
 		yield* outcomes([
 			["exit", () => outcome(), "passed"],
-			["report", () => reported(), [LINT_PASSED]],
+			["report", () => reported(), LINT_PASSED],
 		]);
 	},
 	CLI_TIMEOUT,
@@ -47,7 +48,7 @@ checkoutStory.it(
 
 		yield* outcomes([
 			["exit", () => outcome(), "passed"],
-			["report", () => reported(), [LINT_PASSED, "quality: running `npm run typecheck`", "quality: running `npm run quality:commit`"]],
+			["report", () => reported(), [...LINT_PASSED, "quality: running `npm run typecheck`", "quality: running `npm run quality:commit`"]],
 			["script log", () => scriptLog(), ["typechecked", "repository checked"]],
 		]);
 	},
@@ -62,7 +63,7 @@ checkoutStory.it(
 
 		yield* outcomes([
 			["exit", () => outcome(), "passed"],
-			["report", () => reported(), [LINT_PASSED, "quality: running `npm run quality:commit`"]],
+			["report", () => reported(), [...LINT_PASSED, "quality: running `npm run quality:commit`"]],
 			["script log", () => scriptLog(), ["repository checked"]],
 		]);
 	},
@@ -76,7 +77,7 @@ checkoutStory.it(
 		yield* runs("hooks", "pre-commit");
 
 		yield* outcomes([
-			["report", () => reported(), [LINT_PASSED, "quality: running `pnpm run typecheck`"]],
+			["report", () => reported(), [...LINT_PASSED, "quality: running `pnpm run typecheck`"]],
 			["script log", () => scriptLog(), ["typechecked"]],
 		]);
 	},

@@ -1,0 +1,134 @@
+import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { debtRecorded, effectInstalled, environmentSets, lintRunStory, repositoryHas } from "#test/lintRuns.ts";
+import { packageProgramFiles } from "#test/packageProgramFiles.ts";
+import { FAST_RUN, FULL_RUN } from "#test/runs.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+
+const WORKSPACE = [effectInstalled(), repositoryHas(...packageProgramFiles)];
+
+lintRunStory.it(
+	"a local lint reports the fast rules' findings, leaves out effect/service-parameters and names it in its closing line",
+	WORKSPACE,
+	function* ({ lastLine, lints, reportsRule }) {
+		yield* lints();
+
+		yield* outcomes([
+			["context capture reported", () => reportsRule("effect/context-capture"), true],
+			["service parameters reported", () => reportsRule("effect/service-parameters"), false],
+			["closing line", () => lastLine(), FAST_RUN],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+lintRunStory.it(
+	"a local lint never prepares the effect/service-parameters check in the package walk the fast type-checking rules share",
+	WORKSPACE,
+	function* ({ lints, spanCount }) {
+		yield* lints();
+
+		yield* outcomes([
+			["package walks", () => spanCount("PackageChecks.walk"), 1],
+			["service-parameters preparations", () => spanCount("Services.serviceParameterCheck"), 0],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+for (const [when, environment, args] of [
+	["in CI", { "CI": "true" }, []],
+	["in a Claude Code cloud session", { "CLAUDE_CODE_REMOTE": "true" }, []],
+	["with --full", {}, ["--full"]],
+] as const) {
+	lintRunStory.it(
+		`a lint ${when} reports effect/service-parameters beside the fast rules and names it as checked in its closing line`,
+		[...WORKSPACE, environmentSets(environment)],
+		function* ({ lastLine, lints, reportsRule }) {
+			yield* lints(...args);
+
+			yield* outcomes([
+				["context capture reported", () => reportsRule("effect/context-capture"), true],
+				["service parameters reported", () => reportsRule("effect/service-parameters"), true],
+				["closing line", () => lastLine(), FULL_RUN],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+lintRunStory.it(
+	"--fast in CI leaves out effect/service-parameters and names it in the closing line",
+	[...WORKSPACE, environmentSets({ "CI": "true" })],
+	function* ({ lastLine, lints, reportsRule }) {
+		yield* lints("--fast");
+
+		yield* outcomes([
+			["context capture reported", () => reportsRule("effect/context-capture"), true],
+			["service parameters reported", () => reportsRule("effect/service-parameters"), false],
+			["closing line", () => lastLine(), FAST_RUN],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+lintRunStory.it(
+	"a lint with --config names that config in the command its closing line suggests",
+	[...WORKSPACE, repositoryHas({ content: "export default {};", path: "tools/quality.config.ts" })],
+	function* ({ lastLine, lints }) {
+		yield* lints("--config", "tools/quality.config.ts");
+
+		expect(yield* lastLine()).toContain("Run `quality lint --full --config tools/quality.config.ts` to check now.");
+	},
+	CLI_TIMEOUT,
+);
+
+lintRunStory.it(
+	"a local lint passes beside a deep rule's baseline entries, reports them neither stale nor loose and leaves their shard untouched",
+	[...WORKSPACE, debtRecorded()],
+	function* ({ lints, outcome, reads, report }) {
+		const recorded = yield* reads("packages/alpha/quality-baseline.jsonl");
+		expect(recorded).toContain('"rule":"effect/service-parameters"');
+
+		yield* lints();
+
+		yield* outcomes([
+			["outcome", () => outcome(), "passed"],
+			["report", () => report(), expect.not.stringContaining("quality-baseline.jsonl")],
+			["shard", () => reads("packages/alpha/quality-baseline.jsonl"), recorded],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+const LOCAL_DEEP_RULE = {
+	content: `import { defineRule } from "@shivaedev/quality/rule.ts";
+const drafts = defineRule({
+	check: ({ sources }) => sources.filter((file) => file.text.includes("draft")).map((file) => ({ file: file.path, message: "Replace the draft." })),
+	depth: "deep",
+	description: "Replace drafts before merging.",
+	id: "local/drafts",
+});
+export default { local: [drafts] };
+`,
+	path: "quality.config.ts",
+};
+
+for (const [run, args, reported] of [
+	["a local lint skips", [], false],
+	["a full lint runs", ["--full"], true],
+] as const) {
+	lintRunStory.it(
+		`${run} a local rule that declares depth deep`,
+		[effectInstalled(), repositoryHas(LOCAL_DEEP_RULE, { content: 'export const title = "draft";\n', path: "src/title.ts" })],
+		function* ({ lastLine, lints, reportsRule }) {
+			yield* lints(...args);
+
+			yield* outcomes([
+				["draft reported", () => reportsRule("local/drafts"), reported],
+				["closing line", () => lastLine(), expect.stringContaining("local/drafts")],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}

@@ -11,7 +11,12 @@ export function violation(fields: Partial<Violation> & Pick<Violation, "file" | 
 
 export function levels(
 	entries: Readonly<Record<string, Level>>,
-	more: { readonly families?: readonly string[]; readonly unregistrable?: readonly string[] } = {},
+	more: { readonly families?: readonly string[]; readonly skipped?: readonly string[]; readonly unregistrable?: readonly string[] } = {},
 ): RuleIndex {
-	return { families: new Set(more.families), levels: new Map(Object.entries(entries)), unregistrable: new Set(more.unregistrable) };
+	return {
+		families: new Set(more.families),
+		levels: new Map(Object.entries(entries)),
+		skipped: new Set(more.skipped),
+		unregistrable: new Set(more.unregistrable),
+	};
 }

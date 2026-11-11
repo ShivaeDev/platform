@@ -58,7 +58,10 @@ export type Configured<TServices = RuleServices> =
 	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
 	| { readonly _tag: "Ready"; readonly check: RuleCheck<TServices> };
 
+export type Depth = "deep";
+
 export interface RegisteredRule<TServices = RuleServices> {
+	readonly depth?: Depth;
 	readonly description: string;
 	readonly family?: boolean;
 	readonly id: string;
@@ -73,6 +76,7 @@ export interface Rule<TId extends string = string, TInput = unknown, TServices =
 
 interface RuleDefinition<TId extends string, TOptions, TServices> {
 	readonly check: (context: RuleContext<NoInfer<TOptions>>) => RuleCheckResult<TServices>;
+	readonly depth?: Depth;
 	readonly description: string;
 	readonly id: TId;
 	readonly registrable?: false;
@@ -103,6 +107,7 @@ export function defineRule<const TId extends string, TInput, TOptions, TServices
 	return {
 		[ruleConfiguration]: configure,
 		configure,
+		...(definition.depth === undefined ? {} : { depth: definition.depth }),
 		description: definition.description,
 		id: definition.id,
 		registrable: definition.registrable ?? true,

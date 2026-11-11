@@ -31,11 +31,11 @@ export const baselineStory = storyKit({
 		const cli = cliVerbs(engine, story.tell);
 		return {
 			...cli,
+			closingSections: (count: number) => Effect.map(cli.stdout(), (stdout) => stdout.trimEnd().split("\n\n").slice(-count)),
 			decode: (raw: string | undefined) => {
 				story.tell("quality decodes the baseline file");
 				return Effect.sync(() => decodeBaseline(raw));
 			},
-			lastLine: () => Effect.map(cli.stdout(), (stdout) => stdout.trimEnd().split("\n").at(-1)),
 			lengthens: (path: string, lines: number) =>
 				Effect.sync(() => {
 					story.tell(`the author lengthens ${path} to ${lines} lines`);

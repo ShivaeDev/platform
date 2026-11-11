@@ -65,10 +65,10 @@ repositoryStory.it(
 
 for (const installed of [false, true]) {
 	repositoryStory.it(
-		`quality lint checks service shapes from ${installed ? "installed declarations" : "workspace sources"} in the consumer's scope`,
+		`quality lint --full checks service shapes from ${installed ? "installed declarations" : "workspace sources"} in the consumer's scope`,
 		[...consumer, ...(installed ? [] : [workspaceStoreInstalled()]), repositoryHas(...serviceConsumer(installed)), biomeFormatted()],
 		function* ({ spawns, outcome, stdout }) {
-			yield* spawns("lint");
+			yield* spawns("lint", "--full");
 
 			yield* withMatchers((expect) =>
 				outcomes([

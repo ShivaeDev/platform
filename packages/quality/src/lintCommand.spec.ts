@@ -1,5 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { FAST_RUN } from "#test/runs.ts";
 import { trees } from "#test/trees.ts";
 import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
@@ -43,7 +44,7 @@ repositoryStory.it(
 		yield* outcomes([
 			["error output", () => stderr(), ""],
 			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), "quality: passed. 3 source files checked.\n"],
+			["report", () => stdout(), `quality: passed. 3 source files checked.\n\n${FAST_RUN}\n`],
 		]);
 	},
 	CLI_TIMEOUT,

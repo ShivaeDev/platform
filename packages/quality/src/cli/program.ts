@@ -39,7 +39,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Setup":
 			return yield* setupHook({ config: command.config, cwd, launch });
 		case "Lint":
-			return yield* lint(cwd, command.config);
+			return yield* lint(cwd, command.config, command.set);
 		case "Fix":
 			return yield* command.rules.length === 0 ? fix(cwd, command.config) : fixRule(cwd, command.config, command.rules);
 		case "BaselineMerge":

@@ -1,5 +1,5 @@
 export const USAGE = `Usage:
-  quality lint [--config <file>]
+  quality lint [--config <file>] [--fast | --full]
   quality ci [--coverage]
   quality setup [--config <file>]
   quality fix [--config <file>] [--rule <id>]...
@@ -17,7 +17,9 @@ export const USAGE = `Usage:
 
 ci                Check pnpm peers, then run the application scripts lint, typecheck, build and test, stopping on failure.
 setup             Install the Quality hook when the current folder owns a .git entry; skip unversioned and enclosed apps.
-lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
+lint              Run the fast rules, or every rule when CI is set, CLAUDE_CODE_REMOTE is true or --full is given.
+                  A fast run names the deep rules it skipped and sets their baseline entries and exceptions aside.
+                  Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for an unknown rule.
 fix               Sort every package.json, apply Biome's lint fixes, unsafe ones included, its assist actions and formatting, then format again.
                   With --rule, apply only that rule's safe mechanical fixes and report remaining findings (exit 1), including baseline debt. Unsupported rules exit 2.
@@ -38,5 +40,7 @@ hooks pre-commit  Check lint and staged baseline counts, then package.json scrip
 
 --config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
+--fast           Run only the fast rules, even in CI.
+--full           Run every rule, deep rules included.
 --coverage      Collect V8 coverage and JUnit from ci's single test run into coverage/, including failed tests.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;

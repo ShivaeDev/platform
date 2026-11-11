@@ -29,4 +29,21 @@ describe("evaluate", () => {
 			registered: 1,
 		});
 	});
+
+	it("sets aside the baseline entries and exceptions of a rule the run skipped", () => {
+		const skipped = levels({ "local/deep": "error" }, { skipped: ["local/deep"] });
+		const outcome = evaluate(
+			[],
+			[{ file: "src/a.ts", reason: "Kept for a reason.", rule: "local/deep" }],
+			[{ count: 2, file: "src/b.ts", rule: "local/deep" }],
+			skipped,
+		);
+		expect({ loose: outcome.looseBaseline, stale: [...outcome.staleBaseline, ...outcome.staleRegistry] }).toEqual({ loose: [], stale: [] });
+	});
+
+	it("still refuses an exception for a skipped rule that takes no exceptions", () => {
+		const skipped = levels({ "local/deep": "error" }, { skipped: ["local/deep"], unregistrable: ["local/deep"] });
+		const outcome = evaluate([], [{ file: "src/a.ts", reason: "Kept for a reason.", rule: "local/deep" }], [], skipped);
+		expect(outcome.staleRegistry.map(({ problem }) => problem)).toEqual([expect.stringContaining("takes no exceptions")]);
+	});
 });
