@@ -16,4 +16,5 @@
 
 ### Changed
 
+- `@shivaedev/quality`: `manifests/no-test-kits` treats `@shivaedev/build` as test tooling, so its `vitest` peer is accepted.
 - `@shivaedev/create-app`: Generated apps take their Vite and Vitest configuration from `@shivaedev/build`, gain `generate` and `prepare` scripts so `pnpm install` writes `src/generated`, generate before `pnpm typecheck` and `pnpm dev`, and keep `src/generated` out of Git except its README. The packed template never contains generated files.

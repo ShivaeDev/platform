@@ -68,7 +68,7 @@ The application's `package.json` runs the generator before anything that reads t
 }
 ```
 
-pnpm does not run `prepare` on a production install (`pnpm install --prod`), so a production install without development dependencies succeeds without the generator; the files must already be written, as `pnpm build` writes them through the Vite plugin. The folder's contents stay out of Git except a README that names the command, and Quality's `imports/resolvable` lists the folder as `generated`:
+pnpm does not run `prepare` on a production install (`pnpm install --prod`), so a production install without development dependencies succeeds without the generator; the files must already be written, as `pnpm build` writes them through the Vite plugin. The folder's contents stay out of Git except a README that names the command, and once the application imports from the folder, Quality's `imports/resolvable` lists it as `generated`:
 
 ```gitignore
 src/generated/*
