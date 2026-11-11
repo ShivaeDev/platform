@@ -22,7 +22,7 @@ export default [
 		.from(browserCode)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts", "packages/contract/src/readPolicyErrors.ts"),
+				files("packages/changes/src/compositeKeys.ts", "packages/changes/src/keys.ts", "packages/contract/src/readPolicyErrors.ts"),
 				browserCode,
 				files("packages/access/src/permission.ts"),
 				packages("errors"),

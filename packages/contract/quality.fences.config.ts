@@ -10,6 +10,7 @@ export default [
 		.mayNotReach(
 			anything.except(
 				files(
+					"packages/changes/src/compositeKeys.ts",
 					"packages/changes/src/keys.ts",
 					"packages/changes/src/readRecorder.ts",
 					"packages/errors/src/boundary.ts",
