@@ -12,12 +12,6 @@ import { workspaceSection } from "#quality/workspaceSection.ts";
 export default defineConfig({
 	exceptions: [
 		{
-			"files": ["packages/build/package.json"],
-			"reason":
-				"build is development tooling like quality: appTestConfig and its Vitest global setup are what an application's test run loads, so Vitest is its optional peer and applications take build as a development dependency.",
-			"rules": ["manifests/no-test-kits"],
-		},
-		{
 			"files": ["**", "!**/test-support/generated", "!**/test-support/*/generated", "!examples/starter"],
 			"reason": "Generated clients are not source. The starter has a nested Biome config and runs its own Quality gate.",
 			"rules": ["biome/files/includes"],
