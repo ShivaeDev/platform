@@ -27,6 +27,12 @@ export interface LiveOptions<E, R> {
 	readonly stream: Stream.Stream<SubscriptionEvent, E, R>;
 }
 
+const connections = new WeakSet<Atom.Atom<unknown>>();
+
+export function isLiveConnection(atom: Atom.Atom<unknown>): boolean {
+	return connections.has(atom);
+}
+
 export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeError>, options: LiveOptions<E, R>) {
 	const paused = Atom.make(false);
 	const status = Atom.make<LiveStatus<E>>({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
@@ -69,5 +75,6 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 			}),
 		)
 		.pipe(Atom.setIdleTTL(0));
+	connections.add(connection);
 	return { connection, paused, status };
 }

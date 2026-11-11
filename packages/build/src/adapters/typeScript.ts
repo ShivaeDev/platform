@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { dirname } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
@@ -54,10 +55,47 @@ export const resolvedImports = Effect.fn("Build.resolvedImports")(function* (con
 	);
 });
 
-// Building the program is the expensive part of a run: every module of the project shares one.
+// Building the program is the expensive part of a run, and parsing the installed packages' declarations is most of it. They rarely
+// change between the runs of one process, such as a dev server's, so the registry hands a later program each file it parsed with the same text and settings.
+const parsedFiles = ts.createDocumentRegistry(ts.sys.useCaseSensitiveFileNames);
+
+function programHost(options: ts.CompilerOptions, rootNames: readonly string[]): ts.LanguageServiceHost {
+	const texts = new Map<string, string | undefined>();
+	function textOf(file: string) {
+		if (!texts.has(file)) {
+			texts.set(file, ts.sys.readFile(file));
+		}
+		return texts.get(file);
+	}
+	return {
+		directoryExists: ts.sys.directoryExists,
+		fileExists: ts.sys.fileExists,
+		getCompilationSettings: () => options,
+		getCurrentDirectory: ts.sys.getCurrentDirectory,
+		getDefaultLibFileName: ts.getDefaultLibFilePath,
+		getDirectories: ts.sys.getDirectories,
+		getScriptFileNames: () => [...rootNames],
+		getScriptSnapshot: (file) => {
+			const text = textOf(file);
+			return text === undefined ? undefined : ts.ScriptSnapshot.fromString(text);
+		},
+		getScriptVersion: (file) =>
+			createHash("sha256")
+				.update(textOf(file) ?? "")
+				.digest("hex"),
+		readDirectory: ts.sys.readDirectory,
+		readFile: textOf,
+		...(ts.sys.realpath === undefined ? {} : { realpath: ts.sys.realpath }),
+		useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
+	};
+}
+
 export const deriveModules = Effect.fn("Build.deriveModules")(function* (config: ProjectConfig, modules: readonly string[]) {
-	return yield* Effect.sync(() => {
-		const program = ts.createProgram({ options: { ...config.options, noEmit: true }, rootNames: [...modules, ...config.declarations] });
-		return modules.map((module) => moduleFacts(program, module));
-	});
+	const program = yield* Effect.sync(() =>
+		ts.createLanguageService(programHost({ ...config.options, noEmit: true }, [...modules, ...config.declarations]), parsedFiles).getProgram(),
+	);
+	if (program === undefined) {
+		return yield* new BuildFailure({ message: "TypeScript's language service built no program" });
+	}
+	return yield* Effect.sync(() => modules.map((module) => moduleFacts(program, module)));
 });

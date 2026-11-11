@@ -65,8 +65,5 @@ export const loaderRoute = Effect.fn("LoaderScreen.loaderRoute")(function* (engi
 			</SessionBoundary>,
 		),
 	);
-	engine.pending =
-		engine.activity === undefined
-			? yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry(engine)))
-			: () => router.state.isLoading;
+	engine.pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry(engine)));
 });

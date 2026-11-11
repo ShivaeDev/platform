@@ -2,6 +2,7 @@ import type { AnyRouter } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { isLiveConnection } from "@shivaedev/contract/live.ts";
 
 export interface ScreenPendingOptions {
 	readonly router?: AnyRouter | undefined;
@@ -10,7 +11,8 @@ export interface ScreenPendingOptions {
 export function screenPending({ router }: ScreenPendingOptions = {}): Effect.Effect<() => boolean, never, AtomRegistry.AtomRegistry> {
 	return Effect.map(
 		Effect.service(AtomRegistry.AtomRegistry),
-		(registry) => () => routing(router) || [...registry.getNodes().values()].some((node) => waiting(node) && observed(node, new Set())),
+		(registry) => () =>
+			routing(router) || [...registry.getNodes().values()].some((node) => waiting(node) && !isLiveConnection(node.atom) && observed(node, new Set())),
 	);
 }
 
