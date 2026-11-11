@@ -119,6 +119,3 @@ if [ "$fresh" = true ] || [ ! -f .git/hooks/pre-commit ] || ! sha256sum --check 
   ./script/update
   sha256sum "${inputs[@]}" >"$hashes"
 fi
-
-# --- Test database URLs, so a focused PostgreSQL spec runs instead of skipping ---
-while IFS= read -r line; do exportOnce "$line"; done < <(pnpm --silent run test:environment | grep "^export ")
