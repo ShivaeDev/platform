@@ -4,7 +4,7 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import type { NeverSettled } from "#server/observeUntil.ts";
-import { raceWithLock } from "#server/raceWithLock.ts";
+import { type FinishedBeforeBlocking, raceWithLock } from "#server/raceWithLock.ts";
 import { RaceDependency as Dependency } from "#test/race-dependency/service.ts";
 
 const race = raceWithLock({
@@ -19,5 +19,7 @@ const race = raceWithLock({
 });
 
 expectTypeOf<Effect.Success<typeof race>>().toEqualTypeOf<Result.Result<never, "full">[]>();
-expectTypeOf<Effect.Error<typeof race>>().toEqualTypeOf<"lock failed" | SqlError | Schema.SchemaError | Cause.TimeoutError | NeverSettled<number>>();
+expectTypeOf<Effect.Error<typeof race>>().toEqualTypeOf<
+	"lock failed" | SqlError | Schema.SchemaError | Cause.TimeoutError | NeverSettled<number> | FinishedBeforeBlocking
+>();
 expectTypeOf<Effect.Services<typeof race>>().toEqualTypeOf<Dependency | SqlClient.SqlClient | Reactivity.Reactivity>();

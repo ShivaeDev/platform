@@ -1,4 +1,4 @@
-import { Deferred, type Duration, Effect, Fiber, Schema } from "effect";
+import { Data, Deferred, type Duration, Effect, Fiber, Ref, Schema } from "effect";
 import { SqlClient, SqlSchema, Statement } from "effect/sql";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { observeUntil } from "#server/observeUntil.ts";
@@ -8,6 +8,16 @@ function tagged<A, E, R>(effect: Effect.Effect<A, E, R>, tag: string) {
 	return Effect.provideService(effect, Statement.CurrentTransformer, (statement, sql) =>
 		Effect.succeed(sql`${sql.literal(`/* ${tag} */`)} ${statement}`),
 	);
+}
+
+export class FinishedBeforeBlocking extends Data.TaggedError("FinishedBeforeBlocking")<{
+	readonly blocked: number;
+	readonly finished: readonly number[];
+	readonly waitingFor: string;
+}> {
+	override get message() {
+		return `Waited for ${this.waitingFor}, but ${this.finished.length === 1 ? "contender" : "contenders"} ${this.finished.join(", ")} finished first; ${this.blocked} blocked`;
+	}
 }
 
 export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
@@ -26,6 +36,7 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 			const sql = yield* SqlClient.SqlClient;
 			const ready = yield* Deferred.make<string>();
 			const started = yield* Deferred.make<void>();
+			const finished = yield* Ref.make<readonly number[]>([]);
 			function waitingCount(marker: string) {
 				const result = SqlSchema.findAll({
 					execute: () =>
@@ -54,7 +65,19 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 				const race = `raceWithLock ${holder?.pid}.`;
 				yield* Deferred.succeed(ready, race);
 				yield* Deferred.await(started);
-				yield* observeUntil(waitingCount(race), (count) => count >= options.effects.length, contenders, {
+				const blocked = Effect.gen(function* () {
+					const done = yield* Ref.get(finished);
+					const count = yield* waitingCount(race);
+					if (done.length > 0 && count + done.length >= options.effects.length) {
+						return yield* new FinishedBeforeBlocking({
+							blocked: count,
+							finished: [...options.effects.keys()].filter((index) => done.includes(index)),
+							waitingFor: contenders,
+						});
+					}
+					return count;
+				});
+				yield* observeUntil(blocked, (count) => count >= options.effects.length, contenders, {
 					clock: options.clock ?? "live",
 					within: timeout,
 				});
@@ -65,7 +88,10 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 			);
 			const racing = yield* Effect.forEach(
 				options.effects,
-				(effect, index) => Effect.result(everyBlockedSession ? effect : tagged(effect, `${race}${index}`)),
+				(effect, index) =>
+					Effect.result(everyBlockedSession ? effect : tagged(effect, `${race}${index}`)).pipe(
+						Effect.ensuring(Ref.update(finished, (done) => [...done, index])),
+					),
 				{ concurrency: "unbounded" },
 			).pipe(Effect.forkScoped);
 			yield* Deferred.succeed(started, undefined);
