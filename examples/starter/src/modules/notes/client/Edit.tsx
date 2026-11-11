@@ -9,7 +9,7 @@ import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import { NoteDelete } from "#modules/notes/client/Delete.tsx";
 import type { NotesClient } from "#modules/notes/client/make.ts";
-import { type Note, NoteEditFields } from "#modules/notes/notes.ts";
+import { type Note, NoteEditFields } from "#modules/notes/model.ts";
 
 function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteEditFields.fields, A, E, TRuntimeError> }) {
 	const title = useField(form, "title");

@@ -3,7 +3,7 @@ import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { defineRepository } from "@shivaedev/sql/defineRepository.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { noteFields, notes } from "#modules/notes/notes.ts";
+import { noteFields, notes } from "#modules/notes/model.ts";
 
 class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	...noteFields,

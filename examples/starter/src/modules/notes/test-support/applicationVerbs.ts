@@ -5,7 +5,7 @@ import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.t
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makeAuth } from "#client/adapters/auth.ts";
-import type { Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/model.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
 import type { Account, Engine } from "#modules/notes/test-support/Engine.ts";
 import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "#modules/notes/test-support/live.ts";

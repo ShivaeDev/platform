@@ -12,7 +12,8 @@ import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import type { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { browserReads } from "@shivaedev/test-story/server/browserReads.ts";
-import { Notes } from "#modules/notes/notes.ts";
+import { Notes } from "#generated/modules/notes/Notes.ts";
+import { Notes as NotesModule } from "#modules/notes/Notes.ts";
 
 export const notesClientHost = Effect.fnUntraced(function* (
 	handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<typeof Notes.application>>>,
@@ -20,8 +21,9 @@ export const notesClientHost = Effect.fnUntraced(function* (
 	services: Layer.Layer<Reactivity.Reactivity>,
 ) {
 	const live = liveServerLayer.pipe(Layer.provideMerge(services));
-	const changes = hostChanges(Notes).pipe(Layer.provide(handlers), Layer.provide(live));
-	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "websocket" }).pipe(
+	// The browser contract carries no read policies, so the fake serves the module the host reruns queries under.
+	const changes = hostChanges(NotesModule).pipe(Layer.provide(handlers), Layer.provide(live));
+	const routes = RpcServer.layerHttp({ group: NotesModule, path: "/rpc", protocol: "websocket" }).pipe(
 		Layer.provide([handlers, changes, authentication, RpcSerialization.layerNdjson]),
 	);
 	const context = yield* Layer.build(

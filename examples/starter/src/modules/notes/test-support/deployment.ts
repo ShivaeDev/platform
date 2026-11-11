@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
 import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Note } from "#modules/notes/notes.ts";
+import type { Note } from "#modules/notes/model.ts";
 import { holdJob } from "#modules/notes/test-support/holdJob.ts";
 import { watchedNote } from "#modules/notes/test-support/live.ts";
 import { type NotesRequests, notesRequests } from "#modules/notes/test-support/requests.ts";
