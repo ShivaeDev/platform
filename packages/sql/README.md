@@ -886,7 +886,9 @@ const rows = yield* readSql`
 
 `readSql` binds each interpolated bucket key's value, or each row key's id, as an ordinary parameter, here `shelf` and `reader`, and records those keys with `recordRead(keys, { inferred: true })` before the statement is sent. Everything else interpolates as it does in `sql`: values bind as parameters, and fragments and identifiers such as `${sql("books")}` keep their meaning. The keys are the `collection()` keys the tables' writes announce, so this query reruns for a write on that shelf or a loan to that reader, and for no other. It needs `SqlClient` and returns the rows like a statement.
 
-The keys follow the same rules as repository reads: a query that declares `reads`, `serverReads` or `readsCollections` listens exactly as declared and ignores them. A marked parameter carries one value of one column, so a tuple bucket or a composite row key cannot be one. A raw read through `sql` names no table and records nothing; a query built from such reads keeps its declared `reads`. When a query that declares no keys finishes a run without recording one, the live host logs a warning that names it.
+The keys follow the same rules as repository reads: a query that declares `reads`, `serverReads` or `readsCollections` listens exactly as declared and ignores them.
+
+A marked parameter carries one value of one column. A tuple bucket key or a composite row key spans several columns, so `readSql` refuses it: the call does not compile, and a key that reaches it typed as a plain `Key` fails with `MultiColumnKeyParameter`, which names the key, before anything is recorded or sent. A marked key must be a top-level interpolation of `readSql`. A key inside a nested `sql` fragment, an array or `sql.in` is not recognised: it is not recorded and reaches the driver as a serialised object. `readSql` binds the key's decoded value. A bucket field whose codec stores a different form than its decoded value, such as a string-to-string transform or an enum stored as an integer, binds the wrong value; such a read keeps a plain `sql` parameter and a declared `reads`. A raw read through `sql` names no table and records nothing; a query built from such reads keeps its declared `reads`. When a query that declares no keys finishes a run without recording one, the live host logs a warning that names it.
 
 ### PostgreSQL advisory locks
 
@@ -1021,7 +1023,7 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
 - `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
-- `@shivaedev/sql/readSql.ts`: `` readSql`...` `` — Raw SQL read that binds each interpolated bucket or row key's value and records the key for a live query before sending; requires `SqlClient`.
+- `@shivaedev/sql/readSql.ts`: `` readSql`...` ``, `MultiColumnKeyParameter` — Raw SQL read that binds each interpolated bucket or row key's value and records the key for a live query before sending; refuses tuple bucket and composite row keys; requires `SqlClient`.
 - `@shivaedev/sql/keysetPage.ts`: `keysetPage(options)`, `KeysetOrder`, `KeysetPageQuery`, `KeysetPage` — Native seek and order fragments with a required unique tie-breaker, validated page size and one-row lookahead; predicates, result schemas and cursor formats stay with the caller.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.

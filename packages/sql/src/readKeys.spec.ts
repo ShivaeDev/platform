@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { ID_BEYOND_NUMBER } from "#test/changeKeysVerbs.ts";
-import { type Read, readKeys } from "#test/readKeys.ts";
+import { type MultiColumnKey, type Read, readKeys } from "#test/readKeys.ts";
 
 const SENDS = "sends its statement";
 
@@ -76,4 +76,29 @@ for (const { claim, expected, read } of cases) {
 
 		expect(log).toEqual([`listens on ${expected}`, SENDS]);
 	});
+}
+
+const refusals: readonly { readonly key: MultiColumnKey; readonly refusal: string }[] = [
+	{
+		key: "a tuple bucket key",
+		refusal:
+			'readSql cannot bind the tuple bucket drafts.ownerSlug ["alice","draft"] as one parameter, because it spans several columns. Bind each column\'s value and declare the key in the query\'s reads.',
+	},
+	{
+		key: "a composite row key",
+		refusal:
+			'readSql cannot bind the composite row drafts:["alice","draft"] as one parameter, because it spans several columns. Bind each column\'s value and declare the key in the query\'s reads.',
+	},
+];
+
+for (const { key, refusal } of refusals) {
+	readKeys.it(
+		`readSql refuses ${key} typed as a plain key with a typed failure naming the key, before it records a key or sends its statement`,
+		[],
+		function* ({ read }) {
+			const log = yield* read({ call: "readSqlBySlug", key });
+
+			expect(log).toEqual([`refuses: ${refusal}`]);
+		},
+	);
 }

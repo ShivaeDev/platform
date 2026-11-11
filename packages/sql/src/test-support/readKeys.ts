@@ -1,11 +1,11 @@
-import { type Cause, Effect, type Schema } from "effect";
+import { type Cause, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import * as Statement from "effect/sql/Statement";
-import type { Key } from "@shivaedev/changes/keys.ts";
+import { type BucketKey, collection, compositeId, type ItemKey, type Key } from "@shivaedev/changes/keys.ts";
 import { ReadRecorder } from "@shivaedev/changes/readRecorder.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { readSql } from "#readSql.ts";
+import { type MultiColumnKeyParameter, readSql } from "#readSql.ts";
 import type { FindManyFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { type BucketRow, bucketRows } from "#test/bucketRows.ts";
 import { compositeLedger } from "#test/compositeLedger.ts";
@@ -27,7 +27,7 @@ const engine = Effect.gen(function* () {
 	return { buckets: yield* bucketRows, ledger: yield* compositeLedger, owned: yield* setupOwnedRows, sql: yield* SqlClient.SqlClient };
 });
 
-type Reading = Effect.Effect<void, SqlError | Schema.SchemaError | Cause.NoSuchElementError>;
+type Reading = Effect.Effect<void, SqlError | Schema.SchemaError | Cause.NoSuchElementError | MultiColumnKeyParameter>;
 
 export type Read =
 	| { readonly call: "findById"; readonly id: number }
@@ -37,7 +37,17 @@ export type Read =
 	| { readonly call: "findLedgerEntry"; readonly account: string; readonly sequence: bigint }
 	| { readonly call: "findOwnedRow"; readonly id: number; readonly ownerId: number }
 	| { readonly call: "findOwnedRows"; readonly where: FindManyFilter<typeof OwnedRow> }
-	| { readonly call: "readSql"; readonly id: number; readonly owner: string };
+	| { readonly call: "readSql"; readonly id: number; readonly owner: string }
+	| { readonly call: "readSqlBySlug"; readonly key: MultiColumnKey };
+
+export type MultiColumnKey = "a tuple bucket key" | "a composite row key";
+
+const drafts = collection("drafts", Schema.String, {}, { ownerSlug: ["owner", "slug"] });
+// Typed as plain keys, as a key that passed through a Key-typed value reaches readSql.
+const multiColumnKeys: Readonly<Record<MultiColumnKey, BucketKey | ItemKey>> = {
+	"a composite row key": drafts.item(compositeId(["alice", "draft"])),
+	"a tuple bucket key": drafts.bucket.ownerSlug({ owner: "alice", slug: "draft" }),
+};
 
 function observed(read: Reading) {
 	return Effect.suspend(() => {
@@ -55,6 +65,7 @@ function observed(read: Reading) {
 				}),
 			),
 			Effect.catchTag("NoSuchElementError", () => Effect.void),
+			Effect.catchTag("MultiColumnKeyParameter", (refusal) => Effect.sync(() => log.push(`refuses: ${refusal.message}`))),
 			Effect.orDie,
 			Effect.as(log),
 		);
@@ -88,6 +99,11 @@ function perform({ buckets: { keys, rows, tableName }, ledger, owned, sql }: Eff
 				Effect.provideService(SqlClient.SqlClient, sql),
 				Effect.asVoid,
 			);
+		case "readSqlBySlug":
+			return readSql`select id from ${sql(tableName)} where slug = ${multiColumnKeys[read.key]}`.pipe(
+				Effect.provideService(SqlClient.SqlClient, sql),
+				Effect.asVoid,
+			);
 		case "select":
 			return Effect.asVoid(Effect.flatMap(rows.select({ where: read.where }).statement, (statement) => sql`${statement}`));
 	}
@@ -114,6 +130,8 @@ function described(read: Read) {
 			return `the ${read.account} ledger entry at sequence ${read.sequence}, a composite id with a bigint`;
 		case "findOwnedRow":
 			return `owned row ${read.id} of owner ${read.ownerId}, a composite id stored as text`;
+		case "readSqlBySlug":
+			return `raw SQL rows by slug, marking ${read.key} as the slug parameter`;
 		case "readSql":
 			return `raw SQL rows of owner ${read.owner} or with id ${read.id}, marking the owner bucket and the row`;
 		case "aggregate":

@@ -1,6 +1,11 @@
-import { Hash, Schema, SchemaAST } from "effect";
+import { Brand, Hash, Option, Schema, SchemaAST } from "effect";
 
 export type Identity = string | number;
+
+export const Composite: unique symbol = Symbol.for("@shivaedev/changes/keys/Composite");
+
+export type CompositeId = Brand.Branded<string, "CompositeId">;
+const CompositeId = Brand.nominal<CompositeId>();
 
 export function isBucketSchema(schema: Schema.Constraint): boolean {
 	function supported(ast: SchemaAST.AST): boolean {
@@ -27,8 +32,19 @@ export function isBucketSchema(schema: Schema.Constraint): boolean {
 	return supported(SchemaAST.toType(schema.ast));
 }
 
-export function compositeId(values: readonly unknown[]): string {
-	return JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value));
+export function compositeId(values: readonly unknown[]): CompositeId {
+	return CompositeId(JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value)));
+}
+
+const IdParts = Schema.fromJsonString(Schema.Array(Schema.Unknown));
+
+// A composite id arrives as a plain string, so only its exact compositeId spelling identifies it.
+function isCompositeId(id: Identity): boolean {
+	if (typeof id !== "string" || !id.startsWith("[")) {
+		return false;
+	}
+	const parts = Schema.decodeUnknownOption(IdParts)(id);
+	return Option.isSome(parts) && parts.value.length > 1 && compositeId(parts.value) === id;
 }
 
 export function recordKey(name: string, id: unknown): string {
@@ -55,6 +71,13 @@ export interface BucketKey<TName extends string = string> {
 }
 export type Key = ListKey | ItemKey | BucketKey;
 
+export type CompositeItemKey<TName extends string = string> = ItemKey<TName> & { readonly [Composite]: true };
+export type CompositeBucketKey<TName extends string = string> = BucketKey<TName> & { readonly [Composite]: true };
+
+export function isComposite(key: Key): key is CompositeItemKey | CompositeBucketKey {
+	return Composite in key;
+}
+
 export const Key = Schema.Union([
 	Schema.Struct({
 		_tag: Schema.Literal("Bucket"),
@@ -78,9 +101,12 @@ export interface Collection<
 	TTuples extends BucketTuples = Record<never, never>,
 > {
 	readonly bucket: { readonly [TField in keyof TFields]: (value: TFields[TField]["Type"]) => BucketKey<TName> } & {
-		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => BucketKey<TName>;
+		readonly [TTuple in keyof TTuples]: (values: TupleValues<TFields, TTuples[TTuple]>) => CompositeBucketKey<TName>;
 	};
-	readonly item: (id: TId) => ItemKey<TName>;
+	readonly item: {
+		(id: string extends TId ? CompositeId : never): CompositeItemKey<TName>;
+		(id: TId): ItemKey<TName>;
+	};
 	readonly list: ListKey<TName>;
 	readonly name: TName;
 	readonly tuples: TTuples;
@@ -101,10 +127,14 @@ export function collection(name: string, _id: Schema.Top, fields: BucketFields =
 			...Object.keys(fields).map((field) => [field, (value: Identity) => bucket(field, value)]),
 			...Object.entries(tuples).map(([field, columns]) => [
 				field,
-				(values: Readonly<Record<string, Identity>>) => bucket(field, compositeId(columns.map((column) => String(values[column])))),
+				(values: Readonly<Record<string, Identity>>): CompositeBucketKey => ({
+					...bucket(field, compositeId(columns.map((column) => String(values[column])))),
+					[Composite]: true,
+				}),
 			]),
 		]),
-		item: (id: Identity): ItemKey => ({ _tag: "Item", collection: name, id }),
+		item: (id: Identity): ItemKey | CompositeItemKey =>
+			isCompositeId(id) ? { _tag: "Item", collection: name, id, [Composite]: true } : { _tag: "Item", collection: name, id },
 		list: { _tag: "List", collection: name },
 		name,
 		tuples,
