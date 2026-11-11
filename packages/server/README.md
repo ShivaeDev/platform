@@ -527,7 +527,7 @@ For lifecycle observations, acquire `hostProcessReadouts` from `@shivaedev/test-
 
 Wrap disposal of the host scope or runtime with `readouts.shutdown(dispose)`, then acknowledge the application's shutdown signal. `shutdownDuration()` returns `null` before shutdown completes and elapsed milliseconds afterwards, including finalizer time. The parent retains the completed shutdown's readouts after the child process and its owning scope close; `activeWork()` then returns the work that was active when shutdown began. Forced termination without a completed shutdown report cannot provide these observations.
 
-To run the child against PostgreSQL, install the optional `@shivaedev/test-sql` peer and pass a redacted `databaseUrl` to `hostProcess`. The kit opens a `disconnectProxy` in its owning scope and gives the child its URL through `DATABASE_URL`; the child must use that setting. This mode uses the explicit `env` record plus the proxy's `DATABASE_URL` as the child's environment.
+To run the child against PostgreSQL, pass a redacted `databaseUrl` to `hostProcess`. The kit gives the child that URL through `DATABASE_URL`; the child must use that setting. This mode uses the explicit `env` record plus `DATABASE_URL` as the child's environment.
 
 ### PostgreSQL server settings
 
