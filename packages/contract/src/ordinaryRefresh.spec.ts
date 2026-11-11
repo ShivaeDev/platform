@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { commands, connected, showingValue } from "#test/commands/story.ts";
 
 commands.it(
@@ -8,8 +9,10 @@ commands.it(
 		expect(yield* shownValue()).toBe("counter: 0");
 
 		yield* add(2);
-		expect(yield* answer()).toBe("counter: 2");
 
-		expect(yield* shownValue()).toBe("counter: 2");
+		yield* outcomes([
+			["command", () => answer(), "counter: 2"],
+			["query", () => shownValue(), "counter: 2"],
+		]);
 	},
 );
