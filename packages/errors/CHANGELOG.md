@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0 - 2026-11-11
+
+### Added
+
+- `infrastructure.ts` exports `InfrastructureFailure`, a failure that states `isRetryable` or Schema's `SchemaError`, and `infrastructureRejection(failure)`, which turns a failure whose `isRetryable` is `true` into `ServiceUnavailable` with the failure as its cause and returns `undefined` for any other value.
+
+### Changed
+
+- `rpcBoundary` answers an undeclared failure whose `isRetryable` is `true`, such as a `SqlError` from a lock timeout or a lost connection, with `ServiceUnavailable` when the RPC declares `ServiceUnavailable`. It logs an `RPC infrastructure failure` warning with the redacted cause instead of an unexpected report. Other undeclared failures still answer the unexpected rejection and are reported; declared failures pass through unchanged. An operation that declares `ServiceUnavailable` no longer needs its own `SqlError` mapping for retryable failures.
+
 ## 0.11.0 - 2026-11-08
 
 ### Breaking

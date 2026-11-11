@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.47.0 - 2026-11-11
+
+### Added
+
+- `isolatedGit(cwd, args, handed?)` from `@shivaedev/test-story/server/adapters/isolatedGit.ts` runs git for a story kit without the developer's global or system git configuration and without the `GIT_DIR`, `GIT_INDEX_FILE`, `GIT_CONFIG_PARAMETERS`, author and committer variables that a git hook running the tests exports. Variables a kit hands it apply after the isolation. `isolatedGitCommand(command, handed?)` and `isolatedGitEnvironment(handed?)` give the same isolation to a program under test as an `env` command line or as environment variables.
+- `rpcSocketHost(group, handlers)` from `server/rpcSocketHost.ts` serves an RPC group over a real WebSocket on loopback for live-update stories. A story can drop or pause the open sockets, hold or refuse the next handshakes and wait for each handshake that arrives.
+- The screen driver's `withLiveAnswer(answers, action, { timeoutMs }?)` runs an action and returns once a named live query has answered after it, so a screen story can read a result that reaches the screen as a server push after the command has settled, or after another viewer's write. When no answer arrives, the verb fails with `SignalNotReceived`, which names the query.
+
+### Breaking
+
+- The screen driver no longer has `nextLiveHint()`, and `MissingClientActivity` is gone. Replace a fork of `driver.nextLiveHint()` before an action and a join after it with `driver.withLiveAnswer(liveAnswers(view.registry, "the notes list", client.api.list.query()), action)`, naming the query that shows the change. `ScreenDriver` takes one type parameter: change `ScreenDriver<E, THintError>` to `ScreenDriver<E>`. `ScreenSignalState` no longer has `hints`.
+
 ## 0.46.1 - 2026-11-10
 
 ### Changed

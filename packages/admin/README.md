@@ -263,7 +263,7 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 ### Built-in Sessions page
 
-Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
+Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: moduleHandlers(Sessions)`, with `moduleHandlers` from `@shivaedev/contract/moduleHandlers.ts` and `Sessions` from `@shivaedev/identity/Sessions.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
 
 ```tsx
 import { SessionsView } from "@shivaedev/admin/client/adapters/SessionsView.ts";

@@ -5,7 +5,7 @@ import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
 import { SessionUser } from "#identity.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
-import { type SessionListInput, SignedInSession } from "#sessions.ts";
+import { type SessionList, type SessionListInput, SignedInSession } from "#signedInSessions.ts";
 
 function unavailable() {
 	return new AuthUnavailable({ message: "Could not access signed-in sessions" });
@@ -32,7 +32,8 @@ export const listSessions = Effect.fn("Identity.listSessions")(function* (input:
 			})(undefined),
 		tieBreaker: { column: sql`s.id`, direction: "desc", value: (cursor) => cursor.id },
 	}).pipe(Effect.mapError(unavailable));
-	return { next: page.next, sessions: page.rows };
+	const list: SessionList = { next: page.next, sessions: page.rows };
+	return list;
 });
 
 export const revokeSession = Effect.fn("Identity.revokeSession")(function* (id: string) {

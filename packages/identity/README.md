@@ -77,9 +77,24 @@ Pass `subject: delegated` to the contract. A delegated request selects the accou
 
 ### Account preferences and logical days
 
-`AccountPreferences` from `@shivaedev/identity/accountPreferences.ts` exposes authenticated `get`, `set` and `capture` operations for the caller's timezone, locale and units (`metric` or `imperial`). `set` replaces all three values. `capture` only creates a missing record, preserving saved preferences on subsequent sign-ins. An account without a record reads `UTC`, `en` and `metric`. The contract uses `selfSubject`, so a caller cannot select another account with a transport header.
+`AccountPreferences` exposes authenticated `get`, `set` and `capture` operations for the caller's timezone, locale and units (`metric` or `imperial`). `set` replaces all three values. `capture` only creates a missing record, preserving saved preferences on subsequent sign-ins. An account without a record reads `UTC`, `en` and `metric`. The module uses `selfSubject`, so a caller cannot select another account with a transport header. `AccountPreferenceValues`, `AccountTimezone` and the `accountPreferenceKeys` collection come from `@shivaedev/identity/accountPreferenceValues.ts`.
 
-Apply `accountPreferencesMigration` from `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts` as a numbered migration through `migratePostgres`. Provide `accountPreferencesStore` from `@shivaedev/identity/server/account-preferences/store.ts` with the application's `SqlClient`, merge `AccountPreferences` into the RPC group, and install `accountPreferencesHandlers` from `@shivaedev/identity/server/accountPreferencesHandlers.ts`. The host supplies subject middleware as for other subject contracts. The composed `accountPreferencesStore` Layer supplies the repository service internally, so callers provide only the application SQL Layer. Store operations yield `AccountPreferenceRows` and accept a target account id; handlers obtain that authorized target from `Subject`.
+`AccountPreferences` from `@shivaedev/identity/AccountPreferences.ts` is a defined module, which is server code: register it as `module: AccountPreferences` in an `AppModule` with `accountPreferencesStore` from `@shivaedev/identity/server/account-preferences/store.ts` as its services, and apply `accountPreferencesMigration` from `@shivaedev/identity/server/adapters/accountPreferencesMigration.ts` as one of its numbered migrations. The store needs only the application's `SqlClient`. The host supplies subject middleware as for other subject contracts, and each operation reads the authorized account from `Subject`. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/AccountPreferences.ts`, which holds no server code:
+
+```ts
+import { Migrator } from "effect/sql";
+import { AccountPreferences } from "@shivaedev/identity/AccountPreferences.ts";
+import { accountPreferencesStore } from "@shivaedev/identity/server/account-preferences/store.ts";
+import { accountPreferencesMigration } from "@shivaedev/identity/server/adapters/accountPreferencesMigration.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+
+export const preferencesModule = {
+	migrations: { loader: Migrator.fromRecord({ "0005_account_preferences": accountPreferencesMigration }) },
+	module: AccountPreferences,
+	name: "accountPreferences",
+	services: accountPreferencesStore,
+} satisfies AppModule;
+```
 
 To capture browser defaults, enable `{ accountPreferences: true }` in `betterAuthMount` and install the optional Better Auth client plugin:
 
@@ -399,7 +414,7 @@ The seed only grants: removing an account from config does not restore its previ
 
 ### Administer signed-in sessions
 
-Merge `Sessions` from `@shivaedev/identity/sessions.ts` into the application's RPC group and provide `sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Install `permissionLayer(SessionsPermission)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the handlers use the default Better Auth PostgreSQL user and session tables.
+`Sessions` from `@shivaedev/identity/Sessions.ts` is a defined module, which is server code: register it as `module: Sessions`, or serve it through admin's sessions page with `moduleHandlers(Sessions)` from `@shivaedev/contract/moduleHandlers.ts`. Install `permissionLayer(SessionsPermission)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the operations use the default Better Auth PostgreSQL user and session tables. Browser code imports the client contract under the same name from `@shivaedev/identity/generated/Sessions.ts`, and the `SignedInSession`, `SessionCursor` and `SessionListInput` schemas and the `SessionList` type from `@shivaedev/identity/signedInSessions.ts`.
 
 Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the roles that manage sessions. The starter grants it to admin and owner. Both operations use the same permission middleware and `Forbidden` refusal as the admin Users page. They require no Better Auth admin plugin.
 
@@ -1054,7 +1069,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 ### Install, setup and limits
 
-Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports `identity.ts`, `middleware.ts` and `permission.ts`.
+Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports `identity.ts`, `middleware.ts`, `permission.ts` and the client contracts in `generated/`. The package's build writes `src/generated` and `dist/generated` before compiling, so the published archive holds them although the repository does not commit them.
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.

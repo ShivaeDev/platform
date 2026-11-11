@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.44.1 - 2026-11-11
+
+### Changed
+
+- Generated apps take their Vite and Vitest configuration from `@shivaedev/build`, gain `generate` and `prepare` scripts so `pnpm install` writes `src/generated`, generate before `pnpm typecheck` and `pnpm dev`, and keep `src/generated` out of Git except its README. The packed template never contains generated files.
+- `create-app resource` writes a list query without `reads`. Its repository read filters by the signed-in owner, so an open list listens on that owner's bucket, the same key the removed declaration named. The generated stories keep a list open and check that it receives its owner's new item and no update for another account's.
+- Generated apps' notes queries leave out `reads`: `notes.get` listens on the note's row and `notes.list` on its owner's bucket, the keys their repository calls filter by. The note statistics query keeps `reads: () => [notes.list]`, because it counts the whole table through raw SQL.
+
+### Fixed
+
+- Generated apps ignore `.platform/`, where development runs keep their local trace store.
+
 ## 0.44.0 - 2026-11-10
 
 ### Breaking

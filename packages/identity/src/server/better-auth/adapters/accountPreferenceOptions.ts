@@ -1,7 +1,7 @@
 import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { Effect, Option, Schema } from "effect";
-import { AccountPreferenceValues } from "#accountPreferences.ts";
+import { AccountPreferenceValues } from "#accountPreferenceValues.ts";
 import { AccountPreferencesStore } from "#server/account-preferences/service.ts";
 
 export const accountPreferenceOptions = Effect.fnUntraced(function* <TOptions extends BetterAuthOptions>(options: TOptions) {

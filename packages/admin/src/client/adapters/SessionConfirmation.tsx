@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { SignedInSession } from "@shivaedev/identity/sessions.ts";
+import type { SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
 
 export function SessionConfirmation({
 	selected,

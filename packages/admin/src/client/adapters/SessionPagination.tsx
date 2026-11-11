@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import type { SessionList, SessionListInput } from "@shivaedev/identity/sessions.ts";
+import type { SessionList, SessionListInput } from "@shivaedev/identity/signedInSessions.ts";
 
 type Cursor = NonNullable<typeof SessionListInput.Type.cursor>;
 
@@ -9,7 +9,7 @@ export function SessionPagination({
 	pending,
 	go,
 }: {
-	readonly data: typeof SessionList.Type | undefined;
+	readonly data: SessionList | undefined;
 	readonly cursors: readonly Cursor[];
 	readonly pending: boolean;
 	readonly go: (cursors: readonly Cursor[]) => void;

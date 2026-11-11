@@ -50,6 +50,7 @@ import { noLimitImports } from "#rules/stories/noLimitImports.ts";
 import { positiveRefusals } from "#rules/stories/positiveRefusals.ts";
 import { queueReadouts } from "#rules/stories/queueReadouts.ts";
 import { queueSql } from "#rules/stories/queueSql.ts";
+import { rawServers } from "#rules/stories/rawServers.ts";
 import { storySetup } from "#rules/stories/setup.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
@@ -112,6 +113,7 @@ export const builtInRules = [
 	adapterOnlyFakes,
 	globalRetries,
 	databaseUrl,
+	rawServers,
 	storyEngine,
 	queueSql,
 	queueReadouts,

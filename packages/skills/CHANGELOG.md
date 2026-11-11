@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 - 2026-11-11
+
+### Changed
+
+- The story-testing skill tells kits to wrap an action in `withLiveAnswer` when its result reaches the screen only through a live query, and no longer recommends `nextLiveHint()`.
+
 ## 0.9.0 - 2026-11-10
 
 ### Breaking

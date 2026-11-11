@@ -1,22 +1,13 @@
-import { createConnection, createServer } from "node:net";
+import { createServer } from "node:http";
+import { createConnection } from "node:net";
 import { Context, Deferred, Effect, Fiber, Layer } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { Ping } from "#test/app-host/ping.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/readiness/Greeting") {}
-
-async function availablePort() {
-	const server = createServer();
-	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-	const address = server.address();
-	if (address === null || typeof address === "string") {
-		throw new Error("Expected a TCP address");
-	}
-	await new Promise<void>((resolve) => server.close(() => resolve()));
-	return address.port;
-}
 
 type Held = "services" | "handlers" | "routes";
 
@@ -32,7 +23,7 @@ export const readiness = storyKit({
 	*create(): Effect.fn.Return<State> {
 		return {
 			held: yield* Deferred.make<void>(),
-			port: yield* Effect.promise(availablePort),
+			port: Number(new URL(yield* Effect.orDie(Effect.scoped(loopbackServer(createServer())))).port),
 			release: yield* Deferred.make<void>(),
 		};
 	},
