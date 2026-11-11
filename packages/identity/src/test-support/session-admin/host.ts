@@ -9,27 +9,29 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
+import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { Sessions as SessionsClient } from "#generated/Sessions.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
+import { Sessions } from "#Sessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
-import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "#server/permissionLayer.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { ManageSessions, SessionsPermission } from "#sessionPermissions.ts";
-import { Sessions } from "#sessions.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 
 const Access = roleSet(role("admin", [ManageSessions]), role("viewer", []));
 const Profile = contract("profile", {
 	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: SessionUserSchema })],
 }).middleware(AuthenticatedUser);
-export const Api = Sessions.merge(Profile);
+const ServedApi = Sessions.merge(Profile);
+const Api = SessionsClient.merge(Profile);
 
 export const sessionAdminHost = Effect.fnUntraced(function* () {
 	const pool = yield* betterAuthDatabase();
@@ -48,9 +50,9 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(liveServerLayer));
-	const application = Layer.merge(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }));
-	const handlers = hostChanges(Api).pipe(Layer.provideMerge(application));
-	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
+	const application = Layer.merge(moduleHandlers(Sessions), Profile.application.toLayer({ "profile.read": () => SessionUser }));
+	const handlers = hostChanges(ServedApi).pipe(Layer.provideMerge(application));
+	const rpc = RpcServer.layerHttp({ group: ServedApi, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([
 			handlers.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live)])),
 			permissionLayer(SessionsPermission),

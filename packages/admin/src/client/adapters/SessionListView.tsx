@@ -1,5 +1,5 @@
 import { DateTime } from "effect";
-import type { SignedInSession } from "@shivaedev/identity/sessions.ts";
+import type { SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
 
 interface SessionControls {
 	readonly currentSessionId: string | undefined;

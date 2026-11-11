@@ -5,18 +5,9 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Deferred, Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { loopbackServer } from "@shivaedev/test-story/server/adapters/loopback.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { starterModules, toolingFiles } from "#quality/test-support/starterModules.ts";
-
-function listenBackend(): Promise<ReturnType<typeof createServer>> {
-	return new Promise((resolve, reject) => {
-		const backend = createServer((request, response) => {
-			response.end(`${request.url}|${request.headers.host}`);
-		});
-		backend.once("error", reject);
-		backend.listen(3000, "127.0.0.1", () => resolve(backend));
-	});
-}
 
 export const appTooling = storyKit({
 	*create() {
@@ -55,8 +46,11 @@ export const appTooling = storyKit({
 		},
 		*serve() {
 			story.tell("serve the application and its backend");
-			yield* Effect.acquireRelease(Effect.promise(listenBackend), (backend) =>
-				Effect.promise(() => new Promise<void>((resolve, reject) => backend.close((error) => (error ? reject(error) : resolve())))),
+			yield* loopbackServer(
+				createServer((request, response) => {
+					response.end(`${request.url}|${request.headers.host}`);
+				}),
+				{ port: 3000 },
 			);
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 			const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=@shivaedev/source", "serve.mjs"], { cwd: engine.root }));

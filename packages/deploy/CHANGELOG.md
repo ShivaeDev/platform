@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-11-11
+
+### Changed
+
+- Align published dependency requirements with the workspace.
+
 ## 0.7.0 - 2026-11-08
 
 ### Breaking

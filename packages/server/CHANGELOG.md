@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.34.0 - 2026-11-11
+
+### Added
+
+- An `AppModule` registration can name a module built with `defineModule` as `module: Notes` instead of `group` plus `handlers`; `appModules` builds its group and its handlers with `moduleHandlers`, and both forms can sit in one application. The `group` plus `handlers` form is being retired.
+- The host refuses to start with `HandWrittenModuleHandlers` when a query of a defined module is served by anything but its generated handler, naming the module and each affected query, and `AppModule` refuses a defined module as `group` at compile time.
+
+### Fixed
+
+- Nothing a query's read policy records during a live rerun counts, for queries served by hand-written handlers too.
+
+### Breaking
+
+- `appModules` refuses at compile time a registration whose type lost a defined module's `requires`: one annotated `: AppModule`, returned by a helper typed `AppModule`, or whose `module` is typed `RegisteredModule`. Such a registration used to compile with generated handlers that required nothing, so a missing module service failed only when an operation ran. A `group` plus `handlers` registration annotated `: AppModule` is refused too, because its type is the same. To migrate either kind, declare the registration with `satisfies AppModule` instead of the annotation, or write the object literal directly in the list passed to `appModules`; a helper returns its inferred type instead of `AppModule`.
+
 ## 0.33.4 - 2026-11-10
 
 ### Changed

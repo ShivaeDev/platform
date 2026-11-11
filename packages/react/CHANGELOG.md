@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.47.2 - 2026-11-11
+
+### Fixed
+
+- A route whose component mounts after its loader read a query now continues the loader's subscription and first result, so the query handler runs once per page view, for live and `live: false` queries alike. `loadQuery` keeps a successful query mounted for a five-second hand-over window on the query runtime's `Clock`; a route that is left or never mounts releases it when the window passes.
+- `screenPending()` settles while a live query is mounted. A live query still keeps the screen pending until its first answer arrives; its open subscription no longer keeps it pending forever.
+
 ## 0.47.1 - 2026-11-10
 
 ### Changed

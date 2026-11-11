@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.9 - 2026-11-11
+
+### Changed
+
+- `withTestTransaction` and `raceWithLock` call `transact` without an identity `onSqlError` and need the `@shivaedev/sql` release that allows it; their behavior is unchanged.
+
 ## 0.24.8 - 2026-11-08
 
 ### Changed

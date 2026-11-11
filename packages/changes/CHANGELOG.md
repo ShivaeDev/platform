@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0 - 2026-11-11
+
+### Added
+
+- `recordRead(keys)` and the `ReadRecorder` reference in `@shivaedev/changes/readRecorder.ts` let a read name the keys it listens on from its own arguments, before its statement is sent.
+- Tuple bucket keys are typed `CompositeBucketKey`, and item keys built from a `compositeId` are typed `CompositeItemKey`; `compositeId` returns the branded `CompositeId`. Both keys carry a runtime mark that `isComposite(key)` from `@shivaedev/changes/compositeKeys.ts` reads. Their key strings are unchanged.
+- `recordRead(keys, { inferred: true })` marks keys a library worked out from a read's arguments; a live subscription uses them only for a query that declares no keys.
+- `collection()` takes a fourth argument that declares buckets over an ordered tuple of columns, such as `{ ownerDay: ["ownerId", "day"] }`, and builds each key with `entries.bucket.ownerDay({ ownerId, day })`. A tuple key is an ordinary bucket key, so a query of one owner's day reruns only for writes to that owner and day.
+- `decodeBucketValue(schema)` from `@shivaedev/changes/buckets.ts` returns the decoder that `declaredBuckets` uses for bucket values.
+
 ## 0.11.1 - 2026-11-07
 
 ### Changed

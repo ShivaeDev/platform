@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.3 - 2026-11-11
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.11.0 to 0.12.0.
+- Update `@shivaedev/http` from 0.8.1 to 0.8.2.
+- Update `@shivaedev/service` from 0.9.0 to 0.9.1.
+
 ## 0.17.2 - 2026-11-08
 
 ### Changed
