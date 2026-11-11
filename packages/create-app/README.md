@@ -69,7 +69,7 @@ pnpm migrate
 pnpm test src/modules/bookmarks/server/lifecycle.spec.ts
 ```
 
-The command creates a resource module with an authenticated list query and create command, an account-owned PostgreSQL table, a service, a repository, a bound client and a story kit. Its generated stories exercise creation, persistence, private lists and anonymous refusals through the real application host. Both full and minimal apps accept resources; the migration takes the next number across the app's migration folders.
+The command creates a resource module with an authenticated list query and create command, an account-owned PostgreSQL table, a service, a repository, a bound client and a story kit. The list query declares no `reads`: its repository read filters by the signed-in owner, so an open list listens on that owner's bucket and reruns for the owner's new items and not for another account's. Its generated stories exercise creation, persistence, private lists, live list updates and anonymous refusals through the real application host and PostgreSQL. Both full and minimal apps accept resources; the migration takes the next number across the app's migration folders.
 
 The generated `server/service.ts` declares its `defineRepository` tag and `SessionUser` in `requires`, with `Effect.void` initialization. Its `create.ts` and `list.ts` operations are named `Effect.fn` exports that yield the repository and caller. Handlers pass only operation inputs. The module registers the service in `requestServices` and its repository in `services`. A resource’s single insert commits without `transact`; add a transaction when several writes, such as a write and job enqueue, must commit together.
 

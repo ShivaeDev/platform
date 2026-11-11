@@ -2,16 +2,27 @@ import type { ResourceNames } from "#resource/names.ts";
 
 export function resourceKit({ name, pascal, table }: ResourceNames) {
 	return `import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
-import { DateTime, Effect } from "effect";
+import { DateTime, Effect, Queue, Schema, Stream } from "effect";
 import { SqlClient } from "effect/sql";
+import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { make${pascal}Client } from "#modules/${name}/client/make.ts";
+import { Item } from "#modules/${name}/${name}.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 type Client = Effect.Success<ReturnType<typeof make${pascal}Client>["client"]>;
+
+const decodeItems = Schema.decodeUnknownSync(Schema.toType(Schema.Array(Item.json)));
+
+function describeUpdate(update: QueryUpdate) {
+	if (update._tag === "Result") {
+		return decodeItems(update.value).map((item) => item.title);
+	}
+	return update._tag === "Unchanged" ? "unchanged" : "read denied";
+}
 
 export const app = storyKit({
 	around: withIsolatedDatabase,
@@ -24,31 +35,47 @@ export const app = storyKit({
 	layer: postgres,
 	name: "${name}",
 	stages: ["accounts", "items"],
-	verbs: (engine, story) => ({
-		itemsOf: (name: string) => {
+	verbs: (engine, story) => {
+		const accountClient = (name: string) => {
 			const client = engine.accounts.get(name);
 			if (client === undefined) {
 				throw new Error(\`Give the story signedIn("\${name}")\`);
 			}
-			return {
-				create: (title: string) => {
-					story.tell(\`\${name} creates \${JSON.stringify(title)}\`);
-					return client["${name}.create"]({ title });
-				},
-				list: () => {
-					story.tell(\`\${name} lists ${name}\`);
-					return client["${name}.list"]();
-				},
-			};
-		},
-		storedTitles: () =>
-			Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				const rows = yield* sql<{ title: string }>\`select title from \${sql("${table}")} order by id desc\`;
-				return rows.map((row) => row.title);
-			}),
-		visitorClient: () => make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, { webSocketConstructor: layerWebSocketConstructor }).client,
-	}),
+			return client;
+		};
+		return {
+			itemsOf: (name: string) => {
+				const client = accountClient(name);
+				return {
+					create: (title: string) => {
+						story.tell(\`\${name} creates \${JSON.stringify(title)}\`);
+						return client["${name}.create"]({ title });
+					},
+					list: () => {
+						story.tell(\`\${name} lists ${name}\`);
+						return client["${name}.list"]();
+					},
+				};
+			},
+			storedTitles: () =>
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const rows = yield* sql<{ title: string }>\`select title from \${sql("${table}")} order by id desc\`;
+					return rows.map((row) => row.title);
+				}),
+			visitorClient: () => make${pascal}Client(\`\${engine.host.baseUrl}/rpc\`, { webSocketConstructor: layerWebSocketConstructor }).client,
+			watchesList: (name: string) =>
+				Effect.gen(function* () {
+					story.tell(\`\${name} keeps the ${name} list open\`);
+					const updates = yield* Queue.unbounded<QueryUpdate>();
+					yield* accountClient(name)["${name}.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
+						Stream.runForEach((update) => Queue.offer(updates, update)),
+						Effect.forkScoped,
+					);
+					return { nextUpdate: () => Effect.map(Queue.take(updates), describeUpdate) };
+				}),
+		};
+	},
 });
 
 export function signedIn(name: string) {
@@ -61,49 +88,5 @@ export function signedIn(name: string) {
 		engine.accounts.set(name, client);
 	});
 }
-`;
-}
-
-export function resourceStory({ name }: ResourceNames) {
-	return `import { expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { app, signedIn } from "#modules/${name}/test-support/application.ts";
-import { answer } from "#test-support/answers.ts";
-
-app.it("alice creates an item, lists it and persists it in PostgreSQL", [signedIn("alice")], function* ({ itemsOf, storedTitles }) {
-	expect(yield* itemsOf("alice").list()).toEqual([]);
-
-	const item = yield* itemsOf("alice").create("First item");
-
-	expect(item.title).toBe("First item");
-	yield* outcomes([
-		["alice's list", () => itemsOf("alice").list(), [{ id: item.id, title: "First item" }]],
-		["stored titles", () => storedTitles(), ["First item"]],
-	]);
-});
-
-app.it("bob cannot list alice's items", [signedIn("alice"), signedIn("bob")], function* ({ itemsOf }) {
-	yield* itemsOf("alice").create("Alice's private item");
-
-	const listed = yield* itemsOf("bob").list();
-
-	expect(listed).toEqual([]);
-});
-
-app.it("a visitor cannot create items", [], function* ({ visitorClient }) {
-	const client = yield* visitorClient();
-
-	const replied = yield* answer(client["${name}.create"]({ title: "Anonymous item" }));
-
-	expect(replied).toBe("sign in required");
-});
-
-app.it("a visitor cannot list items", [], function* ({ visitorClient }) {
-	const client = yield* visitorClient();
-
-	const replied = yield* answer(client["${name}.list"]());
-
-	expect(replied).toBe("sign in required");
-});
 `;
 }
