@@ -8,8 +8,19 @@ set -euo pipefail
 
 [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || exit 0
 
+# A session can start this hook twice at once, from user settings and from the repository's. The second run waits for the first
+# and then finds everything in place, so two runs never race on apt, the cluster or pnpm. Commands that start a daemon close
+# the lock's descriptor (9>&-), or the daemon would keep the lock after this script exits.
+exec 9>/var/lock/platform-session-start.lock
+flock -w 540 9 || { echo "session-start: another run still holds the lock after 540 seconds" >&2; exit 1; }
+
 # A stalled network must fail the step, not hold the session start for the hook's whole timeout.
 curlOptions=(-fsSL --connect-timeout 15 --max-time 300 --retry 3 --retry-delay 2)
+exportOnce() {
+  if [ -n "${CLAUDE_ENV_FILE:-}" ] && ! grep -qxF "$1" "$CLAUDE_ENV_FILE" 2>/dev/null; then
+    echo "$1" >>"$CLAUDE_ENV_FILE"
+  fi
+}
 waitForPostgres() {
   for _ in $(seq 120); do
     pg_isready -q -h 127.0.0.1 -p "$port" && return 0
@@ -47,10 +58,7 @@ if [ ! -x "$nodeHome/bin/node" ]; then
 fi
 export PATH="$nodeHome/bin:$PATH"
 # Written here, not at the end, so a later failure still leaves the session on the pinned Node.
-pathLine="export PATH=\"$nodeHome/bin:\$PATH\""
-if [ -n "${CLAUDE_ENV_FILE:-}" ] && ! grep -qxF "$pathLine" "$CLAUDE_ENV_FILE" 2>/dev/null; then
-  echo "$pathLine" >>"$CLAUDE_ENV_FILE"
-fi
+exportOnce "export PATH=\"$nodeHome/bin:\$PATH\""
 if ! command -v pnpm >/dev/null; then
   # Node 25 and newer ship no corepack, so install the pnpm that package.json pins.
   timeout 300 npm install -g "pnpm@$(sed -n 's/.*"packageManager": "pnpm@\([^+"]*\).*/\1/p' package.json)"
@@ -95,12 +103,12 @@ if ! pg_lsclusters --no-header | awk -v major="$major" -v port="$port" '$1 == ma
   pg_dropcluster "$major" main 2>/dev/null || true
   pg_createcluster "$major" main --port "$port" --locale C.UTF-8 --encoding UTF8
   printf "listen_addresses = '127.0.0.1'\nmax_connections = 300\nssl = off\n" >>"/etc/postgresql/$major/main/postgresql.conf"
-  pg_ctlcluster "$major" main start
+  pg_ctlcluster "$major" main start 9>&-
   waitForPostgres
   su postgres -c "psql -p $port -qc \"ALTER USER postgres PASSWORD '$password'\""
   fresh=true
 fi
-pg_ctlcluster "$major" main status >/dev/null 2>&1 || pg_ctlcluster "$major" main start
+pg_ctlcluster "$major" main status >/dev/null 2>&1 || pg_ctlcluster "$major" main start 9>&-
 waitForPostgres
 
 # --- Dependencies, the pre-commit hook and the databases, only when an input of theirs has changed ---

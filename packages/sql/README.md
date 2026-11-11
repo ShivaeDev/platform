@@ -1109,7 +1109,7 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
 
-The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
+The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they use `platform_test_sql` on the local PostgreSQL server; under `CI`, collection fails at the shared gate.
 
 The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/test-kits/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writers can pass the declaration returned by `changes` directly to `withChangeCoverage` and record it through `record()`; a table key alone covers nothing. Local recordings satisfy coverage too. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
 
