@@ -15,6 +15,19 @@ generator.it(
 );
 
 generator.it(
+	"generate leaves nothing but the generated file in its folder and nothing but its record in the cache's folder",
+	[notesProject()],
+	function* ({ entriesOf, generates }) {
+		yield* generates();
+
+		yield* outcomes([
+			["the generated notes folder", () => entriesOf("src/generated/modules/notes"), ["notes.ts"]],
+			["the cache's notes folder", () => entriesOf("node_modules/.cache/@shivaedev/build/src/modules/notes"), ["notes.ts.json"]],
+		]);
+	},
+);
+
+generator.it(
 	"once the cache is removed, generate builds a program again and finds the file it wrote byte for byte current",
 	[notesProject(), generatedOnce()],
 	function* ({ generates, removesTheCache }) {
