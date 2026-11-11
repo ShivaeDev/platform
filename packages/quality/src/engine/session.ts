@@ -42,6 +42,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 		entries: config.entries,
 		exceptions: config.exceptions,
 		files: inventory.files,
+		generated: config.generated,
 		nonEffectFolders: config.nonEffectFolders,
 		readText,
 		root: config.root,

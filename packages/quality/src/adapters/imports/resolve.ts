@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
@@ -82,13 +82,39 @@ function resolvedPath(request: ImportRequest, from: string, project: Project): s
 	return path === undefined ? undefined : fitting(path, request.type);
 }
 
-export function presumedTarget(root: string, request: ImportRequest, from: string, project: Project): string | undefined {
-	if (request.kind !== "import" || !request.specifier.startsWith(PACKAGE_IMPORT)) {
+// A package import of a missing file names a path in the repository when a workspace link leads there, outside installed packages.
+function linkedTarget(root: string, path: string): string | undefined {
+	if (!path.includes(NODE_MODULES)) {
 		return undefined;
 	}
-	const path = ts.resolveModuleName(request.specifier.replace(QUERY, ""), from, project.options, presumingHost, undefined, undefined, request.mode)
-		.resolvedModule?.resolvedFileName;
-	return path === undefined ? undefined : posix(relative(root, path));
+	let folder = dirname(path);
+	while (!existsSync(folder) && dirname(folder) !== folder) {
+		folder = dirname(folder);
+	}
+	const target = posix(relative(realpathSync(root), join(realpathSync(folder), relative(folder, path))));
+	return target.startsWith("../") || target.split("/").includes("node_modules") ? undefined : target;
+}
+
+function workspaceHost(root: string): ts.ModuleResolutionHost {
+	return {
+		...ts.sys,
+		fileExists: (path) => ts.sys.fileExists(path) || (!path.endsWith(`/${PACKAGE_JSON}`) && linkedTarget(root, path) !== undefined),
+	};
+}
+
+export function presumedTarget(root: string, request: ImportRequest, from: string, project: Project): string | undefined {
+	const specifier = request.specifier.replace(QUERY, "");
+	if (request.kind !== "import" || specifier.startsWith(".") || specifier.startsWith("/")) {
+		return undefined;
+	}
+	if (specifier.startsWith(PACKAGE_IMPORT)) {
+		const path = ts.resolveModuleName(specifier, from, project.options, presumingHost, undefined, undefined, request.mode).resolvedModule
+			?.resolvedFileName;
+		return path === undefined ? undefined : posix(relative(root, path));
+	}
+	const path = ts.resolveModuleName(specifier, from, project.options, workspaceHost(root), undefined, undefined, request.mode).resolvedModule
+		?.resolvedFileName;
+	return path === undefined ? undefined : linkedTarget(root, path);
 }
 
 function endpointAt(root: string, specifier: string, path: string): Endpoint {

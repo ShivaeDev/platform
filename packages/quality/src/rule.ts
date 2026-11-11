@@ -37,6 +37,8 @@ export interface RuleInputs {
 	readonly entries?: readonly string[];
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
+	// The folders imports/resolvable declares as generated output, so every rule reads one declaration.
+	readonly generated?: readonly string[];
 	readonly nonEffectFolders?: readonly string[];
 	readonly readText: (path: string) => Effect.Effect<string | undefined, FilesystemFailure>;
 	readonly root: string;
