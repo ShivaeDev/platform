@@ -1,6 +1,7 @@
-import { Deferred, Effect, Result } from "effect";
+import { Deferred, Effect, Layer, Result } from "effect";
 import { changeKeyCheck } from "#adapters/changeKeyCheck.ts";
 import { contextCaptureCheck } from "#adapters/contextCaptureCheck.ts";
+import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import { rpcBoundaryCheck } from "#adapters/rpcBoundaryCheck.ts";
 import { serviceModelCheck } from "#adapters/serviceModelCheck.ts";
@@ -37,6 +38,7 @@ function messageOf(cause: unknown): string {
 }
 
 // One program per package serves every check and is dropped before the next package, so memory stays bounded by the largest package.
+// The walk parses installed declarations into a fresh registry rather than the run's memoized one, so they go with it: no rule after the walk reads them.
 const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs, ids: ReadonlySet<string>) {
 	const prepared = yield* Effect.forEach(
 		CHECKS.filter(({ id }) => ids.has(id)),
@@ -77,7 +79,11 @@ const walk = Effect.fn("PackageChecks.walk")(function* (inputs: RuleInputs, ids:
 	return checked;
 });
 
-type Walk = ReturnType<typeof walk>;
+function walkPackages(inputs: RuleInputs, ids: ReadonlySet<string>) {
+	return walk(inputs, ids).pipe(Effect.provide(Layer.fresh(DeclarationFiles.layer)));
+}
+
+type Walk = ReturnType<typeof walkPackages>;
 const walks = new WeakMap<readonly SourceFile[], Deferred.Deferred<Checked, Effect.Error<Walk>>>();
 
 // A run walks the packages once for the checks of its active rules. Those rules wait for the walk outside the rule pool, and the run decides when the walk itself runs.
@@ -92,7 +98,7 @@ export function withPackageWalk<TValue, TError, TServices>(
 			walks.set(inputs.sources, walked);
 			return walked;
 		}),
-		(walked) => use(Effect.asVoid(Deferred.into(walk(inputs, ids), walked))),
+		(walked) => use(Effect.asVoid(Deferred.into(walkPackages(inputs, ids), walked))),
 		() => Effect.sync(() => walks.delete(inputs.sources)),
 	);
 }
@@ -100,6 +106,6 @@ export function withPackageWalk<TValue, TError, TServices>(
 export function packageFindings(inputs: RuleInputs, id: CheckId): Effect.Effect<readonly Finding[], unknown, Effect.Services<Walk>> {
 	return Effect.suspend(() => {
 		const walked = walks.get(inputs.sources);
-		return walked === undefined ? walk(inputs, new Set([id])) : Deferred.await(walked);
+		return walked === undefined ? walkPackages(inputs, new Set([id])) : Deferred.await(walked);
 	}).pipe(Effect.flatMap((checked) => Effect.fromResult(checked.get(id) ?? Result.succeed([]))));
 }

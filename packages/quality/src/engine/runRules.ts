@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { STORY_PROGRAM_RULES, withStoryProgram } from "#adapters/storyProgram.ts";
 import { type ActiveRule, runRule } from "#engine/runRule.ts";
 import type { Violation } from "#engine/violation.ts";
 import type { SetupFailure } from "#failure.ts";
@@ -14,13 +15,16 @@ function spawnsChild(rule: ActiveRule): boolean {
 }
 
 // Rules share one Node thread, so only the Biome and Knip child processes run beside the other rules: each type-checker program, the package walk's included, is built alone.
+// The rules that read the story program, which spans every source, run one after another so the run drops it after the last of them.
 function runTiers(rules: readonly ActiveRule[], inputs: RuleInputs): RuleRun {
 	function run(rule: ActiveRule): RuleRun {
 		return runRule(rule, inputs, inputs.configFile ?? "quality.config.ts");
 	}
 	const walked = rules.filter((rule) => PACKAGE_CHECKS.has(rule.id));
-	const inThread = rules.filter((rule) => !(PACKAGE_CHECKS.has(rule.id) || spawnsChild(rule)));
-	const fast = inThread.filter((rule) => rule.depth === "fast").map(run);
+	const inThread = rules.filter((rule) => !(PACKAGE_CHECKS.has(rule.id) || spawnsChild(rule) || STORY_PROGRAM_RULES.has(rule.id)));
+	const stories = rules.filter((rule) => STORY_PROGRAM_RULES.has(rule.id)).map(run);
+	const told = stories.length === 0 ? [] : [Effect.map(withStoryProgram(inputs, Effect.all(stories)), (found) => found.flat())];
+	const fast = [...inThread.filter((rule) => rule.depth === "fast").map(run), ...told];
 	const deep = inThread.filter((rule) => rule.depth === "deep").map(run);
 	function lanes(thread: readonly RuleRun[]): RuleRun {
 		return Effect.map(Effect.all([Effect.all(rules.filter(spawnsChild).map(run)), Effect.all(thread)], { concurrency: 2 }), ([children, inOrder]) => [

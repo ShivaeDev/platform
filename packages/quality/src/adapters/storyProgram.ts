@@ -1,8 +1,25 @@
 import { join } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
+
+export const STORY_PROGRAM_RULES: ReadonlySet<string> = new Set([
+	"tests/adapter-only-fakes",
+	"tests/database-url",
+	"tests/domain-outcomes",
+	"tests/global-retries",
+	"tests/grouped-outcomes",
+	"tests/named-values",
+	"tests/no-limit-imports",
+	"tests/positive-refusals",
+	"tests/queue-readouts",
+	"tests/spec-helpers",
+	"tests/story-engine",
+	"tests/story-specs",
+	"tests/wait-on-events",
+]);
 
 const programs = new WeakMap<RuleInputs["sources"], ts.Program>();
 
@@ -43,4 +60,14 @@ export function storyProgram(inputs: RuleInputs, graph: ImportGraph): ts.Program
 	const program = ts.createProgram([...sources.keys()], options, host);
 	programs.set(inputs.sources, program);
 	return program;
+}
+
+export function withStoryProgram<TValue, TError, TServices>(
+	inputs: RuleInputs,
+	rules: Effect.Effect<TValue, TError, TServices>,
+): Effect.Effect<TValue, TError, TServices> {
+	return Effect.ensuring(
+		rules,
+		Effect.sync(() => programs.delete(inputs.sources)),
+	);
 }
