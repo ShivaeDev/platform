@@ -7,7 +7,7 @@ import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 ruleStory.it(
-	"type-checking rules that share each package's program report every package's findings in one lint",
+	"the rules that share each package's program and a rule with a program rooted at its own files report every package's findings in one lint",
 	[qualityInstalled(), effectResolves(), repositoryHas(...packageProgramFiles)],
 	function* ({ gate, gateReports }) {
 		yield* gate();
@@ -23,7 +23,7 @@ ruleStory.it(
 );
 
 lintRunStory.it(
-	"a full lint builds each workspace package's program once for every type-checking rule that shares it",
+	"a full lint builds each workspace package's program once for every type-checking rule that shares it, and one program rooted at the files effect/context-capture checks",
 	[effectInstalled(), lintRunRepositoryHas(...packageProgramFiles)],
 	function* ({ lints, reportsRule, spanCount }) {
 		yield* lints("--full");
@@ -31,7 +31,7 @@ lintRunStory.it(
 		yield* outcomes([
 			["service parameters reported", () => reportsRule("effect/service-parameters"), true],
 			["context capture reported", () => reportsRule("effect/context-capture"), true],
-			["package programs built", () => spanCount("TypeScriptProgram.sourcesProgram"), PACKAGES.length],
+			["programs built", () => spanCount("TypeScriptProgram.sourcesProgram"), PACKAGES.length + 1],
 		]);
 	},
 	CLI_TIMEOUT,
