@@ -46,10 +46,11 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && node --conditions=@shivaedev/source node_modules/@shivaedev/build/src/cli.ts generate && tsc --project tsconfig.build.json",
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && pnpm generate && tsc --project tsconfig.build.json",
+		"generate": "shivaedev-build generate",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
-		"typecheck": "node --conditions=@shivaedev/source node_modules/@shivaedev/build/src/cli.ts generate && tsc --noEmit"
+		"typecheck": "pnpm generate && tsc --noEmit"
 	},
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
