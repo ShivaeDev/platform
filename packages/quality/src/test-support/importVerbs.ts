@@ -10,7 +10,6 @@ import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export interface ImportEngine {
 	findings: Findings | undefined;
-	generated: readonly string[];
 	graph: ImportGraph | undefined;
 	readonly root: string;
 }
@@ -43,7 +42,7 @@ const checked = Effect.fn("ImportStory.checked")(function* (engine: ImportEngine
 	if (configured._tag === "Invalid") {
 		return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
 	}
-	const inputs = only({ ...(yield* Effect.promise(() => scanned(engine.root))), generated: engine.generated }, folder);
+	const inputs = only(yield* Effect.promise(() => scanned(engine.root)), folder);
 	engine.findings = yield* configured.check(inputs);
 	return engine.findings;
 });

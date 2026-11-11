@@ -1,27 +1,26 @@
 import { posix } from "node:path";
 import type { ImportEdge } from "#imports/graph.ts";
+import type { WorkspacePackage } from "#imports/workspace.ts";
 
-const LEADING_DOT = /^\.\//u;
+const GENERATED = "src/generated";
 
-const TRAILING_SLASHES = /\/+$/u;
-
-export function generatedFolder(declared: string): string {
-	return posix.normalize(declared).replace(LEADING_DOT, "").replace(TRAILING_SLASHES, "");
+// The generator of @shivaedev/build writes each project's output to src/generated, at the application root and in every workspace package.
+export function generatedFolders(packages: readonly WorkspacePackage[]): readonly string[] {
+	return [GENERATED, ...packages.map((owner) => posix.join(owner.directory, GENERATED))];
 }
 
-export function inGeneratedFolder(folders: readonly string[], path: string | undefined): boolean {
-	return folders.some((folder) => path?.startsWith(`${folder}/`) === true);
+function generatedFolderOf(folders: readonly string[], path: string): string | undefined {
+	return folders.find((folder) => path.startsWith(`${folder}/`));
 }
 
-// A generated client type-imports the module at its path outside the generated folder so the compiler checks they match; the import is erased.
+export function generatedFrom(folders: readonly string[], path: string): string | undefined {
+	const folder = generatedFolderOf(folders, path);
+	return folder === undefined ? undefined : posix.join(posix.dirname(folder), path.slice(folder.length + 1));
+}
+
+// A generated client type-imports its module so the compiler checks they match; the import is erased.
 export function ownModuleTypeImport(folders: readonly string[], edge: ImportEdge): boolean {
-	if (!edge.type || edge.to.kind !== "file") {
-		return false;
-	}
-	const target = edge.to.path;
-	return folders.some(
-		(folder) => edge.from.startsWith(`${folder}/`) && target === posix.join(posix.dirname(folder), edge.from.slice(folder.length + 1)),
-	);
+	return edge.type && edge.to.kind === "file" && generatedFrom(folders, edge.from) === edge.to.path;
 }
 
 export function followedEdges(folders: readonly string[], edges: readonly ImportEdge[]): readonly ImportEdge[] {

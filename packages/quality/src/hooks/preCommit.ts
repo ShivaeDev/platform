@@ -1,36 +1,15 @@
-import * as NodePath from "@effect/platform-node/NodePath";
-import { Config, Console, Effect, Path } from "effect";
+import { Config, Console, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { reportLint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
 import { passes } from "#engine/evaluate.ts";
+import { projectScripts } from "#engine/projectScripts.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
 import { stagedCheck } from "#hooks/stagedCheck.ts";
 import { recap } from "#report/recap.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
-
-const commitScripts = Effect.fnUntraced(function* (root: string) {
-	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
-
-	const file = join(root, "package.json");
-	const readText = yield* manifestReader(root);
-	const manifest = yield* Effect.mapError(
-		readPackageManifest(readText, file),
-		(cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause.message}` }),
-	);
-	if (manifest === undefined) {
-		return { manager: "npm", scripts: [] };
-	}
-	const manager = manifest.packageManager?.split("@")[0] ?? "npm";
-	if (!["npm", "pnpm", "yarn", "bun"].includes(manager)) {
-		return yield* new SetupFailure({ message: `${file}: unsupported packageManager "${manager}". Use npm, pnpm, yarn or bun.` });
-	}
-	return { manager, scripts: ["typecheck", "quality:commit"].filter((script) => manifest.scripts?.[script] !== undefined) };
-});
 
 const runScript = Effect.fnUntraced(
 	function* (root: string, manager: string, script: string) {
@@ -59,7 +38,8 @@ export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: st
 		}
 		return;
 	}
-	const { manager, scripts } = yield* commitScripts(config.root);
+	const { manager, scripts: declared } = yield* projectScripts(config.root);
+	const scripts = ["typecheck", "quality:commit"].filter((script) => declared[script] !== undefined);
 	const { context, outcome } = yield* reportLint(cwd, path, true);
 	const linted = passes(outcome);
 	const failed = linted ? [] : ["quality lint"];

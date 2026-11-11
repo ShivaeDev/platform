@@ -9,7 +9,6 @@ import type { Finding, RuleInputs } from "#rule.ts";
 
 export interface ImportContext {
 	readonly exports: ReadonlyMap<string, unknown>;
-	readonly generated: readonly string[];
 	readonly owner: string | undefined;
 	readonly packages: ReadonlyMap<string, WorkspacePackage>;
 	readonly readText: RuleInputs["readText"];
@@ -49,7 +48,7 @@ export function importFindings(context: ImportContext, file: string, markdown: s
 			if (owner === undefined) {
 				return Effect.succeed([]);
 			}
-			const module = documentedModule(context.root, context.generated, owner, context.exports.get(owner.name), entry.specifier);
+			const module = documentedModule(context.root, owner, context.exports.get(owner.name), entry.specifier);
 			return Effect.map(problem(context, entry, module, owner), (message): readonly Finding[] =>
 				message === undefined ? [] : [{ file, line: entry.line, message, subject: entry.specifier }],
 			);

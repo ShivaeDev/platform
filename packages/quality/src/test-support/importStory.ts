@@ -12,9 +12,7 @@ import type { SeedFile } from "#testing/adapters/tree.ts";
 export const importStory = storyKit({
 	create: () =>
 		Effect.acquireRelease(
-			Effect.sync(
-				(): ImportEngine => ({ findings: undefined, generated: [], graph: undefined, root: mkdtempSync(join(tmpdir(), "quality-imports-")) }),
-			),
+			Effect.sync((): ImportEngine => ({ findings: undefined, graph: undefined, root: mkdtempSync(join(tmpdir(), "quality-imports-")) })),
 			(engine) => Effect.sync(() => rmSync(engine.root, { force: true, recursive: true })),
 		),
 	inspect: ({ findings, root }) => ({ findings, root }),
@@ -32,12 +30,6 @@ export function repositoryHas(...files: readonly SeedFile[]) {
 
 export function repositoryHolds(fixture: Fixture) {
 	return importStory.trait("repository", `the repository holds ${fixture.story}`, (engine) => writeAll(engine.root, fixture.files));
-}
-
-export function generatedDeclared(...folders: readonly string[]) {
-	return importStory.trait("repository", `the config declares ${folders.join(", ")} as generated output`, (engine) => {
-		engine.generated = folders;
-	});
 }
 
 export function emptyFolders(...folders: readonly string[]) {

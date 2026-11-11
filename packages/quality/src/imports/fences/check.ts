@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { compilePolicy } from "#imports/fences/compilePolicy.ts";
 import { discoverFences } from "#imports/fences/discover.ts";
 import type { Fence } from "#imports/fences/model.ts";
-import { followedEdges } from "#imports/generatedFolders.ts";
+import { followedEdges, generatedFolders } from "#imports/generatedFolders.ts";
 import { importGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 
@@ -10,6 +10,6 @@ export const checkFences = Effect.fn("Imports.checkFences")(function* (inputs: R
 	const graph = yield* importGraph(inputs);
 	const fences = [...configured, ...(yield* discoverFences(inputs, graph.packages))];
 	const policy = yield* Effect.fromResult(compilePolicy(fences, { files: inputs.files, packages: graph.packages }));
-	const followed = { ...graph, ignoredEdges: followedEdges(inputs.generated ?? [], graph.ignoredEdges) };
+	const followed = { ...graph, ignoredEdges: followedEdges(generatedFolders(graph.packages), graph.ignoredEdges) };
 	return policy.flatMap((compiled) => compiled.evaluate(followed));
 });
