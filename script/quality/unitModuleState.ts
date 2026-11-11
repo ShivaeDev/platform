@@ -6,26 +6,11 @@ import { ENVIRONMENTS, testName } from "@shivaedev/quality/naming/testName.ts";
 import type { Finding, SourceFile } from "@shivaedev/quality/rule.ts";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 import { parse } from "@shivaedev/quality/rules/parse.ts";
+import { mutatedBindings } from "#quality/mutatedBindings.ts";
 
 const UNIT_PROJECT = "packages/quality/src/";
 
 const ENVIRONMENT_NAMES: ReadonlySet<string> = new Set(ENVIRONMENTS);
-
-const MUTATORS: ReadonlySet<string> = new Set([
-	"add",
-	"clear",
-	"copyWithin",
-	"delete",
-	"fill",
-	"pop",
-	"push",
-	"reverse",
-	"set",
-	"shift",
-	"sort",
-	"splice",
-	"unshift",
-]);
 
 const CONTAINERS: ReadonlySet<string> = new Set(["Array", "Map", "Set"]);
 
@@ -57,61 +42,12 @@ function loaded(starts: readonly string[], edges: readonly ImportEdge[]): Readon
 }
 
 function container(initializer: ts.Expression | undefined): boolean {
-	if (initializer === undefined) {
-		return false;
-	}
-	if (ts.isArrayLiteralExpression(initializer) || ts.isObjectLiteralExpression(initializer)) {
-		return true;
-	}
-	return ts.isNewExpression(initializer) && ts.isIdentifier(initializer.expression) && CONTAINERS.has(initializer.expression.text);
-}
-
-function receiver(expression: ts.Expression): string | undefined {
-	if (ts.isIdentifier(expression)) {
-		return expression.text;
-	}
-	return ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression) ? receiver(expression.expression) : undefined;
-}
-
-function changedThrough(node: ts.Node): ts.Expression | undefined {
-	if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && MUTATORS.has(node.expression.name.text)) {
-		return node.expression.expression;
-	}
-	if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.getText() === "Object.assign") {
-		return node.arguments[0];
-	}
-	let assigned: ts.Expression | undefined;
-	if (
-		ts.isBinaryExpression(node)
-		&& node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment
-		&& node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
-	) {
-		assigned = node.left;
-	} else if (ts.isDeleteExpression(node)) {
-		assigned = node.expression;
-	} else if (
-		(ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node))
-		&& (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
-	) {
-		assigned = node.operand;
-	}
-	return assigned !== undefined && (ts.isPropertyAccessExpression(assigned) || ts.isElementAccessExpression(assigned))
-		? assigned.expression
-		: undefined;
-}
-
-function mutated(tree: ts.SourceFile): ReadonlySet<string> {
-	const names = new Set<string>();
-	function visit(node: ts.Node): void {
-		const target = changedThrough(node);
-		const name = target === undefined ? undefined : receiver(target);
-		if (name !== undefined) {
-			names.add(name);
-		}
-		ts.forEachChild(node, visit);
-	}
-	visit(tree);
-	return names;
+	return (
+		initializer !== undefined
+		&& (ts.isArrayLiteralExpression(initializer)
+			|| ts.isObjectLiteralExpression(initializer)
+			|| (ts.isNewExpression(initializer) && CONTAINERS.has(initializer.expression.getText())))
+	);
 }
 
 function bound(name: ts.BindingName): readonly string[] {
@@ -123,7 +59,7 @@ function moduleState(file: SourceFile): readonly Finding[] {
 	if (tree === undefined) {
 		return [];
 	}
-	const changed = mutated(tree);
+	const changed = mutatedBindings(tree);
 	return tree.statements.flatMap((statement) => {
 		if (!ts.isVariableStatement(statement)) {
 			return [];
