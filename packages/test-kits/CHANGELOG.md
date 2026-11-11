@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0 - 2026-11-11
+
+### Changed
+
+- the SQL change-coverage check calls `transact` without an identity `onSqlError` and needs the `@shivaedev/sql` release that allows it; its behavior is unchanged.
+
+### Breaking
+
+- `hostProcess()` no longer returns `disconnectIdlePostgres()`, and a `databaseUrl` now reaches the child's `DATABASE_URL` directly instead of through a disconnect proxy. Delete the stories that call `disconnectIdlePostgres()`; database outages are not a tested scenario.
+
 ## 0.11.1 - 2026-11-10
 
 ### Changed
