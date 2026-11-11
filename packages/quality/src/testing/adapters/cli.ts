@@ -24,11 +24,14 @@ export function qualityArgs(args: readonly string[]): string[] {
 	return [...OPTIONS, CLI, ...args];
 }
 
-const ISOLATED: readonly (readonly [string, string | undefined])[] = [
-	["CI", undefined],
-	["CLAUDE_CODE_REMOTE", undefined],
-	...Object.entries(qualityGitEnvironment),
-];
+const ISOLATED: readonly (readonly [string, string | undefined])[] = [["CLAUDE_CODE_REMOTE", undefined], ...Object.entries(qualityGitEnvironment)];
+
+// CI and a Claude Code cloud session choose Quality's rule set, so a story states them instead of inheriting the host's.
+const RUN_SET_VARIABLES: ReadonlySet<string> = new Set(["CI", "CLAUDE_CODE_REMOTE"]);
+
+function withoutRunSet(provider: ConfigProvider.ConfigProvider): ConfigProvider.ConfigProvider {
+	return ConfigProvider.make((path) => (RUN_SET_VARIABLES.has(path.join("_")) ? Effect.succeed(undefined) : provider.load(path)));
+}
 
 async function isolateGit(): Promise<() => void> {
 	const { vi } = await import("vitest");
@@ -84,15 +87,15 @@ export function capturing(output: Output): Console.Console {
 	};
 }
 
-// Runs the executable's program in this process, which imports each config path once: after a command rewrites the config, spawn `quality`.
-export function runQuality(root: string, ...args: readonly string[]): Effect.Effect<Run> {
+// Runs the executable's program in this process with the given environment variables, which imports each config path once: after a command rewrites the config, spawn `quality`.
+export function runQualityWith(root: string, variables: Readonly<Record<string, string>>, ...args: readonly string[]): Effect.Effect<Run> {
 	return Effect.scoped(
 		Effect.gen(function* () {
 			const output: Output = { stderr: "", stdout: "" };
 			const command = program(args, { cwd: realpathSync(root), launch: { options: OPTIONS, script: CLI } });
 			const environment = ConfigProvider.orElse(
-				ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": isolatedEnvironment(root).HEAVY_PROCESS_LOCK } }),
-				yield* ConfigProvider.ConfigProvider,
+				ConfigProvider.fromEnv({ env: { ...variables, "HEAVY_PROCESS_LOCK": isolatedEnvironment(root).HEAVY_PROCESS_LOCK } }),
+				withoutRunSet(yield* ConfigProvider.ConfigProvider),
 			);
 			yield* Effect.acquireRelease(Effect.promise(isolateGit), (restore) => Effect.sync(restore));
 			const exit = yield* explained(command).pipe(
@@ -104,6 +107,10 @@ export function runQuality(root: string, ...args: readonly string[]): Effect.Eff
 			return { status: exitCode(exit), ...output };
 		}),
 	);
+}
+
+export function runQuality(root: string, ...args: readonly string[]): Effect.Effect<Run> {
+	return runQualityWith(root, {}, ...args);
 }
 
 export function quality(root: string, ...args: readonly string[]): Run {

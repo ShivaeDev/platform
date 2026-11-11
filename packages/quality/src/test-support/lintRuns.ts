@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
-import { ConfigProvider, Effect, FileSystem, Path, Tracer } from "effect";
+import { Effect, FileSystem, Path, Tracer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#adapters/runMain.ts";
-import { type Run, runQuality } from "#testing/adapters/cli.ts";
+import { type Run, runQualityWith } from "#testing/adapters/cli.ts";
 import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
 
 interface LintRunEngine {
@@ -70,10 +70,7 @@ export const lintRunStory = storyKit({
 					return new Tracer.NativeSpan(options);
 				},
 			});
-			engine.answer = yield* runQuality(engine.root, "lint", ...args).pipe(
-				Effect.provideService(Tracer.Tracer, tracer),
-				Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: engine.environment })),
-			);
+			engine.answer = yield* runQualityWith(engine.root, engine.environment, "lint", ...args).pipe(Effect.provideService(Tracer.Tracer, tracer));
 		}),
 		outcome: () => Effect.map(answered(engine), outcomeOf),
 		reads: Effect.fn("LintRuns.reads")(function* (path: string) {
@@ -105,7 +102,7 @@ export function effectInstalled() {
 
 export function debtRecorded() {
 	return lintRunStory.trait("repository", "quality baseline write has recorded every finding of every rule as debt", (engine) =>
-		Effect.flatMap(runQuality(engine.root, "baseline", "write"), (run) =>
+		Effect.flatMap(runQualityWith(engine.root, {}, "baseline", "write"), (run) =>
 			run.status === 0 ? Effect.void : Effect.die(new Error(`quality baseline write failed:\n${run.stdout}${run.stderr}`)),
 		),
 	);
