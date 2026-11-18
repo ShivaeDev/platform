@@ -43,6 +43,7 @@ export const inbox = storyKit({
 		...privacyVerbs(state),
 		...raceVerbs(state, story.tell),
 		...resourceVerbs(state, story.tell),
+		announcedLedgerChanges: () => Effect.map(Deferred.await(state.ledger.firstAnnouncement), () => [...state.ledger.announced]),
 		answer: () => Effect.sync(() => state.answers.at(-1) ?? "no answer yet"),
 		answers: () => Effect.sync(() => state.answers.toSorted()),
 		deliver: (delivery: Delivery) => {
@@ -55,6 +56,10 @@ export const inbox = storyKit({
 		requestOutcomes: () => Effect.sync(() => requestOutcomes(state)),
 		secretsSeenIn: () => Effect.sync(() => secretsSeenIn(state)),
 		spanNames: () => Effect.sync(() => spanNames(state)),
+		storedLedgerEntries: () =>
+			SqlClient.SqlClient.use((sql) => sql<{ issue: number }>`select issue from webhook_ledger order by issue`).pipe(
+				Effect.map((rows) => rows.map(({ issue }) => issue)),
+			),
 		storedReceipts: () =>
 			Effect.gen(function* () {
 				yield* workersIdle(state);
@@ -111,6 +116,10 @@ export function senderOptIn(expiry: "future" | "past") {
 
 export const senderPreferencesGone = inbox.trait("inbox", "the sender preferences table is unavailable", () =>
 	SqlClient.SqlClient.use((sql) => sql`drop table webhook_senders`),
+);
+
+export const ledgerKept = inbox.trait("inbox", "the application keeps a ledger of issues, written through transact", () =>
+	SqlClient.SqlClient.use((sql) => sql`create table webhook_ledger (issue integer primary key)`),
 );
 
 export const mappingWaitsForResource = inbox.trait("inbox", "the mapping must wait for a resource", (state) => {

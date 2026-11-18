@@ -14,6 +14,7 @@ import { webhookRoute } from "#server/route.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { deliveryQueue, type HandledDelivery } from "#test/deliveryMetadata.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
+import { issueLedger, type LedgerWatch, ledgerEvents, ledgerListener, ledgerWatch } from "#test/issueLedger.ts";
 import { mappingResources, resourceEvent } from "#test/mappingResources.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { senderPreferences } from "#test/senderCheck.ts";
@@ -36,6 +37,7 @@ export interface InboxState {
 	firstReceiptUpdateFails: boolean;
 	readonly handled: HandledJob[];
 	host: Fiber.Fiber<void, unknown> | undefined;
+	readonly ledger: LedgerWatch;
 	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
 	receiptsSchema: string | undefined;
@@ -56,6 +58,7 @@ export function inboxState(mode: InboxState["mode"]): InboxState {
 		firstReceiptUpdateFails: false,
 		handled: [],
 		host: undefined,
+		ledger: ledgerWatch(),
 		logs: [],
 		mode,
 		receiptsSchema: undefined,
@@ -108,7 +111,10 @@ export function hostLayer(state: InboxState) {
 			// Transactional enqueues use the host SQL pool, which must opt into pg-boss's controlled database clock too.
 			databaseUrl.searchParams.set("options", `-c ${CLOCK_OVERRIDE_SETTING}=on`);
 			const registeredSources = {
-				github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } },
+				github: {
+					...sources.github,
+					events: { ...sources.github.events, ...ledgerEvents, "resource_issues": resourceEvent(state.resources) },
+				},
 				mirror: sources.github,
 				timestamped: timestampedSource,
 			};
@@ -150,7 +156,7 @@ export function hostLayer(state: InboxState) {
 							receiptsSchema: state.receiptsSchema,
 							sources: registeredSources,
 						}).pipe(Layer.provide(jobs), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
-						services: Layer.merge(jobs, senderPreferences),
+						services: Layer.mergeAll(jobs, senderPreferences, issueLedger, ledgerListener(state.ledger)),
 					};
 				}),
 				config: { clock, databaseUrl: Redacted.make(databaseUrl.toString()) },

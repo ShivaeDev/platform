@@ -2,6 +2,7 @@ import { Effect, Option, type Redacted, Result } from "effect";
 import { HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
+import { transact } from "@shivaedev/sql/transact.ts";
 import { privateFailures } from "#server/diagnostics.ts";
 import { enqueueWebhookJobs, type WebhookSource } from "#server/registration.ts";
 
@@ -24,28 +25,28 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	const definition = Object.hasOwn(source.events, event) ? source.events[event] : undefined;
 	const sql = yield* SqlClient.SqlClient;
 	const table = sql(receiptsSchema === undefined ? "webhook_receipts" : `${receiptsSchema}.webhook_receipts`);
-	return yield* sql
-		.withTransaction(
-			Effect.gen(function* () {
-				const inserted = yield* sql`insert into ${table} (source, delivery_id, event, outcome, job_ids)
+	return yield* Effect.gen(function* () {
+		const inserted = yield* sql`insert into ${table} (source, delivery_id, event, outcome, job_ids)
 				values (${name}, ${id}, ${event}, 'ignored', array[]::text[])
 				on conflict (source, delivery_id) do nothing returning delivery_id`;
-				if (inserted.length === 0) {
-					return HttpServerResponse.text("already queued", { status: HttpStatus.fromLiteral("OK") });
-				}
-				const requests = definition === undefined ? [] : yield* definition.decode(body, { event, id, source: name });
-				const ids = (yield* enqueueWebhookJobs(requests)).flatMap(Option.toArray);
-				yield* sql`update ${table} set job_ids = array[${sql.csv(ids.map((jobId) => sql`${jobId}`))}]::text[], outcome = ${requests.length === 0 ? "ignored" : "queued"} where source = ${name} and delivery_id = ${id}`;
-				return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
-					status: requests.length === 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Accepted"),
-				});
-			}).pipe(Effect.scoped, privateFailures),
-		)
-		.pipe(
-			Effect.catchIf(
-				(error) => error._tag === "WebhookPayloadError",
-				() => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") })),
-			),
-			privateFailures,
-		);
+		if (inserted.length === 0) {
+			return HttpServerResponse.text("already queued", { status: HttpStatus.fromLiteral("OK") });
+		}
+		const requests = definition === undefined ? [] : yield* definition.decode(body, { event, id, source: name });
+		const ids = (yield* enqueueWebhookJobs(requests)).flatMap(Option.toArray);
+		yield* sql`update ${table} set job_ids = array[${sql.csv(ids.map((jobId) => sql`${jobId}`))}]::text[], outcome = ${requests.length === 0 ? "ignored" : "queued"} where source = ${name} and delivery_id = ${id}`;
+		return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
+			status: requests.length === 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Accepted"),
+		});
+	}).pipe(
+		Effect.scoped,
+		privateFailures,
+		// The mapping's services record their changes with transact, which refuses a native transaction it did not open.
+		transact(),
+		Effect.catchIf(
+			(error) => error._tag === "WebhookPayloadError",
+			() => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") })),
+		),
+		privateFailures,
+	);
 });
