@@ -1,9 +1,10 @@
 import { join } from "node:path";
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import type { ReleaseHook } from "@shivaedev/releases/config.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { alignStarterCatalog } from "#release/starterCatalog.ts";
 import { alignStarterPnpm } from "#release/starterPnpm.ts";
+import { alignStarterSkills } from "#release/starterSkills.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
@@ -28,4 +29,6 @@ export const releasePlatformHook: ReleaseHook = Effect.fn("Release.releasePlatfo
 	yield* fs.writeFileString(pinsPath, `${JSON.stringify(updated, null, "\t")}\n`);
 	yield* alignStarterPnpm(root);
 	yield* alignStarterCatalog(root);
+	// A release hook receives only the file system, and the release tooling runs on POSIX paths.
+	yield* alignStarterSkills(root).pipe(Effect.provide(Path.layer));
 });

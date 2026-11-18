@@ -339,6 +339,9 @@ importers:
       '@shivaedev/releases':
         specifier: workspace:*
         version: link:packages/releases
+      '@shivaedev/skills':
+        specifier: workspace:*
+        version: link:packages/skills
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:packages/sql

@@ -8,6 +8,7 @@ import type { PackageManifest } from "@shivaedev/releases/model.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
 import { checkStarterCatalog } from "#release/starterCatalog.ts";
 import { checkStarterPnpm } from "#release/starterPnpm.ts";
+import { checkStarterSkills } from "#release/starterSkills.ts";
 import { validateRelease } from "#release/validate.ts";
 import config from "#release-config";
 
@@ -76,6 +77,7 @@ export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root:
 	yield* checkStarterPins(root, pins);
 	yield* checkStarterPnpm(root);
 	yield* checkStarterCatalog(root);
+	yield* checkStarterSkills(root);
 	return plan;
 });
 
