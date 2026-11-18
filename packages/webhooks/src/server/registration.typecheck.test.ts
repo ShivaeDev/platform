@@ -1,4 +1,5 @@
 import { Config, Context, Data, Effect, type Layer, Redacted, Schema } from "effect";
+import type * as Reactivity from "effect/reactivity/Reactivity";
 import { expectTypeOf } from "vitest";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import type { EnqueueOptions } from "@shivaedev/jobs/server/enqueueOptions.ts";
@@ -63,6 +64,7 @@ expectTypeOf<Effect.Services<ReturnType<typeof checked.decode>>>().toEqualTypeOf
 expectTypeOf<Effect.Error<ReturnType<typeof pure.decode>>>().toEqualTypeOf<WebhookPayloadError>();
 expectTypeOf<Effect.Services<ReturnType<typeof pure.decode>>>().toEqualTypeOf<never>();
 expectTypeOf<Extract<Layer.Services<typeof route>, SenderPreferences | OtherService>>().toEqualTypeOf<SenderPreferences | OtherService>();
+expectTypeOf<Extract<Layer.Services<typeof route>, Reactivity.Reactivity>>().toEqualTypeOf<Reactivity.Reactivity>();
 
 // @ts-expect-error Providing all other services still leaves the mapping's service required.
 const missingCheck: Layer.Layer<

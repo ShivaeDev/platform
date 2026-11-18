@@ -26,6 +26,8 @@ export const deliveries = {
 	"a delivery using a resource": { event: "resource_issues" },
 	"a delivery whose mapping copies its title into an error": { body: JSON.stringify({ title: PRIVATE_FIELD }), event: "payload_failure" },
 	"a delivery whose mapping dies with its title": { body: JSON.stringify({ title: PRIVATE_FIELD }), event: "payload_defect" },
+	"a delivery whose mapping enters issue 42 in the ledger": { event: "ledger_issues" },
+	"a delivery whose mapping enters issue 42 in the ledger and then refuses it": { event: "ledger_refused_issues" },
 	"a delivery whose mapping fails with a body limit error": { event: "body_limit_failure" },
 	"a delivery whose mapping fails with a frozen error": { event: "frozen_failure" },
 	"a delivery whose mapping fails with a schema error": { event: "schema_failure" },

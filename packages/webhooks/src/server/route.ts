@@ -1,6 +1,7 @@
 import { Cause, type Config, type Context, Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
@@ -17,7 +18,7 @@ export interface WebhookRouteOptions<TJobs, R, E = never> {
 }
 
 type SourceServices<T> = T extends WebhookSource<infer R, unknown> ? R : never;
-type RouteLayer<TJobs, R> = Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter | TJobs | R | SqlClient.SqlClient>;
+type RouteLayer<TJobs, R> = Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter | TJobs | R | SqlClient.SqlClient | Reactivity.Reactivity>;
 
 function webhookBody() {
 	return readBoundedBody().pipe(

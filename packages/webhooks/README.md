@@ -81,7 +81,7 @@ const Host = appHost({
 });
 ```
 
-`databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. Register workers separately with the job definitions' `handle` method, in the processes your application chooses. A missing signing key fails the route Layer with `ConfigError`; composing it into `Host` preserves that typed error for the application's startup to handle.
+`databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. The route opens the receipt transaction with `transact` from `@shivaedev/sql/transact.ts`, so its Layer requires `Reactivity.Reactivity` from `effect/reactivity/Reactivity`; `appHost` with `migrations` supplies its own to `routes`, as above, and a route composed elsewhere is given the `Reactivity` its readers listen on. Register workers separately with the job definitions' `handle` method, in the processes your application chooses. A missing signing key fails the route Layer with `ConfigError`; composing it into `Host` preserves that typed error for the application's startup to handle.
 
 The route provides `WebhookEnqueue`, an Effect service exposing only the jobs service's `enqueue` method. Job requests read it when enqueued, inside the receipt transaction. Direct callers of `enqueueWebhookJobs(requests)` from `registration.ts` provide `WebhookEnqueue` from `@shivaedev/webhooks/server/WebhookEnqueue.ts` with `Effect.provideService(WebhookEnqueue, { enqueue: jobs.enqueue })`.
 
@@ -108,7 +108,9 @@ const issues = webhookEvent(IssueEvent, ({ issue }) =>
 );
 ```
 
-`Clock` comes from `effect`; `SenderPreferences` and its `allows` method belong to the application, as does the sender field in its event schema. Supply the mapping's services to `webhookRoute` with `Layer.provide`; they remain required in the route Layer's type. `WebhookEvent<R, E>` and `WebhookSource<R, E>` preserve the mapping's service requirements and typed failures. The mapping runs after verification and schema decoding, inside the receipt transaction. Each request gives its mapping a separate scope and releases acquired resources before answering, including on failure. Interrupting a mapping releases its resources and rolls back its receipt, allowing a retry. An ignored delivery commits an ignored receipt with no jobs. A failed check rolls back the receipt and any transactional database changes; the sender can retry. Duplicate deliveries skip the mapping.
+`Clock` comes from `effect`; `SenderPreferences` and its `allows` method belong to the application, as does the sender field in its event schema. Supply the mapping's services to `webhookRoute` with `Layer.provide`; they remain required in the route Layer's type. `WebhookEvent<R, E>` and `WebhookSource<R, E>` preserve the mapping's service requirements and typed failures. The mapping runs after verification and schema decoding, inside the receipt transaction. Each request gives its mapping a separate scope and releases acquired resources before answering, including on failure. Interrupting a mapping releases its resources and rolls back its receipt, allowing a retry. An ignored delivery commits an ignored receipt with no jobs. A failed check rolls back the receipt; the sender can retry. Duplicate deliveries skip the mapping.
+
+A service the mapping calls can write through `transact` on the host's SQL client. Its write commits together with the receipt and its jobs, and the change keys it records with `invalidateOnCommit` are announced in the host. A mapping that fails after such a write answers 503 and rolls the write back with the receipt.
 
 ### Answers and retries
 
@@ -130,7 +132,7 @@ Mapping, database and enqueue failures log `Webhook receipt failed` and `errorTa
 
 `webhookEvent` wraps payload decoding failures in `WebhookPayloadError` from `@shivaedev/webhooks/server/WebhookPayloadError.ts`, retaining the original `SchemaError` in `cause`. Direct callers catch `WebhookPayloadError` for invalid payloads. Custom `WebhookEvent.decode` implementations wrap only payload schema failures in `new WebhookPayloadError({ cause })`; application failures keep their original types. An application `SchemaError` receives a logged 503, and frozen tagged failures retain their tag in diagnostics without being mutated.
 
-The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
+The receipt insert, the mapping and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
 
 ### Payload privacy
 
