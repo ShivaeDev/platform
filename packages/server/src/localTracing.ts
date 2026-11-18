@@ -1,4 +1,5 @@
 import { Clock, Effect, Layer, Tracer } from "effect";
+import { defaultTraceStore } from "#adapters/defaultTraceStore.ts";
 import { localTraceDatabase } from "#adapters/localTraceDatabase.ts";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
 import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
@@ -13,9 +14,21 @@ export interface LocalTracingOptions {
 	readonly retainedRuns?: number;
 }
 
+// Untraced: the recorder is still being built, so a span here would reach the application's own tracer as one of its spans.
+const storePath = Effect.fnUntraced(function* (chosen: string | undefined) {
+	if (chosen !== undefined) {
+		return chosen;
+	}
+	const store = yield* defaultTraceStore;
+	if (store.temporary) {
+		yield* Effect.logInfo(`Development traces are recorded to ${store.path}, because ${store.workingDirectory} has no node_modules folder.`);
+	}
+	return store.path;
+});
+
 export function localTracing({
 	clock = Clock.Clock.defaultValue(),
-	path = ".platform/traces.db",
+	path: chosen,
 	indexedAttributes = [],
 	retainedRuns = 5,
 	flushInterval = 1000,
@@ -25,6 +38,7 @@ export function localTracing({
 			const policy = yield* RedactionPolicy;
 			const underlying = yield* Tracer.Tracer;
 			const startedAtMillis = yield* Clock.currentTimeMillis;
+			const path = yield* storePath(chosen);
 			const database = yield* Effect.acquireRelease(
 				Effect.try(() => localTraceDatabase(path, retainedRuns, indexedAttributes, startedAtMillis)),
 				(db) => Effect.sync(() => db.close()),
