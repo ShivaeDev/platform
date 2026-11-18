@@ -195,7 +195,7 @@
 				"useFlatMap": "error",
 				"useIndexOf": "error",
 				"useLiteralKeys": "error",
-				"useMathMinMax": "error",
+				"useMathMinMax": { "fix": "none", "level": "error" },
 				"useNumericLiterals": "error",
 				"useOptionalChain": "error",
 				"useRegexLiterals": "error",
