@@ -38,17 +38,8 @@ export const readPageHost = Effect.gen(function* () {
 	const held = yield* Deferred.make<"hint" | "empty" | "defect">();
 	let readGate: Deferred.Deferred<void> | undefined;
 	let writeGate: Deferred.Deferred<void> | undefined;
-	let rerunGate: Deferred.Deferred<void> | undefined;
-	let silentWrites = false;
-	const rerunHeld = yield* Queue.unbounded<void>();
 	const writing = yield* Queue.unbounded<void>();
 	const reading = yield* Queue.unbounded<void>();
-	function afterHeldRerun<A, E, R>(hint: LiveHint, rerun: Effect.Effect<A, E, R>) {
-		const gate = rerunGate;
-		return hint._tag === "Changed" && gate !== undefined
-			? Queue.offer(rerunHeld, undefined).pipe(Effect.andThen(Deferred.await(gate)), Effect.andThen(rerun))
-			: rerun;
-	}
 	function holdRead() {
 		readGate = Deferred.makeUnsafe<void>();
 	}
@@ -79,9 +70,7 @@ export const readPageHost = Effect.gen(function* () {
 					yield* Deferred.await(writeGate);
 				}
 				titles.set(id, title);
-				if (!silentWrites) {
-					yield* PubSub.publish(changes, { _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id }] });
-				}
+				yield* PubSub.publish(changes, { _tag: "Changed", keys: [{ _tag: "Item", collection: "pages", id }] });
 				return title;
 			}),
 	});
@@ -109,7 +98,7 @@ export const readPageHost = Effect.gen(function* () {
 					const subscription = yield* querySubscription(options.rpc, queries, yield* CurrentViewer);
 					const compare = compareQueries(subscription, rerunQuery(ReadPage.application.omit("page.write"), options));
 					return Stream.concat(Stream.succeed({ _tag: "Resync" } as const), related).pipe(
-						Stream.mapEffect((hint) => afterHeldRerun(hint, compare(hint))),
+						Stream.mapEffect((hint) => compare(hint)),
 						Stream.flatMap(Stream.fromIterable),
 					);
 				}),
@@ -136,25 +125,12 @@ export const readPageHost = Effect.gen(function* () {
 	return {
 		held,
 		holdRead,
-		holdReruns: () => {
-			rerunGate = Deferred.makeUnsafe<void>();
-		},
 		holdWrite: () => {
 			writeGate = Deferred.makeUnsafe<void>();
 		},
 		opened,
-		publishNoWrites: () => {
-			silentWrites = true;
-		},
 		reading,
 		releaseRead,
-		releaseReruns: () => {
-			if (rerunGate === undefined) {
-				throw new Error("No page rerun is held");
-			}
-			Effect.runSync(Deferred.succeed(rerunGate, undefined));
-			rerunGate = Deferred.makeUnsafe<void>();
-		},
 		releaseWrite: () => {
 			if (writeGate === undefined) {
 				throw new Error("No page write is held");
@@ -162,7 +138,6 @@ export const readPageHost = Effect.gen(function* () {
 			Effect.runSync(Deferred.succeed(writeGate, undefined));
 			writeGate = undefined;
 		},
-		rerunHeld,
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		writing,
 	};

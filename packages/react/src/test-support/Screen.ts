@@ -3,6 +3,7 @@ import { act, type ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import type { ScreenSignal } from "@shivaedev/test-story/server/screenSignal.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 export const screenWarnings = expectNoReactWarnings();
@@ -13,8 +14,8 @@ export class Screen {
 	constructor(tell: (line: string) => void) {
 		this.tell = tell;
 	}
-	driver(root: HTMLElement) {
-		return screenDriver({ act, root, tell: this.tell });
+	driver(root: HTMLElement, activity?: ScreenSignal) {
+		return screenDriver({ act, ...(activity === undefined ? {} : { activity }), root, tell: this.tell });
 	}
 	open(node: ReactNode = null, options?: RootOptions) {
 		const roots = this.roots;

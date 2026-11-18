@@ -1,6 +1,12 @@
 import type { Effect, Stream } from "effect";
 import { expectTypeOf, it } from "vitest";
-import { type MissingScreenPending, type ScreenDriver, type ScreenDriverOptions, screenDriver } from "#server/screenDriver.ts";
+import {
+	type MissingScreenPending,
+	type MissingScreenSync,
+	type ScreenDriver,
+	type ScreenDriverOptions,
+	screenDriver,
+} from "#server/screenDriver.ts";
 import type { ScreenSignal } from "#server/screenSignal.ts";
 
 const options: ScreenDriverOptions = {
@@ -52,4 +58,10 @@ it("keeps settlement typed with activity and combined completion sources", () =>
 	expectTypeOf<ReturnType<typeof combined>>().toEqualTypeOf<ScreenDriver>();
 	expectTypeOf<ReturnType<typeof activityOnly>>().toEqualTypeOf<ScreenDriver>();
 	expectTypeOf<ReturnType<typeof transportOnly>>().toEqualTypeOf<ScreenDriver>();
+});
+
+it("exposes a missing sync Effect, and a missing pending signal, in the sync error channel", () => {
+	expectTypeOf(screenDriver({ ...options, pending: () => false }).sync()).toEqualTypeOf<Effect.Effect<void, MissingScreenSync>>();
+	expectTypeOf(screenDriver(options).sync()).toEqualTypeOf<Effect.Effect<void, MissingScreenPending | MissingScreenSync>>();
+	expectTypeOf(screenDriver(options).within("section").sync()).toEqualTypeOf<Effect.Effect<void, MissingScreenPending | MissingScreenSync>>();
 });

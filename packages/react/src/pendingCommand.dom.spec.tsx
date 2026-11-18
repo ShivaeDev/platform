@@ -1,13 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import {
-	firstSucceededSecondToggled,
-	pendingCommands,
-	pushedSwitch,
-	switchShowingPushedOff,
-	toggledOn,
-	toggleScreen,
-	toggleSucceeded,
-} from "#test/pendingCommandStories.tsx";
+import { firstSucceededSecondToggled, pendingCommands, toggledOn, toggleScreen, toggleSucceeded } from "#test/pendingCommandStories.tsx";
+import { reflectedSwitch, switchTheServerKeepsOff, switchWithHeldUpdate } from "#test/reflected-switch/story.tsx";
 
 pendingCommands.it(
 	"a toggled row shows the wanted value before its command answers",
@@ -104,18 +97,39 @@ pendingCommands.it(
 	},
 );
 
-pushedSwitch.it(
-	"a switch turned on shows On without falling back to Off while its successful command waits for the server's push, and frees the switch when On arrives",
-	[switchShowingPushedOff()],
-	function* ({ commandSucceeds, serverPushes, shown, shownSinceOpening, switchState, toggle }) {
+reflectedSwitch.it(
+	"a switch turned on shows On while its accepted command waits for the server's update, and is free once the update is on the screen",
+	[switchWithHeldUpdate()],
+	function* ({ commandAccepted, shown, shownSinceOpening, switchState, toggle, updateArrives }) {
 		yield* toggle();
-		yield* commandSucceeds();
+		yield* commandAccepted();
+		yield* outcomes([
+			["shown", () => shown(), "on"],
+			["switch", () => switchState(), "waiting"],
+		]);
 
-		yield* serverPushes(true);
+		yield* updateArrives();
 
 		yield* outcomes([
 			["shown", () => shown(), "on"],
 			["shown since opening", () => shownSinceOpening(), ["off", "on"]],
+			["switch", () => switchState(), "available"],
+		]);
+	},
+);
+
+reflectedSwitch.it(
+	"a switch the server keeps off returns to Off and is free once its command is reflected, though the server pushes no update",
+	[switchTheServerKeepsOff()],
+	function* ({ commandResult, settle, shown, shownSinceOpening, switchState, toggle }) {
+		yield* toggle();
+
+		yield* settle();
+
+		yield* outcomes([
+			["command", () => commandResult(), "succeeded"],
+			["shown", () => shown(), "off"],
+			["shown since opening", () => shownSinceOpening(), ["off", "on", "off"]],
 			["switch", () => switchState(), "available"],
 		]);
 	},

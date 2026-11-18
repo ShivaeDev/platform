@@ -11,12 +11,12 @@ screens.it("opening a note reads it once for both the route and the editor", [ed
 screens.it(
 	"a live revision refreshes the cached note but keeps alice's unsaved draft",
 	[editingNote()],
-	function* ({ cachedTitle, draft, enter, reviseNote, saveState, settleLiveChange }) {
+	function* ({ cachedTitle, draft, enter, reviseNote, saveState, sync }) {
 		yield* enter("Keep my draft");
 		expect(yield* cachedTitle()).toBe("First note");
 
 		yield* reviseNote("Changed elsewhere");
-		yield* settleLiveChange();
+		yield* sync();
 
 		yield* outcomes([
 			["cached title", cachedTitle, "Changed elsewhere"],

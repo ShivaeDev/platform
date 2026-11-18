@@ -4,7 +4,8 @@ import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
-import { shown } from "#test/answers.ts";
+import { screenSync } from "#screenSync.ts";
+import { answered, shown } from "#test/answers.ts";
 import { commandFlights } from "#test/commandFlights.ts";
 import { type ReflectionEngine, reflectionEngine, type Viewer } from "#test/reflection/engine.ts";
 import { settled } from "#test/settled.ts";
@@ -51,6 +52,12 @@ export const reflectionStory = storyKit({
 				story.tell(`an older client writes ${value}`);
 				return Effect.flatMap(joined(engine, "an older client"), ({ client }) => client("board.write", { value }));
 			},
+			beginScreenSync: () =>
+				Effect.gen(function* () {
+					story.tell("a screen starts a sync through the tab's registry");
+					engine.flight.command = yield* answered(screenSync(tab, registry), () => "synced").pipe(Effect.forkScoped);
+					yield* until(engine.activity, (state) => state.commands === 0 && state.unreflectedCommands === 1, { name: "accepted screen sync" });
+				}),
 			beginSync: () => begin("the tab starts a sync", tab.sync),
 			beginWrite: (value: string) => begin(`the tab starts writing ${value}`, tab.api.write.run({ value })),
 			dropSocket: () =>
