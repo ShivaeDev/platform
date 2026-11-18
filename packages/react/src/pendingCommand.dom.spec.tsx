@@ -100,10 +100,11 @@ pendingCommands.it(
 reflectedSwitch.it(
 	"a switch turned on shows On while its accepted command waits for the server's update, and is free once the update is on the screen",
 	[switchWithHeldUpdate()],
-	function* ({ commandAccepted, shown, shownSinceOpening, switchState, toggle, updateArrives }) {
+	function* ({ commandAccepted, commandResult, shown, shownSinceOpening, switchState, toggle, updateArrives }) {
 		yield* toggle();
 		yield* commandAccepted();
 		yield* outcomes([
+			["command", () => commandResult(), "not answered"],
 			["shown", () => shown(), "on"],
 			["switch", () => switchState(), "waiting"],
 		]);
@@ -111,6 +112,7 @@ reflectedSwitch.it(
 		yield* updateArrives();
 
 		yield* outcomes([
+			["command", () => commandResult(), "succeeded"],
 			["shown", () => shown(), "on"],
 			["shown since opening", () => shownSinceOpening(), ["off", "on"]],
 			["switch", () => switchState(), "available"],
