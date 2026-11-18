@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.45.0 - 2026-11-18
+
+### Added
+
+- The client activity state carries `firstSettled`, the latch behind that hook, and `clientActivity(client)` exposes it as a native `firstSettled` atom beside `connectionStatus`. Code that builds a `ClientActivityState` value itself adds `firstSettled`.
+
 ## 0.44.0 - 2026-11-11
 
 ### Added

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.46.0 - 2026-11-18
+
+### Added
+
+- Generated apps' `index.html` marks the saved theme before the bundle runs: an inline script reads the `theme` storage key and sets the `dark` or `light` class on `<html>`, following the system when nothing valid is saved or storage is blocked, by the same rule `src/client/applyTheme.ts` applies once the app starts. A story fails when the script and the module disagree.
+- Generated apps' `index.html` holds an outline of the page inside `#root`, styled with the app's Tailwind classes through an `@source` entry in `src/client/main.css`. The app's first render replaces it.
+- Generated apps' route shell steps aside for a full-screen route. A route that sets `fullScreen: true` in TanStack Router's `staticData`, or sits under a parent route that does, renders without the shell's Main navigation and footer, including while that route is still loading on a cold open. The shell's loading line and the modules' overlays stay. `src/client/Module.ts` types the flag beside the module slots.
+
+### Changed
+
+- The generated `.gitignore` no longer lists `.platform/`.
+- Generated apps' `src/client/main.tsx` starts the app through `startApp` in the new `src/client/startApp.tsx`.
+
 ## 0.45.0 - 2026-11-11
 
 ### Changed

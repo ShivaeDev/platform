@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.48.0 - 2026-11-18
+
+### Added
+
+- `useFirstSettled(client)` from `@shivaedev/react/client/adapters/useFirstSettled.ts` tells an application when a session's first screen is ready. It returns `false` until a query mounted on the client has delivered its first success or failure and no mounted query awaits a first result and no command is in flight, then stays `true` for that client through later commands and newly mounted queries. A new session generation whose `connect` makes a new client starts at `false` again, and a client that mounts no query stays at `false`.
+
+### Changed
+
+- `useAction(runtime, run)` with a `run` function written inline in the component fails its next render with an error that names `useAction`, says `run` is the action's identity and gives the fix: pass a bound command such as `api.rename.run`, or wrap the function in `useCallback` or `useMemo`. Such a component used to fail with React's `Too many re-renders`. Replacing a mounted control's command with another stable function works as before.
+
 ## 0.47.3 - 2026-11-11
 
 ### Changed

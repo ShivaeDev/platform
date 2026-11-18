@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.48.0 - 2026-11-18
+
+### Added
+
+- `json(schema)` from `@shivaedev/sql/json.ts` is the storage codec for a PostgreSQL `json` column, beside `jsonb`. It binds native `PgTypes.json` parameters and treats the value schema, invalid data and null as `jsonb` does. An object's keys read back in the order they were written, where `jsonb` returns them reordered. It keeps key order, not bytes: the value passes through `JSON.stringify` and `JSON.parse`, JavaScript puts integer-like keys first, a `Schema.Struct` value schema writes keys in schema order, and an equality filter on a `json` field fails with `SqlError` because PostgreSQL has no `json` equality operator. Store the serialized text in a `text` column for exact bytes.
+- `findMany`, `count`, `select` and `aggregate` filters take `{ not: null }` on a field whose type admits null and match the rows that hold a value, as SQL `IS NOT NULL`: `findMany({ where: { finishedAt: { not: null } } })`. The types refuse it on a field that cannot be null, and such a filter fails with `SchemaError` at run time. A JSONB field whose schema accepts `{ not: null }` still compares it as a JSON value, `delete` and `latestPerGroup` keep their equality and list filters, and a live read filtered this way listens on the table.
+
 ## 0.47.0 - 2026-11-11
 
 ### Added
