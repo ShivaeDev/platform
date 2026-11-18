@@ -6,8 +6,9 @@ import { JobsHealthMetrics } from "#client/adapters/JobsMetrics.tsx";
 import { JobsQueuePicker, JobsQueueView } from "#client/adapters/JobsQueueView.tsx";
 import type { JobsViewClient, RetryJob, RunScheduleNow } from "#client/adapters/jobsTypes.ts";
 import { RunScheduleControl } from "#client/adapters/RunScheduleControl.tsx";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
-export interface JobsViewProps {
+export interface JobsViewProps extends DateDisplay {
 	readonly api: JobsViewClient;
 	readonly queues: readonly (string | QueueDisplay)[];
 	readonly retry?: RetryJob | undefined;
@@ -15,7 +16,7 @@ export interface JobsViewProps {
 	readonly schedules?: readonly { readonly name: string }[];
 }
 
-export function JobsView({ api, queues, retry, schedules, runScheduleNow }: JobsViewProps) {
+export function JobsView({ api, queues, retry, schedules, runScheduleNow, locale, timeZone }: JobsViewProps) {
 	const definitions = queues.map((definition) => (typeof definition === "string" ? { name: definition } : definition));
 	const [name, selectQueue] = useState(definitions[0]?.name ?? "");
 	const queue = definitions.find((candidate) => candidate.name === name);
@@ -37,7 +38,15 @@ export function JobsView({ api, queues, retry, schedules, runScheduleNow }: Jobs
 					runScheduleNow !== undefined && schedules?.some((schedule) => schedule.name === name)
 						? createElement(RunScheduleControl, { key: `run-${name}`, queue: name, run: runScheduleNow })
 						: null,
-					createElement(JobsQueueView, { api, key: name, label: queue.label, queue: name, retry, subject: queue.subject }),
+					createElement(JobsQueueView, {
+						api,
+						dates: { locale, timeZone },
+						key: name,
+						label: queue.label,
+						queue: name,
+						retry,
+						subject: queue.subject,
+					}),
 				),
 	);
 }

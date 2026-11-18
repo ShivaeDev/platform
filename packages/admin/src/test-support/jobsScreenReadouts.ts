@@ -50,6 +50,12 @@ export function jobsReadouts(engine: JobsScreenEngine, driver: ScreenDriver) {
 					[...detail.querySelectorAll("h3")].map((heading) => [heading.textContent, heading.nextElementSibling?.textContent]),
 				);
 				return {
+					dateTimes: Object.fromEntries(
+						[...detail.querySelectorAll("dt")].flatMap((term) => {
+							const time = term.nextElementSibling?.querySelector("time");
+							return time === null || time === undefined ? [] : [[term.textContent, time.dateTime]];
+						}),
+					),
 					failure: sections.Failure,
 					fields: { ...fields, "ID": nameOf(engine, fields.ID ?? "") },
 					output: JSON.parse(sections.Output ?? ""),

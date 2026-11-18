@@ -8,8 +8,9 @@ import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { SessionConfirmation } from "#client/adapters/SessionConfirmation.tsx";
 import { SessionListView } from "#client/adapters/SessionListView.tsx";
 import { SessionPagination } from "#client/adapters/SessionPagination.tsx";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
-export interface SessionsViewProps<R, E> {
+export interface SessionsViewProps<R, E> extends DateDisplay {
 	readonly currentSessionId: string | undefined;
 	readonly list: (input: typeof SessionListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<SessionList, unknown>>;
 	readonly onCurrentSessionRevoked: () => void;
@@ -21,7 +22,7 @@ function forbidden(cause: Option.Option<Cause.Cause<unknown>>) {
 	return Option.exists(Option.flatMap(cause, Cause.findErrorOption), (error) => Predicate.isTagged(error, "Forbidden"));
 }
 
-export function SessionsView<R, E>({ currentSessionId, list, onCurrentSessionRevoked, revoke, runtime }: SessionsViewProps<R, E>) {
+export function SessionsView<R, E>({ currentSessionId, list, locale, onCurrentSessionRevoked, revoke, runtime, timeZone }: SessionsViewProps<R, E>) {
 	const [cursors, setCursors] = useState<readonly NonNullable<typeof SessionListInput.Type.cursor>[]>([]);
 	const [selected, select] = useState<typeof SignedInSession.Type>();
 	const cursor = cursors.at(-1);
@@ -61,7 +62,15 @@ export function SessionsView<R, E>({ currentSessionId, list, onCurrentSessionRev
 			pending: action.pending,
 			selected,
 		}),
-		data === undefined ? null : createElement(SessionListView, { currentSessionId, pending: action.pending, select, sessions: data.sessions }),
+		data === undefined
+			? null
+			: createElement(SessionListView, {
+					currentSessionId,
+					dates: { locale, timeZone },
+					pending: action.pending,
+					select,
+					sessions: data.sessions,
+				}),
 		createElement(SessionPagination, {
 			cursors,
 			data,

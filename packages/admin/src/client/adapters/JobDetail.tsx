@@ -1,16 +1,20 @@
-import { DateTime, Option } from "effect";
+import { type DateTime, Option } from "effect";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { JobButton } from "#client/adapters/JobButton.tsx";
 import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
 import type { AdminJob, JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
+import { Timestamp } from "#client/adapters/Timestamp.tsx";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
 export function JobDetail({
 	api,
+	dates,
 	queue,
 	id,
 	retry,
 }: {
 	readonly api: JobsViewClient;
+	readonly dates: DateDisplay;
 	readonly queue: string;
 	readonly id: string;
 	readonly retry: RetryJob | undefined;
@@ -19,19 +23,30 @@ export function JobDetail({
 	return (
 		<section aria-label="Job detail">
 			<h2 className="mb-4 text-xl font-semibold">Job detail</h2>
-			<JobsQueryPanel state={state}>{(job) => <JobResult job={job} retry={retry} />}</JobsQueryPanel>
+			<JobsQueryPanel state={state}>{(job) => <JobResult dates={dates} job={job} retry={retry} />}</JobsQueryPanel>
 		</section>
 	);
 }
 
-function JobResult({ job, retry }: { readonly job: Option.Option<AdminJob>; readonly retry: RetryJob | undefined }) {
+function JobResult({
+	dates,
+	job,
+	retry,
+}: {
+	readonly dates: DateDisplay;
+	readonly job: Option.Option<AdminJob>;
+	readonly retry: RetryJob | undefined;
+}) {
 	if (Option.isNone(job)) {
 		return <p>Job not found.</p>;
 	}
-	return <JobRecord job={job.value} retry={retry} />;
+	return <JobRecord dates={dates} job={job.value} retry={retry} />;
 }
 
-export function JobRecord({ job, retry }: { readonly job: AdminJob; readonly retry?: RetryJob | undefined }) {
+export function JobRecord({ dates, job, retry }: { readonly dates: DateDisplay; readonly job: AdminJob; readonly retry?: RetryJob | undefined }) {
+	function shown(time: DateTime.DateTime) {
+		return <Timestamp dates={dates} time={time} />;
+	}
 	const failure = ("sourceOutput" in job ? job.sourceOutput : job.output)?.message ?? "No failure recorded.";
 	const deadLetterDetails =
 		"sourceId" in job ? (
@@ -48,12 +63,12 @@ export function JobRecord({ job, retry }: { readonly job: AdminJob; readonly ret
 				<dl className="grid min-w-0 gap-3 text-sm wrap-anywhere sm:grid-cols-2">
 					{Object.entries({
 						Attempt: job.attempt,
-						Completed: Option.match(job.completedOn, { onNone: () => "—", onSome: DateTime.formatIso }),
-						Created: DateTime.formatIso(job.createdOn),
+						Completed: Option.match(job.completedOn, { onNone: () => "—", onSome: shown }),
+						Created: shown(job.createdOn),
 						"ID": job.id,
 						Queue: job.queue,
 						"Retry count / limit": `${job.retryCount} / ${job.retryLimit}`,
-						Started: Option.match(job.startedOn, { onNone: () => "—", onSome: DateTime.formatIso }),
+						Started: Option.match(job.startedOn, { onNone: () => "—", onSome: shown }),
 						State: job.state,
 					}).map(([label, value]) => (
 						<div key={label}>

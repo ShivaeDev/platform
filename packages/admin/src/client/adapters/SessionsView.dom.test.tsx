@@ -10,9 +10,9 @@ const alice = {
 	email: "alice@app.test",
 	name: "alice",
 	times: [
-		{ text: "2026-01-01T12:00:00.000Z", value: "2026-01-01T12:00:00.000Z" },
-		{ text: "2026-01-03T12:00:00.000Z", value: "2026-01-03T12:00:00.000Z" },
-		{ text: "2100-01-01T12:00:00.000Z", value: "2100-01-01T12:00:00.000Z" },
+		{ text: "1 Jan 2026, 13:00:00 CET", value: "2026-01-01T12:00:00.000Z" },
+		{ text: "3 Jan 2026, 13:00:00 CET", value: "2026-01-03T12:00:00.000Z" },
+		{ text: "1 Jan 2100, 13:00:00 CET", value: "2100-01-01T12:00:00.000Z" },
 	],
 };
 const bob = {
@@ -20,14 +20,14 @@ const bob = {
 	email: "bob@app.test",
 	name: "bob",
 	times: [
-		{ text: "2026-01-01T12:00:00.000Z", value: "2026-01-01T12:00:00.000Z" },
-		{ text: "2026-01-02T12:00:00.000Z", value: "2026-01-02T12:00:00.000Z" },
-		{ text: "2100-01-01T12:00:00.000Z", value: "2100-01-01T12:00:00.000Z" },
+		{ text: "1 Jan 2026, 13:00:00 CET", value: "2026-01-01T12:00:00.000Z" },
+		{ text: "2 Jan 2026, 13:00:00 CET", value: "2026-01-02T12:00:00.000Z" },
+		{ text: "1 Jan 2100, 13:00:00 CET", value: "2100-01-01T12:00:00.000Z" },
 	],
 };
 
 sessionsScreen.it(
-	"lists signed-in users, started, last activity and expiry, marking only the current session",
+	"lists signed-in users with started, last activity and expiry in the given locale and time zone over their UTC instants, marking only the current session",
 	[sessionsViewOpen],
 	function* ({ shownSessions }) {
 		expect(yield* shownSessions()).toEqual([alice, bob]);

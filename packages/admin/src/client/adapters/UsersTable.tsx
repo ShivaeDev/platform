@@ -1,10 +1,12 @@
-import { DateTime } from "effect";
 import type { ReactNode } from "react";
 import type { DirectoryUser } from "@shivaedev/identity/users.ts";
+import { Timestamp } from "#client/adapters/Timestamp.tsx";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import type { UsersList } from "#users/List.ts";
 
 interface RoleControls<TRole extends string> {
+	readonly dates: DateDisplay;
 	readonly dispatch: (input: ChangeRoleInput<TRole>) => void;
 	readonly pending: boolean;
 	readonly roles: readonly TRole[];
@@ -16,7 +18,7 @@ function UserRole<TRole extends string>({
 	roles,
 	pending,
 	dispatch,
-}: RoleControls<TRole> & {
+}: Omit<RoleControls<TRole>, "dates"> & {
 	readonly user: typeof DirectoryUser.Type;
 	readonly canChangeRoles: boolean;
 }) {
@@ -48,6 +50,7 @@ function UserRole<TRole extends string>({
 function UserRow<TRole extends string>({
 	user,
 	canChangeRoles,
+	dates,
 	...controls
 }: RoleControls<TRole> & { readonly user: typeof DirectoryUser.Type; readonly canChangeRoles: boolean }) {
 	return (
@@ -58,9 +61,7 @@ function UserRow<TRole extends string>({
 				<UserRole {...controls} canChangeRoles={canChangeRoles} user={user} />
 			</UserCell>
 			<UserCell label="Signed up">
-				<time className="sm:whitespace-nowrap" dateTime={DateTime.formatIso(user.createdAt)}>
-					{DateTime.formatIso(user.createdAt)}
-				</time>
+				<Timestamp className="sm:whitespace-nowrap" dates={dates} time={user.createdAt} />
 			</UserCell>
 		</tr>
 	);

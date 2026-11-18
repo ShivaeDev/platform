@@ -6,6 +6,9 @@ import { mailFails, privateWaits, secretMailFails, signedInAs, statisticsRefresh
 
 expectNoReactWarnings();
 
+const tokyoTime = expect.stringMatching(/^\d{1,2} \w{3} \d{4}, \d{2}:\d{2}:\d{2} GMT\+9$/u);
+const utcInstant = expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
+
 jobsScreen.it(
 	"health totals only the declared queues while counts follow the selected queue",
 	[signedInAs("operator"), mailFails(42, 7), syncWaits, privateWaits, statisticsRefreshed, jobsViewOpen],
@@ -26,22 +29,22 @@ jobsScreen.it(
 );
 
 jobsScreen.it(
-	"opening failed mail shows its diagnostic detail with decoded masked payload and redacted failure output",
+	"opening failed mail shows its diagnostic detail with timestamps in the view's locale and time zone over their UTC instants, decoded masked payload and redacted failure output",
 	[signedInAs("operator"), secretMailFails, jobsViewOpen],
 	function* ({ openJob, shownDetail, screenText }) {
 		yield* openJob("secret mail");
 
-		const timestamp = expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
 		expect(yield* shownDetail()).toEqual({
+			dateTimes: { Completed: utcInstant, Created: utcInstant, Started: utcInstant },
 			failure: "the worker rejected 42: password=<redacted>",
 			fields: {
 				Attempt: "1",
-				Completed: timestamp,
-				Created: timestamp,
+				Completed: tokyoTime,
+				Created: tokyoTime,
 				"ID": "secret mail",
 				Queue: "mail",
 				"Retry count / limit": "0 / 0",
-				Started: timestamp,
+				Started: tokyoTime,
 				State: "failed",
 			},
 			output: { _tag: "WorkerRejected", message: "the worker rejected 42: password=<redacted>" },
@@ -57,18 +60,19 @@ jobsScreen.it(
 );
 
 jobsScreen.it(
-	"a dead-letter copy shows its original job and failure with no start or completion timestamp",
+	"a dead-letter copy shows its original job and failure with its creation time and no start or completion timestamp",
 	[signedInAs("operator"), mailFails(42), jobsViewOpen],
 	function* ({ openJob, selectList, shownDetail }) {
 		yield* selectList("Dead-lettered");
 		yield* openJob("the dead-letter copy of mail 42");
 
 		expect(yield* shownDetail()).toEqual({
+			dateTimes: { Created: utcInstant },
 			failure: "the worker rejected 42: password=<redacted>",
 			fields: {
 				Attempt: "0",
 				Completed: "—",
-				Created: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/u),
+				Created: tokyoTime,
 				"ID": "the dead-letter copy of mail 42",
 				Queue: "mail-dlq",
 				"Retry count / limit": "0 / 2",

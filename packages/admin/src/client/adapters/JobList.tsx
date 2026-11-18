@@ -7,15 +7,18 @@ import { JobPagination } from "#client/adapters/JobPagination.tsx";
 import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
 import { JobTable } from "#client/adapters/JobTable.tsx";
 import type { AdminJob, JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
 export function JobList({
 	api,
+	dates,
 	queue,
 	kind,
 	retry,
 	subject,
 }: {
 	readonly api: JobsViewClient;
+	readonly dates: DateDisplay;
 	readonly queue: string;
 	readonly kind: "failed" | "deadLettered";
 	readonly retry: RetryJob | undefined;
@@ -29,12 +32,12 @@ export function JobList({
 	let selectedDetail: ReactNode = null;
 	if (selectedId !== undefined) {
 		if (kind === "failed") {
-			selectedDetail = <JobDetail api={api} id={selectedId} key={selectedId} queue={queue} retry={retry} />;
+			selectedDetail = <JobDetail api={api} dates={dates} id={selectedId} key={selectedId} queue={queue} retry={retry} />;
 		} else if (Option.isSome(selected)) {
 			selectedDetail = (
 				<section aria-label="Dead-letter detail">
 					<h2 className="mb-4 text-xl font-semibold">Dead-letter detail</h2>
-					<JobRecord job={selected.value} />
+					<JobRecord dates={dates} job={selected.value} />
 				</section>
 			);
 		}

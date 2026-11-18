@@ -5,15 +5,18 @@ import { JobList } from "#client/adapters/JobList.tsx";
 import { JobsMetrics } from "#client/adapters/JobsMetrics.tsx";
 import { JobsQueryPanel } from "#client/adapters/JobsQueryPanel.tsx";
 import type { JobsViewClient, RetryJob } from "#client/adapters/jobsTypes.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
 export function JobsQueueView({
 	api,
+	dates,
 	label,
 	queue,
 	retry,
 	subject,
 }: {
 	readonly api: JobsViewClient;
+	readonly dates: DateDisplay;
 	readonly label?: string | undefined;
 	readonly queue: string;
 	readonly retry: RetryJob | undefined;
@@ -53,7 +56,7 @@ export function JobsQueueView({
 				))}
 			</div>
 			<div aria-labelledby={`jobs-${kind}-tab`} id={`jobs-${kind}-panel`} role="tabpanel">
-				<JobList api={api} key={kind} kind={kind} queue={queue} retry={retry} subject={subject} />
+				<JobList api={api} dates={dates} key={kind} kind={kind} queue={queue} retry={retry} subject={subject} />
 			</div>
 		</>
 	);

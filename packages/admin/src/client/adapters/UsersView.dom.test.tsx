@@ -1,7 +1,16 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { bobCanAssignRoles, cannotAssignRoles, mappedUsersScreen, onLastPage, twentyOneUsers, usersScreen, viewOpen } from "#test/usersScreen.tsx";
+import {
+	bobCanAssignRoles,
+	cannotAssignRoles,
+	mappedUsersScreen,
+	onLastPage,
+	twentyOneUsers,
+	usersScreen,
+	viewOpen,
+	viewOpenInBrowserZone,
+} from "#test/usersScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -9,7 +18,7 @@ const alice = {
 	email: "alice@app.test",
 	name: "alice",
 	role: "owner",
-	signedUp: "2026-10-20T12:34:56.000Z",
+	signedUp: "20 Oct 2026, 14:34:56 CEST",
 	signedUpDateTime: "2026-10-20T12:34:56.000Z",
 };
 const bob = { ...alice, email: "bob@app.test", name: "bob", role: "user" };
@@ -42,7 +51,7 @@ for (const [screen, mapping] of [
 	[mappedUsersScreen, "custom"],
 ] as const) {
 	screen.it(
-		`carol opens the ${mapping} users page and reads names, emails, roles and sign-up times without role controls`,
+		`carol opens the ${mapping} users page and reads names, emails, roles and sign-up times in the view's locale and time zone over their UTC instants, without role controls`,
 		[cannotAssignRoles, viewOpen],
 		function* ({ roleControl, shownUsers }) {
 			yield* outcomes([
@@ -79,6 +88,16 @@ for (const [screen, mapping] of [
 		},
 	);
 }
+
+usersScreen.it(
+	"a users view given no time zone shows alice's sign-up time in the browser's zone and keeps the UTC instant in the time element",
+	[viewOpenInBrowserZone("Asia/Tokyo")],
+	function* ({ shownUsers }) {
+		const [first] = yield* shownUsers();
+
+		expect(first).toEqual({ ...alice, signedUp: "20 Oct 2026, 21:34:56 GMT+9" });
+	},
+);
 
 usersScreen.it(
 	"alice makes bob an auditor and sees his saved role with the role control enabled again",
