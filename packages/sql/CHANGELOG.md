@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.49.0 - 2026-11-18
+
+### Added
+
+- The command publisher of `postgresChanges` sends a command's sync token through NOTIFY on the change channel behind the command's keys, and every listening host passes each token to its `synced` function in channel order.
+
+### Fixed
+
+- `delete` given an `in` list with another key beside it, such as `{ id: { in: [1, 2], gt: 1 } }` built outside an object literal, fails with `SchemaError` and removes nothing instead of removing every listed row.
+- A conditional upsert's `updateWhere` fails with `SchemaError` when a key stands beside `excluded`, such as `{ updatedAt: { excluded: "updatedAt", gte: since } }`, instead of comparing only for equality with the incoming value.
+- TypeScript refuses a filter object that mixes an `in` list, `not: null` and range or pattern operators on one field; mixes of a range or pattern with `in` or `not` compiled before and failed only at run time.
+
+### Breaking
+
+- `postgresChanges` requires a `synced` option. Pass the `synced` function of the live server whose `resync` you already pass: `postgresChanges({ channel, client, resync: live.resync, synced: live.synced })`. Direct users of `listenForChanges` provide `PostgresChangeSync` from `@shivaedev/sql/PostgresChangeSync.ts`. Hosts built with `appDatabase` or `appHost` need no change.
+- A repository filter that puts another key beside an `in` list no longer compiles and fails with `SchemaError` at run time. `{ note: { in: ["paid"], not: null } }` compiled and read the listed rows; remove `not: null`, because a list match already leaves out the rows that hold null.
+
 ## 0.48.0 - 2026-11-18
 
 ### Added

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.46.0 - 2026-11-18
+
+### Added
+
+- A command run through a client from `makeClient` has three states: `sent`, `accepted` when its reply arrives, and `reflected` when every live query open on the same connection shows the server's state after the command. `untilReflected` from `@shivaedev/contract/commandSignal.ts` completes a command's Effect at `reflected`, and `CommandSignal` from the same module receives each state. A command that publishes nothing is reflected without waiting for an update, and a failed command leaves nothing to wait for. Work a command starts for later, such as a job, is not covered.
+- `sync` on the value `makeClient` returns waits the same way without writing anything, so a client can wait for a write it did not make. It sends the `platform.liveSync.request` command of `LiveSync` from `@shivaedev/contract/LiveSync.ts`.
+- Client activity has an `unreflectedCommands` count, which holds a command from the moment it is sent until it is reflected or fails.
+- `LiveServer` and `makeLiveServer` have `synced(token)`, which queues a sync token in the subscriptions of the client it names, and `register` and `stream` take that client's name. A `$changes` request that names its client in the `x-shivaedev-sync` header receives `Syncing` and `Synced` frames; other requests receive the same frames as before.
+
+### Breaking
+
+- `isClientSettled` also waits for `unreflectedCommands` to reach zero, so a screen story's `settle()` returns after a command's change is on the screen. Code that builds a `ClientActivityState` by hand adds `unreflectedCommands: 0`.
+- The `$changes` stream's success type and `QueryUpdate` include `Syncing` and `Synced`. Code that matches every `QueryUpdate` tag adds the two cases; a consumer that sends no `x-shivaedev-sync` header never receives them.
+- The `CommandBoundary` of `commandGuardLayer` receives the command's sync token as a third argument. A custom boundary passes it to `CommandPublication.publish(keys, sync)`.
+- A client from `makeClient` also declares the `platform.liveSync.request` command. A custom native RPC host that passes `syncClient` to its subscriptions merges `LiveSync.application` into its group and handles the command with `Effect.void`. A host that does neither needs no change: its clients' commands are reflected as soon as they are accepted.
+
 ## 0.45.0 - 2026-11-18
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.78.2 - 2026-11-18
+
+### Changed
+
+- Update `@shivaedev/test-story` from 0.47.2 to 0.47.3.
+
 ## 0.78.1 - 2026-11-18
 
 ### Fixed

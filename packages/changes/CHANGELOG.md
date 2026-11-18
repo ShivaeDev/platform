@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-18
+
+### Added
+
+- `CommandPublication.publish(keys, sync)` takes the command's sync token, a `SyncToken` from `@shivaedev/changes/syncToken.ts`, and delivers it behind the keys. The default publisher hands it to the `SyncDelivery` reference from the same module.
+
 ## 0.12.0 - 2026-11-11
 
 ### Added
