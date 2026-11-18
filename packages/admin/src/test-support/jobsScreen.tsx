@@ -71,7 +71,7 @@ export const jobsScreen = storyKit({
 function openJobsView(namesOnly: boolean) {
 	return jobsScreen.trait(
 		"screen",
-		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}`,
+		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}, set to British English and Tokyo time`,
 		function* (engine) {
 			const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
 			engine.screen = yield* Effect.acquireRelease(
@@ -79,10 +79,12 @@ function openJobsView(namesOnly: boolean) {
 					render(
 						<JobsView
 							api={engine.api}
+							locale="en-GB"
 							queues={queues}
 							retry={engine.retryAction}
 							runScheduleNow={engine.runScheduleNowAction}
 							schedules={[ScheduledWorker]}
+							timeZone="Asia/Tokyo"
 						/>,
 					),
 				),

@@ -67,14 +67,18 @@ export const sessionsScreen = storyKit({
 
 export const unprivilegedViewer = sessionsScreen.trait("viewer", "bob has no sessions permission", (engine) => engine.as("bob"));
 
-export const sessionsViewOpen = sessionsScreen.trait("screen", "the Sessions view opens against the admin HTTP host", function* (engine) {
-	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-	engine.screen = yield* Effect.acquireRelease(
-		Effect.promise(() => render(<SessionsScreenApp engine={engine} />)),
-		(view) => Effect.promise(view.unmount),
-	);
-	yield* driverFor(engine, () => undefined).settle();
-});
+export const sessionsViewOpen = sessionsScreen.trait(
+	"screen",
+	"the Sessions view opens against the admin HTTP host, set to British English and Berlin time",
+	function* (engine) {
+		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+		engine.screen = yield* Effect.acquireRelease(
+			Effect.promise(() => render(<SessionsScreenApp engine={engine} />)),
+			(view) => Effect.promise(view.unmount),
+		);
+		yield* driverFor(engine, () => undefined).settle();
+	},
+);
 
 export const anotherPageOfSessions = sessionsScreen.trait(
 	"sessions",

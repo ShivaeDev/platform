@@ -1,8 +1,10 @@
-import { DateTime } from "effect";
 import type { SignedInSession } from "@shivaedev/identity/signedInSessions.ts";
+import { Timestamp } from "#client/adapters/Timestamp.tsx";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 
 interface SessionControls {
 	readonly currentSessionId: string | undefined;
+	readonly dates: DateDisplay;
 	readonly pending: boolean;
 	readonly select: (session: typeof SignedInSession.Type) => void;
 }
@@ -20,7 +22,7 @@ export function SessionListView({ sessions, ...controls }: SessionControls & { r
 	);
 }
 
-function SessionRow({ session, currentSessionId, pending, select }: SessionControls & { readonly session: typeof SignedInSession.Type }) {
+function SessionRow({ session, currentSessionId, dates, pending, select }: SessionControls & { readonly session: typeof SignedInSession.Type }) {
 	const current = session.id === currentSessionId && <p className="font-medium">Your current session</p>;
 	return (
 		<li className="min-w-0 space-y-3 rounded-md border p-4 wrap-anywhere">
@@ -40,12 +42,12 @@ function SessionRow({ session, currentSessionId, pending, select }: SessionContr
 					Revoke session
 				</button>
 			</div>
-			<SessionTimes session={session} />
+			<SessionTimes dates={dates} session={session} />
 		</li>
 	);
 }
 
-function SessionTimes({ session }: { readonly session: typeof SignedInSession.Type }) {
+function SessionTimes({ dates, session }: { readonly dates: DateDisplay; readonly session: typeof SignedInSession.Type }) {
 	const times = [
 		["Started", session.startedAt],
 		["Last activity", session.lastActivityAt],
@@ -57,7 +59,7 @@ function SessionTimes({ session }: { readonly session: typeof SignedInSession.Ty
 				<div key={label}>
 					<dt className="text-muted-foreground">{label}</dt>
 					<dd>
-						<time dateTime={DateTime.formatIso(time)}>{DateTime.formatIso(time)}</time>
+						<Timestamp dates={dates} time={time} />
 					</dd>
 				</div>
 			))}

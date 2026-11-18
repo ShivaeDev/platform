@@ -11,9 +11,11 @@ export function SessionsScreenApp({ engine }: { readonly engine: Effect.Success<
 		<SessionsView
 			currentSessionId={engine.viewerId()}
 			list={engine.api.list.query}
+			locale="en-GB"
 			onCurrentSessionRevoked={() => signOut(true)}
 			revoke={engine.api.revoke.run}
 			runtime={engine.runtime}
+			timeZone="Europe/Berlin"
 		/>
 	);
 }

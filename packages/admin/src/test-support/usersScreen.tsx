@@ -1,11 +1,13 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
+import { vi } from "vitest";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { type ClientActivity, clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "#test/Access.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
@@ -95,7 +97,7 @@ export const twentyOneUsers = usersScreen.trait(
 	},
 );
 
-export const viewOpen = usersScreen.trait("screen", "the users view is open without live subscriptions on its first page", function* (engine) {
+const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay) {
 	const protocol = yield* engine.protocolAs(engine.actor);
 	const runtime = yield* clientRuntime;
 	const client = makeClient(UsersPage.contract, { live: false, protocol, runtime, url: "http://localhost/rpc" });
@@ -103,7 +105,12 @@ export const viewOpen = usersScreen.trait("screen", "the users view is open with
 	const view = yield* Effect.acquireRelease(
 		Effect.promise(() =>
 			render(
-				<UsersView changeRole={client.Client.runtime.fn(client.api.changeRole.run)} list={client.api.list.query} roles={Access.Role.literals} />,
+				<UsersView
+					{...dates}
+					changeRole={client.Client.runtime.fn(client.api.changeRole.run)}
+					list={client.api.list.query}
+					roles={Access.Role.literals}
+				/>,
 			),
 		),
 		(screen) => Effect.promise(screen.unmount),
@@ -111,6 +118,25 @@ export const viewOpen = usersScreen.trait("screen", "the users view is open with
 	engine.container = Option.some(view.container);
 	yield* driverFor(engine, () => undefined).settle();
 });
+
+export const viewOpen = usersScreen.trait(
+	"screen",
+	"the users view is open without live subscriptions on its first page, set to British English and Berlin time",
+	(engine) => openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
+);
+
+export function viewOpenInBrowserZone(timeZone: string) {
+	return usersScreen.trait(
+		"screen",
+		`the users view is open in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		function* (engine) {
+			// happy-dom takes Intl from Node, whose default time zone follows TZ, so this is the browser's zone as the view sees it.
+			vi.stubEnv("TZ", timeZone);
+			yield* Effect.addFinalizer(() => Effect.sync(() => vi.unstubAllEnvs()));
+			yield* openView(engine, { locale: "en-GB" });
+		},
+	);
+}
 
 export const onLastPage = usersScreen.trait("page", "the view has moved to the last page", (engine) => {
 	const driver = driverFor(engine, () => undefined);

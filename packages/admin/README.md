@@ -293,6 +293,22 @@ const sessions = bind(SessionsPage.contract, Client);
 
 The view lists signed-in sessions with the user's name and email, started, last activity and expiry times. It marks the supplied current session id and asks for confirmation in the page before revoking. A successful revoke refreshes the bound list. Revoking the current session calls `onCurrentSessionRevoked`; the application uses that callback to clear its auth state and navigate to sign-in. The starter mounts this page at `/admin/sessions` and connects the callback to its sign-out flow.
 
+### Dates in the built-in views
+
+The Users, Sessions and Jobs views show each time as a date and a time with seconds and the zone's short name, such as `20 Oct 2026, 14:34:56 CEST`, in the browser's locale and time zone. Pass `locale` and `timeZone` to a view to use the viewer's own instead, such as the values the application reads from identity's `AccountPreferences`. Admin does not read those preferences itself:
+
+```tsx
+<UsersView
+	roles={AppAccess.Role.literals}
+	list={users.list.query}
+	changeRole={changeRole}
+	locale={preferences.locale}
+	timeZone={preferences.timezone}
+/>;
+```
+
+`locale` is a BCP 47 language tag and `timeZone` an IANA zone name; `SessionsView` and `JobsView` take the same two props. When the browser's `Intl` cannot read one of them, the view falls back to the browser's locale and time zone. Every time is a `<time>` element whose `dateTime` attribute keeps the UTC instant in ISO form.
+
 ### Client permission routes
 
 `adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract, installs a read policy checking the page grant on every query, and exposes its permission as `page.route.permission`. Queries need no repeated page-grant policy. An additional query policy can restrict access further. Bound live queries use the same page grant as one-off reads. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/adapters/permissionBoundary.ts` with the session and one application fallback.

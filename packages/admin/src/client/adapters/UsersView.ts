@@ -4,11 +4,12 @@ import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
 import type { UserListInput } from "@shivaedev/identity/users.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
 import { UsersTable } from "#client/adapters/UsersTable.tsx";
 import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import type { UsersList } from "#users/List.ts";
 
-export interface UsersViewProps<TRole extends string> {
+export interface UsersViewProps<TRole extends string> extends DateDisplay {
 	readonly changeRole: Atom.AtomResultFn<ChangeRoleInput<TRole>, void, unknown>;
 	readonly list: (input: typeof UserListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<UsersList, unknown>>;
 	readonly roles: readonly TRole[];
@@ -25,7 +26,7 @@ function failure(cause: Cause.Cause<unknown>): string {
 	return "Could not change the role. Try again.";
 }
 
-export function UsersView<TRole extends string>({ list, changeRole, roles }: UsersViewProps<TRole>) {
+export function UsersView<TRole extends string>({ list, changeRole, roles, locale, timeZone }: UsersViewProps<TRole>) {
 	const [cursors, setCursors] = useState<readonly string[]>([]);
 	const cursor = cursors.at(-1);
 	const state = useQuery(list({ ...(cursor === undefined ? {} : { cursor }), limit: 20 }));
@@ -42,7 +43,9 @@ export function UsersView<TRole extends string>({ list, changeRole, roles }: Use
 		state.pending ? createElement("p", { role: "status" }, "Loading users…") : null,
 		Option.isSome(state.cause) ? createElement("p", { role: "alert" }, "Could not load users. Try refreshing.") : null,
 		Option.isSome(action.cause) ? createElement("p", { role: "alert" }, failure(action.cause.value)) : null,
-		data === undefined ? null : createElement(UsersTable<TRole>, { data, dispatch: action.dispatch, pending: action.pending, roles }),
+		data === undefined
+			? null
+			: createElement(UsersTable<TRole>, { data, dates: { locale, timeZone }, dispatch: action.dispatch, pending: action.pending, roles }),
 		data === undefined
 			? null
 			: createElement(
