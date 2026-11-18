@@ -25,6 +25,15 @@ const postgres = makePostgresTestLayer({
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 });
 
+// One hint may carry keys and tokens together or apart, so each is told as its own word in the order a stream handles them.
+function hintWords(hint: Effect.Success<Effect.Success<ReturnType<typeof host>>["next"]>): readonly string[] {
+	const tokens = hint.synced === undefined ? [] : [`synced ${hint.synced.join(", ")}`];
+	if (hint._tag === "Resync") {
+		return ["resync", ...tokens];
+	}
+	return hint.keys.length === 0 ? tokens : ["changed", ...tokens];
+}
+
 export const commandChanges = storyKit({
 	around: withIsolatedDatabase,
 	clock: "test",
@@ -38,8 +47,8 @@ export const commandChanges = storyKit({
 			broadcastFails: false,
 			failures: 0,
 		};
-		const local = yield* host(writer, channel, state);
-		const remote = yield* host(reader, channel, { broadcastFails: false });
+		const local = yield* host(writer, channel, state, "local-tab");
+		const remote = yield* host(reader, channel, { broadcastFails: false }, "remote-tab");
 		const notify = Context.get(local.services, BeforeCommit);
 		const services = Context.add(local.services, BeforeCommit, (keys) =>
 			Effect.gen(function* () {
@@ -101,6 +110,17 @@ export const commandChanges = storyKit({
 	stages: ["publication"],
 	verbs: (engine, story) => ({
 		errorMessages: () => Effect.sync(() => engine.logs),
+		hintsThrough: (location: "local" | "remote", id: number) =>
+			Effect.gen(function* () {
+				const words: string[] = [];
+				let confirmed = false;
+				while (!confirmed) {
+					const hint = yield* engine[location].next;
+					words.push(...hintWords(hint));
+					confirmed = hint.synced?.includes(id) === true;
+				}
+				return words;
+			}),
 		initialHint: (location: "local" | "remote") => Effect.succeed(engine[location].initial),
 		invalidationViewers: () => Effect.sync(() => engine.viewers),
 		nextHint: (location: "local" | "remote") => engine[location].next,
@@ -121,6 +141,10 @@ export const commandChanges = storyKit({
 		saveAs: (auth: "required" | "optional" | "user" | "accounts", caller: "alice" | "anonymous" = "alice") => {
 			story.tell(`${caller} saves a note through the ${auth}-auth command with a pre-resolved session`);
 			return engine[caller === "alice" ? "alice" : "client"][`${auth}.save`]({ title: "Alice's note" });
+		},
+		saveNaming: (title: string, tab: "local-tab" | "remote-tab", id: number) => {
+			story.tell(`save the note "${title}" through a command that names sync token ${id} of the ${tab}`);
+			return engine.client["notes.save"]({ title }, { headers: { "x-shivaedev-sync": `${tab}:${id}` } });
 		},
 	}),
 });

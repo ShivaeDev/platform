@@ -1,5 +1,6 @@
 import { Cause, Effect } from "effect";
 import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
+import type { SyncToken } from "@shivaedev/changes/syncToken.ts";
 import { resyncPayload } from "#notifyPayload.ts";
 import type { ChangeFeedEngine } from "#test/changeFeedEngine.ts";
 
@@ -8,12 +9,19 @@ export function commandPublicationVerbs(engine: ChangeFeedEngine, tell: (line: s
 		return engine.binding === undefined ? effect : Effect.provideContext(effect, engine.binding);
 	}
 	return {
-		publishCommand: (keys: readonly unknown[]) =>
+		anotherHostSends: (payload: string) =>
+			Effect.suspend(() => {
+				tell(`another host sends ${payload} on the channel`);
+				return engine.other`select pg_notify(${engine.channel}, ${payload})`.pipe(Effect.orDie);
+			}),
+		publishCommand: (keys: readonly unknown[], sync?: SyncToken) =>
 			inFeed(
 				Effect.gen(function* () {
-					tell(`publish command changes ${JSON.stringify(keys)} through the port`);
+					tell(
+						`publish command changes ${JSON.stringify(keys)} through the port${sync === undefined ? "" : ` with sync token ${sync.id} of ${sync.client}`}`,
+					);
 					const publication = yield* CommandPublication;
-					return yield* publication.publish(keys).pipe(
+					return yield* publication.publish(keys, sync).pipe(
 						Effect.as({ outcome: "published" }),
 						Effect.catchTag("CommandPublicationError", (error) =>
 							Effect.succeed({ cause: Cause.pretty(error.cause), outcome: "publication failed" }),

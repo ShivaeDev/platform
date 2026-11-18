@@ -1,17 +1,23 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { type Rpc, type RpcGroup, RpcMiddleware } from "effect/rpc";
 import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
+import type { SyncToken } from "@shivaedev/changes/syncToken.ts";
 import { CommandResultKeys } from "#CommandResultKeys.ts";
 import { prependMiddleware } from "#prependMiddleware.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
+import { syncToken } from "#syncHeader.ts";
 
-export type CommandBoundary = <A, E, R>(effect: Effect.Effect<A, E, R>, keys: (result: A) => readonly unknown[]) => Effect.Effect<A, E, R>;
+export type CommandBoundary = <A, E, R>(
+	effect: Effect.Effect<A, E, R>,
+	keys: (result: A) => readonly unknown[],
+	sync?: SyncToken,
+) => Effect.Effect<A, E, R>;
 
 export class CommandGuard extends RpcMiddleware.Service<CommandGuard>()("@shivaedev/contract/CommandGuard") {}
 
 export function commandGuardLayer(boundary: CommandBoundary): Layer.Layer<CommandGuard> {
-	return Layer.succeed(CommandGuard, (effect, { rpc, payload }) => {
+	return Layer.succeed(CommandGuard, (effect, { rpc, payload, headers }) => {
 		const declaration = Context.getOption(rpc.annotations, CommandInvalidation);
 		return Option.isNone(declaration)
 			? effect
@@ -22,8 +28,10 @@ export function commandGuardLayer(boundary: CommandBoundary): Layer.Layer<Comman
 						Effect.provideService(CommandResultKeys, keys),
 						Effect.flatMap((result) => Effect.map(Ref.get(keys), (extra) => ({ extra, result }))),
 					);
-					const published = yield* boundary(completed, ({ extra, result }) =>
-						invalidationKeys([...declaration.value.invalidates(payload, result, viewer), ...extra]),
+					const published = yield* boundary(
+						completed,
+						({ extra, result }) => invalidationKeys([...declaration.value.invalidates(payload, result, viewer), ...extra]),
+						syncToken(headers),
 					);
 					return published.result;
 				});

@@ -6,6 +6,7 @@ import { initialize } from "#live-server/initialize.ts";
 import { register } from "#live-server/register.ts";
 import { resync } from "#live-server/resync.ts";
 import { stream } from "#live-server/stream.ts";
+import { synced } from "#live-server/synced.ts";
 
 export const LiveServer = defineService({
 	id: "@shivaedev/contract/LiveServer",
@@ -14,6 +15,7 @@ export const LiveServer = defineService({
 		register: register(state),
 		resync: resync(state),
 		stream: stream(state),
+		synced: synced(state),
 	}),
 	requires: [Reactivity.Reactivity, LiveDispatcher, Random.Random],
 });

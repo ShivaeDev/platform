@@ -1,6 +1,7 @@
 import { Deferred, Effect, Exit, Fiber, Layer, Queue, Scope } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import * as TestClock from "effect/testing/TestClock";
+import type { SyncToken } from "@shivaedev/changes/syncToken.ts";
 import { type PostgresChangeClient, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
 import type { ChangeFeedEngine } from "#test/changeFeedEngine.ts";
 import { instrumentedClient } from "#test/changeFeedListener.ts";
@@ -9,7 +10,10 @@ import { endingOf } from "#test/outcome.ts";
 export function startFeed(engine: ChangeFeedEngine, channel: string, client: PostgresChangeClient) {
 	const { events } = engine;
 	const resync = Effect.as(Queue.offer(events.resyncs, undefined), 0);
-	return Layer.build(postgresChanges({ ...engine.timing, channel, client, resync })).pipe(
+	function synced(token: SyncToken) {
+		return Effect.sync(() => engine.announced.push(`sync token ${token.id} of ${token.client}`));
+	}
+	return Layer.build(postgresChanges({ ...engine.timing, channel, client, resync, synced })).pipe(
 		Effect.tap((binding) =>
 			Effect.sync(() => {
 				engine.binding = binding;

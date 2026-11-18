@@ -1,10 +1,16 @@
 import { Effect, Schema } from "effect";
 import { SqlError, UnknownError } from "effect/sql/SqlError";
+import { SyncToken } from "@shivaedev/changes/syncToken.ts";
 
 export const NotificationKeys = Schema.Array(Schema.Union([Schema.String, Schema.Finite]));
 // Older listeners reconcile unknown array entries instead of ignoring them.
 export const resyncPayload = JSON.stringify([{ _tag: "Resync" }]);
 export const decodeKeys = Schema.decodeUnknownEffect(Schema.fromJsonString(NotificationKeys));
+// Listeners skip payloads that are not arrays, so a host from before sync tokens ignores this object.
+const SyncPayload = Schema.fromJsonString(Schema.Struct({ sync: SyncToken }));
+export const SYNC_PREFIX = '{"sync":';
+export const encodeSync = Schema.encodeSync(SyncPayload);
+export const decodeSync = Schema.decodeUnknownOption(SyncPayload);
 const encoder = new TextEncoder();
 
 export function notificationError(message: string, cause: unknown = message) {

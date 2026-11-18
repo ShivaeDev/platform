@@ -2,6 +2,7 @@ import { Cause, Effect, Option, type Schema, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Rpc, RpcSchema } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
@@ -14,6 +15,7 @@ import { queryDelivery } from "#queryDelivery.ts";
 import { queryProgress } from "#queryProgress.ts";
 import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
+import { followReflection, type StreamAnchor } from "#reflectedStream.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import { socketIdentity } from "#rpcClient.ts";
 import type { QueryReference } from "#serverMetadata.ts";
@@ -83,15 +85,35 @@ export function automaticLive(
 		const signals = querySignals(atom);
 		const delivery = queryDelivery(decode, paused, signals);
 		const source = delivery.atom;
+		const anchors = new WeakMap<object, StreamAnchor>();
+		function anchor(registry: object) {
+			const existing = anchors.get(registry);
+			if (existing !== undefined) {
+				return existing;
+			}
+			const made: StreamAnchor = { armedAt: undefined, mounted: false, reflection: undefined, supported: undefined };
+			anchors.set(registry, made);
+			return made;
+		}
 		const subscription = live(service.runtime, {
 			keyContext: owner?.context,
 			resume: signal,
 			retryKeys: keys,
-			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] }, { headers })))).pipe(
-				delivery.stream,
+			stream: Stream.unwrap(
+				service.use((client) =>
+					Effect.map(AtomRegistry.AtomRegistry, (registry) => {
+						const reflected = followReflection(client, anchor(registry));
+						if (reflected === undefined) {
+							return delivery.stream(client(`${name}.$changes`, { queries: [reference] }, { headers }));
+						}
+						const opened = client(`${name}.$changes`, { queries: [reference] }, { headers: reflected.headers(headers) });
+						return delivery.stream(reflected.lifetime(opened), reflected.follower);
+					}),
+				),
 			),
 		});
 		const gated = automaticQuery({
+			anchor,
 			clientStatuses: clientActivities.get(service)?.statuses,
 			equivalent,
 			ownerFailure,

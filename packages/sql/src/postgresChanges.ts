@@ -1,12 +1,14 @@
-import { Context, type Duration, Effect, Layer, type Queue, type Scope } from "effect";
+import { Context, type Duration, Effect, Layer, Option, type Queue, type Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { CommandPublication, CommandPublicationError, type CommandPublisher } from "@shivaedev/changes/commandPublication.ts";
+import type { SyncToken } from "@shivaedev/changes/syncToken.ts";
 import { listenForChanges } from "#listenForChanges.ts";
-import { encodeKeys, resyncPayload } from "#notifyPayload.ts";
+import { encodeKeys, encodeSync, resyncPayload } from "#notifyPayload.ts";
 import { PostgresChangeListener } from "#PostgresChangeListener.ts";
 import { PostgresChangeResync } from "#PostgresChangeResync.ts";
+import { PostgresChangeSync } from "#PostgresChangeSync.ts";
 import { BeforeCommit, CommittedSink, invalidateOnCommit, transact } from "#transact.ts";
 
 export interface PostgresNotification {
@@ -26,7 +28,11 @@ export interface PostgresChangesOptions {
 	readonly listenerClient?: Pick<PostgresChangeClient, "listen">;
 	readonly resync: Effect.Effect<number>;
 	readonly retryDelay?: Duration.Input;
+	readonly synced: (token: SyncToken) => Effect.Effect<void>;
 }
+
+// The publisher's own notify transaction sends this payload after its keys, so a sync token never overtakes them.
+const TrailingNotification = Context.Reference<string | undefined>("@shivaedev/sql/TrailingNotification", { defaultValue: () => undefined });
 
 export function postgresChanges(options: PostgresChangesOptions) {
 	return Layer.effectContext(
@@ -35,6 +41,7 @@ export function postgresChanges(options: PostgresChangesOptions) {
 				Effect.provideService(SqlClient.SqlClient, options.client),
 				Effect.provideService(PostgresChangeListener, options.listenerClient ?? options.client),
 				Effect.provideService(PostgresChangeResync, { resync: options.resync }),
+				Effect.provideService(PostgresChangeSync, { synced: options.synced }),
 			);
 			const notify = Effect.fn("PostgresChanges.notify")(function* (keys: readonly unknown[]) {
 				const sql = yield* SqlClient.SqlClient;
@@ -44,6 +51,10 @@ export function postgresChanges(options: PostgresChangesOptions) {
 				const payloads = yield* encodeKeys(keys);
 				for (const payload of payloads) {
 					yield* sql`select pg_notify(${options.channel}, ${payload})`;
+				}
+				const trailing = yield* TrailingNotification;
+				if (trailing !== undefined) {
+					yield* sql`select pg_notify(${options.channel}, ${trailing})`;
 				}
 			});
 			function committed(keys: readonly unknown[]) {
@@ -56,10 +67,27 @@ export function postgresChanges(options: PostgresChangesOptions) {
 				Effect.catchCause((cause) => Effect.fail(new CommandPublicationError({ cause }))),
 				Effect.asVoid,
 			);
+			// An enclosing transaction sends the keys at its own commit, so the token waits for that commit.
+			function sendToken(token: string, enclosed: boolean) {
+				const send = Effect.asVoid(options.client`select pg_notify(${options.channel}, ${token})`);
+				return enclosed
+					? options.client.afterCommit(Effect.ignore(send, { log: "Error", message: "PostgreSQL sync token failed after its commit" }))
+					: send;
+			}
+			const publish = Effect.fn("PostgresChanges.publish")(function* (keys: readonly unknown[], sync?: SyncToken) {
+				const token = sync === undefined ? undefined : encodeSync({ sync });
+				const enclosed = Option.isSome(yield* Effect.serviceOption(options.client.transactionService));
+				const riding = keys.length > 0 && !enclosed ? token : undefined;
+				if (keys.length > 0) {
+					yield* invalidateOnCommit(keys).pipe(transact(), Effect.provideService(TrailingNotification, riding));
+				}
+				if (token !== undefined && riding === undefined) {
+					yield* sendToken(token, enclosed);
+				}
+			});
 			const publication: CommandPublisher = {
-				publish: (keys) =>
-					invalidateOnCommit(keys).pipe(
-						transact(),
+				publish: (keys, sync) =>
+					publish(keys, sync).pipe(
 						Effect.provideService(SqlClient.SqlClient, options.client),
 						Effect.catchCause((cause) => Effect.fail(new CommandPublicationError({ cause }))),
 					),

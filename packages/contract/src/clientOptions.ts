@@ -40,4 +40,5 @@ export type MadeClient<
 		readonly Client: AtomRpc.AtomRpcClient<ClientService<TName, TRpcs | TExtra>, `${TName}/Client`, TRpcs | TExtra>;
 		readonly client: Effect.Effect<RpcClient.RpcClient<TRpcs | TExtra, RpcClientError>, never, Scope.Scope | Rpc.MiddlewareClient<TRpcs | TExtra>>;
 		readonly runtime: Atom.AtomRuntime<ClientService<TName, TRpcs | TExtra>>;
+		readonly sync: Effect.Effect<void, RpcClientError, ClientService<TName, TRpcs | TExtra>>;
 	};

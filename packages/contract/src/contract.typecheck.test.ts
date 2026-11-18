@@ -16,6 +16,8 @@ const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query
 expectTypeOf(changes).toEqualTypeOf<
 	Stream.Stream<
 		| QueryReadDenied
+		| { readonly _tag: "Syncing" }
+		| { readonly _tag: "Synced"; readonly ids: readonly number[] }
 		| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 		| { readonly _tag: "Result"; readonly query: "get"; readonly queryIndex: number; readonly value: Note }
 		| { readonly _tag: "Result"; readonly query: "list"; readonly queryIndex: number; readonly value: readonly Note[] },
@@ -79,6 +81,8 @@ const Pushed = contract("pushed", {
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
 expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
 	| QueryReadDenied
+	| { readonly _tag: "Syncing" }
+	| { readonly _tag: "Synced"; readonly ids: readonly number[] }
 	| { readonly _tag: "Result"; readonly query: "text"; readonly queryIndex: number; readonly value: string }
 	| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 	| {

@@ -14,6 +14,8 @@ const delivery = Match.type<QueryUpdate>().pipe(
 	Match.tagsExhaustive({
 		QueryReadDenied: () => "read denied",
 		Result: ({ value }) => titles(value),
+		Synced: ({ ids }) => `synced ${ids.join(", ")}`,
+		Syncing: () => "syncing",
 		Unchanged: () => "unchanged",
 	}),
 );

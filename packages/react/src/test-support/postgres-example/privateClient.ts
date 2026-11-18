@@ -30,7 +30,7 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 				list = Schema.decodeUnknownSync(Schema.Array(Schema.String))(hint.value);
 			}
 		}
-		if (hint.queryIndex === 1) {
+		if ((hint._tag === "Result" || hint._tag === "Unchanged") && hint.queryIndex === 1) {
 			delivered.push({ hint, list, title });
 		}
 	});

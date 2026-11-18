@@ -12,9 +12,12 @@ import type { QueryOptions } from "#bind.ts";
 import { clientActivities } from "#clientActivities.ts";
 import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import { commandPayload } from "#commandPayload.ts";
+import { CommandSignal, untilReflected } from "#commandSignal.ts";
 import { waitForConnection } from "#connectionReadiness.ts";
+import { LIVE_SYNC } from "#liveSyncRpc.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
+import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
 import { retainQuery } from "#retainQuery.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
@@ -34,6 +37,11 @@ export function clientOperations(
 	function run<A, E>(effect: Effect.Effect<A, E, unknown>) {
 		return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, ordinaryClient.runtime.atom(effect)));
 	}
+
+	const observed = Effect.map(
+		CommandSignal,
+		(signal): CommandObserver => ({ pending: () => clientActivities.get(ordinaryClient)?.reflecting() ?? (() => undefined), signal }),
+	);
 
 	function boundQuery(tag: string, query: QueryShape) {
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
@@ -75,19 +83,28 @@ export function clientOperations(
 			];
 			return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
 		}
-		return {
-			run: (payload: unknown) =>
-				run(
-					ordinaryClient.use((client) =>
-						commandPayload(command, payload).pipe(
-							Effect.tap(() => waitForConnection(client)),
-							Effect.flatMap((validated) => client(tag, validated)),
-							Effect.tap((result) => invalidate(payload, result)),
-						),
-					),
+		function send(observer: CommandObserver, payload: unknown) {
+			return ordinaryClient.use((client) =>
+				commandPayload(command, payload).pipe(
+					Effect.tap(() => waitForConnection(client)),
+					Effect.flatMap((validated) => reflectCommand(client, observer, (options) => client(tag, validated, options))),
+					Effect.tap((result) => invalidate(payload, result)),
 				),
+			);
+		}
+		return {
+			run: (payload: unknown) => Effect.flatMap(observed, (observer) => run(send(observer, payload))),
 		};
 	}
+
+	function synchronize(observer: CommandObserver) {
+		return ordinaryClient.use((client) => {
+			const request = reflectCommand(client, observer, (options) => Effect.asVoid(client(LIVE_SYNC, undefined, options)), true);
+			return Effect.andThen(waitForConnection(client), request);
+		});
+	}
+	// A sync writes nothing and waits like a command, so it returns once every open live query shows the commits before it.
+	const sync = untilReflected(Effect.flatMap(observed, (observer) => run(synchronize(observer))));
 
 	function boundStream(tag: string) {
 		return {
@@ -107,5 +124,6 @@ export function clientOperations(
 		command: (tag: string, command: CommandShape) => boundCommand(tag, command),
 		query: (tag: string, query: QueryShape) => boundQuery(tag, query),
 		stream: (tag: string) => boundStream(tag),
+		sync,
 	};
 }

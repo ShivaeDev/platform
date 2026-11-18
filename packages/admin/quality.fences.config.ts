@@ -51,6 +51,7 @@ export default [
 				files(
 					"packages/changes/src/compositeKeys.ts",
 					"packages/changes/src/keys.ts",
+					"packages/changes/src/syncToken.ts",
 					"packages/jobs/src/JobFailure.ts",
 					"packages/jobs/src/display.ts",
 				),
