@@ -171,6 +171,16 @@ export function pageImporting(kind: keyof typeof VITE_PROJECT.serverCodePages) {
 	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, VITE_PROJECT.serverCodePages[kind]));
 }
 
+export function pageImportingOldForm(kind: keyof typeof VITE_PROJECT.oldFormPages) {
+	return vite.trait("page", `the page's script imports ${kind}`, (engine) => writeFiles(engine.root, VITE_PROJECT.oldFormPages[kind]));
+}
+
+export function billingContractImporting(kind: keyof typeof VITE_PROJECT.reachedThroughBilling) {
+	return vite.trait("page", `the page's script imports the old-form contract of the billing folder, which imports ${kind}`, (engine) =>
+		writeFiles(engine.root, VITE_PROJECT.reachedThroughBilling[kind]),
+	);
+}
+
 export function notesTest() {
 	return vite.trait("page", "the project has a test file that imports the generated notes wire", (engine) =>
 		writeFiles(engine.root, VITE_PROJECT.notesTest),
