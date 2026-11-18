@@ -11,7 +11,7 @@ export const clientActivities = new WeakMap<object, ActivityTracker>();
 export function makeActivity(factory: Atom.RuntimeFactory) {
 	const { activity, answered, change, hold, setConnection } = activityState();
 	const connection = clientConnection(factory, setConnection, activity);
-	function begin(key: "rpcCalls" | "commands") {
+	function begin(key: "rpcCalls" | "commands" | "unreflectedCommands") {
 		change(key, 1);
 		return () => change(key, -1);
 	}
@@ -91,6 +91,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 				),
 				true,
 			),
+		reflecting: () => begin("unreflectedCommands"),
 		statuses: connection.statuses,
 		track,
 		watch,

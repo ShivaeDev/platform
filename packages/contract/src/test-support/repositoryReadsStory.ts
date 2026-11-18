@@ -18,6 +18,10 @@ function words(watch: Watched, update: QueryUpdate): string {
 			return `${watch.views[update.queryIndex] ?? "an unknown query"} unchanged`;
 		case "QueryReadDenied":
 			return "read denied";
+		case "Syncing":
+			return "syncing";
+		case "Synced":
+			return `synced ${update.ids.join(", ")}`;
 	}
 }
 

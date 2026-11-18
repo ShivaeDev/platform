@@ -3,8 +3,10 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { LiveBound, LiveConnection } from "#automaticLive.ts";
 import type { LiveStatus } from "#live.ts";
 import type { QuerySignals } from "#querySignals.ts";
+import type { StreamAnchor } from "#reflectedStream.ts";
 
 export interface AutomaticQueryOptions<A, E> {
+	readonly anchor: (registry: object) => StreamAnchor;
 	readonly clientStatuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>> | undefined;
 	readonly equivalent: (left: A, right: A) => boolean;
 	readonly paused: Atom.Writable<boolean>;

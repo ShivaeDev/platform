@@ -17,6 +17,7 @@ export interface QuerySubscription<E = never, R = never> {
 	readonly readScopes?: Effect.Effect<readonly (readonly Key[])[], E, R>;
 	readonly refresh?: Effect.Effect<Context.Context<never>, E, R>;
 	readonly scopes: readonly (readonly Key[])[];
+	readonly syncClient?: string | undefined;
 }
 
 export function querySubscription<TRpc extends Rpc.Any>(

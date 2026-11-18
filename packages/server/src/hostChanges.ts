@@ -7,6 +7,7 @@ import { LiveServer } from "@shivaedev/contract/live-server/service.ts";
 import { subscribe as subscribeQueries } from "@shivaedev/contract/live-server/subscribe.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
+import { syncClient } from "@shivaedev/contract/syncHeader.ts";
 import { currentSessionContext } from "@shivaedev/identity/server/adapters/currentSessionContext.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
@@ -47,7 +48,10 @@ const initializeHostChanges = Effect.fnUntraced(function* (group: RpcGroup.RpcGr
 					return Effect.provide(rerun(query), requestServices);
 				}
 				type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
-				const pending = subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>>({ ...subscription, refresh }, read);
+				const pending = subscribeQueries<Failure, Effect.Services<ReturnType<typeof read>>>(
+					{ ...subscription, refresh, syncClient: syncClient(options.headers) },
+					read,
+				);
 				const stream = Option.isSome(changes)
 					? Stream.unwrap(pending.pipe(Effect.provideService(LiveServer, changes.value)))
 					: Stream.concat(

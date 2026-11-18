@@ -54,3 +54,58 @@ changeFeed.it(
 		expect(yield* resyncBroadcasts()).toEqual(["Resync"]);
 	},
 );
+
+const tab = { client: "tab-a", id: 1 };
+
+changeFeed.it(
+	"a command's sync token reaches the listening host after the command's keys",
+	[feedListens(), watching("orders:1")],
+	function* ({ announced, publishCommand }) {
+		yield* publishCommand(["orders:1"], tab);
+
+		expect(yield* announced()).toEqual(["orders:1", "sync token 1 of tab-a"]);
+	},
+);
+
+changeFeed.it("a command that changes nothing still sends its sync token", [feedListens()], function* ({ announced, publishCommand }) {
+	yield* publishCommand([], tab);
+
+	expect(yield* announced()).toEqual(["sync token 1 of tab-a"]);
+});
+
+changeFeed.it(
+	"inside an outer PostgreSQL transaction the sync token waits for the commit and follows its keys",
+	[feedListens(), hasTable("rows"), watching("orders:1")],
+	function* ({ announced, insertRowWithRawSql, inTransaction, publishCommand }) {
+		yield* inTransaction(function* () {
+			yield* insertRowWithRawSql(1);
+			yield* publishCommand(["orders:1"], tab);
+
+			expect(yield* announced()).toEqual([]);
+		});
+
+		expect(yield* announced()).toEqual(["orders:1", "sync token 1 of tab-a"]);
+	},
+);
+
+changeFeed.it(
+	"rolling back the outer PostgreSQL transaction sends no sync token",
+	[feedListens(), hasTable("rows"), watching("orders:1")],
+	function* ({ announced, insertRowWithRawSql, inTransaction, publishCommand, rejects }) {
+		yield* inTransaction(function* () {
+			yield* insertRowWithRawSql(1);
+			yield* publishCommand(["orders:1"], tab);
+			yield* rejects();
+		});
+
+		expect(yield* announced()).toEqual([]);
+	},
+);
+
+changeFeed.it("the listener ignores a sync payload that names no valid client or id", [feedListens()], function* ({ announced, anotherHostSends }) {
+	yield* anotherHostSends('{"sync":{"client":"two words","id":1}}');
+	yield* anotherHostSends('{"sync":{"client":"tab-a","id":0}}');
+	yield* anotherHostSends('{"sync":{"client":"tab-b","id":2}}');
+
+	expect(yield* announced()).toEqual(["sync token 2 of tab-b"]);
+});

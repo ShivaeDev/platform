@@ -4,11 +4,14 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { withClientProtocol } from "#adapters/withClientProtocol.ts";
+import { catchUp } from "#catchUp.ts";
 import { clientActivities, makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
-import { connectionProtocol, protocolConnections } from "#connectionProtocol.ts";
+import { connectionProtocol, protocolConnections, protocolReflections } from "#connectionProtocol.ts";
 import { commandConnections } from "#connectionReadiness.ts";
+import { LiveSync } from "#LiveSync.ts";
+import { reflections } from "#reflection.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
 import { socketProtocol } from "#socketProtocol.ts";
@@ -22,7 +25,8 @@ export interface RpcSource {
 
 export function rpcClient(name: string, source: RpcSource, options: ClientOptions) {
 	const activity = makeActivity(options.runtime ?? Atom.runtime);
-	const group = RpcGroup.make(...source.requests.values()).annotateMerge(source.annotations);
+	const liveSync: RpcSource = LiveSync.application;
+	const group = RpcGroup.make(...source.requests.values(), ...liveSync.requests.values()).annotateMerge(source.annotations);
 	const commands = new Set(
 		[...group.requests].filter(([, rpc]) => Option.isSome(Context.getOption(rpc.annotations, CommandInvalidation))).map(([tag]) => tag),
 	);
@@ -71,7 +75,15 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		const connection = protocolConnections.get(transport);
 		const wait = connection === undefined ? Effect.void : Effect.suspend(() => (connection.isReady() ? Effect.void : activity.hold(connection.wait)));
 		const native = yield* RpcClient.make<Rpc.Any, true>(group, { flatten: true });
-		return observeClient(native, wait);
+		const observed = observeClient(native, wait);
+		const reflection = protocolReflections.get(transport);
+		if (reflection === undefined) {
+			return observed;
+		}
+		// Only the shared socket proves a command reaches the host that holds its streams; any other protocol syncs after the reply.
+		reflections.set(observed, { piggyback: options.protocol === undefined, reflection });
+		yield* catchUp(reflection, native, wait);
+		return observed;
 	});
 	const Client = AtomRpc.Service<unknown>()(`${name}/Client`, {
 		group,

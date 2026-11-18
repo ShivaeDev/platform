@@ -98,3 +98,21 @@ commandChanges.it("changes already announced by the handler publish once", [], f
 		["remote hint", () => nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
 	]);
 });
+
+commandChanges.it(
+	"a command's sync token follows its keys to the host that holds the named client's stream and to no other host",
+	[],
+	function* ({ hintsThrough, initialHint, nextHint, saveNaming }) {
+		yield* initialHint("local");
+		yield* saveNaming("Ada's note", "local-tab", 4);
+
+		yield* outcomes([
+			["local hints", () => hintsThrough("local", 4), ["changed", "synced 4"]],
+			["remote hint", () => nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
+		]);
+
+		yield* saveNaming("Bo's note", "remote-tab", 9);
+
+		expect(yield* hintsThrough("remote", 9)).toEqual(["synced 9"]);
+	},
+);

@@ -1,5 +1,10 @@
 import { Cause, type Duration, Effect, Option, Predicate, Queue, Schedule } from "effect";
 
+export function retriesLive<E>(failure: Cause.Cause<E>): boolean {
+	const error = Cause.findErrorOption(failure);
+	return Option.isNone(error) || Predicate.isTagged(error.value, "RpcClientError");
+}
+
 export function liveRetry<E, R>(
 	attempt: Effect.Effect<void, E, R>,
 	ended: (failure: Option.Option<Cause.Cause<E>>, retry: boolean) => void,
@@ -8,8 +13,7 @@ export function liveRetry<E, R>(
 ) {
 	const next = Effect.matchCause(attempt, {
 		onFailure: (failure) => {
-			const error = Cause.findErrorOption(failure);
-			const retry = Option.isNone(error) || Predicate.isTagged(error.value, "RpcClientError");
+			const retry = retriesLive(failure);
 			ended(Option.some(failure), retry);
 			return retry;
 		},

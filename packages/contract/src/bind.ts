@@ -135,6 +135,7 @@ export function makeClient(
 		bindingOptions.live,
 		bindingOptions.resumeWindow,
 	);
-	const api = bindOperations(contract.declaration, clientOperations(connection.Client, automatic, owner), automatic.subscription);
-	return Object.assign(connection, { api });
+	const operations = clientOperations(connection.Client, automatic, owner);
+	const api = bindOperations(contract.declaration, operations, automatic.subscription);
+	return Object.assign(connection, { api, sync: operations.sync });
 }

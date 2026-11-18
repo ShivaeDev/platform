@@ -93,5 +93,9 @@ function updateWords(update: QueryUpdate) {
 			return "unchanged";
 		case "QueryReadDenied":
 			return "read denied";
+		case "Syncing":
+			return "syncing";
+		case "Synced":
+			return `synced ${update.ids.join(", ")}`;
 	}
 }

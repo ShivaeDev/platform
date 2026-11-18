@@ -11,5 +11,10 @@ export const standaloneLiveServer = Effect.gen(function* () {
 	function subscribe<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>) {
 		return Stream.unwrap(Effect.provideContext(subscribeQueries(subscription, read), context));
 	}
-	return { resync: server.resync(), stream: (keys: readonly Key[]) => Stream.unwrap(server.stream(keys)), subscribe };
+	return {
+		resync: server.resync(),
+		stream: (keys: readonly Key[], syncClient?: string) => Stream.unwrap(server.stream(keys, syncClient)),
+		subscribe,
+		synced: server.synced,
+	};
 });

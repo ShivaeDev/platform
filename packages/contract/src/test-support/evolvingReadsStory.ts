@@ -19,6 +19,8 @@ const renderDelivery = Match.type<QueryUpdate>().pipe(
 	Match.tagsExhaustive({
 		QueryReadDenied: () => ["timeline read denied"],
 		Result: ({ query, value }) => (query === "barrier" ? [] : [`${query}: ${JSON.stringify(value)}`]),
+		Synced: () => [],
+		Syncing: () => [],
 		Unchanged: ({ queryIndex }) => (queryIndex === 2 ? [] : ["pushed timeline unchanged"]),
 	}),
 );

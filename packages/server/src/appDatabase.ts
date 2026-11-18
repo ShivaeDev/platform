@@ -29,7 +29,7 @@ export interface AppDatabaseOptions<R = never, E = never> {
 }
 
 export interface DatabaseConfig extends PostgresOptions {
-	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "resync">>;
+	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "resync" | "synced">>;
 	readonly clock?: Clock.Clock;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly listenDatabaseUrl?: Redacted.Redacted<string>;
@@ -82,6 +82,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 				connectionSetting,
 				listenerClient,
 				resync: hints.resync(),
+				synced: hints.synced,
 			}).pipe(Layer.provide(clock));
 		}),
 	).pipe(Layer.provideMerge(base));

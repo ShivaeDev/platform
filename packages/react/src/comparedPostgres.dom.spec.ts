@@ -46,6 +46,7 @@ for (const [description, id, title] of [
 					"socket deliveries",
 					() => results(),
 					[
+						{ _tag: "Syncing" },
 						{ _tag: "Result", value: [{ title: "Visible first" }] },
 						{ _tag: "Unchanged", queryIndex: 0 },
 						{ _tag: "Result", value: [{ title: "Visible changed" }] },
@@ -81,8 +82,10 @@ comparedPostgres.it(
 				"socket deliveries",
 				() => results(),
 				[
+					{ _tag: "Syncing" },
 					{ _tag: "Result", value: [{ title: "Visible first" }] },
 					{ _tag: "Result", value: [{ title: "Visible held" }] },
+					{ _tag: "Syncing" },
 					{ _tag: "Result", value: [{ title: "Visible edit 257" }] },
 				],
 			],

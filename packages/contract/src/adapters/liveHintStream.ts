@@ -5,10 +5,14 @@ import { LiveDispatcher } from "#adapters/LiveDispatcher.ts";
 import { openLiveHints } from "#adapters/openLiveHints.ts";
 import type { initialize } from "#live-server/initialize.ts";
 
-export const liveHintStream = Effect.fn("LiveServer.liveHintStream")(function* (state: Effect.Success<typeof initialize>, keys: readonly Key[]) {
+export const liveHintStream = Effect.fn("LiveServer.liveHintStream")(function* (
+	state: Effect.Success<typeof initialize>,
+	keys: readonly Key[],
+	syncClient?: string,
+) {
 	const reactivity = yield* Reactivity.Reactivity;
 	const dispatcher = yield* LiveDispatcher;
-	return Stream.unwrap(Effect.map(openLiveHints(state, keys), Stream.succeed)).pipe(
+	return Stream.unwrap(Effect.map(openLiveHints(state, keys, syncClient), Stream.succeed)).pipe(
 		Stream.provideService(Reactivity.Reactivity, reactivity),
 		Stream.provideService(LiveDispatcher, dispatcher),
 	);

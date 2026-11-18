@@ -3,8 +3,9 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import { ReadRecorder, type RecordReadOptions } from "@shivaedev/changes/readRecorder.ts";
 import { refreshSubscription } from "#adapters/refreshSubscription.ts";
 import { compareQueries } from "#compareQueries.ts";
-import type { LiveHint } from "#live.ts";
 import { LiveServer } from "#live-server/service.ts";
+import { carriesOnlyTokens, syncFrames } from "#live-server/syncFrames.ts";
+import type { SubscriptionHint } from "#liveHintQueue.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
@@ -82,12 +83,13 @@ function subscribeQueries<E, R>(
 function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>) {
 	return Effect.fnUntraced(function* () {
 		const server = yield* LiveServer;
-		const hints = yield* server.register(subscription.keys);
+		const syncing = subscription.syncClient !== undefined;
+		const hints = yield* server.register(subscription.keys, subscription.syncClient);
 		return hints.pipe(
 			Stream.flatMap((registration) => {
 				const keys = subscriptionKeys(subscription, read, registration.replaceKeys);
 				let compare = compareQueries(subscription, keys.recordingRead);
-				const next = Effect.fnUntraced(function* (hint: LiveHint) {
+				const next = Effect.fnUntraced(function* (hint: SubscriptionHint) {
 					if (!(yield* subscription.authorized)) {
 						compare = compareQueries(subscription, keys.recordingRead, false);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
@@ -100,7 +102,11 @@ function subscribeQueries<E, R>(subscription: QuerySubscription<E, R>, read: Que
 					return updates;
 				});
 				return registration.stream.pipe(
-					Stream.mapEffect((hint) => refreshSubscription(subscription, next(hint))),
+					Stream.mapEffect((hint) =>
+						carriesOnlyTokens(hint)
+							? Effect.succeed(syncFrames(syncing, hint, []))
+							: Effect.map(refreshSubscription(subscription, next(hint)), (updates) => syncFrames(syncing, hint, updates)),
+					),
 					Stream.flatMap(Stream.fromIterable),
 				);
 			}),

@@ -3,6 +3,7 @@ import { type HttpEffect, HttpServerResponse } from "effect/http";
 import { type Rpc, type RpcGroup, RpcMiddleware, RpcServer } from "effect/rpc";
 import { CommandGuard, commandGuardLayer, guardCommands } from "@shivaedev/contract/CommandGuard.ts";
 import { HostVersion } from "@shivaedev/contract/HostVersion.ts";
+import { LiveSync } from "@shivaedev/contract/LiveSync.ts";
 import { prependMiddleware } from "@shivaedev/contract/prependMiddleware.ts";
 import { ReadPolicyGuard, readPolicyGuardLayer } from "@shivaedev/contract/ReadPolicyGuard.ts";
 import { subjectLayers } from "@shivaedev/contract/subjectLayers.ts";
@@ -24,7 +25,7 @@ export const hostRpc = Effect.fnUntraced(function* <R extends Rpc.Any, TServices
 	const requestLayer = Layer.mergeAll(services ?? Layer.empty);
 	const requested = yield* prependMiddleware(group.middleware(requestsMiddleware), requestsMiddleware.key);
 	const requests = yield* prependMiddleware(requested, ReadPolicyGuard.key);
-	const guarded = yield* guardCommands(requests.merge(HostVersion.application));
+	const guarded = yield* guardCommands(requests.merge(HostVersion.application).merge(LiveSync.application));
 	const traced = tracedGroup(guarded);
 	const readPolicy = yield* ReadPolicyGuard.pipe(Effect.provide(readPolicyGuardLayer({ websocket })));
 	const publication = yield* CommandGuard.pipe(Effect.provide(commandGuardLayer(publishCommand)));

@@ -14,6 +14,7 @@ export function activityState() {
 			liveHints: 0,
 			refreshingAtoms: 0,
 			rpcCalls: 0,
+			unreflectedCommands: 0,
 		}),
 	);
 	function publish() {

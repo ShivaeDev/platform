@@ -140,6 +140,10 @@ export function updateWords(update: QueryUpdate): string {
 			return String(update.value);
 		case "Unchanged":
 			return "unchanged";
+		case "Syncing":
+			return "syncing";
+		case "Synced":
+			return `synced ${update.ids.join(", ")}`;
 		default:
 			return hintWords(update);
 	}

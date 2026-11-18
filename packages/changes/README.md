@@ -109,6 +109,18 @@ const publication = yield* CommandPublication;
 yield* publication.publish(["notes:1"]);
 ```
 
+`publish(keys, sync)` also takes the command's sync token, a `SyncToken` from `@shivaedev/changes/syncToken.ts` holding the `client` that sent the command and that client's number for it. A publisher delivers the token behind the keys, including when there are none, so a live stream that passes it has already seen them. The default publisher hands it to `SyncDelivery` from the same module, a reference the host provides with the function that reaches its streams; without one the token is dropped.
+
+```ts
+import { CommandPublication } from "@shivaedev/changes/commandPublication.ts";
+import { SyncDelivery } from "@shivaedev/changes/syncToken.ts";
+
+const publication = yield* CommandPublication;
+yield* publication.publish(["notes:1"], { client: "tab-a", id: 3 }).pipe(Effect.provideService(SyncDelivery, deliver));
+```
+
+Here `deliver` is the host's `(token) => Effect<void>`, such as the live server's `synced`.
+
 Both `publish` and `recover` have `CommandPublicationError` in their typed failure channel; its `cause` preserves the Effect cause. A failed announcement does not undo a committed write. The command boundary handles publication failure separately from the write and can run `publication.recover`. The PostgreSQL binding resynchronizes local streams and broadcasts Resync to other hosts; the server's command publication in `@shivaedev/server` keeps the committed result even when publication or recovery fails, as its [command publication stories](https://github.com/ShivaeDev/platform/blob/main/packages/server/src/commandPublication.spec.ts) show.
 
 ### Record keys and buckets
@@ -226,17 +238,19 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module                                | Names                                                                                                                                                                      |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/changes/channel.ts`       | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
-| `@shivaedev/changes/frame.ts`         | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
-| `@shivaedev/changes/capture.ts`       | `makeCapture`, `Capture`                                                                                                                                                   |
-| `@shivaedev/changes/observe.ts`       | `Observation`, `Observer`                                                                                                                                                  |
-| `@shivaedev/changes/publish.ts`       | `Publish`, `PublishFailure`                                                                                                                                                |
-| `@shivaedev/changes/keys.ts`          | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
-| `@shivaedev/changes/compositeKeys.ts` | `isComposite`, `isCompositeId`, `CompositeItemKey`, `CompositeBucketKey`, `CompositeId`, `Composite`                                                                       |
-| `@shivaedev/changes/buckets.ts`       | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
-| `@shivaedev/changes/readRecorder.ts`  | `ReadRecorder`, `recordRead`                                                                                                                                               |
+| Module                                     | Names                                                                                                                                                                      |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/changes/channel.ts`            | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                 |
+| `@shivaedev/changes/frame.ts`              | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                          |
+| `@shivaedev/changes/capture.ts`            | `makeCapture`, `Capture`                                                                                                                                                   |
+| `@shivaedev/changes/observe.ts`            | `Observation`, `Observer`                                                                                                                                                  |
+| `@shivaedev/changes/publish.ts`            | `Publish`, `PublishFailure`                                                                                                                                                |
+| `@shivaedev/changes/keys.ts`               | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity` |
+| `@shivaedev/changes/compositeKeys.ts`      | `isComposite`, `isCompositeId`, `CompositeItemKey`, `CompositeBucketKey`, `CompositeId`, `Composite`                                                                       |
+| `@shivaedev/changes/buckets.ts`            | `bucket`, `declaredBuckets`, `decodeBucketValue`                                                                                                                           |
+| `@shivaedev/changes/commandPublication.ts` | `CommandPublication`, `CommandPublisher`, `CommandPublicationError`                                                                                                        |
+| `@shivaedev/changes/syncToken.ts`          | `SyncToken`, `SyncDelivery`                                                                                                                                                |
+| `@shivaedev/changes/readRecorder.ts`       | `ReadRecorder`, `recordRead`                                                                                                                                               |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 

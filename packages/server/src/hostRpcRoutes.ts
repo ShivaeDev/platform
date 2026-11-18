@@ -15,6 +15,7 @@ import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
 import { hostVersionLayer } from "#hostVersionLayer.ts";
+import { liveSyncLayer } from "#liveSyncLayer.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import type { RequestRequirements } from "#requestServices.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
@@ -130,6 +131,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements,
 	).pipe(
 		Layer.provide(Layer.merge(middleware, hostChanges(options.group).pipe(Layer.provideMerge(options.handlers)))),
 		Layer.provide(hostVersionLayer(options.config?.buildVersion)),
+		Layer.provide(liveSyncLayer),
 		Layer.provide(RpcSerialization.layerNdjson),
 	);
 }

@@ -13,6 +13,7 @@ export default [
 					"packages/changes/src/compositeKeys.ts",
 					"packages/changes/src/keys.ts",
 					"packages/changes/src/readRecorder.ts",
+					"packages/changes/src/syncToken.ts",
 					"packages/errors/src/boundary.ts",
 					"packages/errors/src/infrastructure.ts",
 					"packages/errors/src/redact.ts",

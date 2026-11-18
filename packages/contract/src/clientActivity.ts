@@ -11,6 +11,7 @@ export interface ClientActivityState {
 	readonly liveHints: number;
 	readonly refreshingAtoms: number;
 	readonly rpcCalls: number;
+	readonly unreflectedCommands: number;
 }
 
 export type ClientActivity = Stream.Stream<ClientActivityState> & {
@@ -34,7 +35,7 @@ export function isClientIdle(state: ClientActivityState): boolean {
 }
 
 export function isClientSettled(state: ClientActivityState): boolean {
-	return state.commands === 0 && state.initialQueries === 0;
+	return state.commands === 0 && state.initialQueries === 0 && state.unreflectedCommands === 0;
 }
 
 export function activityScreenSignal(activity: ClientActivity, settled = isClientSettled) {

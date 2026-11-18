@@ -1,10 +1,11 @@
-import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "effect";
+import { Clock, Deferred, type Duration, Effect, Option, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { decodeKeys, resyncPayload } from "#notifyPayload.ts";
+import { decodeKeys, decodeSync, resyncPayload, SYNC_PREFIX } from "#notifyPayload.ts";
 import { PostgresChangeListener } from "#PostgresChangeListener.ts";
 import { PostgresChangeResync } from "#PostgresChangeResync.ts";
+import { PostgresChangeSync } from "#PostgresChangeSync.ts";
 import { PostgresListenerError } from "#PostgresListenerError.ts";
 import type { PostgresChangesOptions } from "#postgresChanges.ts";
 
@@ -16,13 +17,14 @@ function listenerScope(timeout: Duration.Input) {
 }
 
 export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(function* (
-	options: Omit<PostgresChangesOptions, "client" | "listenerClient" | "resync">,
+	options: Omit<PostgresChangesOptions, "client" | "listenerClient" | "resync" | "synced">,
 ) {
 	const ready = yield* Deferred.make<void, SqlError | PostgresListenerError>();
 	const reactivity = yield* Reactivity.Reactivity;
 	const client = yield* SqlClient.SqlClient;
 	const listener = yield* PostgresChangeListener;
 	const { resync } = yield* PostgresChangeResync;
+	const { synced } = yield* PostgresChangeSync;
 	const { channel } = options;
 	const timeout = options.heartbeatTimeout ?? "10 seconds";
 	function deadline<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -46,6 +48,9 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 				}
 				if (payload === resyncPayload) {
 					return Effect.asVoid(resync);
+				}
+				if (payload.startsWith(SYNC_PREFIX)) {
+					return Option.match(decodeSync(payload), { onNone: () => Effect.void, onSome: ({ sync }) => synced(sync) });
 				}
 				if (!payload.startsWith("[")) {
 					return Effect.void;

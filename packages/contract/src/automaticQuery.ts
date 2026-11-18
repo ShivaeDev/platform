@@ -8,6 +8,7 @@ import { queryResult } from "#queryResult.ts";
 
 type GateOptions<A, E> = AutomaticQueryOptions<A, E> & { readonly ownerFailure: (get: Atom.AtomContext) => Error | undefined };
 export function automaticQuery<A, E>({
+	anchor,
 	clientStatuses,
 	equivalent,
 	ownerFailure,
@@ -28,6 +29,12 @@ export function automaticQuery<A, E>({
 				get.set(signals, recordCompletion(get.once(signals), failure));
 				return failure;
 			}
+			const mounted = anchor(get.registry);
+			mounted.mounted = true;
+			get.addFinalizer(() => {
+				mounted.mounted = false;
+				mounted.reflection?.detach(mounted);
+			});
 			get.mount(subscriptionVersion);
 			const openingVersion = get.once(subscriptionVersion);
 			get.refresh(subscription.connection);
