@@ -123,3 +123,16 @@ for (const [condition, hour, updateWhere, expected] of [
 		},
 	);
 }
+
+revisions.it(
+	"an upsert whose condition puts a range beside a reference to the incoming value fails with a schema error and leaves the stored revision",
+	[pullsStored([[12, 1]])],
+	function* ({ endings, pull, syncPullWhere }) {
+		yield* syncPullWhere(13, { updatedAt: { excluded: "updatedAt", gte: elevenAm } });
+
+		yield* outcomes([
+			["sync ending", () => endings(), ["failed with a schema error"]],
+			["stored pull request", () => pull(), "Revision 12 at 12:00"],
+		]);
+	},
+);
