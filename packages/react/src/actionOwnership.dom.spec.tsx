@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { launchControl, launchPending, ownership } from "#test/action-ownership/story.tsx";
+import { inlineRunControl, launchControl, launchPending, ownership, strictLaunchControl } from "#test/action-ownership/story.tsx";
 
 for (const mode of ["native", "runtime"] as const) {
 	ownership.it(
@@ -91,3 +91,34 @@ for (const mode of ["native", "runtime"] as const) {
 		},
 	);
 }
+
+ownership.it(
+	"a control that writes its run function inline fails its next render with a message naming useAction, run and the fix",
+	[inlineRunControl],
+	function* ({ control, crash, parentRerenders }) {
+		expect(yield* control()).toEqual({ label: "Launch", state: "enabled" });
+
+		yield* parentRerenders();
+
+		expect(yield* crash()).toBe(
+			"useAction received a new `run` function on 10 renders in a row. `run` is the action's identity and must stay the same function between renders: pass a bound command such as `api.rename.run` directly, or wrap your function in `useCallback` or `useMemo`.",
+		);
+	},
+);
+
+ownership.it(
+	"inside StrictMode a runtime control swaps Launch for Resume and then Inspect without failing",
+	[strictLaunchControl],
+	function* ({ control, crash, switchCommand }) {
+		yield* switchCommand("Resume");
+
+		expect(yield* control()).toEqual({ label: "Resume", state: "enabled" });
+
+		yield* switchCommand("Inspect");
+
+		yield* outcomes([
+			["control", () => control(), { label: "Inspect", state: "enabled" }],
+			["crash", () => crash(), ""],
+		]);
+	},
+);

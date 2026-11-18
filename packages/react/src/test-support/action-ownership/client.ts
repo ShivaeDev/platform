@@ -2,7 +2,7 @@ import { Deferred, Effect, Layer } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 
 export type CommandName = "Launch" | "Resume" | "Inspect";
-export type Mode = "native" | "runtime";
+export type Mode = "native" | "runtime" | "inline run";
 
 export function ownershipClient() {
 	const sent: { readonly command: CommandName; readonly input: string }[] = [];

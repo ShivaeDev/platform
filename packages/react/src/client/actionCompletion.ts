@@ -4,6 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { AtomServices } from "#AtomServices.ts";
+import { useStableRun } from "#client/adapters/useStableRun.ts";
 import { NoticeContext } from "#client/NoticeContext.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
 import { useSessionRecheck } from "#client/sessionBoundary.ts";
@@ -21,6 +22,7 @@ export function useActionSource<TInput, A, E, R, TRuntimeError>(
 	run: ((input: TInput) => Effect.Effect<A, E, AtomServices<R>>) | undefined,
 	options: ActionOptions<TInput, A, E, R>,
 ): Atom.AtomResultFn<TInput, A, E | TRuntimeError> {
+	useStableRun(run);
 	const registry = useContext(RegistryContext);
 	const recheck = useSessionRecheck();
 	const notices = useContext(NoticeContext);
