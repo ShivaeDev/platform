@@ -14,6 +14,7 @@ class Profile extends Model.Class<Profile>("JsonbFilterProfile")({
 			Schema.Struct({
 				gt: Schema.optionalKey(Schema.NumberFromString),
 				in: Schema.optionalKey(Schema.Array(Schema.NumberFromString)),
+				not: Schema.optionalKey(Schema.Null),
 			}),
 		),
 	),
@@ -58,10 +59,10 @@ export const jsonbFilters = storyKit({
 export function distinctDetails() {
 	return jsonbFilters.trait(
 		"rows",
-		"profiles store SQL NULL (1 and 7), JSON null (2), gt 7 (3), gt 8 (4), in [7] (5), and gt 7 with in [7] (6), with numbers encoded as strings",
+		"profiles store SQL NULL (1 and 7), JSON null (2), gt 7 (3), gt 8 (4), in [7] (5), gt 7 with in [7] (6), and not null (8), with numbers encoded as strings",
 		({ sql, tableName }) =>
 			Effect.asVoid(sql`insert into ${sql(tableName)} (id, details) values
 				(1, null), (2, 'null'::jsonb), (3, '{"gt":"7"}'::jsonb),
-				(4, '{"gt":"8"}'::jsonb), (5, '{"in":["7"]}'::jsonb), (6, '{"gt":"7","in":["7"]}'::jsonb), (7, null)`),
+				(4, '{"gt":"8"}'::jsonb), (5, '{"in":["7"]}'::jsonb), (6, '{"gt":"7","in":["7"]}'::jsonb), (7, null), (8, '{"not":null}'::jsonb)`),
 	);
 }

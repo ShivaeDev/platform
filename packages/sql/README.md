@@ -343,7 +343,15 @@ yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 
 Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field.
 
-A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }` or `{ in: [7] }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
+Use `{ not: null }` on a field whose type admits null to match the rows that hold a value, as SQL `IS NOT NULL`:
+
+```ts
+yield* lines.findMany({ where: { note: { not: null } } });
+```
+
+It stands alone as the field's filter and combines with the other fields' entries. `count`, `select` and `aggregate` accept it too; a field that cannot be null, another value after `not`, and `delete` reject it with `SchemaError`.
+
+A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }`, `{ in: [7] }` or `{ not: null }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
 
 Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
 
@@ -870,7 +878,7 @@ A live query that declares no keys listens on what its repository reads pin. `fi
 - When it pins several buckets, a bucket whose columns all belong to another pinned bucket gives way to it, because it hears every write the other hears and more: alice's entries for day 1 listen on `ownerDay`, never on `ownerId`. Among the rest, the read listens on the bucket with the fewest keys. Any pinned bucket hears every write that can change the result, because the filter matches only rows whose pinned columns hold one of the pinned values, and a write announces every bucket of its old and new row.
 - Otherwise it listens on the table.
 
-`null`, an `in` list that holds `null`, comparisons and `like` pin nothing, because a write to a row without a value announces no bucket key for it. An `in` with no values matches no row and records no key. A bucket pinned to more than 1,000 keys, such as 2 owners and 501 days of an owner-day tuple, is not a candidate, because each key is registered and renewed on every rerun; the read listens on the next bucket that covers it, else the table. Columns other than the chosen one stay coarse: a list filtered by a bucket and a status reruns for any write in that bucket. A read by id plus a bucket listens on the row, which a move out of the bucket still announces. Keys come only from the arguments, never from the returned rows, so a read of a missing row still listens on that row. Outside a live query run the recorder does nothing.
+`null`, `{ not: null }`, an `in` list that holds `null`, comparisons and `like` pin nothing, because a write to a row without a value announces no bucket key for it. An `in` with no values matches no row and records no key. A bucket pinned to more than 1,000 keys, such as 2 owners and 501 days of an owner-day tuple, is not a candidate, because each key is registered and renewed on every rerun; the read listens on the next bucket that covers it, else the table. Columns other than the chosen one stay coarse: a list filtered by a bucket and a status reruns for any write in that bucket. A read by id plus a bucket listens on the row, which a move out of the bucket still announces. Keys come only from the arguments, never from the returned rows, so a read of a missing row still listens on that row. Outside a live query run the recorder does nothing.
 
 ### A raw read names its key at its parameter
 
