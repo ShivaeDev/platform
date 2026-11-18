@@ -6,6 +6,12 @@ import { type BindingComposition, composeBindings, liveBindings } from "@shivaed
 import type { AdminNavigation } from "#client/AdminNavigation.ts";
 import type { rootRoute } from "#client/rootRoute.ts";
 
+declare module "@tanstack/react-router" {
+	interface StaticDataRouteOption {
+		readonly fullScreen?: boolean;
+	}
+}
+
 export interface RouteContext {
 	readonly getParentRoute: () => ReturnType<typeof rootRoute>;
 }
