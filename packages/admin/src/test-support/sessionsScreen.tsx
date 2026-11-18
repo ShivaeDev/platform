@@ -5,6 +5,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { type Rendered, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import { browserZone } from "#test/browserZone.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { SessionsScreenApp } from "#test/SessionsScreenApp.tsx";
 import { sessionsHost } from "#test/sessionsHost.ts";
@@ -67,18 +69,31 @@ export const sessionsScreen = storyKit({
 
 export const unprivilegedViewer = sessionsScreen.trait("viewer", "bob has no sessions permission", (engine) => engine.as("bob"));
 
+const openView = Effect.fnUntraced(function* (engine: Engine, dates: DateDisplay) {
+	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+	engine.screen = yield* Effect.acquireRelease(
+		Effect.promise(() => render(<SessionsScreenApp dates={dates} engine={engine} />)),
+		(view) => Effect.promise(view.unmount),
+	);
+	yield* driverFor(engine, () => undefined).settle();
+});
+
 export const sessionsViewOpen = sessionsScreen.trait(
 	"screen",
 	"the Sessions view opens against the admin HTTP host, set to British English and Berlin time",
-	function* (engine) {
-		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-		engine.screen = yield* Effect.acquireRelease(
-			Effect.promise(() => render(<SessionsScreenApp engine={engine} />)),
-			(view) => Effect.promise(view.unmount),
-		);
-		yield* driverFor(engine, () => undefined).settle();
-	},
+	(engine) => openView(engine, { locale: "en-GB", timeZone: "Europe/Berlin" }),
 );
+
+export function sessionsViewOpenInBrowserZone(timeZone: string) {
+	return sessionsScreen.trait(
+		"screen",
+		`the Sessions view opens against the admin HTTP host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		function* (engine) {
+			yield* browserZone(timeZone);
+			yield* openView(engine, { locale: "en-GB" });
+		},
+	);
+}
 
 export const anotherPageOfSessions = sessionsScreen.trait(
 	"sessions",

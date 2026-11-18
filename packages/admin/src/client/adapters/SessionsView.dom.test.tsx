@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { anotherPageOfSessions, sessionsScreen, sessionsViewOpen, unprivilegedViewer } from "#test/sessionsScreen.tsx";
+import { anotherPageOfSessions, sessionsScreen, sessionsViewOpen, sessionsViewOpenInBrowserZone, unprivilegedViewer } from "#test/sessionsScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -31,6 +31,23 @@ sessionsScreen.it(
 	[sessionsViewOpen],
 	function* ({ shownSessions }) {
 		expect(yield* shownSessions()).toEqual([alice, bob]);
+	},
+);
+
+sessionsScreen.it(
+	"a sessions view given no time zone shows alice's started, last activity and expiry times in the browser's zone and keeps the UTC instants in the time elements",
+	[sessionsViewOpenInBrowserZone("Asia/Tokyo")],
+	function* ({ shownSessions }) {
+		const [first] = yield* shownSessions();
+
+		expect(first).toEqual({
+			...alice,
+			times: [
+				{ text: "1 Jan 2026, 21:00:00 GMT+9", value: "2026-01-01T12:00:00.000Z" },
+				{ text: "3 Jan 2026, 21:00:00 GMT+9", value: "2026-01-03T12:00:00.000Z" },
+				{ text: "1 Jan 2100, 21:00:00 GMT+9", value: "2100-01-01T12:00:00.000Z" },
+			],
+		});
 	},
 );
 

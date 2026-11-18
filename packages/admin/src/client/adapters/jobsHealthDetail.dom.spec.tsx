@@ -1,7 +1,8 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { jobsScreen, jobsViewOpen } from "#test/jobsScreen.tsx";
+import { enGbTime } from "#test/enGbTime.ts";
+import { jobsScreen, jobsViewOpen, jobsViewOpenInBrowserZone } from "#test/jobsScreen.tsx";
 import { mailFails, privateWaits, secretMailFails, signedInAs, statisticsRefreshed, syncWaits } from "#test/jobsStory.ts";
 
 expectNoReactWarnings();
@@ -56,6 +57,22 @@ jobsScreen.it(
 			["masked payload", () => screenText(), expect.not.stringContaining("one-time-")],
 			["redacted failure", () => screenText(), expect.not.stringContaining("admin-job-secret")],
 		]);
+	},
+);
+
+jobsScreen.it(
+	"a jobs view given no time zone shows failed mail's created, started and completed times in the browser's zone over their UTC instants",
+	[signedInAs("operator"), secretMailFails, jobsViewOpenInBrowserZone("Asia/Kolkata")],
+	function* ({ openJob, shownDetail }) {
+		yield* openJob("secret mail");
+
+		const detail = yield* shownDetail();
+		expect(detail?.dateTimes).toEqual({ Completed: utcInstant, Created: utcInstant, Started: utcInstant });
+		expect(detail?.fields).toMatchObject({
+			Completed: enGbTime(detail?.dateTimes.Completed, "Asia/Kolkata"),
+			Created: enGbTime(detail?.dateTimes.Created, "Asia/Kolkata"),
+			Started: enGbTime(detail?.dateTimes.Started, "Asia/Kolkata"),
+		});
 	},
 );
 

@@ -1,6 +1,7 @@
 import { Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import type { Listed, NotNull, Pattern, Without } from "#filterOperators.ts";
 import { type TupleFilter, tuplePredicate } from "#tupleIn.ts";
 
 export type RepositoryFilter<TModel extends Model.Any> = {
@@ -10,24 +11,23 @@ export type RepositoryFilter<TModel extends Model.Any> = {
 export type RepositoryListFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
-		| { readonly in: readonly Schema.Struct.Type<TModel["fields"]>[TField][] }
+		| Listed<Schema.Struct.Type<TModel["fields"]>[TField]>
 		| undefined;
 };
 
 const Ordered = Schema.Union([Schema.String, Schema.Number, Schema.BigInt, Schema.Date, Schema.BigDecimal, Schema.DateTimeUtc]);
 export type OrderedValue = typeof Ordered.Type;
-export type Comparisons<T, TOperand = NonNullable<T>> = [NonNullable<T>] extends [OrderedValue]
+export type Comparisons<T, TOperand = NonNullable<T>> = ([NonNullable<T>] extends [OrderedValue]
 	? { readonly gt?: TOperand; readonly gte?: TOperand; readonly lt?: TOperand; readonly lte?: TOperand }
-	: { readonly gt?: never; readonly gte?: never; readonly lt?: never; readonly lte?: never };
-type Pattern<T> = [NonNullable<T>] extends [string] ? { readonly like?: NonNullable<T> } : { readonly like?: never };
-type NotNull<T> = [null] extends [T] ? { readonly not: null } : never;
+	: { readonly gt?: never; readonly gte?: never; readonly lt?: never; readonly lte?: never }) &
+	Without<"in" | "not">;
 
 export type FindManyFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
 		| (Comparisons<Schema.Struct.Type<TModel["fields"]>[TField]> & Pattern<Schema.Struct.Type<TModel["fields"]>[TField]>)
 		| NotNull<Schema.Struct.Type<TModel["fields"]>[TField]>
-		| { readonly in: readonly Schema.Struct.Type<TModel["fields"]>[TField][] }
+		| Listed<Schema.Struct.Type<TModel["fields"]>[TField]>
 		| undefined;
 };
 
@@ -50,14 +50,22 @@ export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>
 	function column(key: string) {
 		return references === undefined ? sql`${sql(key)}` : sql`${sql(references.tableName)}.${sql(key)}`;
 	}
+	function unexpected(key: string, operator: string) {
+		return Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([key, operator], new SchemaIssue.UnexpectedKey(model.ast, operator))));
+	}
 	function reference(value: unknown) {
-		return references !== undefined && typeof value === "object" && value !== null && "excluded" in value && typeof value.excluded === "string"
+		return references !== undefined
+			&& typeof value === "object"
+			&& value !== null
+			&& "excluded" in value
+			&& typeof value.excluded === "string"
+			&& Object.keys(value).length === 1
 			? value.excluded
 			: undefined;
 	}
 	function comparison(key: string, field: Schema.Constraint, operator: string, operand: unknown) {
 		if (!isOperator(operator)) {
-			return Effect.fail(new Schema.SchemaError(new SchemaIssue.Pointer([key, operator], new SchemaIssue.UnexpectedKey(model.ast, operator))));
+			return unexpected(key, operator);
 		}
 		const incoming = reference(operand);
 		if (incoming !== undefined) {
@@ -89,12 +97,16 @@ export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>
 		return encoded.length === 0 ? sql`1 = 0` : sql`${column(key)} in ${sql.in(encoded)}`;
 	}
 	function listed<E, R>(key: string, value: unknown, encode: (entry: unknown) => Effect.Effect<unknown, E, R>) {
-		return typeof value === "object" && value !== null && "in" in value && Array.isArray(value.in)
+		if (typeof value !== "object" || value === null || !("in" in value) || !Array.isArray(value.in)) {
+			return undefined;
+		}
+		const beside = Object.keys(value).find((name) => name !== "in");
+		return beside === undefined
 			? Effect.map(
 					Effect.forEach(value.in, (entry) => encode(entry)),
 					(encoded) => inPredicate(key, encoded),
 				)
-			: undefined;
+			: unexpected(key, beside);
 	}
 	function predicate(key: string, value: unknown, allowIn: boolean, allowComparisons: boolean) {
 		return Effect.flatMap(fieldAt(key), (field) => {

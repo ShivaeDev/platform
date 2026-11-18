@@ -72,6 +72,17 @@ const program = Effect.gen(function* () {
 	plain.findMany({ where: { kind: { not: null } } });
 	// @ts-expect-error A not filter takes null alone.
 	plain.findMany({ where: { note: { not: "x" } } });
+	// @ts-expect-error An in list stands alone, without a not-null filter beside it.
+	plain.findMany({ where: { note: { in: ["x"], not: null } } });
+	// @ts-expect-error An in list stands alone, without a range beside it.
+	plain.count({ where: { value: { gt: 1, in: [1, 2] } } });
+	// @ts-expect-error A not-null filter stands alone, without a pattern beside it.
+	plain.select({ where: { note: { like: "x%", not: null } } });
+	const listedRange = { gt: 1, in: [1, 2] };
+	// @ts-expect-error A list that carries a range is refused outside an object literal too.
+	plain.findMany({ where: { value: listedRange } });
+	// @ts-expect-error Delete refuses a list that carries another operator.
+	plain.delete({ value: listedRange });
 	// @ts-expect-error Delete has no not-null filter.
 	plain.delete({ note: { not: null } });
 	// @ts-expect-error Delete retains its equality and list filters.
