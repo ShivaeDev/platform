@@ -37,20 +37,28 @@ export function clientConnection(
 		get.addFinalizer(cancel);
 		return "live";
 	});
-	const status = Atom.make((get): ConnectionStatus => {
-		get.mount(debounced);
-		const context = AsyncResult.value(get(runtime));
-		if (Option.isSome(context)) {
-			const cancel = Effect.runCallbackWith(context.value)(
-				activity.pipe(
-					Stream.map((state) => state.connectionStatus),
-					Stream.changes,
-					Stream.runForEach((value) => Effect.sync(() => get.setSelf(value))),
-				),
-			);
-			get.addFinalizer(cancel);
-		}
-		return Effect.runSync(activity.current).connectionStatus;
-	});
-	return { status, statuses };
+	function follow<A>(select: (state: ClientActivityState) => A, mounts: readonly Atom.Atom<unknown>[] = []) {
+		return Atom.make((get): A => {
+			for (const mounted of mounts) {
+				get.mount(mounted);
+			}
+			const context = AsyncResult.value(get(runtime));
+			if (Option.isSome(context)) {
+				const cancel = Effect.runCallbackWith(context.value)(
+					activity.pipe(
+						Stream.map(select),
+						Stream.changes,
+						Stream.runForEach((value) => Effect.sync(() => get.setSelf(value))),
+					),
+				);
+				get.addFinalizer(cancel);
+			}
+			return select(Effect.runSync(activity.current));
+		});
+	}
+	return {
+		firstSettled: follow((state) => state.firstSettled),
+		status: follow((state) => state.connectionStatus, [debounced]),
+		statuses,
+	};
 }

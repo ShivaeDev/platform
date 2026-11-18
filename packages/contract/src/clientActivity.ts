@@ -6,6 +6,7 @@ export type ConnectionStatus = "live" | "reconnecting" | "waiting-for-connection
 export interface ClientActivityState {
 	readonly commands: number;
 	readonly connectionStatus: ConnectionStatus;
+	readonly firstSettled: boolean;
 	readonly initialQueries: number;
 	readonly liveHints: number;
 	readonly refreshingAtoms: number;
@@ -15,6 +16,7 @@ export interface ClientActivityState {
 export type ClientActivity = Stream.Stream<ClientActivityState> & {
 	readonly connectionStatus: Atom.Atom<ConnectionStatus>;
 	readonly current: Effect.Effect<ClientActivityState>;
+	readonly firstSettled: Atom.Atom<boolean>;
 };
 
 export const Activity = Symbol.for("@shivaedev/contract/ClientActivity");
