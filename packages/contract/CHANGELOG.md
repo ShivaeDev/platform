@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.47.0 - 2026-11-18
+
+### Added
+
+- `screenSync(client, registry)` from `@shivaedev/contract/screenSync.ts` runs a client's `sync` through a view's registry, for the driver's `sync` option.
+
+### Breaking
+
+- `liveAnswers` from `@shivaedev/contract/liveAnswers.ts` is removed with the wait it fed. Use the screen driver's `settle()` and `sync()` as above, or `untilReflected` and the client's `sync` outside a screen.
+
 ## 0.46.0 - 2026-11-18
 
 ### Added

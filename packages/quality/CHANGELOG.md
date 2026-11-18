@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.78.3 - 2026-11-18
+
+### Changed
+
+- Update `@shivaedev/skills` from 0.9.2 to 0.9.3.
+- Update `@shivaedev/test-story` from 0.47.3 to 0.48.0.
+
 ## 0.78.2 - 2026-11-18
 
 ### Changed
