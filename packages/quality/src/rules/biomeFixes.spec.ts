@@ -5,6 +5,12 @@ import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const UNSORTED_DUPLICATES = { content: "export const b = { z: 1, a: 2 }\nexport const twice = { a: 1, a: 2 }\n", path: "src/b.ts" };
 
+const LATER_VISIT = {
+	content:
+		"export interface Visit {\n\treadonly at: Date;\n}\n\nexport function later(a: Visit, b: Visit): Date {\n\treturn a.at < b.at ? b.at : a.at;\n}\n",
+	path: "src/later.ts",
+};
+
 const TWO_ROUNDS = { content: 'export function isA(text: string): boolean {\n\treturn text.indexOf("a") == 0;\n}\n', path: "src/is-a.ts" };
 
 repositoryStory.it(
@@ -60,6 +66,28 @@ repositoryStory.it(
 				],
 			]),
 		);
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality fix leaves a ternary that picks the later of two Date fields as written, since Math.max returns a number",
+	[qualityInstalled(), repositoryHas(LATER_VISIT)],
+	function* ({ reads, runs }) {
+		yield* runs("fix");
+
+		yield* assertThat(yield* reads("src/later.ts"), (actual) => actual.toBe(LATER_VISIT.content));
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality lint reports a ternary that picks the later of two values under biome/lint/complexity/useMathMinMax",
+	[qualityInstalled(), repositoryHas(LATER_VISIT)],
+	function* ({ runs, stdout }) {
+		yield* runs("lint");
+
+		yield* assertThat(yield* stdout(), (actual) => actual.toContain("error biome/lint/complexity/useMathMinMax (1)\n  src/later.ts:6"));
 	},
 	CLI_TIMEOUT,
 );
