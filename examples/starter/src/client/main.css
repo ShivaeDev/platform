@@ -1,6 +1,7 @@
 @import "tailwindcss" source("../");
 @source "../../node_modules/@shivaedev/admin/src/client/adapters";
 @source "../../../../node_modules/@shivaedev/admin/src/client/adapters";
+@source "../../index.html";
 
 @theme inline {
 	--color-background: var(--background);

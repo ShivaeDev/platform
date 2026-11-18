@@ -4,9 +4,35 @@
 		<meta charset="UTF-8" />
 		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
 		<title>Notes</title>
+		<!-- Marks the saved theme before the first paint; src/client/applyTheme.ts applies the same rule once the bundle runs. -->
+		<script>
+			"use strict";
+			(() => {
+				let saved = null;
+				try {
+					saved = localStorage.getItem("theme");
+				} catch {
+					saved = null;
+				}
+				const dark = saved === "dark" || (saved !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+				document.documentElement.classList.toggle("dark", dark);
+				document.documentElement.classList.toggle("light", !dark);
+			})();
+		</script>
 	</head>
 	<body>
-		<div id="root"></div>
+		<div id="root">
+			<!-- The page's outline until the bundle runs; React's first render replaces it. -->
+			<div aria-hidden="true" id="boot-outline">
+				<div class="mx-auto flex w-full max-w-2xl justify-end px-4 pt-4 sm:px-6">
+					<div class="bg-muted h-9 w-40 rounded-md"></div>
+				</div>
+				<div class="mx-auto max-w-2xl space-y-4 px-4 py-12">
+					<div class="bg-muted h-9 w-48 rounded-md"></div>
+					<div class="bg-muted h-24 rounded-lg"></div>
+				</div>
+			</div>
+		</div>
 		<script src="/src/client/main.tsx" type="module"></script>
 	</body>
 </html>
