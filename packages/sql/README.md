@@ -176,6 +176,10 @@ class Receipt extends Model.Class<Receipt>("Receipt")({
 
 `jsonb` uses native `PgTypes.jsonb` parameters. The supplied schema encodes nested values for storage and decodes PostgreSQL's returned object through the repository, including projections. Here `amount` is a number in application code and a string inside the stored JSON. Invalid input or stored data fails with `SchemaError`. Use `jsonb(Schema.NullOr(Details))` for a nullable column: a null input binds SQL `NULL`. The application still owns the column's DDL.
 
+For a PostgreSQL `json` column, wrap the value schema with `json` from `@shivaedev/sql/json.ts` in the same way. It uses native `PgTypes.json` parameters and treats the value schema, invalid data and null as `jsonb` does. PostgreSQL keeps a `json` value as the text it received, so an object's keys read back in the order they were written, where `jsonb` returns them reordered. Use it when another system reads the keys in order, such as a stored transcript that is replayed later.
+
+`json` keeps key order, not bytes. The value still passes through `JSON.stringify` on the way in and `JSON.parse` on the way out: JavaScript puts integer-like keys such as `"1"` before the others, and the whitespace and number spelling of a value another client stored, such as `1.0`, are gone once the repository writes it back. A `Schema.Struct` value schema writes its keys in the schema's order, whatever order the input had; a schema that keeps the input's own keys, such as `Schema.Record(Schema.String, Schema.Unknown)`, keeps their order. PostgreSQL has no equality operator for `json`, so an equality filter on such a field fails with `SqlError`. For exact bytes, store the serialized text in a `text` column with `Schema.String`.
+
 ### Share a table's repository and domain reads between services
 
 Use `defineRepository` from `@shivaedev/sql/defineRepository.ts` to give the table's repository and its domain operations one native Effect service and Layer. Its initializer returns the whole public shape: values, repositories and functions are all allowed. Services declare that repository tag in `requires`, then read it from the environment. Keep repository construction out of each service's initializer.
@@ -1036,6 +1040,8 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/keysetPage.ts`: `keysetPage(options)`, `KeysetOrder`, `KeysetPageQuery`, `KeysetPage` — Native seek and order fragments with a required unique tie-breaker, validated page size and one-row lookahead; predicates, result schemas and cursor formats stay with the caller.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
+- `@shivaedev/sql/jsonb.ts`: `jsonb(schema)` — PostgreSQL `jsonb` storage codec using the supplied value schema.
+- `@shivaedev/sql/json.ts`: `json(schema)` — PostgreSQL `json` storage codec using the supplied value schema; keeps object key order as written.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
@@ -1113,7 +1119,7 @@ Recover outside `transact` so earlier writes roll back before handling a mapped 
 
 For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `int8(Schema.BigInt)`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 
-JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
+A `json` or `jsonb` column takes the `json` or `jsonb` storage codec around its value schema, as the [model declaration](#1-once-per-model-fields-and-writable-variants) shows. Prefer structured data's own columns, or its own table when it repeats, where PostgreSQL constraints should describe it as well as the model.
 
 `timestamptz` preserves an instant at millisecond precision; `timestamp without time zone` holds UTC wall time, whatever the Node process time zone. A model cannot recover microseconds the driver has discarded. See [PostgreSQL codec cases and limits](https://github.com/ShivaeDev/platform/blob/main/docs/framework/postgres-codecs.md) before choosing a storage representation.
 
