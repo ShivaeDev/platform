@@ -345,7 +345,7 @@ Use `{ in: values }` to match any value in a list, alongside equality entries:
 yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 ```
 
-Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field.
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field. The list stands alone as its field's filter: the types refuse another key beside `in`, such as a range or `not`, and reads and `delete` fail with `SchemaError` instead of running with the list alone.
 
 Use `{ not: null }` on a field whose type admits null to match the rows that hold a value, as SQL `IS NOT NULL`:
 
@@ -605,7 +605,7 @@ const result = yield* pullRequests.upsert(incoming, {
 });
 ```
 
-`updateWhere` uses the repository filter shape: equality, `in`, ranges and text patterns combine with AND. A field names the stored column; `{ excluded: "field" }` refers to an incoming column of the same decoded type, in equality or range operands. Literal values pass through their field codecs. The condition becomes `DO UPDATE SET ... WHERE ...`, separate from the index predicate `conflictWhere`, and does not restrict inserts. PostgreSQL evaluates it while holding the conflicting row lock, so an older or equal incoming timestamp cannot overwrite a newer stored revision.
+`updateWhere` uses the repository filter shape: equality, `in`, ranges and text patterns combine with AND. A field names the stored column; `{ excluded: "field" }` refers to an incoming column of the same decoded type, in equality or range operands. The reference stands alone in its object; a key beside `excluded` fails with `SchemaError`. Literal values pass through their field codecs. The condition becomes `DO UPDATE SET ... WHERE ...`, separate from the index predicate `conflictWhere`, and does not restrict inserts. PostgreSQL evaluates it while holding the conflicting row lock, so an older or equal incoming timestamp cannot overwrite a newer stored revision.
 
 On PostgreSQL, `upsert` returns `{ row, inserted }`: `row` is the decoded model and `inserted` is `true` for an insert and `false` for an update. Read the model from `saved.row` or destructure `{ row }`. `upsertMany` returns the same shape for each returned row. `UpsertRow` is exported from `@shivaedev/sql/upsertResult.ts`.
 

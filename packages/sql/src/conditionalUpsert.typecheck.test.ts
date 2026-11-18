@@ -33,6 +33,8 @@ const program = Effect.gen(function* () {
 	rows.upsertMany([pull(12)], { updateColumns: ["title"], updateWhere: { "updated_at": { lt: "2026-10-25" } } });
 	// @ts-expect-error Conditions must name model fields.
 	rows.upsert(pull(12), { updateColumns: ["title"], updateWhere: { missing: 1 } });
+	// @ts-expect-error A range takes no list beside it.
+	rows.upsert(pull(12), { updateColumns: ["title"], updateWhere: { id: { gt: 1, in: [1, 2] } } });
 	const encoded = yield* makeRepository(EncodedPull, options);
 	const written = encoded.upsert({ id: 1, title: "New" }, { updateColumns: ["title"], updateWhere: { title: "Old" } });
 	expectTypeOf<Effect.Services<typeof written>>().toEqualTypeOf<Prefix>();
