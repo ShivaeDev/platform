@@ -7,6 +7,8 @@ import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { JobsView } from "#client/adapters/JobsView.ts";
+import type { DateDisplay } from "#client/adapters/timestampText.ts";
+import { browserZone } from "#test/browserZone.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { idOf, named } from "#test/jobsNames.ts";
 import { queues as declarations, Mail } from "#test/jobsPages.ts";
@@ -68,32 +70,44 @@ export const jobsScreen = storyKit({
 	},
 });
 
+const openView = Effect.fnUntraced(function* (engine: JobsScreenEngine, namesOnly: boolean, dates: DateDisplay) {
+	const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
+	engine.screen = yield* Effect.acquireRelease(
+		Effect.promise(() =>
+			render(
+				<JobsView
+					{...dates}
+					api={engine.api}
+					queues={queues}
+					retry={engine.retryAction}
+					runScheduleNow={engine.runScheduleNowAction}
+					schedules={[ScheduledWorker]}
+				/>,
+			),
+		),
+		(view) => Effect.promise(view.unmount),
+	);
+	yield* driverFor(engine, () => undefined).settle();
+});
+
 function openJobsView(namesOnly: boolean) {
 	return jobsScreen.trait(
 		"screen",
 		`the Jobs view opens against the admin HTTP host with queue ${namesOnly ? "names" : "declarations"}, set to British English and Tokyo time`,
-		function* (engine) {
-			const queues = namesOnly ? declarations.map(({ name }) => name) : declarations;
-			engine.screen = yield* Effect.acquireRelease(
-				Effect.promise(() =>
-					render(
-						<JobsView
-							api={engine.api}
-							locale="en-GB"
-							queues={queues}
-							retry={engine.retryAction}
-							runScheduleNow={engine.runScheduleNowAction}
-							schedules={[ScheduledWorker]}
-							timeZone="Asia/Tokyo"
-						/>,
-					),
-				),
-				(view) => Effect.promise(view.unmount),
-			);
-			yield* driverFor(engine, () => undefined).settle();
-		},
+		(engine) => openView(engine, namesOnly, { locale: "en-GB", timeZone: "Asia/Tokyo" }),
 	);
 }
 
 export const jobsViewOpen = openJobsView(false);
 export const jobsViewOpenWithNames = openJobsView(true);
+
+export function jobsViewOpenInBrowserZone(timeZone: string) {
+	return jobsScreen.trait(
+		"screen",
+		`the Jobs view opens against the admin HTTP host in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
+		function* (engine) {
+			yield* browserZone(timeZone);
+			yield* openView(engine, false, { locale: "en-GB" });
+		},
+	);
+}

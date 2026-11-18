@@ -1,6 +1,5 @@
 import { Effect, Option } from "effect";
 import { act } from "react";
-import { vi } from "vitest";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { type ClientActivity, clientActivity, isClientSettled } from "@shivaedev/contract/clientActivity.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -10,6 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { DateDisplay } from "#client/adapters/timestampText.ts";
 import { UsersView } from "#client/adapters/UsersView.ts";
 import { Access } from "#test/Access.ts";
+import { browserZone } from "#test/browserZone.ts";
 import { clientRuntime } from "#test/clientRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 import { mappedTables } from "#test/mappedTables.ts";
@@ -130,9 +130,7 @@ export function viewOpenInBrowserZone(timeZone: string) {
 		"screen",
 		`the users view is open in British English with no time zone of its own, in a browser whose time zone is ${timeZone}`,
 		function* (engine) {
-			// happy-dom takes Intl from Node, whose default time zone follows TZ, so this is the browser's zone as the view sees it.
-			vi.stubEnv("TZ", timeZone);
-			yield* Effect.addFinalizer(() => Effect.sync(() => vi.unstubAllEnvs()));
+			yield* browserZone(timeZone);
 			yield* openView(engine, { locale: "en-GB" });
 		},
 	);
