@@ -1,5 +1,5 @@
 import { isBuiltin } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, posix, relative, sep } from "node:path";
 import { Option } from "effect";
 import type { Plugin, Rollup } from "vite";
 import { runNode } from "#adapters/runNode.ts";
@@ -7,7 +7,21 @@ import { type BundleGraph, type BundleModule, type ServerMarkers, serverCodeIn }
 
 const BROWSER_EXTERNAL = "__vite-browser-external:";
 
-function graphOf(context: Rollup.PluginContext): BundleGraph {
+// The entries that name, as a path or a glob from the project's root, a folder the module is in.
+function foldersHolding(id: string, root: string, oldFormFolders: readonly string[]): readonly string[] {
+	const file = relative(root, id);
+	if (oldFormFolders.length === 0 || !isAbsolute(id) || file.startsWith("..")) {
+		return [];
+	}
+	const parts = file.split(sep).slice(0, -1);
+	const folders = parts.map((_, index) => parts.slice(0, index + 1).join("/"));
+	return oldFormFolders.filter((entry) => {
+		const pattern = posix.normalize(entry).replace(/\/$/u, "");
+		return folders.some((folder) => posix.matchesGlob(folder, pattern));
+	});
+}
+
+function graphOf(context: Rollup.PluginContext, root: string, oldFormFolders: readonly string[]): BundleGraph {
 	const modules = new Map<string, BundleModule>();
 	const entries: string[] = [];
 	for (const id of context.getModuleIds()) {
@@ -17,7 +31,11 @@ function graphOf(context: Rollup.PluginContext): BundleGraph {
 				entries.push(id);
 			}
 			const bare = id.startsWith(BROWSER_EXTERNAL) ? id.slice(BROWSER_EXTERNAL.length) : id;
-			modules.set(id, { builtin: isBuiltin(bare), imports: [...info.importedIds, ...info.dynamicallyImportedIds] });
+			modules.set(id, {
+				builtin: isBuiltin(bare),
+				imports: [...info.importedIds, ...info.dynamicallyImportedIds],
+				oldFormFolders: foldersHolding(id, root, oldFormFolders),
+			});
 		}
 	}
 	return { entries, modules };
@@ -35,7 +53,7 @@ async function markersFrom(context: Rollup.PluginContext, root: string): Promise
 	};
 }
 
-export function bundleCheck(serverOnly: readonly string[]): Plugin {
+export function bundleCheck(serverOnly: readonly string[], oldFormFolders: readonly string[] = []): Plugin {
 	let root = ".";
 	return {
 		apply: "build",
@@ -44,7 +62,8 @@ export function bundleCheck(serverOnly: readonly string[]): Plugin {
 			if (error !== undefined) {
 				return;
 			}
-			const found = await runNode(serverCodeIn(graphOf(this), await markersFrom(this, root), { root, serverOnly }));
+			const graph = graphOf(this, root, oldFormFolders);
+			const found = await runNode(serverCodeIn(graph, await markersFrom(this, root), { oldFormFolders, root, serverOnly }));
 			if (Option.isSome(found)) {
 				this.error(found.value);
 			}

@@ -6,6 +6,7 @@ import { type GenerateRound, type WatchedGeneration, watchedGeneration } from "#
 
 export interface BuildPluginOptions {
 	readonly bundleCheck?: boolean;
+	readonly oldFormFolders?: readonly string[];
 	readonly serverOnly?: readonly string[];
 }
 
@@ -98,6 +99,6 @@ function generateFiles(): Plugin {
 	};
 }
 
-export function buildPlugin({ bundleCheck: checked = true, serverOnly = [] }: BuildPluginOptions = {}): Plugin[] {
-	return checked ? [generateFiles(), bundleCheck(serverOnly)] : [generateFiles()];
+export function buildPlugin({ bundleCheck: checked = true, oldFormFolders = [], serverOnly = [] }: BuildPluginOptions = {}): Plugin[] {
+	return checked ? [generateFiles(), bundleCheck(serverOnly, oldFormFolders)] : [generateFiles()];
 }

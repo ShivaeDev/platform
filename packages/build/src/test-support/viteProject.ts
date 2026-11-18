@@ -113,6 +113,66 @@ console.log(SqlClient);
 	},
 } satisfies Record<string, Readonly<Record<string, string>>>;
 
+function oldFormContract(name: string, imported = ""): string {
+	return `import { Schema } from "effect";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+${imported}
+const List = query("list", { reads: () => [], success: Schema.Array(Schema.String) });
+
+export const ${name} = contract("${name.toLowerCase()}", { queries: [List] });
+`;
+}
+
+const PAGE_IMPORTING_BILLING = `import { Notes } from "#generated/modules/notes/notes.ts";
+import { Billing } from "#modules/billing/contract.ts";
+
+console.log(Notes, Billing);
+`;
+
+const OLD_FORM_PAGES = {
+	"the old-form contract of the billing folder": {
+		"src/client.ts": PAGE_IMPORTING_BILLING,
+		"src/modules/billing/contract.ts": oldFormContract("Billing"),
+	},
+	"the old-form contracts of the billing and archive folders": {
+		"src/client.ts": `import { Archive } from "#modules/archive/contract.ts";
+import { Billing } from "#modules/billing/contract.ts";
+
+console.log(Archive, Billing);
+`,
+		"src/modules/archive/contract.ts": oldFormContract("Archive"),
+		"src/modules/billing/contract.ts": oldFormContract("Billing"),
+	},
+} satisfies Record<string, Readonly<Record<string, string>>>;
+
+const REACHED_THROUGH_BILLING = {
+	"a file under a server folder": {
+		"src/client.ts": PAGE_IMPORTING_BILLING,
+		"src/modules/billing/contract.ts": oldFormContract(
+			"Billing",
+			'import { sessionCookie } from "#server/session.ts";\n\nconsole.log(sessionCookie);\n',
+		),
+		"src/server/session.ts": `export const sessionCookie = "session";
+`,
+	},
+	"a Node builtin": {
+		"src/client.ts": PAGE_IMPORTING_BILLING,
+		"src/modules/billing/contract.ts": oldFormContract("Billing", 'import { readFileSync } from "node:fs";\n\nconsole.log(readFileSync);\n'),
+	},
+	"an operation file of the defined notes module": {
+		"src/client.ts": PAGE_IMPORTING_BILLING,
+		"src/modules/billing/contract.ts": oldFormContract(
+			"Billing",
+			'import { List as NotesList } from "#modules/notes/list.ts";\n\nconsole.log(NotesList);\n',
+		),
+	},
+	"effect/sql": {
+		"src/client.ts": PAGE_IMPORTING_BILLING,
+		"src/modules/billing/contract.ts": oldFormContract("Billing", 'import { SqlClient } from "effect/sql";\n\nconsole.log(SqlClient);\n'),
+	},
+} satisfies Record<string, Readonly<Record<string, string>>>;
+
 const CONDITIONS = JSON.stringify(["@shivaedev/source", "node", "development|production"]);
 
 const NOTES_TEST_FILE = `import { expect, test } from "vitest";
@@ -146,7 +206,9 @@ export const VITE_PROJECT = {
 	notesPage: NOTES_PAGE,
 	notesTest: NOTES_TEST,
 	notesTestThroughTheAppConfig: NOTES_TEST_THROUGH_THE_APP_CONFIG,
+	oldFormPages: OLD_FORM_PAGES,
 	pageImportingTheTagsClient: PAGE_IMPORTING_THE_TAGS_CLIENT,
+	reachedThroughBilling: REACHED_THROUGH_BILLING,
 	screenImportingTheModule: SCREEN_IMPORTING_THE_MODULE,
 	serverCodePages: SERVER_CODE_PAGES,
 	tagsModule: TAGS_MODULE,

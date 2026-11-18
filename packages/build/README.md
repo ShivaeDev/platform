@@ -54,7 +54,7 @@ export default appTestConfig();
 
 `appTestConfig` builds on Quality's [`testProjects`](https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme), resolves imports for the browser and for the server, inlines the `@shivaedev` packages for the test server and generates as Vitest's global setup, before any test file loads. Its second argument goes to `testProjects`, so `appTestConfig([], { connectionBudget: 84, connectionsPerWorker: 14 })` or `appTestConfig([], { maxWorkers: 4 })` sizes the test workers. The second argument of `appViteConfig` and the first of `appTestConfig` add export conditions for development inside a workspace, such as `["@shivaedev/source"]`; a published application passes none.
 
-An application whose browser still imports contracts or operation files of the old operation form passes `{ bundleCheck: false }` in the fourth argument of `appViteConfig`, and its build then generates without checking the bundle. The option is temporary: it exists for applications still on the old operation form and goes away with that form.
+An application whose browser still imports contracts or operation files of the old operation form lists the folders that hold them, as in `{ oldFormFolders: ["src/modules/billing"] }` in the fourth argument of `appViteConfig`, and the bundle check [excuses only those files](#folders-still-on-the-old-operation-form). One that cannot list them yet passes `{ bundleCheck: false }`, and its build then generates without checking the bundle. Both options are temporary: they exist for applications still on the old operation form and go away with that form.
 
 The application's `package.json` runs the generator before anything that reads the files without Vite, and `prepare` makes `pnpm install` write them in a fresh checkout:
 
@@ -132,6 +132,30 @@ The browser reaches a defined module through its generated client in src/generat
 ```
 
 The browser imports `Notes` from `#generated/modules/notes/Notes.ts` instead.
+
+#### Folders still on the old operation form
+
+An application moves to `defineModule` one feature at a time, and the check follows it. `oldFormFolders`, an option of `buildPlugin` and of `appViteConfig`'s fourth argument, lists the folders whose features have not moved yet:
+
+```ts
+import { buildPlugin } from "@shivaedev/build/adapters/vitePlugin.ts";
+
+export default {
+	plugins: [buildPlugin({ oldFormFolders: ["src/modules/billing", "src/modules/report-*"] })],
+};
+```
+
+Each entry is a path or a glob from the project's root that names a folder. A file anywhere under a listed folder may import `query` or `command` and still reach the browser, as a contract of the old operation form does. That is all an entry excuses. The check keeps following the file's imports, so a `server/` folder, a Node builtin, `effect/sql` or an operation file of a defined module reached through it fails the build with the same chain, and so does an old-form contract in a folder the list leaves out.
+
+An entry is removed with its folder's move. Once the browser bundle imports no such file from a listed folder, the build fails and names the entry:
+
+```text
+oldFormFolders lists folders from which the browser bundle imports no old-form contract or operation file:
+  src/modules/billing
+Remove each entry: the bundle check then covers its folder like the rest of the application.
+```
+
+The option is temporary: it goes away together with the old operation form and `bundleCheck: false`.
 
 ### The generated file
 
