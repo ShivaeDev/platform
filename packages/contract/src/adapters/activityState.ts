@@ -1,13 +1,15 @@
 import { Effect, SubscriptionRef } from "effect";
-import type { ClientActivityState, ConnectionStatus } from "#clientActivity.ts";
+import { type ClientActivityState, type ConnectionStatus, isClientSettled } from "#clientActivity.ts";
 
 export function activityState() {
 	let held = 0;
+	let answered = false;
 	let connection: ConnectionStatus = "live";
 	const state = Effect.runSync(
 		SubscriptionRef.make<ClientActivityState>({
 			commands: 0,
 			connectionStatus: "live",
+			firstSettled: false,
 			initialQueries: 0,
 			liveHints: 0,
 			refreshingAtoms: 0,
@@ -20,10 +22,17 @@ export function activityState() {
 			SubscriptionRef.update(state, (current) => (current.connectionStatus === connectionStatus ? current : { ...current, connectionStatus })),
 		);
 	}
+	function latched(current: ClientActivityState): ClientActivityState {
+		return answered && !current.firstSettled && isClientSettled(current) ? { ...current, firstSettled: true } : current;
+	}
 	return {
 		activity: Object.assign(SubscriptionRef.changes(state), { current: SubscriptionRef.get(state) }),
-		change: (key: Exclude<keyof ClientActivityState, "connectionStatus">, delta: number) => {
-			Effect.runSync(SubscriptionRef.update(state, (current) => ({ ...current, [key]: current[key] + delta })));
+		answered: () => {
+			answered = true;
+			Effect.runSync(SubscriptionRef.update(state, latched));
+		},
+		change: (key: Exclude<keyof ClientActivityState, "connectionStatus" | "firstSettled">, delta: number) => {
+			Effect.runSync(SubscriptionRef.update(state, (current) => latched({ ...current, [key]: current[key] + delta })));
 		},
 		hold: () => {
 			held += 1;
