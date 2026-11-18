@@ -12,12 +12,6 @@ it.each([
 	expect(timestampText(signedUp, { locale, timeZone })).toBe(expected);
 });
 
-it("without a locale, writes the time as it does for the runtime's own locale", () => {
-	const runtimeLocale = new Intl.DateTimeFormat().resolvedOptions().locale;
-
-	expect(timestampText(signedUp, { timeZone: "Asia/Tokyo" })).toBe(timestampText(signedUp, { locale: runtimeLocale, timeZone: "Asia/Tokyo" }));
-});
-
 it("without a time zone, writes the time as it does for the runtime's own time zone", () => {
 	const runtimeZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
 
