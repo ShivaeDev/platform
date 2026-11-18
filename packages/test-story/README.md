@@ -649,7 +649,7 @@ accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ rem
 
 Stories and kits never wait on real time: use the [controlled clock](#waiting-for-a-timer) for elapsed time and engine signals for completion. Real sleeps, wall-clock polling, `Date.now()` and real timers in test code are forbidden; a deadline that only bounds failure is allowed.
 
-Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it with native `TestClock.adjust` in a kit verb, so the spec names the time that passes:
+Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant until a verb advances the clock, so records written one after another carry the same timestamp. A story whose claim depends on their order advances the clock between the writes, and the query it reads ends its ordering with a [unique tie-break column](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md#newest-rows-per-group-distinct-on-and-grouped-aggregates). Advance the clock with native `TestClock.adjust` in a kit verb, so the spec names the time that passes:
 
 ```ts
 import * as TestClock from "effect/testing/TestClock";
