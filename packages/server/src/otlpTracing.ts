@@ -25,7 +25,7 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.effectC
 		if (endpoint === undefined) {
 			const mode = yield* Config.String("NODE_ENV").pipe(Config.withDefault("production"));
 			if (mode === "development") {
-				const path = yield* Config.String("PLATFORM_TRACE_STORE").pipe(Config.withDefault(".platform/traces.db"));
+				const path = yield* Config.String("PLATFORM_TRACE_STORE").pipe(Config.withDefault(undefined));
 				const indexed = yield* Config.String("PLATFORM_TRACE_INDEXED_ATTRIBUTES").pipe(Config.withDefault(""));
 				return yield* Layer.build(
 					localTracing({
@@ -33,7 +33,7 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.effectC
 							.split(",")
 							.map((key) => key.trim())
 							.filter(Boolean),
-						path,
+						...(path === undefined ? {} : { path }),
 					}),
 				).pipe(
 					Effect.mapError((cause) => new Config.ConfigError(new ConfigProvider.SourceError({ cause, message: "Cannot open local trace store" }))),
