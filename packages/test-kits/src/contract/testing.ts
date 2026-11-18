@@ -1,6 +1,7 @@
 import { Deferred, Effect, Fiber, Layer, Queue, Stream, SubscriptionRef } from "effect";
 import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer } from "effect/rpc";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
+import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 
 export interface HintViewer<E> {
 	readonly finished: Effect.Effect<void, E>;
@@ -21,10 +22,16 @@ export const watchHints = Effect.fn("Live.watchHints")(function* <E, R>(stream: 
 	return { finished, hints } satisfies HintViewer<E>;
 });
 
-export function layerMemoryProtocol<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>) {
+export interface MemoryProtocolOptions {
+	readonly sensitiveKeys?: readonly string[];
+}
+
+export function layerMemoryProtocol<TRpcs extends Rpc.Any>(group: RpcGroup.RpcGroup<TRpcs>, options?: MemoryProtocolOptions) {
 	return Layer.effect(
 		RpcClient.Protocol,
 		Effect.gen(function* () {
+			// A client factory takes a protocol Layer that cannot fail, so the refusal the host reports at startup is a defect here.
+			yield* Effect.orDie(schemaSensitiveKeys(group, options?.sensitiveKeys));
 			const requests = yield* Queue.unbounded<readonly [number, RpcMessage.FromClientEncoded]>();
 			const disconnects = yield* Queue.unbounded<number>();
 			const { codecFor } = yield* RpcSerialization.RpcSerialization;

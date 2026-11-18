@@ -836,7 +836,7 @@ const client = makeClient(Notes, {
 });
 ```
 
-The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions use the supplied handlers and change source, and mounted queries refresh from their updates. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
+The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions use the supplied handlers and change source, and mounted queries refresh from their updates. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket. It refuses a group the application host would refuse to start, such as one whose RPC uses a field name both as sensitive and as public, with the host's error; the [test-kits README](https://github.com/ShivaeDev/platform/tree/main/packages/test-kits#contract-subscriptions) describes the check.
 
 ### Settled queries in stories
 

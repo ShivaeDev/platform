@@ -2057,6 +2057,9 @@ importers:
       '@shivaedev/email':
         specifier: workspace:*
         version: link:../email
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity

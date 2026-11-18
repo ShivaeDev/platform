@@ -66,6 +66,7 @@
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/discord": "workspace:*",
 		"@shivaedev/email": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
