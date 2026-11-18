@@ -625,34 +625,31 @@ change.remove({ _tag: "edit", rows: selectedVersions, scale: 0.5, copies: true }
 
 #### Commands with a pending display value
 
-Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive server reruns:
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Pass the bound command with its client's runtime, the row's current server value and the display value an input asks for:
 
 ```tsx
-import * as Atom from "effect/reactivity/Atom";
 import { usePendingCommand } from "@shivaedev/react/client/pendingCommand.ts";
 
-const toggle = Atom.family((id: number) => ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
-const list = api.list.query();
-
 function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
-	const command = usePendingCommand(toggle(row.id), {
-		queries: [list],
-		value: row.enabled,
-		wanted: (input) => input.enabled,
-	});
+	const command = usePendingCommand({ ...api.toggle, runtime: ItemsClient.runtime }, { value: row.enabled, wanted: (input) => input.enabled });
 	return (
-		<button aria-pressed={command.value} disabled={command.pending} onClick={() => command.dispatch({ enabled: !command.value })} type="button">
+		<button
+			aria-pressed={command.value}
+			disabled={command.pending}
+			onClick={() => command.dispatch({ enabled: !command.value, id: row.id })}
+			type="button"
+		>
 			Enabled
 		</button>
 	);
 }
 ```
 
-Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
+The example assumes a bound `api.toggle` whose `run` accepts `{ id, enabled }` and its native `ItemsClient`. `run` is the command's identity and must stay the same function between renders, as for `useAction`. Each use of the hook owns its action state, so one row can fail while another keeps its requested display.
 
-The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose next results the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
+`command.value` changes on dispatch and holds the requested value until the command is [reflected](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#when-a-commands-change-is-on-the-screen): every live query open on the connection shows the server's state after it. A switch backed by a live query therefore does not fall back to the old server value between the command's reply and the server's update, and a command that changes nothing frees the switch without an update. `pending` covers that whole interval, and `result`, `data` and `cause` settle when it ends. After the hold ends, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. This binding holds a display value; it applies no optimistic update and does not write to the query cache.
 
-`command.value` changes on dispatch and holds the requested value until the command has succeeded, no watched query is waiting, and at least one watched query has delivered a settled Result it did not have at dispatch. A reload and a live query's pushed Result both count, so a live switch does not fall back to the old server value between the command's response and the push. `pending` covers that whole interval. After the hold ends, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
+Queries the client reloads itself, such as those of a client made with `live: false`, are not part of a command's reflection. List them as `queries`, an array that keeps its identity between renders, and the hold also lasts while any of them is reloading; `result` can then already be successful while `pending` still waits. `queries` adds no invalidations.
 
 #### Trace an action across RPCs
 

@@ -1,7 +1,6 @@
 import { Deferred, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { activityScreenSignal, clientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
-import { liveAnswers } from "@shivaedev/contract/liveAnswers.ts";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/react.ts";
 import { mountApp } from "#server/mountApp.ts";
 import { screenDriver } from "#server/screenDriver.ts";
@@ -47,6 +46,7 @@ export const activityPage = storyKit({
 			...driver,
 			activity: () => activity.current,
 			closePage: () => Effect.promise(view.unmount),
+			findTitle: (title: string) => driver.within("output").findText(title),
 			holdRefresh: () => Effect.sync(host.holdRead),
 			holdSave: () => Effect.sync(host.holdWrite),
 			readMissing: () => raw["page.get"]({ id: 99 }).pipe(Effect.match({ onFailure: (error) => error._tag, onSuccess: (title) => title })),
@@ -61,12 +61,6 @@ export const activityPage = storyKit({
 				screenDriver({ act, activity: idle, root: view.container, tell: story.tell })
 					.settle()
 					.pipe(Effect.andThen(Effect.sync(() => driver.text("output")))),
-			startAnswerWait: () =>
-				Effect.gen(function* () {
-					const answers = liveAnswers(view.registry, "page 1", client.api.get.query({ id: 1 }));
-					const fiber = yield* driver.withLiveAnswer(answers, Effect.void).pipe(Effect.forkScoped({ startImmediately: true }));
-					return { finish: Fiber.join(fiber), state: Effect.sync(() => (fiber.pollUnsafe() === undefined ? "waiting" : "received")) };
-				}),
 			startRead: () =>
 				Effect.gen(function* () {
 					const fiber = yield* raw["page.get"]({ id: 1 }).pipe(Effect.forkScoped({ startImmediately: true }));

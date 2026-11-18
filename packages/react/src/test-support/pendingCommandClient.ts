@@ -1,5 +1,4 @@
 import { Deferred, Effect, Exit, Layer, Schema, Stream } from "effect";
-import * as Atom from "effect/reactivity/Atom";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -59,7 +58,15 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 		protocol: layerMemoryProtocol(Items).pipe(Layer.provide(handlers)),
 		url: "memory://items",
 	});
-	const toggles = Atom.family((id: number) => Client.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
-	return { command: toggles, commands: commandFor, count: api.count.query(), countHeld: count, list: api.list.query(), listHeld: list };
+	const listed = api.list.query();
+	const counted = api.count.query();
+	return {
+		command: { run: api.toggle.run, runtime: Client.runtime },
+		commands: commandFor,
+		countHeld: count,
+		list: listed,
+		listHeld: list,
+		queries: [listed, counted],
+	};
 }
 export type PendingClient = ReturnType<typeof pendingCommandClient>;

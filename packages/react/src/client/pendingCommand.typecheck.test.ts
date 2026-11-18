@@ -1,11 +1,14 @@
-import { type Cause, Effect, type Option } from "effect";
+import { type Cause, Effect, Layer, type Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { usePendingCommand } from "#client/pendingCommand.ts";
 
-const command = Atom.fn<{ readonly enabled: boolean }>()((input) => (input.enabled ? Effect.succeed(42) : Effect.fail("Locked" as const)));
-const query = Atom.make(Effect.succeed(false));
+const command = {
+	run: (input: { readonly enabled: boolean }) => (input.enabled ? Effect.succeed(42) : Effect.fail("Locked" as const)),
+	runtime: Atom.runtime(Layer.empty),
+};
+const queries = [Atom.make(Effect.succeed(false))];
 export function useTypedPendingCommand() {
-	const state = usePendingCommand(command, { queries: [query], value: false, wanted: (input) => input.enabled });
+	const state = usePendingCommand(command, { queries, value: false, wanted: (input) => input.enabled });
 	const value: boolean = state.value;
 	const result: Option.Option<number> = state.data;
 	const failure: Option.Option<Cause.Cause<"Locked">> = state.cause;

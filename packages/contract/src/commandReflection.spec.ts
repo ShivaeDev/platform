@@ -177,6 +177,25 @@ reflectionStory.it(
 );
 
 reflectionStory.it(
+	"a screen sync run through the tab's registry returns once another client's write is on the screen",
+	[watching(), alongside("an older client")],
+	function* ({ anotherViewerWrites, beginScreenSync, finished, holdReads, releaseReads, shown, untilReadBegins }) {
+		yield* holdReads();
+		yield* anotherViewerWrites("Second");
+		yield* untilReadBegins();
+		yield* beginScreenSync();
+		expect(yield* shown()).toBe("First");
+
+		yield* releaseReads();
+
+		yield* outcomes([
+			["sync", () => finished(), "synced"],
+			["shown", () => shown(), "Second"],
+		]);
+	},
+);
+
+reflectionStory.it(
 	"a client that names no sync id receives only results",
 	[watching(), alongside("an older client")],
 	function* ({ framesOf, write }) {

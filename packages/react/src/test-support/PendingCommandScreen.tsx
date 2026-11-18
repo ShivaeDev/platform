@@ -3,19 +3,15 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { usePendingCommand } from "#client/pendingCommand.ts";
 import { useQuery } from "#client/resultState.ts";
 import type { PendingClient } from "#test/pendingCommandClient.ts";
-import type { PushedSwitchClient } from "#test/pushedSwitchClient.ts";
+import type { SwitchClient } from "#test/reflected-switch/connect.ts";
 
 function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; readonly enabled: boolean; readonly id: number }) {
-	const toggle = usePendingCommand(client.command(id), {
-		queries: [client.list, client.count],
-		value: enabled,
-		wanted: (input) => input.enabled,
-	});
+	const toggle = usePendingCommand(client.command, { queries: client.queries, value: enabled, wanted: (input) => input.enabled });
 	const failure = AsyncResult.error(toggle.result);
 	const message = Option.isSome(failure) && failure.value._tag === "ToggleRejected" ? `${failure.value._tag}: ${failure.value.reason}` : "";
 	return (
 		<li data-row={id}>
-			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value })} type="button">
+			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value, id })} type="button">
 				Enabled
 			</button>
 			<output data-command={toggle.result._tag}>{message}</output>
@@ -39,10 +35,10 @@ export function PendingCommandScreen({ client }: { readonly client: PendingClien
 		</section>
 	);
 }
-export function PushedSwitchScreen({ client }: { readonly client: PushedSwitchClient }) {
+export function ReflectedSwitchScreen({ client }: { readonly client: SwitchClient }) {
 	const current = useQuery(client.query);
 	const enabled = Option.getOrElse(current.data, () => false);
-	const toggle = usePendingCommand(client.set, { queries: [client.query], value: enabled, wanted: (input) => input.enabled });
+	const toggle = usePendingCommand(client.command, { value: enabled, wanted: (input) => input.enabled });
 	if (Option.isNone(current.data)) {
 		return null;
 	}

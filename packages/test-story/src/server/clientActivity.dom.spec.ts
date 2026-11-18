@@ -1,13 +1,12 @@
 import { expect } from "vitest";
 import { activityPage } from "#test/activityPage.ts";
 
-activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, startAnswerWait }) {
+activityPage.it("a read after saving shows the saved title without polling", [], function* ({ shown, enter, click, findTitle }) {
 	expect(yield* shown()).toBe("First page");
 	yield* enter("input", "Saved page");
 
-	const update = yield* startAnswerWait();
 	yield* click({ name: "Save", role: "button" });
-	yield* update.finish;
+	yield* findTitle("Saved page");
 
 	expect(yield* shown()).toBe("Saved page");
 });
@@ -15,15 +14,12 @@ activityPage.it("a read after saving shows the saved title without polling", [],
 activityPage.it(
 	"the next pushed update arrives after another viewer writes and shows its title",
 	[],
-	function* ({ shown, startAnswerWait, writeElsewhere }) {
+	function* ({ shown, findTitle, writeElsewhere }) {
 		expect(yield* shown()).toBe("First page");
-		const answer = yield* startAnswerWait();
-		expect(yield* answer.state).toBe("waiting");
 
 		yield* writeElsewhere("Another viewer's page");
-		yield* answer.finish;
+		yield* findTitle("Another viewer's page");
 
-		expect(yield* answer.state).toBe("received");
 		expect(yield* shown()).toBe("Another viewer's page");
 	},
 );
@@ -31,10 +27,9 @@ activityPage.it(
 activityPage.it(
 	"a held server rerun leaves the screen readable until its pushed value arrives",
 	[],
-	function* ({ shown, holdRefresh, startAnswerWait, writeElsewhere, refreshStarted, releaseRefresh, activity }) {
+	function* ({ shown, holdRefresh, findTitle, writeElsewhere, refreshStarted, releaseRefresh, activity }) {
 		expect(yield* shown()).toBe("First page");
 		yield* holdRefresh();
-		const update = yield* startAnswerWait();
 		yield* writeElsewhere("Refreshed page");
 		yield* refreshStarted();
 
@@ -42,7 +37,7 @@ activityPage.it(
 		expect(yield* activity()).toMatchObject({ refreshingAtoms: 0, rpcCalls: 0 });
 
 		yield* releaseRefresh();
-		yield* update.finish;
+		yield* findTitle("Refreshed page");
 		expect(yield* shown()).toBe("Refreshed page");
 	},
 );

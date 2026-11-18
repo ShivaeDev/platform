@@ -1,12 +1,18 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { Option } from "effect";
+import { type Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo, useState } from "react";
+import { untilReflected } from "@shivaedev/contract/commandSignal.ts";
+import type { AtomServices } from "#AtomServices.ts";
 import { type ActionState, useAction } from "#client/resultState.ts";
 
+export interface PendingCommand<TInput, A, E, R, TRuntimeError> {
+	readonly run: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>;
+	readonly runtime: Atom.AtomRuntime<R, TRuntimeError>;
+}
 export interface PendingCommandOptions<TInput, TValue> {
-	readonly queries: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[];
+	readonly queries?: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[];
 	readonly value: TValue;
 	readonly wanted: (input: TInput) => TValue;
 }
@@ -14,29 +20,30 @@ export interface PendingCommandState<TInput, A, E, TValue> extends ActionState<T
 	readonly value: TValue;
 }
 
-export function usePendingCommand<TInput, A, E, TValue>(
-	atom: Atom.AtomResultFn<TInput, A, E>,
-	options: PendingCommandOptions<TInput, TValue>,
-): PendingCommandState<TInput, A, E, TValue> {
-	const action = useAction(atom);
+const NO_QUERIES: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] = [];
+
+export function usePendingCommand<TInput, A, E, R, TRuntimeError, TValue>(
+	command: PendingCommand<TInput, A, E, R, TRuntimeError>,
+	options: PendingCommandOptions<NoInfer<TInput>, TValue>,
+): PendingCommandState<TInput, A, E | TRuntimeError, TValue> {
+	const { run, runtime } = command;
+	const { queries = NO_QUERIES, value, wanted } = options;
+	// The reply arrives before the live queries the command changed are updated, so the action ends when the command is reflected.
+	const reflected = useMemo(() => (input: TInput) => untilReflected(run(input)), [run]);
+	const action = useAction(runtime, reflected);
 	const registry = useContext(RegistryContext);
-	const { queries, value, wanted } = options;
-	const watched = useMemo(() => Atom.make((get) => queries.map((query) => get(query))), [queries]);
-	const results = useAtomValue(watched);
-	const [held, hold] = useState({ atom, before: results, registry, value: Option.none<TValue>() });
-	const sameOwner = held.atom === atom && held.registry === registry;
+	const refreshing = useAtomValue(useMemo(() => Atom.make((get) => queries.some((query) => get(query).waiting)), [queries]));
+	const [held, hold] = useState({ reflected, registry, value: Option.none<TValue>() });
+	const sameOwner = held.reflected === reflected && held.registry === registry;
 	const failed = AsyncResult.isFailure(action.result) && !action.pending;
-	const refreshing = results.some((result) => result.waiting);
-	// A live query answers with a pushed Result instead of a reload, so the hold waits for any new settled Result.
-	const answered = results.some((result, index) => !result.waiting && result !== held.before[index]);
-	const pending = sameOwner && Option.isSome(held.value) && !failed && (action.pending || refreshing || !answered);
+	const pending = sameOwner && Option.isSome(held.value) && !failed && (action.pending || refreshing);
 	if (!sameOwner || (Option.isSome(held.value) && !pending)) {
-		hold({ atom, before: results, registry, value: Option.none() });
+		hold({ reflected, registry, value: Option.none() });
 	}
 	return {
 		...action,
 		dispatch: (input) => {
-			hold({ atom, before: registry.get(watched), registry, value: Option.some(wanted(input)) });
+			hold({ reflected, registry, value: Option.some(wanted(input)) });
 			action.dispatch(input);
 		},
 		pending: action.pending || pending,
