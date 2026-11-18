@@ -1,7 +1,7 @@
 import { Effect, Queue } from "effect";
 import { clientId } from "#adapters/clientId.ts";
 
-interface StreamState {
+export interface FollowedStream {
 	armedAt: number | undefined;
 	supported: boolean | undefined;
 }
@@ -10,7 +10,7 @@ interface Wait {
 	readonly after: number;
 	readonly own: number | undefined;
 	readonly reflected: () => void;
-	readonly streams: Set<object>;
+	readonly streams: Set<FollowedStream>;
 }
 
 // One per connection: every command and live stream that shares it folds into the same tokens.
@@ -18,16 +18,15 @@ export const makeReflection = Effect.gen(function* () {
 	const catchUps = yield* Queue.sliding<void>(1);
 	const client = clientId();
 	let issued = 0;
-	const streams = new Map<object, StreamState>();
-	const flights = new Map<number, Set<object>>();
+	const streams = new Set<FollowedStream>();
+	const flights = new Map<number, Set<FollowedStream>>();
 	const waits = new Set<Wait>();
 
 	// A stream armed after the command's token was issued may have registered behind it, so only a later token proves it caught up.
-	function uncertain(wait: Wait, stream: object) {
-		const armedAt = streams.get(stream)?.armedAt;
-		return armedAt !== undefined && (wait.own === undefined || armedAt >= wait.own);
+	function uncertain(wait: Wait, stream: FollowedStream) {
+		return stream.armedAt !== undefined && (wait.own === undefined || stream.armedAt >= wait.own);
 	}
-	function release(covers: (wait: Wait, stream: object) => boolean, stream?: object) {
+	function release(covers: (wait: Wait, stream: FollowedStream) => boolean, stream?: FollowedStream) {
 		for (const wait of [...waits]) {
 			const covered = [...wait.streams].filter((waited) => (stream === undefined || waited === stream) && covers(wait, waited));
 			for (const waited of covered) {
@@ -54,44 +53,39 @@ export const makeReflection = Effect.gen(function* () {
 			if (own !== undefined) {
 				flights.delete(own);
 			}
-			const waited = [...streams].filter(([stream, state]) => state.supported !== false && confirmed?.has(stream) !== true);
+			const waited = [...streams].filter((stream) => stream.supported !== false && confirmed?.has(stream) !== true);
 			if (waited.length === 0) {
 				reflected();
 				return;
 			}
-			const wait: Wait = { after: issued, own, reflected, streams: new Set(waited.map(([stream]) => stream)) };
+			const wait: Wait = { after: issued, own, reflected, streams: new Set(waited) };
 			waits.add(wait);
-			if (waited.some(([stream]) => uncertain(wait, stream))) {
+			if (waited.some((stream) => uncertain(wait, stream))) {
 				Queue.offerUnsafe(catchUps, undefined);
 			}
 		},
-		armed: (stream: object) => {
-			const state = streams.get(stream);
-			if (state === undefined) {
-				return;
-			}
-			state.supported = true;
-			state.armedAt = issued;
+		armed: (stream: FollowedStream) => {
+			stream.supported = true;
+			stream.armedAt = issued;
 			if ([...waits].some((wait) => wait.streams.has(stream))) {
 				Queue.offerUnsafe(catchUps, undefined);
 			}
 		},
 		catchUps,
 		client,
-		confirmed: (stream: object, ids: readonly number[]) => {
+		confirmed: (stream: FollowedStream, ids: readonly number[]) => {
 			for (const id of ids) {
 				flights.get(id)?.add(stream);
 			}
 			release((wait) => ids.some((id) => id === wait.own || id > wait.after), stream);
 		},
-		data: (stream: object) => {
-			const state = streams.get(stream);
-			if (state?.supported === undefined && state !== undefined) {
-				state.supported = false;
+		data: (stream: FollowedStream) => {
+			if (stream.supported === undefined) {
+				stream.supported = false;
 				release(() => true, stream);
 			}
 		},
-		detach: (stream: object) => {
+		detach: (stream: FollowedStream) => {
 			streams.delete(stream);
 			release(() => true, stream);
 		},
@@ -101,10 +95,12 @@ export const makeReflection = Effect.gen(function* () {
 			}
 		},
 		flight,
-		opening: (stream: object) => {
-			streams.set(stream, { armedAt: undefined, supported: undefined });
+		opening: (stream: FollowedStream) => {
+			stream.armedAt = undefined;
+			stream.supported = undefined;
+			streams.add(stream);
 		},
-		send: (piggyback: boolean) => (piggyback && [...streams.values()].some((state) => state.supported !== false) ? flight() : undefined),
+		send: (piggyback: boolean) => (piggyback && [...streams].some((stream) => stream.supported !== false) ? flight() : undefined),
 		token,
 	};
 });

@@ -14,11 +14,10 @@ import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import { commandPayload } from "#commandPayload.ts";
 import { CommandSignal, untilReflected } from "#commandSignal.ts";
 import { waitForConnection } from "#connectionReadiness.ts";
-import { LIVE_SYNC } from "#LiveSync.ts";
+import { LIVE_SYNC } from "#liveSyncRpc.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
 import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
-import { reflections } from "#reflection.ts";
 import { retainQuery } from "#retainQuery.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
@@ -100,9 +99,6 @@ export function clientOperations(
 
 	function synchronize(observer: CommandObserver) {
 		return ordinaryClient.use((client) => {
-			if (!reflections.has(client)) {
-				return Effect.void;
-			}
 			const request = reflectCommand(client, observer, (options) => Effect.asVoid(client(LIVE_SYNC, undefined, options)), true);
 			return Effect.andThen(waitForConnection(client), request);
 		});

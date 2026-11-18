@@ -91,7 +91,7 @@ export function automaticLive(
 			if (existing !== undefined) {
 				return existing;
 			}
-			const made: StreamAnchor = { mounted: false, reflection: undefined };
+			const made: StreamAnchor = { armedAt: undefined, mounted: false, reflection: undefined, supported: undefined };
 			anchors.set(registry, made);
 			return made;
 		}

@@ -4,9 +4,11 @@ import { RpcClient } from "effect/rpc";
 import { ConnectionReadiness, connectionReadiness } from "#connectionReadiness.ts";
 import { makeReflection, type Reflection } from "#reflection.ts";
 
-export const protocolConnections = new WeakMap<RpcClient.Protocol["Service"], Effect.Success<typeof connectionReadiness>>();
-
-export const protocolReflections = new WeakMap<RpcClient.Protocol["Service"], Reflection>();
+// Clients that share one transport share its readiness and its reflection, so a command waits on every stream of its connection.
+export class ConnectionScope extends Context.Service<
+	ConnectionScope,
+	{ readonly connection: Effect.Success<typeof connectionReadiness>; readonly reflection: Reflection }
+>()("@shivaedev/contract/ConnectionScope") {}
 
 export const connectionProtocol = Atom.family((protocol: Layer.Layer<RpcClient.Protocol, never, ConnectionReadiness>) =>
 	Layer.unwrap(
@@ -14,7 +16,7 @@ export const connectionProtocol = Atom.family((protocol: Layer.Layer<RpcClient.P
 			const connection = yield* connectionReadiness;
 			const reflection = yield* makeReflection;
 			const hooks = yield* Effect.serviceOption(RpcClient.ConnectionHooks);
-			return protocol.pipe(
+			const managed = protocol.pipe(
 				Layer.provide(
 					Layer.merge(
 						Layer.succeed(ConnectionReadiness, connection),
@@ -24,13 +26,8 @@ export const connectionProtocol = Atom.family((protocol: Layer.Layer<RpcClient.P
 						}),
 					),
 				),
-				Layer.tap((context) =>
-					Effect.sync(() => {
-						protocolConnections.set(Context.get(context, RpcClient.Protocol), connection);
-						protocolReflections.set(Context.get(context, RpcClient.Protocol), reflection);
-					}),
-				),
 			);
+			return Layer.merge(managed, Layer.succeed(ConnectionScope, { connection, reflection }));
 		}),
 	),
 );

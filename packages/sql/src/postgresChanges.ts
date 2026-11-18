@@ -71,7 +71,7 @@ export function postgresChanges(options: PostgresChangesOptions) {
 			function sendToken(token: string, enclosed: boolean) {
 				const send = Effect.asVoid(options.client`select pg_notify(${options.channel}, ${token})`);
 				return enclosed
-					? options.client.afterCommit(Effect.catchCause(send, (cause) => Effect.logError("PostgreSQL sync token failed after its commit", cause)))
+					? options.client.afterCommit(Effect.ignore(send, { log: "Error", message: "PostgreSQL sync token failed after its commit" }))
 					: send;
 			}
 			const publish = Effect.fn("PostgresChanges.publish")(function* (keys: readonly unknown[], sync?: SyncToken) {

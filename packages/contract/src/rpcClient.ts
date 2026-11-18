@@ -8,9 +8,9 @@ import { catchUp } from "#catchUp.ts";
 import { clientActivities, makeActivity } from "#clientActivities.ts";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
-import { connectionProtocol, protocolConnections, protocolReflections } from "#connectionProtocol.ts";
+import { ConnectionScope, connectionProtocol } from "#connectionProtocol.ts";
 import { commandConnections } from "#connectionReadiness.ts";
-import { LiveSync } from "#LiveSync.ts";
+import { liveSyncRpc } from "#liveSyncRpc.ts";
 import { reflections } from "#reflection.ts";
 import type { ResumeWindow } from "#resume.ts";
 import { CommandInvalidation } from "#serverMetadata.ts";
@@ -25,8 +25,7 @@ export interface RpcSource {
 
 export function rpcClient(name: string, source: RpcSource, options: ClientOptions) {
 	const activity = makeActivity(options.runtime ?? Atom.runtime);
-	const liveSync: RpcSource = LiveSync.application;
-	const group = RpcGroup.make(...source.requests.values(), ...liveSync.requests.values()).annotateMerge(source.annotations);
+	const group = RpcGroup.make(...source.requests.values(), ...liveSyncRpc.requests.values()).annotateMerge(source.annotations);
 	const commands = new Set(
 		[...group.requests].filter(([, rpc]) => Option.isSome(Context.getOption(rpc.annotations, CommandInvalidation))).map(([tag]) => tag),
 	);
@@ -71,15 +70,10 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 		return observed;
 	}
 	const make = Effect.gen(function* () {
-		const transport = yield* RpcClient.Protocol;
-		const connection = protocolConnections.get(transport);
-		const wait = connection === undefined ? Effect.void : Effect.suspend(() => (connection.isReady() ? Effect.void : activity.hold(connection.wait)));
+		const { connection, reflection } = yield* ConnectionScope;
+		const wait = Effect.suspend(() => (connection.isReady() ? Effect.void : activity.hold(connection.wait)));
 		const native = yield* RpcClient.make<Rpc.Any, true>(group, { flatten: true });
 		const observed = observeClient(native, wait);
-		const reflection = protocolReflections.get(transport);
-		if (reflection === undefined) {
-			return observed;
-		}
 		// Only the shared socket proves a command reaches the host that holds its streams; any other protocol syncs after the reply.
 		reflections.set(observed, { piggyback: options.protocol === undefined, reflection });
 		yield* catchUp(reflection, native, wait);

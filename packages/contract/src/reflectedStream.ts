@@ -1,10 +1,10 @@
 import { Effect, Exit, Stream } from "effect";
 import { Headers } from "effect/http";
 import { retriesLive } from "#liveRetry.ts";
-import { type Reflection, reflections } from "#reflection.ts";
+import { type FollowedStream, type Reflection, reflections } from "#reflection.ts";
 import { streamSyncHeaders } from "#syncHeader.ts";
 
-export interface StreamAnchor {
+export interface StreamAnchor extends FollowedStream {
 	mounted: boolean;
 	reflection: Reflection | undefined;
 }
