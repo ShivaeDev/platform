@@ -1,7 +1,8 @@
 import { RegistryProvider } from "@effect/atom-react";
+import { CatchBoundary, type ErrorComponentProps } from "@tanstack/react-router";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { useState } from "react";
+import { StrictMode, useState } from "react";
 import { type ActionState, useAction } from "#client/resultState.ts";
 import type { CommandName, Mode, OwnershipClient } from "#test/action-ownership/client.ts";
 import { causeWords } from "#test/outcomeWords.ts";
@@ -45,11 +46,26 @@ function RuntimeControl(props: ControlProps) {
 	);
 }
 
-export function OwnershipView({ mode, ...props }: ControlProps & { readonly mode: Mode }) {
-	const View = mode === "native" ? NativeControl : RuntimeControl;
-	return (
+function InlineRunControl(props: ControlProps) {
+	const action = useAction(props.client.runtime, (input: string) => props.client.commands[props.name].run(input));
+	return <Control {...props} action={action} />;
+}
+
+function Crash({ error }: ErrorComponentProps) {
+	const message = error instanceof Error ? error.message : "an unknown failure";
+	return <p data-crash="">{message}</p>;
+}
+
+const views = { "inline run": InlineRunControl, native: NativeControl, runtime: RuntimeControl };
+
+export function OwnershipView({ mode, strict, ...props }: ControlProps & { readonly mode: Mode; readonly strict: boolean }) {
+	const View = views[mode];
+	const control = (
 		<RegistryProvider>
-			<View {...props} />
+			<CatchBoundary errorComponent={Crash} getResetKey={() => "control"}>
+				<View {...props} />
+			</CatchBoundary>
 		</RegistryProvider>
 	);
+	return strict ? <StrictMode>{control}</StrictMode> : control;
 }

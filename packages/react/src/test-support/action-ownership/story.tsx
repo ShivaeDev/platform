@@ -3,7 +3,7 @@ import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type CommandName, type Mode, ownershipClient } from "#test/action-ownership/client.ts";
 import { OwnershipView } from "#test/action-ownership/view.tsx";
-import type { Screen } from "#test/Screen.ts";
+import { type Screen, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 
 interface State {
@@ -11,6 +11,7 @@ interface State {
 	input: string;
 	mode: Mode;
 	name: CommandName;
+	strict: boolean;
 	view?: Rendered;
 }
 
@@ -39,7 +40,7 @@ function answer(state: State, screen: Screen, name: CommandName, result: Exit.Ex
 export const ownership = storyKit(
 	screenKit(
 		"command ownership",
-		(): State => ({ client: ownershipClient(), input: "the-reef", mode: "native", name: "Launch" }),
+		(): State => ({ client: ownershipClient(), input: "the-reef", mode: "native", name: "Launch", strict: false }),
 		(state, screen) => ({
 			alert: () => Effect.sync(() => view(state).container.querySelector('[role="alert"]')?.textContent ?? ""),
 			cause: () => Effect.sync(() => view(state).container.querySelector("[data-cause]")?.textContent),
@@ -52,8 +53,10 @@ export const ownership = storyKit(
 					}
 					return { label: button.textContent, state: button.disabled ? "disabled" : "enabled" };
 				}),
+			crash: () => Effect.sync(() => view(state).container.querySelector("[data-crash]")?.textContent ?? ""),
 			dispatch: () => dispatch(state, screen),
 			feedback: () => Effect.sync(() => view(state).container.querySelector('[role="status"]')?.textContent),
+			parentRerenders: () => screen.act("the control's parent renders again", () => view(state).render(<OwnershipView {...state} />)),
 			reject: (name: CommandName, reason: string) => answer(state, screen, name, Exit.fail(reason)),
 			sent: () => Effect.sync(() => [...state.client.sent]),
 			shown: () => Effect.sync(() => view(state).container.querySelector("output")?.textContent),
@@ -73,6 +76,23 @@ export function launchControl(mode: Mode) {
 		state.view = yield* screen.open(<OwnershipView {...state} />);
 	});
 }
+
+export const strictLaunchControl = ownership.trait("screen", "a mounted runtime Launch control inside StrictMode", function* ({ screen, state }) {
+	state.mode = "runtime";
+	state.strict = true;
+	state.view = yield* screen.open(<OwnershipView {...state} />);
+});
+
+export const inlineRunControl = ownership.trait(
+	"screen",
+	"a mounted Launch control that writes its run function inline, inside an error boundary",
+	function* ({ screen, state }) {
+		state.mode = "inline run";
+		state.view = yield* screen.open(<OwnershipView {...state} />, {
+			onCaughtError: screenWarnings.expectCaughtError((error) => error instanceof Error && error.message.startsWith("useAction")),
+		});
+	},
+);
 
 export function launchPending(mode: Mode) {
 	return ownership.traits(
