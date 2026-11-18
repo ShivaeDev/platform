@@ -21,7 +21,10 @@ const storePath = Effect.fnUntraced(function* (chosen: string | undefined) {
 	}
 	const store = yield* defaultTraceStore;
 	if (store.temporary) {
-		yield* Effect.logInfo(`Development traces are recorded to ${store.path}, because ${store.workingDirectory} has no node_modules folder.`);
+		const refused = store.refused === undefined ? "" : ` and ${store.refused} is not a folder that only this user can reach`;
+		yield* Effect.logInfo(
+			`Development traces are recorded to ${store.path}, because ${store.workingDirectory} has no node_modules folder${refused}.`,
+		);
 	}
 	return store.path;
 });
