@@ -29,6 +29,11 @@ const cases: readonly { readonly claim: string; readonly read: Read; readonly ex
 		read: { call: "findMany", where: { slug: "draft" } },
 	},
 	{ claim: "findMany by a null bucket listens on the table", expected: "the table", read: { call: "findMany", where: { listId: null } } },
+	{
+		claim: "findMany by a bucket that is not null listens on the table",
+		expected: "the table",
+		read: { call: "findMany", where: { listId: { not: null } } },
+	},
 	{ claim: "findMany comparing the id listens on the table", expected: "the table", read: { call: "findMany", where: { id: { gt: 1 } } } },
 	{
 		claim: "findMany matching a bucket with like listens on the table",

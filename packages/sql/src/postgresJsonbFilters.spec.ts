@@ -6,6 +6,7 @@ const cases = [
 	{ details: { gt: 7 }, ids: [3], name: "an object with gt matches its encoded JSON value" },
 	{ details: { in: [7] }, ids: [5], name: "an object with in matches its encoded JSON value" },
 	{ details: { gt: 7, in: [7] }, ids: [6], name: "an object with both gt and in matches its entire encoded JSON value" },
+	{ details: { not: null }, ids: [8], name: "an object with not null matches its encoded JSON value rather than every stored value" },
 ] as const;
 
 for (const { details, ids, name } of cases) {
@@ -24,7 +25,7 @@ for (const { details, ids, name } of cases) {
 	jsonbFilters.it(`deletes: ${name}`, [distinctDetails()], function* ({ deleteProfiles, remainingProfiles }) {
 		yield* deleteProfiles({ details });
 
-		expect(yield* remainingProfiles()).toEqual([1, 2, 3, 4, 5, 6, 7].filter((id) => !ids.some((matched) => matched === id)).map((id) => ({ id })));
+		expect(yield* remainingProfiles()).toEqual([1, 2, 3, 4, 5, 6, 7, 8].filter((id) => !ids.some((matched) => matched === id)).map((id) => ({ id })));
 	});
 }
 

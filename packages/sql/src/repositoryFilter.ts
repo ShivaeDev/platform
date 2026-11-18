@@ -20,11 +20,13 @@ export type Comparisons<T, TOperand = NonNullable<T>> = [NonNullable<T>] extends
 	? { readonly gt?: TOperand; readonly gte?: TOperand; readonly lt?: TOperand; readonly lte?: TOperand }
 	: { readonly gt?: never; readonly gte?: never; readonly lt?: never; readonly lte?: never };
 type Pattern<T> = [NonNullable<T>] extends [string] ? { readonly like?: NonNullable<T> } : { readonly like?: never };
+type NotNull<T> = [null] extends [T] ? { readonly not: null } : never;
 
 export type FindManyFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
 		| (Comparisons<Schema.Struct.Type<TModel["fields"]>[TField]> & Pattern<Schema.Struct.Type<TModel["fields"]>[TField]>)
+		| NotNull<Schema.Struct.Type<TModel["fields"]>[TField]>
 		| { readonly in: readonly Schema.Struct.Type<TModel["fields"]>[TField][] }
 		| undefined;
 };
@@ -32,6 +34,9 @@ export type FindManyFilter<TModel extends Model.Any> = Partial<TupleFilter<TMode
 const operators = { gt: ">", gte: ">=", like: "like", lt: "<", lte: "<=" } as const;
 function isOperator(key: string): key is keyof typeof operators {
 	return Object.hasOwn(operators, key);
+}
+function isNotNull(value: object) {
+	return "not" in value && value.not === null && Object.keys(value).length === 1;
 }
 
 export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>(model: TModel, references?: { readonly tableName: string }) {
@@ -63,11 +68,33 @@ export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>
 			Effect.map(Schema.encodeEffect(field)(decoded), (encoded) => sql`${column(key)} ${sql.literal(operators[operator])} ${encoded}`),
 		);
 	}
+	function compared(key: string, field: Schema.Constraint, value: unknown, accepts: (input: unknown) => boolean) {
+		if (typeof value !== "object" || value === null) {
+			return undefined;
+		}
+		if (isNotNull(value) && accepts(null)) {
+			return Effect.succeed(sql`${column(key)} is not null`);
+		}
+		return Object.keys(value).some(isOperator)
+			? Effect.map(
+					Effect.forEach(Object.entries(value), ([operator, operand]) => comparison(key, field, operator, operand)),
+					(predicates) => sql.and(predicates),
+				)
+			: undefined;
+	}
 	function inPredicate(key: string, encoded: readonly unknown[]) {
 		if (references === undefined) {
 			return sql.in(key, encoded);
 		}
 		return encoded.length === 0 ? sql`1 = 0` : sql`${column(key)} in ${sql.in(encoded)}`;
+	}
+	function listed<E, R>(key: string, value: unknown, encode: (entry: unknown) => Effect.Effect<unknown, E, R>) {
+		return typeof value === "object" && value !== null && "in" in value && Array.isArray(value.in)
+			? Effect.map(
+					Effect.forEach(value.in, (entry) => encode(entry)),
+					(encoded) => inPredicate(key, encoded),
+				)
+			: undefined;
 	}
 	function predicate(key: string, value: unknown, allowIn: boolean, allowComparisons: boolean) {
 		return Effect.flatMap(fieldAt(key), (field) => {
@@ -85,18 +112,7 @@ export const makeFilter = Effect.fnUntraced(function* <TModel extends Model.Any>
 			if (incoming !== undefined) {
 				return Effect.as(fieldAt(incoming), sql`${column(key)} = excluded.${sql(incoming)}`);
 			}
-			if (allowComparisons && typeof value === "object" && value !== null && Object.keys(value).some(isOperator)) {
-				return Effect.map(
-					Effect.forEach(Object.entries(value), ([operator, operand]) => comparison(key, field, operator, operand)),
-					(predicates) => sql.and(predicates),
-				);
-			}
-			return allowIn && typeof value === "object" && value !== null && "in" in value && Array.isArray(value.in)
-				? Effect.map(
-						Effect.forEach(value.in, (entry) => encode(entry)),
-						(encoded) => inPredicate(key, encoded),
-					)
-				: equality();
+			return (allowComparisons && compared(key, field, value, acceptsValue)) || (allowIn && listed(key, value, encode)) || equality();
 		});
 	}
 	function where(input: Readonly<Record<string, unknown>> & Partial<TupleFilter<Model.Any>> = {}, allowIn = false, allowComparisons = false) {

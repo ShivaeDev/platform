@@ -64,6 +64,16 @@ const program = Effect.gen(function* () {
 	plain.findMany({ where: { note: { lte: null } } });
 	// @ts-expect-error Range filters name model fields.
 	plain.select({ where: { missing: { gt: 1 } } });
+	const noted = plain.findMany({ select: ["id"], where: { kind: "x", note: { not: null } } });
+	expectTypeOf<Effect.Success<typeof noted>>().toEqualTypeOf<Array<{ readonly id: number }>>();
+	plain.count({ where: { note: { not: null } } });
+	plain.select({ where: { note: { not: null } } });
+	// @ts-expect-error Only a field whose type admits null takes a not-null filter.
+	plain.findMany({ where: { kind: { not: null } } });
+	// @ts-expect-error A not filter takes null alone.
+	plain.findMany({ where: { note: { not: "x" } } });
+	// @ts-expect-error Delete has no not-null filter.
+	plain.delete({ note: { not: null } });
 	// @ts-expect-error Delete retains its equality and list filters.
 	plain.delete({ id: { gt: 1 } });
 	const deleted = plain.delete({ id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } });

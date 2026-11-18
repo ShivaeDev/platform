@@ -102,6 +102,7 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 					[...copied].sort((left, right) => left.copiedKey - right.copiedKey),
 				),
 			),
+		countPayments: (query: Query<Engine["payments"]["count"]>) => read(`the payments are counted ${described(query)}`, engine.payments.count(query)),
 		deleteLedgerEntries: (where: Query<Engine["ledger"]["delete"]>) =>
 			read(`the ledger entries ${described(where)} are deleted`, engine.ledger.delete(where)),
 		deletePartialRows: (where: Query<Engine["partialRows"]["delete"]>) =>
@@ -110,6 +111,10 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			read(`the payments ${described(where)} are deleted`, engine.payments.delete(where)),
 		deleteSamples: (where: Query<Engine["samples"]["delete"]>) => read(`the samples ${described(where)} are deleted`, engine.samples.delete(where)),
 		deleteSources: (where: Query<Engine["sources"]["delete"]>) => read(`the sources ${described(where)} are deleted`, engine.sources.delete(where)),
+		deleteUnknownPayments: (where: unknown) => {
+			const result: ReturnType<Engine["payments"]["delete"]> = Reflect.apply(engine.payments.delete, engine.payments, [where]);
+			return read(`delete receives unknown input ${described(where)}`, result);
+		},
 		findLines: (query: Query<Engine["lines"]["findMany"]>) => read(`the invoice lines are read ${described(query)}`, engine.lines.findMany(query)),
 		findPartialRows: (query: Query<Engine["partialRows"]["findMany"]>) =>
 			read(`the partial rows are read ${described(query)}`, engine.partialRows.findMany(query)),
@@ -170,6 +175,7 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 				Effect.flatMap(dashboardReads(), (reads) => reads.listReports({ since })),
 			),
 		partialRows: () => stored(engine.partialRows.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["a", "b"] })),
+		paymentNotes: () => stored(engine.payments.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["note"] })),
 		readPlan: () =>
 			Effect.map(queryPlan(engine, "runs"), ({ nodes, scans }) => ({
 				rankedByWindow: nodes.some((node) => node["Node Type"] === "WindowAgg"),
@@ -200,6 +206,11 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			read(
 				`the partial rows selected ${described(query)} are read through the prepared select`,
 				Effect.flatMap(engine.partialRows.select(query).statement, (statement) => sql`${statement}`),
+			),
+		selectPayments: (query: Query<Engine["payments"]["select"]>) =>
+			read(
+				`the payments selected ${described(query)} are read through the prepared select`,
+				Effect.flatMap(engine.payments.select(query).statement, (statement) => sql`${statement}`),
 			),
 		selectUnknownPayments: (where: unknown) => {
 			const selected: ReturnType<Engine["payments"]["select"]> = Reflect.apply(engine.payments.select, engine.payments, [{ where }]);
