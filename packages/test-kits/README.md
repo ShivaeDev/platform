@@ -95,7 +95,7 @@ Import `watchHints`, `layerMemoryProtocol` and the `HintViewer` type from `@shiv
 
 `linkedWorkerSpans(sender, spans)` from `@shivaedev/test-kits/jobs/testing.ts` reads native recorded Effect spans and returns the pg-boss consumer spans whose links match both the sender's `traceId` and `spanId`. It returns every matching attempt, including retries, and no matches before a worker runs. An untraced job has no sender link. Settle the workers before reading their completed attempts; this readout does not wait or read queue storage.
 
-`testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to `pgBossLayer`, and keep that Layer scoped as usual. `jobs(queue, options?)` returns jobs-owned `Job` metadata with `data` decoded through the queue's Schema, including traced payloads. For a scheduled run with no payload, pass `{ name: Cleanup.name, schema: Schema.Null }` to read `data: null`. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
+`testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, provide its `clientFactory` as the runtime's `JobsClientFactory` from `@shivaedev/jobs/server/JobsClientFactory.ts` with `Layer.succeed(JobsClientFactory, testing.clientFactory)`, and keep the jobs Layer scoped as usual. A controller owns one client: build every `pgBossLayer` of that runtime from one Layer so they share it, or give each separately built runtime its own controller. `jobs(queue, options?)` returns jobs-owned `Job` metadata with `data` decoded through the queue's Schema, including traced payloads. For a scheduled run with no payload, pass `{ name: Cleanup.name, schema: Schema.Null }` to read `data: null`. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
 
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
 
@@ -104,6 +104,7 @@ import { Context, Effect, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/test-kits/jobs/testing.ts";
 
@@ -112,7 +113,10 @@ const emailStories = storyKit({
 	*create() {
 		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed), retryPolicy: testRetryPolicy });
 		const context = yield* Layer.build(
-			Jobs.layer({ jobs: [SendEmail] }).pipe(Layer.provide(pgBossLayer({ connectionString: databaseUrl, clientFactory: testing.clientFactory }))),
+			Jobs.layer({ jobs: [SendEmail] }).pipe(
+				Layer.provide(pgBossLayer({ connectionString: databaseUrl })),
+				Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)),
+			),
 		);
 		return { jobs: Context.get(context, Jobs), testing };
 	},
@@ -143,7 +147,9 @@ const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect
 yield* testing.timePasses("1 day");
 ```
 
-The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` to the jobs Layer as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Supply the story clock so both the application and pg-boss stay under the kit's control.
+The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` as the `JobsClientFactory` as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Supply the story clock so both the application and pg-boss stay under the kit's control.
+
+Set `clock` only when the controller's client is the only pg-boss client that writes to the story's schema. With `clock`, the controller's sessions read pg-boss's `job_now()` from the story's TestClock, while any other client, such as an application host built in its own runtime with its own controller or the default factory, enqueues at real time. Its jobs are then later than the controller's clock: `waitForIdle` returns without waiting for them and the controller's worker does not run them. When a host and a worker run in one runtime on one `pgBossLayer`, the one testing client serves both and `clock` works. When they are built separately, as the starter's `applicationHost` and `applicationWorker` are, leave `clock` out: the controller then reads real time, and `waitForIdle` waits until its worker has run the jobs another client enqueued.
 
 `schedules()` lists registered schedules as `{ name, cron, timezone }` entries from PostgreSQL. `trigger(schedule)` takes a schedule definition, such as `Cleanup`, and enqueues one run now using its stored schedule data and options. It returns the run ID, or null when pg-boss suppresses the send. Register `Cleanup.run(effect)` in the testing Layer first, then yield `testing.trigger(Cleanup)` and `testing.waitForIdle` before observing the Effect's result. An unregistered schedule fails with `PgBossTestingError` (`operation: "trigger"`).
 

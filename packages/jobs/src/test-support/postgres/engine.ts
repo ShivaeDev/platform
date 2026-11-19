@@ -6,6 +6,7 @@ import type { PgBossClient } from "#server/adapters/client.ts";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import { registrationName } from "#server/adapters/register.ts";
 import { PgBossError } from "#server/error.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { observeStops, observeWakes, pauseChangeNotifications, pauseCompletion, sortBatches } from "#test/postgres/clientObservers.ts";
@@ -89,30 +90,30 @@ export const startRuntime = Effect.fnUntraced(function* (
 	const story = yield* Scope.Scope;
 	const scope = yield* Scope.fork(story, finalizesInParallel === true ? "parallel" : "sequential");
 	const testing = testingFor(controller);
-	const factory = layerOptions.clientFactory ?? testing?.clientFactory ?? defaultClientFactory;
+	const factory = testing?.clientFactory ?? defaultClientFactory;
 	let client: PgBossClient | undefined;
 	const registered = registrations(engine.work, jobs);
-	const clientLayer = pgBossLayer({
-		connectionString: engine.url,
-		...layerOptions,
-		clientFactory: (construct) => {
-			const created = observeStops(engine, observeWakes(engine, name, factory({ ...construct, clock: engine.clock })));
-			client = handsBatchesOver === undefined ? created : sortBatches(created);
-			if (changeNotificationsWaitFor !== undefined) {
-				pauseChangeNotifications(engine, client, changeNotificationsWaitFor);
-			}
-			if (pausesCompletionAt !== undefined) {
-				pauseCompletion(engine, client, pausesCompletionAt);
-			}
-			if (jobLookupsFailWith !== undefined) {
-				Object.defineProperty(client, "findJobs", { configurable: true, value: () => Promise.reject(new Error(jobLookupsFailWith)) });
-			}
-			if (layerOptions.clientCacheKey !== undefined) {
-				engine.sharedClients.set(layerOptions.clientCacheKey, client);
-			}
-			return wrapsClient === true ? new Proxy(client, {}) : client;
-		},
-	});
+	const clientLayer = pgBossLayer({ connectionString: engine.url, ...layerOptions }).pipe(
+		Layer.provide(
+			Layer.succeed(JobsClientFactory, (construct) => {
+				const created = observeStops(engine, observeWakes(engine, name, factory({ ...construct, clock: engine.clock })));
+				client = handsBatchesOver === undefined ? created : sortBatches(created);
+				if (changeNotificationsWaitFor !== undefined) {
+					pauseChangeNotifications(engine, client, changeNotificationsWaitFor);
+				}
+				if (pausesCompletionAt !== undefined) {
+					pauseCompletion(engine, client, pausesCompletionAt);
+				}
+				if (jobLookupsFailWith !== undefined) {
+					Object.defineProperty(client, "findJobs", { configurable: true, value: () => Promise.reject(new Error(jobLookupsFailWith)) });
+				}
+				if (layerOptions.clientCacheKey !== undefined) {
+					engine.sharedClients.set(layerOptions.clientCacheKey, client);
+				}
+				return wrapsClient === true ? new Proxy(client, {}) : client;
+			}),
+		),
+	);
 	const service = queueNames === undefined ? Jobs : makePgBoss(Jobs.key, queueNames);
 	const layer = service
 		.layer({

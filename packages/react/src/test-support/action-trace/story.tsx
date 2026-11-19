@@ -1,4 +1,5 @@
 import { Effect, Layer, Option, Redacted, Tracer } from "effect";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { linkedWorkerSpans, makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -138,7 +139,8 @@ export const actions = storyKit({
 					const testing = makePgBossTesting();
 					yield* Layer.build(
 						Jobs.layer({ jobs: [Work.handle(() => Effect.void)] })
-							.pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url })))
+							.pipe(Layer.provide(pgBossLayer({ connectionString: database.url })))
+							.pipe(Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)))
 							.pipe(Layer.provide(Layer.succeed(Tracer.Tracer, engine.tracer))),
 					);
 					yield* testing.waitForIdle;

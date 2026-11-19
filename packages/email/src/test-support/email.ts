@@ -1,5 +1,6 @@
 import { Clock, Effect, Layer, Logger, Option, Redacted } from "effect";
 import { TestClock } from "effect/testing";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { emailLink, inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -19,12 +20,8 @@ export const email = storyKit({
 		const producer = makePgBossTesting({ clock });
 		const producerContext = yield* Layer.build(
 			Emails.producerLayer.pipe(
-				Layer.provide(
-					pgBossLayer({
-						clientFactory: producer.clientFactory,
-						connectionString: database.url,
-					}),
-				),
+				Layer.provide(pgBossLayer({ connectionString: database.url })),
+				Layer.provide(Layer.succeed(JobsClientFactory, producer.clientFactory)),
 			),
 		);
 		const logs: unknown[] = [];
@@ -82,7 +79,8 @@ export const email = storyKit({
 				yield* Layer.build(
 					Emails.workerLayer.pipe(
 						Layer.provide(engine.useLog ? Mailer.layer : engine.mail.mailerLayer),
-						Layer.provide(pgBossLayer({ clientFactory: engine.testing.clientFactory, connectionString: engine.database.url })),
+						Layer.provide(pgBossLayer({ connectionString: engine.database.url })),
+						Layer.provide(Layer.succeed(JobsClientFactory, engine.testing.clientFactory)),
 						Layer.provide(Logger.layer([Logger.make(({ message }) => engine.logs.push(message))])),
 					),
 				);

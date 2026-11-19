@@ -3,7 +3,6 @@ import { otlpTracing } from "@shivaedev/server/otlpTracing.ts";
 import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { emailMailerLayer } from "#server/emailMailerLayer.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 import { serverModules } from "#server/modules.ts";
 import type { PoolSizes } from "#server/PoolSizes.ts";
@@ -20,7 +19,7 @@ export function applicationWorker<R = never, E = never, TRequirements = never>(c
 			const replacements = config?.replacements ?? Layer.empty;
 			const modules = yield* serverModules(replacements);
 			const database = databaseOptions(databaseUrl, modules.migrations, "wait", config?.poolSizes?.sql);
-			const jobs = jobsLayer(databaseUrl, config?.poolSizes?.jobs).pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)));
+			const jobs = jobsLayer(databaseUrl, config?.poolSizes?.jobs).pipe(Layer.provideMerge(replacements));
 			const services = modules.services.pipe(Layer.provideMerge(jobs));
 			return workerHost({
 				...modules,

@@ -1,6 +1,7 @@
 import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { ConfigProvider, DateTime, Effect, Exit, Layer, Option, Scope } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -10,7 +11,6 @@ import { foundation } from "#admin/foundation.ts";
 import { adminGroup } from "#modules/notes/test-support/admin/group.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { answer } from "#test-support/answers.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { type RunningHost, startHost } from "#test-support/host.ts";
