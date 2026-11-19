@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.0 - 2026-11-19
+
+### Added
+
+- `appHost` masks the names of fields that a repository model marks sensitive (`sensitive: true` or a Redacted schema), and their encoded names, in every RPC's logs, error reports, failure frames and exported traces, as it masks `config.sensitiveKeys`. The policy is complete before the host serves its first request, so mark a sensitive value once, on the server's model.
+
 ## 0.35.1 - 2026-11-18
 
 ### Changed

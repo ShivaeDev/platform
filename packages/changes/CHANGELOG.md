@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 - 2026-11-19
+
+### Added
+
+- `SingleColumnBucketKey` and `SingleColumnItemKey` from `@shivaedev/changes/compositeKeys.ts`. A collection's single-column bucket keys and numeric-id item keys now have these types, so code that takes keys can tell they span one column. String-id item keys stay `ItemKey`, because a string spelled as `compositeId` marks the key composite at runtime.
+
 ## 0.13.0 - 2026-11-18
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.48.1 - 2026-11-19
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.47.0 to 0.48.0.
+- Update `@shivaedev/test-sql` from 0.25.2 to 0.25.3.
+
 ## 0.48.0 - 2026-11-18
 
 ### Added
