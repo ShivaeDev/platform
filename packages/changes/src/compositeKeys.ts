@@ -8,6 +8,10 @@ export const CompositeId = Brand.nominal<CompositeId>();
 
 export type CompositeItemKey<TName extends string = string> = ItemKey<TName> & { readonly [Composite]: true };
 export type CompositeBucketKey<TName extends string = string> = BucketKey<TName> & { readonly [Composite]: true };
+// The mark is never set at runtime; the optional false records that the key cannot carry it.
+// Only numeric ids qualify, because a string id spelled as compositeId spells several values is marked at runtime.
+export type SingleColumnItemKey<TName extends string = string> = ItemKey<TName> & { readonly [Composite]?: false };
+export type SingleColumnBucketKey<TName extends string = string> = BucketKey<TName> & { readonly [Composite]?: false };
 
 export function isComposite(key: Key): key is CompositeItemKey | CompositeBucketKey {
 	return Composite in key;
