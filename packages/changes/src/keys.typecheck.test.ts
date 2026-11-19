@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import { expectTypeOf } from "vitest";
 import { bucket } from "#buckets.ts";
-import { collection, type Identity } from "#keys.ts";
+import type { CompositeBucketKey, CompositeItemKey, SingleColumnBucketKey, SingleColumnItemKey } from "#compositeKeys.ts";
+import { collection, compositeId, type Identity, type ItemKey } from "#keys.ts";
 
 const notes = collection("notes", Schema.Number, { listId: Schema.Number, userId: Schema.String });
 expectTypeOf(notes.bucket.userId).parameter(0).toEqualTypeOf<string>();
@@ -35,3 +36,11 @@ entries.bucket.ownerDay({ day: 1, ownerId: 7 });
 collection("entries", Schema.Number, {}, { owner: ["ownerId"] });
 // @ts-expect-error A tuple cannot take the name of a single-column bucket.
 collection("entries", Schema.Number, { ownerId: Schema.String }, { ownerId: ["ownerId", "day"] });
+
+const ledger = collection("ledger", Schema.String);
+expectTypeOf(notes.bucket.userId("alice")).toEqualTypeOf<SingleColumnBucketKey<"notes">>();
+expectTypeOf(notes.item(1)).toEqualTypeOf<SingleColumnItemKey<"notes">>();
+expectTypeOf(entries.bucket.ownerDay({ day: 1, ownerId: "alice" })).toEqualTypeOf<CompositeBucketKey<"entries">>();
+expectTypeOf(ledger.item(compositeId(["cash", 1]))).toEqualTypeOf<CompositeItemKey<"ledger">>();
+// A string id spelled as compositeId spells several values is marked composite at runtime.
+expectTypeOf(ledger.item("cash")).toEqualTypeOf<ItemKey<"ledger">>();

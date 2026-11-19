@@ -124,6 +124,11 @@ const refusals: readonly { readonly key: MultiColumnKey; readonly refusal: strin
 		refusal:
 			'readSql cannot bind the composite row drafts:["alice","draft"] as one parameter, because it spans several columns. Bind each column\'s value and declare the key in the query\'s reads.',
 	},
+	{
+		key: "a composite row key from a string id",
+		refusal:
+			'readSql cannot bind the composite row drafts:["alice","draft"] as one parameter, because it spans several columns. Bind each column\'s value and declare the key in the query\'s reads.',
+	},
 ];
 
 for (const { key, refusal } of refusals) {
