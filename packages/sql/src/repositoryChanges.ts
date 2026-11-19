@@ -3,6 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { declaredBuckets, decodeBucketValue } from "@shivaedev/changes/buckets.ts";
 import { collectionInvalidationKeys, compositeId, type Identity, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
+import { requireBucketWriteVersion } from "#bucketWriteVersion.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
@@ -25,6 +26,9 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 			return schema === undefined ? [] : [[column, { column, decode: decodeBucketValue(schema), old: `shivaeOldBucket${index}` }] as const];
 		}),
 	);
+	if (columnParts.size > 0) {
+		yield* requireBucketWriteVersion(table);
+	}
 	const buckets = declared.map((bucket) => ({ ...bucket, parts: bucket.columns.flatMap((column) => columnParts.get(column) ?? []) }));
 	const bucketValue = Effect.fnUntraced(function* (
 		row: Readonly<Record<string, unknown>>,

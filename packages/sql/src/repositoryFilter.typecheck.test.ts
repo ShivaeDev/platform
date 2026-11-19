@@ -3,6 +3,7 @@ import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
+import type { BucketWriteVersionError } from "#bucketWriteVersion.ts";
 import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError } from "#repositoryCollection.ts";
 
@@ -138,5 +139,7 @@ const program = Effect.gen(function* () {
 });
 
 it("conflict predicates retain field encoding services and check columns and values", () => {
-	expectTypeOf(program).toEqualTypeOf<Effect.Effect<void, BucketRegistrationError, SqlClient.SqlClient>>();
+	expectTypeOf(program).toEqualTypeOf<
+		Effect.Effect<void, BucketRegistrationError | BucketWriteVersionError | SqlError | Schema.SchemaError, SqlClient.SqlClient>
+	>();
 });

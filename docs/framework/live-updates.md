@@ -29,7 +29,7 @@ const makeNotesRepository = makeRepository(StoredNote, {
 });
 ```
 
-A model with `bucket` fields needs `collection`: its name must equal `tableName` and its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, as the [registration stories](../../packages/contract/src/bucketRegistration.spec.ts) show.
+A model with `bucket` fields needs `collection`: its name must equal `tableName` and its bucket fields must match the model's. Otherwise building the repository fails with `BucketRegistrationError` before any write, as the [registration stories](../../packages/contract/src/bucketRegistration.spec.ts) show. Bucketed repositories require PostgreSQL 18 or later, because their writes read each row's previous bucket with `RETURNING old`; on an older server, building the repository fails with `BucketWriteVersionError`, as the [version stories](../../packages/sql/src/bucketWritePostgresVersion.spec.ts) show.
 
 Repository writes derive record keys and affected old and new bucket keys from the rows SQL returns, inside the write's transaction. Moving a note between owners announces both owners' buckets. Commands over these repositories use `invalidates: () => []`; do not repeat record or bucket keys there or call an invalidation helper at write sites. The [bucket stories](../../packages/sql/src/bucketKeys.spec.ts) cover inserts, moves and deletes against PostgreSQL.
 

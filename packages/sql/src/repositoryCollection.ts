@@ -1,6 +1,8 @@
 import { Data, Effect, Order, type Schema } from "effect";
+import type { SqlError } from "effect/sql/SqlError";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
 import { isBucketSchema } from "@shivaedev/changes/keys.ts";
+import type { BucketWriteVersionError } from "#bucketWriteVersion.ts";
 
 export interface RepositoryCollection {
 	readonly bucket: Readonly<Record<string, unknown>>;
@@ -33,6 +35,8 @@ export class BucketRegistrationError extends Data.TaggedError("BucketRegistratio
 		return `Bucket registration for ${this.tableName}: model fields ${JSON.stringify(this.modelFields)} disagree with collection ${this.collectionName ?? "(missing)"} fields ${JSON.stringify(this.collectionFields)}`;
 	}
 }
+
+export type RepositoryRegistrationError = BucketRegistrationError | BucketWriteVersionError | SqlError | Schema.SchemaError;
 
 export const validateRepositoryCollection = Effect.fnUntraced(function* (
 	fields: Schema.Struct.Fields,
