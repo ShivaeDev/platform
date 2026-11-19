@@ -4,6 +4,7 @@ import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { defineQueue, RetryAt } from "@shivaedev/jobs/server/definition.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
@@ -56,7 +57,10 @@ export const openHost = Effect.fnUntraced(function* (testing: PgBossTesting) {
 				}).pipe(Effect.andThen(invalidateOnCommit(invalidationKeys([notes.list]))), transact({ onSqlError: (error) => error })),
 			),
 		],
-	}).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url, supervise: false })));
+	}).pipe(
+		Layer.provide(pgBossLayer({ connectionString: database.url, supervise: false })),
+		Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)),
+	);
 	return yield* Layer.build(
 		appHost({
 			config: { databaseUrl: database.url, disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 },

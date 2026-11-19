@@ -3,6 +3,7 @@ import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { TestClock } from "effect/testing";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -43,10 +44,16 @@ export const moduleWorkers = storyKit({
 			if (modules === undefined) {
 				return;
 			}
-			const jobs = pgBossLayer({ clientFactory: state.testing.clientFactory, connectionString: database.url, migrate: false, supervise: false });
+			const jobs = pgBossLayer({ connectionString: database.url, migrate: false, supervise: false }).pipe(
+				Layer.provide(Layer.succeed(JobsClientFactory, state.testing.clientFactory)),
+			);
 			const services = modules.services.pipe(Layer.provideMerge(jobs));
 			const hostServices = modules.services.pipe(
-				Layer.provide(pgBossLayer({ clientFactory: state.sender.clientFactory, connectionString: database.url, migrate: false, supervise: false })),
+				Layer.provide(
+					pgBossLayer({ connectionString: database.url, migrate: false, supervise: false }).pipe(
+						Layer.provide(Layer.succeed(JobsClientFactory, state.sender.clientFactory)),
+					),
+				),
 			);
 			const config = { databaseUrl: database.url, port: 0 };
 			const host = yield* Layer.build(appHost({ postgresSettings: {}, ...modules, config, policy: "loopback", services: hostServices }));

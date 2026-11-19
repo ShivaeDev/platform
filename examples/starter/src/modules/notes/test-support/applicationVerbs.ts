@@ -1,6 +1,7 @@
 import { ConfigProvider, type Duration, Effect, Exit, Layer, Predicate, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { signInAgain } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -11,7 +12,6 @@ import type { Account, Engine } from "#modules/notes/test-support/Engine.ts";
 import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "#modules/notes/test-support/live.ts";
 import { foreignOriginRequest, notesRequests, signOutOver } from "#modules/notes/test-support/requests.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";

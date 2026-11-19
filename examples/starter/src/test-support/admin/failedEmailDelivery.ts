@@ -1,9 +1,9 @@
 import { ConfigProvider, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { inbox } from "@shivaedev/test-kits/email/adapters/inbox.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { foundationAdmin } from "#test-support/admin/foundation.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 

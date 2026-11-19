@@ -1,4 +1,5 @@
 import { Effect, Layer } from "effect";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -7,7 +8,6 @@ import { CountWords } from "#modules/notes/server/jobs.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NoteSource } from "#modules/notes/server/Source.ts";
 import { app } from "#modules/notes/test-support/application.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 
 export function replacementPorts(title: string, options: { readonly failEnqueue?: boolean } = {}) {
