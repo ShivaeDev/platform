@@ -1,10 +1,11 @@
-import { Effect, Option, type Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { declaredBuckets, decodeBucketValue } from "@shivaedev/changes/buckets.ts";
 import { collectionInvalidationKeys, compositeId, type Identity, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { requireBucketWriteVersion } from "#bucketWriteVersion.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
+import { RepositoryModels } from "#RepositoryModels.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
@@ -16,6 +17,8 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 	tuples: Readonly<Record<string, readonly string[]>> = {},
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	// Every repository builds its changes once here, so this is where the host learns the model it is built on.
+	yield* (yield* RepositoryModels).declare(Schema.Struct(fields));
 	const declared = [
 		...declaredBuckets(fields).map(({ field }) => ({ columns: [field], field, tuple: false })),
 		...Object.entries(tuples).map(([field, tupleColumns]) => ({ columns: tupleColumns, field, tuple: true })),

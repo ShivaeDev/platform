@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.3 - 2026-11-18
+
+### Changed
+
+- The story-testing skill says that `settle()` waits until the story's own commands are reflected, and that a kit waits for someone else's write with the driver's `sync()`. It no longer mentions `withLiveAnswer`.
+
 ## 0.9.2 - 2026-11-18
 
 ### Changed

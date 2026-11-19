@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fieldScope } from "#test/fieldScope.ts";
 
 for (const [shape, field, sensitiveSchema, publicSchema] of [
@@ -50,3 +51,18 @@ for (const shape of ["distinct", "bothSensitive", "publicOnly"] as const) {
 		expect(registration).toBe("accepted");
 	});
 }
+
+fieldScope.it(
+	"an RPC whose payload hides state registers when its success showing state is generated, and is refused when that success is declared",
+	[],
+	function* ({ registerPrivatePayload }) {
+		yield* outcomes([
+			["generated success", () => registerPrivatePayload("generated"), "accepted"],
+			[
+				"declared success",
+				() => registerPrivatePayload("declared"),
+				{ conflicts: [{ field: "state", publicSchema: "Read.success.state", sensitiveSchema: "Read.payload.state" }] },
+			],
+		]);
+	},
+);

@@ -17,6 +17,7 @@ type NoRejections = Record<never, never>;
 
 export interface OperationShape {
 	readonly error: Schema.Top;
+	readonly generatedSuccess?: true;
 	readonly kind: "query" | "command" | "stream";
 	readonly name: string;
 	readonly payload: Schema.Top;

@@ -1,5 +1,6 @@
-import { Effect } from "effect";
+import { Context, Effect } from "effect";
 import { Rpc, type RpcGroup } from "effect/rpc";
+import { GeneratedSuccess } from "#GeneratedSuccess.ts";
 import { SensitiveFieldConflict, schemaFieldKeys, validateFieldScope } from "#schemaFieldScope.ts";
 import { maskedValue } from "#schemaSensitiveAst.ts";
 import { isSensitiveKey, REDACTED } from "#sensitive.ts";
@@ -9,7 +10,7 @@ const rpcSensitiveKeys = Effect.fnUntraced(function* (rpc: Rpc.AnyWithProps, ext
 	const Errors = Rpc.exitSchema(rpc).error;
 	const schemas = [
 		{ ast: rpc.payloadSchema.ast, name: `${rpc._tag}.payload` },
-		{ ast: rpc.successSchema.ast, name: `${rpc._tag}.success` },
+		...(Context.get(rpc.annotations, GeneratedSuccess) ? [] : [{ ast: rpc.successSchema.ast, name: `${rpc._tag}.success` }]),
 		{ ast: rpc.errorSchema.ast, name: `${rpc._tag}.error` },
 		{ ast: rpc.defectSchema.ast, name: `${rpc._tag}.defect` },
 		...[...rpc.middlewares].map((middleware, index) => ({ ast: middleware.error.ast, name: `${rpc._tag}.middleware[${index}].error` })),

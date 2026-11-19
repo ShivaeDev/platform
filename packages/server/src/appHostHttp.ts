@@ -1,6 +1,7 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
+import { RepositoryModels } from "@shivaedev/sql/RepositoryModels.ts";
 import { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import { nodeHttpServer } from "#adapters/nodeHttpServer.ts";
 import { redactingDiagnostics } from "#adapters/redactingDiagnostics.ts";
@@ -68,11 +69,18 @@ export function appHostHttp<
 					);
 					return Layer.unwrap(
 						HttpRouter.toHttpEffect(httpRoutes).pipe(
+							// Building the routes built every repository, so the policy is complete before the server takes a request.
+							Effect.tap(() => sensitive.complete),
 							Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
 						),
 					).pipe(Layer.provideMerge(application), Layer.provide(sessions), Layer.provideMerge(hostHttpServices));
 				}),
-			).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive))),
+			).pipe(
+				Layer.provide(redactingDiagnostics(sensitive)),
+				Layer.provide(otlpTracing),
+				Layer.provide(Layer.succeed(RedactionPolicy, sensitive)),
+				Layer.provide(Layer.succeed(RepositoryModels, sensitive.models)),
+			),
 		),
 	);
 }

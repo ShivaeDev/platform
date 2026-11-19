@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.35.1 - 2026-11-18
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.26.1 to 0.26.2.
+- Update `@shivaedev/contract` from 0.46.0 to 0.47.0.
+- Update `@shivaedev/identity` from 0.32.2 to 0.32.3.
+
 ## 0.35.0 - 2026-11-18
 
 ### Added

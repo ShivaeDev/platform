@@ -40,3 +40,13 @@ memoryGroups.it(
 		);
 	},
 );
+
+memoryGroups.it(
+	"a module whose rejection hides reps while its generated success names reps is served in memory and answers its handler's sets",
+	[],
+	function* ({ readModuleSets }) {
+		const answer = yield* readModuleSets();
+
+		expect(answer).toEqual({ best: { reps: 12 }, logged: { reps: 8 } });
+	},
+);

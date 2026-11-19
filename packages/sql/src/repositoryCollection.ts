@@ -17,6 +17,10 @@ export interface RepositoryOptions<TId> {
 	readonly tableName: string;
 }
 
+function sameFields(left: readonly string[], right: readonly string[]) {
+	return left.length === right.length && left.every((field, index) => field === right[index]);
+}
+
 export class BucketRegistrationError extends Data.TaggedError("BucketRegistrationError")<{
 	readonly tableName: string;
 	readonly collectionName: string | undefined;
@@ -26,13 +30,25 @@ export class BucketRegistrationError extends Data.TaggedError("BucketRegistratio
 	readonly invalidTupleColumns: readonly string[];
 }> {
 	override get message() {
+		const registration = `Bucket registration for ${this.tableName}`;
 		if (this.invalidFields.length > 0) {
-			return `Bucket registration for ${this.tableName}: fields ${JSON.stringify(this.invalidFields)} must decode to strings, numbers or absent values`;
+			return `${registration}: fields ${JSON.stringify(this.invalidFields)} must decode to strings, numbers or absent values`;
 		}
 		if (this.invalidTupleColumns.length > 0) {
-			return `Bucket registration for ${this.tableName}: tuple columns ${JSON.stringify(this.invalidTupleColumns)} must be model fields that decode to strings, numbers or absent values`;
+			return `${registration}: tuple columns ${JSON.stringify(this.invalidTupleColumns)} must be model fields that decode to strings, numbers or absent values`;
 		}
-		return `Bucket registration for ${this.tableName}: model fields ${JSON.stringify(this.modelFields)} disagree with collection ${this.collectionName ?? "(missing)"} fields ${JSON.stringify(this.collectionFields)}`;
+		if (this.collectionName === undefined) {
+			return `${registration}: model bucket fields ${JSON.stringify(this.modelFields)} need the repository's collection option, a collection named "${this.tableName}" with exactly those bucket fields`;
+		}
+		const disagreements = [
+			...(this.collectionName === this.tableName
+				? []
+				: [`collection name "${this.collectionName}" must equal table name "${this.tableName}", because the collection name is the table name`]),
+			...(sameFields(this.modelFields, this.collectionFields)
+				? []
+				: [`collection bucket fields ${JSON.stringify(this.collectionFields)} must equal model bucket fields ${JSON.stringify(this.modelFields)}`]),
+		];
+		return `${registration}: ${disagreements.join("; ")}`;
 	}
 }
 
