@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { close, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost, type HostState } from "#test/app-host/state.ts";
+import { browserVerbs } from "#test/subject/browser.ts";
 import { Api, CannotActForAccount, type State, subjectHost } from "#test/subject/feature.ts";
 
 function httpClient(url: string, actor?: string, subject?: string) {
@@ -37,9 +38,10 @@ export const subjectStory = storyKit({
 		yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
 		return { state, streams: new Map<string, Fiber.Fiber<void, unknown>>() };
 	},
-	name: "declared request subjects over HTTP",
+	name: "declared request subjects over HTTP and WebSocket",
 	stages: ["configured"],
 	verbs: ({ state, streams }, story) => ({
+		...browserVerbs(state, story),
 		follow: (actor: string, subject: string) =>
 			Effect.gen(function* () {
 				story.tell(`${actor} opens a stream for ${subject}`);
@@ -97,6 +99,12 @@ export const subjectStory = storyKit({
 		storedTitles: () => Effect.sync(() => Object.fromEntries(state.titles)),
 	}),
 });
+
+export function titled(account: string, title: string) {
+	return subjectStory.trait("configured", `${account}'s account is titled ${title}`, ({ state }) => {
+		state.titles.set(account, title);
+	});
+}
 
 export const withoutSessions = subjectStory.trait("configured", "the host has no session policy", ({ state }) => {
 	state.sessions = false;
