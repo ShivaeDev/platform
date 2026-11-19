@@ -1,9 +1,12 @@
 import { Context, Effect, Layer, Option, Schema, Stream } from "effect";
 import type { Headers } from "effect/http";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
+import { liveServerLayer } from "@shivaedev/contract/live-server/layer.ts";
 import { command, query, stream } from "@shivaedev/contract/operation.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -19,11 +22,14 @@ const rename = command("rename", {
 	success: Schema.Struct({ actor: Schema.String, name: Schema.String, subject: Schema.String, title: Schema.String }),
 });
 const read = query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String });
+const accountTitles = collection("subject-titles", Schema.String);
+// The query cannot name its subject in its reads, so every subject's title query reruns on any rename and must keep its own subject.
+const accountTitle = query("title", { readPolicy: () => Effect.succeed(true), reads: () => [accountTitles.list], success: Schema.String });
 const Own = contract("own", { commands: [rename], queries: [read], subject: selfSubject });
 const delegated = accountSubject({ deny: (account) => new CannotActForAccount({ account }), permission: Edit, refusal: CannotActForAccount });
-const Delegated = contract("delegated", {
+export const Delegated = contract("delegated", {
 	commands: [rename],
-	queries: [read],
+	queries: [read, accountTitle],
 	streams: [stream("follow", { reads: () => [], success: Schema.String })],
 	subject: delegated,
 });
@@ -42,7 +48,9 @@ export interface State {
 
 class Titles extends Context.Service<
 	Titles,
-	{ readonly rename: (title: string) => Effect.Effect<typeof rename.success.Type, never, Subject | SessionUser | Identity> }
+	{
+		readonly rename: (title: string) => Effect.Effect<typeof rename.success.Type, never, Subject | SessionUser | Identity | Reactivity.Reactivity>;
+	}
 >()("@shivaedev/server/test/subject/Titles") {}
 
 export function subjectHost(state: State) {
@@ -53,6 +61,7 @@ export function subjectHost(state: State) {
 			const user = yield* SessionUser;
 			state.handled.push(`${actor.id} renamed ${id}`);
 			state.titles.set(id, title);
+			yield* Reactivity.invalidate(invalidationKeys([accountTitles.list]));
 			return { actor: actor.id, name: user.name, subject: id, title };
 		}),
 	});
@@ -69,9 +78,10 @@ export function subjectHost(state: State) {
 				"delegated.follow": () => Stream.concat(Stream.fromEffect(Effect.map(Subject, ({ id }) => id)), Stream.never),
 				"delegated.read": () => Effect.map(Subject, ({ id }) => id),
 				"delegated.rename": save,
+				"delegated.title": () => Effect.map(Subject, ({ id }) => `${id}: ${state.titles.get(id) ?? "untitled"}`),
 			}),
 		),
-		services,
+		services: Layer.merge(services, liveServerLayer).pipe(Layer.provideMerge(Reactivity.layer)),
 	};
 	return state.sessions
 		? appHost({ ...options, sessions: Layer.succeed(SessionPolicy, sessions(state)) })
@@ -80,7 +90,8 @@ export function subjectHost(state: State) {
 
 function sessions(state: State) {
 	function get(headers: Headers.Headers) {
-		const id = headers.authorization;
+		// A browser socket authenticates with its first frame, which the host turns into a bearer authorization header.
+		const id = headers.authorization?.replace(/^Bearer /u, "");
 		if (id === undefined || id === "") {
 			return Effect.succeed(Option.none());
 		}

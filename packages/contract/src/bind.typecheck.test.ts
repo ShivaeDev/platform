@@ -64,6 +64,11 @@ expectTypeOf<Effect.Success<ReturnType<typeof httpClient.api.get.run>>>().toEqua
 expectTypeOf(httpClient.api.get.query).returns.toEqualTypeOf<WithSubscription<ReturnType<typeof httpClient.Client.query<"notes.get">>>>();
 httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }));
 httpClient.runtime.fn(httpClient.api.rename.run);
+httpClient.runtime.atom(httpClient.api.rename.run({ id: 1, title: "Uno" }, { subject: "bob" }));
+httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }, { subject: "bob" }));
+httpClient.api.get.query({ id: 1 }, { subject: "bob" });
+// @ts-expect-error A subject names an account by its id.
+httpClient.api.get.query({ id: 1 }, { subject: 1 });
 const resumingClient = makeClient(Notes, { resume, resumeWindow, url: "https://app.test/rpc" });
 expectTypeOf(resumingClient).toEqualTypeOf<typeof httpClient>();
 expectTypeOf(resumingClient.api).toEqualTypeOf<typeof httpClient.api>();

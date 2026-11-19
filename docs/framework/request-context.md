@@ -46,6 +46,8 @@ The `headers` that native RpcServer passes to middleware are not the HTTP reques
 
 `resolveSession`, and therefore `authenticatedLayer` and `maybeAuthenticatedLayer`, ignore message headers. They read the `HttpServerRequest` that RpcServer runs each request with: the POST for HTTP and the upgrade request for WebSocket. Both the Origin policy and the session provider see only those headers. When there is no `HttpServerRequest`, as with `RpcTest`, workers or a raw socket server, the RPC headers are used, because there are no transport headers to prefer and no browser attaches ambient credentials.
 
+The declared subject is the one exception, and it is not a credential: identity's subject guard reads `x-platform-subject` from the merged headers, so a call's message names the account it acts on and the transport's value is the fallback. The guard then authorizes that account against the session it resolved from the transport, before the handler and at every stream recheck, so naming an account grants nothing.
+
 An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/identity/server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
 
 ## Origin policy
