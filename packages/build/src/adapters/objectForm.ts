@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { isReadonlyProperty } from "#adapters/isReadonlyProperty.ts";
+import { redactedPath } from "#adapters/serverOnlyPath.ts";
 import { declaredClass, isSchemaClass, type TypeReading } from "#adapters/typeReading.ts";
 import { unionForm } from "#adapters/unionForm.ts";
 import type { Field, WireForm } from "#facts.ts";
@@ -9,6 +10,10 @@ type Read = (type: ts.Type, path: string) => WireForm | undefined;
 export function classForm(reading: TypeReading, type: ts.Type, symbol: ts.Symbol, path: string): WireForm | undefined {
 	if (!isSchemaClass(reading, symbol)) {
 		return reading.refuse(type, path, "return a plain object, or make the class a Schema class");
+	}
+	const redacted = redactedPath(reading.checker, type, path);
+	if (redacted !== undefined) {
+		return reading.refuseServerOnly(redacted, symbol.name);
 	}
 	const declared = declaredClass(reading, symbol);
 	if (declared?.exportName === undefined) {

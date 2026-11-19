@@ -4,6 +4,8 @@ import { SqlClient } from "effect/sql";
 import { declaredBuckets, decodeBucketValue } from "@shivaedev/changes/buckets.ts";
 import { collectionInvalidationKeys, compositeId, type Identity, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
+import { ServerOnlyKeyError } from "#repositoryCollection.ts";
+import { serverOnlyStored } from "#serverOnly.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
@@ -19,6 +21,14 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 		...declaredBuckets(fields).map(({ field }) => ({ columns: [field], field, tuple: false })),
 		...Object.entries(tuples).map(([field, tupleColumns]) => ({ columns: tupleColumns, field, tuple: true })),
 	];
+	const announced = [...new Set([...columns, ...declared.flatMap((bucket) => bucket.columns)])];
+	const serverOnly = announced.filter((column) => {
+		const schema = fields[column];
+		return schema !== undefined && serverOnlyStored(schema) !== undefined;
+	});
+	if (serverOnly.length > 0) {
+		return yield* new ServerOnlyKeyError({ fields: serverOnly, tableName: table });
+	}
 	const columnParts = new Map(
 		[...new Set(declared.flatMap((bucket) => bucket.columns))].flatMap((column, index) => {
 			const schema = fields[column];
