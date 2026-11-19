@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { GeneratedSuccess } from "#GeneratedSuccess.ts";
 import { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
 
 const PrivateState = Schema.Struct({ state: Schema.String.annotate({ sensitive: true }) });
@@ -27,6 +28,15 @@ const schemas = {
 	},
 };
 
+function outcome(registration: Effect.Effect<unknown, Effect.Error<ReturnType<typeof schemaSensitiveKeys>>>) {
+	return registration.pipe(
+		Effect.match({
+			onFailure: (error) => (error._tag === "SensitiveFieldConflict" ? { conflicts: error.conflicts, message: error.message } : error),
+			onSuccess: () => "accepted" as const,
+		}),
+	);
+}
+
 export const fieldScope = storyKit({
 	create: () => ({}),
 	name: "RPC field scope registration",
@@ -39,12 +49,12 @@ export const fieldScope = storyKit({
 				shape === "multipleRpcs"
 					? schemaSensitiveKeys(RpcGroup.make(Rpc.make("Read", declaration), Rpc.make("Other", schemas.bothEncoded)), extra)
 					: schemaSensitiveKeys(RpcGroup.make(Rpc.make("Read", declaration)), extra);
-			return registration.pipe(
-				Effect.match({
-					onFailure: (error) => (error._tag === "SensitiveFieldConflict" ? { conflicts: error.conflicts, message: error.message } : error),
-					onSuccess: () => "accepted" as const,
-				}),
-			);
+			return outcome(registration);
+		},
+		registerPrivatePayload: (success: "generated" | "declared") => {
+			story.tell(`register an RPC whose payload hides state while its ${success} success shows state`);
+			const rpc = Rpc.make("Read", { payload: PrivateState, success: Schema.Struct({ state: Schema.String }) });
+			return outcome(schemaSensitiveKeys(RpcGroup.make(success === "generated" ? rpc.annotate(GeneratedSuccess, true) : rpc)));
 		},
 	}),
 });
