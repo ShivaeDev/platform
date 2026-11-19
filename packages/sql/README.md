@@ -1046,6 +1046,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/compositeRecordKey.ts`: `compositeRecordKey(model, { tableName, idColumn }, value)` — Encodes decoded composite key fields into the published record key.
 - `@shivaedev/sql/defineRepository.ts`: `defineRepository({ id, initialize })` — Native Context service and `.layer` for a shared repository shape; the initializer's dependencies, errors and scoped resources belong to its Layer.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
+- `@shivaedev/sql/RepositoryModels.ts`: `RepositoryModels` — Reference that `makeRepository` and `makeOrderedChildren` call with their model while they are built; the application host provides it to mask the model's sensitive fields in every diagnostic, and its default does nothing.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
 - `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.

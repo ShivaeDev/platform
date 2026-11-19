@@ -15,6 +15,7 @@ export default [
 					"packages/changes/src/readRecorder.ts",
 					"packages/changes/src/syncToken.ts",
 					"packages/errors/src/boundary.ts",
+					"packages/errors/src/GeneratedSuccess.ts",
 					"packages/errors/src/infrastructure.ts",
 					"packages/errors/src/redact.ts",
 					"packages/errors/src/redactCause.ts",

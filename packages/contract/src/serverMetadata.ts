@@ -1,5 +1,6 @@
 import { Context, type Effect, Schema } from "effect";
 import { Rpc, type RpcSchema } from "effect/rpc";
+import { GeneratedSuccess } from "@shivaedev/errors/GeneratedSuccess.ts";
 import { changesSuccess } from "#changesSuccess.ts";
 import type { QueryServices } from "#contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
@@ -64,9 +65,13 @@ export function changesRpc(name: string, queries: readonly QueryShape[]) {
 	}).annotate(ChangesQueries, { queries, resolve: (references) => resolveQueries(queries, references) });
 }
 
-export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape) {
+function kindAnnotations(operation: QueryShape | CommandShape | StreamShape) {
 	if (operation.kind === "command") {
 		return Context.make(CommandInvalidation, { invalidates: operation.invalidates });
 	}
 	return operation.kind === "query" ? Context.make(QueryDefinition, { definition: operation }) : Context.empty();
+}
+export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape) {
+	const annotations = kindAnnotations(operation);
+	return operation.generatedSuccess === true ? Context.add(annotations, GeneratedSuccess, true) : annotations;
 }
