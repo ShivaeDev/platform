@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.48.0 - 2026-11-18
+
+### Added
+
+- A screen driver has a `sync` option and a `sync()` verb for a write the screen's client did not make. The verb runs the supplied Effect inside the renderer's `act`, then settles the screen, so the next readout shows every change committed before it. Without the option it fails with `MissingScreenSync` from `@shivaedev/test-story/server/screenDriver.ts`.
+
+### Breaking
+
+- The screen driver's `withLiveAnswer`, `LiveAnswerSignal` from `server/LiveAnswerSignal.ts` and `nextLiveAnswer` are removed. After the story's own command, call `settle()`: with `activityScreenSignal(clientActivity(client))` as the driver's `activity` it returns once the command is reflected. After a write the client did not make, pass `sync: screenSync(client, view.registry)` to the driver and call `sync()`. A verb such as `screen.withLiveAnswer(liveAnswers(view.registry, "the notes list", api.list.query()), screen.submit())` becomes `screen.submit()` followed by `screen.settle()`. Both waits need a host that confirms commands. The application host does. Against a hand-built native host that confirms nothing, a command still counts as reflected at its reply; give such a host the command guard and the sync command, as the starter's `src/modules/notes/test-support/clientHost.ts` does.
+
 ## 0.47.3 - 2026-11-18
 
 ### Changed

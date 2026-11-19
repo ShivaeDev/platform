@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.49.0 - 2026-11-18
+
+### Breaking
+
+- `usePendingCommand` holds the requested value until the command is reflected, when every live query open on the connection shows the server's state after it, in place of waiting for a watched query's next result. A command that changes nothing now frees its control. The hook takes the bound command and its client's runtime where it took an action atom: change `usePendingCommand(toggle(row.id), { queries: [list], value, wanted })`, with `toggle` an `Atom.family` of `ItemsClient.runtime.fn(...)`, to `usePendingCommand({ ...api.toggle, runtime: ItemsClient.runtime }, { value, wanted })`, pass the row's id in the dispatched input and delete the family. `queries` is optional: keep it, as an array with a stable identity, only for queries the client reloads itself, such as those of a `live: false` client. `result`, `data` and `cause` now settle when the command is reflected.
+
 ## 0.48.1 - 2026-11-18
 
 ### Changed
