@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
+import type { AuthTableOptions } from "#server/better-auth/tables.ts";
 import { accountRoleHost, type Person, type SeedRole } from "#test/better-auth/accountRoleHost.ts";
 import { mappedTables, pluginMappedTables } from "#test/better-auth/pluginMappedTables.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";

@@ -1,6 +1,6 @@
 import { SCANNER_RULES } from "#biome/scannerRules.ts";
 import { biomeStory } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 // Biome explains one rule per process, so this asks it about each of its several hundred rules.
 biomeStory.it(

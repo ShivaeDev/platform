@@ -9,8 +9,8 @@ import { Effect } from "effect";
 import { volume } from "railway/iac";
 import { defineRailway } from "@shivaedev/deploy/adapters/railway/define.ts";
 import { databaseService } from "@shivaedev/deploy/adapters/railway/databaseService.ts";
-import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
-import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
+import { webService } from "@shivaedev/deploy/railway/webService.ts";
+import { workerService } from "@shivaedev/deploy/railway/workerService.ts";
 
 export default defineRailway((ctx, project) =>
 	Effect.gen(function* () {
@@ -95,8 +95,8 @@ import { Effect } from "effect";
 import { volume } from "railway/iac";
 import { defineRailway } from "@shivaedev/deploy/adapters/railway/define.ts";
 import { databaseService } from "@shivaedev/deploy/adapters/railway/databaseService.ts";
-import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
-import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
+import { webService } from "@shivaedev/deploy/railway/webService.ts";
+import { workerService } from "@shivaedev/deploy/railway/workerService.ts";
 
 export default defineRailway((ctx, project) =>
 	Effect.gen(function* () {

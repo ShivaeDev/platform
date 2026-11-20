@@ -1,7 +1,7 @@
 import { Layer } from "effect";
 import type { HttpRouter } from "effect/http";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { appHost } from "#appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";

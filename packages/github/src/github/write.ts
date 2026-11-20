@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { HttpClientRequest } from "effect/http";
-import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
 import { jsonResponse } from "#json.ts";
 import { requests } from "#requests.ts";
+import { resolveApiUrl } from "#resolveApiUrl.ts";
 
 export function write(state: GitHubState) {
 	return Effect.fn("GitHub.write")(function* (method: "POST" | "PATCH" | "PUT" | "DELETE", path: string, body?: unknown, byteLimit?: number) {

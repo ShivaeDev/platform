@@ -4,7 +4,7 @@ import { ruleCases } from "#test/ruleCases.ts";
 
 const repository = ruleCases.repository(effectResolves());
 
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 // A Reference whose value is a function, so a parameter of that function type must not count as carrying it.
 const CALLBACK_REFERENCE = [

@@ -5,7 +5,7 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Cause, Console, Effect, Exit, Layer, Runtime } from "effect";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import { SetupFailure } from "#failure.ts";
 
 const INTERRUPTED = 130;

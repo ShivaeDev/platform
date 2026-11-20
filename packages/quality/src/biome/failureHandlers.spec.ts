@@ -1,6 +1,6 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { FAILURE_HANDLERS } from "#test/nestedComponentFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 biomeStory.it(
 	"Biome under Quality's preset reports nothing for failure handlers keyed by an error tag in a component and a custom hook",

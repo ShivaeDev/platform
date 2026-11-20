@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { type Context, Effect, type FileSystem } from "effect";
 import ts from "typescript";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import { type FilesystemFailure, readRequiredText } from "#inventory/filesystem.ts";
 
 const portable = new Set([

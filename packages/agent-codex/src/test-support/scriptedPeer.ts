@@ -1,6 +1,6 @@
 import { Deferred, Effect, Queue } from "effect";
 import type { LineProcess } from "#adapters/process.ts";
-import { PINNED_CLI_VERSION } from "#adapters/protocol.ts";
+import { PINNED_CLI_VERSION } from "#protocol.ts";
 import { children } from "#test/children.ts";
 import { models } from "#test/models.ts";
 

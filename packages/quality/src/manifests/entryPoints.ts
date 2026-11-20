@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export const SHIPPED_FIELDS = ["dependencies", "peerDependencies", "optionalDependencies"] as const;

@@ -2,8 +2,8 @@ import { notFound } from "@tanstack/react-router";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { forbidden } from "@shivaedev/access/refusal.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
-import type { QueryRouteRedirect } from "#adapters/queryRouteFailure.ts";
 import { can } from "#can.ts";
+import type { QueryRouteRedirect } from "#queryRouteFailure.ts";
 import type { SignInLocation } from "#signInSearch.ts";
 
 declare module "@tanstack/react-router" {

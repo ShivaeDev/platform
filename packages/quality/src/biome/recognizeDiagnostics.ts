@@ -1,11 +1,11 @@
 import { resolve } from "node:path";
 import ts from "typescript";
-import { browserDiagnostic } from "#adapters/biome/browserDiagnostic.ts";
-import { pluginContract } from "#adapters/biome/pluginContract.ts";
 import { syntaxOf } from "#adapters/biome/syntaxOf.ts";
-import { vitestEntry } from "#adapters/biome/vitestEntry.ts";
+import { browserDiagnostic } from "#biome/browserDiagnostic.ts";
+import { pluginContract } from "#biome/pluginContract.ts";
 import type { Diagnostic } from "#biome/report.ts";
 import { nodeAt, offsetOf, type Syntax } from "#biome/syntax.ts";
+import { vitestEntry } from "#biome/vitestEntry.ts";
 
 const RECOGNIZED: ReadonlySet<string> = new Set([
 	"lint/style/noDoneCallback",

@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 repositoryStory.it(
 	"quality reports a throwing Prisma config once under code/unused and finishes the other rules",

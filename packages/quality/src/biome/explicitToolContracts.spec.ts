@@ -1,5 +1,5 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const flags of ["--config test/setup.ts --reporter test/report.ts", '--config="test/setup.ts" --reporter=./test/report.ts']) {
 	biomeStory.it(

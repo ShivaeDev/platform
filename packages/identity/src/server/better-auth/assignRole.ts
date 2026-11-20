@@ -6,7 +6,7 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AssignRoles, LastRoleAssigner } from "#roles.ts";
-import { type AuthTableOptions, tables } from "#server/better-auth/adapters/tables.ts";
+import { type AuthTableOptions, tables } from "#server/better-auth/tables.ts";
 import { roleKeys, userKeys } from "#users.ts";
 
 function unavailable() {

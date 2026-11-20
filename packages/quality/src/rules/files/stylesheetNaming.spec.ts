@@ -1,7 +1,7 @@
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { stylesheetImports } from "#test/stylesheetImports.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const { importing, manifest, stylesheet } = stylesheetImports;
 

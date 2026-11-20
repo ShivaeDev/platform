@@ -1,8 +1,8 @@
 import { createRequire } from "node:module";
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, FileSystem, Path } from "effect";
-import { PRESET } from "#adapters/biome/rootConfig.ts";
 import { runBiome } from "#adapters/biome/run.ts";
+import { PRESET } from "#biome/rootConfig.ts";
 import { decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
 import { type Json, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
 

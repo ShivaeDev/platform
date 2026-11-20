@@ -2,7 +2,7 @@ import ts from "typescript";
 import type { Finding } from "#rule.ts";
 import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
 import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
-import { promiseBridge } from "#rules/effect/promiseBridge.ts";
+import { promiseBridge, UNNAMED_BRIDGE } from "#rules/effect/promiseBridge.ts";
 import { promiseParameter } from "#rules/effect/promiseParameter.ts";
 
 function asyncConstruct(node: ts.Node): string | undefined {
@@ -65,6 +65,7 @@ export function boundaryFindings(checker: ts.TypeChecker, workspace: ReadonlySet
 					file: path,
 					line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
 					message: boundaryGuidance(name),
+					...(name === UNNAMED_BRIDGE ? { evidenceOnly: true } : {}),
 				});
 			}
 			ts.forEachChild(node, visit);

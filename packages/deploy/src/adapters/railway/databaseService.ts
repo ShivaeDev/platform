@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { VolumeNode } from "railway/iac";
 import { checkPostgresImage } from "#adapters/railway/checkPostgresImage.ts";
-import { configurePostgres, type PostgresConfig } from "#adapters/railway/configurePostgres.ts";
+import { configurePostgres, type PostgresConfig } from "#railway/configurePostgres.ts";
 
 export type DatabaseServiceConfig = PostgresConfig & {
 	volume: VolumeNode;

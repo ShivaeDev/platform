@@ -1,6 +1,6 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fixPassKeepsRewriting, fixPassReports, fixPassWrites, fixRounds, formatPassRestores, repositoryHas } from "#test/fixRounds.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const FLIP = { content: "export const flip = 1;\n", path: "src/flip.ts" };
 const STILL = { content: "export const still = 1;\n", path: "src/still.ts" };

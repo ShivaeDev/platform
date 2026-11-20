@@ -4,7 +4,6 @@ import { Effect } from "effect";
 import type ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#adapters/runMain.ts";
-import { storyProgram } from "#adapters/storyProgram.ts";
 import { loadConfig } from "#config/load.ts";
 import { resolveRules } from "#config/resolve.ts";
 import { validOrFail } from "#decoded.ts";
@@ -12,6 +11,7 @@ import { scan } from "#engine/session.ts";
 import { importGraph } from "#imports/graph.ts";
 import { defineRule, type Need, type RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+import { storyProgram } from "#storyProgram.ts";
 import { seedTree } from "#testing/adapters/tree.ts";
 
 const FILE = "src/total.ts";

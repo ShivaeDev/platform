@@ -2,7 +2,7 @@ import { manifestsNoTestKits } from "#rules/manifestsNoTestKits.ts";
 import { exportsPackage } from "#test/exportsPackage.ts";
 import { publishedTestingFiles, RUNTIME_MANIFEST } from "#test/publishedTestingFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"a runtime package with only development test dependencies and unexported testing code passes",

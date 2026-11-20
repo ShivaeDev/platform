@@ -4,7 +4,7 @@ import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { definedModuleWorkspace, generatorWrote, NOTES_GENERATED } from "#test/definedModules.ts";
 import { emptyFolders, importStory, repositoryHas } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const REPAIR = "Move runtime-dependent code into src/client/ or src/server/ and keep shared code independent of both runtimes.";
 

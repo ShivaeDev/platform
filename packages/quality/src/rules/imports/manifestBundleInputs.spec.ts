@@ -2,7 +2,7 @@ import { importsManifest } from "#rules/imports/manifest.ts";
 import { blocked, bundleManifest } from "#test/bundleManifest.ts";
 import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const INPUT = { content: 'import "plain-kit";', path: "modules/app/src/bundle/input.ts" };
 

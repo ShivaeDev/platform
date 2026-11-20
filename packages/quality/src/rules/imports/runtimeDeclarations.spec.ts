@@ -1,7 +1,7 @@
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { workerMember } from "#test/workerMember.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const MEMBERS = { content: '{"workspaces":["modules/*"]}', path: "package.json" };
 

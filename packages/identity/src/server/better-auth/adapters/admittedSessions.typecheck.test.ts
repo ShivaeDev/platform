@@ -2,7 +2,7 @@ import type { Effect } from "effect";
 import { expectTypeOf } from "vitest";
 import type { SessionUserValue } from "#identity.ts";
 import type { GetSession, SessionWithProviderAccounts } from "#server/adapters/betterAuthSessions.ts";
-import type { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import type { betterAuthMount } from "#server/better-auth/mount.ts";
 import type { SessionProvider } from "#server/session.ts";
 
 interface ApplicationSession {

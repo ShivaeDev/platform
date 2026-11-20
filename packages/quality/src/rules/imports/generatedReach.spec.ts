@@ -4,7 +4,7 @@ import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { generatedServerImport } from "#test/generatedOutput.ts";
 import { importStory } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 importStory.it(
 	"imports/runtime reports the client file whose generated import reaches server code, naming the chain, and nothing in the generated file",

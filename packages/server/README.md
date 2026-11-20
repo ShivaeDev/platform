@@ -78,13 +78,13 @@ Host option types include this HTTP-only shape. A wrapper that reads native RPC 
 
 `setupDatabases()` from `@shivaedev/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; setup command failures retain their local-postgres error tags. Provide `ChildProcessSpawner` at the setup entry point, for example with `Effect.provide(NodeServices.layer)` before `NodeRuntime.runMain`. Migrations remain the application's responsibility.
 
-`development({ server, worker, conditions? })` from `@shivaedev/server/development.ts` starts the two application entry points with Node's watch mode and runs `pnpm exec vite`. Supply paths relative to the application directory and any export conditions its code needs. Provide `NodeServices.layer` to run it. When a process exits, the other processes stop and the Effect returns the first exit code, which the entry point can assign to `process.exitCode`. Use `runDevelopment(options)` from the same module for the Node entry point with that runtime wiring included.
+`development({ server, worker, conditions? })` from `@shivaedev/server/adapters/development.ts` starts the two application entry points with Node's watch mode and runs `pnpm exec vite`. Supply paths relative to the application directory and any export conditions its code needs. Provide `NodeServices.layer` to run it. When a process exits, the other processes stop and the Effect returns the first exit code, which the entry point can assign to `process.exitCode`. Use `runDevelopment(options)` from the same module for the Node entry point with that runtime wiring included.
 
 ### Host the application
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/live-server/service.ts` to those Layers.
 
-For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies its operations, `services` and, when it owns tables, `migrations: { loader, components? }`; a module without migrations leaves the field out. A defined module takes its name from the module itself and its registration gives none, so the two cannot disagree; a `group` plus `handlers` registration supplies a `name`, because nothing else names it. `migrationsIn(directory)` from `@shivaedev/server/adapters/migrationsIn.ts` takes the folder that contains `migrations`, the same argument as `loadMigrationsIn` from `@shivaedev/sql/loadMigrationsIn.ts`, and returns `{ loader }` for the `migrations` folder in it, found by `loadMigrationsIn` under Node's `NodeServices.layer`, so a registration beside its `migrations` folder writes `migrations: migrationsIn(import.meta.dirname)` and needs the optional peer `@effect/platform-node`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies its operations, `services` and, when it owns tables, `migrations: { loader, components? }`; a module without migrations leaves the field out. A defined module takes its name from the module itself and its registration gives none, so the two cannot disagree; a `group` plus `handlers` registration supplies a `name`, because nothing else names it. `migrationsIn(directory)` from `@shivaedev/server/migrationsIn.ts` takes the folder that contains `migrations`, the same argument as `loadMigrationsIn` from `@shivaedev/sql/loadMigrationsIn.ts`, and returns `{ loader }` for the `migrations` folder in it, found by `loadMigrationsIn` under Node's `NodeServices.layer`, so a registration beside its `migrations` folder writes `migrations: migrationsIn(import.meta.dirname)` and needs the optional peer `@effect/platform-node`. Register caller-dependent Layers in the optional `requestServices` slot beside global `services`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
 
 ```ts
 import { Effect } from "effect";
@@ -107,7 +107,7 @@ A module defined with `defineModule` from `@shivaedev/contract/defineModule.ts` 
 ```ts
 import { Layer } from "effect";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
-import { migrationsIn } from "@shivaedev/server/adapters/migrationsIn.ts";
+import { migrationsIn } from "@shivaedev/server/migrationsIn.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
 import { notesWire } from "#generated/modules/notes/Notes.ts";
 import { Create, Get } from "./notes/operations.ts";
@@ -210,7 +210,7 @@ To let a separate frontend call HTTP RPC with the user's session cookie, declare
 
 ```ts
 import { Layer } from "effect";
-import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
 const browserOrigins = ["https://app.example.com", "https://www.example.com"];
@@ -355,7 +355,7 @@ To pass worker-release time in a story, build `hostTime()` from `@shivaedev/test
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. A session host bound to a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error from `@shivaedev/server/TrustedProxyRequired.ts` naming both settings and how to supply proxy peer addresses or CIDR ranges. Local loopback hosts keep working without proxy trust; `policy: "loopback"` does not use proxy trust. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. The starter's Railway deployment works out of the box: its web configuration supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip`, so matching peers supply forwarded client IPs for auth and the HTTPS authority for RPC origin checks. Set `PUBLIC_URL` to the app's HTTPS URL for secure session cookies. NDJSON and the application's session Origin policy still apply. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
 
-When mounting Better Auth routes yourself on Railway, use `betterAuthMount(authOptions, { clientIp: "railway" })` from `@shivaedev/identity/server/better-auth/adapters/mount.ts` with `TRUSTED_PROXY=100.64.0.0/10`. The `clientIp` preset selects `X-Real-IP` for auth and ignores spoofed `X-Forwarded-For`, overriding `AUTH_CLIENT_IP_HEADER`. Untrusted peers and requests without `X-Real-IP` use the connection address.
+When mounting Better Auth routes yourself on Railway, use `betterAuthMount(authOptions, { clientIp: "railway" })` from `@shivaedev/identity/server/better-auth/mount.ts` with `TRUSTED_PROXY=100.64.0.0/10`. The `clientIp` preset selects `X-Real-IP` for auth and ignores spoofed `X-Forwarded-For`, overriding `AUTH_CLIENT_IP_HEADER`. Untrusted peers and requests without `X-Real-IP` use the connection address.
 
 A host given an RPC group directly, rather than the `appModules` result, takes handlers for that group: build them with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
 
@@ -483,7 +483,7 @@ A long-lived response can receive cancellation from a Web request, a procedure a
 
 ```ts
 import type { IncomingMessage } from "node:http";
-import { nodeSubscriptionSignal } from "@shivaedev/server/adapters/subscriptionSignal.ts";
+import { nodeSubscriptionSignal } from "@shivaedev/server/subscriptionSignal.ts";
 
 export async function consumeSubscription(
 	request: Request,
@@ -580,15 +580,15 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `appDatabase.ts`                                                                         | `appDatabase`, `DatabaseConfig`: PostgreSQL composition with migrations, Reactivity and contract's `LiveServer`.                                                                                                                            |
 | `workerHost.ts`                                                                          | `workerHost`, `WorkerHostConfig`: scoped PostgreSQL, services and job workers with the host's redaction and OTLP export.                                                                                                                    |
 | `setupDatabases.ts`                                                                      | `setupDatabases()`: prepare the local development and test databases.                                                                                                                                                                       |
-| `development.ts`                                                                         | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                                                                                                   |
+| `adapters/development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                                                                                                   |
 | `rpc-server/publicConfigLayer.ts`                                                        | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                                                                                             |
 | `localTracing.ts`                                                                        | `localTracing(options?)`: scoped local SQLite spans and correlated logs with configurable attribute indexes and run retention.                                                                                                              |
 | `otlpTracing.ts`                                                                         | `otlpTracing`: redacting Railway OTLP export of spans, logs and error reports for a process composed without `appHost` or `workerHost`.                                                                                                     |
 | `RedactionPolicy.ts`                                                                     | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                                                                                            |
 | `adapters/redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(sensitive)`: compose native diagnostic and NDJSON boundaries. `redactingRpcSerialization` reads `RpcSerialization` from the Effect environment. |
-| `adapters/migrationsIn.ts`                                                               | `migrationsIn(directory)`: an `AppModule` `migrations` value that loads the `migrations` folder in `directory` under Node.                                                                                                                  |
+| `migrationsIn.ts`                                                                        | `migrationsIn(directory)`: an `AppModule` `migrations` value that loads the `migrations` folder in `directory` under Node.                                                                                                                  |
 | `adapters/makePlatformRuntime.ts`                                                        | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                                                                                                     |
-| `adapters/subscriptionSignal.ts`                                                         | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                                                                                            |
+| `subscriptionSignal.ts`                                                                  | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                                                                                            |
 
 ### Install, setup and limits
 
@@ -600,10 +600,10 @@ Effect is the only required peer. The `node-http/`, `rpc-server/` and `runtime/`
 
 Install the optional peers for the selected integration:
 
-| Integration      | Additional peers                          |
-| ---------------- | ----------------------------------------- |
-| `appHost.ts`     | `@effect/platform-node`, `@effect/sql-pg` |
-| `development.ts` | `@effect/platform-node`                   |
+| Integration               | Additional peers                          |
+| ------------------------- | ----------------------------------------- |
+| `appHost.ts`              | `@effect/platform-node`, `@effect/sql-pg` |
+| `adapters/development.ts` | `@effect/platform-node`                   |
 - The package needs Node 24 or newer.
 - `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes declared field names and common credential shapes. Mark sensitive fields in RPC schemas and configure extra names once with `config.sensitiveKeys`. Keep sensitive values out of ordinary prose.

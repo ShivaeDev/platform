@@ -5,7 +5,7 @@ import { testsColocated } from "#rules/test-names/colocated.ts";
 import { testsFollow } from "#rules/test-names/follow.ts";
 import { compositionFiles, fakeBackend, packageFiles } from "#test/packageFiles.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"imports/manifest accepts dev dependencies in a package test tree and still rejects their production use",

@@ -1,6 +1,6 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { helperNamed, invalidTestTitle } from "#test/titleInputs.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const name of ["describe", "it", "test"]) {
 	biomeStory.it(

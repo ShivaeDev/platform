@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Effect, Order, Schema } from "effect";
-import { type IgnoreMatcher, ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { type IgnoreMatcher, ignorePatterns } from "#ignore.ts";
 import { routeFiles } from "#inventory/routeFiles.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";

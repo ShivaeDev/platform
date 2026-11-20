@@ -1,7 +1,7 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { ruleStory } from "#test/ruleStory.ts";
 import { unusedShellEntryPoint, unusedTestStoryEntryPoint } from "#test/unusedEntryPoint.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const abandoned of [false, true]) {
 	ruleStory.it(

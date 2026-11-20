@@ -1,8 +1,8 @@
 import { fenceExceptions, importFenceRepository } from "#test/fenceExceptions.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const REASON = "The play screen previews CMS drafts until the preview service lands.";
 

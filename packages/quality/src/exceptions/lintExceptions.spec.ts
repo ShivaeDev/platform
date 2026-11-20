@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const REASON = "This parser documents and returns the external format unchanged.";
 const PARSER = {

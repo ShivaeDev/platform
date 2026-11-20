@@ -2,7 +2,7 @@ import { testUtils } from "better-auth/plugins";
 import { DateTime, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { signedInUser } from "@shivaedev/test-kits/identity/adapters/betterAuth.ts";

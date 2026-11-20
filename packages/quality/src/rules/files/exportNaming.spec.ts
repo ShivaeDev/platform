@@ -1,6 +1,6 @@
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 // The package runs script/seed-data.ts through a script and src/tool-cli.ts, built to dist/tool-cli.js, as its bin.
 const appPackage = repositoryHas({

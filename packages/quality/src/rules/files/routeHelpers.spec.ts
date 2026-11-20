@@ -1,7 +1,7 @@
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { APP, fileRoutedApp, ROUTE_CONTENT } from "#test/fileRoutedApp.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const [name, options, file] of [
 	["the default ignore prefix", "{}", "-helpers.ts"],

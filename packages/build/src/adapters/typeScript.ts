@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { dirname } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
-import { moduleCalls } from "#adapters/moduleCalls.ts";
-import { moduleFacts } from "#adapters/moduleFacts.ts";
 import { BuildFailure } from "#BuildFailure.ts";
+import { moduleCalls } from "#moduleCalls.ts";
+import { moduleFacts } from "#moduleFacts.ts";
 
 export interface ProjectConfig {
 	// The tsconfig and every file it extends, which decide how the project's types read.

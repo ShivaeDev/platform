@@ -1,5 +1,5 @@
 import { childStartRun } from "#test/childStartRun.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 childStartRun.it("a run starts each child process before the rules that run in the Quality process", [], function* ({ order, runs }) {
 	yield* runs();

@@ -1,6 +1,6 @@
 import { Effect, Layer, type Scope } from "effect";
-import { it } from "#adapters/it.ts";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
+import { it } from "#it.ts";
 import { note, releasedOnClose } from "#test/lifecycleLog.ts";
 import type { EffectItTest } from "#types.ts";
 

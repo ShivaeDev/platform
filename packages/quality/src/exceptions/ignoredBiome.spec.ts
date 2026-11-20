@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, exceptionStory, repositoryHas, repositoryTracks } from "#test/exceptionStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const ANY = "biome/lint/suspicious/noExplicitAny";
 const REASON = "The external format requires it.";

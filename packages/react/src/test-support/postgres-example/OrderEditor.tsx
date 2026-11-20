@@ -1,7 +1,7 @@
 import { useAtomMount } from "@effect/atom-react";
 import { Option, Schema } from "effect";
 import { createElement } from "react";
-import { useField } from "@shivaedev/form/adapters/react.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import { useEditor } from "#client/editor.ts";
 import { Order } from "#test/postgres-example/contract.ts";
 import type { makeClient } from "#test/postgres-example/makeClient.ts";

@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { exportsPackage } from "#test/exportsPackage.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST } from "#testing/adapters/packageExports.ts";
+import { exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST } from "#testing/packageExports.ts";
 
 for (const file of ["package.json", LIBRARY_MANIFEST]) {
 	for (const target of ["./test/*", "./tests/*", "./test-support/*", "./test/support/*", "./src/test-support/*"]) {

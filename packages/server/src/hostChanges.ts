@@ -8,7 +8,7 @@ import { subscribe as subscribeQueries } from "@shivaedev/contract/live-server/s
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { syncClient } from "@shivaedev/contract/syncHeader.ts";
-import { currentSessionContext } from "@shivaedev/identity/server/adapters/currentSessionContext.ts";
+import { currentSessionContext } from "@shivaedev/identity/server/currentSessionContext.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";

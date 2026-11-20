@@ -5,7 +5,7 @@ import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
-import { applicationHost } from "#server/adapters/applicationHost.ts";
+import { applicationHost } from "#server/applicationHost.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
 export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");

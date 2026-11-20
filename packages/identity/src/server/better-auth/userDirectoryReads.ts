@@ -3,7 +3,7 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
-import { type AuthTableOptions, tables } from "#server/better-auth/adapters/tables.ts";
+import { type AuthTableOptions, tables } from "#server/better-auth/tables.ts";
 import { AccountName, DirectoryUser, UserListInput } from "#users.ts";
 
 function unavailable() {

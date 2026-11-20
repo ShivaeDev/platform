@@ -1,8 +1,8 @@
 import { Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
+import { useField } from "@shivaedev/form/react.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { type ConfigurationProps, type Current, Destination, type Name, Rejected } from "#test/configurationModel.ts";

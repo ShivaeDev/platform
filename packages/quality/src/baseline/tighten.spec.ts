@@ -1,8 +1,8 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { branchedFromMain, debtRecorded, deletedWithGit, shortened, staged } from "#test/debtRecorded.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const RECORDED = ["src/long.ts structure/max-lines 1", "src/longer.ts structure/max-lines 3"];
 

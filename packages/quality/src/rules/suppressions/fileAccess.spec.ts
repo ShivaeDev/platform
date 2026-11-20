@@ -1,5 +1,5 @@
 import { pendingRead, ruleFileAccess, suppliedConfig, unreadableConfig } from "#test/ruleFileAccess.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleFileAccess.it(
 	"suppressions/no-ignore-deprecations reports the tsconfig.json that the supplied file system serves, not the one on disk",

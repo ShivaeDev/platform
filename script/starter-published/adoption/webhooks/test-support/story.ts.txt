@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deliverWebhook } from "@shivaedev/test-kits/webhooks/deliver.ts";
-import { applicationHost } from "#server/adapters/applicationHost.ts";
+import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";

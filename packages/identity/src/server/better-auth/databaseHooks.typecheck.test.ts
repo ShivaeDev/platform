@@ -3,8 +3,8 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import { expectTypeOf } from "vitest";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 
 class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("@shivaedev/identity/typecheck/Application") {}
 

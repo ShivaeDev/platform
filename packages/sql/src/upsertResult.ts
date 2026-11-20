@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import type { SqlNameTransforms } from "#clientOptions.ts";
+import { storageSchema } from "#storageSchema.ts";
 
 export interface UpsertRow<TRow> {
 	readonly inserted: boolean;

@@ -38,7 +38,7 @@ One service instance serializes calls for its bot. It tracks Discord's bucket id
 
 ### Gateway sessions
 
-Provide `DiscordGateway.layer`, the same token, `DiscordConfig` with your intents and `webSocketLayer` from `adapters/webSocketLayer.ts`. `DiscordConfig` defaults to Discord's API and gateway endpoints with zero intents; overriding it supplies all three fields: `apiUrl`, `gatewayUrl` and `intents`.
+Provide `DiscordGateway.layer`, the same token, `DiscordConfig` with your intents and `webSocketLayer` from `webSocketLayer.ts`. `DiscordConfig` defaults to Discord's API and gateway endpoints with zero intents; overriding it supplies all three fields: `apiUrl`, `gatewayUrl` and `intents`.
 
 ```ts
 import { Effect } from "effect";

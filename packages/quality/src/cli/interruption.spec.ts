@@ -2,8 +2,8 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
 import { knipRunning } from "#test/knipRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 qualityLifecycle.it(
 	"interrupting quality while Biome checks stops Biome, keeps its cached config and lets the next run check the repository",

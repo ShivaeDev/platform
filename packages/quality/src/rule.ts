@@ -1,20 +1,24 @@
 import type { Context, Effect, FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type ts from "typescript";
-import type { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
-import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
+import type { DeclarationFiles } from "#declaration-files/service.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import type { StandardSchemaV1 } from "#standardSchema.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;
+	// An evidence-only finding is never reported: it keeps a module in adapters/ for something the rule accepts elsewhere.
+	readonly evidenceOnly?: true | undefined;
 	readonly file: string;
 	readonly fix?: { readonly end: number; readonly replacement: string; readonly start: number } | undefined;
 	readonly line?: number | undefined;
 	readonly message: string;
 	readonly subject?: string | undefined;
 	readonly threshold?: number | undefined;
+	// adapters/ permits what an unsafe finding reports, so the engine drops it there and keeps the file as evidence that it belongs in adapters/.
+	readonly unsafe?: true | undefined;
 }
 
 export type Findings = readonly Finding[];
@@ -33,8 +37,10 @@ export interface TypeScriptProgram {
 }
 
 export interface RuleInputs {
+	readonly collectsEvidence?: boolean;
 	readonly configFile?: string;
 	readonly entries?: readonly string[];
+	readonly evidence?: ReadonlySet<string>;
 	readonly exceptions?: readonly ExceptionDeclaration[];
 	readonly files: readonly string[];
 	readonly nonEffectFolders?: readonly string[];
@@ -66,7 +72,7 @@ export type Configured<TServices = RuleServices> =
 
 export type Depth = "deep";
 
-export type Need = "child-process" | "story-program" | "type-checker";
+export type Need = "child-process" | "evidence" | "story-program" | "type-checker";
 
 export interface RegisteredRule<TServices = RuleServices> {
 	readonly depth?: Depth;

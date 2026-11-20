@@ -1,5 +1,5 @@
 import { dirname, relative, resolve } from "node:path";
-import { ignorePatterns } from "#adapters/ignore.ts";
+import { ignorePatterns } from "#ignore.ts";
 
 export type Verdict = "ignored" | "kept" | "unknown";
 

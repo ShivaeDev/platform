@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import { HttpClientRequest } from "effect/http";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
-import { mergeResponseHeaders } from "#adapters/mergeResponseHeaders.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { type CachedResponse, revalidatedResponse } from "#cache.ts";
 import { GitHubTransportError } from "#errors.ts";
 import type { GitHubState } from "#initializeGitHub.ts";
+import { mergeResponseHeaders } from "#mergeResponseHeaders.ts";
 import { isUnchanged } from "#status.ts";
 
 export function requests({ cache, rates }: GitHubState) {

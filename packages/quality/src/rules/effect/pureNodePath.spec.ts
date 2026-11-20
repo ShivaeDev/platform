@@ -1,6 +1,6 @@
 import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const MANIFEST = { content: '{"name":"@demo/kit","dependencies":{"effect":"*"}}', path: "package.json" };
 

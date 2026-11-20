@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import { assertOutcomes, type Expected } from "#server/adapters/assertOutcomes.ts";
+import { assertOutcomes, type Expected } from "#server/assertOutcomes.ts";
 
 type AnyReadout = Effect.Effect<unknown, unknown, unknown>;
 

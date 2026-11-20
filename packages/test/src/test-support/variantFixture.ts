@@ -1,6 +1,6 @@
 import { Config, Effect, Layer } from "effect";
-import { it } from "#adapters/it.ts";
 import { makeEffectIt } from "#adapters/makeEffectIt.ts";
+import { it } from "#it.ts";
 import type { BodyTester } from "#test/BodyTester.ts";
 import { note } from "#test/lifecycleLog.ts";
 

@@ -3,7 +3,7 @@ import { relative } from "node:path";
 import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
+import { withExceptionConfig } from "#biome/withExceptionConfig.ts";
 import { childStarted } from "#engine/childStarted.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { posix } from "#inventory/ignoreScope.ts";
@@ -23,6 +23,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
 	nonEffectFolders: readonly string[] = [],
+	liftAdapters = false,
 ) {
 	const files = yield* toolOwnedFiles(root);
 	const copies = (yield* skillCopies(root)).paths.map((file) => posix(relative(root, file)));
@@ -51,6 +52,7 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 					return { code: Number(code), stderr, stdout };
 				}),
 			nonEffectFolders,
+			liftAdapters,
 		),
 	);
 });

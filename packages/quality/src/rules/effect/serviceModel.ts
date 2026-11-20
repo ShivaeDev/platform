@@ -1,6 +1,6 @@
-import { serviceModelCheck } from "#adapters/serviceModelCheck.ts";
 import { defineRule } from "#rule.ts";
 import { rootedFindings } from "#rules/rootedFindings.ts";
+import { serviceModelCheck } from "#serviceModelCheck.ts";
 
 export const serviceModel = defineRule({
 	check: (inputs) => rootedFindings(inputs, serviceModelCheck),

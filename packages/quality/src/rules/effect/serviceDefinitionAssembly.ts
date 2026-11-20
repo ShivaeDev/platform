@@ -1,10 +1,10 @@
 import type ts from "typescript";
-import { indirectServiceReferences } from "#adapters/indirectServiceReferences.ts";
-import { serviceAssemblyImports } from "#adapters/serviceAssemblyImports.ts";
-import { directServiceDefinitions, implementationBodies } from "#adapters/serviceAssemblySyntax.ts";
-import { serviceDefinitionProblems } from "#adapters/serviceDefinitionProblems.ts";
+import { indirectServiceReferences } from "#indirectServiceReferences.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+import { serviceAssemblyImports } from "#serviceAssemblyImports.ts";
+import { directServiceDefinitions, implementationBodies } from "#serviceAssemblySyntax.ts";
+import { serviceDefinitionProblems } from "#serviceDefinitionProblems.ts";
 
 function fileFindings(file: SourceFile): readonly Finding[] {
 	const source = parse(file);

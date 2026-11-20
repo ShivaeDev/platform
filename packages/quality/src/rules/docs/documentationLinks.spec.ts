@@ -1,7 +1,7 @@
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, guide, markdown } from "#test/docsRepository.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const GONE = "Link to the file's current path, or remove the link.";
 

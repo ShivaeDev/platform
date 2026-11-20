@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { generatedLayout, generatorRefuses, generatorWrites, titleLimitExported } from "#test/generatedOutput.ts";
 import { biomeFormatted, committed, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const LAYOUT = [qualityInstalled(), repositoryHas(...generatedLayout), biomeFormatted()];
 

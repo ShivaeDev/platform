@@ -1,7 +1,7 @@
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { carries, effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const CLIENT_IMPORTS = [
 	'import * as AtomRegistry from "effect/reactivity/AtomRegistry";',

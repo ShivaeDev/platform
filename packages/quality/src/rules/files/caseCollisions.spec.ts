@@ -1,6 +1,6 @@
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { checkoutLists, listedCheckout } from "#test/listedCheckout.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 listedCheckout.it(
 	"files/distinct-case reports a component and a topic module whose built files differ only by case, each naming the other",

@@ -3,7 +3,7 @@ import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { capacitorFiles } from "#test/capacitorFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const capacitorElsewhere = capacitorFiles.map((file) => ({
 	...file,

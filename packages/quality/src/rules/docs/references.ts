@@ -1,7 +1,6 @@
 import { join, posix } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { headingAnchors } from "#docs/headingAnchors.ts";
 import { importFindings } from "#docs/importFindings.ts";
 import { isDocument } from "#docs/isDocument.ts";
@@ -10,6 +9,7 @@ import { markdownLines } from "#docs/markdownLines.ts";
 import { repositoryOf } from "#docs/repositoryLink.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 
 function field(value: unknown, key: string): unknown {

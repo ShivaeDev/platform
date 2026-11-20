@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { countQueries } from "#test/auth/countQueries.ts";
 import { storyClock, withIdentityDatabase } from "#test/clock.ts";

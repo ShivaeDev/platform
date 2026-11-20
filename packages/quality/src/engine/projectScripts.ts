@@ -1,8 +1,8 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
-import { manifestReader } from "#adapters/manifestReader.ts";
 import { SetupFailure } from "#failure.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
+import { manifestReader } from "#manifestReader.ts";
 
 export interface ProjectScripts {
 	readonly manager: string;

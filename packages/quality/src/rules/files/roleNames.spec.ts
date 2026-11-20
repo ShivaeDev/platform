@@ -1,7 +1,7 @@
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { programmaticEntries } from "#test/programmaticEntries.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"files/named-after-export accepts bundled main and preload roles while checking ordinary modules",

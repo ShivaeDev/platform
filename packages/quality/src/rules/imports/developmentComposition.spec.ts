@@ -3,7 +3,7 @@ import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { maxLines } from "#rules/maxLines.ts";
 import { compositionFiles, fakeBackend } from "#test/packageFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const path of ["apps/server/dev.ts", "apps/server/script/dev.ts"]) {
 	for (const rule of [noTestCode, importsManifest]) {

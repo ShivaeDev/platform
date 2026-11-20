@@ -1,6 +1,6 @@
 import { unusedCode } from "#rules/unusedCode.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const UNLISTED = "Missing package dependency. Declare it in the importing package's manifest:";
 

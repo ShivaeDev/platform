@@ -2,7 +2,7 @@ import { createMemoryHistory, createRootRoute, createRouter, RouterContextProvid
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Forbidden, type ForbiddenProps } from "#adapters/Forbidden.ts";
+import { Forbidden, type ForbiddenProps } from "#Forbidden.ts";
 import { screenKit } from "#test/screenKit.ts";
 
 interface State {

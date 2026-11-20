@@ -2,8 +2,8 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { agedMergeInputs, mergeLeftovers } from "#test/mergeFiles.ts";
 import { ALPHA_SHARD, branchEdits, branchWrites, driverInstalled, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 for (const oldInputs of [false, true]) {
 	baselineStory.it(

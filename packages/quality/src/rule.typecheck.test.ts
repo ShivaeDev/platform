@@ -1,11 +1,11 @@
 import { Effect, Schema } from "effect";
 import type ts from "typescript";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
-import { typeScriptProgram } from "#adapters/typeScriptProgram.ts";
 import { defineConfig, type QualityConfig } from "#config.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext, type RuleInputs, type TypeScriptProgram } from "#rule.ts";
 import { customServiceRule, type LineAllowance } from "#test/customServiceRule.ts";
+import { typeScriptProgram } from "#typeScriptProgram.ts";
 
 const numeric = defineRule({
 	check: ({ options }) => [{ file: "limit", message: options.max.toFixed(0) }],

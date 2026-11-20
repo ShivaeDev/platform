@@ -2,13 +2,13 @@ import { Effect, Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { storageSchema } from "#adapters/storageSchema.ts";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
 import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpsert } from "#conditionalUpsert.ts";
 import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
+import { storageSchema } from "#storageSchema.ts";
 import type { UpsertAssignment, UpsertColumn } from "#upsertColumns.ts";
 import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 

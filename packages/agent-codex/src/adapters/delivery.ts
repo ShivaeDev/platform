@@ -1,11 +1,11 @@
 import { Deferred, Effect, Schema, Semaphore } from "effect";
 import { type BackendFailure, BackendUnavailable, Rejected, UnknownAcceptance } from "@shivaedev/agent/failures.ts";
 import type { ImageInput, Input } from "@shivaedev/agent/run.ts";
-import { deliveryState } from "#adapters/deliveryState.ts";
-import { TurnNotification } from "#adapters/protocol.ts";
-import type { RpcNotification } from "#adapters/rpc.ts";
 import { AppServer } from "#adapters/server.ts";
-import { turnRequests } from "#adapters/turnRequests.ts";
+import { deliveryState } from "#deliveryState.ts";
+import { TurnNotification } from "#protocol.ts";
+import type { RpcNotification } from "#rpc.ts";
+import { turnRequests } from "#turnRequests.ts";
 export const delivery = Effect.fn("Codex.delivery")(function* (
 	threadId: string,
 	settings: { model?: string; effort?: string },

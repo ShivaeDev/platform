@@ -1,10 +1,10 @@
 import { realpathSync } from "node:fs";
 import { posix } from "node:path";
-import { type Project, projectsFor } from "#adapters/imports/projects.ts";
 import { resolveImport } from "#adapters/imports/resolve.ts";
 import type { Departure } from "#imports/departures.ts";
 import type { ImportRequest } from "#imports/extract.ts";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
+import { type Project, projectsFor } from "#imports/projects.ts";
 import { type SpecifierSite, specifierSites } from "#imports/specifiers.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import type { RuleInputs } from "#rule.ts";

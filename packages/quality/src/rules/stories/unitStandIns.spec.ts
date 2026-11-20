@@ -1,7 +1,7 @@
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { ordersPackage, pureOrders, unitSpec } from "#test/unitFiles.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const UNIT = "src/orders.unit.test.ts";
 

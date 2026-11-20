@@ -1,7 +1,7 @@
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { aliasRepository } from "#test/aliasRepository.ts";
 import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const REPAIRS = [
 	[

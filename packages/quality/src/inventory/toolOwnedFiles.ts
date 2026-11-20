@@ -1,7 +1,7 @@
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Effect, Path, Result, Schema } from "effect";
-import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
+import { ignorePatterns } from "#ignore.ts";
 import { FilesystemFailure, readRequiredText } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";

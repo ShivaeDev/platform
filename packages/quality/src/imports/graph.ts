@@ -1,8 +1,8 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
-import type { ImportAnalysisFailure } from "#adapters/ImportAnalysisFailure.ts";
 import { ImportCompiler } from "#adapters/import-compiler/service.ts";
+import type { ImportAnalysisFailure } from "#ImportAnalysisFailure.ts";
 import type { Endpoint } from "#imports/Endpoint.ts";
 import type { ImportKind } from "#imports/extract.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";

@@ -1,8 +1,8 @@
 import type { Layer } from "effect";
 import type { AnyModule } from "@shivaedev/contract/moduleHandlers.ts";
 import type { AppModule } from "#AppModule.ts";
-import type { hostHttpServices } from "#adapters/hostHttpServices.ts";
 import type { appDatabase } from "#appDatabase.ts";
+import type { hostHttpServices } from "#hostHttpServices.ts";
 
 export interface OperationServicesNotProvided<TModule extends string, TOperation extends PropertyKey, TMissing> {
 	readonly missingServices: TMissing;

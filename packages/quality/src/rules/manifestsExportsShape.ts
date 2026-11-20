@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { Effect } from "effect";
-import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
+import { readPackageManifest } from "#manifestInventory.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { exportImportFindings } from "#rules/exportImportFindings.ts";
 

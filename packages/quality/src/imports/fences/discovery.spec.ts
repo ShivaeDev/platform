@@ -3,9 +3,9 @@ import { importFences } from "#rules/imports/fences.ts";
 import { BROWSER_BOUNDARY, boundaryWorkspace, browserFence } from "#test/boundaryWorkspace.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
 import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
-import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
+import { assertThat, withMatchers } from "#testing/assertThat.ts";
 
 const UNREADABLE = [
 	["export const fences = [];", "export an array of fence() declarations as the default export"],

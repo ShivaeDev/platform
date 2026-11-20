@@ -3,11 +3,11 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 import { type ReadFailure, Rejected } from "@shivaedev/agent/failures.ts";
 import { checkStatus } from "@shivaedev/http/checkStatus.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
-import type { OpencodeRequest } from "#adapters/OpencodeRequest.ts";
-import { openSseBuffer } from "#adapters/openSseBuffer.ts";
-import type { ToolSessions } from "#adapters/toolSessions.ts";
 import { opencodeFailure, unavailable } from "#failure.ts";
+import type { OpencodeRequest } from "#OpencodeRequest.ts";
+import { openSseBuffer } from "#openSseBuffer.ts";
 import type { ProviderPort } from "#Provider.ts";
+import type { ToolSessions } from "#toolSessions.ts";
 
 function checkedPost(response: HttpClientResponse.HttpClientResponse, request: OpencodeRequest) {
 	return HttpClientResponse.matchStatus(response, {

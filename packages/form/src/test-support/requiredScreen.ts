@@ -3,8 +3,8 @@ import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { useField } from "#adapters/react.ts";
 import { form } from "#form.ts";
+import { useField } from "#react.ts";
 import { RequiredFields, requiredConfig } from "#test/requiredFields.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

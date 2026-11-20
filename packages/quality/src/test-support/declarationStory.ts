@@ -1,10 +1,10 @@
 import { Effect, FileSystem, Path } from "effect";
 import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
 import { services } from "#adapters/runMain.ts";
-import { sourcesProgram } from "#adapters/typeScriptProgram.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
 import { linesOf } from "#inventory/linesOf.ts";
+import { sourcesProgram } from "#typeScriptProgram.ts";
 
 interface DeclarationEngine {
 	readonly programs: Map<string, ts.Program>;

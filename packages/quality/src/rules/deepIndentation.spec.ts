@@ -1,6 +1,6 @@
 import { maxDepth } from "#rules/maxDepth.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const MESSAGE = "Indentation is 8+ tabs deep. Extract a named function or component.";
 

@@ -3,10 +3,10 @@ import * as PgPool from "@effect/sql-pg/PgPool";
 import { Context, Effect, Layer, type Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { makePostgresClient } from "#adapters/makePostgresClient.ts";
 import { postgresStream } from "#adapters/postgresStream.ts";
 import type { SqlNameTransforms } from "#clientOptions.ts";
 import { databaseAddress } from "#databaseAddress.ts";
+import { makePostgresClient } from "#makePostgresClient.ts";
 
 export interface PostgresOptions extends SqlNameTransforms {
 	readonly applicationName?: string | undefined;

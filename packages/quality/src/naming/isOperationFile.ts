@@ -1,6 +1,6 @@
 import ts from "typescript";
-import { unwrapExpression } from "#adapters/serviceAssemblySyntax.ts";
 import { ownExports } from "#naming/ownExports.ts";
+import { unwrapExpression } from "#serviceAssemblySyntax.ts";
 
 const OPERATION_MODULE = "@shivaedev/contract/operation.ts";
 

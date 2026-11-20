@@ -3,7 +3,7 @@ import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { durableEvents, durableSessions, eventWaits } from "#test/consumerHeuristics.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 ruleStory.it(
 	"auth-sql accepts durable agent sessions while keeping auth-owned sessions private",

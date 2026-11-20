@@ -1,7 +1,7 @@
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
-import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
+import { assertThat } from "#testing/assertThat.ts";
+import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/packageExports.ts";
 
 const NOT_SUBPATH_MAPS = [
 	["a string target", "./dist/index.js"],

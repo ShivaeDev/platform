@@ -1,7 +1,7 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestIsDirectory, manifestStory, repositoryHas } from "#test/manifestStory.ts";
-import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { withMatchers } from "#testing/assertThat.ts";
 
 const BROKEN = "packages/broken/package.json";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useField, usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import { form } from "@shivaedev/form/form.ts";
+import { useField, usePersistedDraft } from "@shivaedev/form/react.ts";
 import { useCreate } from "#client/create.ts";
 import type { ProbeProps } from "#test/createDraftFields.ts";
 import { DraftFields, draftInitial, draftRuntime } from "#test/draftFields.ts";

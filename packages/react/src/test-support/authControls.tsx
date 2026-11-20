@@ -1,7 +1,7 @@
 import { Option, type Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { useSubmit } from "@shivaedev/form/adapters/react.ts";
+import { useSubmit } from "@shivaedev/form/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
 import { useAction } from "#client/resultState.ts";

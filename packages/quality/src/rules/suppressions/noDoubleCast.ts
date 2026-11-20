@@ -1,9 +1,10 @@
+import { Effect } from "effect";
 import ts from "typescript";
-import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
-import { defineRule, type Finding, type SourceFile } from "#rule.ts";
+import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { packageFindings } from "#rules/packageFindings.ts";
 import { parse } from "#rules/parse.ts";
 import { hiddenCast } from "#rules/suppressions/hiddenCast.ts";
+import { skipsUnsafeFolder, unsafeFindings } from "#rules/unsafeFindings.ts";
 
 const BRIDGES: ReadonlyMap<ts.SyntaxKind, string> = new Map([
 	[ts.SyntaxKind.UnknownKeyword, "unknown"],
@@ -26,16 +27,15 @@ function bridgeOf(node: Assertion): string | undefined {
 	return isAssertion(inner) ? BRIDGES.get(inner.type.kind) : undefined;
 }
 
-function castsIn(path: string, source: ts.SourceFile): readonly Finding[] {
+function castsIn(path: string, source: ts.SourceFile, hidden: boolean): readonly Finding[] {
 	const findings: Finding[] = [];
-	const hidden = !inAdaptersOrTestSupport(path);
 	function visit(node: ts.Node): void {
 		const bridge = isAssertion(node) ? bridgeOf(node) : undefined;
 		const implicit = hidden ? hiddenCast(node) : undefined;
 		const message = bridge === undefined ? implicit : `Casts through "${bridge}" to reach a type the value does not have.`;
 		if (message !== undefined) {
 			const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
-			findings.push({ file: path, line, message });
+			findings.push({ file: path, line, message, ...(bridge === undefined ? { unsafe: true } : {}) });
 		}
 		ts.forEachChild(node, visit);
 	}
@@ -43,14 +43,14 @@ function castsIn(path: string, source: ts.SourceFile): readonly Finding[] {
 	return findings;
 }
 
-function doubleCasts(file: SourceFile): readonly Finding[] {
+function doubleCasts(inputs: RuleInputs, file: SourceFile): readonly Finding[] {
 	const source = parse(file);
-	return source === undefined ? [] : castsIn(file.path, source);
+	return source === undefined ? [] : castsIn(file.path, source, !skipsUnsafeFolder(inputs, file.path));
 }
 
 export const noDoubleCast = defineRule({
-	check: (inputs) => inputs.sources.flatMap(doubleCasts),
-	deepHalf: { check: (inputs) => packageFindings(inputs, "suppressions/no-double-cast"), name: "typed half" },
+	check: (inputs) => inputs.sources.flatMap((file) => doubleCasts(inputs, file)),
+	deepHalf: { check: (inputs) => Effect.map(packageFindings(inputs, "suppressions/no-double-cast"), unsafeFindings), name: "typed half" },
 	description:
 		"Decode unknown values with Schema.decodeUnknownEffect and SQL rows with SqlSchema. Check declared overload returns and preserve Context service types and readonly native fields; writes on an object just built with new, before anything else can see it, are construction. Reports double casts everywhere and hidden casts outside adapters/ and test-support/.",
 	id: "suppressions/no-double-cast",

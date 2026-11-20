@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
-import { DeclarationFiles } from "#adapters/declaration-files/service.ts";
-import { projectsFor } from "#adapters/imports/projects.ts";
+import { DeclarationFiles } from "#declaration-files/service.ts";
+import { projectsFor } from "#imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
 // Imports of installed packages stay unresolved: these rules judge the repository's own code and treat outside libraries as untyped.

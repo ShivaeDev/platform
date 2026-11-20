@@ -1,9 +1,9 @@
 import { dirname, posix, relative, resolve, sep } from "node:path";
 import { Effect, Result } from "effect";
-import { type ManifestReadFailure, readPackageManifest } from "#adapters/manifestInventory.ts";
 import { pnpmWorkspaceList } from "#imports/pnpmWorkspacePatterns.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import type { FilesystemFailure } from "#inventory/filesystem.ts";
+import { type ManifestReadFailure, readPackageManifest } from "#manifestInventory.ts";
 import { DEPENDENCY_FIELDS, dependencyNames, entryPointsOf, isApplication, PLATFORM } from "#manifests/entryPoints.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
 

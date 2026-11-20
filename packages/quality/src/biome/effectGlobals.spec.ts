@@ -1,6 +1,6 @@
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { effectRootImports } from "#test/effectRootImports.ts";
-import { assertThat } from "#testing/adapters/assertThat.ts";
+import { assertThat } from "#testing/assertThat.ts";
 
 const SHADOWED = "lint/suspicious/noShadowRestrictedNames";
 
