@@ -5,6 +5,7 @@ You are changing the package that defines Effect services, for Platform's packag
 ## The service model
 
 Every service follows this model. When one cannot, the model is missing a service or pattern; add it rather than an exemption.
+
 1. **Requirements are declared once.** `requires` lists every service the operations use, and the Layer binds them. Callers never provide a service's dependencies per call.
 2. **Dependencies come from the environment.** Operations `yield*` repositories, `SqlClient`, HTTP clients, config and other services. A dependency never arrives as a parameter, a closure capture or a bundle.
 3. **The caller comes from the environment.** The host provides who asked (`SessionUser`, `Subject`, `Identity`) and their credentials for each execution, and code that needs the caller yields it. Operations never take the acting user's id as an argument; a target id, such as the account an administrator acts on, is an ordinary argument.
@@ -19,6 +20,7 @@ The requirement binder is the deliberate runtime bridge in `@shivaedev/service/a
 ## Which way to lean
 
 When goals conflict, they win in this order:
+
 1. **Effect owns the semantics.** Initialization resources belong to the Layer's scope; operation resources belong to the caller's scope. Keep success, failure and remaining requirements visible in public types. Do not introduce another runtime or service container.
 2. **The model holds.** A change that makes a dependency or the caller easier to pass than to yield is the wrong change, however convenient.
 3. **The declaration tells the truth.** Initialization and operations use the listed services, and a caller cannot replace those bound dependencies. Owned state stays behind the operation interface. Reject an unsupported signature instead of widening it until it appears to fit.

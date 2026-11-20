@@ -32,6 +32,7 @@ The browser imports `Account` as it is; the server supplies the session middlewa
 Application-host query subscriptions return their first authorized value on the stream after registering read keys. Raw consumers handle `Result` alongside later hints and typed denials. Session revocation continues to end established subscriptions through the same session checks.
 
 There are three parts to an authenticated RPC boundary:
+
 1. **The shared contract** names the middleware tags (`Authenticated`, `MaybeAuthenticated`, `AuthenticatedUser`, permission middleware) and the request-local services they provide. These modules are browser-safe, because the client imports the contract.
 2. **The server composition** implements the tags with Layers from `server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; request tracing supplies a request id and diagnostic context.
 3. **The feature handler** reads `Identity`, `OptionalIdentity`, `SessionUser` or `RequestId` and runs application code. Authentication supplies a user id. Authorization still decides whether that user may perform this operation.
@@ -757,6 +758,7 @@ The starter ships checked-in SQL for its auth migrations and checks all numbered
 ### Adopting stored roles with existing users
 
 Identity declares `user.additionalFields.role` when the mount has `roles` and `defaultRole`. Choose a default from your application's role set, such as `member`. It is a required string and cannot be supplied by sign-up input. No `additionalFields` entry or Better Auth `admin()` plugin is needed.
+
 1. Generate a new numbered application migration with `generateBetterAuthMigration(authOptions, { defaultRole: "member" })`, following the frozen workflow above. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
 2. Mount with `betterAuthMount(authOptions, { defaultRole: "member", roles: Access })`, using the same default as the migration. New users get that role. Remove any app-owned role field configuration and the admin plugin if you used it only for roles.
 3. In a trusted server-side bootstrap process, call `assignRole(Access, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer, as for other role changes. Alternatively, configure `accountRoleSeed` on the mount for named provider accounts. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
@@ -1070,6 +1072,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 ### Install, setup and limits
 
 Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports `identity.ts`, `middleware.ts`, `permission.ts` and the client contracts in `generated/`. The package's build writes `src/generated` and `dist/generated` before compiling, so the published archive holds them although the repository does not commit them.
+
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.

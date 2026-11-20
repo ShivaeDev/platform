@@ -2,7 +2,6 @@
 
 Start with a running app from the [quickstart](./quickstart.md). Add a bookmarks resource with a generated numeric `id`, a nonempty `title` and an account owner. Generate the starting module, then use the notes module below to extend it with application-specific behavior. Links point to the starter files copied into your generated app; keep using that app's pinned dependencies.
 
-
 ```sh
 pnpm dlx @shivaedev/create-app resource bookmarks
 pnpm format

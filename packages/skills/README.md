@@ -140,6 +140,7 @@ pnpm add --save-dev @shivaedev/skills @effect/platform-node @effect/platform-nod
 ```
 
 The Effect and Node platform packages are peers, and the package requires Node.js 24 or newer. Run the CLI from the repository directory that contains the selection's `package.json`.
+
 - Sync requires filesystem support for the Claude compatibility symlink. If that creation fails, sync fails; copying and manifest writing do not have an established rollback guarantee. The committed `.agents/skills/` content is directly readable, but successful sync on a host without symlink support is not a package promise.
 - The manifest is a record of a sync, not a security boundary. `check` compares copied files with recorded hashes; it does not re-hash the installed skill source or verify Claude links. A passing check is evidence about the recorded copies, not about an agent discovering or following them.
 - Review the workflow template's action pins and write permission before enabling it.

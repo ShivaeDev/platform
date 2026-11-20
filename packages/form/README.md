@@ -457,6 +457,7 @@ pnpm add @effect/atom-react react
 ```
 
 The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers of `@shivaedev/form`; the core modules do not import them. `@shivaedev/react` depends on `@shivaedev/form` directly for its editor, create and session integrations. The package needs Node 24 or newer.
+
 - String field names are top-level schema keys. `fieldAt`, `changeAt` and `useFieldAt` accept nested path tuples. `useList` edits top-level arrays.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.

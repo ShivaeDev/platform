@@ -66,6 +66,7 @@ function List({ items }) {
 Run `pnpm run setup` after cloning to install dependencies and the pre-commit hook. Use `pnpm dev` to prepare the local databases and start development, `pnpm test` for the app's tests, `pnpm format` for formatting, and `pnpm ready` for lint, typecheck, build and tests. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create disposable test databases. A server change needs a real PostgreSQL and HTTP story; a form change needs a happy-dom story.
 
 Quality accepts colocated `<file>.test.ts` for a source file and `<behaviour>.spec.ts` for a behaviour. Use at most one modifier before `.test` or `.spec`:
+
 - `dom`: React rendering and browser interactions in happy-dom, with `.tsx` when needed.
 - `slow`: expensive integration stories, run explicitly with `--project slow`.
 - `unit`: pure functions that reach no I/O, engine or mocks.

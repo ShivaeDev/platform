@@ -44,7 +44,7 @@ export const supervise = Effect.fn("Supervisor.supervise")(function* <A, E, TSta
 	const watch = Effect.gen(function* () {
 		let restarts = 0;
 		let delay = Math.min(initial, maximum);
-		for (;;) {
+		while (true) {
 			const exit = yield* Effect.scoped(attempt(restarts));
 			restarts += 1;
 			yield* SubscriptionRef.set(state, { delay, exit, restarts, status: "backoff" });

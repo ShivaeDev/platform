@@ -26,6 +26,7 @@ The application supplies its configured database URL. Preparation checks that th
 ### How to think about it
 
 There are three separate responsibilities:
+
 1. The **service** is PostgreSQL running on the local machine. This package prepares access to it.
 2. A **database** is an application-chosen name on that service. This package creates missing databases; the application chooses their names through configuration or a fixed allowlist.
 3. The **schema and data** belong to the application. Its setup script runs migrations, loads fixtures or seeds data after preparation.

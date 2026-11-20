@@ -16,7 +16,7 @@ export function driveClock<A, E, R>(effect: Effect.Effect<A, E, R>) {
 			sleep: (duration) => Effect.andThen(Queue.offer(events, duration), driver.sleep(duration)),
 		};
 		const fiber = yield* effect.pipe(Effect.provideService(Clock.Clock, clock), Effect.ensuring(Queue.offer(events, undefined)), Effect.forkChild);
-		for (;;) {
+		while (true) {
 			const duration = yield* Queue.take(events);
 			if (duration === undefined) {
 				return yield* Fiber.join(fiber);

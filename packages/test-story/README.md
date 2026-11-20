@@ -58,6 +58,7 @@ Every story belongs to a **genre**, the kind of engine it runs. The kit names ea
 The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. Use a generator function to yield Effects when a hook needs a service or fails with a typed error; the kit runs it, so no definition needs `Effect.gen`. Creation, stage `after` hooks, `inspect` and traits may also be plain functions that return an Effect directly. The kit runs that Effect in the story's Scope, with the services from its layer.
 
 The work splits into three layers, and each is written by a different hand at a different time:
+
 1. **Once per engine**, a story kit in `test-support/` says how to create the engine, which services it needs, and how to seed, step and show it.
 2. **Once per feature**, traits and verbs in the kit name that feature in domain words.
 3. **In every test**, a spec tells a story with the kit's `it` and checks what a user would see.
@@ -729,6 +730,7 @@ Outside a story kit, `yield* watchedClock` instruments the active native TestClo
 Hooks and verbs wait for real workers through the engine's completion signals: take from a queue the worker offers to, await a Deferred it completes, or use [`until`](#waiting-for-a-signal) on its observable stream. Keep these waits in the kit under domain names. A deadline bounds a failed wait; it never proves completion. For React stories, pass the application's pending signal to a [screen driver](#driving-a-screen), await `settle()` after an action, then read the screen and assert in the spec.
 
 `story.runUntil(condition, { maxSteps })` returns an Effect that asks three questions before every step:
+
 1. `run.failed` returns a sentence: it dies with it, even when the condition also holds.
 2. The condition holds: it succeeds.
 3. `maxSteps` steps have run, or the kit's `run.maxSteps` when the call names none: it dies with `run.diagnose`.
@@ -870,6 +872,7 @@ To hand a configuration on purpose, pass it as the third argument: `isolatedGit(
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
+
 - a short guide to reading the story, in a box;
 - every line in order, traits marked `given`;
 - `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line, and under it the spec line where the test stopped or that named the refusing trait;
@@ -1178,6 +1181,7 @@ pnpm add --save-dev @shivaedev/test-story @effect/platform-node @effect/vitest e
 `@effect/platform-node`, `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories. The Node adapter supplies the stories' crypto services.
 
 Test-story is an application's one test dependency: it brings [`@shivaedev/test`](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) and [`@shivaedev/test-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme), which an application on `@shivaedev/platform` imports by their own names without listing them. `@effect/sql-pg` is an optional peer for `test-sql`'s PostgreSQL helpers; install it when the stories use them. A library that tests with test-story still declares `test` or `test-sql` directly when it imports them.
+
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - Engine creation failures name the kit and the create phase and include a rerun command. Layer acquisition failures precede the story and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.

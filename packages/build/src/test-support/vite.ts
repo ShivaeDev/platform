@@ -51,7 +51,7 @@ export const vite = storyKit({
 		browserReceives: Effect.fn("BuildStory.browserReceives")(function* () {
 			const { browser } = yield* runningDevServer(engine);
 			const path = yield* Path.Path;
-			for (;;) {
+			while (true) {
 				const message = yield* Queue.take(browser);
 				if ("overlay" in message) {
 					return message;
