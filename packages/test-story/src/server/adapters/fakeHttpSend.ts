@@ -42,7 +42,8 @@ export async function fakeHttpSend(response: ServerResponse, reply: FakeHttpRepl
 	}
 	const connection = fakeHttpConnection(response);
 	const body = replyBody(reply.body);
-	response.writeHead(reply.status ?? HttpStatus.fromLiteral("OK"), { "content-type": "application/json", ...reply.headers });
+	const framing = reply.body === undefined && reply.chunks === undefined ? {} : { "content-type": "application/json" };
+	response.writeHead(reply.status ?? HttpStatus.fromLiteral("OK"), { ...framing, ...reply.headers });
 	if (pause) {
 		response.flushHeaders();
 		await connection.pause(pause());

@@ -9,9 +9,16 @@ const routes = {
 		path: "/repos/:owner/:repo/contents/:path*",
 		reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: params }),
 	},
+	feed: { path: "/feed", reply: () => ({ chunks: ['{"entries":['] }) },
 	invalidRest: { path: "/invalid/:path*/tail", reply: () => ({ status: HttpStatus.fromLiteral("OK") }) },
 	items: { pages: [["paper", "ink"], ["pens"], ["staples"]], path: "/items" },
 	message: { method: "POST", path: "/messages", reply: () => ({ body: { saved: true }, status: HttpStatus.fromLiteral("Created") }) },
+	receipt: {
+		method: "DELETE",
+		path: "/receipts/:id",
+		reply: () => ({ headers: { "content-type": "text/plain" }, status: HttpStatus.fromLiteral("NoContent") }),
+	},
+	role: { method: "DELETE", path: "/roles/:id", reply: () => ({ status: HttpStatus.fromLiteral("NoContent") }) },
 	user: { path: "/users/:id", reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: { id: params.id } }) },
 };
 
