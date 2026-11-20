@@ -150,7 +150,7 @@ export function runtimeVerbs(engine: DatabaseEngine, tell: Tell) {
 				),
 				Effect.andThen(ending === "commits" ? Effect.void : Effect.fail("rolled back")),
 			);
-			return transact(body, { onSqlError: (error) => error }).pipe(Effect.provideService(SqlClient.SqlClient, engine.sql), Effect.ignore);
+			return transact(body).pipe(Effect.provideService(SqlClient.SqlClient, engine.sql), Effect.ignore);
 		},
 		monitorPasses: (...queues: readonly string[]) => {
 			tell(`a pg-boss monitor pass refreshes ${queues.join(" and ")}`);

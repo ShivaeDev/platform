@@ -45,7 +45,7 @@ export const saveNote = Effect.fnUntraced(function* ({
 			return yield* new Conflict({ message: "Note rejected" });
 		}
 		return { id: row.id, title };
-	}).pipe(transact({ onSqlError: (error) => error }), Effect.catchTag("SqlError", Effect.die));
+	}).pipe(transact(), Effect.catchTag("SqlError", Effect.die));
 });
 
 export const handlers = Api.toLayer({

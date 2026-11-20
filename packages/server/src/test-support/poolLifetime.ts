@@ -84,7 +84,7 @@ export const poolLifetime = storyKit({
 			noteIsWritten: (id: number) =>
 				SqlClient.SqlClient.use((sql) => sql`insert into notes values (${id})`).pipe(
 					Effect.andThen(invalidateOnCommit([notes.item(id)])),
-					transact({ onSqlError: (error) => error }),
+					transact(),
 					Effect.provideContext(services(state)),
 				),
 			subscribe: () =>

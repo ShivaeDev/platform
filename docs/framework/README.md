@@ -6,7 +6,7 @@ An application depends on [`@shivaedev/platform`](../../packages/platform/README
 
 Platform gives an Effect application one path from its data schemas to services, persistence, operations and client state. Shared conventions remove repeated wiring while keeping native Effect dependencies, errors, scopes and interruption visible.
 
-Schema describes data once. Services implement behavior, repositories execute SQL, and native RPC connects ordinary results and typed failures to atom-based queries, actions and editable forms. Applications own authorization policy, user-facing text, layout and deployment choices.
+Schema describes data once. Each operation is written once as its payload and `run`, repositories execute SQL, services hold shared state and ports, and native RPC connects ordinary results and typed failures to atom-based queries, actions and editable forms. Applications own authorization policy, user-facing text, layout and deployment choices.
 
 ## The application path
 
@@ -68,7 +68,7 @@ Event sourcing, projection replay, mandatory streaming, a second cache and autom
 
 Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in order, from a migration and Model through the repository, operations, defined module, host registration, route and form to PostgreSQL and DOM tests. Each step points to the starter's notes implementation.
 
-The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native RPC, atoms, an editor and a server-pushed result reaching a second client after commit. Use each package's README for its mental model and API.
+The [starter quickstart](./quickstart.md) begins with a runnable app, and its notes module is the reference composition: Schema, migrated SQL, operations in a defined module, authenticated native RPC, atoms, an editor, a background job and open lists the server pushes each committed change to. Use each package's README for its mental model and API.
 
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and a react query without an application-written RPC.
 - [MCP tools](./mcp.md) shows an endpoint with separate user and administrator toolkits and identity-backed OAuth.
@@ -76,10 +76,10 @@ The [starter quickstart](./quickstart.md) begins with a runnable app. The [Postg
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.
 - [Editing](./editing.md) connects queries, forms and saves; [client lifetime](./client-lifecycle.md) ties the client registry to the authenticated session.
-- [Entity settings](./entity-settings.md) composes typed defaults, an authorized query, transactional upserts and a live form editor without a new helper.
+- [Entity settings](./entity-settings.md) composes typed defaults, an authorized query, an upsert and a live form editor without a new helper.
 - [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
 - [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.
-- [Cross-table reads](./cross-table-reads.md) composes repository model fields with native `SqlSchema` for service-owned joins.
+- [Cross-table reads](./cross-table-reads.md) composes repository model fields with native `SqlSchema` for joins a module's operations read.
 - [PostgreSQL codecs](./postgres-codecs.md) and [constraint failures](./constraint-errors.md) cover the database value boundary.
 
 ## What counts as evidence
