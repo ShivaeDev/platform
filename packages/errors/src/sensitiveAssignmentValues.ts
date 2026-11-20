@@ -40,9 +40,9 @@ function closingQuote(text: string, from: number, quote: string): readonly [numb
 	return [text.length, text.length];
 }
 
-// After a `\n`, `\r` or `\t` escape the matcher reads the escape's letter as the start of the name.
 function secretName(text: string, keyStart: number, key: string, sensitive: (key: string) => boolean): boolean {
-	return sensitive(key) || (text[keyStart - 1] === "\\" && /^[nrt]./u.test(key) && sensitive(key.slice(1)));
+	const startsWithWhitespaceEscapeLetter = text[keyStart - 1] === "\\" && /^[nrt]./u.test(key);
+	return sensitive(key) || (startsWithWhitespaceEscapeLetter && sensitive(key.slice(1)));
 }
 
 export function sensitiveAssignmentValues(text: string, sensitive: (key: string) => boolean): ReadonlyArray<readonly [number, number]> {
