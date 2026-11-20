@@ -32,6 +32,16 @@ export const unsafeRejected = [
 		name: "a bare call of a named import from an effect module",
 	},
 	{
+		code: 'import { DateTime } from "effect";\nfunction parseUnsafe(header: string) {\n\treturn DateTime.makeUnsafe(header);\n}\nexport const parsed = parseUnsafe("2026-11-20");\n',
+		message: `DateTime.makeUnsafe runs ${ACTS} Use DateTime.make, ${OPTION}.`,
+		name: "a bare call inside a function declared under an …Unsafe name",
+	},
+	{
+		code: 'import { Duration } from "effect";\nexport const windowUnsafe = (input: Duration.Input) => Duration.fromInputUnsafe(input);\n',
+		message: `Duration.fromInputUnsafe runs ${ACTS} Use Duration.fromInput, ${OPTION}, a Duration constructor such as Duration.seconds for a fixed value, or pass the Duration.Input on to the API that accepts it, such as Duration.toMillis.`,
+		name: "a bare call inside an arrow assigned to a variable named …Unsafe",
+	},
+	{
 		code: 'import { DateTime, Option } from "effect";\nexport const created = (on: Date | null) => Option.map(Option.fromNullishOr(on), DateTime.makeUnsafe);\n',
 		message: `DateTime.makeUnsafe is passed to run ${ACTS} Use DateTime.make, ${OPTION}.`,
 		name: "an imported unsafe function passed as a callback",
@@ -66,6 +76,10 @@ export const unsafeAccepted = [
 	{
 		code: 'import type { RpcSerialization } from "effect/unstable/rpc";\nexport const wrapped = (wire: RpcSerialization.RpcSerialization["Service"]) => ({\n\tmakeUnsafe: () => wire.makeUnsafe(),\n});\n',
 		name: "a call inside the body of a member that implements an …Unsafe member",
+	},
+	{
+		code: 'import type { RpcSerialization } from "effect/unstable/rpc";\nexport class Wrapped {\n\tconstructor(readonly wire: RpcSerialization.RpcSerialization["Service"]) {}\n\tmakeUnsafe() {\n\t\treturn this.wire.makeUnsafe();\n\t}\n}\n',
+		name: "a call inside a class method that implements an …Unsafe member",
 	},
 	{
 		code: 'import { Context, Effect } from "effect";\nexport const annotations = (map: ReadonlyMap<string, unknown>) => Context.makeUnsafe(map);\nexport const now = Effect.map(Effect.clock, (clock) => clock.currentTimeMillisUnsafe());\n',
