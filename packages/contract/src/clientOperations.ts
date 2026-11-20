@@ -17,10 +17,10 @@ import { CommandSignal, untilReflected } from "#commandSignal.ts";
 import { waitForConnection } from "#connectionReadiness.ts";
 import { LIVE_SYNC } from "#liveSyncRpc.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
-import { shareQuerySignals } from "#querySignals.ts";
 import { type CommandObserver, reflectCommand } from "#reflectCommand.ts";
 import { retainQuery } from "#retainQuery.ts";
-import { subjectSerializationKey, withSubject } from "#subjectHeader.ts";
+import { storedForm } from "#storedQueries.ts";
+import { inputSubject, subjectSerializationKey, withSubject } from "#subjectHeader.ts";
 import { warmQueries } from "#warmQueries.ts";
 
 // `runtime.fn(api.save.run)` passes its function context as the second argument, so only an options object selects a subject.
@@ -46,6 +46,7 @@ export function clientOperations(
 
 	function boundQuery(tag: string, query: QueryShape) {
 		const cached = new WeakMap<ReturnType<typeof ordinaryClient.query>, ReturnType<typeof ordinaryClient.query>>();
+		const stored = storedForm(tag, query);
 		return {
 			query: (payload: unknown, { headers: given, serializationKey, subject }: QueryOptions = {}) => {
 				const headers = withSubject(given, subject);
@@ -75,8 +76,8 @@ export function clientOperations(
 				function warm(get: Atom.AtomContext): boolean {
 					return get.once(warmQueries).has(tracked);
 				}
-				const tracked = retainQuery(ordinaryClient.runtime, clientActivities.get(ordinaryClient)?.watch(result, warm) ?? result);
-				shareQuerySignals(tracked, result);
+				const watched = clientActivities.get(ordinaryClient)?.watch(result, warm) ?? result;
+				const tracked = retainQuery(ordinaryClient.runtime, watched, stored(payload, inputSubject(headers)));
 				cached.set(atom, tracked);
 				return tracked;
 			},

@@ -3,6 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 
 export interface QueryRetentionOptions {
 	readonly capacity?: number;
+	readonly storedBytes?: number;
 	readonly timeToLive?: Duration.Input;
 }
 

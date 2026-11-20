@@ -7,7 +7,7 @@ import { ThemeToggle } from "#client/ThemeToggle.tsx";
 
 type SessionProps = Parameters<typeof SessionApp>[0];
 
-export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history" | "persist">) {
 	useBrowserErrors();
 	return (
 		<>
@@ -17,7 +17,7 @@ export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect
 	);
 }
 
-function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+function SessionContent({ auth, connect, history, persist }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history" | "persist">) {
 	const session = useQuery(auth.session.atom);
 	const current = Option.getOrNull(session.data);
 	if (Option.isNone(session.data) && session.pending) {
@@ -42,6 +42,7 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			auth={auth.actions}
 			connect={connect}
 			history={history}
+			persist={persist}
 			recheck={session.refresh}
 			session={current}
 			sessionCheck={auth.session.refresh}

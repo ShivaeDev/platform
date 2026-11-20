@@ -20,6 +20,8 @@ export default [
 					"packages/errors/src/privateKeyBlocks.ts",
 					"packages/errors/src/redact.ts",
 					"packages/errors/src/redactCause.ts",
+					"packages/errors/src/schemaFieldScope.ts",
+					"packages/errors/src/schemaSensitiveAst.ts",
 					"packages/errors/src/sensitive.ts",
 					"packages/errors/src/sensitiveAssignmentValues.ts",
 					"packages/errors/src/taxonomy.ts",

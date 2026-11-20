@@ -1,13 +1,15 @@
 import { RegistryContext } from "@effect/atom-react";
-import { Effect } from "effect";
+import { Effect, type Layer } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "@shivaedev/contract/composeBindings.ts";
+import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import { type QueryRetentionOptions, queryRetention } from "@shivaedev/contract/queryRetention.ts";
 import { registerSessionRecheck } from "#adapters/sessionRecheck.ts";
 import { useLatestCallback } from "#adapters/useLatestCallback.ts";
+import { useStoredQueries } from "#client/adapters/useStoredQueries.ts";
 import { useWarmQueries } from "#client/adapters/useWarmQueries.ts";
 import { mountLive } from "#client/mountLive.ts";
 import { RecheckContext } from "#client/RecheckContext.ts";
@@ -71,6 +73,7 @@ interface SessionGenerationProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
 	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly identity: string | undefined;
+	readonly persist?: Layer.Layer<QueryStorageProvider> | undefined;
 	readonly queryRetention?: QueryRetentionOptions | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
@@ -83,6 +86,7 @@ export function SessionGeneration<TSession, TClient>({
 	recheck,
 	children,
 	identity,
+	persist,
 	queryRetention: retention,
 	warm,
 }: SessionGenerationProps<TSession, TClient>): ReactNode {
@@ -109,10 +113,11 @@ export function SessionGeneration<TSession, TClient>({
 			});
 		};
 	}, [identity, owned, connection]);
-	useWarmQueries(owned.registry, warm?.(owned.client) ?? NOTHING_WARM);
+	const ready = useStoredQueries(owned.registry, persist, identity);
+	useWarmQueries(owned.registry, (ready ? warm?.(owned.client) : undefined) ?? NOTHING_WARM);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheckLatest },
-		createElement(RegistryContext.Provider, { value: owned.registry }, children(owned.client)),
+		createElement(RegistryContext.Provider, { value: owned.registry }, ready ? children(owned.client) : null),
 	);
 }

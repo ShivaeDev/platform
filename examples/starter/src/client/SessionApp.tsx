@@ -1,6 +1,7 @@
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
-import type { Effect } from "effect";
+import type { Effect, Layer } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { AppSession, AuthActions } from "#client/adapters/auth.ts";
 import { SessionConnectionBoundary } from "#client/adapters/SessionConnectionBoundary.tsx";
 import { useAnonymousConnection } from "#client/adapters/useAnonymousConnection.ts";
@@ -35,6 +36,7 @@ export function SessionApp({
 	auth,
 	connect: connection = defaultConnection,
 	history,
+	persist,
 }: {
 	readonly session?: AppSession | null | undefined;
 	readonly userId: string | undefined;
@@ -43,6 +45,7 @@ export function SessionApp({
 	readonly auth: AuthActions;
 	readonly connect?: ClientConnection | undefined;
 	readonly history?: RouterHistory | undefined;
+	readonly persist?: Layer.Layer<QueryStorageProvider> | undefined;
 }) {
 	const location = history?.location ?? window.location;
 	const redirectTo = location.pathname === "/sign-in" ? (new URLSearchParams(location.search).get("returnTo") ?? "/") : undefined;
@@ -51,6 +54,7 @@ export function SessionApp({
 			connect={connection}
 			identify={identify}
 			navigate={history === undefined ? undefined : (href) => history.replace(href)}
+			persist={persist}
 			recheck={sessionCheck ?? recheck}
 			redirectTo={redirectTo}
 			session={userId === undefined ? undefined : { id: userId }}

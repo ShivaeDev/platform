@@ -42,7 +42,7 @@ export function NotesScreen({
 					</CardContent>
 				</Card>
 			</section>
-			<section aria-label="Saved notes" className="space-y-4">
+			<section aria-busy={query.pending} aria-label="Saved notes" className="space-y-4">
 				<div className="flex items-center justify-between">
 					<h2 className="text-lg font-semibold">Saved notes</h2>
 					<Button disabled={query.pending} onClick={query.refresh} variant="outline">
