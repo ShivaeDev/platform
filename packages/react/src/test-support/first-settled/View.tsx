@@ -54,6 +54,21 @@ function Notes({ notes, reads }: { readonly notes: FirstSettledClient; readonly 
 	);
 }
 
+function Screen({
+	notes,
+	reads,
+	routed,
+}: {
+	readonly notes: FirstSettledClient;
+	readonly reads: FirstReads;
+	readonly routed: { readonly provider: Provider; readonly route: FirstRoute; readonly strict: boolean } | undefined;
+}) {
+	if (routed === undefined) {
+		return <Notes notes={notes} reads={reads} />;
+	}
+	return <RoutedNotes notes={notes} provider={routed.provider} route={routed.route} />;
+}
+
 export function View({
 	connect,
 	persist,
@@ -65,7 +80,7 @@ export function View({
 	readonly connect: (session: string) => FirstSettledClient;
 	readonly persist: Layer.Layer<QueryStorageProvider> | undefined;
 	readonly reads: FirstReads;
-	readonly routed: { readonly provider: Provider; readonly route: FirstRoute } | undefined;
+	readonly routed: { readonly provider: Provider; readonly route: FirstRoute; readonly strict: boolean } | undefined;
 	readonly session: string;
 	readonly warmCount: boolean;
 }) {
@@ -78,7 +93,7 @@ export function View({
 			session={session}
 			warm={(notes) => (warmCount ? [notes.client.api.count.query()] : [])}
 		>
-			{(notes) => (routed === undefined ? <Notes notes={notes} reads={reads} /> : <RoutedNotes notes={notes} {...routed} />)}
+			{(notes) => <Screen notes={notes} reads={reads} routed={routed} />}
 		</SessionBoundary>
 	);
 }

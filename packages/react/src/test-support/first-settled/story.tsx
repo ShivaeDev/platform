@@ -1,4 +1,5 @@
 import { Deferred, Effect, type Layer } from "effect";
+import { StrictMode } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
@@ -17,7 +18,7 @@ interface State {
 	readonly clients: Map<string, FirstSettledClient>;
 	persist?: Layer.Layer<QueryStorageProvider>;
 	reads: FirstReads;
-	routed?: { readonly provider: Provider; readonly route: FirstRoute };
+	routed?: { readonly provider: Provider; readonly route: FirstRoute; readonly strict: boolean };
 	user?: User;
 	view?: Rendered;
 	warmCount: boolean;
@@ -38,16 +39,21 @@ function show(state: State, screen: Screen, user: User, line: string) {
 		state.clients.set(session, client);
 		return client;
 	}
-	const node = (
+	const view = (
 		<View connect={connect} persist={state.persist} reads={state.reads} routed={state.routed} session={user} warmCount={state.warmCount} />
 	);
+	const node = state.routed?.strict === true ? <StrictMode>{view}</StrictMode> : view;
 	return Effect.gen(function* () {
-		const view = state.view;
-		if (view === undefined) {
+		// StrictMode replays effects for a tree that mounts into an open root, so a strict screen opens empty first.
+		if (state.view === undefined && state.routed?.strict === true) {
+			state.view = yield* screen.open();
+		}
+		const root = state.view;
+		if (root === undefined) {
 			screen.tell(line);
 			state.view = yield* screen.open(node);
 		} else {
-			yield* screen.act(line, () => view.render(node));
+			yield* screen.act(line, () => root.render(node));
 		}
 	});
 }
@@ -144,14 +150,24 @@ export const aliceReloadsWithStoredResults = firstSettledScreens.trait(
 	},
 );
 
-export function aliceOpensRoute(route: FirstRoute, provider: Provider = "react's") {
+export function aliceOpensRoute(route: FirstRoute, provider: Provider = "react's", strict: "in StrictMode" | "" = "") {
 	const waiting = route === "nothing" ? "" : ", and the server has not answered it";
 	return firstSettledScreens.trait(
 		"screen",
-		`alice opens a screen that calls useFirstSettled above ${provider} RouterProvider, whose first route reads ${route}${waiting}`,
+		`alice opens a screen${strict === "" ? "" : ` ${strict}`} that calls useFirstSettled above ${provider} RouterProvider, whose first route reads ${route}${waiting}`,
 		({ screen, state }) => {
-			state.routed = { provider, route };
-			return show(state, screen, "alice", "alice opens the screen");
+			state.routed = { provider, route, strict: strict === "in StrictMode" };
+			const shown = { "a component that reads the title": "title", "a loader that reads the title": undefined, nothing: "blank" }[route];
+			return show(state, screen, "alice", "alice opens the screen").pipe(
+				Effect.andThen(
+					Effect.suspend(() => {
+						const { container } = opened(state);
+						return shown === undefined
+							? Effect.void
+							: settleScreen(container, () => container.querySelector(`[data-answer="${shown}"]`) === null, screen.tell);
+					}),
+				),
+			);
 		},
 	);
 }

@@ -10,10 +10,10 @@ import {
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useState } from "react";
-import { RouterProvider } from "#adapters/RouterProvider.ts";
 import { queryRoute } from "#client/adapters/queryRoute.ts";
 import { useFirstSettled } from "#client/adapters/useFirstSettled.ts";
 import { useQuery } from "#client/resultState.ts";
+import { RouterProvider } from "#RouterProvider.ts";
 import type { FirstSettledClient } from "#test/first-settled/client.ts";
 
 export type FirstRoute = "a loader that reads the title" | "a component that reads the title" | "nothing";

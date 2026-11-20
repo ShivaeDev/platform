@@ -153,6 +153,21 @@ for (const route of ["a loader that reads the title", "a component that reads th
 }
 
 firstSettledScreens.it(
+	"in StrictMode, above react's RouterProvider, a first route with a component that reads the title keeps useFirstSettled false until the title answers",
+	[aliceOpensRoute("a component that reads the title", "react's", "in StrictMode")],
+	function* ({ answer, answers, signal }) {
+		expect(yield* signal()).toBe(WAITING);
+
+		yield* answers("title", "Groceries");
+
+		yield* outcomes([
+			["title", () => answer("title"), "Groceries"],
+			["signal", () => signal(), SETTLED],
+		]);
+	},
+);
+
+firstSettledScreens.it(
 	"above react's RouterProvider, a first route that reads nothing turns useFirstSettled true once it has rendered",
 	[aliceOpensRoute("nothing")],
 	function* ({ answer, signal }) {
