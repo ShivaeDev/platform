@@ -61,16 +61,10 @@ The host’s bearer-token sessions and permissive Origin policy are fixture choi
 `useSettingsEditor` mounts the connection and calls the native editor path:
 
 ```ts
-return useEditor({
-	fields: Draft,
-	query: client.query,
-	runtime: client.Client.runtime,
-	save: (input) => client.api.save.run({ entityId: client.entityId, ...input }),
-	values,
-});
+return useEditor(client.api.save, { fields: Draft, fixed: { entityId: client.entityId }, query: client.query });
 ```
 
-`values` turns the numeric page size into encoded text. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft.
+`Draft` holds the page size as text, and the editor encodes each queried row with it. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft.
 
 The command declares `InvalidSettings: fieldRejection(Settings)`. The service refuses a page size outside the integer range 1–100 with that typed rejection naming `pageSize`. `useEditor` maps its `{ _tag, field, message }` shape to the matching form field, whose error the component renders beside the input. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the service for HTTP callers as well as form submissions.
 

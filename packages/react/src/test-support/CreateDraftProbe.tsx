@@ -6,13 +6,10 @@ import type { ProbeProps } from "#test/createDraftFields.ts";
 import { DraftFields, draftInitial, draftRuntime } from "#test/draftFields.ts";
 
 export function CreateDraftProbe({ create, held, persistence }: ProbeProps) {
-	held.created = useCreate({
-		create,
-		fields: DraftFields,
-		initialValues: draftInitial,
-		persistedDraft: { key: "create-draft", ...persistence },
-		runtime: draftRuntime,
-	});
+	held.created = useCreate(
+		{ run: create, runtime: draftRuntime },
+		{ fields: DraftFields, initialValues: draftInitial, persistedDraft: { key: "create-draft", ...persistence } },
+	);
 	held.form = held.created.form;
 	const name = useField(held.form, "name");
 	return (

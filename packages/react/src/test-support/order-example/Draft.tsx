@@ -4,7 +4,7 @@ import { createElement, useId } from "react";
 import { useDirty, useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import type { Order } from "#test/order-example/contract.ts";
-import type { DraftFields } from "#test/order-example/fields.ts";
+import type { DraftFields } from "#test/order-example/DraftFields.ts";
 
 function saveStatus(submitting: boolean, dirty: boolean): string {
 	if (submitting) {

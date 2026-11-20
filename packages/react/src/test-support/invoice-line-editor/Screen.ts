@@ -5,6 +5,7 @@ import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { QueryView } from "#client/QueryView.ts";
+import { useQuery } from "#client/resultState.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 
 export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
@@ -78,18 +79,13 @@ export function InvoiceLineForm<E, TRuntimeError>({
 
 type Server = ReturnType<typeof makeInvoiceLineServer>;
 
-export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly id: number; readonly server: Server }) {
-	const editor = useEditor({
-		fields: InvoiceLineDraft,
-		query: api.get.query({ id }),
-		runtime,
-		save: (line) => api.save.run({ expectedVersion: version, id, ...line }),
-		values,
-	});
-	const version: number = Option.getOrElse(
-		Option.map(editor.query.data, (line) => line.version),
+export function InvoiceLineScreen({ id, server: { api } }: { readonly id: number; readonly server: Server }) {
+	const loaded = useQuery(api.get.query({ id }));
+	const version = Option.getOrElse(
+		Option.map(loaded.data, (line) => line.version),
 		() => 1,
 	);
+	const editor = useEditor(api.save, { fields: InvoiceLineDraft, fixed: { expectedVersion: version, id }, query: api.get.query({ id }) });
 	const { query, form } = editor;
 	return createElement(
 		"section",
@@ -115,13 +111,8 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 		}),
 	);
 }
-export function InvoiceLineCreate({ server: { api, runtime } }: { readonly server: Server }) {
-	const create = useCreate({
-		create: api.create.run,
-		fields: InvoiceLineDraft,
-		initialValues: { name: "", quantity: "" },
-		runtime,
-	});
+export function InvoiceLineCreate({ server: { api } }: { readonly server: Server }) {
+	const create = useCreate(api.create, { fields: InvoiceLineDraft, initialValues: { name: "", quantity: "" } });
 	const created = Option.map(create.created, (line) => createElement("output", null, `Created ${line.id}: ${line.name}`));
 	return createElement(InvoiceLineForm, { editor: create }, Option.getOrNull(created));
 }

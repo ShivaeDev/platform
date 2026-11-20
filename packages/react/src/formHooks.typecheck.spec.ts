@@ -1,20 +1,10 @@
 import type { Option } from "effect";
 import { expectTypeOf } from "vitest";
 import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
-import type { CreateConfig } from "#client/create.ts";
-import type { EditorConfig } from "#client/editor.ts";
+import type { CreateOptions } from "#client/create.ts";
+import type { EditorOptions } from "#client/editor.ts";
 import type { useEditorExample, useOptionalFieldExample, useRejectionExample } from "#test/formHookExamples.ts";
-import type {
-	Described,
-	NameRejected,
-	query,
-	runtime,
-	StaleRejected,
-	saveConflict,
-	saveStale,
-	Title,
-	TitleConflict,
-} from "#test/formHookFixtures.ts";
+import type { Described, NameRejected, query, StaleRejected, Title, TitleConflict } from "#test/formHookFixtures.ts";
 
 interface Row {
 	id: number;
@@ -35,18 +25,9 @@ expectTypeOf<OptionalFields["titled"]["failure"]>().toEqualTypeOf<Option.Option<
 expectTypeOf<OptionalFields["described"]["failure"]>().toEqualTypeOf<Option.Option<Described>>();
 
 expectTypeOf<{ rejectField: () => { field: "missing"; message: string } }>().not.toExtend<
-	Pick<CreateConfig<Fields, Row, "Rejected", never, never>, "rejectField">
+	Pick<CreateOptions<Fields, Row, "Rejected", never, never>, "rejectField">
 >();
-expectTypeOf<{ create: typeof saveStale; fields: typeof Title; initialValues: { title: string }; runtime: typeof runtime }>().not.toExtend<
-	CreateConfig<Fields, never, StaleRejected, never, never>
->();
-expectTypeOf<{
-	fields: typeof Title;
-	query: typeof query;
-	runtime: typeof runtime;
-	save: typeof saveStale;
-	values: (record: Row) => { title: string };
-}>().not.toExtend<EditorConfig<Fields, Row, never, StaleRejected, never, never>>();
-expectTypeOf<{ create: typeof saveConflict; fields: typeof Title; initialValues: { title: string }; runtime: typeof runtime }>().toExtend<
-	CreateConfig<Fields, never, Conflict, never, never>
->();
+// A failure that names a field must say which form field it belongs to.
+expectTypeOf<{ initialValues: { title: string } }>().not.toExtend<CreateOptions<Fields, never, StaleRejected, never, never>>();
+expectTypeOf<{ query: typeof query }>().not.toExtend<EditorOptions<Fields, Row, never, Row, StaleRejected, never, never>>();
+expectTypeOf<{ initialValues: { title: string } }>().toExtend<CreateOptions<Fields, never, Conflict, never, never>>();

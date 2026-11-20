@@ -53,7 +53,7 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			}),
 		),
 	);
-	const { api, Client } = makeClient(Items, {
+	const { api } = makeClient(Items, {
 		live: false,
 		protocol: layerMemoryProtocol(Items).pipe(Layer.provide(handlers)),
 		url: "memory://items",
@@ -61,7 +61,7 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 	const listed = api.list.query();
 	const counted = api.count.query();
 	return {
-		command: { run: api.toggle.run, runtime: Client.runtime },
+		command: api.toggle,
 		commands: commandFor,
 		countHeld: count,
 		list: listed,

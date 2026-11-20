@@ -18,14 +18,12 @@ export interface Props {
 function Panel({ client, scale, update }: Props) {
 	const list = useQuery(client.api.list.query());
 	const rows = Option.getOrElse(list.data, () => []);
-	const change = useUndoableChange(
-		{ ...client.api.change, runtime: client.runtime, update },
-		{
-			describe: (saved) => `Changed ${saved.undo.length} rows`,
-			undoInput: (saved) => ({ _tag: "undo" as const, token: saved.undo }),
-		},
-	);
-	const edit = useAction(client.runtime, client.api.change.run);
+	const change = useUndoableChange(client.api.change, {
+		describe: (saved) => `Changed ${saved.undo.length} rows`,
+		undoInput: (saved) => ({ _tag: "undo" as const, token: saved.undo }),
+		update,
+	});
+	const edit = useAction(client.api.change);
 	const error = AsyncResult.isFailure(change.undoResult) ? Option.getOrUndefined(Cause.findErrorOption(change.undoResult.cause)) : undefined;
 	const failure = error?._tag === "Conflict" ? `${error._tag}: ${error.message}` : error?._tag;
 	function apply(copies: boolean) {

@@ -9,7 +9,6 @@ import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { NoticeClient } from "#test/notices/client.ts";
 import { EditorOperations } from "#test/notices/EditorOperations.tsx";
-import { Fields } from "#test/notices/Fields.ts";
 
 export interface NoticeScreen {
 	readonly client: NoticeClient;
@@ -63,10 +62,10 @@ function Operations({ state }: { readonly state: NoticeScreen }) {
 			message: `Removed ${removed.title}`,
 		}),
 	};
-	const remove = useAction(client.runtime, client.api.remove.run, { concurrent: true, notices });
-	const edit = useAction(client.runtime, client.api.edit.run);
-	const breakReads = useAction(client.runtime, client.api.breakReads.run);
-	const form = useCreate({ create: client.api.remove.run, fields: Fields, initialValues: { title: "blocked" }, notices, runtime: client.runtime });
+	const remove = useAction(client.api.remove, { concurrent: true, notices });
+	const edit = useAction(client.api.edit);
+	const breakReads = useAction(client.api.breakReads);
+	const form = useCreate(client.api.remove, { initialValues: { title: "blocked" }, notices });
 	const titleField = useField(form.form, "title");
 	return (
 		<>

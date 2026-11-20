@@ -15,7 +15,7 @@ export function NoteDelete({
 	readonly onDeleted: () => void;
 	readonly saving: boolean;
 }) {
-	const action = useAction(client.runtime, client.api.delete.run, { onSuccess: onDeleted });
+	const action = useAction(client.api.delete, { onSuccess: onDeleted });
 	const failure = Option.flatMap(action.cause, Cause.findErrorOption);
 	const failureMessage = Option.isSome(failure) && (
 		<p className="text-destructive text-sm" role="alert">

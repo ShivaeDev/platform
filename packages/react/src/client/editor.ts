@@ -1,4 +1,4 @@
-import { type Effect, Option, type Schema } from "effect";
+import { Option, type Schema } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useEffect, useState } from "react";
@@ -6,70 +6,127 @@ import { usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
-import type { AtomServices } from "#AtomServices.ts";
+import { formFields } from "#client/adapters/formFields.ts";
+import { typedEditor } from "#client/adapters/operationHooks.ts";
+import { rowValues } from "#client/adapters/rowValues.ts";
 import { useSubmissionCallbacks } from "#client/adapters/useSubmissionCallbacks.ts";
+import type { BoundOperation, LooseOperation } from "#client/boundOperation.ts";
 import type { NoticeFeedback } from "#client/notices.ts";
+import type {
+	DecodingServicesOption,
+	FieldsOption,
+	FixedOption,
+	FormFields,
+	MissingFromRow,
+	NoFixed,
+	Unfixed,
+	ValuesOption,
+} from "#client/operationForm.ts";
 import { type QueryOptions, type QueryState, useQuery } from "#client/resultState.ts";
 import { type SaveState, useSaveState } from "#client/saveState.ts";
 import type { LoadedQueryState } from "#client/useLoaderQuery.ts";
 import { loadedQuery } from "#loadedQuery.ts";
 import { type SubmissionConfig, submission } from "#submission.ts";
-export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError> = {
+export type EditorOptions<TFields extends Fields, TRow, TQueryError, TSaved, TSaveError, R, TRuntimeError> = {
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly query: Atom.Atom<AsyncResult.AsyncResult<TRow, TQueryError>>;
-	readonly fields: Schema.Struct<TFields>;
-	readonly values: (row: TRow) => Encoded<TFields>;
-	readonly save: (values: Decoded<TFields>) => Effect.Effect<TRow, TSaveError, AtomServices<R>>;
-	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
-	readonly notices?: NoticeFeedback<Decoded<TFields>, TRow, TSaveError, Services<TFields, R>>;
+	readonly notices?: NoticeFeedback<Decoded<TFields>, TSaved, TSaveError, Services<TFields, R>>;
 	readonly queryNotice?: QueryOptions<TQueryError>["notice"];
 } & FieldRejectionMapping<TFields, TSaveError> &
-	Pick<SubmissionConfig<TFields, TRow, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
-export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError> extends SaveState<TSaveError | TRuntimeError> {
-	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError> | undefined;
+	Pick<SubmissionConfig<TFields, TSaved, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
+export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError, TSaved = TRow>
+	extends SaveState<TSaveError | TRuntimeError> {
+	readonly form: Form<TFields, TSaved, TSaveError | FieldFailure, TRuntimeError> | undefined;
 	readonly query: QueryState<TRow, TQueryError>;
 }
-export interface LoadedEditor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError>
-	extends Omit<Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError>, "form" | "query"> {
-	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError>;
+export interface LoadedEditor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError, TSaved = TRow>
+	extends Omit<Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>, "form" | "query"> {
+	readonly form: Form<TFields, TSaved, TSaveError | FieldFailure, TRuntimeError>;
 	readonly query: LoadedQueryState<TRow, TQueryError>;
 }
-interface Held<TFields extends Fields, TRow, TSaveError, R, TRuntimeError> {
-	readonly fields: Schema.Struct<TFields>;
-	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError>;
+type Derived<TFields> = [TFields] extends [never] ? true : false;
+interface Held {
+	readonly fields: Schema.Struct<Fields>;
+	readonly form: Form<Fields, unknown, unknown, unknown>;
 	readonly query: Atom.Atom<unknown>;
-	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
-	readonly values: (row: TRow) => Encoded<TFields>;
+	readonly runtime: Atom.AtomRuntime<unknown, unknown>;
+	readonly values: (row: unknown) => Encoded<Fields>;
 }
-export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError>(
-	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError> & { readonly loaded: TRow },
-): LoadedEditor<TFields, TRow, TQueryError, TSaveError, TRuntimeError>;
-export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError>(
-	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError>,
-): Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError>;
-export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError>(
-	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError> & { readonly loaded?: TRow },
-): Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> | LoadedEditor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> {
+// The command's success must be a row the form can read back, so `values` (or the derived values) reads both the query's row and the saved result.
+export type UseEditor = <
+	TInput,
+	TSaved,
+	TSaveError,
+	R,
+	TRuntimeError,
+	TRow,
+	TQueryError,
+	TPayload = never,
+	TFixed extends Partial<TInput> = NoFixed,
+	TFields extends Fields = never,
+	TLoaded extends NoInfer<TRow> | undefined = undefined,
+>(
+	operation: BoundOperation<TInput, TSaved, TSaveError, R, TRuntimeError> & { readonly payload?: TPayload },
+	options: EditorOptions<
+		NoInfer<FormFields<TPayload, TFixed, TFields>>,
+		TRow,
+		TQueryError,
+		NoInfer<TSaved>,
+		NoInfer<TSaveError>,
+		NoInfer<R>,
+		NoInfer<TRuntimeError>
+	> & {
+		readonly loaded?: TLoaded;
+	} & FieldsOption<TPayload, TFields> &
+		FixedOption<
+			TInput,
+			TFixed,
+			| Unfixed<TInput, FormFields<TPayload, TFixed, TFields>, TFixed>
+			| (Derived<TFields> extends true ? MissingFromRow<TRow | TSaved, FormFields<TPayload, TFixed, TFields>> : never)
+		> &
+		NoInfer<ValuesOption<TRow | TSaved, FormFields<TPayload, TFixed, TFields>, Derived<TFields>>> &
+		NoInfer<DecodingServicesOption<FormFields<TPayload, TFixed, TFields>, R>>,
+) => [TLoaded] extends [undefined]
+	? Editor<FormFields<TPayload, TFixed, TFields>, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>
+	: LoadedEditor<FormFields<TPayload, TFixed, TFields>, TRow, TQueryError, TSaveError, TRuntimeError, TSaved>;
+export type LooseEditor = (
+	operation: LooseOperation,
+	options: EditorOptions<Fields, unknown, unknown, unknown, unknown, unknown, unknown> & {
+		readonly fields?: Schema.Struct<Fields>;
+		readonly fixed?: object;
+		readonly loaded?: unknown;
+		readonly values?: (row: unknown) => Encoded<Fields>;
+	},
+) => Editor<Fields, unknown, unknown, unknown, unknown, unknown> | LoadedEditor<Fields, unknown, unknown, unknown, unknown, unknown>;
+const useLooseEditor: LooseEditor = (operation, options) => {
+	const { fixed } = options;
+	const { runtime } = operation;
+	const fields = formFields(operation.payload, options.fields, fixed);
+	const config = { ...options, fields, runtime, values: options.values ?? rowValues(fields) };
 	const persistedDraft = usePersistedDraft(config.persistedDraft);
-	const callbacks = useSubmissionCallbacks(config.fields, config.save, config.rejectField, config.runtime, config.notices);
+	const callbacks = useSubmissionCallbacks(
+		fields,
+		(edited: Decoded<Fields>) => operation.run({ ...fixed, ...edited }),
+		config.rejectField,
+		runtime,
+		config.notices,
+	);
 	const query = useQuery(config.query, config.queryNotice === undefined ? {} : { notice: config.queryNotice });
 	const row = Option.orElse(query.data, () => ("loaded" in config ? Option.some(config.loaded) : Option.none()));
-	const [held, hold] = useState<Held<TFields, TRow, TSaveError, R, TRuntimeError> | undefined>(undefined);
-	let current = held?.query === config.query && held.fields === config.fields && held.runtime === config.runtime ? held : undefined;
+	const [held, hold] = useState<Held | undefined>(undefined);
+	let current = held?.query === config.query && held.fields === fields && held.runtime === runtime ? held : undefined;
 	if (current === undefined && Option.isSome(row)) {
 		current = {
-			fields: config.fields,
+			fields,
 			form: submission({
 				...config,
 				...callbacks,
-				fields: config.fields,
 				initialValues: config.values(row.value),
 				persistedDraft,
-				runtime: config.runtime,
 				savedValues: config.values,
 			}).form,
 			query: config.query,
-			runtime: config.runtime,
+			runtime,
 			values: config.values,
 		};
 		hold(current);
@@ -87,4 +144,5 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 		return { ...saveState, form, query: loadedQuery(query, config.loaded) };
 	}
 	return { ...saveState, form, query };
-}
+};
+export const useEditor = typedEditor(useLooseEditor);

@@ -7,10 +7,3 @@ export const DraftFields = Schema.Struct({
 });
 
 export type DraftFields = typeof DraftFields.Type;
-
-export function valuesOf(order: Order) {
-	return {
-		name: order.name,
-		quantity: String(order.quantity),
-	};
-}

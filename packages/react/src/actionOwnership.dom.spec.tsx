@@ -101,7 +101,7 @@ ownership.it(
 		yield* parentRerenders();
 
 		expect(yield* crash()).toBe(
-			"useAction received a new `run` function on 10 renders in a row. `run` is the action's identity and must stay the same function between renders: pass a bound command such as `api.rename.run` directly, or wrap your function in `useCallback` or `useMemo`.",
+			"useAction received a new `run` function on 10 renders in a row. `run` is the action's identity and must stay the same function between renders: pass a bound command such as `api.rename` directly, or wrap your `run` in `useCallback` or `useMemo`.",
 		);
 	},
 );
