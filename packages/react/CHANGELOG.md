@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.51.0 - 2026-11-20
+
+### Added
+
+- the result of `queryRoute(buildQuery)` has `useQuery(options?)`, which reads the route's query with the current match's params, decoded search, context and loader value, so a route's component no longer names the operation and its arguments again. `useLoaded()` returns the same atom as `query` and the loader value as `loaded`, to spread into a loader-backed `useEditor`. Replace `useLoaderQuery(api.get.query({ id }), route.useLoaderData())` in a route's component with `noteQuery.useQuery()`, keeping the `queryRoute` result as `noteQuery`; `useLoaderQuery` stays for loaders written with `loadQuery`.
+- a query route reads `redirects` from the router context, so `redirects.signedOut` and `redirects.refused` are stated once for every query route. A route's own `queryRoute(buildQuery, { redirects })` still overrides them for its query.
+- `signInRedirect(path)` in `adapters/signInRedirect.ts` builds a signed-out redirect to `path` that carries the requested location in `returnTo`.
+
+### Changed
+
+- from this version, with the `@shivaedev/quality` release of this change, write a `failures` handler inline in the component: `useEditor(api.retitle, { query, fixed: { id }, failures: { SubtitleRejected: (error) => ({ field: "title", message: error.message }) } })`. The 0.50.0 note said to declare a handler such as `onTitle` or `couldNotRemove` outside the component because Biome's `noNestedComponentDefinitions` read it as a component; that is no longer needed, and the README now shows the inline form.
+
+### Breaking
+
+- `queryRoute` moves to `client/adapters/queryRoute.ts`, beside the client hooks its `useQuery()` uses. Change `@shivaedev/react/adapters/queryRoute.ts` imports to `@shivaedev/react/client/adapters/queryRoute.ts`.
+- `permissionGuard` takes `signedOut`, the redirect callback, in place of the `signIn` path. Before: `permissionGuard({ session, signIn: "/sign-in" })`. After: put `redirects: { signedOut: signInRedirect("/sign-in") }` in the router context and pass it to the guard: `beforeLoad: ({ context, ...route }) => permissionGuard({ session, signedOut: context.redirects.signedOut })(route)`.
+
 ## 0.50.0 - 2026-11-20
 
 ### Added

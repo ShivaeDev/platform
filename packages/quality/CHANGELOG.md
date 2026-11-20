@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.79.0 - 2026-11-20
+
+### Added
+
+- `react/nested-components` reports a component or hook defined inside another function. A component is a PascalCase function or class that returns JSX (directly, in a branch or an array, through a `const` that holds it, from a callback such as the one given to `.map`, or through `createElement`), or one that the same function renders as an element, passes as a JSX attribute value or gives to `createElement`, so a function under a PascalCase key that returns no JSX, such as a failure handler keyed by an error tag (`failures: { SubtitleRejected: (error) => ({ field: "title", message: error.message }) }`) or an Effect `catchTags` handler, is no longer reported.
+- `operations/old-form` reports each module still written in the old operation form once, at its contract: a `contract` named by a string literal that lists queries or commands, whose operations are declared without `run`, served by a hand-written handler map and registered as `group` plus `handlers`. The finding names the module. Move the module to `defineModule`, or record the modules left with `quality baseline write --rule operations/old-form`, which records only this rule's findings, and each move lowers the count. A contract that lists only streams, the host's own `platform.` protocol contracts and test code are accepted. The repair points to the framework guide's section on moving an existing module.
+- A rule can declare `needs: "type-checker"` when it builds a TypeScript program of its own. A run checks those rules before its syntax rules, so their programs are gone before the run keeps one syntax tree per source.
+- `effect/unsafe-calls` reports bare calls of Effect's `…Unsafe` functions in core code, which throw on bad input or act at once outside an Effect: functions imported from `effect` or `@effect/*` such as `DateTime.makeUnsafe` or `Queue.offerUnsafe`, such a function passed as a callback, and member calls on a value such as `reactivity.registerUnsafe(keys, changed)`. Applications get a finding for each one outside `adapters/`, `test-support/`, tests and tool configs. Fix it with the safe counterpart the finding names (`DateTime.make` and `Duration.fromInput` return an Option, a `Duration` constructor builds a fixed value, `Queue.offer` is an Effect, `Stream.callback` turns a callback into a stream), or move a real synchronous side effect into an `Effect.sync`, `Effect.try` or `Effect.suspend` thunk, which also accepts a callback written inside it. Record what remains with `quality baseline write --rule effect/unsafe-calls`.
+
+### Changed
+
+- Every syntax rule in a run and the story program read one shared tree per source instead of parsing each source again. The trees are created after the type-checking rules and released at the end of the run. Findings do not change.
+- The `quality` executable runs under a heap limit that it sets itself, so no script passes a Node flag: 2048 MB for a fast lint and 3072 MB for a run of every rule (a lint or pre-commit hook in CI, in a cloud session or with `--full`, and `fix`, `baseline` and `exceptions`). A run that reaches the limit exits with `2` and a last line naming the limit and how to raise it; a limit set through `NODE_OPTIONS=--max-old-space-size=<megabytes>` is kept as it is.
+- `effect/unsafe-calls` exempts a bare Effect `…Unsafe` call only inside an object-literal or class member named `…Unsafe`, which implements an unsafe member of an interface, such as `makeUnsafe: () => wire.makeUnsafe()`. A function or variable named `…Unsafe`, such as `function parseUnsafe(header) { return DateTime.makeUnsafe(header) }`, no longer silences the finding: use the safe counterpart the finding names inside it.
+
+### Breaking
+
+- the Biome preset leaves `noNestedComponentDefinitions` and `noComponentHookFactories` off, because `react/nested-components` replaces them. Baseline entries for `biome/lint/correctness/noNestedComponentDefinitions` or `biome/lint/correctness/noComponentHookFactories` no longer cover anything: run `quality baseline write --rule react/nested-components` to record the nested components they covered under the new rule, then `quality baseline prune` to drop the old entries.
+
 ## 0.78.6 - 2026-11-20
 
 ### Changed

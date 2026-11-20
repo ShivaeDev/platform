@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.46.6 - 2026-11-20
+
+### Changed
+
+- generated apps state their sign-in redirect once in the router context, read each route's query through `useQuery()` or `useLoaded()`, and their note route failure screen no longer handles signed-out visitors, whom the loader now redirects to sign-in.
+- generated apps' note update and delete commands no longer map a stale version to `Conflict` themselves, and `src/modules/notes/server/changed.ts` is gone. A stale edit or delete now shows `This was changed or deleted since you loaded it. Refresh and try again.`
+
 ## 0.46.5 - 2026-11-20
 
 ### Changed
