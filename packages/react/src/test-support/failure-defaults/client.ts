@@ -54,8 +54,15 @@ function outage(failure: Outage) {
 }
 
 export function failureClient() {
-	const server: { answer: Answer; noteReads: number; outage: Outage | "over"; readonly reread: Deferred.Deferred<void> } = {
+	const server: {
+		answer: Answer;
+		readonly heldOutage: Deferred.Deferred<void>;
+		noteReads: number;
+		outage: Outage | "over";
+		readonly reread: Deferred.Deferred<void>;
+	} = {
 		answer: "Conflict",
+		heldOutage: Deferred.makeUnsafe<void>(),
 		noteReads: 0,
 		outage: "ServiceUnavailable",
 		reread: Deferred.makeUnsafe<void>(),
@@ -82,8 +89,12 @@ export function failureClient() {
 	const api = bind(Drafts, Client, { live: false });
 	return {
 		api,
-		// Custom operations stand in for a lost connection, a server outage and a handler that dies.
+		// Custom operations stand in for a lost connection, a server outage, one that answers only when released, and a handler that dies.
 		dies: { run: (_input: { readonly title: string }) => Effect.die(new Error("Database password rejected for user app")), runtime: Client.runtime },
+		heldOutage: {
+			run: (_input: { readonly title: string }) => Effect.andThen(Deferred.await(server.heldOutage), Effect.fail(outage("ServiceUnavailable"))),
+			runtime: Client.runtime,
+		},
 		note: api.note.query(),
 		offline: {
 			run: (_input: { readonly title: string }) =>

@@ -62,3 +62,18 @@ failures.it(
 		expect(yield* notices()).toEqual([]);
 	},
 );
+
+failures.it(
+	"a failure that settles while the drafts tab hides the notice host shows no notice when the tab is shown again",
+	[failureScreen()],
+	function* ({ answerReread, notices, outageAnswersHeldRename, press }) {
+		yield* answerReread();
+		yield* press("Rename held by an outage");
+		yield* press("Hide drafts");
+		yield* outageAnswersHeldRename();
+
+		yield* press("Show drafts");
+
+		expect(yield* notices()).toEqual([]);
+	},
+);

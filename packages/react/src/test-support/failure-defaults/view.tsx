@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { Suspense } from "react";
+import { Activity, Suspense, useState } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useUndoableChange } from "#client/adapters/useUndoableChange.ts";
 import { useCreate } from "#client/create.ts";
@@ -56,6 +56,7 @@ function MoreCommands({ client }: { readonly client: FailureClient }) {
 	const serverWords = useAction(client.api.rename, { failures: { SubtitleRejected: "message" } });
 	const quietHandler = useAction(client.api.rename, { failures: { SubtitleRejected: () => "silent" } });
 	const outage = useAction(client.unavailable);
+	const heldOutage = useAction(client.heldOutage);
 	const undoable = useUndoableChange(client.api.rename, {
 		describe: (title) => `Renamed to ${title}`,
 		failures: { SubtitleRejected: (error, input) => ({ message: `${input.title} kept its title: ${error.message}` }) },
@@ -69,6 +70,9 @@ function MoreCommands({ client }: { readonly client: FailureClient }) {
 			<ActionButton label="Rename with a quiet handler" onClick={() => quietHandler.dispatch(draft)} pending={quietHandler.pending} />
 			<ActionButton label="Rename during an outage" onClick={() => outage.dispatch(draft)} pending={outage.pending} />
 			<ActionButton label="Rename with undo" onClick={() => undoable.remove(draft)} pending={undoable.pending} />
+			<button onClick={() => heldOutage.dispatch(draft)} type="button">
+				Rename held by an outage
+			</button>
 		</>
 	);
 }
@@ -124,6 +128,22 @@ function Screen({ state }: { readonly state: FailureScreen }) {
 	);
 }
 
+function Tab({ state }: { readonly state: FailureScreen }) {
+	const [shown, setShown] = useState(true);
+	return (
+		<>
+			<button onClick={() => setShown(!shown)} type="button">
+				{shown ? "Hide drafts" : "Show drafts"}
+			</button>
+			<Activity mode={shown ? "visible" : "hidden"}>
+				<NoticeHost failure={state.hostWording}>
+					<Screen state={state} />
+				</NoticeHost>
+			</Activity>
+		</>
+	);
+}
+
 export function FailureDefaultsView({ state }: { readonly state: FailureScreen }) {
 	return (
 		<Suspense fallback="Loading">
@@ -135,11 +155,7 @@ export function FailureDefaultsView({ state }: { readonly state: FailureScreen }
 				}}
 				session="alice"
 			>
-				{() => (
-					<NoticeHost failure={state.hostWording}>
-						<Screen state={state} />
-					</NoticeHost>
-				)}
+				{() => <Tab state={state} />}
 			</SessionBoundary>
 		</Suspense>
 	);
