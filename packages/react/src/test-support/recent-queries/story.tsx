@@ -4,12 +4,12 @@ import type { QueryStorageProvider, StoredQuery } from "@shivaedev/contract/Quer
 import type { QueryRetentionOptions } from "@shivaedev/contract/queryRetention.ts";
 import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { HAND_OVER_WINDOW } from "#adapters/queryHandoff.ts";
 import { App, type Controls } from "#test/recent-queries/App.tsx";
-import { memoryStorage } from "#test/recent-queries/memoryStorage.ts";
 import { openClient } from "#test/recent-queries/openClient.ts";
 import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
@@ -17,9 +17,8 @@ import { settleScreen } from "#test/settleScreen.ts";
 function refusal(kind: "NotFound" | "QueryReadDenied") {
 	return kind === "NotFound" ? new NotFound({ message: "Note not found" }) : new QueryReadDenied({ message: "Note withheld" });
 }
-function storedTitle(value: string) {
-	const parsed: unknown = JSON.parse(value);
-	return typeof parsed === "string" ? parsed : "a secret";
+function storedTitle(value: string): unknown {
+	return JSON.parse(value);
 }
 function storedTitles(entries: ReadonlyMap<string, StoredQuery>) {
 	return [...entries.values()].map(({ value }) => storedTitle(value));
@@ -36,7 +35,7 @@ export const recentQueries = storyKit({
 		const run = Effect.runPromiseWith(yield* Effect.context());
 		const loader = { done: Promise.resolve() };
 		const warmIds: string[] = [];
-		const device: { persist?: Layer.Layer<QueryStorageProvider>; reloads: number; stored?: ReturnType<typeof memoryStorage>["users"] } = {
+		const device: { persist?: Layer.Layer<QueryStorageProvider>; reloads: number; stored?: ReturnType<typeof memoryQueryStorage>["users"] } = {
 			reloads: 0,
 		};
 		return { controls, device, host, loader, retention, run, screen, view, warmIds };
@@ -180,7 +179,7 @@ export function storedOnDevice(...entries: readonly (readonly [user: string, id:
 			: `the device holds ${entries.map(([user, id, title]) => `${user}'s note ${id}, ${JSON.stringify(title)}`).join(" and ")}`,
 		({ device }) =>
 			Effect.sync(() => {
-				const memory = memoryStorage();
+				const memory = memoryQueryStorage();
 				for (const [user, id, title] of entries) {
 					const key = JSON.stringify(["recentNotes.get", JSON.stringify({ id }), null]);
 					memory.users.set(user, new Map([...(memory.users.get(user) ?? []), [key, { key, used: 1, value: JSON.stringify(title) }]]));

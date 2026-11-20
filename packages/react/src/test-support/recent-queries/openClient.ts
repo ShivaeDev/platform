@@ -16,12 +16,6 @@ const Notes = contract("recentNotes", {
 			rejections: { NotFound },
 			success: Schema.String,
 		}),
-		query("secret", {
-			payload: { id: Schema.String },
-			readPolicy: () => Effect.succeed(true),
-			reads: () => [],
-			success: Schema.Struct({ pin: Schema.String.annotate({ sensitive: true }), title: Schema.String }),
-		}),
 	],
 });
 
@@ -35,14 +29,10 @@ export const openClient = Effect.gen(function* () {
 			Stream.fromEffect(
 				Effect.gen(function* () {
 					subscriptions.open += 1;
-					const [reference] = queries;
-					reads.push(reference?.payload.id ?? "missing id");
+					reads.push(queries[0]?.payload.id ?? "missing id");
 					const reply = yield* Deferred.make<string, NotFound | QueryReadDenied>();
 					yield* Queue.offer(requests, reply);
-					const title = yield* Deferred.await(reply);
-					return reference?.query === "secret"
-						? { _tag: "Result" as const, query: "secret" as const, queryIndex: 0, value: { pin: "4321", title } }
-						: { _tag: "Result" as const, query: "get" as const, queryIndex: 0, value: title };
+					return { _tag: "Result" as const, query: "get" as const, queryIndex: 0, value: yield* Deferred.await(reply) };
 				}),
 			).pipe(
 				Stream.concat(Stream.never),
@@ -53,7 +43,6 @@ export const openClient = Effect.gen(function* () {
 				),
 			),
 		"recentNotes.get": () => Effect.die("Live queries receive their first result on the subscription"),
-		"recentNotes.secret": () => Effect.die("Live queries receive their first result on the subscription"),
 	});
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)));
 	const client = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://recent-notes" });

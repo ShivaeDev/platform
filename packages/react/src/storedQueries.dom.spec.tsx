@@ -99,18 +99,15 @@ recentQueries.it(
 );
 
 recentQueries.it(
-	"a query whose result marks a field sensitive stays off the device while its neighbour is stored",
-	[persisted, signedIn],
-	function* ({ answer, leave, open, stored, writeWindowPasses }) {
-		yield* open("secret");
-		yield* answer("Alice's secret");
-		yield* leave();
+	"the byte cap counts encoded bytes, so a note whose UTF-8 text passes it stays off the device",
+	[policy({ storedBytes: 60 }), persisted, signedIn],
+	function* ({ answer, open, stored, writeWindowPasses }) {
 		yield* open("one");
-		yield* answer("Alice's note");
+		yield* answer("✓✓✓✓✓✓✓✓✓✓");
 
 		yield* writeWindowPasses();
 
-		expect(yield* stored()).toEqual({ alice: ["Alice's note"] });
+		expect(yield* stored()).toEqual({});
 	},
 );
 

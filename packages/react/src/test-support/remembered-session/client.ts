@@ -4,8 +4,8 @@ import type { Permission } from "@shivaedev/access/permission.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { browserSessionMemory } from "@shivaedev/identity/client/adapters/browserSessionMemory.ts";
 import { rememberSession, SessionMemory } from "@shivaedev/identity/client/SessionMemory.ts";
+import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
 import { authSession } from "#client/authSession.ts";
-import { memoryStorage } from "#test/recent-queries/memoryStorage.ts";
 
 export type User = "alice" | "bob";
 
@@ -38,7 +38,7 @@ export function providerSession(user: User, grants: readonly string[], expiresAt
 }
 
 export function rememberedClient(clock: Clock.Clock) {
-	const queries = memoryStorage();
+	const queries = memoryQueryStorage();
 	const memory = Layer.mergeAll(browserSessionMemory, Layer.succeed(Clock.Clock, clock), queries.layer);
 	const reads: Read[] = [];
 	const generations: Generation[] = [];

@@ -8,6 +8,11 @@ import { type StoredForm, storedQueries } from "#storedQueries.ts";
 
 export const STORED_WRITE_WINDOW = "1 second";
 const STORED_BYTES = 5_000_000;
+const utf8 = new TextEncoder();
+
+function storedBytes(key: string, value: string) {
+	return utf8.encode(key).byteLength + utf8.encode(value).byteLength;
+}
 
 export const queryPersistence = Atom.keepAlive(
 	Atom.make((get) => {
@@ -21,7 +26,7 @@ export const queryPersistence = Atom.keepAlive(
 		const kept = new Map<string, number>();
 		let used = 0;
 		for (const entry of [...opened.entries].sort((left, right) => left.used - right.used)) {
-			kept.set(entry.key, entry.key.length + entry.value.length);
+			kept.set(entry.key, storedBytes(entry.key, entry.value));
 			used = Math.max(used, entry.used);
 		}
 		const written = new Map<string, StoredQuery>();
@@ -69,10 +74,10 @@ export const queryPersistence = Atom.keepAlive(
 			stop = registry.mount(timer);
 		}
 		function evict() {
-			const { capacity = 100, storedBytes = STORED_BYTES } = registry.get(queryRetention);
+			const { capacity = 100, storedBytes: byteCap = STORED_BYTES } = registry.get(queryRetention);
 			let bytes = [...kept.values()].reduce((total, size) => total + size, 0);
 			for (const [key, size] of kept) {
-				if (kept.size <= capacity && bytes <= storedBytes) {
+				if (kept.size <= capacity && bytes <= byteCap) {
 					break;
 				}
 				bytes -= size;
@@ -117,7 +122,7 @@ export const queryPersistence = Atom.keepAlive(
 				Option.map(stored, ({ encoded, key }) => {
 					used += 1;
 					kept.delete(key);
-					kept.set(key, key.length + encoded.length);
+					kept.set(key, storedBytes(key, encoded));
 					written.set(key, { key, used, value: encoded });
 					removed.delete(key);
 					evict();

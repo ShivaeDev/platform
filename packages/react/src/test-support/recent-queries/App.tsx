@@ -27,15 +27,6 @@ function Note({ client, id }: { readonly client: Client; readonly id: string }) 
 		</output>
 	);
 }
-function Secret({ client, id }: { readonly client: Client; readonly id: string }) {
-	const query = useQuery(client.api.secret.query({ id }));
-	const title = Option.match(query.data, { onNone: () => "Loading", onSome: (secret) => secret.title });
-	return (
-		<output data-id={id} data-pending={query.pending} data-stale={query.stale}>
-			{title}
-		</output>
-	);
-}
 function Screen({ client, controls }: { readonly client: Client; readonly controls: Controls }) {
 	const [id, show] = useState<string>();
 	const [route, open] = useState<{ readonly id: string; readonly visit: number }>();
@@ -53,7 +44,7 @@ function Screen({ client, controls }: { readonly client: Client; readonly contro
 	if (id === undefined) {
 		return <p>Home</p>;
 	}
-	return id.startsWith("secret") ? <Secret client={client} id={id} key={id} /> : <Note client={client} id={id} key={id} />;
+	return <Note client={client} id={id} key={id} />;
 }
 export function App({
 	client,
