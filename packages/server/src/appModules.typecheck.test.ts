@@ -17,7 +17,6 @@ const group = RpcGroup.make(Rpc.make("read", { success: Schema.String }));
 const module = {
 	group,
 	handlers: group.toLayer({ read: () => Service }),
-	migrations: { loader: Migrator.fromRecord({}) },
 	name: "example",
 	services: Layer.effect(Service, Port),
 } satisfies AppModule;
@@ -103,4 +102,17 @@ it("a defined module never registers as a group with hand-written handlers", () 
 		name: "notes",
 		services: Layer.empty,
 	} satisfies AppModule).not.toBeAny();
+});
+
+it("a defined module's registration takes its name from the module, and a hand-written one names itself", () => {
+	// @ts-expect-error The module already names itself, so a second name could disagree with it.
+	expectTypeOf({ module: Notes, name: "notebook", services: Layer.empty } satisfies AppModule).not.toBeAny();
+	// @ts-expect-error Nothing else names a group served by hand-written handlers.
+	expectTypeOf({ group, handlers: Layer.empty, services: Layer.empty } satisfies AppModule).not.toBeAny();
+});
+
+const unmigrated = appModules([{ module: Notes, services: Layer.empty } satisfies AppModule, module]);
+
+it("modules without migrations add no loader requirements", () => {
+	expectTypeOf<Effect.Services<Effect.Success<typeof unmigrated>["migrations"]["loader"]>>().toEqualTypeOf<never>();
 });

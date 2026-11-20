@@ -140,7 +140,6 @@ import type { AppModule } from "@shivaedev/server/AppModule.ts";
 export const preferencesModule = {
 	migrations: { loader: Migrator.fromRecord({ "0005_account_preferences": accountPreferencesMigration }) },
 	module: AccountPreferences,
-	name: "accountPreferences",
 	services: accountPreferencesStore,
 } satisfies AppModule;
 ```
