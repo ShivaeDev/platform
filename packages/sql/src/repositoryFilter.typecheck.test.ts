@@ -4,6 +4,7 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { allRows } from "#allRows.ts";
+import type { DeleteFilter } from "#deleteFilter.ts";
 import { makeRepository } from "#repository.ts";
 import type { BucketRegistrationError, ServerOnlyKeyError } from "#repositoryCollection.ts";
 import { serverOnly } from "#serverOnly.ts";
@@ -105,6 +106,12 @@ const program = Effect.gen(function* () {
 	// @ts-expect-error A delete whose only entry may be undefined could match every row.
 	plain.delete({ kind: maybeKind });
 	plain.delete({ id: 1, kind: maybeKind });
+	// @ts-expect-error A delete whose only entry is undefined could match every row.
+	plain.delete({ kind: undefined });
+	// @ts-expect-error Delete filters name model fields, even beside a defined entry.
+	plain.delete({ id: 1, missing: 2 });
+	const typedDelete: DeleteFilter<typeof Row> = { kind: "x" };
+	plain.delete(typedDelete);
 	// @ts-expect-error Delete list entries use decoded field values.
 	plain.delete({ value: { in: ["1"] } });
 	// @ts-expect-error Delete filters must name model fields.

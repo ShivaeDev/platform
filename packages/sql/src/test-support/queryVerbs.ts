@@ -2,11 +2,12 @@ import * as PgTypes from "@effect/sql-pg/PgTypes";
 import { BigDecimal, DateTime, Effect, Exit, Option, Predicate } from "effect";
 import * as Statement from "effect/sql/Statement";
 import { allRows } from "#allRows.ts";
+import type { DeleteFilter } from "#deleteFilter.ts";
 import type { Body, Step } from "#test/body.ts";
 import { TABLES } from "#test/createQueryTables.ts";
 import { attempt, outcomeOf } from "#test/outcome.ts";
 import type { QueryEngine } from "#test/queryEngine.ts";
-import { copyColumns, payment } from "#test/queryModels.ts";
+import { copyColumns, type LedgerEntry, type PartialRow, type Payment, payment, type Sample, type SourceRow } from "#test/queryModels.ts";
 import { queryPlan } from "#test/queryPlan.ts";
 import { onSqlError, Rejected } from "#test/transactionEngine.ts";
 import { transact } from "#transact.ts";
@@ -107,14 +108,13 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		countPayments: (query: Query<Engine["payments"]["count"]>) => read(`the payments are counted ${described(query)}`, engine.payments.count(query)),
 		deleteEveryPayment: () => read("every payment is deleted", engine.payments.delete(allRows)),
-		deleteLedgerEntries: (where: Query<Engine["ledger"]["delete"]>) =>
+		deleteLedgerEntries: (where: DeleteFilter<typeof LedgerEntry>) =>
 			read(`the ledger entries ${described(where)} are deleted`, engine.ledger.delete(where)),
-		deletePartialRows: (where: Query<Engine["partialRows"]["delete"]>) =>
+		deletePartialRows: (where: DeleteFilter<typeof PartialRow>) =>
 			read(`the partial rows ${described(where)} are deleted`, engine.partialRows.delete(where)),
-		deletePayments: (where: Query<Engine["payments"]["delete"]>) =>
-			read(`the payments ${described(where)} are deleted`, engine.payments.delete(where)),
-		deleteSamples: (where: Query<Engine["samples"]["delete"]>) => read(`the samples ${described(where)} are deleted`, engine.samples.delete(where)),
-		deleteSources: (where: Query<Engine["sources"]["delete"]>) => read(`the sources ${described(where)} are deleted`, engine.sources.delete(where)),
+		deletePayments: (where: DeleteFilter<typeof Payment>) => read(`the payments ${described(where)} are deleted`, engine.payments.delete(where)),
+		deleteSamples: (where: DeleteFilter<typeof Sample>) => read(`the samples ${described(where)} are deleted`, engine.samples.delete(where)),
+		deleteSources: (where: DeleteFilter<typeof SourceRow>) => read(`the sources ${described(where)} are deleted`, engine.sources.delete(where)),
 		deleteUnknownPayments: (where: unknown) => {
 			const result: ReturnType<Engine["payments"]["delete"]> = Reflect.apply(engine.payments.delete, engine.payments, [where]);
 			return read(`delete receives unknown input ${described(where)}`, result);
@@ -184,7 +184,7 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		partialRows: () => stored(engine.partialRows.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["a", "b"] })),
 		paymentNotes: () => stored(engine.payments.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["note"] })),
-		purgePayments: (where: Query<Engine["payments"]["deleteBatched"]>["where"]) =>
+		purgePayments: (where: DeleteFilter<typeof Payment>) =>
 			read(`the payments ${described(where)} are deleted in batches`, engine.payments.deleteBatched({ ...purgeLimits, where })),
 		purgeUnknownPayments: (where: unknown) => {
 			const result: ReturnType<Engine["payments"]["deleteBatched"]> = Reflect.apply(engine.payments.deleteBatched, engine.payments, [

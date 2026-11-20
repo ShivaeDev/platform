@@ -4,10 +4,12 @@ import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { storageSchema } from "#adapters/storageSchema.ts";
+import type { AllRows } from "#allRows.ts";
 import type { BatchedDelete } from "#batchedDelete.ts";
-import type { DeleteFilter } from "#deleteFilter.ts";
+import type { DeleteCheck } from "#deleteFilter.ts";
 import type { RecordRead } from "#recordRepositoryRead.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
+import type { FindManyFilter } from "#repositoryFilter.ts";
 import type { Update, UpdateVoid } from "#repositoryUpdate.ts";
 import { repositoryWrites } from "#repositoryWrites.ts";
 import { sqlNameTransforms } from "#sqlNameTransforms.ts";
@@ -15,8 +17,8 @@ import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
 export type CompositeKey<TModel extends Model.Any> = readonly [IdColumn<TModel>, IdColumn<TModel>, ...IdColumn<TModel>[]];
 export type PrimaryKey<TModel extends Model.Any> = IdColumn<TModel> | CompositeKey<TModel>;
-type DeleteWhere<TModel extends Model.Any> = (
-	where: DeleteFilter<TModel>,
+type DeleteWhere<TModel extends Model.Any> = <const TWhere extends FindManyFilter<TModel> | AllRows>(
+	where: TWhere & DeleteCheck<TModel, TWhere>,
 ) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
 
 export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = BatchedDelete<TModel> &

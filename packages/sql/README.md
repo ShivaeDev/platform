@@ -365,7 +365,7 @@ const found = yield* lines.findOne({
 
 It returns `Option.some` of the selected decoded fields, or `Option.none` when no row matches. It accepts the same filters, projections and ordering as `findMany`, with a fixed SQL limit of one. Supply ordering when several rows can match and the choice matters. SQL and schema failures remain in the error channel.
 
-Every repository method that filters takes the same `where` shape and compiles it the same way: `findMany`, `findOne`, `count`, `select`, `aggregate`, `latestPerGroup`, `deleteBatched` and the unversioned `delete`. A filter with a defined entry that reads rows deletes those rows, and a filter one method refuses, every method refuses.
+Every repository method that filters takes the same `where` grammar and compiles it the same way: `findMany`, `findOne`, `count`, `select`, `aggregate`, `latestPerGroup`, `deleteBatched` and the unversioned `delete`. A filter entry that one method refuses, every method refuses. Deletes add one rule: `delete` and `deleteBatched` need at least one defined entry or `allRows`, so a filter with a defined entry deletes the rows it reads.
 
 Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
 

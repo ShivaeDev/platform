@@ -3,9 +3,10 @@ import type { Model } from "effect/schema";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
-import { type DeleteFilter, restrictingFilter } from "#deleteFilter.ts";
+import type { AllRows } from "#allRows.ts";
+import { type DeleteCheck, type DeleteFilter, restrictingFilter } from "#deleteFilter.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
-import { makeFilter } from "#repositoryFilter.ts";
+import { type FindManyFilter, makeFilter } from "#repositoryFilter.ts";
 import { tryPurgeLock } from "#tryPurgeLock.ts";
 
 export interface PurgeLimits {
@@ -59,8 +60,8 @@ export interface BatchedDeleteOptions<TModel extends Model.Any> extends PurgeLim
 }
 
 export interface BatchedDelete<TModel extends Model.Any> {
-	readonly deleteBatched: (
-		options: BatchedDeleteOptions<TModel>,
+	readonly deleteBatched: <const TWhere extends FindManyFilter<TModel> | AllRows>(
+		options: PurgeLimits & { readonly where: TWhere & DeleteCheck<TModel, TWhere> },
 	) => Effect.Effect<number, SqlError | Schema.SchemaError | BatchedDeleteUnavailable, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
 }
 

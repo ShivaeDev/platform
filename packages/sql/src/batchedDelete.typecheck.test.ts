@@ -5,7 +5,7 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { allRows } from "#allRows.ts";
-import type { BatchedDeleteUnavailable } from "#batchedDelete.ts";
+import type { BatchedDeleteOptions, BatchedDeleteUnavailable } from "#batchedDelete.ts";
 import { deleteGroupsBatched } from "#deleteGroupsBatched.ts";
 import { makeRepository } from "#repository.ts";
 
@@ -36,6 +36,8 @@ const program = Effect.gen(function* () {
 	// @ts-expect-error A purge needs at least one defined filter entry.
 	rows.deleteBatched({ ...options, where: {} });
 	rows.deleteBatched({ ...options, where: allRows });
+	const typedOptions: BatchedDeleteOptions<typeof RetentionRow> = { ...options, where: { label: "old" } };
+	rows.deleteBatched(typedOptions);
 
 	const versioned = yield* makeRepository(RetentionRow, {
 		idColumn: "id",
