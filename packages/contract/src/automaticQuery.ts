@@ -100,6 +100,14 @@ export function automaticQuery<A, E>({
 				}
 			});
 			get.subscribe(subscription.status, ({ connection: state, failure }) => {
+				const previous = get.self<AsyncResult.AsyncResult<A, E>>();
+				// A refresh reopens a failed subscription from "connecting", and the failure it keeps showing is now being read again.
+				if (state === "connecting" && Option.isSome(previous) && AsyncResult.isFailure(previous.value) && !previous.value.waiting) {
+					const waiting = AsyncResult.waiting(previous.value);
+					get.setSelf(waiting);
+					get.set(signals, recordCompletion(get.once(signals), waiting));
+					return;
+				}
 				if (state !== "failed" || Option.isNone(failure)) {
 					return;
 				}

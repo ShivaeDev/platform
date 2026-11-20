@@ -1,12 +1,12 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { SocketOpenError } from "effect/socket/Socket";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Conflict, InternalServerError, NotFound, ServiceUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 class SubtitleRejected extends Schema.TaggedError<SubtitleRejected>()("SubtitleRejected", { message: Schema.String }) {}
 
@@ -67,10 +67,9 @@ export function failureClient() {
 		outage: "ServiceUnavailable",
 		reread: Deferred.makeUnsafe<void>(),
 	};
-	const handlers = Drafts.toLayer(
+	const handlers = Drafts.application.toLayer(
 		Effect.succeed(
-			Drafts.of({
-				"failureDefaults.$changes": () => Stream.never,
+			Drafts.application.of({
 				"failureDefaults.note": () => {
 					server.noteReads += 1;
 					return server.noteReads === 1
@@ -83,10 +82,9 @@ export function failureClient() {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/FailureDefaults", {
 		group: Drafts,
-		makeEffect: RpcTest.makeClient(Drafts, { flatten: true }),
-		protocol: handlers,
+		protocol: layerLiveMemoryProtocol(Drafts, handlers),
 	}) {}
-	const api = bind(Drafts, Client, { live: false });
+	const api = bind(Drafts, Client);
 	return {
 		api,
 		// Custom operations stand in for a lost connection, a server outage, one that answers only when released, and a handler that dies.

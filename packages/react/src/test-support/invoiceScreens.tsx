@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/adapters/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
@@ -60,7 +61,8 @@ export function switching(root: Rendered) {
 			<SessionBoundary
 				connect={(user) => servers[user]}
 				identify={(user) => user}
-				recheck={() => rechecks.push(session ?? "none")}
+				// A session check stays in flight, so the query failure and the live status that both report Unauthorized ask once.
+				recheck={Effect.sync(() => rechecks.push(session ?? "none")).pipe(Effect.andThen(Effect.never))}
 				session={session}
 				signedOut="Signed out"
 			>

@@ -4,7 +4,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
-import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { firstUnauthorized } from "#adapters/sessionRecheck.ts";
 import { type ActionOptions, type OperationActionOptions, useActionSource } from "#client/actionCompletion.ts";
 import { useActionResult } from "#client/adapters/useActionResult.ts";
 import { usePermissionFailure } from "#client/adapters/usePermissionFailure.ts";
@@ -33,7 +33,7 @@ function state<A, E>(result: AsyncResult.AsyncResult<A, E>, data = AsyncResult.v
 function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, enabled = true): void {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (enabled && AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), isUnauthorized)) {
+		if (enabled && AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), firstUnauthorized)) {
 			recheck();
 		}
 	}, [enabled, recheck, result]);

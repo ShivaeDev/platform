@@ -1,4 +1,5 @@
-import { Effect, Option } from "effect";
+import { Deferred, Effect, Option } from "effect";
+import { TestClock } from "effect/testing";
 import { act } from "react";
 import { vi } from "vitest";
 import { activityScreenSignal, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
@@ -35,25 +36,36 @@ export const jobsScreen = storyKit({
 	stages: ["session", "jobs", "statistics", "views", "screen"],
 	verbs: (engine, story) => {
 		const driver = driverFor(engine, story.tell);
+		const lost = Deferred.makeUnsafe<void>();
 		return {
 			...jobsReadouts(engine, driver),
 			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
-			failNextRead: () =>
+			loseNextConnection: () =>
 				Effect.gen(function* () {
-					story.tell("the next HTTP read loses its connection");
-					const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("The connection closed"));
+					story.tell("the next HTTP connection is lost");
+					const fetch = vi.spyOn(globalThis, "fetch").mockImplementationOnce(() => {
+						Deferred.doneUnsafe(lost, Effect.void);
+						return Promise.reject(new TypeError("The connection closed"));
+					});
 					yield* Effect.addFinalizer(() => Effect.sync(() => fetch.mockRestore()));
 				}),
 			nextPage: () => Effect.andThen(driver.click({ name: "Next", role: "button" }), driver.settle()),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
 			previousPage: () => Effect.andThen(driver.click({ name: "Previous", role: "button" }), driver.settle()),
+			reconnectDelayPasses: () => {
+				story.tell("the live connection's reconnect delay passes");
+				return Effect.andThen(TestClock.adjust("2 seconds"), driverFor(engine, story.tell, isClientIdle).settle());
+			},
 			refresh: (section: "Jobs health" | "Queue counts" | "Job detail" | "Job list") => {
 				const target = section === "Job list" ? '[role="tabpanel"]' : `section[aria-label="${section}"]`;
 				return Effect.andThen(driver.within(target).click({ name: "Refresh", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle());
 			},
-			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
-			runSelectedSchedule: () =>
-				Effect.andThen(driver.click({ name: "Run now", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
+			refreshWhileReconnecting: (section: "Job list") => {
+				story.tell(`refresh the ${section} while its connection is lost`);
+				return Effect.andThen(driver.within('[role="tabpanel"]').click({ name: "Refresh", role: "button" }), Deferred.await(lost));
+			},
+			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
+			runSelectedSchedule: () => Effect.andThen(driver.click({ name: "Run now", role: "button" }), driver.settle()),
 			scheduledRuns: () => Effect.sync(() => [...engine.scheduledRuns]),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
 			sendMail: (id: number) =>

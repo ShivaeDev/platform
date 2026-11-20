@@ -8,22 +8,22 @@ import { mailFails, signedInAs } from "#test/jobsStory.ts";
 expectNoReactWarnings();
 
 jobsScreen.it(
-	"after a failed HTTP read, refresh clears the error and shows newly failed mail from PostgreSQL",
+	"after a lost connection, refresh keeps the last jobs while the view reconnects, then shows newly failed mail from PostgreSQL",
 	[signedInAs("operator"), mailFails(42), jobsViewOpen],
-	function* ({ alerts, shownJobs, sendMail, workersFinish, failNextRead, refresh, pagination }) {
+	function* ({ alerts, shownJobs, sendMail, workersFinish, loseNextConnection, reconnectDelayPasses, refreshWhileReconnecting, pagination }) {
 		expect((yield* shownJobs()).map(({ job }) => job)).toEqual(["mail 42"]);
 		yield* sendMail(7);
 		yield* workersFinish();
-		yield* failNextRead();
+		yield* loseNextConnection();
 
-		yield* refresh("Job list");
+		yield* refreshWhileReconnecting("Job list");
 
 		yield* outcomes([
-			["read failure", () => alerts(), ["Could not load this view. Try refreshing."]],
+			["alerts", () => alerts(), []],
 			["last successful list", () => Effect.map(shownJobs(), (jobs) => jobs.map(({ job }) => job)), ["mail 42"]],
 		]);
 
-		yield* refresh("Job list");
+		yield* reconnectDelayPasses();
 
 		yield* outcomes([
 			["alerts", () => alerts(), []],

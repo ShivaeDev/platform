@@ -44,8 +44,7 @@ export const sessionsScreen = storyKit({
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]')?.textContent ?? "no confirmation"),
 			confirmationFocused: () =>
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]') === document.activeElement),
-			confirmRevoke: () =>
-				Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driverFor(engine, story.tell, isClientIdle).settle()),
+			confirmRevoke: () => Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driver.settle()),
 			content: () => Effect.sync(() => screenOf(engine).textContent),
 			nextSessions: () => Effect.andThen(driver.click({ name: "Next sessions", role: "button" }), driver.settle()),
 			previousSessions: () => Effect.andThen(driver.click({ name: "Previous sessions", role: "button" }), driver.settle()),

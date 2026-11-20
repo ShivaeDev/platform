@@ -1,10 +1,10 @@
-import { Effect, Schema, Stream } from "effect";
+import { Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export const Note = Schema.Struct({ id: Schema.Number, title: Schema.String, version: Schema.Number, words: Schema.Number });
 const NoteId = { id: Schema.Number };
@@ -34,16 +34,17 @@ const Notes = contract("notes", { commands: [Create, Update, Rename, Retitle, Re
 
 class Client extends AtomRpc.Service<Client>()("fixture/NotesClient", {
 	group: Notes,
-	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-	protocol: Notes.toLayer({
-		"notes.$changes": () => Stream.never,
-		"notes.create": ({ title }) => Effect.succeed({ id: 1, title, version: 1, words: 0 }),
-		"notes.get": ({ id }) => Effect.succeed({ id, title: "", version: 1, words: 0 }),
-		"notes.remove": () => Effect.void,
-		"notes.rename": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
-		"notes.retitle": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
-		"notes.update": ({ id, title, version }) => Effect.succeed({ id, title, version, words: 0 }),
-	}),
+	protocol: layerLiveMemoryProtocol(
+		Notes,
+		Notes.application.toLayer({
+			"notes.create": ({ title }) => Effect.succeed({ id: 1, title, version: 1, words: 0 }),
+			"notes.get": ({ id }) => Effect.succeed({ id, title: "", version: 1, words: 0 }),
+			"notes.remove": () => Effect.void,
+			"notes.rename": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
+			"notes.retitle": ({ id, title }) => Effect.succeed({ id, title, version: 2, words: 0 }),
+			"notes.update": ({ id, title, version }) => Effect.succeed({ id, title, version, words: 0 }),
+		}),
+	),
 }) {}
 
-export const api = bind(Notes, Client, { live: false });
+export const api = bind(Notes, Client);

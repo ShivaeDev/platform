@@ -67,7 +67,7 @@ feedback.it(
 		yield* outcomes([
 			["draft", () => draft(), "next draft"],
 			["field error", () => fieldError(), "none"],
-			["loading", () => loading(), "Refreshing notes"],
+			["loading", () => loading(), "none"],
 			["notices", () => notices(), ["Saved new note"]],
 			["rows", () => rows(), "existing"],
 			["save status", () => saveStatus(), "Unsaved"],

@@ -1,7 +1,7 @@
-import { Effect, Layer, Schema, SchemaGetter, Stream } from "effect";
+import { Effect, Schema, SchemaGetter } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
-import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
@@ -34,12 +34,11 @@ export const encodeStory = storyKit({
 				return `${range.start} to ${range.end}`;
 			});
 		}
-		const handlers = Api.toLayer({
-			"ranges.$changes": () => Stream.never,
+		const handlers = Api.application.toLayer({
 			"ranges.save": receive,
 			"ranges.saveEncoded": receive,
 		});
-		const connection = makeClient(Api, { live: false, protocol: layerMemoryProtocol(Api).pipe(Layer.provide(handlers)), url: "memory://ranges" });
+		const connection = makeClient(Api, { protocol: layerLiveMemoryProtocol(Api, handlers), url: "memory://ranges" });
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(value) => Effect.sync(() => value.dispose()),

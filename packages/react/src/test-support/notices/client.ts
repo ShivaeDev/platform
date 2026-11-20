@@ -1,8 +1,8 @@
-import { Deferred, Effect, Stream } from "effect";
+import { Deferred, Effect } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { Api, Rejected, type Removed, TitleRejected } from "#test/notices/Api.ts";
 
 export type HeldKind = "remove" | "restore" | "save";
@@ -109,10 +109,9 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 			),
 		);
 	}
-	const handlers = Api.toLayer(
+	const handlers = Api.application.toLayer(
 		Effect.succeed(
-			Api.of({
-				"notices.$changes": () => Stream.never,
+			Api.application.of({
 				"notices.breakReads": () =>
 					Effect.sync(() => {
 						failReads = true;
@@ -130,9 +129,8 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/NoticeClient", {
 		group: Api,
-		makeEffect: RpcTest.makeClient(Api, { flatten: true }),
-		protocol: handlers,
+		protocol: layerLiveMemoryProtocol(Api, handlers),
 	}) {}
-	return { api: bind(Api, Client, { live: false }), arrivals, calls, hold, nextRead, reads, released, runtime: Client.runtime };
+	return { api: bind(Api, Client), arrivals, calls, hold, nextRead, reads, released, runtime: Client.runtime };
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;

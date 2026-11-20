@@ -1,8 +1,9 @@
-import { Clock, Effect, type Fiber, Layer, Queue, Stream } from "effect";
+import { Clock, Effect, type Fiber, Layer, Queue } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
+import { liveHost } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { rpcSocketHost } from "@shivaedev/test-story/server/rpcSocketHost.ts";
 import { makeClient } from "#bind.ts";
 import { clientActivity } from "#clientActivity.ts";
@@ -14,10 +15,9 @@ import { storyRuntime } from "#test/storyRuntime.ts";
 export const commandEngine = Effect.gen(function* () {
 	const counter = { holdResponse: false, value: 0 };
 	const executed = yield* Queue.unbounded<number>();
-	const host = yield* rpcSocketHost(
+	const served = yield* liveHost(
 		Counter,
-		Counter.toLayer({
-			"counter.$changes": () => Stream.never,
+		Counter.application.toLayer({
 			"counter.add": ({ amount }) =>
 				Effect.gen(function* () {
 					counter.value += amount;
@@ -30,6 +30,7 @@ export const commandEngine = Effect.gen(function* () {
 			"counter.value": () => Effect.succeed(counter.value),
 		}),
 	);
+	const host = yield* rpcSocketHost(served.group, served.handlers);
 	const runtime = yield* storyRuntime;
 	runtime.addGlobalLayer(Layer.succeed(SocketClock, yield* Clock.Clock));
 	const events = yield* Queue.unbounded<string>();
@@ -51,10 +52,11 @@ export const commandEngine = Effect.gen(function* () {
 			Layer.provide(Socket.layerWebSocket(host.url.replace(/^http/u, "ws")).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal))),
 			Layer.provide(RpcSerialization.layerNdjson),
 		),
+		live = true,
 	) {
 		const client = makeClient(Counter, {
-			live: false,
 			...(custom ? { protocol } : {}),
+			...(live ? {} : { live: false }),
 			resume: native.source,
 			resumeWindow: browser.window,
 			runtime,

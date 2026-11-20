@@ -1,11 +1,11 @@
-import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
+import { Effect, Option, Ref, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 import { render } from "@shivaedev/test-story/client/adapters/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -20,19 +20,17 @@ const Notes = contract("notes", { commands: [Add], queries: [List] });
 export const notesScreen = storyKit({
 	clock: "test",
 	*create() {
-		const handlers = Notes.toLayer(
+		const handlers = Notes.application.toLayer(
 			Effect.gen(function* () {
 				const stored = yield* Ref.make<readonly string[]>([]);
-				return Notes.of({
-					"notes.$changes": () => Stream.never,
+				return Notes.application.of({
 					"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
 					"notes.list": () => Ref.get(stored),
 				});
 			}),
 		);
 		const { api, Client } = makeClient(Notes, {
-			live: false,
-			protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+			protocol: layerLiveMemoryProtocol(Notes, handlers),
 			url: "memory://notes",
 		});
 		const add = Client.runtime.fn(api.add.run);

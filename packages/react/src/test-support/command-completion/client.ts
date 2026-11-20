@@ -1,12 +1,11 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
-import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", { reason: Schema.String }) {}
 const rows = collection("completion-rows", Schema.String);
@@ -44,11 +43,9 @@ export function completionClient() {
 	const refetch = Effect.runSync(Deferred.make<string>());
 	const refetched = Deferred.makeUnsafe<void>();
 	let reads = 0;
-	let invalidations = 0;
-	const handlers = Commands.toLayer(
+	const handlers = Commands.application.toLayer(
 		Effect.succeed(
-			Commands.of({
-				"completions.$changes": () => Stream.never,
+			Commands.application.of({
 				"completions.list": () => {
 					reads += 1;
 					return reads === 1 ? Effect.succeed("initial") : Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
@@ -64,24 +61,12 @@ export function completionClient() {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/CompletionCommands", {
 		group: Commands,
-		makeEffect: RpcTest.makeClient(Commands, { flatten: true }),
-		protocol: handlers,
+		protocol: layerLiveMemoryProtocol(Commands, handlers),
 	}) {}
-	const api = bind(Commands, Client, { live: false });
-	const watcher = Client.runtime.atom(
-		Effect.gen(function* () {
-			const reactivity = yield* Reactivity.Reactivity;
-			const stop = reactivity.registerUnsafe(invalidationKeys([rows.list]), () => {
-				invalidations += 1;
-			});
-			yield* Effect.addFinalizer(() => Effect.sync(stop));
-			return true;
-		}),
-	);
+	const api = bind(Commands, Client);
 	return {
 		command: commandFor,
 		finished,
-		invalidations: () => invalidations,
 		list: api.list.query(),
 		reads: () => reads,
 		refetch,
@@ -96,7 +81,6 @@ export function completionClient() {
 				),
 			),
 		runtime: Client.runtime,
-		watcher,
 	};
 }
 export type CompletionClient = ReturnType<typeof completionClient>;

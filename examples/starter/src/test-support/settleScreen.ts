@@ -14,8 +14,10 @@ export const settleScreen = Effect.fnUntraced(function* (engine: ScreenSurface, 
 		transport: engine.transport,
 	});
 	yield* screen.settle();
-	if (engine.activity !== undefined) {
-		yield* screenDriver({ act, pending: activityScreenSignal(engine.activity), root: view.container, tell }).settle();
+	for (const activity of engine.activities ?? []) {
+		yield* screenDriver({ act, pending: activityScreenSignal(activity), root: view.container, tell }).settle();
+	}
+	if ((engine.activities ?? []).length > 0) {
 		yield* screen.settle();
 	}
 });

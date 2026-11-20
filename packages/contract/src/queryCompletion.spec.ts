@@ -3,24 +3,24 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { completionStory, failed, held, refused, watching } from "#test/completionStory.ts";
 
 completionStory.it(
-	"an ordinary request signals completion after its value arrives over the socket",
+	"a query signals completion after its first value arrives over the socket",
 	[],
 	function* ({ open, requestFinished, shown, signals }) {
-		open("ordinary");
+		open();
 		yield* requestFinished();
 
 		yield* outcomes([
-			["request", () => signals(), { completed: 1, pending: false, subscription: "disabled" }],
+			["request", () => signals(), { completed: 1, pending: false, subscription: "open" }],
 			["shown value", () => shown(), "First"],
 		]);
 	},
 );
 
 completionStory.it(
-	"a failed request signals completion and preserves its declared failure",
+	"a failed first read signals completion and preserves its declared failure",
 	[failed],
 	function* ({ open, requestFinished, shown, signals }) {
-		open("ordinary");
+		open();
 		yield* requestFinished();
 
 		yield* outcomes([
@@ -31,7 +31,7 @@ completionStory.it(
 );
 
 completionStory.it("the pushed subscription signals that the socket subscription opened", [], function* ({ open, signals, subscriptionAnswered }) {
-	open("pushed");
+	open();
 	yield* subscriptionAnswered();
 
 	expect(yield* signals()).toMatchObject({ subscription: "open" });
@@ -41,7 +41,7 @@ completionStory.it(
 	"the pushed subscription signals refusal and exposes its policy denial",
 	[refused],
 	function* ({ open, requestFinished, shown, signals, subscriptionAnswered }) {
-		open("pushed");
+		open();
 		yield* subscriptionAnswered();
 		yield* requestFinished();
 
@@ -89,12 +89,13 @@ completionStory.it(
 );
 
 completionStory.it(
-	"a request stays pending until the socket delivers its held answer",
+	"a query stays pending until its subscription delivers the held first answer",
 	[held],
-	function* ({ open, releaseAnswer, requestFinished, requestReceived, shown, signals }) {
-		open("ordinary");
+	function* ({ open, releaseAnswer, requestFinished, requestReceived, shown, signals, waiting }) {
+		open();
 		yield* requestReceived();
 		expect(yield* signals()).toMatchObject({ completed: 0, pending: true });
+		expect(yield* waiting()).toBe(true);
 
 		yield* releaseAnswer();
 		yield* requestFinished();
@@ -102,24 +103,7 @@ completionStory.it(
 		yield* outcomes([
 			["completed request", () => signals(), { completed: 1, pending: false }],
 			["shown value", () => shown(), "First"],
-		]);
-	},
-);
-
-completionStory.it(
-	"a pushed query waits until its subscription delivers the held first answer",
-	[held],
-	function* ({ open, releaseAnswer, requestFinished, requestReceived, shown, waiting }) {
-		open("pushed");
-		yield* requestReceived();
-		expect(yield* waiting()).toBe(true);
-
-		yield* releaseAnswer();
-		yield* requestFinished();
-
-		yield* outcomes([
 			["waiting", () => waiting(), false],
-			["shown value", () => shown(), "First"],
 		]);
 	},
 );

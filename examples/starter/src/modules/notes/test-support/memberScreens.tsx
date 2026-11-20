@@ -1,9 +1,8 @@
 import { RegistryContext } from "@effect/atom-react";
+import { layerWebSocketConstructor } from "@effect/platform-node/NodeWS";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect, Layer } from "effect";
-import { FetchHttpClient } from "effect/http";
+import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { activityScreenSignal, type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
@@ -20,11 +19,10 @@ export function notesMemberScreens(baseUrl: string) {
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
-			const protocol = RpcClient.layerProtocolHttp({ url: `${baseUrl}/rpc` }).pipe(
-				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-				Layer.provide(Layer.succeed(FetchHttpClient.Fetch, member.fetch)),
-			);
-			const client = makeNotesClient(`${baseUrl}/rpc`, { live: false, protocol });
+			const client = makeNotesClient(`${baseUrl}/rpc`, {
+				headers: { cookie: member.cookie, origin: new URL(baseUrl).origin },
+				webSocketConstructor: layerWebSocketConstructor,
+			});
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
 			const connection = yield* notesRegistration(client).pipe(
 				Effect.map((module) => connectModules([module])),

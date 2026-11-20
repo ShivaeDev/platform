@@ -1,9 +1,9 @@
-import { Deferred, Effect, Layer, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 const notes = collection("first-settled-notes", Schema.Number);
 const read = { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.String };
@@ -21,10 +21,9 @@ export function firstSettledClient() {
 		title: Deferred.makeUnsafe<string>(),
 	};
 	const renameArrived = Deferred.makeUnsafe<void>();
-	const handlers = Notes.toLayer(
+	const handlers = Notes.application.toLayer(
 		Effect.succeed(
-			Notes.of({
-				"notes.$changes": () => Stream.never,
+			Notes.application.of({
 				"notes.author": () => Deferred.await(held.author),
 				"notes.count": () => Deferred.await(held.count),
 				"notes.rename": () => Deferred.succeed(renameArrived, undefined).pipe(Effect.andThen(Deferred.await(held.rename))),
@@ -33,8 +32,7 @@ export function firstSettledClient() {
 		),
 	);
 	const client = makeClient(Notes, {
-		live: false,
-		protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+		protocol: layerLiveMemoryProtocol(Notes, handlers),
 		url: "memory://first-settled-notes",
 	});
 	return { client, held, rename: client.Client.runtime.fn(() => client.api.rename.run()), renameArrived };

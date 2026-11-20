@@ -18,13 +18,13 @@ pendingCommands.it(
 );
 
 pendingCommands.it(
-	"a successful command keeps the wanted value while its invalidated queries refetch",
+	"a command the server accepted keeps the wanted value and stays unanswered while the server reruns the queries it changed",
 	[toggledOn()],
 	function* ({ command, commandSucceeds, serverRows, shown, toggleState }) {
 		yield* commandSucceeds();
 
 		yield* outcomes([
-			["command", () => command(), "succeeded"],
+			["command", () => command(), "not answered"],
 			["server rows", () => serverRows(), ["disabled"]],
 			["shown", () => shown(), "enabled"],
 			["toggle", () => toggleState(), "waiting"],
@@ -34,7 +34,7 @@ pendingCommands.it(
 
 for (const first of ["list", "count"] as const) {
 	pendingCommands.it(
-		`the wanted value stays while the ${first === "list" ? "count" : "list"} has not refetched yet`,
+		`the wanted value stays while the server has not rerun the ${first === "list" ? "count" : "list"} yet`,
 		[toggleSucceeded()],
 		function* ({ countResponds, listResponds, shown, toggleState }) {
 			yield* first === "list" ? listResponds(false) : countResponds(0);
@@ -50,13 +50,14 @@ for (const first of ["list", "count"] as const) {
 for (const enabled of [false, true]) {
 	const value = enabled ? "enabled" : "disabled";
 	pendingCommands.it(
-		`after both refetches the row shows the server's ${value} value`,
+		`after both reruns the command succeeds and the row shows the server's ${value} value`,
 		[toggleSucceeded()],
-		function* ({ countResponds, listResponds, serverRows, shown, toggleState }) {
+		function* ({ command, countResponds, listResponds, serverRows, shown, toggleState }) {
 			yield* listResponds(enabled);
 			yield* countResponds(enabled ? 1 : 0);
 
 			yield* outcomes([
+				["command", () => command(), "succeeded"],
 				["server rows", () => serverRows(), [value]],
 				["shown", () => shown(), value],
 				["toggle", () => toggleState(), "available"],
@@ -81,13 +82,13 @@ pendingCommands.it(
 );
 
 pendingCommands.it(
-	"another row's rejection leaves a successful toggle waiting for its refetch",
+	"another row's rejection leaves an accepted toggle waiting for its reruns",
 	[firstSucceededSecondToggled()],
 	function* ({ command, commandFails, shown, toggleState }) {
 		yield* commandFails("Row 2 is locked", 2);
 
 		yield* outcomes([
-			["row 1 command", () => command(1), "succeeded"],
+			["row 1 command", () => command(1), "not answered"],
 			["row 1 shown", () => shown(1), "enabled"],
 			["row 1 toggle", () => toggleState(1), "waiting"],
 			["row 2 command", () => command(2), "rejected (ToggleRejected: Row 2 is locked)"],

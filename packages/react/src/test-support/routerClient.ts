@@ -1,10 +1,10 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { Forbidden, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { layerLiveMemoryProtocol } from "@shivaedev/test-kits/contract/liveMemoryProtocol.ts";
 
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.String }) {}
 const Get = query("get", {
@@ -41,11 +41,10 @@ export function routerClient() {
 		}
 		return value;
 	}
-	const handlers = Notes.toLayer(
+	const handlers = Notes.application.toLayer(
 		Effect.sync(() => {
 			builds += 1;
-			return Notes.of({
-				"routerNotes.$changes": () => Stream.never,
+			return Notes.application.of({
 				"routerNotes.get": ({ id, page }) => {
 					calls.push({ id, page });
 					for (const waiter of [...waiting]) {
@@ -61,11 +60,10 @@ export function routerClient() {
 	);
 	class Client extends AtomRpc.Service<Client>()("test/RouterNotes", {
 		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers,
+		protocol: layerLiveMemoryProtocol(Notes, handlers),
 	}) {}
 	return {
-		api: bind(Notes, Client, { live: false }),
+		api: bind(Notes, Client),
 		builds: () => builds,
 		calls,
 		frames,
