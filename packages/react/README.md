@@ -494,7 +494,7 @@ const editor = useEditor({
 });
 ```
 
-Here `save` has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes names outside the form, `rejectField` is required at compile time. This includes a broad `string` field or an optional field whose type is broader than the form's names. The mapper can return `undefined` to leave an error as a non-field failure.
+Here `save` has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes literal names outside the form, `rejectField` is required at compile time. A plain `string` field, required or optional as on `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`, does not require it: the default mapping shows a rejection naming a form field on that field and leaves any other rejection in `failure`. The mapper can return `undefined` to leave an error as a non-field failure.
 
 #### Query, command and form feedback
 
