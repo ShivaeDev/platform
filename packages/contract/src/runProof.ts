@@ -1,9 +1,8 @@
-import type { Effect, Schema } from "effect";
+import type { Effect } from "effect";
 import type { InfrastructureFailure } from "@shivaedev/errors/infrastructure.ts";
 import type { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { QueryReadDenied } from "#readPolicyErrors.ts";
 import type { TaggedRejection } from "#rejection.ts";
-import type { Identical, SuccessProblem } from "#successProof.ts";
 
 export type RunBody<TPayload, TYielded, A> = (payload: TPayload) => Generator<TYielded, A, never>;
 
@@ -22,75 +21,18 @@ export interface Automatic {
 
 export type Raised<E> = Exclude<E, InfrastructureFailure | QueryReadDenied | InternalServerError | ServiceUnavailable>;
 
-export interface RunFailsOutsideRejections<TOperation extends string, TTags> {
-	readonly missingRejections: TTags;
-	readonly operation: TOperation;
-}
-
-export interface RejectionsRunNeverRaises<TOperation extends string, TTags> {
-	readonly neverRaised: TTags;
-	readonly operation: TOperation;
-}
-
-export interface RejectionAutomatic<TOperation extends string, TTags> {
-	readonly automatic: TTags;
-	readonly operation: TOperation;
-}
-
-export interface RejectionClassDiffers<TOperation extends string, TTags> {
-	readonly operation: TOperation;
-	readonly raisedClassDiffers: TTags;
-}
-
 export interface RunReturnsAny<TOperation extends string, TFix extends string> {
 	readonly fix: TFix;
 	readonly operation: TOperation;
 }
 
-type Tags<E> = E extends { readonly _tag: infer TTag extends string } ? TTag : never;
 type IsAny<T> = 0 extends 1 & T ? true : false;
-type Declared<TSpecs> = TSpecs extends ClassRejections ? keyof TSpecs & string : never;
-type AutomaticTags = keyof Automatic;
 
-type DifferentClasses<TSpecs, E> = {
-	readonly [TTag in Declared<TSpecs>]: TSpecs extends { readonly [TKey in TTag]: new (...args: never) => infer TDeclared }
-		? Identical<TDeclared, Extract<Raised<E>, { readonly _tag: TTag }>> extends true
-			? never
-			: TTag
-		: never;
-}[Declared<TSpecs>];
-
-export type RejectionProblem<TName extends string, TSpecs, E> = TSpecs extends undefined
-	? never
-	: [Extract<Declared<TSpecs>, AutomaticTags>] extends [never]
-		? [Exclude<Tags<Raised<E>>, Declared<TSpecs>>] extends [never]
-			? [Exclude<Declared<TSpecs>, Tags<Raised<E>>>] extends [never]
-				? [DifferentClasses<TSpecs, E>] extends [never]
-					? never
-					: RejectionClassDiffers<TName, DifferentClasses<TSpecs, E>>
-				: RejectionsRunNeverRaises<TName, Exclude<Declared<TSpecs>, Tags<Raised<E>>>>
-			: RunFailsOutsideRejections<TName, Exclude<Tags<Raised<E>>, Declared<TSpecs>>>
-		: RejectionAutomatic<TName, Extract<Declared<TSpecs>, AutomaticTags>>;
-
-type Problems<TName extends string, TSuccess, TSpecs, TReturn, E> = SuccessProblem<TName, TSuccess, TReturn> | RejectionProblem<TName, TSpecs, E>;
-
-export type SuccessSchema<TSuccess> = TSuccess extends Schema.Top ? TSuccess : Schema.Void;
 // A mapped type, unlike the Automatic interface, satisfies the index signature of RejectionSpecs.
 type Flat<T> = { readonly [TKey in keyof T]: T[TKey] };
 export type SpecsOf<TSpecs> = TSpecs extends ClassRejections ? Flat<TSpecs & Automatic> : Flat<Automatic>;
 
-// TypeScript checks the declaration once with run skipped, before it infers run's types; Pending is the default it sees then.
-export interface Pending {
-	readonly pendingInference: unique symbol;
-}
-
-type IsPending<TReturn> = [TReturn] extends [never] ? false : [TReturn] extends [Pending] ? true : false;
-
-export type RunCheck<TName extends string, TSuccess, TSpecs, TReturn, E> =
+export type RunCheck<TName extends string, TReturn> =
 	IsAny<TReturn> extends true
 		? { readonly operationProblem: RunReturnsAny<TName, "decode the value with a schema, or give run's return a type"> }
-		: IsPending<TReturn> extends true
-			? unknown
-			: [Problems<TName, TSuccess, TSpecs, TReturn, E>] extends [never]
-				? unknown
-				: { readonly operationProblem: Problems<TName, TSuccess, TSpecs, TReturn, E> };
+		: unknown;

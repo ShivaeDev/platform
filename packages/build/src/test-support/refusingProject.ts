@@ -2,11 +2,11 @@
 export const REFUSING_PROJECT: Readonly<Record<string, string>> = {
 	"lib/outside.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 
-export const Outside = defineModule({ name: "outside", operations: [], requires: [] });
+export const Outside = defineModule({ name: "outside", operations: [], requires: [], wire: {} });
 `,
 	"src/modules/refused/hidden.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 
-const Hidden = defineModule({ name: "hidden", operations: [], requires: [] });
+const Hidden = defineModule({ name: "hidden", operations: [], requires: [], wire: {} });
 `,
 	"src/modules/refused/keys.ts": `import { Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
@@ -215,6 +215,7 @@ export const Refused = defineModule({
 		RelativeReads,
 	],
 	requires: [],
+	wire: {},
 });
 `,
 	"src/modules/refused/shared.ts": `import { Brand, Data, Schema } from "effect";
@@ -247,8 +248,8 @@ export class Counter {
 `,
 	"src/modules/refused/twice.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 
-export const First = defineModule({ name: "first", operations: [], requires: [] });
-export const Second = defineModule({ name: "second", operations: [], requires: [] });
+export const First = defineModule({ name: "first", operations: [], requires: [], wire: {} });
+export const Second = defineModule({ name: "second", operations: [], requires: [], wire: {} });
 `,
 	"tsconfig.json": `{
 	"compilerOptions": { "customConditions": ["@shivaedev/source"], "types": [] },

@@ -9,7 +9,6 @@ const ImportTitle = command("importTitle", {
 		const source = yield* NoteSource;
 		return yield* source.title(id);
 	},
-	success: Schema.String,
 });
 
 const Whoami = command("whoami", {
@@ -17,11 +16,11 @@ const Whoami = command("whoami", {
 		const { id } = yield* SessionUser;
 		return id;
 	},
-	success: Schema.String,
 });
 
 defineModule({
 	name: "imports",
 	operations: [ImportTitle, Whoami],
 	requires: [SessionUser],
+	wire: { importTitle: { rejections: {}, success: Schema.String }, whoami: { rejections: {}, success: Schema.String } },
 });
