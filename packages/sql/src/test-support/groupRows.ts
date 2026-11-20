@@ -18,8 +18,8 @@ export const groupRows = Effect.fnUntraced(function* () {
 	yield* ownTable(sql, childTable, sql`id integer primary key, owner text not null, "runId" integer not null references ${sql(tableName)}(id)`);
 	const keys = collection(tableName, Schema.Int, { owner: Schema.String });
 	const childKeys = collection(childTable, Schema.Int, { owner: Schema.String, runId: Schema.Int });
-	const runs = yield* makeRepository(Run, { collection: keys, idColumn: "id", spanPrefix: "Run", tableName });
-	const children = yield* makeRepository(Child, { collection: childKeys, idColumn: "id", spanPrefix: "Child", tableName: childTable });
+	const runs = yield* makeRepository(Run, { collection: keys });
+	const children = yield* makeRepository(Child, { collection: childKeys });
 	function stored() {
 		return sql<{
 			readonly id: number;

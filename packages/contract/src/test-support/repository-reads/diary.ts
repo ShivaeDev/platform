@@ -17,9 +17,6 @@ const entries = collection("library_diary", Schema.Number, { ownerId: Schema.Str
 
 export const makeDiary = makeRepository(StoredDiaryEntry, {
 	collection: entries,
-	idColumn: "id",
-	spanPrefix: "LibraryDiary",
-	tableName: "library_diary",
 });
 
 export class Diary extends Context.Service<Diary, Effect.Success<typeof makeDiary>>()("@shivaedev/contract/test/Diary") {}
