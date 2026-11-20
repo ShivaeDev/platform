@@ -44,10 +44,11 @@ export function appAuth(options: {
 				const url = new URL(request.url);
 				requests.push(url);
 				if (url.pathname === "/api/auth/get-session") {
-					const answer = () =>
-						Response.json(sessionFailure ? { code: "UNAVAILABLE", message: "Session check unavailable" } : session, {
+					function answer() {
+						return Response.json(sessionFailure ? { code: "UNAVAILABLE", message: "Session check unavailable" } : session, {
 							status: sessionFailure ? HttpStatus.fromLiteral("InternalServerError") : HttpStatus.fromLiteral("OK"),
 						});
+					}
 					return options.sessionHeld ? new Promise((resolve) => heldChecks.push(() => resolve(answer()))) : Promise.resolve(answer());
 				}
 				if (url.pathname === "/api/auth/sign-in/email") {

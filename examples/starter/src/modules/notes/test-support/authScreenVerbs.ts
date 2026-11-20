@@ -44,14 +44,6 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				}
 				return engine.history.location.href;
 			}),
-		sessionCheckStatus: () => Effect.sync(() => (engine.view?.container.textContent.includes("Checking your session") ? "shown" : "not shown")),
-		releaseSessionCheck: () =>
-			Effect.promise(async () => {
-				tell("the held session check answers");
-				await act(async () => {
-					auth().releaseSessionCheck();
-				});
-			}),
 		recoverSessionCheck: () =>
 			Effect.sync(() => {
 				tell("the session check provider recovers");
@@ -73,6 +65,12 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				});
 				return outcome;
 			}),
+		releaseSessionCheck: () =>
+			Effect.promise(async () => {
+				tell("the held session check answers");
+				await act(() => Promise.resolve(auth().releaseSessionCheck()));
+			}),
+		sessionCheckStatus: () => Effect.sync(() => (engine.view?.container.textContent.includes("Checking your session") ? "shown" : "not shown")),
 		sessionChecks: () =>
 			Effect.sync(() => countWords(auth().requests.filter((url) => url.pathname === "/api/auth/get-session").length, "session check")),
 		signOutCalls: () => Effect.sync(() => countWords(engine.signOutCalls.length, "sign-out request")),

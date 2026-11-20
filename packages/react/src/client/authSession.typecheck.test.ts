@@ -38,10 +38,6 @@ const remembered = authSession(
 export const rememberedAtom: Atom.Atom<AsyncResult.AsyncResult<RememberedSession | null, Refused | AuthUnavailable>> = remembered.atom;
 // @ts-expect-error A remembered session carries only what the memory keeps, never the provider's token.
 export const rememberedToken = remembered.refresh.pipe(Effect.map((current) => current?.session.token));
+const unexpiring = readSession((_signal) => Promise.resolve<{ data: Session | null; error: null }>({ data: null, error: null }));
 // @ts-expect-error Remembering needs the provider's session id and expiry.
-export const withoutExpiry = authSession(
-	readSession((_signal) => Promise.resolve<{ data: Session | null; error: null }>({ data: null, error: null })),
-	{
-		remember: browserSessionMemory,
-	},
-);
+export const withoutExpiry = authSession(unexpiring, { remember: browserSessionMemory });
