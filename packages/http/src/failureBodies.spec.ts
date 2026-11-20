@@ -38,6 +38,10 @@ httpClient.it(
 for (const [body, excerpt] of [
 	['{"error":"invalid_grant","access_token":"tok-private"}', '{"error":"invalid_grant","access_token":"<redacted>"}'],
 	["credential Bearer tok-private was rejected", "credential Bearer <redacted> was rejected"],
+	[
+		String.raw`{"error":"upstream said {\"access_token\":\"tok-private\",\"detail\":\"expired\"}"}`,
+		String.raw`{"error":"upstream said {\"access_token\":\"<redacted>\",\"detail\":\"expired\"}"}`,
+	],
 ] as const) {
 	httpClient.it(
 		`a 400 explained as ${body} masks the secret in its failure excerpt`,

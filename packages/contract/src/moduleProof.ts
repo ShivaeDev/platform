@@ -1,18 +1,11 @@
 import type { Effect, Schema, Scope } from "effect";
 import type { RpcMiddleware } from "effect/rpc";
-import type { RequirementRecord, RequirementsOf } from "@shivaedev/service/ServiceRequirements.ts";
 import type { Duplicated } from "#declarationError.ts";
 import type { OperationShape } from "#operation.ts";
 import type { Raised } from "#runProof.ts";
 import type { SubjectDeclaration, SubjectProvides } from "#subject.ts";
 import type { WireEntry, WireEntryOf } from "#wire.ts";
 import type { RejectionsDiffer, SuccessDiffers } from "#wireProof.ts";
-
-export interface OperationNeedsUndeclaredServices<TOperation extends string, TMissing> {
-	readonly missingServices: TMissing;
-	readonly operation: TOperation;
-	readonly problem: "run or readPolicy uses services that the module's requires and middleware do not provide";
-}
 
 type Regenerate = "the generated file is stale; run pnpm generate";
 
@@ -51,8 +44,6 @@ type Returns<TOperation> = TOperation extends { readonly run: infer TRun extends
 type Tags<E> = E extends { readonly _tag: infer TTag } ? TTag : E;
 type NameOf<TOperation> = TOperation extends { readonly name: infer TName extends string } ? TName : string;
 
-type Missing<TOperation, TAllowed> = Exclude<Effect.Services<Parts<TOperation>>, TAllowed | Scope.Scope>;
-
 type WireProblem<TOperation, TEntry extends WireEntry> = [SuccessDiffers<TEntry["success"], Returns<TOperation>>] extends [never]
 	? [RejectionsDiffer<TEntry["rejections"], Effect.Error<Parts<TOperation>>>] extends [never]
 		? never
@@ -65,28 +56,29 @@ type EntryProblem<TOperation> = [SuccessDiffers<Schema.Void, Returns<TOperation>
 	? never
 	: OperationMissingFromWire<NameOf<TOperation>, Regenerate>;
 
-type OperationProblem<TOperation, TWire, TAllowed> = [Missing<TOperation, TAllowed>] extends [never]
-	? WireEntryOf<TWire, NameOf<TOperation>> extends infer TEntry extends WireEntry
-		? WireProblem<TOperation, TEntry>
-		: EntryProblem<TOperation>
-	: OperationNeedsUndeclaredServices<NameOf<TOperation>, Missing<TOperation, TAllowed>>;
+type OperationProblem<TOperation, TWire> =
+	WireEntryOf<TWire, NameOf<TOperation>> extends infer TEntry extends WireEntry ? WireProblem<TOperation, TEntry> : EntryProblem<TOperation>;
 
 type SubjectServices<TSubject> = TSubject extends SubjectDeclaration ? SubjectProvides<TSubject> : never;
 
-export type Allowed<TRequirements extends RequirementRecord, TMiddleware extends RpcMiddleware.AnyService, TSubject> =
-	| RequirementsOf<TRequirements>
-	| RpcMiddleware.Provides<TMiddleware["Identifier"]>
-	| SubjectServices<TSubject>;
+export type ModuleServices = { readonly [TOperation in string]: unknown };
 
-type Problems<TOperations extends readonly OperationShape[], TWire, TAllowed> =
-	| { readonly [TIndex in keyof TOperations]: OperationProblem<TOperations[TIndex], TWire, TAllowed> }[number]
+export type ModuleRequirements<TOperations extends readonly OperationShape[], TMiddleware extends RpcMiddleware.AnyService, TSubject> = {
+	readonly [TOperation in TOperations[number] as NameOf<TOperation>]: Exclude<
+		Effect.Services<Parts<TOperation>>,
+		RpcMiddleware.Provides<TMiddleware["Identifier"]> | SubjectServices<TSubject> | Scope.Scope
+	>;
+};
+
+type Problems<TOperations extends readonly OperationShape[], TWire> =
+	| { readonly [TIndex in keyof TOperations]: OperationProblem<TOperations[TIndex], TWire> }[number]
 	| (Duplicated<TOperations> extends infer TName extends string ? (TName extends string ? OperationNameRepeated<TName> : never) : never);
 
 // The proof sits on the module's name, so the first line of the compiler's message names the operation and its problem.
 // A definition without a wire leaves TWire at its constraint, whose index signature has every name; proving nothing then
 // lets the compiler's own error say that wire is missing.
-export type NameProof<TOperations extends readonly OperationShape[], TWire, TAllowed> = string extends keyof TWire
+export type NameProof<TOperations extends readonly OperationShape[], TWire> = string extends keyof TWire
 	? unknown
-	: [Problems<TOperations, TWire, TAllowed>] extends [never]
+	: [Problems<TOperations, TWire>] extends [never]
 		? unknown
-		: Problems<TOperations, TWire, TAllowed>;
+		: Problems<TOperations, TWire>;

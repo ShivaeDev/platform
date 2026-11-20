@@ -47,7 +47,7 @@ const Names = query("names", {
 	},
 });
 
-export const Tags = defineModule({ name: "tags", operations: [Names], requires: [], wire: tagsWire });
+export const Tags = defineModule({ name: "tags", operations: [Names], wire: tagsWire });
 `,
 };
 

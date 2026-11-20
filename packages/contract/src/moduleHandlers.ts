@@ -1,12 +1,12 @@
 import type { Layer } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { RequirementRecord, RequirementsOf } from "@shivaedev/service/ServiceRequirements.ts";
 import { servedHandlers } from "#adapters/servedHandlers.ts";
 import type { Declared } from "#contract.ts";
+import type { ModuleServices } from "#moduleProof.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 
 export interface AnyModule {
-	readonly "~requires": RequirementRecord;
+	readonly "~requires": ModuleServices;
 	readonly application: { readonly requests: ReadonlyMap<string, Rpc.Any> };
 	readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
 }
@@ -14,7 +14,7 @@ export interface AnyModule {
 export type ModuleHandlers<TModule extends AnyModule> = Layer.Layer<
 	Rpc.ToHandler<RpcGroup.Rpcs<TModule["application"]>>,
 	never,
-	RequirementsOf<TModule["~requires"]>
+	TModule["~requires"][keyof TModule["~requires"]]
 >;
 
 export function moduleHandlers<TModule extends AnyModule>(module: TModule): ModuleHandlers<TModule>;

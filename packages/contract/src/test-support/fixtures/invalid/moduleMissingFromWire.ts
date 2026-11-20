@@ -17,6 +17,5 @@ defineModule({
 	middleware: WireCaller,
 	name: "missingFromWire",
 	operations: [List, Count],
-	requires: [WireNotesStore],
 	wire: { list: wireNotesWire.list },
 });

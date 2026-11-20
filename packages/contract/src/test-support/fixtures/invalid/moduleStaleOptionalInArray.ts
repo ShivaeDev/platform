@@ -21,6 +21,5 @@ const Operation = query("listsPinnable", {
 defineModule({
 	name: "listsPinnable",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { listsPinnable: { rejections: {}, success: Schema.Array(Schema.Struct({ id: Schema.Number, title: Schema.String })) } },
 });

@@ -46,7 +46,6 @@ export const Notes = defineModule({
 	middleware: MaybeAuthenticated,
 	name: "notes",
 	operations: [Create, Get],
-	requires: [SqlClient.SqlClient],
 	wire: {
 		create: { rejections: { TitleTaken }, success: Schema.String },
 		get: { rejections: { NotFound }, success: Schema.String },

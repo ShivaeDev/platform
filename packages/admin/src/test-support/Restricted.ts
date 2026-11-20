@@ -19,6 +19,5 @@ export const Restricted = defineModule({
 	middleware: UsersPermission,
 	name: "admin.restricted",
 	operations: [Profile],
-	requires: [],
 	wire: adminRestrictedWire,
 });

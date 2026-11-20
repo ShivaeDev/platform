@@ -1,3 +1,4 @@
+import { MIGRATIONS_FOLDER } from "@shivaedev/sql/migration.ts";
 import { resourceModel, resourceModule } from "#resource/contract.ts";
 import { resourceKit } from "#resource/kit.ts";
 import type { ResourceNames } from "#resource/names.ts";
@@ -15,7 +16,7 @@ export function resourceFiles(names: ResourceNames, migration: string) {
 		[`${root}/server/Create.ts`]: resourceCreate(names),
 		[`${root}/server/List.ts`]: resourceList(names),
 		[`${root}/server/Repository.ts`]: resourceRepository(names),
-		[`${root}/server/migrations/${migration}_${names.table}.ts`]: resourceMigration(names),
+		[`${root}/server/${MIGRATIONS_FOLDER}/${migration}_${names.table}.ts`]: resourceMigration(names),
 		[`${root}/server/registration.ts`]: resourceRegistration(names),
 		[`${root}/server/lifecycle.spec.ts`]: resourceStory(names),
 		[`${root}/test-support/application.ts`]: resourceKit(names),

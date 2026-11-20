@@ -11,9 +11,8 @@ import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { notesWire } from "#generated/modules/notes/Notes.ts";
 import { Create } from "#modules/notes/server/Create.ts";
 import { List } from "#modules/notes/server/List.ts";
-import { NotesStore } from "#modules/notes/server/Store.ts";
 
-export const Notes = defineModule({ name: "notes", operations: [List, Create], requires: [NotesStore], wire: notesWire });
+export const Notes = defineModule({ name: "notes", operations: [List, Create], wire: notesWire });
 ```
 
 ```sh

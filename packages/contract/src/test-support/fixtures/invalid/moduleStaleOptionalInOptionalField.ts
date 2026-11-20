@@ -21,7 +21,6 @@ const Operation = query("featuresPinnable", {
 defineModule({
 	name: "featuresPinnable",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: {
 		featuresPinnable: {
 			rejections: {},

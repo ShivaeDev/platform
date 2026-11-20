@@ -93,14 +93,12 @@ import { NotesCaller } from "#modules/notes/model.ts";
 import { Recent } from "#modules/notes/recent.ts";
 import { Remove } from "#modules/notes/remove.ts";
 import { Stats } from "#modules/notes/stats.ts";
-import { NotesStore } from "#modules/notes/store.ts";
 import { Summary } from "#modules/notes/summary.ts";
 
 export const Notes = defineModule({
 	middleware: NotesCaller,
 	name: "notes",
 	operations: [List, Get, Create, Recent, Remove, Stats, Summary],
-	requires: [NotesStore],
 	wire: notesWire,
 });
 `,

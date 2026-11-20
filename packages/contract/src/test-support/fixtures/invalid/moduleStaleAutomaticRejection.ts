@@ -12,6 +12,5 @@ const Operation = command("listsAutomatic", {
 defineModule({
 	name: "listsAutomatic",
 	operations: [Operation],
-	requires: [],
 	wire: { listsAutomatic: { rejections: { ServiceUnavailable }, success: Schema.Never } },
 });

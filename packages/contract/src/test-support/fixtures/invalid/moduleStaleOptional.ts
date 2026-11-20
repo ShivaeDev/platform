@@ -22,6 +22,5 @@ const Latest = query("latest", {
 defineModule({
 	name: "staleOptional",
 	operations: [Latest],
-	requires: [WireNotesStore],
 	wire: { latest: { rejections: {}, success: Schema.Struct({ id: Schema.Number, title: Schema.String }) } },
 });
