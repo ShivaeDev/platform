@@ -9,6 +9,7 @@ import { userKeys } from "#users.ts";
 
 // Inside an application transaction the nested transact joins its commit; otherwise it is a transaction of its own after Better Auth's commit.
 // An announcement that fails must not fail an auth write that may already have committed.
+// A user change also announces the sessions list, which shows each session's user name and email.
 const announce = Effect.fnUntraced(function* (keys: readonly Key[]) {
 	const sql = yield* Effect.serviceOption(SqlClient.SqlClient);
 	const reactivity = yield* Effect.serviceOption(Reactivity.Reactivity);
@@ -23,17 +24,23 @@ const announce = Effect.fnUntraced(function* (keys: readonly Key[]) {
 	);
 });
 
-function userCreated({ id }: { readonly id: string }) {
-	return announce([userKeys.item(id)]);
+type Row = { readonly id: string } | null;
+
+// Better Auth hands an update's after hook null when the update matched no row, as when a refreshing session was deleted meanwhile.
+function announceRow(row: Row, keys: (id: string) => readonly Key[]) {
+	return row === null ? Effect.void : announce(keys(row.id));
 }
 
-// The sessions list shows each session's user name and email, and loses the sessions of a deleted user.
-function userChanged({ id }: { readonly id: string }) {
-	return announce([userKeys.item(id), sessionKeys.list]);
+function userCreated(user: Row) {
+	return announceRow(user, (id) => [userKeys.item(id)]);
 }
 
-function sessionChanged({ id }: { readonly id: string }) {
-	return announce([sessionKeys.item(id)]);
+function userChanged(user: Row) {
+	return announceRow(user, (id) => [userKeys.item(id), sessionKeys.list]);
+}
+
+function sessionChanged(session: Row) {
+	return announceRow(session, (id) => [sessionKeys.item(id)]);
 }
 
 export const changeHooks: BetterAuthDatabaseHooks = {

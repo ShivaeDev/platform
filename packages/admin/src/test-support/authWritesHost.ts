@@ -31,7 +31,6 @@ const authOptions = {
 	logger: { disabled: true },
 	secret: "admin-auth-writes-story-secret-at-least-32-characters",
 	session: { cookieCache: { enabled: false } },
-	user: { changeEmail: { enabled: true } },
 };
 const viewer = { email: "admin@app.test", id: "admin", name: "admin", role: "admin" };
 

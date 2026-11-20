@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Data, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -13,6 +13,8 @@ import { postgresConfigured, postgresLayer } from "#test/jobsEngine.ts";
 type Engine = Effect.Success<typeof authWritesHost>;
 type List = "sessions" | "users";
 
+class AuthCallRefused extends Data.TaggedError("AuthCallRefused")<{ readonly message: string }> {}
+
 const authCall = Effect.fnUntraced(function* (engine: Engine, person: string, path: string, body: object) {
 	const response = yield* Effect.promise(() =>
 		fetch(`${engine.baseUrl}/api/auth/${path}`, {
@@ -21,7 +23,10 @@ const authCall = Effect.fnUntraced(function* (engine: Engine, person: string, pa
 			method: "POST",
 		}),
 	);
-	yield* Effect.promise(() => response.text());
+	const text = yield* Effect.promise(() => response.text());
+	if (!response.ok) {
+		return yield* new AuthCallRefused({ message: `Better Auth answered ${path} with HTTP ${response.status}: ${text}` });
+	}
 	const cookie = response.headers
 		.getSetCookie()
 		.map((value) => value.split(";")[0])
@@ -29,7 +34,6 @@ const authCall = Effect.fnUntraced(function* (engine: Engine, person: string, pa
 	if (cookie !== "") {
 		engine.cookies.set(person, cookie);
 	}
-	return response.status;
 });
 
 function credentials(person: string) {
@@ -56,7 +60,7 @@ export const authWritesStory = storyKit({
 	stages: ["accounts", "page"],
 	verbs: (engine, story) => {
 		const before = new Map<List, unknown>();
-		function writes(line: string, write: Effect.Effect<number>) {
+		function writes(line: string, write: Effect.Effect<void, AuthCallRefused>) {
 			story.tell(line);
 			for (const list of ["users", "sessions"] as const) {
 				before.set(list, engine.registry.get(atomOf(engine, list)));

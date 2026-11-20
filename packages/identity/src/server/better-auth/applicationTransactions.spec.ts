@@ -1,7 +1,12 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { applicationAuthTransactions, refusingAccountHook, transactionLocalAuth } from "#test/better-auth/applicationTransactions.ts";
+import {
+	applicationAuthTransactions,
+	refusingAccountHook,
+	signOutDuringRefresh,
+	transactionLocalAuth,
+} from "#test/better-auth/applicationTransactions.ts";
 
 applicationAuthTransactions.it(
 	"a startup adapter keeps and announces alice's auth write after a later application transaction rolls back",
@@ -56,3 +61,19 @@ for (const outcome of ["commit", "rollback"] as const) {
 		},
 	);
 }
+
+applicationAuthTransactions.it(
+	"a session refresh that loses its row to a sign-out elsewhere gets Better Auth's own refusal and still runs the application's hook",
+	[signOutDuringRefresh],
+	function* ({ announcedLists, refreshAlice, signUpAlice, storedHookWrites }) {
+		expect(yield* signUpAlice()).toMatchObject({ status: 200 });
+
+		const refreshed = yield* refreshAlice();
+
+		yield* outcomes([
+			["refresh response", () => Effect.succeed(refreshed), { cookie: "cleared", status: 401 }],
+			["announced lists", () => announcedLists(), []],
+			["stored hook writes", () => storedHookWrites(), [{ kind: "after session update" }, { kind: "after user" }, { kind: "before account" }]],
+		]);
+	},
+);
