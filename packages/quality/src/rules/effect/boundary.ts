@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import { isPackageRootConfig } from "#imports/isTooling.ts";
 import { packageOf, type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type RuleInputs, type SourceFile } from "#rule.ts";
 import { boundaryFindings } from "#rules/effect/boundaryFindings.ts";
 import { moduleBinder } from "#rules/effect/boundaryReference.ts";
@@ -12,7 +13,7 @@ function groupsOf(inputs: RuleInputs, packages: readonly WorkspacePackage[]): re
 	const groups = new Map<string, SourceFile[]>();
 	for (const source of inputs.sources) {
 		if (
-			/(?:^|\/)(?:adapters|test-support)\//u.test(source.path)
+			inAdaptersOrTestSupport(source.path)
 			|| !/\.[cm]?[jt]sx?$/u.test(source.path)
 			|| isPackageRootConfig(packageOf(packages, source.path)?.directory ?? ".", source.path)
 		) {
@@ -97,7 +98,7 @@ export const effectBoundary = defineRule({
 	check: syntaxHalf,
 	deepHalf: { check: typedHalf, name: "typed half" },
 	description:
-		"Use Effect instead of Promise syntax and parameters, Effect.promise or Effect.tryPromise bridges to an imported outside library, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; move what a library forces into a module under adapters/ that returns an Effect. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, Effect.promise or Effect.tryPromise bridges to an imported outside library, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners (Effect.run*, ManagedRuntime.make, Runtime.makeRunMain, the FiberSet, FiberMap and FiberHandle runtimes and runMain) belong at entry points (including main.tsx and entry.tsx, a top-level runMain and the import.meta.main and import.meta.url === process.argv[1] guards), tool configs and tests; a runMain inside a function or an export is reported. Within Effect code, adapters/ and test-support/ folders and tool configs directly in a package's folder, which their tool loads from that fixed path, are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; move what a library forces into a module under adapters/ that returns an Effect. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });

@@ -8,6 +8,7 @@ for (const marker of [
 	'import * as NodeRuntime from "@effect/platform-node/NodeRuntime"; NodeRuntime.runMain(work);',
 	"runMain(work);",
 	'import { fileURLToPath } from "node:url"; if (fileURLToPath(import.meta.url) === process.argv[1]) { start(); }',
+	"if (import.meta.main) { start(); }",
 ]) {
 	ruleStory.it(
 		`effect/boundary accepts a runner in an entry module using ${marker}`,
@@ -62,3 +63,63 @@ ruleStory.it(
 		yield* assertThat(findings, (actual) => actual.toEqual([usesAt("src/client/entry.tsx", 3, "throw statement")]));
 	},
 );
+
+const RUNTIMES = [
+	["ManagedRuntime.make(layer)", "effect.ManagedRuntime.make"],
+	["Runtime.makeRunMain(start)", "effect.Runtime.makeRunMain"],
+	...["FiberSet", "FiberMap", "FiberHandle"].flatMap((module) =>
+		["makeRuntime", "makeRuntimePromise", "runtime", "runtimePromise"].map((name) => [`${module}.${name}()`, `effect.${module}.${name}`] as const),
+	),
+	["fiberRuntime()", "effect/FiberSet.makeRuntime"],
+] as const;
+
+const RUNTIME_MODULE = `import { FiberHandle, FiberMap, FiberSet, ManagedRuntime, Runtime } from "effect";
+import { makeRuntime as fiberRuntime } from "effect/FiberSet";
+export const runtimes = [
+${RUNTIMES.map(([call]) => `\t${call},`).join("\n")}
+];
+`;
+
+ruleStory.it(
+	"effect/boundary reports each runtime constructor, imported or aliased, in core and accepts them under adapters/",
+	[repositoryHas({ content: RUNTIME_MODULE, path: "src/runtimes.ts" }, { content: RUNTIME_MODULE, path: "src/adapters/runtimes.ts" })],
+	function* ({ check }) {
+		const findings = yield* check(effectBoundary);
+
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual(RUNTIMES.map(([, reference], index) => usesAt("src/runtimes.ts", index + 4, `${reference} outside an entry point`))),
+		);
+	},
+	CLI_TIMEOUT,
+);
+
+for (const [form, helper, line] of [
+	["an exported function", "export function start() {\n\tNodeRuntime.runMain(work);\n}", 5],
+	["an exported curried runMain", "export const start = NodeRuntime.runMain({ disableErrorReporting: true });", 4],
+	[
+		"an exported function calling an imported runMain",
+		'import { runMain } from "@effect/platform-node/NodeRuntime";\nexport const start = () => runMain(work);',
+		5,
+	],
+] as const) {
+	ruleStory.it(
+		`effect/boundary reports a runMain that ${form} hides and the Effect runner beside it`,
+		[
+			repositoryHas({
+				content: `import * as NodeRuntime from "@effect/platform-node/NodeRuntime";\nimport { Effect } from "effect";\nexport const result = Effect.runSync(work);\n${helper}\n`,
+				path: "src/start.ts",
+			}),
+		],
+		function* ({ check }) {
+			const findings = yield* check(effectBoundary);
+
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					usesAt("src/start.ts", 3, "effect.Effect.runSync outside an entry point"),
+					usesAt("src/start.ts", line, "@effect/platform-node/NodeRuntime.runMain outside an entry point"),
+				]),
+			);
+		},
+		CLI_TIMEOUT,
+	);
+}

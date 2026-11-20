@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { inAdaptersOrTestSupport } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
 import { packageFindings } from "#rules/packageFindings.ts";
 import { parse } from "#rules/parse.ts";
@@ -27,7 +28,7 @@ function bridgeOf(node: Assertion): string | undefined {
 
 function castsIn(path: string, source: ts.SourceFile): readonly Finding[] {
 	const findings: Finding[] = [];
-	const hidden = !/(?:^|\/)(?:adapters|test-support)\//u.test(path);
+	const hidden = !inAdaptersOrTestSupport(path);
 	function visit(node: ts.Node): void {
 		const bridge = isAssertion(node) ? bridgeOf(node) : undefined;
 		const implicit = hidden ? hiddenCast(node) : undefined;

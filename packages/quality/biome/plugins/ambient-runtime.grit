@@ -42,6 +42,8 @@ or {
 			`crypto.randomUUID($...)` as $match,
 			`globalThis.crypto.randomUUID($...)` as $match,
 			`globalThis.crypto.randomBytes($...)` as $match,
+			`crypto.getRandomValues($...)` as $match,
+			`globalThis.crypto.getRandomValues($...)` as $match,
 			`randomUUID($...)` as $match,
 			`randomBytes($...)` as $match
 		} where { $message = "Ambient cryptographic randomness is banned. Read secure values through Effect's SecureRandom service from effect/crypto." },
@@ -67,20 +69,50 @@ or {
 		},
 		`globalThis.process.env` as $match where { $message = "Global process.env is banned. Read configuration through Effect's Config service." },
 		or {
-			`setTimeout($...)` as $match,
-			`queueMicrotask($...)` as $match,
-			`globalThis.setTimeout($...)` as $match,
-			`globalThis.queueMicrotask($...)` as $match
+			`globalThis.$scheduler($...)` as $match,
+			`window.$scheduler($...)` as $match,
+			`$scheduler($...)` as $match
 		} where {
+			$scheduler <: r"^(?:setTimeout|clearTimeout|setInterval|clearInterval|queueMicrotask|requestAnimationFrame|cancelAnimationFrame|requestIdleCallback|cancelIdleCallback)$",
 			$message = "Ambient scheduling is banned. Use Effect's sleep, scheduling and fibers in the current runtime; bridge callback APIs in adapters/."
 		}
 	} where {
 		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|(?:^|.*[/\\])(?:cli|main|entry|.*-cli)\.[cm]?[jt]sx?$|.*\.(?:config|test|spec)\.[cm]?[jt]sx?$",
 		! $program <: contains or {
-			`NodeRuntime.runMain`,
-			`runMain($...)`,
-			`fileURLToPath(import.meta.url) === process.argv[1]`
+			or {
+				`NodeRuntime.runMain`,
+				`runMain($...)`
+			} as $entry where {
+				! $entry <: within or {
+					JsFunctionDeclaration(),
+					JsFunctionExpression(),
+					JsArrowFunctionExpression(),
+					JsMethodObjectMember(),
+					JsMethodClassMember(),
+					JsExport()
+				}
+			},
+			`fileURLToPath(import.meta.url) === process.argv[1]`,
+			`import.meta.main`
 		},
 		register_diagnostic(span=$match, message=$message)
+	},
+	or {
+		`$name` as $match where {
+			$match <: JsIdentifierExpression(),
+			$name <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$",
+			! $program <: contains JsIdentifierBinding() as $binding where { $binding <: $name }
+		},
+		`$global.$name` as $match where {
+			$global <: or {
+				`globalThis`,
+				`window`,
+				`self`
+			},
+			$name <: r"^(?:fetch|localStorage|sessionStorage|indexedDB|WebSocket|EventSource|Worker|SharedWorker)$"
+		}
+	} where {
+		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|.*\.(?:test|spec)\.[cm]?[jt]sx?$",
+		register_diagnostic(span=$match, message="Browser I/O globals are banned outside adapters/: they reach the host outside Effect. Send HTTP requests through Effect's HttpClient; bridge storage, sockets and workers in an adapters/ module that returns an Effect.")
 	}
 }

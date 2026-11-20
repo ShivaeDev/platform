@@ -97,6 +97,24 @@ for (const [path, content] of [
 }
 
 ruleStory.it(
+	"effect/adapter-imports reports node:process in a module whose runMain sits in an exported function",
+	[
+		repositoryHas(
+			{ content: "{}", path: "package.json" },
+			{
+				content: `import process from "node:process";\n${COMMAND}export function start() {\n\tNodeRuntime.runMain(plan);\n}\n`,
+				path: "src/start.ts",
+			},
+		),
+	],
+	function* ({ check, locations }) {
+		yield* check(adapterImports);
+
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/start.ts:1"]));
+	},
+);
+
+ruleStory.it(
 	"effect/adapter-imports reports node:fs in an entry and node:process in a module that is not an entry or in a spec",
 	[
 		repositoryHas(
