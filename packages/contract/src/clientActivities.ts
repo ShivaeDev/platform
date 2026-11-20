@@ -9,7 +9,7 @@ type ActivityTracker = ReturnType<typeof makeActivity>;
 export const clientActivities = new WeakMap<object, ActivityTracker>();
 
 export function makeActivity(factory: Atom.RuntimeFactory) {
-	const { activity, answered, change, hold, setConnection } = activityState();
+	const { activity, answered, change, hold, setConnection, warming } = activityState();
 	const connection = clientConnection(factory, setConnection, activity);
 	function begin(key: "rpcCalls" | "commands" | "unreflectedCommands") {
 		change(key, 1);
@@ -29,21 +29,22 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 			(end) => Effect.sync(end),
 		);
 	}
-	function counter(key: "initialQueries" | "refreshingAtoms") {
+	function counter(apply: (delta: number) => void) {
 		let pending = false;
 		function set(next: boolean) {
 			if (pending !== next) {
 				pending = next;
-				change(key, next ? 1 : -1);
+				apply(next ? 1 : -1);
 			}
 		}
 		return { release: () => set(false), set };
 	}
-	function watch<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) {
+	function watch<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, warm: (get: Atom.AtomContext) => boolean) {
 		const watched = wrapAtom(atom, (get) => {
 			get.mount(connection.status);
-			const refreshing = counter("refreshingAtoms");
-			const initial = counter("initialQueries");
+			const refreshing = counter((delta) => change("refreshingAtoms", delta));
+			const initial = counter((delta) => change("initialQueries", delta));
+			const warmInitial = counter(warming);
 			let received = false;
 			let active = true;
 			let published = false;
@@ -54,6 +55,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 				const first = !(received || AsyncResult.isInitial(result));
 				received ||= first;
 				initial.set(!received);
+				warmInitial.set(!received && warm(get));
 				refreshing.set(result.waiting || AsyncResult.isInitial(result));
 				if (first) {
 					answered();
@@ -62,6 +64,7 @@ export function makeActivity(factory: Atom.RuntimeFactory) {
 			get.addFinalizer(() => {
 				active = false;
 				refreshing.release();
+				warmInitial.release();
 				initial.release();
 			});
 			function publish(result: AsyncResult.AsyncResult<A, E>) {

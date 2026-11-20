@@ -25,6 +25,7 @@ export interface SessionBoundaryProps<TSession, TClient> {
 	readonly session: TSession | undefined;
 	readonly signedOut?: ReactNode;
 	readonly signOut?: Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>> | undefined;
+	readonly warm?: ((client: TClient) => readonly Atom.Atom<unknown>[]) | undefined;
 }
 export function useSessionRecheck(): () => void {
 	return useContext(RecheckContext);
@@ -40,6 +41,7 @@ export function SessionBoundary<TSession, TClient>({
 	signOut,
 	redirectTo,
 	navigate,
+	warm,
 	children,
 }: SessionBoundaryProps<TSession, TClient>): ReactNode {
 	const registry = useContext(RegistryContext);
@@ -56,6 +58,7 @@ export function SessionBoundary<TSession, TClient>({
 		queryRetention,
 		recheck: retry,
 		session,
+		warm,
 	});
 	return createElement(
 		SignOutRegistryContext.Provider,

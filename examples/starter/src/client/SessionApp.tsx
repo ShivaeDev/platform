@@ -56,6 +56,7 @@ export function SessionApp({
 			session={userId === undefined ? undefined : { id: userId }}
 			signedOut={<SignedOutApp auth={auth} connection={connection} history={history} recheck={recheck} />}
 			signOut={auth.signOut}
+			warm={(client) => client.modules.flatMap((module) => module.warm ?? [])}
 		>
 			{(client) => <RoutedApp auth={auth} client={client} history={history} recheck={recheck} session={session} />}
 		</SessionConnectionBoundary>

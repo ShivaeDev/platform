@@ -20,19 +20,28 @@ export const openClient = Effect.gen(function* () {
 	const requests = yield* Queue.unbounded<Deferred.Deferred<string>>();
 	const closed = yield* Queue.unbounded<void>();
 	const reads: string[] = [];
+	const subscriptions = { open: 0 };
 	const handlers = Notes.toLayer({
 		"recentNotes.$changes": ({ queries }) =>
 			Stream.fromEffect(
 				Effect.gen(function* () {
+					subscriptions.open += 1;
 					reads.push(queries[0]?.payload.id ?? "missing id");
 					const reply = yield* Deferred.make<string>();
 					yield* Queue.offer(requests, reply);
 					return { _tag: "Result" as const, query: "get" as const, queryIndex: 0, value: yield* Deferred.await(reply) };
 				}),
-			).pipe(Stream.concat(Stream.never), Stream.ensuring(Queue.offer(closed, undefined))),
+			).pipe(
+				Stream.concat(Stream.never),
+				Stream.ensuring(
+					Effect.sync(() => {
+						subscriptions.open -= 1;
+					}).pipe(Effect.andThen(Queue.offer(closed, undefined))),
+				),
+			),
 		"recentNotes.get": () => Effect.die("Live queries receive their first result on the subscription"),
 	});
 	const transport = yield* Layer.build(layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)));
 	const client = makeClient(Notes, { protocol: Layer.succeedContext(transport), runtime: yield* storyRuntime, url: "memory://recent-notes" });
-	return { client, closed, reads, requests };
+	return { client, closed, reads, requests, subscriptions };
 });
