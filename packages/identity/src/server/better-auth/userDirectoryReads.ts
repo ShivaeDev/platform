@@ -50,7 +50,7 @@ export const userDirectoryReads = Effect.fnUntraced(function* <TRole extends str
 		names: (ids: readonly string[]) => (ids.length === 0 ? Effect.succeed([]) : readNames(ids).pipe(Effect.mapError(unavailable))),
 		role: Effect.fn("UserDirectory.role")(function* (id: string) {
 			const found = yield* readRole(id).pipe(Effect.mapError(unavailable));
-			return Option.isSome(found) ? found.value.role : yield* new NotFound({ message: "User not found" });
+			return Option.isSome(found) ? found.value.role : yield* new NotFound({ message: "This user no longer exists." });
 		}),
 	};
 });

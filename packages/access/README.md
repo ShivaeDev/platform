@@ -57,7 +57,7 @@ const decodeRole = Schema.decodeUnknownEffect(Access.Role);
 
 ### Check grants and enforce actions
 
-`Access.hasPermission(role, permission)` evaluates the role's grants. The standalone `hasPermission(grants, permission)` from `@shivaedev/access/permission.ts` evaluates resolved grants with the same rule. `requirePermission(user, permission)` from `@shivaedev/access/requirePermission.ts` enforces it for a signed-in user carrying `permissions`; missing grants fail with `Forbidden`. The session boundary authenticates the user before this check. `forbidden(permission)` and `unauthorized()` from `@shivaedev/access/refusal.ts` construct these shared failures from `@shivaedev/errors/taxonomy.ts`.
+`Access.hasPermission(role, permission)` evaluates the role's grants. The standalone `hasPermission(grants, permission)` from `@shivaedev/access/permission.ts` evaluates resolved grants with the same rule. `requirePermission(user, permission)` from `@shivaedev/access/requirePermission.ts` enforces it for a signed-in user carrying `permissions`; missing grants fail with `Forbidden`. The session boundary authenticates the user before this check. `forbidden(permission)` and `unauthorized()` from `@shivaedev/access/refusal.ts` construct these shared failures from `@shivaedev/errors/taxonomy.ts`. Their messages are written for the person using the application, `You do not have permission to do this.` and `Sign in to continue`, because the client shows them as they arrive. A `Forbidden` from `forbidden(permission)` carries a `MissingPermission` as its `cause`, whose `permission` names the grant that was missing, for logs and for code.
 
 ```ts
 import { requirePermission } from "@shivaedev/access/requirePermission.ts";

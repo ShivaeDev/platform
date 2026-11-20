@@ -46,6 +46,6 @@ export const revokeSession = Effect.fn("Identity.revokeSession")(function* (id: 
 	});
 	const removed = yield* remove(id).pipe(Effect.mapError(unavailable));
 	if (Option.isNone(removed)) {
-		return yield* new NotFound({ message: "Session not found" });
+		return yield* new NotFound({ message: "This session has already ended." });
 	}
 });

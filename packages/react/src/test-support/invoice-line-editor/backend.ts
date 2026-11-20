@@ -119,7 +119,7 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	const guard = Layer.succeed(Guard, (effect) =>
 		Effect.suspend(() =>
 			control.mode === "unauthorized"
-				? Effect.fail(new Unauthorized({ message: "Authentication required" }))
+				? Effect.fail(new Unauthorized({ message: "Sign in to continue" }))
 				: Effect.provideService(effect, Principal, { user: "ada" }),
 		),
 	);

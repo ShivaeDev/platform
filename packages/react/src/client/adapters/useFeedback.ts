@@ -16,12 +16,18 @@ function noField(): undefined {
 }
 
 // An operation's owner presents each settled invocation once, so a failure reaches the screen or the failure host once however many
-// components read the same result.
+// components read the same result. Its later success means the problem is solved, so the failure notices it published go.
 export function useFeedback<R, E>(runtime: Atom.AtomRuntime<R, E> | undefined) {
 	const store = useContext(NoticeContext);
 	const host = useContext(FailureHostContext);
-	return useMemo(
-		() => ({
+	return useMemo(() => {
+		const published: (() => void)[] = [];
+		function track(dismiss: (() => void) | undefined) {
+			if (dismiss) {
+				published.push(dismiss);
+			}
+		}
+		return {
 			failed: (
 				cause: Cause.Cause<unknown>,
 				input: unknown,
@@ -31,20 +37,26 @@ export function useFeedback<R, E>(runtime: Atom.AtomRuntime<R, E> | undefined) {
 				const error = Cause.findErrorOption(cause);
 				if (Option.isNone(error)) {
 					if (Cause.hasDies(cause) && !choices.silent) {
-						host?.(unexpectedFailure(cause));
+						track(host?.(unexpectedFailure(cause)));
 					}
 					return nothing;
 				}
 				const decision = decide<R>(error.value, input, choices, field);
 				if (decision._tag === "notice" && runtime) {
-					publishNotice(store, runtime, decision.descriptor, "rejection");
+					track(publishNotice(store, runtime, decision.descriptor, "rejection"));
 				} else if (decision._tag === "unexpected") {
-					host?.(unexpectedFailure(cause));
+					track(host?.(unexpectedFailure(cause)));
 				}
 				return decision;
 			},
-			succeeded: (descriptor: NoticeDescriptor<R> | undefined) => runtime && publishNotice(store, runtime, descriptor, "success"),
-		}),
-		[host, runtime, store],
-	);
+			succeeded: (descriptor: NoticeDescriptor<R> | undefined) => {
+				for (const dismiss of published.splice(0)) {
+					dismiss();
+				}
+				if (runtime) {
+					publishNotice(store, runtime, descriptor, "success");
+				}
+			},
+		};
+	}, [host, runtime, store]);
 }

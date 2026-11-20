@@ -467,6 +467,8 @@ A bound command given to `useAction`, `usePendingCommand` or `useUndoableChange`
 - A rejection the app declared for itself has no default. The call does not compile until `failures` says what it shows.
 - Interrupted work shows nothing.
 
+The framework words every shared rejection it raises for the person using the application, so its message shows as it arrives: a missing session says `Sign in to continue` and a missing permission `You do not have permission to do this.`, with no `failures` handler to undo developer wording. When the same hook's command or save later succeeds, the failure notices it published go without Dismiss; a notice nobody resolves stays until dismissed or expired.
+
 `failureKind` from `@shivaedev/contract/failureKind.ts` holds that classification, `AppRejection<E>` names the app's own rejections in an error type, and `RequestRejection` and `ServerFailure` in `@shivaedev/errors/taxonomy.ts` name the shared ones.
 
 ```tsx

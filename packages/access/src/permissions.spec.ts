@@ -25,6 +25,14 @@ accessStory.it("grant enforcement answers alice as a reader with forbidden for r
 });
 
 accessStory.it(
+	"a refused grant tells alice she lacks permission and names roles.assign only in its cause",
+	[signedIn("reader")],
+	function* ({ refusalOf }) {
+		expect(yield* refusalOf(AssignRoles)).toEqual(["You do not have permission to do this.", "roles.assign"]);
+	},
+);
+
+accessStory.it(
 	"alice as a reader, in a role set that repeats reader under a name the compiler cannot check, is shown, allowed and resolved to the first declaration's grants alone",
 	[readerDeclaredTwice(), signedIn("reader")],
 	function* ({ allowedGrants, resolvedGrants, shownGrants }) {

@@ -33,7 +33,7 @@ export const postgresStore = Layer.effect(Store)(
 					if (entry === undefined) {
 						return yield* Effect.die(new Error("Rate limit window disappeared while locked"));
 					}
-					return yield* new TooManyRequests({ key, message: "Rate limit exceeded", retryAt: entry.expiresAt });
+					return yield* new TooManyRequests({ key, message: "Too many attempts. Wait a moment and try again.", retryAt: entry.expiresAt });
 				}).pipe(
 					transact({ onSqlError: (cause) => new StoreError({ cause }) }),
 					Effect.provideService(SqlClient.SqlClient, sql),

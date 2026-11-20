@@ -23,6 +23,9 @@ type Control =
 	| "Rename with a quiet handler"
 	| "Rename during an outage"
 	| "Rename with undo"
+	| "Rename held by an outage"
+	| "Hide drafts"
+	| "Show drafts"
 	| "Save form"
 	| "Save with a dying server";
 
@@ -64,6 +67,18 @@ export const failures = storyKit(
 			note: () => Effect.sync(() => texts(state, "[data-note], [role='alert']:not([data-notice]), [role='status']:not([data-notice])")),
 			// A notice's own paragraph holds its words; the buttons beside it are the host's.
 			notices: () => Effect.sync(() => texts(state, "[data-notice] > p")),
+			outageAnswersHeldRename: () =>
+				Effect.gen(function* () {
+					yield* screen.act("the server answers the held rename with ServiceUnavailable", () =>
+						Deferred.doneUnsafe(state.current.client.server.heldOutage, Effect.void),
+					);
+					yield* settleScreen(container(state), () => busy(state), screen.tell);
+				}),
+			outageEnds: () =>
+				Effect.sync(() => {
+					screen.tell("the outage is over");
+					state.current.client.server.outage = "over";
+				}),
 			outageIs: (outage: Outage) =>
 				Effect.sync(() => {
 					screen.tell(`the server is out with ${outage}`);

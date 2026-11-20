@@ -7,6 +7,7 @@ import { AuthenticatedUser } from "#middleware.ts";
 import type { OriginPolicy } from "#server/origin.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer, type UserSessionShape } from "#server/session.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
 const Seen = Schema.Record(Schema.String, Schema.Unknown);
 
@@ -41,9 +42,11 @@ function refusal(error: unknown) {
 
 interface State {
 	answer?: unknown;
+	callerOrigin?: string;
 	readonly connection: { current?: Effect.Success<ReturnType<typeof openProfile>> };
 	lookups: number;
 	origin: OriginPolicy;
+	readonly recorded: ReturnType<typeof recorder>;
 	session?: Effect.Effect<Option.Option<UserSessionShape>, AuthUnavailable>;
 }
 
@@ -60,22 +63,26 @@ function storySession(state: State) {
 export const profile = storyKit({
 	after: {
 		*policy(state) {
-			state.connection.current = yield* openProfile({ origin: state.origin, provider: { get: () => storySession(state) } });
+			state.connection.current = yield* openProfile({ origin: state.origin, provider: { get: () => storySession(state) } }).pipe(
+				Effect.provide(state.recorded.layer),
+			);
 		},
 	},
-	create: (): State => ({ connection: {}, lookups: 0, origin: () => true }),
+	create: (): State => ({ connection: {}, lookups: 0, origin: () => true, recorded: recorder() }),
 	name: "RPC profile",
 	stages: ["policy"],
 	verbs: (state, story) => ({
 		answer: () => Effect.sync(() => state.answer),
 		sessionLookups: () => Effect.sync(() => state.lookups),
+		warnings: () => Effect.sync(() => state.recorded.logs.filter((log) => log.level === "Warn").map((log) => log.message)),
 		whoami: () => {
 			story.tell("the caller asks a handler what it sees of them");
 			const connection = state.connection.current;
 			if (connection === undefined) {
 				throw new Error("The profile client has not been started");
 			}
-			return connection.client.Whoami().pipe(
+			const headers = state.callerOrigin === undefined ? undefined : { headers: { origin: state.callerOrigin } };
+			return connection.client.Whoami(undefined, headers).pipe(
 				Effect.catch((error) => Effect.succeed(refusal(error))),
 				Effect.tap((answer) =>
 					Effect.sync(() => {
@@ -94,9 +101,14 @@ export const aliceSignedIn = profile.trait("policy", "alice is signed in, and th
 export const signedOut = profile.trait("policy", "nobody is signed in", (state) => {
 	state.session = Effect.succeed(Option.none());
 });
-export const originForbidden = profile.trait("policy", "the origin policy forbids the request", (state) => {
-	state.origin = () => false;
-});
+export const originForbidden = profile.trait(
+	"policy",
+	"the caller comes from https://elsewhere.example, which the origin policy forbids",
+	(state) => {
+		state.callerOrigin = "https://elsewhere.example";
+		state.origin = () => false;
+	},
+);
 export const providerOutage = profile.trait("policy", "the session provider is unavailable", (state) => {
 	state.session = Effect.fail(new AuthUnavailable({ message: "Unavailable" }));
 });

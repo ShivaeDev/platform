@@ -14,14 +14,23 @@ profile.it(
 );
 
 profile.it(
-	"a forbidden origin is refused before the session provider is asked",
+	"a forbidden origin is refused before the session provider is asked, with a warning that names the origin",
 	[aliceSignedIn, originForbidden],
-	function* ({ answer, sessionLookups, whoami }) {
+	function* ({ answer, sessionLookups, warnings, whoami }) {
 		yield* whoami();
 
 		yield* outcomes([
 			["answer", () => answer(), "forbidden"],
 			["session lookups", () => sessionLookups(), 0],
+			[
+				"warnings",
+				() => warnings(),
+				[
+					[
+						"The session policy refused origin https://elsewhere.example calling Whoami. Add the origin to the policy's trusted origins if the application is served from it.",
+					],
+				],
+			],
 		]);
 	},
 );

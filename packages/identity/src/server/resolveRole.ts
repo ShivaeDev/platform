@@ -8,7 +8,7 @@ export function resolveRole(roles: RoleSet, stored: unknown) {
 			Effect.logWarning(
 				"Stored user role is missing. Generate and apply an auth migration with defaultRole, then use assignRole for administrators.",
 			),
-			Effect.fail(new Forbidden({ message: "User role is missing" })),
+			Effect.fail(new Forbidden({ message: "Your account has no role yet. Ask an administrator to assign one." })),
 		);
 	}
 	return roles.resolve(stored).pipe(

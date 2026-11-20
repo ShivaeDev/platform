@@ -77,9 +77,7 @@ export function NoticeHost({
 	const report = useMemo(
 		() => (unexpected: UnexpectedFailure) => {
 			const descriptor = wordingRef.current(unexpected);
-			if (descriptor !== "silent") {
-				store.publish(descriptor, "failure");
-			}
+			return descriptor === "silent" ? undefined : store.publish(descriptor, "failure");
 		},
 		[store],
 	);
