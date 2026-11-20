@@ -54,6 +54,7 @@ export default [
 					"packages/changes/src/syncToken.ts",
 					"packages/jobs/src/JobFailure.ts",
 					"packages/jobs/src/display.ts",
+					"packages/identity/src/client/SessionMemory.ts",
 				),
 				client,
 				browser,

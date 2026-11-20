@@ -1,7 +1,8 @@
 import { Effect, Exit, type Layer, Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clearStoredQueries, openStoredQueries, queryPersistence } from "@shivaedev/contract/adapters/queryPersistence.ts";
+import { queryPersistence } from "@shivaedev/contract/adapters/queryPersistence.ts";
+import { clearStoredQueries, openStoredQueries } from "@shivaedev/contract/adapters/storedQueryAccess.ts";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 import { type OpenedQueryStorage, storedQueries } from "@shivaedev/contract/storedQueries.ts";
 import { forgetSession, SessionMemory } from "@shivaedev/identity/client/SessionMemory.ts";

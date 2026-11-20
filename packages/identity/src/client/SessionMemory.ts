@@ -1,6 +1,6 @@
 import { Clock, Context, Data, Effect, Option, Schema } from "effect";
 import { Permission } from "@shivaedev/access/permission.ts";
-import { clearStoredQueries } from "@shivaedev/contract/adapters/queryPersistence.ts";
+import { clearStoredQueries } from "@shivaedev/contract/adapters/storedQueryAccess.ts";
 import { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";
 
 export class SessionMemoryUnavailable extends Data.TaggedError("SessionMemoryUnavailable")<{ readonly cause: unknown }> {}
