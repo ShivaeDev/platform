@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.49.0 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- an OTLP span that succeeded arrives with status code 0 (unset) instead of 1 (ok), because Effect 4.1.4's OTLP tracer leaves the status of successful spans unset.
+
+### Breaking
+
+- a watched clock publishes its sleep starts as `sleepStarts` instead of `sleeps`. Effect 4.1.4 keeps its TestClock sleep queue in the instance field `sleeps`, so the watched clock no longer writes a field of that name. Rename `clock.sleeps` to `clock.sleepStarts` where a kit reads `watchedClock`'s stream.
+
 ## 0.48.1 - 2026-11-19
 
 ### Changed

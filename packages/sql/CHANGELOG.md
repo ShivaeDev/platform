@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.51.0 - 2026-11-20
+
+### Added
+
+- `makeOrderedChildren` takes the same defaults as `makeRepository`: `idColumn` defaults to `"id"` when the model has an `id` field (a model without one must still name it), and `spanPrefix` defaults to the table name, so its spans read `days.append`, `days.move` and `days.reorder`.
+- `makeOrderedChildren` locks the parent row by its `id` column when `parentIdColumn` is left out.
+- `serverOnly(schema)` from `@shivaedev/sql/serverOnly.ts` declares a model field that never leaves the server, such as a password hash or a provider refresh token. It returns the native `Model.Field` whose insert and update variants are `Schema.RedactedFromValue(schema)` and whose select variant is `Schema.RedactedFromValue(schema, { disallowEncode: true })`, with no JSON variants. The column holds the plain value, handlers receive a `Redacted` that prints `<redacted>` in logs and defects, and encoding the stored row for RPC fails with a defect that names the field's path and not its value. Equality, `in` and `deleteBatched` filters on such a field encode the `Redacted` value with its write schema.
+- `ServerOnlyKeyError` from `@shivaedev/sql/repositoryCollection.ts`. Building a repository fails with it when a server-only field is the ID column, a bucket or a tuple bucket column, because those values are announced as change keys.
+- `makeRepository`'s `idColumn` defaults to `"id"` when the model has an `id` field, so `findById` takes the row's id; a model without an `id` field must still name its `idColumn`, or the call does not compile.
+- `makeRepository`'s `spanPrefix` defaults to the table name, so a repository on `bookmarks` traces `bookmarks.insert` and `bookmarks.findById`. Pass `spanPrefix` to keep an existing span name.
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- closing a `postgresLayer` pool no longer waits for PostgreSQL to acknowledge each disconnect. Effect 4.1.4's PostgreSQL client destroys a connection's socket once its `Terminate` has flushed, so a half-open peer cannot hold shutdown.
+
+### Breaking
+
+- `makeRepository` can fail with `ServerOnlyKeyError` besides `BucketRegistrationError`. Add it to any error type you wrote out for a repository's construction, or use the new `RepositoryBuildError` union from the same module, such as `Effect.Effect<..., RepositoryBuildError, SqlClient.SqlClient>`.
+- `makeRepository` takes its table name from its `collection` and no longer accepts `tableName` beside it; passing both is a compile error. Migrate by deleting `tableName` from every `makeRepository` call that passes a `collection`: `makeRepository(StoredItem, { collection: keys, idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })` becomes `makeRepository(StoredItem, { collection: keys, spanPrefix: "Bookmarks" })`, or `makeRepository(StoredItem, { collection: keys })` with the defaults below. A repository without a collection still names its table with `tableName`. An app whose collection name differed from its table name could not build that repository before (it failed with `BucketRegistrationError`); rename the collection to the table's name, which also renames the change keys its live queries listen on.
+- `BucketRegistrationError` no longer reports a collection name that differs from the table name, since the collection now names the table. Its message for a bucket model without a collection says to pass the collection in place of `tableName`.
+- `RepositoryOptions` takes the model as its first type parameter, `RepositoryOptions<TModel, TId>`, and is a union of the collection form and the `tableName` form.
+
 ## 0.50.0 - 2026-11-19
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.19.5 - 2026-11-20
+
+### Changed
+
+- Require Effect 4.1.4 and its matching platform packages.
+- `FieldRejectionMapping` no longer requires `rejectField` when a save's error has a plain `string` `field`, such as `Conflict` and `BadRequest` from `@shivaedev/errors/taxonomy.ts`. The default `fieldRejectionOf(fields)` shows a rejection naming a form field on that field and leaves any other rejection, or one without a field, as the save failure. A `field` that includes literal names the form lacks still requires `rejectField`.
+
 ## 0.19.4 - 2026-11-19
 
 ### Changed
