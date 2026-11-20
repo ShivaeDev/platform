@@ -8,10 +8,12 @@ const LIMIT_MB = 16;
 // The program keeps everything it allocates, so it reaches the limit within milliseconds.
 const PROGRAM = `
 import { runWithHeapLimit } from ${JSON.stringify(new URL("../adapters/runWithHeapLimit.ts", import.meta.url).href)};
-runWithHeapLimit(${LIMIT_MB}, async () => {
-	const kept = [];
-	for (;;) kept.push(new Array(10_000).fill(kept.length));
-});
+runWithHeapLimit(${LIMIT_MB}, async () => ({
+	main: () => {
+		const kept = [];
+		for (;;) kept.push(new Array(10_000).fill(kept.length));
+	},
+}));
 `;
 
 interface HeapLimitEngine {
