@@ -4,7 +4,7 @@ import type { RuleInputs } from "#rule.ts";
 
 export const catalogWorkspace = Effect.fn("Manifests.catalogWorkspace")(function* ({ readText, root }: Pick<RuleInputs, "readText" | "root">) {
 	let directory = root;
-	for (;;) {
+	while (true) {
 		const file = relative(root, join(directory, "pnpm-workspace.yaml")).split(sep).join("/");
 		const text = yield* readText(file);
 		if (text !== undefined) {

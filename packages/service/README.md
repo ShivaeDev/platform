@@ -55,6 +55,7 @@ The **lifetime** of a service is its Layer's. Each build of the Layer runs `init
 **Caller scope** is different from initialization scope. The Layer owns initialization resources: their finalizers run once when its scope closes or its owner is interrupted, including when initialization is still running. An operation that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live. Interrupting a call in `Effect.scoped` interrupts the call and releases its resources without ending the service's lifetime.
 
 The work has three parts:
+
 1. Once at the application boundary, register each service Layer where its lifetime belongs and compose it with its dependencies' Layers.
 2. Once per service, write its operations and assemble its definition.
 3. In application code, yield the service and call its operations.
@@ -284,5 +285,6 @@ pnpm add @shivaedev/service effect
 ```
 
 `effect` is a peer dependency, and the package needs Node.js 24 or later.
+
 - `defineService` does not choose a lifetime. The application decides it by where it registers the service's Layer; a Layer that requires the caller can only be built where the caller is provided.
 - Initialization resources belong to the Layer's scope, never to an operation caller's scope.

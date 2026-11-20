@@ -960,6 +960,7 @@ pnpm add @shivaedev/contract effect
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
+
 - Put schema declarations where server and browser can share them. Put service, authorization and transaction implementations on the server. React rendering and editable forms belong to `react` and `form`.
 - Run command Effects with the Reactivity instance that owns the queries to refresh, as in the registry example.
 - Choose a common read key for every query in a full reconciliation scope. A list key does not implicitly cover item queries.

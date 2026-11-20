@@ -99,5 +99,6 @@ npm install --save-dev @shivaedev/vitest-rerun vitest effect @effect/platform-no
 ```
 
 `vitest`, `effect` and the Effect Node platform packages are peers, so your own versions run the tests. The package needs Node 24 or later.
+
 - Vitest's project `retry` is set to `0`; per-test and per-suite retries are refused in favor of the global, recorded fresh-process reruns.
 - The package is built for ShivaeDev repositories and may change without a deprecation period.
