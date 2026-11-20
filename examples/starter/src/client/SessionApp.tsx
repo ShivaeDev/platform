@@ -1,4 +1,4 @@
-import { type RouterHistory } from "@tanstack/react-router";
+import type { RouterHistory } from "@tanstack/react-router";
 import type { Effect, Layer } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { QueryStorageProvider } from "@shivaedev/contract/QueryStorage.ts";

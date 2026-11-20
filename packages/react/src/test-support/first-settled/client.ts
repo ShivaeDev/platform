@@ -3,7 +3,6 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { storedForm } from "@shivaedev/contract/storedQueries.ts";
 import { memoryQueryStorage } from "@shivaedev/test-kits/contract/memoryQueryStorage.ts";
 import { layerMemoryProtocol } from "@shivaedev/test-kits/contract/testing.ts";
 
@@ -18,11 +17,11 @@ const Notes = contract("notes", { commands: [Rename], queries: [Title, Author, C
 export function storedResults(user: string, answers: { readonly author: string; readonly title: string }) {
 	const memory = memoryQueryStorage();
 	const entries = [
-		[Title, answers.title],
-		[Author, answers.author],
+		["title", answers.title],
+		["author", answers.author],
 	] as const;
-	for (const [operation, answer] of entries) {
-		const key = Effect.runSync(storedForm(`notes.${operation.name}`, operation)(undefined, undefined).key);
+	for (const [name, answer] of entries) {
+		const key = JSON.stringify([`notes.${name}`, "null", null]);
 		memory.users.set(user, new Map([...(memory.users.get(user) ?? []), [key, { key, used: 1, value: JSON.stringify(answer) }]]));
 	}
 	return memory.layer;

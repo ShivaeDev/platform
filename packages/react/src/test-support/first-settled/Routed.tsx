@@ -24,17 +24,20 @@ const paths: Record<FirstRoute, string> = {
 	nothing: "/blank",
 };
 
-const root = createRootRouteWithContext<{ readonly notes: FirstSettledClient; readonly registry: AtomRegistry.AtomRegistry }>()({
-	component: Outlet,
-});
-const loadedTitle = queryRoute(({ context }: { context: typeof root.types.allContext }) => context.notes.client.api.title.query());
+interface RouteContext {
+	readonly notes: FirstSettledClient;
+	readonly registry: AtomRegistry.AtomRegistry;
+}
+
+const root = createRootRouteWithContext<RouteContext>()({ component: Outlet });
+const loadedTitle = queryRoute(({ context }: { context: RouteContext; params: object; search: object }) => context.notes.client.api.title.query());
 
 function LoadedTitle() {
 	return <output data-answer="title">{loadedTitle.useQuery().data}</output>;
 }
 function ReadTitle() {
-	const { notes } = root.useRouteContext();
-	const title = useQuery(notes.client.api.title.query());
+	const context: RouteContext = root.useRouteContext();
+	const title = useQuery(context.notes.client.api.title.query());
 	return <output data-answer="title">{title.data._tag === "Some" ? title.data.value : "waiting"}</output>;
 }
 function Blank() {
