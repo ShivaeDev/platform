@@ -1,11 +1,12 @@
+import { useAtomValue } from "@effect/atom-react";
 import { Option, Schema } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createElement, Fragment, type ReactNode } from "react";
 import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { QueryView } from "#client/QueryView.ts";
-import { useQuery } from "#client/resultState.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 
 export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
@@ -80,9 +81,9 @@ export function InvoiceLineForm<E, TRuntimeError>({
 type Server = ReturnType<typeof makeInvoiceLineServer>;
 
 export function InvoiceLineScreen({ id, server: { api } }: { readonly id: number; readonly server: Server }) {
-	const loaded = useQuery(api.get.query({ id }));
+	// The editor's query already reports its failures; this reader only needs the loaded version for the expected one.
 	const version = Option.getOrElse(
-		Option.map(loaded.data, (line) => line.version),
+		Option.map(AsyncResult.value(useAtomValue(api.get.query({ id }))), (line) => line.version),
 		() => 1,
 	);
 	const editor = useEditor(api.save, { fields: InvoiceLineDraft, fixed: { expectedVersion: version, id }, query: api.get.query({ id }) });
