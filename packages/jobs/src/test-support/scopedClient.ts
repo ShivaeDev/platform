@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient, PgBossClientFactory } from "#server/adapters/client.ts";
 import { defaultClientFactory } from "#server/adapters/defaultClientFactory.ts";
 import type { PgBossClientOptionsError, PgBossError } from "#server/error.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
 import { pgBossLayer } from "#server/service.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
@@ -72,12 +73,11 @@ export const scopedClient = storyKit({
 					url.searchParams.set("application_name", "scoped-client");
 					const layer = pgBossLayer({
 						clientCacheKey: options.shared === true ? engine.key : undefined,
-						clientFactory,
 						connectionString: Redacted.make(url.toString()),
 						max: 1,
 						schedule: false,
 						supervise: false,
-					});
+					}).pipe(Layer.provide(Layer.succeed(JobsClientFactory, clientFactory)));
 					const fiber = yield* Effect.forkIn(Layer.buildWithScope(layer, scope), engine.owner, { startImmediately: true });
 					engine.acquisitions.set(name, { fiber, scope });
 					yield* Scope.addFinalizer(engine.owner, Deferred.succeed(engine.resume, undefined));

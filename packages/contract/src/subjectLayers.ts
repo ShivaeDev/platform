@@ -15,9 +15,13 @@ function isSubject(middleware: RpcMiddleware.AnyServiceWithProps): middleware is
 
 export function subjectLayers<R extends Rpc.Any>(
 	group: RpcGroup.RpcGroup<R>,
-): Layer.Layer<Context.Service.Identifier<Middleware<R>>, never, Effect.Services<Middleware<R>[typeof SUBJECT_TYPE_ID]["middleware"]>>;
+): Layer.Layer<
+	Context.Service.Identifier<Middleware<R>>,
+	Effect.Error<Middleware<R>[typeof SUBJECT_TYPE_ID]["middleware"]>,
+	Effect.Services<Middleware<R>[typeof SUBJECT_TYPE_ID]["middleware"]>
+>;
 export function subjectLayers(group: RpcGroup.RpcGroup<Rpc.Any>) {
-	const layers: Layer.Layer<never, never, unknown>[] = [];
+	const layers: Layer.Layer<never, unknown, unknown>[] = [];
 	for (const rpc of group.requests.values()) {
 		if (!Rpc.isRpc(rpc)) {
 			continue;

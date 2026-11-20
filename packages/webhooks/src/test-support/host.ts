@@ -4,6 +4,7 @@ import { RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { CLOCK_OVERRIDE_SETTING } from "pg-boss";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "@shivaedev/server/appDatabase.ts";
@@ -131,13 +132,12 @@ export function hostLayer(state: InboxState) {
 					const testing = makePgBossTesting({ clock });
 					state.testing = testing;
 					const clientLayer = pgBossLayer({
-						clientFactory: testing.clientFactory,
 						connectionString: url,
 						migrate: false,
 						schedule: false,
 						supervise: false,
 						useListenNotify: true,
-					});
+					}).pipe(Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory)));
 					const jobs = Jobs.layer({
 						jobs: [
 							issueQueue.handle(recordHandled(state, issueQueue.name)),

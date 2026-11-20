@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.78.4 - 2026-11-19
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.12.0 to 0.13.0.
+- Update `@shivaedev/test-story` from 0.48.0 to 0.48.1.
+
 ## 0.78.3 - 2026-11-18
 
 ### Changed

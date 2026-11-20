@@ -15,7 +15,7 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 | Declare services                  | [service](../../packages/service/README.md)                                                       | Declare requirements once; operations yield their dependencies and the caller, and where a Layer is registered sets its lifetime.                   |
 | Persist data and run migrations   | [sql](../../packages/sql/README.md)                                                               | Derive common operations from native models; use explicit SQL for unusual queries.                                                                  |
 | Announce committed changes        | [changes](../../packages/changes/README.md)                                                       | Repositories announce table and row keys at commit; command declarations name additional dependencies.                                              |
-| Declare queries and commands      | [contract](../../packages/contract/README.md)                                                     | Describe payloads, results, rejections, query read policies and record or bucket scopes; native RPC owns handlers and transport.                    |
+| Write queries and commands        | [contract](../../packages/contract/README.md)                                                     | Write each operation as its payload and `run`; a defined module serves it, and the build generates its browser contract for native RPC.             |
 | Share expected failures           | [errors](../../packages/errors/README.md)                                                         | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces.                |
 | Resolve identity and permissions  | [identity](../../packages/identity/README.md)                                                     | Its RPC middleware provides the caller to each request; applications decide session, Origin and permission policy.                                  |
 | Declare roles and their grants    | [access](../../packages/access/README.md)                                                         | Declare which permissions each role grants once; identity enforces the grants on the server and react guards routes with them.                      |
@@ -66,7 +66,7 @@ Event sourcing, projection replay, mandatory streaming, a second cache and autom
 
 ## Composing a feature
 
-Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in order, from a migration and Model through the service, contract, host, route and form to PostgreSQL and DOM tests. Each step points to the starter's notes implementation.
+Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in order, from a migration and Model through the repository, operations, defined module, host registration, route and form to PostgreSQL and DOM tests. Each step points to the starter's notes implementation.
 
 The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native RPC, atoms, an editor and a server-pushed result reaching a second client after commit. Use each package's README for its mental model and API.
 

@@ -6,6 +6,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#server/adapters/client.ts";
 import { defineQueue } from "#server/definition.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "#server/service.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
 
@@ -23,24 +24,25 @@ export const sharedClient = storyKit({
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed) });
 		const lifecycle = { created: 0, stopped: 0 };
-		const app = pgBossLayer({
-			clientFactory: (options) => {
-				lifecycle.created += 1;
-				const client = testing.clientFactory(options);
-				const stop: PgBossClient["stop"] = async (settings) => {
-					await client.stop(settings);
-					lifecycle.stopped += 1;
-				};
-				return new Proxy(client, { get: (target, property) => (property === "stop" ? stop : Reflect.get(target, property)) });
-			},
-			connectionString: database.url,
-			max: 2,
-		});
+		const app = pgBossLayer({ connectionString: database.url, max: 2 });
 		const services = Layer.mergeAll(
 			Registration.layer({ jobs: [Work] }),
 			Worker.layer({ jobs: [Work.handle(({ message }) => Queue.offer(delivered, message))] }),
 			Producer.layer({ jobs: [Work] }),
-		).pipe(Layer.provide(app));
+		).pipe(
+			Layer.provide(app),
+			Layer.provide(
+				Layer.succeed(JobsClientFactory, (options) => {
+					lifecycle.created += 1;
+					const client = testing.clientFactory(options);
+					const stop: PgBossClient["stop"] = async (settings) => {
+						await client.stop(settings);
+						lifecycle.stopped += 1;
+					};
+					return new Proxy(client, { get: (target, property) => (property === "stop" ? stop : Reflect.get(target, property)) });
+				}),
+			),
+		);
 		const context = yield* Layer.buildWithScope(services, scope);
 		return { delivered, lifecycle, producer: Context.get(context, Producer), registration: Context.get(context, Registration), scope, testing };
 	},

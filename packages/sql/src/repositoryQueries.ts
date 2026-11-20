@@ -1,4 +1,4 @@
-import { Array as Arr, Effect, type Option, Schema } from "effect";
+import { Array, Effect, type Option, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
@@ -121,7 +121,7 @@ export function makeQueries<TModel extends Model.Any>(
 			}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
 		}
 		const findOne: Queries<TModel>["findOne"] = (query = {}) =>
-			findMany({ ...query, limit: 1 }).pipe(Effect.map(Arr.head), Effect.withSpan(`${options.spanPrefix}.findOne`));
+			findMany({ ...query, limit: 1 }).pipe(Effect.map(Array.head), Effect.withSpan(`${options.spanPrefix}.findOne`));
 		return { aggregate, count, findMany, findOne, latestPerGroup, select };
 	})();
 }

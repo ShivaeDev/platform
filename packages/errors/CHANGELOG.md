@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-19
+
+### Added
+
+- `GeneratedSuccess` from `@shivaedev/errors/GeneratedSuccess.ts`; `schemaSensitiveKeys` leaves the success of an RPC with this annotation out of its sensitive names and its mixed-visibility check.
+
 ## 0.12.0 - 2026-11-11
 
 ### Added

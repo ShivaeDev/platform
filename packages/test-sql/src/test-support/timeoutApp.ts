@@ -1,6 +1,7 @@
 import { Context, Deferred, Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -52,7 +53,7 @@ export const timeoutApp = storyKit({
 		const services = yield* Layer.build(
 			Jobs.layer({
 				jobs: [writeItem.handle(({ value }) => Effect.andThen(sql`insert into items values (2, ${value})`, Deferred.succeed(written, undefined)))],
-			}).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url }))),
+			}).pipe(Layer.provide(pgBossLayer({ connectionString: database.url })), Layer.provide(Layer.succeed(JobsClientFactory, testing.clientFactory))),
 		);
 		const jobs = Context.get(services, Jobs);
 		yield* Effect.addFinalizer(() => sql`insert into notes values (1, 'closed')`.pipe(Effect.orDie));

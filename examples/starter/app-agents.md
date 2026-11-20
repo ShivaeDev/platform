@@ -10,7 +10,7 @@ Write an operation once: a file under `<module>/server/` that exports a `query` 
 
 A server module exports a registration with `migrations` (its directory path), `module` and `services`. Register it in `src/server/modules.ts`; the foundation derives migrations from those registrations. Keep numbered migrations in the module’s server folder and use the next number across all modules.
 
-Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.
+Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` from `@shivaedev/jobs/server/JobsClientFactory.ts` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.
 
 ## File names
 

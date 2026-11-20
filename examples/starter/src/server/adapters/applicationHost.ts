@@ -19,7 +19,6 @@ import { authEmailRoutes } from "#server/authEmailRoutes.ts";
 import { authEmails } from "#server/authEmails.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { jobsLayer } from "#server/jobsLayer.ts";
 import { serverModules } from "#server/modules.ts";
 import type { PoolSizes } from "#server/PoolSizes.ts";
@@ -49,9 +48,11 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 			const modules = yield* serverModules(replacements);
 			const database = databaseOptions(databaseUrl, modules.migrations, "check", config?.poolSizes?.sql);
 			const producers = modules.services;
-			const services = producers
-				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
-				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
+			const services = producers.pipe(
+				Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)),
+				Layer.provideMerge(replacements),
+				Layer.merge(replacements),
+			);
 			return appHost({
 				...database,
 				application: Effect.gen(function* () {

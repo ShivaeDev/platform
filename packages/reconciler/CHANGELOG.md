@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4 - 2026-11-19
+
+### Changed
+
+- Update `@shivaedev/changes` from 0.13.0 to 0.14.0.
+
 ## 0.3.3 - 2026-11-18
 
 ### Changed

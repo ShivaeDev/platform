@@ -2,6 +2,7 @@ import { Cause, type Clock, Context, Deferred, Effect, Exit, Layer, Logger, Opti
 import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#server/adapters/client.ts";
 import { PgBossError } from "#server/error.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { PgBoss } from "#server/PgBoss.ts";
 import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#server/service.ts";
 import { failureOf } from "#test/failureOf.ts";
@@ -109,16 +110,18 @@ export function provided<A, E, R>(engine: RuntimeEngine, effect: Effect.Effect<A
 export const startRuntime = Effect.fnUntraced(function* (engine: RuntimeEngine, name: string, jobs: readonly Registration[], options: Options = {}) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const { jobs: _jobs, onError, ...settings } = { ...engine.options, ...options };
-	const factory = settings.clientFactory ?? engine.factory;
 	const clientLayer = pgBossLayer({
 		connectionString: Redacted.make("postgresql://fake"),
 		schema: "jobs_fake",
 		...settings,
-		clientFactory: (clientOptions: ConstructorOptions) => {
-			engine.clientsConstructed += 1;
-			return factory(clientOptions);
-		},
-	});
+	}).pipe(
+		Layer.provide(
+			Layer.succeed(JobsClientFactory, (clientOptions: ConstructorOptions) => {
+				engine.clientsConstructed += 1;
+				return engine.factory(clientOptions);
+			}),
+		),
+	);
 	const layer = Jobs.layer({
 		jobs: registrations(engine.work, jobs),
 		...(onError === undefined ? {} : { onError }),

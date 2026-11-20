@@ -1,4 +1,4 @@
-import { Array as Arr, Effect, Schema, SchemaAST, SchemaIssue } from "effect";
+import { Array, Effect, Schema, SchemaAST, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { makeFilter } from "#repositoryFilter.ts";
@@ -64,7 +64,7 @@ export const makeConflictClause = Effect.fnUntraced(function* (
 			const [quoted] = yield* sql`select ${sql.csv(entries.map(({ encoded }) => sql`quote_nullable(${encoded}::text)`))}`.values;
 			const literals = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.String))(quoted);
 			return sql.and(
-				Arr.zip(entries, literals).map(([{ key, nullish }, literal]) =>
+				Array.zip(entries, literals).map(([{ key, nullish }, literal]) =>
 					nullish ? sql`${sql(key)} is null` : sql`${sql(key)} = ${sql.literal(literal)}`,
 				),
 			);

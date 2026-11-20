@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { JobsClientFactory } from "@shivaedev/jobs/server/JobsClientFactory.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { makePgBossTesting } from "@shivaedev/test-kits/jobs/testing.ts";
@@ -67,19 +68,16 @@ export const jobsEngine = Effect.gen(function* () {
 				],
 			}),
 		).pipe(
+			Layer.provide(pgBossLayer({ connectionString: database.url, supervise: false })),
 			Layer.provide(
-				pgBossLayer({
-					clientFactory: (options) => {
-						const client = testing.clientFactory(options);
-						const query = vi.spyOn(client, "getDb");
-						const health = vi.spyOn(client, "getQueue");
-						const job = vi.spyOn(client, "findJobs");
-						readCount = () => query.mock.calls.length + health.mock.calls.length + job.mock.calls.length;
-						boss.client = client;
-						return client;
-					},
-					connectionString: database.url,
-					supervise: false,
+				Layer.succeed(JobsClientFactory, (options) => {
+					const client = testing.clientFactory(options);
+					const query = vi.spyOn(client, "getDb");
+					const health = vi.spyOn(client, "getQueue");
+					const job = vi.spyOn(client, "findJobs");
+					readCount = () => query.mock.calls.length + health.mock.calls.length + job.mock.calls.length;
+					boss.client = client;
+					return client;
 				}),
 			),
 		),
