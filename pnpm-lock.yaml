@@ -287,8 +287,8 @@ catalogs:
       specifier: 1.65.0
       version: 1.65.0
     railway:
-      specifier: 3.16.0
-      version: 3.16.0
+      specifier: 3.17.0
+      version: 3.17.0
     react:
       specifier: 19.3.1
       version: 19.3.1
@@ -471,7 +471,7 @@ importers:
         version: 21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7)
       railway:
         specifier: 'catalog:'
-        version: 3.16.0
+        version: 3.17.0
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.4
@@ -952,7 +952,7 @@ importers:
         version: 4.1.4
       railway:
         specifier: 'catalog:'
-        version: 3.16.0
+        version: 3.17.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -4695,8 +4695,8 @@ packages:
   quickjs-wasi@3.6.2:
     resolution: {integrity: sha512-FCqGtGOrMgzUiIrMNMA2YnsOxCNwo31dzqXvclXUC6xeT35NJLKXQJsvbeCTjvoFAwZgEAPg8U6+KAPDGXn8Mg==}
 
-  railway@3.16.0:
-    resolution: {integrity: sha512-//vKXubZpO07iJgNyoS+9Ee3pKk+3wE+0KAJPI28GuSKqXG30UeWT4xBkkd6TYuZ4HNh7QPvkVR72Swbmq5kXw==}
+  railway@3.17.0:
+    resolution: {integrity: sha512-bVyzBcLUJfKuSvYT+8MFg0p2AUzylSdjJoCWpx2uk05p6DoAnhrq0Xm4VIoJ+gZ7BGI8YddYlEpp4rgsZIr8Ww==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -7208,7 +7208,7 @@ snapshots:
 
   quickjs-wasi@3.6.2: {}
 
-  railway@3.16.0:
+  railway@3.17.0:
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.2)
       graphql: 16.14.2
