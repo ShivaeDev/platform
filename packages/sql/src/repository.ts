@@ -9,7 +9,7 @@ import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { makeRecordRead } from "#recordRepositoryRead.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
 import { type RepositoryBuildError, type RepositoryOptions, resolveRepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
-import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
+import type { FindManyFilter, RepositoryFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { refuseServerOnlyKeys } from "#serverOnly.ts";
 import type { VersionedRepositoryShape } from "#VersionedRepositoryShape.ts";
@@ -36,7 +36,7 @@ export interface LatestPerGroup<TModel extends Model.Any> {
 	readonly limit: number;
 	readonly orderBy: readonly [OrderBy<TModel>, ...OrderBy<TModel>[]];
 	readonly partitionBy: readonly [Key<TModel>, ...Key<TModel>[]];
-	readonly where?: RepositoryListFilter<TModel>;
+	readonly where?: FindManyFilter<TModel>;
 }
 
 export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConcurrencyError")<{
