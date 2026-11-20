@@ -41,7 +41,7 @@ export const Notes = defineModule({ name: "notes", operations: [List, Rename], w
 
 An **operation** is a query or a command written as its `payload` schema and a generator `*run`. Everything else about its boundary is derived from `run`: what it returns, the tagged failures it raises, and the services it needs. A **query** listens on the keys its repository reads name, or on the keys it declares in `reads`; a **command** announces the keys its repository writes name, plus any it declares in `invalidates`. A **rejection** is an expected typed failure that `run` raises, such as a missing note or an invalid title. Middleware failures and RPC client failures remain separate parts of the native client's error type.
 
-A **module** lists its operations with the services they may use and serves them without hand-written handlers. Types are erased, so the schemas the server encodes with and the browser decodes with must exist as values: the module's **wire** holds them, generated from `run`'s types, and the browser imports a **browser contract** generated beside it, which carries no `run`. A module is a native `RpcGroup`. Its RPC tags are the module name and operation name joined by a dot. A **binding** connects a module or contract to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success.
+A **module** lists its operations and serves them without hand-written handlers; its type carries the services they yield. Types are erased, so the schemas the server encodes with and the browser decodes with must exist as values: the module's **wire** holds them, generated from `run`'s types, and the browser imports a **browser contract** generated beside it, which carries no `run`. A module is a native `RpcGroup`. Its RPC tags are the module name and operation name joined by a dot. A **binding** connects a module or contract to an existing `AtomRpc.Service`: queries get native query atoms and call Effects, while commands get call Effects that invalidate after success.
 
 A **collection key** names a dependency. Its item key identifies one item; its list key identifies a list in that collection. Keys do not hold data. Native query atoms hold results, and native Reactivity asks matching queries to run again. Live subscriptions use those same keys to rerun each subscriber’s authorized query on the server and push its changed result.
 
@@ -99,7 +99,7 @@ A field failure is an exported tagged class built from the payload's fields with
 
 #### A module defined from its operations
 
-A module lists its operations once, with the services they may use, and serves them without hand-written handlers:
+A module lists its operations once and serves them without hand-written handlers:
 
 ```ts
 import { Effect, Option, Schema } from "effect";
@@ -109,7 +109,7 @@ import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { notesWire } from "#generated/modules/notes/notes.ts";
+import { notesWire } from "#generated/modules/notes/Notes.ts";
 import { Caller, NotesStore, type StoredNote } from "./services.ts";
 
 const notes = collection("notes", Schema.Number);
@@ -188,7 +188,7 @@ src/test-support/fixtures/invalid/moduleRepeatedName.ts(15,2): error TS2322: Typ
 ```ts
 import { Layer } from "effect";
 import { moduleHandlers } from "@shivaedev/contract/moduleHandlers.ts";
-import { Notes } from "./notes.ts";
+import { Notes } from "./Notes.ts";
 import { NotesStoreLive } from "./store.ts";
 
 export const NotesHandlers = moduleHandlers(Notes).pipe(Layer.provide(NotesStoreLive));
@@ -209,7 +209,7 @@ import { Schema } from "effect";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { clientContract } from "@shivaedev/contract/clientContract.ts";
 import type { ClientMatchesModule } from "@shivaedev/contract/clientMatchesModule.ts";
-import type { Notes as NotesModule } from "#modules/notes/notes.ts";
+import type { Notes as NotesModule } from "#modules/notes/Notes.ts";
 import { Caller, NoteFields, notes, TitleTaken } from "#modules/notes/model.ts";
 
 const Note = Schema.Struct({ createdAt: Schema.Date, id: Schema.Number, title: Schema.String });
@@ -303,22 +303,31 @@ The native RPC mapping types `OperationRpc` and `Tag` are exported from `@shivae
 
 ### Whose account a request acts on
 
-Set `subject` on a contract to a browser-safe declaration from `@shivaedev/identity/subject.ts`: `selfSubject` selects the session account; `accountSubject({ permission, refusal, deny })` permits another account only with the permission's `any` grant. `delegatedSubject({ service, refusal, deny })` asks the application's rule per call, with a `kind` of `read` for queries and streams or `write` for commands. A contract's `declaration.subject` records the declaration it names. The declaration applies to the application RPCs and their changes stream. Native middleware carries its typed failures and supplies the branded `Subject` service to handlers and the application services they call. Business payloads need no owner id.
+Set `subject` on a module or contract to a browser-safe declaration from `@shivaedev/identity/subject.ts`: `selfSubject` selects the session account; `accountSubject({ permission, refusal, deny })` permits another account only with the permission's `any` grant. `delegatedSubject({ service, refusal, deny })` asks the application's rule per call, with a `kind` of `read` for queries and streams or `write` for commands. A contract's `declaration.subject` records the declaration it names. The declaration applies to the application RPCs and their changes stream. Native middleware carries its typed failures and supplies the branded `Subject` service to each operation's `run` and the application services it calls. Business payloads need no owner id.
 
 ```ts
-import { contract } from "@shivaedev/contract/contract.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { command } from "@shivaedev/contract/operation.ts";
-import { selfSubject } from "@shivaedev/identity/subject.ts";
+import { selfSubject, Subject } from "@shivaedev/identity/subject.ts";
+import { accountWire } from "#generated/modules/account/Account.ts";
+import { PreferenceFields } from "#modules/account/model.ts";
+import { Profiles } from "./services.ts";
 
-const Save = command("save", { invalidates: () => [] });
-export const Account = contract("account", { commands: [Save], subject: selfSubject });
+const Save = command("save", {
+	payload: PreferenceFields,
+	*run({ title }) {
+		const { id } = yield* Subject;
+		yield* (yield* Profiles).rename(id, title);
+	},
+});
+export const Account = defineModule({ name: "account", operations: [Save], subject: selfSubject, wire: accountWire });
 ```
 
-Contracts with declared subjects can be exported from published packages with TypeScript declaration output. The client calls `account.save` without an account id. For a delegated subject, the client names the account per call: a bound query takes `subject` in its options and a query's, command's or stream's `run` takes `{ subject }` as its second argument, as in `api.title.query(undefined, { subject: "bob" })` and `api.rename.run({ title }, { subject: "bob" })`. The option sets the call's `x-platform-subject` message header, so one client and its one socket serve the actor's own data and any number of subjects, each live query keeping its own subject on its changes stream. Queries with different subjects are different atoms, keep separate retained results, and serialize under separate keys when they share a `serializationKey`. The session host installs the resolver; handlers read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
+`PreferenceFields` is `Schema.Struct({ title: Schema.String })` and `Profiles` an application service whose `rename` takes the account's `SubjectId`. Contracts with declared subjects can be exported from published packages with TypeScript declaration output. The client calls `account.save` with only its title. For a delegated subject, the client names the account per call: a bound query takes `subject` in its options and a query's, command's or stream's `run` takes `{ subject }` as its second argument, as in `api.title.query(undefined, { subject: "bob" })` and `api.rename.run({ title }, { subject: "bob" })`. The option sets the call's `x-platform-subject` message header, so one client and its one socket serve the actor's own data and any number of subjects, each live query keeping its own subject on its changes stream. Queries with different subjects are different atoms, keep separate retained results, and serialize under separate keys when they share a `serializationKey`. The session host installs the resolver; operations read `Subject` from the request environment. See [identity's subject guide](https://github.com/ShivaeDev/platform/tree/main/packages/identity#declared-request-subjects) for delegated selection and refusal declarations.
 
 ### Expected failures
 
-Import the shared expected failures from `@shivaedev/errors/taxonomy.ts`: `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a tagged error schema with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. Declare only the failures an operation can return:
+Import the shared expected failures from `@shivaedev/errors/taxonomy.ts`: `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a tagged error schema with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. An operation written with `run` raises them and its wire lists them; the rest of this section is about RPCs that state their failures by hand, as native `Rpc` definitions and operations declared without run do. Declare only the failures an operation can return:
 
 ```ts
 import { Effect, Schema } from "effect";
@@ -350,7 +359,7 @@ const missing = Get.reject.NoteMissing({ id: 9 });
 
 ### 2. Once per host: native handlers and transport
 
-Implement the contract with native `of` and `toLayer`:
+An application registers its defined modules with the [server's host](https://github.com/ShivaeDev/platform/tree/main/packages/server#host-the-application), which builds their handlers with `moduleHandlers`, and writes no handlers. A boundary of operations declared without run is implemented with native `of` and `toLayer`:
 
 ```ts
 import { Effect, Ref, Stream } from "effect";
@@ -438,7 +447,7 @@ export class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient
 export const api = bind(Notes, NotesClient, { live: false });
 ```
 
-Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [reference composition](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) composes handlers, request identity, SQL and a rendered client.
+Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [feature guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/add-a-feature.md) composes a defined module, request identity, SQL and a rendered client in the starter.
 
 ### Build a shared WebSocket client
 
@@ -612,45 +621,57 @@ Mount the query to start it. Wait on `completions` for `completed > before` afte
 
 ### Session-owned keys
 
-A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Declare its contract with `keyScope: "session"` and let its handlers read the account from request-local identity, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
+A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Define its module with `keyScope: "session"` and let its operations read the account from request-local `Identity`, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
 
 ```ts
-const preferences = collection("preferences", Schema.String);
-const Preferences = contract("preferences", {
+import { collection } from "@shivaedev/changes/keys.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
+import { preferencesWire } from "#generated/modules/preferences/Preferences.ts";
+import { PreferenceFields, preferences } from "#modules/preferences/model.ts";
+import { PreferencesStore } from "./services.ts";
+
+const Self = query("self", {
+	reads: () => [preferences.item("self")],
+	*run() {
+		const { id } = yield* Identity;
+		return yield* (yield* PreferencesStore).read(id);
+	},
+});
+const Save = command("save", {
+	invalidates: () => [preferences.item("self")],
+	payload: PreferenceFields,
+	*run({ title }) {
+		const { id } = yield* Identity;
+		return yield* (yield* PreferencesStore).save(id, title);
+	},
+});
+
+export const Preferences = defineModule({
 	keyScope: "session",
-	queries: [
-		query("self", {
-			readPolicy: signedIn,
-			reads: () => [preferences.item("self")],
-			success: Schema.String,
-		}),
-	],
-	commands: [
-		command("save", {
-			payload: { title: Schema.String },
-			invalidates: () => [preferences.item("self")],
-			success: Schema.String,
-		}),
-	],
-}).middleware(Authenticated);
+	middleware: Authenticated,
+	name: "preferences",
+	operations: [Self, Save],
+	wire: preferencesWire,
+});
+```
+
+`model.ts` declares `preferences` as `collection("preferences", Schema.String)` and `PreferenceFields` as `Schema.Struct({ title: Schema.String })`, and `PreferencesStore` is the application's persistence service. The browser binds the generated contract with the session's registry:
+
+```ts
+import { bind } from "@shivaedev/contract/bind.ts";
+import { Preferences } from "#generated/modules/preferences/Preferences.ts";
 
 const api = bind(Preferences, Client, { registry });
 const self = api.self.query(undefined);
 const save = api.save.run({ title: "My preferences" });
 ```
 
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service, and `registry` is the atom registry that owns the session's queries. In React, `SessionBoundary` supplies that registry to `connect`, as [react's session-scoped bindings](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#session-scoped-bindings) show.
+`Client` is the application's native AtomRpc service, and `registry` is the atom registry that owns the session's queries. In React, `SessionBoundary` supplies that registry to `connect`, as [react's session-scoped bindings](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#session-scoped-bindings) show.
 
-Handlers read the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`:
-
-```ts
-Preferences.application.toLayer({
-	"preferences.self": () => Effect.flatMap(Identity, ({ id }) => store.read(id)),
-	"preferences.save": ({ title }) => Effect.flatMap(Identity, ({ id }) => store.save(id, title)),
-});
-```
-
-`store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host uses plain repository keys for every subscriber and rechecks each subscriber’s read policy before delivery.
+No owner or client key scope is accepted from a request. The database app host uses plain repository keys for every subscriber and rechecks each subscriber’s read policy before delivery.
 
 The registry is required for session-scoped bindings. Query atoms and live connections belong in it; command and one-off query Effects execute through it. Explicit streams also run through its client, preserving the session transport and headers; disposing the registry ends those streams. Streams on ordinary contracts use the caller's client. A successful command invalidates its registry's prefixed keys, while a rejected command declares no invalidation. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
 
@@ -708,21 +729,22 @@ Server adapters import `LiveServer` from `@shivaedev/contract/live-server/servic
 
 Contract groups carry their read-policy guard into native `RpcServer` hosts and Platform’s application host. An ordinary query evaluates its policy once per request, after identity middleware supplies `CurrentViewer` from its validated session. A false policy returns `QueryReadDenied` without running the handler. Native hosts need no policy middleware or guard Layer. Real HTTP stories exercise both hosts with allowed and denied counted policies; they prove this RPC boundary, not an application’s session or deployment policy. Platform’s application host refuses HTTP `$changes` calls with `WebSocketRequired`; subscriptions use its WebSocket protocol. Subscription delivery and pushed reruns continue to check current access.
 
-A query declares its decoded input, result and `readPolicy` together, and declares `reads` when its handler's reads do not name its keys, as described below. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections`; a failing access check reaches the client as its declared error, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
+A query's `readPolicy(payload, viewer)` returns an Effect boolean, and a query declares `reads` only when its reads do not name its keys, as described below. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer, and a query written with `run` that states no policy gets it. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. A policy's typed failures join the query's rejections, so a failing access check reaches the client as that failure, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
 
 ```ts
-import { Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
-import { signedIn } from "@shivaedev/contract/readPolicy.ts";
+import { NotesRepository, SessionUser } from "./services.ts";
 
 const Mine = query("mine", {
-	payload: { title: Schema.String },
-	success: Schema.Array(Schema.String),
-	readPolicy: signedIn,
+	*run() {
+		const repository = yield* NotesRepository;
+		const { id: userId } = yield* SessionUser;
+		return yield* repository.findMany({ select: ["title"], where: { userId } });
+	},
 });
 ```
 
-`Mine` declares no `reads`. Its handler reads `findMany({ where: { userId } })` through a `@shivaedev/sql` repository, which names the viewer's `userId` bucket, so the live query listens on that bucket. On a repository model, annotate tenant fields with `bucket()` from `@shivaedev/changes/buckets.ts` so writes announce the affected buckets. For an admin page spanning every tenant, declare `readsCollections` beside a permission read policy:
+`Mine` declares no policy and no `reads`. Its `run` reads `findMany({ where: { userId } })` through a `@shivaedev/sql` repository, which names the viewer's `userId` bucket, so the live query listens on that bucket. On a repository model, annotate tenant fields with `bucket()` from `@shivaedev/changes/buckets.ts` so writes announce the affected buckets. For an admin page spanning every tenant, declare `readsCollections` beside a permission read policy:
 
 ```ts
 import { Effect, Schema } from "effect";
@@ -732,14 +754,16 @@ import { query } from "@shivaedev/contract/operation.ts";
 import { permissionReadPolicy } from "@shivaedev/contract/permissionReadPolicy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
+import { NotesRepository } from "./services.ts";
 
 const notes = collection("notes", Schema.Number);
 const ManageNotes = permission("notes.manage").any;
 const AllNotes = query("allNotes", {
-	success: Schema.Array(Schema.String),
 	readPolicy: permissionReadPolicy(ManageNotes, (required) => Effect.map(SessionUser, (user) => hasPermission(user, required))),
-	reads: () => [],
 	readsCollections: [notes],
+	*run() {
+		return yield* (yield* NotesRepository).findMany({ select: ["title"] });
+	},
 });
 ```
 
@@ -753,25 +777,26 @@ For dependencies that need server data, add `serverReads(payload, viewer)`, an E
 import { Context, Effect, Schema } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 
 class TimelineData extends Context.Service<
 	TimelineData,
 	{
+		readonly entries: (workspaceId: string) => Effect.Effect<readonly string[]>;
 		readonly readKeys: (workspaceId: string) => Effect.Effect<readonly Key[]>;
 	}
 >()("app/TimelineData") {}
 
 const Timeline = query("timeline", {
 	payload: { workspaceId: Schema.String },
-	success: Schema.Array(Schema.String),
-	readPolicy: signedIn,
 	reads: () => [],
 	serverReads: ({ workspaceId }) => Effect.flatMap(TimelineData, (data) => data.readKeys(workspaceId)),
+	*run({ workspaceId }) {
+		return yield* (yield* TimelineData).entries(workspaceId);
+	},
 });
 ```
 
-Provide `TimelineData` on the server to load the workspace's lists and return their keys. Use an application policy that checks workspace access; derived keys are refresh dependencies and grant no read access. Each write must publish the same keys. After every rerun the server evaluates `reads` and `serverReads` again and replaces the subscription's registrations, so the keys follow the workspace while the subscription stays open. A list that joins is watched once a rerun has seen it, so the write that adds a list must publish a key the query already reads, such as a workspace bucket that `serverReads` also returns. Once a rerun has seen a list leave, that list's writes no longer rerun the query. The browser never runs `serverReads`; matching changes rerun the affected query on the server.
+Provide `TimelineData` on the server to read the workspace's entries, and to load its lists and return their keys. Use an application policy that checks workspace access; derived keys are refresh dependencies and grant no read access. Each write must publish the same keys. After every rerun the server evaluates `reads` and `serverReads` again and replaces the subscription's registrations, so the keys follow the workspace while the subscription stays open. A list that joins is watched once a rerun has seen it, so the write that adds a list must publish a key the query already reads, such as a workspace bucket that `serverReads` also returns. Once a rerun has seen a list leave, that list's writes no longer rerun the query. The browser never runs `serverReads`; matching changes rerun the affected query on the server.
 
 A handler can also name keys while it runs, with `recordRead(keys)` from `@shivaedev/changes/readRecorder.ts`, before the statement that reads by them. The live subscription registers each recorded key with the host the moment it is recorded, before that statement is sent, and matches it alongside the keys from `reads`, `serverReads` and `readsCollections`. A key recorded on a rerun is therefore watched before its read, where a `serverReads` key is watched only once the rerun has finished. A key that is already registered is not registered again, so a handler that reads the same row many times registers its key once. Nothing the query's read policy records counts, whether through repository reads or its own `recordRead` calls: permission changes refresh nothing live, so a write to a row only the policy reads does not rerun the query.
 
@@ -786,7 +811,13 @@ import { Context, Effect, Option, Schema } from "effect";
 import { query } from "@shivaedev/contract/operation.ts";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 
-class NoteOwner extends Context.Service<NoteOwner, (id: number) => Effect.Effect<Option.Option<string>>>()("app/NoteOwner") {}
+class PrivateNotes extends Context.Service<
+	PrivateNotes,
+	{
+		readonly owner: (id: number) => Effect.Effect<Option.Option<string>>;
+		readonly title: (id: number) => Effect.Effect<string>;
+	}
+>()("app/PrivateNotes") {}
 const PrivateNote = query("privateNote", {
 	payload: { id: Schema.Number },
 	readPolicy: ({ id }, viewer) =>
@@ -794,40 +825,41 @@ const PrivateNote = query("privateNote", {
 			if (Option.isNone(viewer)) {
 				return false;
 			}
-			const owner = yield* (yield* NoteOwner)(id);
+			const owner = yield* (yield* PrivateNotes).owner(id);
 			if (Option.isNone(owner) || owner.value !== viewer.value.id) {
 				return yield* new NotFound({ message: "Note not found" });
 			}
 			return true;
 		}),
-	reads: () => [],
-	rejections: { NotFound },
-	success: Schema.String,
+	*run({ id }) {
+		return yield* (yield* PrivateNotes).title(id);
+	},
 });
 ```
 
-The server provides `NoteOwner`; the shared declaration holds only its browser-safe service tag. The same typed rejection reaches ordinary reads and live subscriptions.
+The module's registration provides `PrivateNotes`; the browser's generated contract carries no read policy. The generator lists the policy's `NotFound` among the query's rejections, and the same typed rejection reaches ordinary reads and live subscriptions.
 
 A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Declare bucket fields on the collection model with their schemas. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. Writers explicitly announce the record and affected buckets with the same constructors from `@shivaedev/changes/keys.ts`.
 
-The same query policy guards running the query and subscribing to it. A subscription is meant to carry one query. It names query references, never arbitrary record or bucket keys. If a subscription mixes queries the viewer may and may not read, the entire subscription is refused with `QueryReadDenied`; it delivers no partial results. Every query requires `readPolicy` at declaration, including queries used only through one-off `run` calls. TypeScript rejects a policy-less declaration before handlers or a live server can be built. Platform’s application host validates the complete RPC group while building its Layer, before listening; untyped declarations missing policies fail with `MissingReadPolicies`, whose `queries` and `message` name every affected RPC. Native hosts enforce read policies automatically at request time. `MissingReadPolicy` remains a request-time refusal for untyped declarations served through native servers that bypass that boot check, on plain calls and subscriptions alike. Reads outside a declared query acquire no automatic subscription.
+The same query policy guards running the query and subscribing to it. A subscription is meant to carry one query. It names query references, never arbitrary record or bucket keys. If a subscription mixes queries the viewer may and may not read, the entire subscription is refused with `QueryReadDenied`; it delivers no partial results. Every query has a policy: one written with `run` gets `signedIn` when it states none, and one declared without run requires `readPolicy`, including queries used only through one-off `run` calls, so TypeScript rejects a policy-less declaration before handlers or a live server can be built. Platform’s application host validates the complete RPC group while building its Layer, before listening; untyped declarations missing policies fail with `MissingReadPolicies`, whose `queries` and `message` name every affected RPC. Native hosts enforce read policies automatically at request time. `MissingReadPolicy` remains a request-time refusal for untyped declarations served through native servers that bypass that boot check, on plain calls and subscriptions alike. Reads outside a declared query acquire no automatic subscription.
 
 Session middleware supplies `CurrentViewer` after validating the session. Each rerun uses a freshly loaded session and the same authorized handler as an ordinary read. A removed session ends the subscription with `Unauthorized`; a current session denied by the read policy receives `QueryReadDenied`, with no query SQL and its stored hash cleared. The established subscription stays open for later authorized changes. Raw consumers handle `Result`, `Unchanged` and `QueryReadDenied`.
 
 ### Policy services
 
-Use the policy's `viewer` argument for the viewer ID. Read richer session context from Effect requirements. For example, a policy service can require `SessionUserWithProviderAccounts` from `@shivaedev/identity/identity.ts` and yield its `providerAccounts` Effect. Apply `AuthenticatedUserWithProviderAccounts` middleware to the contract and supply `authenticatedUserWithProviderAccountsLayer()` from `@shivaedev/identity/server/session.ts` alongside its handlers, with the shared `SessionPolicy` Layer provided once by the application host. The middleware provides this request-local context for both RPC calls and live reruns, including each policy recheck before a result is delivered. Session-backed hosts reload that context before each rerun, and use the same snapshot for its policy and query rerun.
+Use the policy's `viewer` argument for the viewer ID. Read richer session context from Effect requirements. For example, a policy service can require `SessionUserWithProviderAccounts` from `@shivaedev/identity/identity.ts` and yield its `providerAccounts` Effect. Apply `AuthenticatedUserWithProviderAccounts` middleware to the module and merge `authenticatedUserWithProviderAccountsLayer()` from `@shivaedev/identity/server/session.ts` into the handlers the host serves, with the shared `SessionPolicy` Layer provided once by the application host. The middleware provides this request-local context for both RPC calls and live reruns, including each policy recheck before a result is delivered. Session-backed hosts reload that context before each rerun, and use the same snapshot for its policy and query rerun.
 
-Keep the policy service tag and query declaration browser-safe; put its implementation on the server. Its method retains the session service in its requirements so the session is read when the policy runs:
+Keep the policy service's tag beside the query and its implementation in server code. Its method retains the session service in its requirements so the session is read when the policy runs:
 
 ```ts
 import { Context, Effect, Option, Schema } from "effect";
-import { contract } from "@shivaedev/contract/contract.ts";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { Viewer } from "@shivaedev/contract/readPolicy.ts";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
+import { documentsWire } from "#generated/modules/documents/Documents.ts";
 
 class ReadAccess extends Context.Service<
 	ReadAccess,
@@ -842,17 +874,23 @@ class ReadAccess extends Context.Service<
 const Get = query("get", {
 	payload: { accountId: Schema.String },
 	readPolicy: ({ accountId }, viewer) => Effect.flatMap(ReadAccess, (access) => access.allows(accountId, viewer)),
-	reads: () => [],
-	rejections: { AuthUnavailable, Unauthorized },
-	success: Schema.String,
+	*run({ accountId }) {
+		return yield* Effect.succeed(`Document for ${accountId}`);
+	},
 });
-const Documents = contract("documents", { queries: [Get] }).middleware(AuthenticatedUserWithProviderAccounts);
+export const Documents = defineModule({
+	middleware: AuthenticatedUserWithProviderAccounts,
+	name: "documents",
+	operations: [Get],
+	wire: documentsWire,
+});
 ```
 
-Provide the implementation from the query's handlers layer with native `Layer.provide`:
+The generator lists the policy's `AuthUnavailable` and `Unauthorized` among the query's rejections. Provide the implementation from the module's registration:
 
 ```ts
 import { Effect, Layer, Option } from "effect";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
 
 const ReadAccessLive = Layer.succeed(ReadAccess, {
 	allows: (accountId, viewer) =>
@@ -866,14 +904,10 @@ const ReadAccessLive = Layer.succeed(ReadAccess, {
 			);
 		}),
 });
-const DocumentHandlers = Documents.application
-	.toLayer({
-		"documents.get": ({ accountId }) => Effect.succeed(`Document for ${accountId}`),
-	})
-	.pipe(Layer.provide(ReadAccessLive));
+export const documents = { module: Documents, services: ReadAccessLive } satisfies AppModule;
 ```
 
-The generated subscription uses the owning query handler's captured services too, so this handler-only provision serves subscriptions as well as RPC calls. Request-local services take precedence over captured services; a session value installed while building handlers cannot replace the current viewer's session. The policy runs again for live reruns; its allow or deny result is not cached.
+The module's handlers check the policy with the services the registration provides, for RPC calls and subscriptions alike. Request-local services take precedence over those services; a session value installed while building the handlers cannot replace the current viewer's session. The policy runs again for live reruns; its allow or deny result is not cached.
 
 ### In-memory clients in story kits
 

@@ -1,6 +1,6 @@
 # Native RPC contracts
 
-Effect's `Rpc`, `RpcGroup`, and `AtomRpc` share one Schema contract between typed handlers and clients. This guide shows them directly. Applications can declare the same contracts with [`@shivaedev/contract`](../../packages/contract/README.md), which produces these native definitions and adds typed rejections and reactivity keys; the starter uses it. Handlers, middleware and clients remain the native components below.
+Effect's `Rpc`, `RpcGroup`, and `AtomRpc` share one Schema contract between typed handlers and clients. This guide shows them directly. An application writes its operations as their payload and `run` in a module defined with [`@shivaedev/contract`](../../packages/contract/README.md), as the [feature guide](./add-a-feature.md) shows: the module is a native `RpcGroup` whose handlers it builds itself, and the browser binds a generated contract of the same group. Middleware, transport and clients remain the native components below.
 
 ## Ordinary operations
 

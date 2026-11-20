@@ -2,72 +2,96 @@
 
 Give an entity's settings a successful query value even before the first save. A screen then uses the same editor for defaults and stored values: it never creates a placeholder row or handles a missing-settings state. The application still owns authorization and validation policy.
 
-This recipe uses Schema, a `sql` repository, a `contract` query and command, and a `react` editor over `form` fields. It adds no framework helper. The executable example edits an entity's table title and rows per page over real PostgreSQL and authenticated HTTP.
-
-## Code to read
-
-| Module                                                                                             | Responsibility                                                                                                                 |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| [Schema and contract](../../packages/react/src/test-support/settings-example/contract.ts)          | Field defaults, successful query values, entity read keys and typed command rejections.                                        |
-| [Repositories and migration](../../packages/react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target.                                        |
-| [Service](../../packages/react/src/test-support/settings-example/service.ts)                       | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation.                          |
-| [Handlers](../../packages/react/src/test-support/settings-example/adapters/handlers.ts)            | Request identity and authorized live subscriptions.                                                                            |
-| [Host](../../packages/react/src/test-support/settings-example/startHost.ts)                        | Server's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC.                                                 |
-| [Client](../../packages/react/src/test-support/settings-example/makeClient.ts)                     | Native AtomRpc, contract binding and entity-scoped live invalidation.                                                          |
-| [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx)                        | `useEditor`, encoded input, form fields and rendered field errors.                                                             |
-| [Story kit](../../packages/react/src/test-support/settings-example/story.ts)                       | A pattern for testing such a feature: cloned PostgreSQL databases, the real host over HTTP and independently rendered editors. |
+This recipe uses Schema, a `sql` repository, a query and a command in a defined module from `contract`, and a `react` editor over `form` fields. It adds no framework helper. The files follow the layout of a module in the [feature guide](./add-a-feature.md): the schemas in `model.ts`, the repositories and operations in `server/`.
 
 ## Declare defaults once
 
-The settings Schema owns the defaults:
+The settings Schema in `model.ts` owns the defaults:
 
 ```ts
 export const Settings = Schema.Struct({
 	pageSize: Schema.Number.pipe(Schema.withDecodingDefaultKey(Effect.succeed(25))),
 	title: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("Workspace"))),
 });
+export const EntityId = Schema.Struct({ entityId: Schema.Number });
+export const EntitySettings = Schema.Struct({ ...EntityId.fields, ...Settings.fields });
+export class InvalidSettings extends Schema.TaggedError<InvalidSettings>()("InvalidSettings", fieldRejection(Settings)) {}
+export const settings = collection("entity-settings", Schema.Number);
 ```
 
-`EntitySettings` adds `entityId` to those fields. The repository model reuses them; the form reuses the title field and replaces only the number's input codec with `Schema.NumberFromString`. Defaults come from decoding an empty object with `Settings`, rather than a separate defaults object in the component or service.
+`EntitySettings` adds `entityId` to those fields and is the save command's payload. The settings row's model reuses them; the form reuses the title field and replaces only the number's input codec with `Schema.NumberFromString`. Defaults come from decoding an empty object with `Settings`, rather than a separate defaults object in the component or the operation.
 
 ## Read an authorized entity, then its settings
 
-The service first loads the entity and checks its owner against the request's user id. An unknown or unowned entity returns typed `Missing`, including when it has no settings row. Only an authorized entity can reach the settings lookup.
+Both operations first load the entity and check its owner against the request's user, through one function beside them:
 
-If `findById(entityId)` finds no settings, its `NoSuchElementError` branch decodes `Settings` from `{}` and returns those defaults with the entity id. The query succeeds with `EntitySettings` in either case. Database and decoding failures remain typed `Unavailable`; they do not silently become defaults.
+```ts
+export const ownedEntity = Effect.fn("Settings.ownedEntity")(function* (entityId: number) {
+	const { id: ownerId } = yield* Identity;
+	const entity = yield* (yield* EntitiesRepository).findOne({ where: { id: entityId, ownerId } });
+	if (Option.isNone(entity)) {
+		return yield* new NotFound({ message: "Entity not found" });
+	}
+	return entity.value;
+});
+```
 
-The migration makes `entity_settings."entityId"` both a primary key and a foreign key to the entity. `makeRepository` uses `entityId` as its id and conflict column, so the same entity cannot accumulate duplicate settings rows. Reading defaults writes nothing.
+An unknown or unowned entity answers `NotFound`, including when it has no settings row. Only an authorized entity reaches the settings lookup:
+
+```ts
+export const Get = query("get", {
+	payload: EntityId,
+	reads: ({ entityId }) => [settings.item(entityId)],
+	*run({ entityId }) {
+		yield* ownedEntity(entityId);
+		const stored = yield* (yield* SettingsRepository).findOne({ where: { entityId } });
+		const { pageSize, title } = Option.isSome(stored) ? stored.value : yield* Schema.decodeUnknownEffect(Settings)({});
+		return { entityId, pageSize, title };
+	},
+});
+```
+
+When no settings row exists, `run` decodes `Settings` from `{}` and returns those defaults with the entity id, so the query succeeds with the same shape in either case. A database or decoding failure fails the query; it never becomes the defaults.
+
+The migration makes `entity_settings."entityId"` both a primary key and a foreign key to the entity. The settings repository is `makeRepository(SettingsRow, { conflictColumns: ["entityId"], idColumn: "entityId", tableName: "entity_settings" })`, so the same entity cannot accumulate duplicate settings rows. Reading defaults writes nothing.
 
 ## Save through an explicit upsert
 
-After authorization and application validation, the service saves with the repository's conflict operation:
+After authorization and application validation, the command saves with the repository's conflict operation:
 
 ```ts
-const { row: saved } = yield* repository.upsert(input, {
-	updateColumns: ["title", "pageSize"],
+export const Save = command("save", {
+	invalidates: ({ entityId }) => [settings.item(entityId)],
+	payload: EntitySettings,
+	*run(input) {
+		yield* ownedEntity(input.entityId);
+		if (!Number.isInteger(input.pageSize) || input.pageSize < 1 || input.pageSize > 100) {
+			return yield* new InvalidSettings({ field: "pageSize", message: "Choose between 1 and 100 rows" });
+		}
+		const { row } = yield* (yield* SettingsRepository).upsert(input, { updateColumns: ["title", "pageSize"] });
+		return { entityId: row.entityId, pageSize: row.pageSize, title: row.title };
+	},
 });
-yield* invalidateOnCommit(invalidationKeys(SaveSettings.invalidates(input, saved)));
-return saved;
 ```
 
-The whole save effect runs inside `transact({ onSqlError: unavailable })`. The first save inserts a row; later saves update the named settings columns at the same entity id. `updateColumns` deliberately excludes the identity. The command declares `settings.item(entityId)` as its invalidation key, and the query declares the same key as a read dependency. `invalidateOnCommit` publishes that key after the transaction commits.
+The first save inserts a row; later saves update the named settings columns at the same entity id. `updateColumns` deliberately excludes the identity. The command declares `settings.item(entityId)` as its invalidation key, and the query declares the same key as a read dependency; the host publishes it after the command succeeds. A single upsert commits on its own, so the command needs no `transact`.
 
-The host registers `SettingsService.layer` in `requestServices`, and each operation yields the current `Identity` from its environment. Each mounted editor subscribes through the contract's native WebSocket connection and receives its first authorized settings result there. A committed settings change makes the socket process rerun each affected subscription under its current session and read policy and push the changed value into its already-open editor. The client issues no follow-up read. See [live updates](./live-updates.md) for server coalescing and reconciliation.
+The module lists both operations under identity's `Authenticated` middleware, which supplies `Identity`, and its registration provides the two repositories. Each mounted editor subscribes through the session's WebSocket connection and receives its first authorized settings result there. A committed settings change makes the socket process rerun each affected subscription under its current session and read policy and push the changed value into its already-open editor. The client issues no follow-up read. See [live updates](./live-updates.md) for server coalescing and reconciliation.
 
-The host’s bearer-token sessions and permissive Origin policy are fixture choices. The handler also composes a test commit gate with the host’s existing `BeforeCommit` hook, preserving its PostgreSQL notification delivery; applications do not need that gate. Use your application's session provider and Origin policy, as described in [request context](./request-context.md).
+## Edit fields and keep typed failures
 
-## Edit fields and preserve typed failures
-
-`useSettingsEditor` mounts the connection and calls the native editor path:
+The editor binds the generated contract's save command to the query:
 
 ```ts
-return useEditor(client.api.save, { fields: Draft, fixed: { entityId: client.entityId }, query: client.query });
+const Draft = Schema.Struct({ pageSize: Schema.NumberFromString, title: Schema.String });
+
+const editor = useEditor(client.api.save, { fields: Draft, fixed: { entityId }, query: client.api.get.query({ entityId }) });
 ```
 
 `Draft` holds the page size as text, and the editor encodes each queried row with it. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft.
 
-The command declares `InvalidSettings: fieldRejection(Settings)`. The service refuses a page size outside the integer range 1–100 with that typed rejection naming `pageSize`. `useEditor` maps its `{ _tag, field, message }` shape to the matching form field, whose error the component renders beside the input. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the service for HTTP callers as well as form submissions.
+`InvalidSettings` is a field rejection over the settings fields, so the generator lists it among the command's rejections and `useEditor` puts its message on the `pageSize` field without a `failures` handler. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the command for every caller, not only for form submissions.
 
 ## What the evidence covers
 
-This recipe is proved against real PostgreSQL over real HTTP, with saves committed through `appHost` and observed by independently rendered clients: defaults without a stored row, first-save creation and its live delivery to the other client, replacement values that leave exactly one stored row, no row or new values visible before commit, a field rejection that stores nothing, and refusal of another owner's queries and saves before and after the row exists. The clients are DOM renders, so they do not prove browser appearance, SSR or a production sign-in flow.
+React's settings stories prove this recipe against real PostgreSQL over real HTTP, with saves committed through `appHost` and observed by independently rendered clients: defaults without a stored row, first-save creation and its live delivery to the other client, replacement values that leave exactly one stored row, no row or new values visible before commit, a field rejection that stores nothing, and refusal of another owner's queries and saves before and after the row exists. Their fixture declares the same two operations without `run` and serves them with hand-written handlers, its bearer-token sessions and permissive Origin policy are fixture choices, and the clients are DOM renders, so they do not prove browser appearance, SSR or a production sign-in flow.
