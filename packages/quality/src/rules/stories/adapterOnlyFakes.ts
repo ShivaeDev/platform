@@ -4,12 +4,13 @@ import { type FakeModule, fakeTargets } from "#adapters/imports/fakeTargets.ts";
 import { fakeApi, fakeReferences } from "#imports/fakeReferences.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTestCode } from "#naming/testName.ts";
+import { inAdapters } from "#naming/unsafeFolders.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { fakeReplacements } from "#rules/stories/fakeReplacements.ts";
 import { storyProgram } from "#storyProgram.ts";
 
 function internal(path: string): boolean {
-	return !path.split("/").includes("adapters");
+	return !inAdapters(path);
 }
 
 function message(target: string): string {
