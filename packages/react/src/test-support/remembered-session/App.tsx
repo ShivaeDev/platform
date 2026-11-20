@@ -33,7 +33,7 @@ export function RememberedApp({
 }: {
 	readonly client: RememberedClient;
 	readonly session: RememberedAuthSession<unknown>;
-	readonly signOutVia?: "boundary" | "session";
+	readonly signOutVia?: "boundary" | "session" | undefined;
 }) {
 	const [signOut] = useState(() => Atom.fn<void>()(() => (signOutVia === "session" ? session.signOut(Effect.void) : client.signOutRequest)));
 	const query = useQuery(session.atom);

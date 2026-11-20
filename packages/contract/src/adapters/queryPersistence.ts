@@ -1,9 +1,9 @@
-import { Data, Effect, Semaphore } from "effect";
+import { Data, Effect, Exit, Option, Semaphore } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { type QueryStorage, type QueryStorageOperation, QueryStorageProvider, type StoredQuery } from "#QueryStorage.ts";
 import { queryRetention } from "#queryRetention.ts";
-import { type OpenedQueryStorage, storedQueries } from "#storedQueries.ts";
+import { type OpenedQueryStorage, type StoredForm, storedQueries } from "#storedQueries.ts";
 
 export const STORED_WRITE_WINDOW = "1 second";
 const STORED_BYTES = 5_000_000;
@@ -112,28 +112,50 @@ export const queryPersistence = Atom.keepAlive(
 				forget(key);
 			}
 		}
+		function run<A>(runtime: Atom.AtomRuntime<unknown, unknown>, effect: Effect.Effect<A, unknown, unknown>): Option.Option<A> {
+			const services = registry.get(runtime);
+			if (!AsyncResult.isSuccess(services)) {
+				return Option.none();
+			}
+			const exit = Effect.runSyncExitWith(services.value)(effect);
+			return Exit.isSuccess(exit) ? Option.some(exit.value) : Option.none();
+		}
+		function drop(key: string, runtime: Atom.AtomRuntime<unknown, unknown>) {
+			seeds.delete(key);
+			if (kept.has(key) || written.has(key)) {
+				forget(key);
+				schedule(runtime);
+			}
+		}
 		return {
-			drop: (key: string, runtime: Atom.AtomRuntime<unknown, unknown>) => {
-				seeds.delete(key);
-				if (kept.has(key) || written.has(key)) {
-					forget(key);
-					schedule(runtime);
-				}
+			drop: <A>(form: StoredForm<A>, runtime: Atom.AtomRuntime<unknown, unknown>) => {
+				Option.map(run(runtime, form.key), (key) => drop(key, runtime));
 			},
 			flush,
-			restore: (key: string) => {
-				const raw = seeds.get(key);
-				seeds.delete(key);
-				return raw;
-			},
-			save: (key: string, value: string, runtime: Atom.AtomRuntime<unknown, unknown>) => {
-				used += 1;
-				kept.delete(key);
-				kept.set(key, key.length + value.length);
-				written.set(key, { key, used, value });
-				removed.delete(key);
-				evict();
-				schedule(runtime);
+			restore: <A>(form: StoredForm<A>, runtime: Atom.AtomRuntime<unknown, unknown>): Option.Option<A> =>
+				Option.flatMap(run(runtime, form.key), (key) => {
+					const raw = seeds.get(key);
+					seeds.delete(key);
+					if (raw === undefined) {
+						return Option.none();
+					}
+					const decoded = run(runtime, form.decode(raw));
+					if (Option.isNone(decoded)) {
+						drop(key, runtime);
+					}
+					return decoded;
+				}),
+			save: <A>(form: StoredForm<A>, value: A, runtime: Atom.AtomRuntime<unknown, unknown>) => {
+				const stored = Option.all({ encoded: run(runtime, form.encode(value)), key: run(runtime, form.key) });
+				Option.map(stored, ({ encoded, key }) => {
+					used += 1;
+					kept.delete(key);
+					kept.set(key, key.length + encoded.length);
+					written.set(key, { key, used, value: encoded });
+					removed.delete(key);
+					evict();
+					schedule(runtime);
+				});
 			},
 		};
 	}),

@@ -33,22 +33,16 @@ export function retainQuery<A, E>(
 			}
 		});
 		if (stored !== undefined && persistence !== undefined && Option.isNone(get.once(snapshot))) {
-			const raw = persistence.restore(stored.key);
-			if (raw !== undefined) {
-				Option.match(stored.decode(raw), {
-					onNone: () => persistence.drop(stored.key, runtime),
-					onSome: (value) => get.set(snapshot, Option.some(AsyncResult.success<A, E>(value))),
-				});
-			}
+			Option.map(persistence.restore(stored, runtime), (value) => get.set(snapshot, Option.some(AsyncResult.success<A, E>(value))));
 		}
 		function persist(result: AsyncResult.AsyncResult<A, E>) {
 			if (stored === undefined || persistence === undefined || result.waiting) {
 				return;
 			}
 			if (AsyncResult.isSuccess(result)) {
-				Option.map(stored.encode(result.value), (value) => persistence.save(stored.key, value, runtime));
+				persistence.save(stored, result.value, runtime);
 			} else if (AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), gone)) {
-				persistence.drop(stored.key, runtime);
+				persistence.drop(stored, runtime);
 			}
 		}
 		function display(result: AsyncResult.AsyncResult<A, E>) {
