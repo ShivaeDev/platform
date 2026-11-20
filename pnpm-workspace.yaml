@@ -22,7 +22,7 @@ catalog:
   "@earendil-works/pi-coding-agent": 1.5.2
   "@modelcontextprotocol/sdk": 1.32.2
   "@zip.js/zip.js": 2.25.0
-  resend: 6.37.0
+  resend: 6.38.0
   playwright: 1.65.0
   "cn": 0.5.2
   "@base-ui/react": 1.9.0
