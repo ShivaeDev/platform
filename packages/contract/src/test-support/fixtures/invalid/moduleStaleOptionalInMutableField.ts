@@ -21,7 +21,6 @@ const Operation = query("holdsPinnable", {
 defineModule({
 	name: "holdsPinnable",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: {
 		holdsPinnable: {
 			rejections: {},

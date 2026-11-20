@@ -1,8 +1,7 @@
 import { Context, type Effect } from "effect";
 import type { Rpc, RpcMiddleware } from "effect/rpc";
-import type { RequirementRecord } from "@shivaedev/service/ServiceRequirements.ts";
 import { type Contract, declaredGroup } from "#contract.ts";
-import type { Allowed, NameProof } from "#moduleProof.ts";
+import type { ModuleRequirements, ModuleServices, NameProof } from "#moduleProof.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import type { OperationRpc } from "#operationRpc.ts";
 import type { ReadPolicyGuard } from "#ReadPolicyGuard.ts";
@@ -54,19 +53,18 @@ export type ModuleContract<
 export type Module<
 	TName extends string,
 	TOperations extends readonly ModuleOperation[],
-	TRequirements extends RequirementRecord,
+	TRequirements extends ModuleServices,
 	TMiddleware extends RpcMiddleware.AnyService = never,
 	TSubject extends SubjectDeclaration | undefined = undefined,
 	TScope extends "session" | undefined = undefined,
 > = ModuleContract<TName, TOperations, TMiddleware, TSubject, TScope> & {
-	// The compiler checks the list and nothing reads it at run time, so, like Rpc's ~requires, it exists only in the type.
+	// The services each operation needs, inferred from its run and read policy. Like Rpc's ~requires, it exists only in the type.
 	readonly "~requires": TRequirements;
 };
 
 export interface ModuleDefinition<
 	TName extends string,
 	TOperations extends readonly ModuleOperation[],
-	TRequirements extends RequirementRecord,
 	TMiddleware extends RpcMiddleware.AnyService,
 	TSubject extends SubjectDeclaration | undefined,
 	TScope extends "session" | undefined,
@@ -74,9 +72,8 @@ export interface ModuleDefinition<
 > {
 	readonly keyScope?: TScope;
 	readonly middleware?: TMiddleware;
-	readonly name: TName & NoInfer<NameProof<TOperations, TWire, Allowed<TRequirements, TMiddleware, TSubject>>>;
+	readonly name: TName & NoInfer<NameProof<TOperations, TWire>>;
 	readonly operations: TOperations;
-	readonly requires: TRequirements;
 	readonly subject?: TSubject;
 	readonly wire: TWire;
 }
@@ -84,14 +81,20 @@ export interface ModuleDefinition<
 export function defineModule<
 	const TName extends string,
 	const TOperations extends readonly ModuleOperation[],
-	const TRequirements extends RequirementRecord,
 	const TWire extends Wire,
 	TMiddleware extends RpcMiddleware.AnyService = never,
 	const TSubject extends SubjectDeclaration | undefined = undefined,
 	const TScope extends "session" | undefined = undefined,
 >(
-	definition: ModuleDefinition<TName, TOperations, TRequirements, TMiddleware, TSubject, TScope, TWire>,
-): Module<TName, WiredAll<TOperations, TWire> & readonly ModuleOperation[], TRequirements, TMiddleware, TSubject, TScope>;
+	definition: ModuleDefinition<TName, TOperations, TMiddleware, TSubject, TScope, TWire>,
+): Module<
+	TName,
+	WiredAll<TOperations, TWire> & readonly ModuleOperation[],
+	ModuleRequirements<TOperations, TMiddleware, TSubject>,
+	TMiddleware,
+	TSubject,
+	TScope
+>;
 export function defineModule(definition: {
 	readonly keyScope?: "session";
 	readonly middleware?: RpcMiddleware.AnyService;

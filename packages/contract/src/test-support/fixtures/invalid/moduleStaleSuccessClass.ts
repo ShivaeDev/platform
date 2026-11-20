@@ -18,6 +18,5 @@ const Operation = command("returnsPlainNote", {
 defineModule({
 	name: "returnsPlainNote",
 	operations: [Operation],
-	requires: [NotesRepository, SessionUser],
 	wire: { returnsPlainNote: { rejections: {}, success: Note } },
 });

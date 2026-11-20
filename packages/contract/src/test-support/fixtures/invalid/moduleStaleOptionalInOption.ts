@@ -21,6 +21,5 @@ const Operation = query("latestPinnable", {
 defineModule({
 	name: "latestPinnable",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { latestPinnable: { rejections: {}, success: Schema.Option(Schema.Struct({ id: Schema.Number, title: Schema.String })) } },
 });

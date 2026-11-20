@@ -37,6 +37,5 @@ export const JobsWithRetry = defineModule({
 	middleware: JobsPermission,
 	name: "admin.jobs",
 	operations: [Health, Counts, Failed, DeadLettered, Detail, Retry, RunScheduleNow],
-	requires: [RegisteredQueues],
 	wire: adminJobsWire,
 });

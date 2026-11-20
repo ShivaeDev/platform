@@ -15,6 +15,5 @@ const Operation = command("listsTooMuch", {
 defineModule({
 	name: "listsTooMuch",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { listsTooMuch: { rejections: { NoteMissing }, success: Schema.String } },
 });

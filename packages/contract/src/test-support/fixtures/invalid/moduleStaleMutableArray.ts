@@ -15,6 +15,5 @@ const Operation = query("titles", {
 defineModule({
 	name: "titles",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { titles: { rejections: {}, success: Schema.Array(Schema.String) } },
 });

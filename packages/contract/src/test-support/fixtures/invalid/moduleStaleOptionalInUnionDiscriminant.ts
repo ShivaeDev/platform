@@ -18,6 +18,5 @@ const Operation = query("changesWithExtra", {
 defineModule({
 	name: "changesWithExtra",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { changesWithExtra: { rejections: {}, success: Schema.Union([Moved, Renamed]) } },
 });

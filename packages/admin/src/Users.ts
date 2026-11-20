@@ -4,7 +4,6 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { AssignRoles } from "@shivaedev/identity/roles.ts";
-import { UserDirectory } from "@shivaedev/identity/server/UserDirectory.ts";
 import { UserListInput, userKeys } from "@shivaedev/identity/users.ts";
 import { adminUsersWire } from "#generated/Users.ts";
 import { UsersPermission } from "#permissions.ts";
@@ -33,6 +32,5 @@ export const Users = defineModule({
 	middleware: UsersPermission,
 	name: "admin.users",
 	operations: [ListUsers, ChangeRole],
-	requires: [UserDirectory],
 	wire: adminUsersWire,
 });

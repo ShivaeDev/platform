@@ -29,7 +29,6 @@ const SetsModule = defineModule({
 			},
 		}),
 	],
-	requires: [],
 	wire: { read: { rejections: { SetRefused }, success: Schema.Struct({ best: PublicSet, logged: PublicSet }) } },
 });
 const groups = {

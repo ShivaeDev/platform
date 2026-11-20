@@ -3,12 +3,10 @@ export const PUBLIC_SHAPE_PROJECT: Readonly<Record<string, string>> = {
 	"src/modules/credentials/credentials.ts": `import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { credentialsWire } from "#generated/modules/credentials/credentials.ts";
 import { Holder, SignIn } from "#modules/credentials/operations.ts";
-import { CredentialStore } from "#modules/credentials/store.ts";
 
 export const Credentials = defineModule({
 	name: "credentials",
 	operations: [Holder, SignIn],
-	requires: [CredentialStore],
 	wire: credentialsWire,
 });
 `,

@@ -18,6 +18,5 @@ const Operation = command("createsPlainNote", {
 defineModule({
 	name: "createsPlainNote",
 	operations: [Operation],
-	requires: [NotesRepository, SessionUser],
 	wire: { createsPlainNote: { rejections: {}, success: Schema.Struct({ note: Note, saved: Schema.Boolean }) } },
 });

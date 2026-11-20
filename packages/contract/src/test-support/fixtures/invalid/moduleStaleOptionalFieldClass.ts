@@ -17,6 +17,5 @@ const Operation = query("featuresPlainNote", {
 defineModule({
 	name: "featuresPlainNote",
 	operations: [Operation],
-	requires: [SessionUser],
 	wire: { featuresPlainNote: { rejections: {}, success: Schema.Struct({ note: Schema.optional(Note) }) } },
 });

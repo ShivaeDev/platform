@@ -2,11 +2,16 @@ import { Context, Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, type SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
+import { defineModule } from "@shivaedev/contract/defineModule.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import type { AppModule, RegisteredModule } from "#AppModule.ts";
 import { appHost } from "#appDatabase.ts";
 import { appModules } from "#appModules.ts";
 import type { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import { draftsModule, Notes, notesModule } from "#test/defined-modules/features.ts";
+import { coachingModule } from "#test/subject/coaching.ts";
 import { workerHost } from "#workerHost.ts";
 
 class Port extends Context.Service<Port, string>()("@shivaedev/server/test/modules/Port") {}
@@ -74,8 +79,47 @@ it("worker composition retains missing ports, replacement requirements, failures
 
 const definedModules = appModules([notesModule]);
 
-it("a defined module's generated handlers require exactly the services it declares", () => {
+it("a defined module's generated handlers require exactly the services its operations yield beyond its middleware and subject", () => {
 	expectTypeOf<Layer.Services<Effect.Success<typeof definedModules>["handlers"]>>().toEqualTypeOf<SqlClient.SqlClient>();
+	expectTypeOf<
+		Layer.Services<Effect.Success<ReturnType<typeof appModules<readonly [typeof coachingModule]>>>["handlers"]>
+	>().toEqualTypeOf<SqlClient.SqlClient>();
+});
+
+class Greeting extends Context.Service<Greeting, string>()("@shivaedev/server/test/modules/Greeting") {}
+const Greetings = defineModule({
+	middleware: AuthenticatedUser,
+	name: "greetings",
+	operations: [
+		query("hello", {
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			*run() {
+				const { name } = yield* SessionUser;
+				return `${yield* Greeting}, ${name}`;
+			},
+		}),
+	],
+	wire: { hello: { rejections: {}, success: Schema.String } },
+});
+const greetings = {
+	migrations: { loader: Migrator.fromRecord({}) },
+	module: Greetings,
+	name: "greetings",
+	services: Layer.empty,
+} satisfies AppModule;
+const greetingPorts = { ...module, name: "greeting", ports: Layer.succeed(Greeting, "Hello") } satisfies AppModule;
+const greetingPerRequest = { ...module, name: "greeting", requestServices: Layer.succeed(Greeting, "Hello") } satisfies AppModule;
+
+it("a defined module takes its services from any registration or the host, and never asks for what its middleware or subject provides", () => {
+	expectTypeOf(appModules([greetings, greetingPorts])).not.toBeAny();
+	expectTypeOf(appModules([greetings, greetingPerRequest])).not.toBeAny();
+	expectTypeOf(appModules([notesModule])).not.toBeAny();
+	expectTypeOf(appModules([coachingModule])).not.toBeAny();
+	// @ts-expect-error No registration provides Greeting, which the hello query yields.
+	expectTypeOf(appModules([greetings])).not.toBeAny();
+	// @ts-expect-error Replacements override default ports, so a service only they provide still needs a registration's default.
+	expectTypeOf(appModules([greetings], { replacements: Layer.succeed(Greeting, "Hi") })).not.toBeAny();
 });
 
 const annotated: AppModule = notesModule;
@@ -85,12 +129,12 @@ function registration(): AppModule {
 const registeredNotes: RegisteredModule = Notes;
 const widenedModule = { ...notesModule, module: registeredNotes } satisfies AppModule;
 
-it("a defined module's registration whose type lost the module's requires does not compile", () => {
-	// @ts-expect-error The annotation drops Notes' requires, so its generated handlers would claim to need nothing.
+it("a defined module's registration whose type lost the module's services does not compile", () => {
+	// @ts-expect-error The annotation drops Notes' services, so its generated handlers would claim to need nothing.
 	expectTypeOf(appModules([draftsModule, annotated])).not.toBeAny();
-	// @ts-expect-error The helper's return type drops Notes' requires, so its generated handlers would claim to need nothing.
+	// @ts-expect-error The helper's return type drops Notes' services, so its generated handlers would claim to need nothing.
 	expectTypeOf(appModules([registration()])).not.toBeAny();
-	// @ts-expect-error RegisteredModule drops Notes' requires, so its generated handlers would claim to need nothing.
+	// @ts-expect-error RegisteredModule drops Notes' services, so its generated handlers would claim to need nothing.
 	expectTypeOf(appModules([widenedModule])).not.toBeAny();
 });
 

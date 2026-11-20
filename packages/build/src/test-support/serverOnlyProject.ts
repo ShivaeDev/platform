@@ -6,7 +6,6 @@ import { ReturnsAccount, ReturnsRow, ReturnsRows, ReturnsSession, ReturnsToken }
 export const Accounts = defineModule({
 	name: "accounts",
 	operations: [ReturnsRow, ReturnsRows, ReturnsAccount, ReturnsSession, ReturnsToken],
-	requires: [],
 	wire: {},
 });
 `,

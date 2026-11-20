@@ -9,6 +9,7 @@ import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import type { AppModule, ModuleAdmin, ModuleLayer } from "#AppModule.ts";
 import { DuplicateModuleQueue } from "#DuplicateModuleQueue.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
+import type { ProvidedModules } from "#providedModules.ts";
 import type { GlobalServices } from "#requestServices.ts";
 
 type ModuleField<TModules, TKey extends PropertyKey> = TModules extends unknown ? (TKey extends keyof TModules ? TModules[TKey] : never) : never;
@@ -17,7 +18,7 @@ type Layers<TModules extends readonly AppModule[], TKey extends "handlers" | "se
 	Layer.Any
 >;
 type ServedHandlers<TModule> = TModule extends { readonly module: infer TDefined extends AnyModule } ? ModuleHandlers<TDefined> : never;
-// A registration typed as AppModule has lost its module's requires, so ServedHandlers would serve it as requiring nothing.
+// A registration typed as AppModule has lost its module's services, so ServedHandlers would serve it as requiring nothing.
 // Only a tuple is checked: inference sees the bare constraint, and a check that refuses it breaks inference of every registration list.
 type WidenedModule<TModule> = TModule extends { readonly module: infer TDefined } ? (TDefined extends AnyModule ? never : TModule) : never;
 type ExactModules<TModules extends readonly AppModule[]> = number extends TModules["length"]
@@ -25,7 +26,7 @@ type ExactModules<TModules extends readonly AppModule[]> = number extends TModul
 	: {
 			readonly [TKey in keyof TModules]: [WidenedModule<TModules[TKey]>] extends [never]
 				? unknown
-				: { readonly "Declare a defined module's registration with satisfies AppModule so its type keeps the module's requires": never };
+				: { readonly "Declare a defined module's registration with satisfies AppModule so its type keeps the module's services": never };
 		};
 type Groups<TModules extends readonly AppModule[]> = Extract<
 	ModuleField<TModules[number], "group"> | ModuleField<TModules[number], "module">,
@@ -49,7 +50,8 @@ type ModuleComponents<TModules extends AppModule> = Components<ModuleField<TModu
 export function appModules<const TModules extends readonly AppModule[], R = never, E = never, TRequirements = never>(
 	modules: TModules &
 		GlobalServices<Layer.Services<Services<NoInfer<TModules>>>, Layer.Success<RequestServices<NoInfer<TModules>>>> &
-		ExactModules<NoInfer<TModules>>,
+		ExactModules<NoInfer<TModules>> &
+		ProvidedModules<NoInfer<TModules>>,
 	options?: { readonly replacements?: Layer.Layer<R, E, TRequirements> },
 ): Effect.Effect<
 	{
@@ -117,13 +119,13 @@ const composeModules = Effect.fnUntraced(function* (modules: readonly AppModule[
 	return {
 		admin,
 		group: RpcGroup.make().merge(...modules.map((module) => (module.module === undefined ? module.group : module.module)), admin.group),
-		// The overload types each module's handlers from its own requires; at run time moduleHandlers reads only its operations.
+		// The overload types each module's handlers from its operations' services; at run time moduleHandlers reads only its operations.
 		handlers: Layer.mergeAll(
 			admin.handlers,
 			...modules.map((module) =>
 				module.module === undefined
 					? module.handlers
-					: moduleHandlers({ "~requires": [], application: module.module.application, declaration: module.module.declaration }),
+					: moduleHandlers({ "~requires": {}, application: module.module.application, declaration: module.module.declaration }),
 			),
 		),
 		migrations: {

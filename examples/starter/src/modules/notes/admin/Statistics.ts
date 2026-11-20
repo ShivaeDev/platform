@@ -1,4 +1,3 @@
-import { SqlClient } from "effect/sql";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { adminNotesWire } from "#generated/modules/notes/admin/Statistics.ts";
 import { StatisticsPermission } from "#modules/notes/admin/StatisticsPermission.ts";
@@ -8,6 +7,5 @@ export const Statistics = defineModule({
 	middleware: StatisticsPermission,
 	name: "admin.notes",
 	operations: [Read],
-	requires: [SqlClient.SqlClient],
 	wire: adminNotesWire,
 });

@@ -73,7 +73,6 @@ export const Members = defineModule({
 	middleware: MaybeAuthenticated,
 	name: "members",
 	operations: [join(Schema.String), Show, Audit],
-	requires: [MembersRepository],
 	wire: membersWire,
 });
 
@@ -81,7 +80,6 @@ const PrivateJoinMembers = defineModule({
 	middleware: MaybeAuthenticated,
 	name: "members",
 	operations: [join(Schema.String.annotate({ sensitive: true })), Show, Audit],
-	requires: [MembersRepository],
 	wire: membersWire,
 });
 

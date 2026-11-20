@@ -16,7 +16,6 @@ const Operation = query("listsInfrastructure", {
 defineModule({
 	name: "listsInfrastructure",
 	operations: [Operation],
-	requires: [NotesRepository, SessionUser],
 	wire: {
 		listsInfrastructure: { rejections: { QueryReadDenied }, success: Schema.Array(Schema.Struct({ id: Schema.Number, title: Schema.String })) },
 	},

@@ -21,7 +21,7 @@ const List = query("list", {
 	},
 });
 
-export const Notes = defineModule({ name: "notes", operations: [List], requires: [], wire: notesWire });
+export const Notes = defineModule({ name: "notes", operations: [List], wire: notesWire });
 `;
 
 // A package that ships one defined module, built the way identity's build script builds: generate first, then compile.

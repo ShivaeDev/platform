@@ -56,7 +56,7 @@ const Save = command("save", {
 		return `${id}: ${title}`;
 	},
 });
-export const Account = defineModule({ name: "account", operations: [Save], requires: [], subject: selfSubject, wire: accountWire });
+export const Account = defineModule({ name: "account", operations: [Save], subject: selfSubject, wire: accountWire });
 ```
 
 For delegation, use `accountSubject` with an application permission and a typed refusal:
@@ -92,7 +92,7 @@ export const actsAsCoach = delegatedSubject({
 	deny: (client) => new NotYourClient({ client }),
 });
 
-export const Training = defineModule({ name: "training", operations: [Plan, SavePlan], requires: [SqlClient.SqlClient], subject: actsAsCoach });
+export const Training = defineModule({ name: "training", operations: [Plan, SavePlan], subject: actsAsCoach, wire: trainingWire });
 ```
 
 On the server the application answers one question with a service whose id is the declaration's `service`. Its `allows` operation receives a `DelegationRequest`, `{ subject, module, operation, kind }`, and returns whether the actor may make that call; it may fail with an identity failure, such as `AuthUnavailable`, or the declared refusal. It reads the actor from `CurrentViewer` in `@shivaedev/contract/readPolicy.ts`, which the guard sets to the actor for each question; `CurrentViewer` is a reference, so the service lists only its own dependencies in `requires` and is registered once in the host's `services`:
@@ -856,7 +856,7 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, define the module with `keyScope: "session"` and `subject: selfSubject`, as in `defineModule({ keyScope: "session", name: "preferences", operations, requires, subject: selfSubject, wire })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
+For self-only features, define the module with `keyScope: "session"` and `subject: selfSubject`, as in `defineModule({ keyScope: "session", name: "preferences", operations, subject: selfSubject, wire })`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Subject`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
 The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 

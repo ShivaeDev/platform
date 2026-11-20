@@ -13,7 +13,7 @@ import { defineModule } from "#defineModule.ts";
 import { moduleHandlers } from "#moduleHandlers.ts";
 import { command, query } from "#operation.ts";
 import { CurrentViewer, signedIn, type Viewer } from "#readPolicy.ts";
-import { Diary, DiaryDay, diaryMigration, diaryWire, EveryDiaryEntry, WriteDiary } from "#test/repository-reads/diary.ts";
+import { DiaryDay, diaryMigration, diaryWire, EveryDiaryEntry, WriteDiary } from "#test/repository-reads/diary.ts";
 
 export class StoredBook extends Model.Class<StoredBook>("LibraryBook")({ id: Schema.Number, shelf: bucket(Schema.Number), title: Schema.String }) {}
 export class StoredLoan extends Model.Class<StoredLoan>("LibraryLoan")({ book: Schema.Number, id: Schema.Number, reader: bucket(Schema.String) }) {}
@@ -205,7 +205,6 @@ export const Libraries = defineModule({
 		EveryDiaryEntry,
 		WriteDiary,
 	],
-	requires: [Library, Diary, SqlClient.SqlClient],
 	wire: {
 		...diaryWire,
 		book: { rejections: {}, success: Schema.String },

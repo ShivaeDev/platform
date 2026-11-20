@@ -34,14 +34,12 @@ Write a page's operations once, as a module built with `defineModule` from `@shi
 import { JobsPermission } from "@shivaedev/admin/permissions.ts";
 import { defineModule } from "@shivaedev/contract/defineModule.ts";
 import { adminJobsWire } from "#generated/modules/admin/jobs/Failed.ts";
-import { JobStore } from "#modules/admin/jobs/server/JobStore.ts";
 import { ListFailed } from "#modules/admin/jobs/server/ListFailed.ts";
 
 export const Failed = defineModule({
 	middleware: JobsPermission,
 	name: "admin.jobs",
 	operations: [ListFailed],
-	requires: [JobStore],
 	wire: adminJobsWire,
 });
 ```
